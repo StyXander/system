@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>审迹智链 · C 证据链与风险路径</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <header class="bar">
+      <div class="identity">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <strong>审迹智链 · 证据路径台</strong>
+          <span>从公开资料到待核查线索的可回溯链路</span>
+        </div>
+      </div>
+      <div class="meta">
+        <span id="meta-company">未命名项目</span>
+        <span id="meta-scene">—</span>
+        <span id="meta-date">截止日未填</span>
+      </div>
+      <div class="flags">
+        <span class="flag" data-system-mode>空白项目</span>
+        <span class="flag dim">无模型 · 本地</span>
+      </div>
+    </header>
+
+    <!-- 结构核心：顶部风险路径，而不是传统菜单优先 -->
+    <section class="pathboard" aria-label="风险路径">
+      <button class="path-step active" id="path-project" data-view="project-view" data-status="todo" type="button">
+        <em>1</em><strong>项目边界</strong><small>场景/时点</small>
+      </button>
+      <i class="path-link" aria-hidden="true"></i>
+      <button class="path-step" id="path-data" data-view="data-view" data-status="todo" type="button">
+        <em>2</em><strong>证据接入</strong><small>数字+定位</small>
+      </button>
+      <i class="path-link" aria-hidden="true"></i>
+      <button class="path-step" id="path-calc" data-view="overview-view" data-status="todo" type="button">
+        <em>3</em><strong>确定性计算</strong><small>公式固定</small>
+      </button>
+      <i class="path-link" aria-hidden="true"></i>
+      <button class="path-step" id="path-matrix" data-view="overview-view" data-status="todo" type="button">
+        <em>4</em><strong>四维交叉</strong><small>可得性矩阵</small>
+      </button>
+      <i class="path-link" aria-hidden="true"></i>
+      <button class="path-step" id="path-risk" data-view="risk-view" data-status="todo" type="button">
+        <em>5</em><strong>风险卡</strong><small>下钻链路</small>
+      </button>
+      <i class="path-link" aria-hidden="true"></i>
+      <button class="path-step" id="path-review" data-view="review-view" data-status="todo" type="button">
+        <em>6</em><strong>人工闸门</strong><small>确认/导出</small>
+      </button>
+    </section>
+
+    <div id="system-banner" class="mode-strip" data-mode="blank">
+      <strong data-system-mode>空白项目</strong>
+      <span data-system-hint>尚未建立可分析输入。</span>
+    </div>
+
+    <div class="split">
+      <!-- 左：证据链纵向 -->
+      <aside class="chain">
+        <p class="label">证据链</p>
+        <ol>
+          <li class="workflow-step active" data-view="project-view"><b>P</b><div><strong>项目设定</strong><span>边界与口径</span></div></li>
+          <li class="workflow-step" data-view="data-view"><b>E</b><div><strong>资料预检</strong><span>可返回原件</span></div></li>
+          <li class="workflow-step" data-view="overview-view"><b>X</b><div><strong>交叉验证</strong><span>矩阵总览</span></div></li>
+          <li class="workflow-step" data-view="risk-view"><b>R</b><div><strong>R1 下钻</strong><span>现象→依据→缺口</span></div></li>
+          <li class="workflow-step" data-view="review-view"><b>H</b><div><strong>人工确认</strong><span>导出闸门</span></div></li>
+        </ol>
+        <div class="bound">
+          <p>边界</p>
+          <span>公开资料待核查线索。不认定舞弊，不形成审计意见，不提供投资建议。</span>
+        </div>
+      </aside>
+
+      <!-- 右：详情工作区 -->
+      <main class="detail">
+        <div class="detail-head">
+          <h1 id="page-heading">项目设定</h1>
+          <p class="sub">信息沿路径向右下钻：先准入，再计算，再解释，最后由人确认。</p>
+        </div>
+
+        <section id="project-view" class="view active">
+          <div class="panel">
+            <div class="panel-h">
+              <h2 id="project-title">建立一个开发用预审项目</h2>
+              <span class="state-chip draft">开发样例</span>
+            </div>
+            <p class="desc">先记录使用场景和分析时点。保存不会调用 AI，也不会生成审计结论。</p>
+            <form id="project-form" class="grid">
+              <label class="field full"><span>公司名称 <em>必填</em></span><input id="company-name" type="text" placeholder="本周选定的公开年报主体" autocomplete="off" required><small>仅填写本周选定的公开年报主体。</small></label>
+              <label class="field"><span>分析截止日 <em>必填</em></span><input id="analysis-date" type="date" required><small>只使用这一天以前已经公开的资料。</small></label>
+              <label class="field"><span>分析场景</span><select id="analysis-scene"><option>新客户业务承接</option><option>续聘复核</option><option>审计计划</option></select><small>仅“审计计划”显示候选认定和建议程序。</small></label>
+              <label class="field full"><span>所属行业</span><input id="industry" type="text" placeholder="人工填写，不自动判断" autocomplete="off"></label>
+              <label class="field"><span>本年 <em>必填</em></span><input id="current-year" type="number" min="2000" max="2100" step="1" placeholder="2025" required></label>
+              <label class="field"><span>上年 <em>必填</em></span><input id="previous-year" type="number" min="2000" max="2100" step="1" placeholder="2024" required></label>
+              <label class="field"><span>统一金额单位</span><select id="amount-unit"><option>元</option><option selected>万元</option><option>百万元</option></select><small>四个数字必须同一单位。</small></label>
+              <div class="actions full">
+                <button class="btn primary" type="submit">保存并进入证据接入</button>
+                <button class="btn" id="clear-project" type="button">清空本地内容</button>
+              </div>
+            </form>
+            <div class="snap">
+              <p class="label">路径快照</p>
+              <h3 id="project-summary-title">尚未填写公司名称</h3>
+              <p>场景 <b id="project-summary-scene">新客户业务承接</b> · 截止 <b id="project-summary-date">待填写</b> · 行业 <b id="project-summary-industry">待填写</b></p>
+            </div>
+          </div>
+        </section>
+
+        <section id="data-view" class="view">
+          <div class="panel">
+            <div class="panel-h">
+              <h2 id="data-title">证据接入：数字必须回到原件</h2>
+              <span id="data-overall-status" class="state-chip pending">待 B 接入</span>
+            </div>
+            <p class="desc">预检路径：金额录入 → 来源定位 → 完整性门禁 → 才允许进入计算与风险卡。</p>
+            <div class="lane">
+              <div><span>完整度</span><strong id="complete-count">0 / 4</strong></div>
+              <div><span>人工复核</span><strong>仍需回 PDF</strong></div>
+              <div><span>模式</span><strong>手工结构化</strong></div>
+            </div>
+            <div class="table-shell">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>字段</th><th>年度</th><th>数值</th><th>来源文件</th><th>披露日期</th><th>PDF页码</th><th>印刷页码</th><th>原文位置</th><th>状态</th>
+                  </tr>
+                </thead>
+                <tbody id="data-table-body"></tbody>
+              </table>
+            </div>
+            <div class="actions">
+              <button class="btn" id="fill-source-file" type="button">复用首行来源文件名</button>
+              <button class="btn primary" id="save-data" type="button">保存并进入交叉验证</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="overview-view" class="view">
+          <div class="panel">
+            <div class="panel-h">
+              <h2>交叉验证节点 · 风险总览</h2>
+              <span class="state-chip draft">可得性矩阵</span>
+            </div>
+            <p id="overview-summary" class="desc">项目边界未齐，矩阵仅作空工作底稿。</p>
+
+            <div class="xmatrix" role="table" aria-label="四维交叉验证矩阵">
+              <div class="xcell head">维度</div>
+              <div class="xcell head">状态</div>
+              <div class="xcell head">在路径中的位置</div>
+
+              <div class="xcell">财务勾稽</div>
+              <div class="xcell"><span id="matrix-finance" class="dot" data-status="na">不可评价</span></div>
+              <div class="xcell">计算节点：收入/应收增长率与差额</div>
+
+              <div class="xcell">业务规模</div>
+              <div class="xcell"><span id="matrix-business" class="dot" data-status="na">不可评价</span></div>
+              <div class="xcell">待业务量证据接入</div>
+
+              <div class="xcell">行业惯例</div>
+              <div class="xcell"><span id="matrix-industry" class="dot" data-status="na">不可评价</span></div>
+              <div class="xcell">待行业对照证据</div>
+
+              <div class="xcell">管理层叙述</div>
+              <div class="xcell"><span id="matrix-narrative" class="dot" data-status="na">不可评价</span></div>
+              <div class="xcell">待 MD&A 规则</div>
+
+              <div class="xcell">来源约束</div>
+              <div class="xcell"><span id="matrix-source" class="dot" data-status="na">不可评价</span></div>
+              <div class="xcell">证据链门禁：五项定位</div>
+            </div>
+
+            <div class="calc-row">
+              <div><span>收入增长率</span><strong id="revenue-growth">—</strong></div>
+              <div><span>应收账款增长率</span><strong id="ar-growth">—</strong></div>
+              <div><span>差额</span><strong id="growth-gap">—</strong></div>
+            </div>
+            <div id="risk-overview-list" class="path-list"></div>
+            <div class="actions">
+              <button class="btn" data-go="data-view" type="button">回到证据接入</button>
+              <button class="btn primary" data-go="risk-view" type="button">沿路径打开 R1</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="risk-view" class="view">
+          <div class="panel">
+            <div class="panel-h">
+              <h2 id="risk-title">R1 风险路径下钻</h2>
+              <span id="risk-status" class="state-chip pending">待数据接入</span>
+            </div>
+            <p class="desc">当前只计算收入与应收账款增长率。是否形成正式待核查事项，仍需 A 确认规则和人工复核。</p>
+
+            <div id="risk-empty" class="empty">
+              <h3 id="risk-empty-title">等待 B 的年报数据</h3>
+              <p id="risk-empty-text">录入本年和上年的收入、应收账款后，这里才会生成基于真实数字的现象描述。</p>
+              <button class="btn" data-go="data-view" type="button">返回资料预检</button>
+            </div>
+
+            <div id="risk-card" class="risk hidden">
+              <div class="risk-top">
+                <span>R1</span>
+                <div>
+                  <p>待核查现象</p>
+                  <h3 id="risk-card-title">收入与应收账款变动关系待进一步了解</h3>
+                </div>
+                <em class="tag">未形成正式输出</em>
+              </div>
+
+              <!-- 下钻关系：现象 → 公式 → 原文 → 缺口，用纵向链强调 -->
+              <div class="drill-chain">
+                <div class="drill-nav">
+                  <button type="button" class="active" data-drill-tab="observation">1 现象</button>
+                  <button type="button" data-drill-tab="formula">2 公式</button>
+                  <button type="button" data-drill-tab="source">3 原文依据</button>
+                  <button type="button" data-drill-tab="gaps">4 资料缺口</button>
+                  <button type="button" data-drill-tab="normal">5 正常解释</button>
+                </div>
+                <div class="drill-body">
+                  <div data-drill-panel="observation" class="active">
+                    <p class="label">发现了什么现象</p>
+                    <p id="risk-observation"></p>
+                    <p class="fine">计算本身不能证明收入确认存在错误。</p>
+                  </div>
+                  <div data-drill-panel="formula" class="hidden">
+                    <p class="label">公式如何算出</p>
+                    <ul class="formula">
+                      <li><strong>收入增长率</strong><code id="formula-revenue">—</code></li>
+                      <li><strong>应收账款增长率</strong><code id="formula-ar">—</code></li>
+                      <li><strong>差额</strong><code id="formula-gap">—</code></li>
+                    </ul>
+                  </div>
+                  <div data-drill-panel="source" class="hidden">
+                    <p class="label">原文依据（必须可返回）</p>
+                    <div id="evidence-list"></div>
+                  </div>
+                  <div data-drill-panel="gaps" class="hidden">
+                    <p class="label">资料缺口与索取</p>
+                    <div id="gap-list"></div>
+                    <div class="asks"><span>账龄明细表</span><span>期后回款记录</span><span>主要合同摘要</span><span>信用政策变更说明</span></div>
+                  </div>
+                  <div data-drill-panel="normal" class="hidden">
+                    <p class="label">可能的正常原因</p>
+                    <ul>
+                      <li>新增大客户或客户结构变化</li>
+                      <li>信用政策或结算周期改变</li>
+                      <li>季节性导致年末应收暂时增加</li>
+                      <li>行业账期整体拉长</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div id="planning-only" class="plan hidden">
+                <p class="label">仅审计计划场景</p>
+                <p><strong>候选认定：</strong>收入发生，以及应收账款的存在、权利和义务、计价和分摊；须由 A 根据具体信号选择，不能机械全选。</p>
+                <p><strong>供项目组考虑的程序：</strong>检查账龄及期后回款，了解主要客户信用期变化，抽查主要合同的结算和验收条款。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="review-view" class="view">
+          <div class="panel">
+            <div class="panel-h">
+              <h2>人工闸门 · 确认与导出</h2>
+              <span class="state-chip draft">路径终点</span>
+            </div>
+            <p class="desc">路径最后一步必须由人决定：保留、降级或暂缓。导出为本地草稿，非正式报告。</p>
+            <div class="review-grid">
+              <label class="field">
+                <span>复核状态</span>
+                <select id="review-status">
+                  <option>未复核</option>
+                  <option>保留为待核查候选</option>
+                  <option>降级</option>
+                  <option>暂缓</option>
+                </select>
+              </label>
+              <label class="field full">
+                <span>复核说明</span>
+                <textarea id="review-note" rows="4" placeholder="写明资料依据、正常解释或仍缺少的资料，不得直接认定舞弊。"></textarea>
+              </label>
+            </div>
+            <div id="export-gate" class="gate" data-blocked="true">
+              <div>
+                <strong>导出闸门</strong>
+                <p id="export-gate-text">导出闸门未开。</p>
+                <p>复核：<b id="review-export-status">未复核</b></p>
+                <p class="fine" id="review-export-note"></p>
+              </div>
+              <div class="actions">
+                <button class="btn" id="save-review" type="button">保存复核说明</button>
+                <button class="btn primary" id="export-draft" type="button">导出预审草稿</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

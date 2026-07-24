@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>审迹智链 · A 专业审计工作台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">WP</span>
+        <div>
+          <strong>审迹智链工作底稿台</strong>
+          <small>业务承接 / 续聘复核 / 审计计划 · 收入预筛</small>
+        </div>
+      </div>
+      <div class="engagement">
+        <div><label>项目</label><b id="meta-company">未命名项目</b></div>
+        <div><label>场景</label><b id="meta-scene">—</b></div>
+        <div><label>截止日</label><b id="meta-date">截止日未填</b></div>
+      </div>
+      <div class="top-status">
+        <span class="pill" data-system-mode>空白项目</span>
+        <span class="pill mute">本地 · 无模型</span>
+        <span class="pill mute">M0 预览</span>
+      </div>
+    </header>
+
+    <div class="shell">
+      <nav class="tree" aria-label="工作底稿导航">
+        <p class="tree-label">工作区</p>
+        <button class="nav-item active" data-view="project-view" type="button"><i>01</i>项目设定</button>
+        <button class="nav-item" data-view="data-view" type="button"><i>02</i>资料预检台账</button>
+        <button class="nav-item" data-view="overview-view" type="button"><i>03</i>风险总览 / 矩阵</button>
+        <button class="nav-item" data-view="risk-view" type="button"><i>04</i>R1 任务卡下钻</button>
+        <button class="nav-item" data-view="review-view" type="button"><i>05</i>确认与导出</button>
+        <div class="tree-note">
+          <p>使用边界</p>
+          <span>公开资料待核查线索；不认定舞弊；不出具审计意见；不提供投资建议。</span>
+        </div>
+      </nav>
+
+      <main class="main">
+        <div class="main-head">
+          <div>
+            <p class="crumb">工作底稿 / 销售与收款 / 收入确认</p>
+            <h1 id="page-heading">项目设定</h1>
+          </div>
+          <p class="sys-hint" data-system-hint>尚未建立可分析输入。</p>
+        </div>
+
+        <div id="system-banner" class="banner" data-mode="blank">
+          <strong data-system-mode>空白项目</strong>
+          <span data-system-hint>尚未建立可分析输入。</span>
+        </div>
+
+        <!-- 01 项目 -->
+        <section id="project-view" class="view active">
+          <div class="workpaper">
+            <div class="wp-head">
+              <h2 id="project-title">项目承接信息（工作底稿封面）</h2>
+              <span class="state-chip draft">开发样例</span>
+            </div>
+            <p class="desc">先记录使用场景和分析时点。保存不会调用 AI，也不会生成审计结论。</p>
+            <form id="project-form" class="wp-grid">
+              <label class="field span-2"><span>公司名称 <em>必填</em></span><input id="company-name" type="text" placeholder="本周选定的公开年报主体" autocomplete="off" required><small>仅填写本周选定的公开年报主体。</small></label>
+              <label class="field"><span>分析截止日 <em>必填</em></span><input id="analysis-date" type="date" required><small>只使用该日以前公开资料。</small></label>
+              <label class="field"><span>分析场景</span><select id="analysis-scene"><option>新客户业务承接</option><option>续聘复核</option><option>审计计划</option></select><small>仅审计计划显示候选认定与程序。</small></label>
+              <label class="field span-2"><span>所属行业</span><input id="industry" type="text" placeholder="人工填写，不自动判断" autocomplete="off"></label>
+              <label class="field"><span>本年 <em>必填</em></span><input id="current-year" type="number" min="2000" max="2100" step="1" placeholder="2025" required></label>
+              <label class="field"><span>上年 <em>必填</em></span><input id="previous-year" type="number" min="2000" max="2100" step="1" placeholder="2024" required></label>
+              <label class="field"><span>统一金额单位</span><select id="amount-unit"><option>元</option><option selected>万元</option><option>百万元</option></select><small>四个数字必须同一单位。</small></label>
+              <div class="actions span-2">
+                <button class="btn primary" type="submit">保存并进入资料预检</button>
+                <button class="btn" id="clear-project" type="button">清空本地内容</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 02 资料预检：检查清单式，不是单表堆砌 -->
+        <section id="data-view" class="view">
+          <div class="workpaper">
+            <div class="wp-head">
+              <h2 id="data-title">年报数字与原件定位预检</h2>
+              <span id="data-overall-status" class="state-chip pending">待 B 接入</span>
+            </div>
+            <p class="desc">把 B 整理的真实数字和页码填入。没有原件定位的数字不视为完整数据。流程：录数 → 补来源 → 行状态检查 → 保存计算。</p>
+            <div class="check-bar">
+              <div><span>完整度</span><strong id="complete-count">0 / 4</strong></div>
+              <div><span>人工复核</span><strong>仍需回 PDF</strong></div>
+              <div><span>模式</span><strong>手工结构化录入</strong></div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>字段</th><th>年度</th><th>数值</th><th>来源文件</th><th>披露日期</th><th>PDF页码</th><th>印刷页码</th><th>原文位置</th><th>状态</th>
+                  </tr>
+                </thead>
+                <tbody id="data-table-body"></tbody>
+              </table>
+            </div>
+            <div class="actions">
+              <button class="btn" id="fill-source-file" type="button">复用首行来源文件名</button>
+              <button class="btn primary" id="save-data" type="button">保存并进入风险总览</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 总览 + 四维矩阵 -->
+        <section id="overview-view" class="view">
+          <div class="workpaper">
+            <div class="wp-head">
+              <h2>风险总览与四维交叉验证矩阵</h2>
+              <span class="state-chip draft">规则未全量接入</span>
+            </div>
+            <p class="desc">矩阵只标记资料可得性与计算准入，不自动打风险分。多维触发只增加待核查信息量。</p>
+            <p id="overview-summary" class="summary-line">项目边界未齐，矩阵仅作空工作底稿。</p>
+            <div class="matrix-wrap">
+              <table class="matrix">
+                <thead>
+                  <tr><th>维度</th><th>含义</th><th>本版状态</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>财务勾稽</td>
+                    <td>收入 / 应收增长率与差额</td>
+                    <td><span id="matrix-finance" class="m-cell" data-status="na">不可评价</span></td>
+                    <td>依赖四项金额；上年数≠0</td>
+                  </tr>
+                  <tr>
+                    <td>业务规模</td>
+                    <td>与产能、客户、合同规模是否匹配</td>
+                    <td><span id="matrix-business" class="m-cell" data-status="na">不可评价</span></td>
+                    <td>首版未接业务量输入</td>
+                  </tr>
+                  <tr>
+                    <td>行业惯例</td>
+                    <td>账期 / 毛利等是否逆行业</td>
+                    <td><span id="matrix-industry" class="m-cell" data-status="na">不可评价</span></td>
+                    <td>待行业对照资料</td>
+                  </tr>
+                  <tr>
+                    <td>管理层叙述</td>
+                    <td>MD&A 与报表结果是否一致</td>
+                    <td><span id="matrix-narrative" class="m-cell" data-status="na">不可评价</span></td>
+                    <td>待文本规则接入</td>
+                  </tr>
+                  <tr>
+                    <td>来源约束</td>
+                    <td>数字能否返回年报原件</td>
+                    <td><span id="matrix-source" class="m-cell" data-status="na">不可评价</span></td>
+                    <td>五项定位齐全才准入</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 class="sub">候选风险列表</h3>
+            <div id="risk-overview-list" class="risk-list"></div>
+            <div class="metric-row">
+              <div class="metric"><span>收入增长率</span><strong id="revenue-growth">—</strong></div>
+              <div class="metric"><span>应收账款增长率</span><strong id="ar-growth">—</strong></div>
+              <div class="metric"><span>差额</span><strong id="growth-gap">—</strong></div>
+            </div>
+            <div class="actions">
+              <button class="btn" data-go="data-view" type="button">返回资料预检</button>
+              <button class="btn primary" data-go="risk-view" type="button">打开 R1 下钻</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04 风险卡下钻 -->
+        <section id="risk-view" class="view">
+          <div class="workpaper">
+            <div class="wp-head">
+              <h2 id="risk-title">R1 风险任务卡</h2>
+              <span id="risk-status" class="state-chip pending">待数据接入</span>
+            </div>
+            <p class="desc">当前只计算收入与应收账款增长率。是否形成正式待核查事项，仍需 A 确认规则和人工复核。</p>
+
+            <div id="risk-empty" class="empty-box">
+              <h3 id="risk-empty-title">等待 B 的年报数据</h3>
+              <p id="risk-empty-text">录入本年和上年的收入、应收账款后，这里才会生成基于真实数字的现象描述。</p>
+              <button class="btn" data-go="data-view" type="button">返回资料预检</button>
+            </div>
+
+            <div id="risk-card" class="risk-card hidden">
+              <div class="risk-title-bar">
+                <span class="code">R1</span>
+                <div>
+                  <p>待核查现象</p>
+                  <h3 id="risk-card-title">收入与应收账款变动关系待进一步了解</h3>
+                </div>
+                <span class="tag">未形成正式输出</span>
+              </div>
+
+              <div class="drill-tabs">
+                <button type="button" class="active" data-drill-tab="observation">现象</button>
+                <button type="button" data-drill-tab="formula">公式计算</button>
+                <button type="button" data-drill-tab="source">原文依据</button>
+                <button type="button" data-drill-tab="gaps">资料缺口</button>
+                <button type="button" data-drill-tab="normal">正常解释</button>
+              </div>
+
+              <div class="drill-panels">
+                <div data-drill-panel="observation" class="active">
+                  <p class="eyebrow">OBSERVATION</p>
+                  <p id="risk-observation"></p>
+                  <p class="muted">计算本身不能证明收入确认存在错误。</p>
+                </div>
+                <div data-drill-panel="formula" class="hidden">
+                  <p class="eyebrow">DETERMINISTIC FORMULAE</p>
+                  <ul class="formula-list">
+                    <li><strong>收入增长率</strong><span id="formula-revenue">—</span></li>
+                    <li><strong>应收账款增长率</strong><span id="formula-ar">—</span></li>
+                    <li><strong>差额</strong><span id="formula-gap">—</span></li>
+                  </ul>
+                  <p class="muted">公式固定，不由模型改写；阈值待 A 确认。</p>
+                </div>
+                <div data-drill-panel="source" class="hidden">
+                  <p class="eyebrow">SOURCE TRACE</p>
+                  <div id="evidence-list"></div>
+                </div>
+                <div data-drill-panel="gaps" class="hidden">
+                  <p class="eyebrow">EVIDENCE GAPS</p>
+                  <div id="gap-list"></div>
+                  <p class="eyebrow" style="margin-top:12px">建议索取</p>
+                  <div class="pills"><span>账龄明细表</span><span>期后回款记录</span><span>主要合同摘要</span><span>信用政策变更说明</span></div>
+                </div>
+                <div data-drill-panel="normal" class="hidden">
+                  <p class="eyebrow">COUNTER HYPOTHESES</p>
+                  <ul>
+                    <li>新增大客户或客户结构变化</li>
+                    <li>信用政策或结算周期改变</li>
+                    <li>季节性导致年末应收暂时增加</li>
+                    <li>行业账期整体拉长</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div id="planning-only" class="plan-box hidden">
+                <p class="eyebrow">仅审计计划场景</p>
+                <p><strong>候选认定：</strong>收入发生，以及应收账款的存在、权利和义务、计价和分摊；须由 A 根据具体信号选择，不能机械全选。</p>
+                <p><strong>供项目组考虑的程序：</strong>检查账龄及期后回款，了解主要客户信用期变化，抽查主要合同的结算和验收条款。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 确认导出 -->
+        <section id="review-view" class="view">
+          <div class="workpaper">
+            <div class="wp-head">
+              <h2>人工确认与报告导出</h2>
+              <span class="state-chip draft">人工闸门</span>
+            </div>
+            <p class="desc">程序不能代替保留、降级或暂缓决定。导出为本地草稿，非正式审计报告。</p>
+            <div class="review-grid">
+              <label class="field">
+                <span>复核状态</span>
+                <select id="review-status">
+                  <option>未复核</option>
+                  <option>保留为待核查候选</option>
+                  <option>降级</option>
+                  <option>暂缓</option>
+                </select>
+              </label>
+              <label class="field span-2">
+                <span>复核说明</span>
+                <textarea id="review-note" rows="4" placeholder="写明资料依据、正常解释或仍缺少的资料，不得直接认定舞弊。"></textarea>
+              </label>
+            </div>
+            <div id="export-gate" class="export-gate" data-blocked="true">
+              <div>
+                <strong>导出闸门</strong>
+                <p id="export-gate-text">导出闸门未开。</p>
+                <p>当前复核：<b id="review-export-status">未复核</b></p>
+                <p id="review-export-note" class="muted"></p>
+              </div>
+              <div class="actions">
+                <button class="btn" id="save-review" type="button">保存复核说明</button>
+                <button class="btn primary" id="export-draft" type="button">导出预审草稿</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="inspector">
+        <p class="tree-label">右侧检查器</p>
+        <div class="insp-card">
+          <h3>当前项目</h3>
+          <h4 id="project-summary-title">尚未填写公司名称</h4>
+          <dl>
+            <div><dt>场景</dt><dd id="project-summary-scene">新客户业务承接</dd></div>
+            <div><dt>截止日</dt><dd id="project-summary-date">待填写</dd></div>
+            <div><dt>行业</dt><dd id="project-summary-industry">待填写</dd></div>
+          </dl>
+        </div>
+        <div class="insp-card">
+          <h3>本步不会</h3>
+          <ul>
+            <li>调用大模型</li>
+            <li>认定舞弊 / 出意见</li>
+            <li>上传客户资料</li>
+          </ul>
+        </div>
+        <div class="insp-card">
+          <h3>操作路径</h3>
+          <ol>
+            <li>项目设定</li>
+            <li>资料预检</li>
+            <li>矩阵总览</li>
+            <li>风险下钻</li>
+            <li>人工确认 → 导出</li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

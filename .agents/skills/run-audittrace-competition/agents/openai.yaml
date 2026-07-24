@@ -1,0 +1,4 @@
+interface:
+  display_name: "审迹智链竞赛执行"
+  short_description: "按证据边界、计划书与人工确认严格推进数智会计竞赛任务"
+  default_prompt: "Use $run-audittrace-competition to 严格依据当前竞赛文件推进本次任务并核对证据边界。"

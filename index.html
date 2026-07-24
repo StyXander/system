@@ -1,0 +1,1691 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>审迹智链 AuditTrace · 多维交叉验证与证据缺口识别智能体</title>
+<meta name="description" content="审迹智链面向会计师事务所审计项目组，用公开资料交叉验证收入风险，输出可追溯待核查线索、资料依据缺口和待索取资料。北京市大学生数智会计创新应用竞赛参赛方案展示。" />
+
+<!-- 渐进增强字体：系统黑体优先，Noto Sans SC 作为增强，加载失败不影响首屏 -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" /></noscript>
+
+<style>
+/* ============================================================
+   审迹智链 AuditTrace · 产品展示页
+   视觉参照 moonshot.cn：深色舞台 + 流动光效 + 极简高级排版
+   全部样式内联，单文件可直接打开预览
+   ============================================================ */
+
+/* ---------- 种子令牌（Nudges 通过修补这些变量驱动整体换肤） ---------- */
+:root{
+  --seed-bg:#030304;          /* 舞台底色（近纯黑） */
+  --seed-fg:#eceef2;          /* 主文字 */
+  --seed-primary:#e3ebf7;     /* 光效主色（月白冷光） */
+  --seed-accent:#94b4e4;      /* 交互强调色（雾蓝，低饱和） */
+  --seed-surface:#0a0b0f;     /* 卡片/表面 */
+  --seed-radius:14px;         /* 圆角基准 */
+  --glow-intensity:1;         /* 光效强度（0.3–1.5，供 Nudges 滑杆驱动） */
+
+  /* 派生令牌：一律由种子计算，保证换肤联动 */
+  --bg:var(--seed-bg);
+  --bg-soft:color-mix(in srgb, var(--seed-surface) 72%, var(--seed-bg));
+  --surface:color-mix(in srgb, var(--seed-fg) 4%, var(--seed-surface));
+  --surface-hi:color-mix(in srgb, var(--seed-fg) 7%, var(--seed-surface));
+  --fg:var(--seed-fg);
+  --fg-2:color-mix(in srgb, var(--seed-fg) 72%, transparent);
+  --fg-3:color-mix(in srgb, var(--seed-fg) 48%, transparent);
+  --fg-4:color-mix(in srgb, var(--seed-fg) 30%, transparent);
+  --line:color-mix(in srgb, var(--seed-fg) 9%, transparent);
+  --line-strong:color-mix(in srgb, var(--seed-fg) 16%, transparent);
+  --accent:var(--seed-accent);
+  --accent-soft:color-mix(in srgb, var(--seed-accent) 16%, transparent);
+  --glow:var(--seed-primary);
+  --radius:var(--seed-radius);
+  --radius-s:calc(var(--seed-radius) * .5);
+  --radius-l:calc(var(--seed-radius) * 1.5);
+
+  --font-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Consolas,"Courier New",monospace;
+}
+
+/* ---------- 重置与基础 ---------- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+img,svg,canvas{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+::selection{background:color-mix(in srgb, var(--seed-accent) 30%, transparent);color:var(--fg)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--radius-s)}
+
+/* 背景纵向层次：从舞台底到内容区再回到舞台底 */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(120% 70% at 50% -10%, color-mix(in srgb, var(--seed-surface) 90%, var(--seed-bg)) 0%, var(--bg) 55%),
+    var(--bg);
+}
+
+/* ---------- 噪点颗粒（胶片质感，moonshot 同款克制颗粒） ---------- */
+.grain{
+  position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:240px 240px;
+}
+
+/* ---------- 自定义光标（小圆点 + 延迟跟随圆环，仅精确指针设备） ----------
+   JS 检测到鼠标设备后给 <html> 加 .custom-cursor 类，才隐藏原生光标，
+   触屏 / 无 JS 时自动回退为系统光标。 */
+.cursor-dot,.cursor-ring{
+  position:fixed;top:0;left:0;z-index:120;pointer-events:none;border-radius:50%;
+  transform:translate(-50%,-50%);will-change:transform;
+}
+.cursor-dot{width:5px;height:5px;background:var(--fg)}
+.cursor-ring{
+  width:34px;height:34px;border:1px solid color-mix(in srgb, var(--fg) 38%, transparent);
+  transition:width .35s cubic-bezier(.22,.8,.3,1),height .35s cubic-bezier(.22,.8,.3,1),
+             border-color .35s,background-color .35s;
+}
+.cursor-ring.is-hover{
+  width:58px;height:58px;
+  border-color:color-mix(in srgb, var(--accent) 75%, transparent);
+  background-color:color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.custom-cursor,.custom-cursor *{cursor:none!important}
+@media (pointer:coarse){.cursor-dot,.cursor-ring{display:none}}
+
+/* ---------- 卡片聚光灯：鼠标划过时内部跟随冷光 ---------- */
+.card::after,.role::after,.bound::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),
+             color-mix(in srgb, var(--glow) 9%, transparent), transparent 65%);
+  opacity:0;transition:opacity .45s ease;
+}
+.card:hover::after,.role:hover::after,.bound:hover::after{opacity:1}
+
+/* ---------- Hero 光效画布 ---------- */
+#fx{position:fixed;inset:0;z-index:-1;pointer-events:none;will-change:opacity}
+
+/* ---------- 顶部导航 ---------- */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(20px,4vw,48px);height:64px;
+  transition:background .4s ease,border-color .4s ease,backdrop-filter .4s ease;
+  border-bottom:1px solid transparent;
+}
+.nav.scrolled{
+  background:color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom-color:var(--line);
+}
+.nav-brand{display:flex;align-items:baseline;gap:10px;font-weight:500;letter-spacing:.02em}
+.nav-brand .zh{font-size:16px}
+.nav-brand .en{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.nav-links{display:flex;gap:clamp(16px,2.4vw,34px);align-items:center}
+.nav-links a{
+  font-size:13px;font-weight:400;color:var(--fg-3);letter-spacing:.04em;
+  transition:color .25s ease;position:relative;padding:6px 0;
+}
+.nav-links a::after{
+  content:"";position:absolute;left:0;bottom:0;height:1px;width:0;
+  background:var(--accent);transition:width .3s ease;
+}
+.nav-links a:hover,.nav-links a.active{color:var(--fg);text-shadow:0 0 14px color-mix(in srgb, var(--glow) 55%, transparent)}
+.nav-links a.active::after{width:100%}
+.nav-status{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fg-3);border:1px solid var(--line-strong);border-radius:9999px;
+  padding:4px 12px;white-space:nowrap;
+}
+@media (max-width:860px){.nav-links a{display:none}.nav-links a.keep{display:block}}
+
+/* ---------- 通用区块 ---------- */
+section{position:relative}
+.wrap{max-width:1160px;margin:0 auto;padding:0 clamp(20px,4vw,48px)}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:22px;
+}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--accent);opacity:.7}
+h2.sec-title{
+  font-size:clamp(30px,4.4vw,46px);font-weight:500;line-height:1.22;
+  letter-spacing:-.02em;margin-bottom:18px;
+}
+.sec-lead{color:var(--fg-2);max-width:62ch;font-size:clamp(15px,1.4vw,17px)}
+
+/* ---------- Hero ---------- */
+.hero{
+  min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:120px 24px 80px;position:relative;
+}
+.hero-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--fg-2);border:1px solid var(--line-strong);border-radius:9999px;
+  padding:7px 16px;margin-bottom:34px;background:color-mix(in srgb, var(--surface) 55%, transparent);
+  backdrop-filter:blur(6px);
+}
+.hero-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.hero h1{
+  font-size:clamp(52px,10vw,108px);font-weight:700;line-height:1.06;
+  letter-spacing:-.03em;
+  background:linear-gradient(180deg, var(--fg) 30%, color-mix(in srgb, var(--fg) 55%, transparent) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero .en-name{
+  font-family:var(--font-mono);font-weight:300;
+  font-size:clamp(15px,2.2vw,22px);letter-spacing:.42em;text-transform:uppercase;
+  color:var(--fg-3);margin-top:18px;text-indent:.42em;
+}
+.hero .tagline{
+  margin-top:34px;max-width:640px;font-size:clamp(15px,1.6vw,18px);
+  color:var(--fg-2);line-height:1.9;font-weight:300;
+}
+.hero .tagline strong{color:var(--fg);font-weight:500}
+.scroll-cue{
+  position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  color:var(--fg-4);font-family:var(--font-mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;
+}
+.scroll-cue .line{width:1px;height:44px;overflow:hidden;position:relative;background:var(--line-strong)}
+.scroll-cue .line::after{
+  content:"";position:absolute;left:0;top:-100%;width:100%;height:100%;
+  background:linear-gradient(180deg,transparent,var(--accent));
+  animation:drop 2s ease-in-out infinite;
+}
+@keyframes drop{0%{top:-100%}60%,100%{top:100%}}
+
+/* Hero 入场（加载即播放） */
+.hero .rise{opacity:0;transform:translateY(26px);animation:rise 1s cubic-bezier(.22,.8,.3,1) forwards}
+.hero .rise:nth-child(1){animation-delay:.15s}
+.hero .rise:nth-child(2){animation-delay:.3s}
+.hero .rise:nth-child(3){animation-delay:.45s}
+.hero .rise:nth-child(4){animation-delay:.6s}
+.hero .rise:nth-child(5){animation-delay:.75s}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ---------- 滚动显现 ---------- */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .8s cubic-bezier(.22,.8,.3,1),transform .8s cubic-bezier(.22,.8,.3,1);transition-delay:var(--d,0s)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- 定位区 ---------- */
+.positioning{padding:clamp(90px,12vh,150px) 0 clamp(70px,9vh,110px)}
+.pos-quote{
+  font-size:clamp(24px,3.4vw,38px);font-weight:500;line-height:1.55;letter-spacing:-.015em;
+  max-width:22em;margin-top:8px;
+}
+.pos-quote .hl{
+  color:var(--fg);
+  background:linear-gradient(180deg,transparent 62%, var(--accent-soft) 62%);
+  padding:0 2px;
+}
+.pos-quote .dim{color:var(--fg-3);font-weight:300}
+.pos-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:44px}
+.pos-tag{
+  border:1px solid var(--line-strong);border-radius:9999px;padding:8px 20px;
+  font-size:14px;color:var(--fg-2);background:color-mix(in srgb, var(--surface) 50%, transparent);
+  transition:border-color .3s,transform .3s;
+}
+.pos-tag:hover{border-color:var(--accent);transform:translateY(-2px)}
+.pos-tag b{color:var(--fg);font-weight:500}
+.pos-note{
+  margin-top:40px;padding:20px 24px;border-left:2px solid var(--line-strong);
+  color:var(--fg-3);font-size:14px;max-width:70ch;line-height:1.9;
+}
+.pos-note b{color:var(--fg-2);font-weight:500}
+
+/* ---------- 创新区 ---------- */
+.innovations{padding:clamp(80px,11vh,140px) 0}
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-top:52px}
+.card{
+  grid-column:span 2;position:relative;overflow:hidden;
+  background:color-mix(in srgb, var(--surface) 70%, transparent);
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:30px 26px 34px;
+  transition:transform .4s cubic-bezier(.22,.8,.3,1),border-color .4s,background .4s;
+}
+.card.wide{grid-column:span 3}
+.card::before{ /* hover 时顶部微光扫过 */
+  content:"";position:absolute;top:0;left:-60%;width:50%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--glow),transparent);
+  opacity:0;transition:opacity .4s;
+}
+.card:hover{transform:translateY(-6px);border-color:var(--line-strong);background:var(--surface-hi)}
+.card:hover::before{opacity:.9;animation:sweep 1s ease forwards}
+@keyframes sweep{to{left:110%}}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.card .idx{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--accent);display:block}
+.card-visual{width:70px;height:70px;flex:none;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:12px;background:#050b11;overflow:hidden}
+.card-visual img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 7px 12px rgba(91,151,222,.16))}
+.card:hover .card-visual{border-color:color-mix(in srgb,var(--accent) 42%,transparent)}
+.card h3{font-size:19px;font-weight:500;letter-spacing:-.01em;line-height:1.4;margin-bottom:12px}
+.card p{font-size:14px;color:var(--fg-3);line-height:1.85}
+.card p b{color:var(--fg-2);font-weight:500}
+@media (max-width:1000px){.card,.card.wide{grid-column:span 3}}
+@media (max-width:660px){.card,.card.wide{grid-column:span 6}}
+
+/* 交叉验证矩阵（产品化示意） */
+.matrix{
+  margin-top:26px;border:1px solid var(--line);border-radius:var(--radius-l);
+  background:color-mix(in srgb, var(--surface) 60%, transparent);overflow:hidden;
+}
+.matrix-head{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:18px 26px;border-bottom:1px solid var(--line);
+}
+.matrix-head .t{font-size:15px;font-weight:500}
+.matrix-head .s{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-4)}
+.mtable{display:grid;grid-template-columns:2.2fr repeat(4,1fr) 2fr;min-width:760px}
+.mtable>div{padding:16px 20px;border-bottom:1px solid var(--line);font-size:13px;display:flex;align-items:center}
+.mtable>div:nth-child(-n+6){
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-4);
+  background:color-mix(in srgb, var(--surface) 80%, transparent);
+}
+.mtable .rowlabel{color:var(--fg-2);font-weight:500;font-size:14px}
+.mtable .rowlabel .rid{font-family:var(--font-mono);color:var(--accent);margin-right:8px;font-size:12px}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:12.5px}
+.st i{width:7px;height:7px;border-radius:50%;flex:none}
+.st.yes{color:var(--fg-2)} .st.yes i{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.st.part{color:var(--fg-3)} .st.part i{background:color-mix(in srgb, var(--accent) 45%, transparent)}
+.st.no{color:var(--fg-4)} .st.no i{background:transparent;border:1px solid var(--fg-4)}
+.mtable .gap-cell{color:var(--fg-3);font-size:12.5px;line-height:1.7}
+.matrix-scroll{overflow-x:auto}
+.matrix-foot{padding:14px 26px;font-size:12px;color:var(--fg-4);border-top:1px solid var(--line)}
+@media (max-width:820px){.mtable{min-width:700px}}
+
+/* ---------- 工作流时间线 ---------- */
+.workflow{padding:clamp(80px,11vh,140px) 0}
+.timeline{position:relative;margin-top:48px;padding:0 0 6px}
+.tl-track{position:absolute;left:0;right:0;top:60px;height:2px;background:var(--line);border-radius:2px}
+.tl-fill{
+  position:absolute;left:0;top:60px;height:2px;width:0%;border-radius:2px;
+  background:linear-gradient(90deg,color-mix(in srgb, var(--accent) 30%, transparent),var(--accent));
+  box-shadow:0 0 12px color-mix(in srgb, var(--accent) 55%, transparent);
+  transition:width .2s linear;
+}
+.tl-nodes{display:flex;justify-content:space-between;position:relative}
+.tl-node{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;min-width:0}
+.tl-step{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:var(--fg-3);transition:color .4s;white-space:nowrap}
+.tl-step b{color:var(--accent);font-weight:400;letter-spacing:.16em;margin-right:3px}
+.tl-node.lit .tl-step{color:var(--accent)}
+.tl-illustration{position:relative;z-index:2;width:76px;height:76px;display:flex;align-items:center;justify-content:center;padding:6px;border:1px solid var(--line-strong);border-radius:16px;background:#050b11;transition:border-color .4s,box-shadow .4s,transform .4s}
+.tl-illustration img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 7px 12px rgba(91,151,222,.16))}
+.tl-node.lit .tl-illustration{border-color:var(--accent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 25%,transparent);transform:translateY(-2px)}
+.tl-sub{font-size:11px;color:var(--fg-4);line-height:1.55;max-width:116px}
+.tl-note{
+  margin-top:56px;text-align:center;color:var(--fg-3);font-size:14px;line-height:1.9;max-width:72ch;margin-left:auto;margin-right:auto;
+}
+.tl-note b{color:var(--fg);font-weight:500}
+@media (max-width:900px){
+  .tl-track,.tl-fill{left:37px;right:auto;top:58px;bottom:0;width:2px;height:auto}
+  .tl-fill{width:2px;height:0%;background:linear-gradient(180deg,color-mix(in srgb, var(--accent) 30%, transparent),var(--accent))}
+  .tl-nodes{flex-direction:column;gap:26px}
+  .tl-node{display:grid;grid-template-columns:76px minmax(0,1fr);grid-template-rows:auto auto;text-align:left;align-items:center;column-gap:18px;row-gap:5px}
+  .tl-step{grid-column:2;grid-row:1}.tl-illustration{grid-column:1;grid-row:1 / span 2}.tl-sub{grid-column:2;grid-row:2;max-width:none}
+}
+
+/* ---------- AI 角色区 ---------- */
+.roles{padding:clamp(80px,11vh,140px) 0}
+.role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:52px}
+.role{
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:color-mix(in srgb, var(--surface) 60%, transparent);
+  padding:32px 28px;position:relative;overflow:hidden;
+  transition:transform .4s cubic-bezier(.22,.8,.3,1),border-color .4s;
+}
+.role:hover{transform:translateY(-5px);border-color:var(--line-strong)}
+.role .tag{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--accent);display:block;margin-bottom:14px;
+}
+.role h3{font-size:21px;font-weight:500;letter-spacing:-.01em;margin-bottom:20px}
+.role-visual{height:132px;margin:2px 0 20px;border:1px solid var(--line);border-radius:12px;background:#050b11;overflow:hidden}
+.role-visual img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 15px rgba(91,151,222,.15))}
+.role:hover .role-visual{border-color:color-mix(in srgb,var(--accent) 42%,transparent)}
+.role .block{margin-bottom:18px}
+.role .block .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-4);font-family:var(--font-mono);margin-bottom:8px;display:block}
+.role .block p{font-size:14px;line-height:1.85;color:var(--fg-2)}
+.role .block.deny p{color:var(--fg-3)}
+.role .block.deny .lab{color:color-mix(in srgb, var(--fg-3) 80%, transparent)}
+.role-note{
+  margin-top:26px;padding:22px 26px;border:1px solid var(--line);border-radius:var(--radius);
+  background:color-mix(in srgb, var(--surface) 45%, transparent);
+  color:var(--fg-3);font-size:14px;line-height:1.9;
+}
+.role-note b{color:var(--fg);font-weight:500}
+@media (max-width:920px){.role-grid{grid-template-columns:1fr}}
+
+/* ---------- 本地开发工作台：沿用深色舞台、细线框与冷光交互，不改变首页视觉语言 ---------- */
+.workbench{padding:clamp(90px,12vh,150px) 0;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--surface) 35%,transparent),transparent)}
+.wb-shell{
+  position:relative;overflow:hidden;margin-top:52px;
+  border:1px solid var(--line-strong);border-radius:var(--radius-l);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 88%,transparent),color-mix(in srgb,var(--bg-soft) 92%,transparent));
+  box-shadow:0 26px 80px rgba(0,0,0,.22);
+}
+.wb-shell::before{
+  content:"";position:absolute;inset:-45% -20% auto;height:260px;pointer-events:none;
+  background:radial-gradient(ellipse at center,color-mix(in srgb,var(--accent) 15%,transparent),transparent 66%);
+}
+.wb-top{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:22px;padding:27px 30px 22px;border-bottom:1px solid var(--line)}
+.wb-kicker{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:7px}
+.wb-title{font-size:22px;font-weight:500;letter-spacing:-.015em;line-height:1.35}
+.wb-top p{font-size:13px;color:var(--fg-3);margin-top:7px;max-width:62ch;line-height:1.75}
+.wb-mode{flex:none;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);border:1px solid var(--line-strong);border-radius:999px;padding:7px 12px;white-space:nowrap}
+.wb-mode i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 9px var(--accent)}
+.wb-tabs{position:relative;display:flex;gap:4px;padding:14px 20px;border-bottom:1px solid var(--line);overflow-x:auto}
+.wb-tab{appearance:none;border:1px solid transparent;background:transparent;color:var(--fg-4);font-family:var(--font-body);font-size:13px;padding:9px 14px;border-radius:var(--radius-s);white-space:nowrap;transition:color .25s,border-color .25s,background .25s;cursor:pointer}
+.wb-tab .num{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--accent);margin-right:7px}
+.wb-tab:hover,.wb-tab.active{color:var(--fg);border-color:var(--line-strong);background:color-mix(in srgb,var(--surface-hi) 76%,transparent)}
+.wb-panel{position:relative;padding:28px 30px 32px}
+.wb-panel[hidden]{display:none}
+.wb-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}
+.wb-panel-head h3{font-size:18px;font-weight:500;letter-spacing:-.01em}
+.wb-panel-head p{margin-top:5px;font-size:13px;color:var(--fg-3);line-height:1.75}
+.wb-state{flex:none;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);border:1px solid var(--line);border-radius:999px;padding:5px 10px;white-space:nowrap}
+.wb-state.ok{color:var(--fg-2);border-color:color-mix(in srgb,var(--accent) 38%,transparent);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.wb-state.candidate{color:var(--fg-2);border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.wb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.wb-field{min-width:0;padding:15px 16px;border:1px solid var(--line);border-radius:var(--radius-s);background:color-mix(in srgb,var(--surface) 48%,transparent)}
+.wb-field .lab{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--fg-4);margin-bottom:7px}
+.wb-field .val{display:block;font-size:14px;color:var(--fg-2);line-height:1.55;overflow-wrap:anywhere}
+.wb-field .val strong{font-weight:500;color:var(--fg)}
+.wb-select{width:100%;appearance:none;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;line-height:1.55;cursor:pointer}
+.wb-select option{color:#111;background:#f4f6fa}
+.wb-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.wb-button{appearance:none;border:1px solid var(--line-strong);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--font-body);font-size:13px;padding:10px 16px;transition:transform .25s,border-color .25s,background .25s,color .25s;cursor:pointer}
+.wb-button:hover{transform:translateY(-2px);border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
+.wb-button.primary{border-color:color-mix(in srgb,var(--accent) 60%,transparent);background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--fg)}
+.wb-note{margin-top:20px;padding:14px 16px;border-left:2px solid var(--line-strong);font-size:12.5px;color:var(--fg-3);line-height:1.8}
+.wb-note b{font-weight:500;color:var(--fg-2)}
+.wb-rule-library{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.wb-rule-card{display:flex;gap:12px;align-items:flex-start;min-width:0;padding:16px;border:1px solid var(--line);border-radius:var(--radius-s);background:color-mix(in srgb,var(--surface) 46%,transparent);cursor:pointer;transition:border-color .22s,background .22s,transform .22s}
+.wb-rule-card:hover{transform:translateY(-2px);border-color:var(--line-strong);background:color-mix(in srgb,var(--surface-hi) 55%,transparent)}
+.wb-rule-card.is-selected{border-color:color-mix(in srgb,var(--accent) 54%,transparent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.wb-rule-card input{flex:none;appearance:none;width:17px;height:17px;margin:3px 0 0;border:1px solid var(--line-strong);border-radius:5px;background:color-mix(in srgb,var(--bg) 64%,transparent);cursor:pointer}
+.wb-rule-card input:checked{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 4px color-mix(in srgb,var(--bg) 78%,transparent),0 0 10px color-mix(in srgb,var(--accent) 26%,transparent)}
+.wb-rule-card>span{min-width:0}.wb-rule-code{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;color:var(--accent);margin-bottom:4px}.wb-rule-name{display:block;color:var(--fg-2);font-size:14px;font-weight:500;line-height:1.5}.wb-rule-card p{margin-top:5px;color:var(--fg-4);font-size:12px;line-height:1.65}.wb-rule-meta{display:block;margin-top:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--fg-3)}.wb-rule-meta.runnable{color:var(--accent)}
+.wb-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-s)}
+.wb-table{width:100%;min-width:780px;border-collapse:collapse}
+.wb-table th,.wb-table td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+.wb-table tr:last-child td{border-bottom:0}
+.wb-table th{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-4);font-weight:400;background:color-mix(in srgb,var(--surface) 78%,transparent)}
+.wb-table td{font-size:13px;color:var(--fg-3);line-height:1.65}
+.wb-table td strong{display:block;color:var(--fg-2);font-weight:500}.wb-table .amount{font-family:var(--font-mono);font-size:12px;color:var(--fg-2);white-space:nowrap}.wb-table .eid{font-family:var(--font-mono);font-size:11px;color:var(--accent);white-space:nowrap}
+.wb-source{font-size:12px;max-width:27em}.wb-source small{display:block;margin-top:3px;color:var(--fg-4)}
+.wb-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.wb-metric{padding:19px 18px;border:1px solid var(--line);border-radius:var(--radius-s);background:color-mix(in srgb,var(--surface) 45%,transparent)}
+.wb-metric span{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--fg-4);margin-bottom:9px}.wb-metric strong{font-size:25px;font-weight:400;letter-spacing:-.03em;color:var(--fg)}.wb-metric small{display:block;margin-top:5px;color:var(--fg-4);font-size:11px}
+.wb-gate{padding:20px 21px;border:1px dashed var(--line-strong);border-radius:var(--radius-s);background:color-mix(in srgb,var(--surface) 34%,transparent);color:var(--fg-3);font-size:14px;line-height:1.8}.wb-gate b{display:block;margin-bottom:4px;font-size:16px;font-weight:500;color:var(--fg-2)}
+.wb-risk{border:1px solid var(--line-strong);border-radius:var(--radius);background:linear-gradient(145deg,color-mix(in srgb,var(--surface-hi) 65%,transparent),color-mix(in srgb,var(--surface) 50%,transparent));overflow:hidden}
+.wb-risk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 22px 18px;border-bottom:1px solid var(--line)}
+.wb-risk-head .rule{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase}.wb-risk-head h4{font-size:18px;font-weight:500;line-height:1.45;margin-top:6px;letter-spacing:-.012em}.wb-chip{flex:none;font-size:11px;color:var(--fg-3);border:1px solid var(--line-strong);border-radius:999px;padding:5px 10px;white-space:nowrap}.wb-chip.candidate{color:var(--fg-2);border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.wb-risk-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line)}
+.wb-risk-block{padding:18px 20px;background:color-mix(in srgb,var(--surface) 63%,transparent)}
+.wb-risk-block.wide{grid-column:1/-1}.wb-risk-block .lab{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-4);margin-bottom:7px}.wb-risk-block p{font-size:13px;color:var(--fg-3);line-height:1.8}.wb-risk-block p strong{color:var(--fg-2);font-weight:500}
+.wb-run-results{display:grid;gap:16px}.wb-run-result{border:1px solid var(--line-strong);border-radius:var(--radius-s);overflow:hidden;background:color-mix(in srgb,var(--surface) 54%,transparent)}.wb-run-result .wb-risk-head{padding:18px 20px}.wb-run-result .wb-risk-body{grid-template-columns:repeat(2,minmax(0,1fr))}.wb-run-result .wb-risk-block{padding:15px 18px}.wb-agent-steps{display:grid;gap:7px}.wb-agent-step{display:flex;justify-content:space-between;gap:12px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--bg) 28%,transparent);font-size:12px;color:var(--fg-3)}.wb-agent-step b{font-family:var(--font-mono);font-size:10px;color:var(--accent);font-weight:500}.wb-agent-step em{font-style:normal;color:var(--fg-4);text-align:right}.wb-run-empty{padding:18px 20px;border:1px dashed var(--line-strong);border-radius:var(--radius-s);color:var(--fg-3);font-size:13px;line-height:1.8}
+.wb-evidence{display:grid;gap:8px}.wb-evidence div{padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--bg) 28%,transparent)}.wb-evidence strong{display:block;font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:400}.wb-evidence span{display:block;margin-top:3px;font-size:11.5px;line-height:1.65;color:var(--fg-4);overflow-wrap:anywhere}
+.wb-review{display:grid;grid-template-columns:.9fr 1.7fr auto;gap:12px;align-items:end}.wb-review label{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-4)}.wb-review select,.wb-review textarea{width:100%;margin-top:7px;border:1px solid var(--line-strong);border-radius:8px;background:color-mix(in srgb,var(--bg) 48%,transparent);color:var(--fg-2);font:13px var(--font-body);outline:0;padding:9px 10px}.wb-review textarea{height:42px;resize:vertical}.wb-review select option{color:#111;background:#f4f6fa}.wb-review .wb-button{margin-bottom:0}
+.wb-toast{min-height:20px;margin-top:14px;font-size:12px;color:var(--accent);opacity:0;transition:opacity .25s}.wb-toast.show{opacity:1}
+@media (max-width:860px){.wb-top,.wb-panel-head{flex-direction:column}.wb-mode,.wb-state{align-self:flex-start}.wb-grid,.wb-metrics{grid-template-columns:repeat(2,1fr)}.wb-rule-library,.wb-review{grid-template-columns:1fr}.wb-review .wb-button{justify-self:start}}
+@media (max-width:560px){.wb-top,.wb-panel{padding-left:18px;padding-right:18px}.wb-tabs{padding-left:12px;padding-right:12px}.wb-grid,.wb-metrics,.wb-run-result .wb-risk-body{grid-template-columns:1fr}.wb-risk-body{grid-template-columns:1fr}.wb-risk-block.wide{grid-column:auto}.wb-agent-step{display:block}.wb-agent-step em{display:block;margin-top:4px;text-align:left}}
+
+/* ---------- 边界区 ---------- */
+.boundaries{padding:clamp(80px,11vh,140px) 0 clamp(90px,12vh,150px)}
+.bound-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:52px}
+.bound{
+  position:relative;overflow:hidden;
+  border:1px solid var(--line);border-radius:var(--radius);padding:26px 22px;
+  background:color-mix(in srgb, var(--surface) 50%, transparent);
+  transition:border-color .35s,transform .35s;
+}
+.bound:hover{border-color:var(--line-strong);transform:translateY(-4px)}
+.bound .no{
+  font-family:var(--font-mono);font-size:20px;font-weight:300;color:var(--fg-4);display:block;margin-bottom:14px;
+}
+.bound h4{font-size:16px;font-weight:500;margin-bottom:8px}
+.bound p{font-size:13px;color:var(--fg-3);line-height:1.8}
+.commit{
+  margin-top:40px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;
+  padding:24px 28px;border-radius:var(--radius);
+  border:1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background:color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+.commit .ci{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--fg-2);transition:color .3s}
+.commit .ci svg{flex:none}
+.commit .ci svg path{transition:stroke .3s}
+.commit .ci:hover{color:var(--fg)}
+.commit .ci:hover svg path{stroke:var(--glow)}
+.status-line{
+  margin-top:34px;font-size:13px;color:var(--fg-4);line-height:1.9;max-width:78ch;
+}
+.status-line b{color:var(--fg-3);font-weight:500}
+@media (max-width:960px){.bound-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.bound-grid{grid-template-columns:1fr}}
+
+/* ---------- 页脚 ---------- */
+footer{border-top:1px solid var(--line);padding:56px 0 64px}
+.foot-top{display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start}
+.foot-brand .zh{font-size:18px;font-weight:500}
+.foot-brand .en{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-4);margin-top:6px}
+.foot-meta{font-size:13px;color:var(--fg-4);line-height:2;text-align:right}
+.foot-meta b{color:var(--fg-3);font-weight:500}
+.foot-legal{
+  margin-top:36px;padding-top:24px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--fg-4);line-height:1.9;max-width:88ch;
+}
+@media (max-width:700px){.foot-meta{text-align:left}}
+
+/* ---------- 降低动态偏好 ---------- */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+  .reveal{opacity:1;transform:none}
+  .hero .rise{opacity:1;transform:none;animation:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 光效画布与噪点层 -->
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- 顶部导航 -->
+<nav class="nav" id="nav" data-component="Navigation" data-od-id="nav" aria-label="页面导航">
+  <a class="nav-brand" href="#hero" aria-label="审迹智链 首页">
+    <span class="zh">审迹智链</span><span class="en">AuditTrace</span>
+  </a>
+  <div class="nav-links">
+    <a href="#positioning">定位</a>
+    <a href="#innovations">创新</a>
+    <a href="#workflow">流程</a>
+    <a href="#workbench">工作台</a>
+    <a href="#roles">角色</a>
+    <a href="#boundaries" class="keep">边界</a>
+    <span class="nav-status">方案 + DEV 演示</span>
+  </div>
+</nav>
+
+<main>
+  <!-- ============ Hero 光效舞台 ============ -->
+  <section class="hero" id="hero" data-component="Hero" data-od-id="hero">
+    <span class="hero-chip rise"><span class="dot" aria-hidden="true"></span>北京市大学生数智会计创新应用竞赛 · 财会 Multi-Agent 应用</span>
+    <h1 class="rise">审迹智链</h1>
+    <div class="en-name rise" lang="en">AuditTrace</div>
+    <p class="tagline rise">
+      面向会计师事务所审计项目组，用<strong>公开资料</strong>交叉验证收入风险，
+      输出<strong>可追溯待核查线索</strong>、<strong>资料依据缺口</strong>与<strong>待索取资料</strong>。
+    </p>
+    <div class="scroll-cue" aria-hidden="true">
+      <span>向下探索</span>
+      <span class="line"></span>
+    </div>
+  </section>
+
+  <!-- ============ 产品定位 ============ -->
+  <section class="positioning" id="positioning" data-component="Positioning" data-od-id="positioning">
+    <div class="wrap">
+      <span class="eyebrow reveal">产品定位 · Positioning</span>
+      <p class="pos-quote reveal" style="--d:.08s">
+        在<span class="hl">业务承接、续聘复核、审计计划</span>阶段，
+        帮助审计师从分散的公开资料中，<span class="dim">系统地提出高质量风险假设，</span>
+        并明确<span class="hl">下一步要向客户索取什么证据</span>。
+      </p>
+      <div class="pos-meta reveal" style="--d:.16s">
+        <span class="pos-tag"><b>核心用户</b> · 事务所审计项目组</span>
+        <span class="pos-tag"><b>业务主题</b> · 收入确认重大错报风险预筛查</span>
+        <span class="pos-tag"><b>业务循环</b> · 销售与收款循环</span>
+        <span class="pos-tag"><b>核心数据</b> · 截止分析日已公开资料</span>
+      </div>
+      <p class="pos-note reveal" style="--d:.24s">
+        <b>目标输出：</b>预审风险备忘录、最多 5 项待核查事项、待索取资料清单。
+        首版先从公开资料开始；每条线索都会写清正常解释和还缺的资料。
+        后续仍需要函证、检查、访谈或流水核验。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 五项核心创新 ============ -->
+  <section class="innovations" id="innovations" data-component="Innovations" data-od-id="innovations">
+    <div class="wrap">
+      <span class="eyebrow reveal">核心创新 · Innovations</span>
+      <h2 class="sec-title reveal" style="--d:.06s">五项专业流程与工程约束创新</h2>
+      <p class="sec-lead reveal" style="--d:.12s">
+        我们把专业规则、语义判断、反证和来源要求放进同一套流程，方便审计师一步步回看。
+      </p>
+
+      <div class="cards">
+        <article class="card reveal" style="--d:.05s">
+          <div class="card-top"><span class="idx">01</span><span class="card-visual"><img src="assets/icons/industry.png" alt="行业口径对照"></span></div>
+          <h3>多维交叉验证</h3>
+          <p>把财务数字、业务情况、行业变化和公开披露<b>放在一起看</b>。一条线索可能来自几个方面，信息更完整，也更方便判断下一步要看什么。</p>
+        </article>
+        <article class="card reveal" style="--d:.12s">
+          <div class="card-top"><span class="idx">02</span><span class="card-visual"><img src="assets/icons/business.png" alt="销售收款业务链条"></span></div>
+          <h3>证据缺口产品化</h3>
+          <p>公开资料回答不了的问题，直接列成<b>下一步要补的资料</b>。这样，线索就能落到销售和收款的具体环节。</p>
+        </article>
+        <article class="card reveal" style="--d:.19s">
+          <div class="card-top"><span class="idx">03</span><span class="card-visual"><img src="assets/icons/finance.png" alt="财务勾稽与可复算"></span></div>
+          <h3>证据硬准入门槛</h3>
+          <p>风险卡要写清<b>来源、披露时间、原文、财务数字、计算方法和资料缺口</b>。少了关键信息，就先停在草稿里。</p>
+        </article>
+        <article class="card wide reveal" style="--d:.26s">
+          <div class="card-top"><span class="idx">04</span><span class="card-visual"><img src="assets/icons/disclosure.png" alt="披露原文定位与核对"></span></div>
+          <h3>一次结构化强制反证</h3>
+          <p>提出线索后，再找一遍<b>正常解释和相反资料</b>。如果没找到，也如实写出来；之后由审计师决定保留、降级还是暂缓。</p>
+        </article>
+        <article class="card wide reveal" style="--d:.33s">
+          <div class="card-top"><span class="idx">05</span><span class="card-visual"><img src="assets/icons/generated/time-boundary.png" alt="T0与T1时点隔离"></span></div>
+          <h3>T0 / T1 时点隔离回测</h3>
+          <p>分析时先锁定 <b>T0</b>，只看当时已经公开的资料。后续出现的问询、回复和更正放在 T1 区单独对照，等 T0 记录锁定后再看。</p>
+        </article>
+      </div>
+
+      <!-- 交叉验证矩阵：产品化示意 -->
+      <div class="matrix reveal" style="--d:.1s" data-component="VerificationMatrix" data-od-id="matrix">
+        <div class="matrix-head">
+          <span class="t">交叉验证矩阵 · 一条线索怎么被几类资料补充</span>
+          <span class="s">示意 · 每个状态都要有来源</span>
+        </div>
+        <div class="matrix-scroll">
+          <div class="mtable" role="table" aria-label="交叉验证矩阵示意">
+            <div role="columnheader">待核查事项</div>
+            <div role="columnheader">财务</div>
+            <div role="columnheader">业务</div>
+            <div role="columnheader">行业</div>
+            <div role="columnheader">披露</div>
+            <div role="columnheader">资料缺口</div>
+
+            <div class="rowlabel" role="cell"><span class="rid">R1</span>应收—收入背离</div>
+            <div role="cell"><span class="st yes"><i></i>已支持</span></div>
+            <div role="cell"><span class="st part"><i></i>部分支持</span></div>
+            <div role="cell"><span class="st yes"><i></i>已支持</span></div>
+            <div role="cell"><span class="st no"><i></i>不可得</span></div>
+            <div class="gap-cell" role="cell">账龄、期后回款、主要合同摘要</div>
+          </div>
+        </div>
+        <div class="matrix-foot">多维触发只增加待核查信息量；待核查优先级还须结合潜在金额影响、发生可能性、资料质量、正常解释与人工判断。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 端到端工作流程 ============ -->
+  <section class="workflow" id="workflow" data-component="Workflow" data-od-id="workflow">
+    <div class="wrap">
+      <span class="eyebrow reveal">工作流程 · Pipeline</span>
+      <h2 class="sec-title reveal" style="--d:.06s">从资料到风险卡，按步骤留痕</h2>
+      <p class="sec-lead reveal" style="--d:.12s">
+        数字计算、日期筛选、字段检查和来源定位交给程序；AI 负责阅读和推理，最后由审计师确认。
+      </p>
+
+      <div class="timeline" id="timeline" data-component="Timeline" data-od-id="timeline">
+        <div class="tl-track" aria-hidden="true"></div>
+        <div class="tl-fill" id="tlFill" aria-hidden="true"></div>
+        <div class="tl-nodes">
+          <div class="tl-node"><span class="tl-step"><b>01</b>资料预检</span><span class="tl-illustration"><img src="assets/icons/intake.png" alt="资料预检图标"></span><span class="tl-sub">来源、日期、页码、单位</span></div>
+          <div class="tl-node"><span class="tl-step"><b>02</b>确定性计算</span><span class="tl-illustration"><img src="assets/icons/compute.png" alt="确定性计算图标"></span><span class="tl-sub">财务指标自动复算</span></div>
+          <div class="tl-node"><span class="tl-step"><b>03</b>交叉验证</span><span class="tl-illustration"><img src="assets/icons/crosscheck.png" alt="交叉验证图标"></span><span class="tl-sub">财务、业务、行业、披露</span></div>
+          <div class="tl-node"><span class="tl-step"><b>04</b>质疑</span><span class="tl-illustration"><img src="assets/icons/generated/risk-hypothesis.png" alt="结构化风险假设图标"></span><span class="tl-sub">结构化风险假设</span></div>
+          <div class="tl-node"><span class="tl-step"><b>05</b>反证</span><span class="tl-illustration"><img src="assets/icons/counter.png" alt="反证挑战图标"></span><span class="tl-sub">正常解释与相反资料</span></div>
+          <div class="tl-node"><span class="tl-step"><b>06</b>语义复核</span><span class="tl-illustration"><img src="assets/icons/generated/semantic-review.png" alt="语义复核图标"></span><span class="tl-sub">保留、降级或暂缓</span></div>
+          <div class="tl-node"><span class="tl-step"><b>07</b>硬校验</span><span class="tl-illustration"><img src="assets/icons/generated/evidence-gate.png" alt="证据硬校验图标"></span><span class="tl-sub">引用、公式、禁用词</span></div>
+          <div class="tl-node"><span class="tl-step"><b>08</b>人工确认</span><span class="tl-illustration"><img src="assets/icons/human.png" alt="人工确认图标"></span><span class="tl-sub">审计师最终确认</span></div>
+          <div class="tl-node"><span class="tl-step"><b>09</b>报告导出</span><span class="tl-illustration"><img src="assets/icons/generated/memo-export.png" alt="预审风险备忘录导出图标"></span><span class="tl-sub">导出预审风险备忘录</span></div>
+        </div>
+      </div>
+
+      <p class="tl-note reveal" style="--d:.1s">
+        系统会依次检查：<b>字段格式、证据 ID、T0 日期、原文、公式、必填项和禁用词</b>，最后交给人工确认。
+        有关键资料缺失时，线索会留在草稿区。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 本地开发工作台 ============ -->
+  <section class="workbench" id="workbench" data-component="RuleWorkbench" data-od-id="workbench" aria-labelledby="workbench-title">
+    <div class="wrap">
+      <span class="eyebrow reveal">本地开发工作台 · R1 / R2 demo</span>
+      <h2 class="sec-title reveal" id="workbench-title" style="--d:.06s">先把两条规则跑通，<br>每一步都能回看。</h2>
+      <p class="sec-lead reveal" style="--d:.12s">
+        这里放的是标准股份的本地开发样例。可以先选本次关注的候选指标，再切换年度、查看年报来源、运行 R1 / R2 计算，也可以留下复核意见。
+        启动本地服务后，点击运行会由后端复算；未启动时，页面会明确保留为本地预览。
+      </p>
+
+      <div class="wb-shell reveal" style="--d:.18s" data-component="LocalR1Workbench">
+        <div class="wb-top">
+          <div>
+            <span class="wb-kicker">AuditTrace / Evidence-bound R1 + R2</span>
+            <h3 class="wb-title">审迹智链工作台</h3>
+            <p>每个参与计算的数字都能回到对应年报、披露日期、页码和 <code>evidence_id</code>。资料不全时，风险卡会先停在草稿区。</p>
+          </div>
+          <span class="wb-mode" id="wb-runtime-status"><i aria-hidden="true"></i>正在检查本地后端…</span>
+        </div>
+
+        <div class="wb-tabs" role="tablist" aria-label="工作台步骤">
+          <button class="wb-tab active" type="button" role="tab" id="wb-tab-project" aria-selected="true" aria-controls="wb-panel-project" data-wb-step="project"><span class="num">01</span>项目框架</button>
+          <button class="wb-tab" type="button" role="tab" id="wb-tab-data" aria-selected="false" aria-controls="wb-panel-data" data-wb-step="data"><span class="num">02</span>年报资料</button>
+          <button class="wb-tab" type="button" role="tab" id="wb-tab-risk" aria-selected="false" aria-controls="wb-panel-risk" data-wb-step="risk"><span class="num">03</span>规则结果</button>
+          <button class="wb-tab" type="button" role="tab" id="wb-tab-library" aria-selected="false" aria-controls="wb-panel-library" data-wb-step="library"><span class="num">04</span>候选指标</button>
+        </div>
+
+        <section class="wb-panel" id="wb-panel-project" role="tabpanel" aria-labelledby="wb-tab-project">
+          <div class="wb-panel-head">
+            <div><h3>项目与分析时点</h3><p>换年份后，数字、来源文件、披露日期和页码会一起换，不会沿用上一年的数据。</p></div>
+            <span class="wb-state ok" id="wb-project-status">开发样例已载入</span>
+          </div>
+          <div class="wb-grid">
+            <div class="wb-field"><span class="lab">公司 / 案例</span><span class="val"><strong id="wb-company">西安标准工业股份有限公司（标准股份）</strong></span></div>
+            <div class="wb-field"><span class="lab">证券代码</span><span class="val"><strong>600302</strong></span></div>
+            <div class="wb-field"><span class="lab">分析截止日 T0</span><span class="val"><strong id="wb-t0">2026-04-30</strong></span></div>
+            <div class="wb-field"><span class="lab">分析场景</span><select class="wb-select" id="wb-scene" aria-label="分析场景"><option>新客户业务承接</option><option>续聘复核</option><option selected>审计计划</option></select></div>
+            <div class="wb-field"><span class="lab">本年年度</span><select class="wb-select" id="wb-current-year" aria-label="本年年度"><option value="2025" selected>2025</option><option value="2024">2024</option><option value="2023">2023</option></select></div>
+            <div class="wb-field"><span class="lab">上年年度</span><span class="val"><strong id="wb-previous-year">2024</strong></span></div>
+            <div class="wb-field"><span class="lab">金额显示单位</span><select class="wb-select" id="wb-amount-unit" aria-label="金额显示单位"><option value="yuan" selected>元</option><option value="ten-thousand">万元</option><option value="million">百万元</option></select></div>
+          </div>
+          <div class="wb-actions">
+            <button class="wb-button primary" type="button" id="wb-load-sample">载入标准股份开发样例</button>
+            <button class="wb-button" type="button" data-wb-go="data">查看年报资料 <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="wb-note"><b>当前做到的：</b>R1、R2 当前工程字段和来源回指已经接入；R2 遇到经营现金流跨期变号或基数过小时会停止同比展示。右侧“候选指标”可勾选本次关注范围。当前后端只运行 R1、R2；R3—R8 会保留为候选项，不会冒充已运行。</p>
+        </section>
+
+        <section class="wb-panel" id="wb-panel-data" role="tabpanel" aria-labelledby="wb-tab-data" hidden>
+          <div class="wb-panel-head">
+            <div><h3>年报字段与来源台账</h3><p id="wb-data-unit-note">显示金额单位：元；计算时仍用原始元值。每条来源都绑定到对应年度年报；披露时间晚于 T0 或定位不全时，对应规则不继续生成候选卡。</p></div>
+            <span class="wb-state ok" id="wb-data-status">7 / 7 来源完整</span>
+          </div>
+          <div class="wb-table-wrap">
+            <table class="wb-table" aria-label="R1与R2年报字段与来源台账">
+              <thead><tr><th>字段</th><th>年度</th><th id="wb-amount-head">数值（元）</th><th>来源编号</th><th>来源文件与定位</th></tr></thead>
+              <tbody id="wb-data-body"></tbody>
+            </table>
+          </div>
+          <div class="wb-actions"><button class="wb-button" type="button" data-wb-go="project">← 返回项目</button><button class="wb-button primary" type="button" id="wb-run-r1">运行已选可执行项 <span aria-hidden="true">→</span></button></div>
+          <p class="wb-note" id="wb-backend-note"><b>资料要求：</b>缺少 <code>evidence_id</code>、来源文件、披露日期、PDF 页码、印刷页码或原文定位时，页面只提示还缺什么资料，不生成候选卡。</p>
+        </section>
+
+        <section class="wb-panel" id="wb-panel-risk" role="tabpanel" aria-labelledby="wb-tab-risk" hidden>
+          <div class="wb-panel-head">
+            <div><h3>规则计算与风险卡草稿</h3><p>程序完成 R1 / R2 数字计算与来源校验；AI 只在规则触发后输出受证据约束的语义草稿，不替代人工判断。</p></div>
+            <span class="wb-state" id="wb-risk-status">待运行</span>
+          </div>
+          <div class="wb-metrics">
+            <div class="wb-metric"><span>营业收入增速</span><strong id="wb-revenue-growth">—</strong><small>（本年收入 − 上年收入）/ 上年收入</small></div>
+            <div class="wb-metric"><span>应收账款增速</span><strong id="wb-ar-growth">—</strong><small>（本年应收 − 上年应收）/ 上年应收</small></div>
+            <div class="wb-metric"><span>两者差额</span><strong id="wb-growth-gap">—</strong><small>应收账款增速 − 收入增速</small></div>
+          </div>
+          <div class="wb-gate" id="wb-risk-gate"><b>等待本地样例运行</b>请选择一个已支持的年度组合，并由程序检查本次规则所需字段与来源定位。</div>
+          <div class="wb-run-results" id="wb-run-results" hidden></div>
+          <article class="wb-risk" id="wb-risk-card" hidden>
+            <div class="wb-risk-head"><div><span class="rule">R1 · 应收—收入背离</span><h4 id="wb-risk-title">—</h4></div><span class="wb-chip" id="wb-risk-chip">—</span></div>
+            <div class="wb-risk-body">
+              <div class="wb-risk-block wide"><span class="lab">本次观察</span><p id="wb-risk-observation">—</p></div>
+              <div class="wb-risk-block"><span class="lab">可能的正常解释</span><p>新增大客户、结算周期改变、季节性或行业账期普遍拉长等，均需取得可核验资料后判断。</p></div>
+              <div class="wb-risk-block"><span class="lab">当前资料缺口</span><p>账龄明细、期后回款、主要客户合同关键结算条款摘要及大额销售明细。</p></div>
+              <div class="wb-risk-block wide"><span class="lab">建议向客户索取</span><p>账龄明细表、期后回款记录、主要合同摘要、信用政策变更说明（如有）。取得后，再由审计师结合资料继续判断。</p></div>
+              <div class="wb-risk-block wide"><span class="lab">资料依据</span><div class="wb-evidence" id="wb-evidence-list"></div></div>
+              <div class="wb-risk-block wide" id="wb-planning-block"><span class="lab">审计计划场景的后续动作</span><p>由项目组结合候选认定，考虑账龄分析、期后回款检查、合同关键结算条款和大额异常交易明细。</p></div>
+              <div class="wb-risk-block wide"><span class="lab">人工复核</span><div class="wb-review"><label>处理<select id="wb-review-status"><option>未复核</option><option>保留为待核查候选</option><option>降级</option><option>暂缓</option></select></label><label>复核说明<textarea id="wb-review-note" placeholder="由审计项目组填写理由或下一步"></textarea></label><button class="wb-button" type="button" id="wb-save-review">保存本机复核</button></div><div class="wb-toast" id="wb-toast" role="status" aria-live="polite"></div></div>
+            </div>
+          </article>
+          <div class="wb-actions"><button class="wb-button" type="button" data-wb-go="data">← 返回资料页</button></div>
+        </section>
+
+        <section class="wb-panel" id="wb-panel-library" role="tabpanel" aria-labelledby="wb-tab-library" hidden>
+          <div class="wb-panel-head">
+            <div><h3>候选指标库</h3><p>这里是收入与销售收款循环的候选规则池。勾选表示“本次希望关注”，不等于系统已经计算、也不等于形成风险结论。</p></div>
+            <span class="wb-state" id="wb-library-status">2 项已选</span>
+          </div>
+          <div class="wb-rule-library" id="wb-rule-library" aria-label="候选风险指标列表"></div>
+          <p class="wb-note" id="wb-rule-scope-note"><b>运行边界：</b>当前后端会运行 R1、R2；其余项目先保留为候选卡，等待字段、来源和专业复核完成。</p>
+          <div class="wb-actions"><button class="wb-button" type="button" data-wb-go="project">← 返回项目</button><button class="wb-button" type="button" data-wb-go="data">查看年报资料 →</button></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 三类 AI 角色 ============ -->
+  <section class="roles" id="roles" data-component="AIRoles" data-od-id="roles">
+    <div class="wrap">
+      <span class="eyebrow reveal">智能体角色 · Agents</span>
+      <h2 class="sec-title reveal" style="--d:.06s">三个角色，各做各的事</h2>
+      <p class="sec-lead reveal" style="--d:.12s">
+        三个角色按固定分工配合，程序和审计师负责最后的校验。
+      </p>
+
+      <div class="role-grid">
+        <article class="role reveal" style="--d:.05s">
+          <span class="tag">质疑角色</span>
+          <div class="role-visual"><img src="assets/icons/generated/agent-challenger.png" alt="提出待核查风险假设的图示"></div>
+          <h3>提出风险假设</h3>
+          <div class="block"><span class="lab">负责什么</span><p>按专业规则提出需要进一步了解的情况，并标明资料依据。</p></div>
+          <div class="block deny"><span class="lab">不做什么</span><p>不猜测主体动机，也不下舞弊结论。</p></div>
+        </article>
+        <article class="role reveal" style="--d:.13s">
+          <span class="tag">反证角色</span>
+          <div class="role-visual"><img src="assets/icons/generated/agent-counterevidence.png" alt="寻找正常解释与相反资料的图示"></div>
+          <h3>寻找正常解释</h3>
+          <div class="block"><span class="lab">负责什么</span><p>找可能的正常解释、相反资料和还缺的资料；找不到也会写明。</p></div>
+          <div class="block deny"><span class="lab">不做什么</span><p>不为了凑答案而补造事实。</p></div>
+        </article>
+        <article class="role reveal" style="--d:.21s">
+          <span class="tag">语义复核角色</span>
+          <div class="role-visual"><img src="assets/icons/generated/agent-guardian.png" alt="把关措辞与证据的图示"></div>
+          <h3>把关措辞与证据</h3>
+          <div class="block"><span class="lab">负责什么</span><p>检查文字表述能不能被资料支持，必要时保留、降级或暂缓。</p></div>
+          <div class="block deny"><span class="lab">不做什么</span><p>不跳过程序校验，也不直接批准导出。</p></div>
+        </article>
+      </div>
+
+      <p class="role-note reveal" style="--d:.1s">
+        <b>怎么配合：</b>数字计算、日期筛选、字段完整性、禁用词和来源定位由程序处理；
+        AI 负责阅读与推理；<b>最后由人确认</b>。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 边界与承诺 ============ -->
+  <section class="boundaries" id="boundaries" data-component="Boundaries" data-od-id="boundaries">
+    <div class="wrap">
+      <span class="eyebrow reveal">边界与承诺 · Boundaries</span>
+      <h2 class="sec-title reveal" style="--d:.06s">把边界说清楚</h2>
+      <p class="sec-lead reveal" style="--d:.12s">
+        这套工具只帮审计师做风险预筛。审计结论仍需要审计师按程序作出，页面也会把边界写清楚。
+      </p>
+
+      <div class="bound-grid">
+        <div class="bound reveal" style="--d:.05s">
+          <span class="no">01</span>
+          <h4>不做舞弊认定</h4>
+          <p>只输出待核查风险线索，不对交易是否舞弊下结论。</p>
+        </div>
+        <div class="bound reveal" style="--d:.11s">
+          <span class="no">02</span>
+          <h4>不出审计意见</h4>
+          <p>不替代函证、检查、访谈等程序，不形成审计结论。</p>
+        </div>
+        <div class="bound reveal" style="--d:.17s">
+          <span class="no">03</span>
+          <h4>不给投资建议</h4>
+          <p>不做公司估值、投资判断或全市场实时扫描。</p>
+        </div>
+        <div class="bound reveal" style="--d:.23s">
+          <span class="no">04</span>
+          <h4>不替代人工判断</h4>
+          <p>关键专业判断、案例选定与最终发布，始终由人决定。</p>
+        </div>
+      </div>
+
+      <div class="commit reveal" style="--d:.1s" data-component="Commitments" data-od-id="commitments">
+        <span class="ci"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 8l3.2 3.2L12.5 4" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>资料不全 · 先不导出</span>
+        <span class="ci"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 8l3.2 3.2L12.5 4" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>案例脱敏 · 禁用词校验</span>
+        <span class="ci"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 8l3.2 3.2L12.5 4" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>来源台账 · 全程可回查</span>
+        <span class="ci"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 8l3.2 3.2L12.5 4" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>人工确认 · 最终把关</span>
+      </div>
+
+      <p class="status-line reveal" style="--d:.16s">
+        <b>目前页面展示：</b>标准股份本地开发样例、R1/R2 当前工程版计算、年度年报回指、运行记录与人工复核入口。
+        本地 FastAPI 会按所选 R1/R2 复算并如实返回模型状态；三Agent固定链、JSON/证据ID/禁用词校验已接入，但真实成功调用仍须团队配置有效 Key 后单独验收。
+        R3—R8 仍只作为候选指标；实时检索与 RAG 尚未接入。补充资料续分析已确认为交付目标，当前仍未接入上传与局部重跑。R2 专业规则 v0.2.1 已审查修订，页面仍为含可比性保护的方向比较工程版；销售收现率、OCF 构成与完整阈值分级尚未接入。
+      </p>
+    </div>
+  </section>
+</main>
+
+<!-- ============ 页脚 ============ -->
+<footer data-component="Footer" data-od-id="footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <div class="zh">审迹智链</div>
+        <div class="en" lang="en">AuditTrace</div>
+      </div>
+      <div class="foot-meta">
+        <div><b>北京市大学生数智会计创新应用竞赛</b> · 财会专业领域 Multi-Agent 应用</div>
+        <div>项目方案书 V3 · 四人团队 · 指导老师已同意启动</div>
+      </div>
+    </div>
+    <p class="foot-legal">
+      本页面仅为参赛项目方案展示，不构成审计意见、鉴证结论或投资建议。
+       页面内容基于《审迹智链详细项目计划书 V2.4.4》提炼；工作台中的标准股份数据为本地开发样例，其余标注「拟 / 计划」的内容均为设计目标，不代表已实现或已验证。
+      两个历史案例不具统计代表性，不支持普适舞弊识别准确率宣称。
+    </p>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   交互脚本：光效画布 / 滚动显现 / 时间线点亮 / 导航高亮
+   全部原生 JS，无外部依赖
+   ============================================================ */
+(function(){
+"use strict";
+
+var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var isMobile = window.matchMedia("(max-width: 760px)").matches;
+
+/* ---------- 读取种子色，让 Nudges 换肤能驱动光效 ----------
+   getComputedStyle 返回的是“活”对象，会实时反映被 Nudges 修补的变量；
+   因此每 45 帧重读一次（带字符串缓存，几乎零开销）。 */
+var rootStyle = getComputedStyle(document.documentElement);
+function parseColor(v, fallback){
+  v = (v || "").trim();
+  if(!v) return fallback;
+  if(v.charAt(0) === "#"){
+    var h = v.slice(1);
+    if(h.length === 3) h = h.charAt(0)+h.charAt(0)+h.charAt(1)+h.charAt(1)+h.charAt(2)+h.charAt(2);
+    return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) };
+  }
+  var m = v.match(/\d+/g);
+  if(m && m.length >= 3) return { r:+m[0], g:+m[1], b:+m[2] };
+  return fallback;
+}
+var GLOW = {r:125,g:211,b:252}, ACC = {r:34,g:211,b:238}, BG = {r:5,g:5,b:8};
+var _cache = {};
+function refreshPalette(){
+  var p = rootStyle.getPropertyValue("--seed-primary");
+  var a = rootStyle.getPropertyValue("--seed-accent");
+  var b = rootStyle.getPropertyValue("--seed-bg");
+  if(_cache.p !== p){ GLOW = parseColor(p, GLOW); _cache.p = p; }
+  if(_cache.a !== a){ ACC  = parseColor(a, ACC);  _cache.a = a; }
+  if(_cache.b !== b){ BG   = parseColor(b, BG);   _cache.b = b; }
+}
+refreshPalette();
+/* 背景明暗判断：决定光效用加性混合（深色舞台）还是普通混合（浅色纸面） */
+function isDarkBg(){ return (0.2126*BG.r + 0.7152*BG.g + 0.0722*BG.b) < 110; }
+function rgba(c,a){ return "rgba("+c.r+","+c.g+","+c.b+","+a+")"; }
+
+/* ============================================================
+   Hero 光效：中心辉光 + 色散边缘 + 射线 + 波纹 + 扫光 + 尘埃粒子
+   参照 moonshot.cn 的 shader 舞台感，用 Canvas 2D 加性混合实现
+   ============================================================ */
+var canvas = document.getElementById("fx");
+var ctx = canvas.getContext("2d");
+var W=0,H=0,dpr=1, cx=0, cy=0, frame=0, running=true;
+var mouse = { x:.5, y:.5, tx:.5, ty:.5 };
+var ripples = [], particles = [];
+var hoverBoost = 0, hoverBoostTarget = 0; // 悬停可交互元素时环境光增亮（0→1）
+var t = Math.random()*100; // 随机相位，避免每次加载动效完全同步
+
+function resize(){
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = canvas.width  = Math.floor(window.innerWidth  * dpr);
+  H = canvas.height = Math.floor(window.innerHeight * dpr);
+  canvas.style.width  = window.innerWidth  + "px";
+  canvas.style.height = window.innerHeight + "px";
+  cx = W/2; cy = H/2;
+}
+resize();
+window.addEventListener("resize", resize);
+
+/* 尘埃粒子：从中心向外缓慢漂移的光尘 */
+function newParticle(init){
+  var maxR = Math.min(W,H)*0.62;
+  return {
+    a: Math.random()*Math.PI*2,
+    d: init ? Math.random()*maxR : 8*dpr,
+    sp: (0.12 + Math.random()*0.35) * dpr,
+    dr: (Math.random()-0.5)*0.004,
+    sz: (0.6 + Math.random()*1.6) * dpr,
+    al: 0.12 + Math.random()*0.3,
+    max: maxR
+  };
+}
+function initParticles(){
+  particles = [];
+  var n = isMobile ? 34 : 78;
+  for(var i=0;i<n;i++) particles.push(newParticle(true));
+}
+initParticles();
+
+/* 中心辉光 + 色散边缘（月白核心 + 冷蓝/青双色散边，模拟镜头光学色散）
+   hoverBoost：鼠标悬停可交互元素时传入 0→1，辉光随之轻微增亮收紧 */
+function drawGlow(x,y,dark,boost){
+  var pulse = 1 + Math.sin(t*1.4)*0.07;
+  var R = Math.min(W,H)*0.30*pulse*(1 - boost*0.06);
+  var k = (dark ? 1 : 0.55) * (1 + boost*0.35); // 悬停时环境光增亮
+  var fringes = [
+    { c:{r:125,g:180,b:255}, dx:-8*dpr, dy:-4*dpr, a:0.10*k },   // 冷蓝色散边
+    { c:{r:110,g:231,b:245}, dx:8*dpr, dy:4*dpr, a:0.07*k },     // 青色散边
+    { c:GLOW, dx:0, dy:0, a:(dark?0.13:0.07)*k }                  // 月白核心
+  ];
+  for(var i=0;i<fringes.length;i++){
+    var f = fringes[i];
+    var g = ctx.createRadialGradient(x+f.dx, y+f.dy, 0, x+f.dx, y+f.dy, R);
+    g.addColorStop(0, rgba(f.c, f.a));
+    g.addColorStop(0.45, rgba(f.c, f.a*0.35));
+    g.addColorStop(1, rgba(f.c, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(x-R, y-R, R*2, R*2);
+  }
+}
+
+/* 射线：从中心发散的细光线，缓慢旋转、长度呼吸 */
+function drawRays(x,y,dark){
+  var N = isMobile ? 9 : 14;
+  var maxLen = Math.min(W,H)*0.58;
+  var k = dark ? 1 : 0.6;
+  for(var i=0;i<N;i++){
+    var ang = (i/N)*Math.PI*2 + t*0.14 + Math.sin(t*0.5+i)*0.12;
+    var len = maxLen * (0.45 + 0.55*Math.abs(Math.sin(t*0.7 + i*1.7)));
+    var al  = (0.025 + 0.045*Math.abs(Math.sin(t*0.9 + i*2.1)))*k;
+    var x2 = x + Math.cos(ang)*len, y2 = y + Math.sin(ang)*len;
+    var g = ctx.createLinearGradient(x,y,x2,y2);
+    g.addColorStop(0, rgba(GLOW, al));
+    g.addColorStop(1, rgba(GLOW, 0));
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 1.1*dpr;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+}
+
+/* 波纹：周期性从中心扩散的细环 */
+function drawRipples(x,y,dark){
+  if(frame % (isMobile?130:95) === 0) ripples.push({ r:18*dpr, a:0.14*(dark?1:0.7) });
+  for(var i=ripples.length-1;i>=0;i--){
+    var rp = ripples[i];
+    rp.r += 1.15*dpr; rp.a *= 0.986;
+    if(rp.a < 0.004 || rp.r > Math.min(W,H)*0.75){ ripples.splice(i,1); continue; }
+    ctx.strokeStyle = rgba(ACC, rp.a);
+    ctx.lineWidth = 1*dpr;
+    ctx.beginPath(); ctx.arc(x,y,rp.r,0,Math.PI*2); ctx.stroke();
+  }
+}
+
+/* 扫光：缓慢旋转的宽光束 */
+function drawBeam(x,y,dark){
+  var ang = t*0.35;
+  var spread = 0.5;
+  var len = Math.min(W,H)*0.75;
+  var g = ctx.createRadialGradient(x,y,0,x,y,len);
+  g.addColorStop(0, rgba(GLOW, (dark?0.05:0.03)));
+  g.addColorStop(1, rgba(GLOW, 0));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.arc(x,y,len, ang-spread/2, ang+spread/2);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/* 尘埃粒子 */
+function drawParticles(px,py,dark){
+  var k = dark ? 1 : 0.6;
+  for(var i=0;i<particles.length;i++){
+    var p = particles[i];
+    p.d += p.sp; p.a += p.dr;
+    if(p.d > p.max){ particles[i] = newParticle(false); continue; }
+    var fade = 1 - p.d/p.max;
+    var x = cx+px + Math.cos(p.a)*p.d;
+    var y = cy*0.92+py + Math.sin(p.a)*p.d;
+    ctx.fillStyle = rgba(ACC, p.al*fade*k);
+    ctx.beginPath(); ctx.arc(x,y,p.sz,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function draw(){
+  if(!running){ return; }
+  frame++; t += 0.008;
+  if(frame % 45 === 0) refreshPalette(); // 周期性重读，让 Nudges 换肤生效
+  mouse.x += (mouse.tx - mouse.x)*0.05;
+  mouse.y += (mouse.ty - mouse.y)*0.05;
+  hoverBoost += (hoverBoostTarget - hoverBoost)*0.08; // 悬停光影联动缓动
+  var px = (mouse.x-0.5)*46*dpr;
+  var py = (mouse.y-0.5)*46*dpr;
+  var gx = cx+px, gy = cy*0.92+py;
+  var dark = isDarkBg();
+
+  ctx.clearRect(0,0,W,H);
+  ctx.globalCompositeOperation = dark ? "lighter" : "source-over";
+  drawBeam(gx,gy,dark);
+  drawGlow(gx,gy,dark,hoverBoost);
+  drawRays(gx,gy,dark);
+  drawRipples(gx,gy,dark);
+  drawParticles(px,py,dark);
+
+  requestAnimationFrame(draw);
+}
+
+/* 鼠标视差 */
+window.addEventListener("mousemove", function(e){
+  mouse.tx = e.clientX / window.innerWidth;
+  mouse.ty = e.clientY / window.innerHeight;
+}, { passive:true });
+
+/* 降低动态偏好：只绘制一帧静态光效 */
+if(reduceMotion){
+  running = true;
+  draw();            // 绘制一帧
+  running = false;   // 停止循环
+} else {
+  requestAnimationFrame(draw);
+}
+
+/* 滚过 Hero 后淡出画布并暂停渲染，节省性能；同时乘以光效强度 Nudge */
+var heroEl = document.getElementById("hero");
+function fadeCanvas(){
+  var sc = window.scrollY || window.pageYOffset;
+  var vh = window.innerHeight;
+  var scrollFade = Math.max(0, 1 - sc/(vh*0.85));
+  var gi = parseFloat(rootStyle.getPropertyValue("--glow-intensity"));
+  if(isNaN(gi)) gi = 1;
+  var op = Math.min(1, scrollFade * gi);
+  canvas.style.opacity = op;
+  var shouldRun = op > 0.02 && !reduceMotion;
+  if(shouldRun && !running){ running = true; requestAnimationFrame(draw); }
+  if(!shouldRun && running){ running = false; }
+}
+
+/* ============================================================
+   滚动显现（IntersectionObserver）
+   ============================================================ */
+var revealEls = document.querySelectorAll(".reveal");
+if("IntersectionObserver" in window && !reduceMotion){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
+    });
+  }, { threshold:0.12, rootMargin:"0px 0px -8% 0px" });
+  revealEls.forEach(function(el){ io.observe(el); });
+} else {
+  revealEls.forEach(function(el){ el.classList.add("in"); });
+}
+
+/* ============================================================
+   工作流时间线：随滚动逐步点亮
+   ============================================================ */
+var tlSection = document.getElementById("timeline");
+var tlFill = document.getElementById("tlFill");
+var tlNodes = tlSection ? Array.prototype.slice.call(tlSection.querySelectorAll(".tl-node")) : [];
+var verticalTL = window.matchMedia("(max-width: 900px)").matches;
+
+function updateTimeline(){
+  if(!tlSection) return;
+  var rect = tlSection.getBoundingClientRect();
+  var vh = window.innerHeight;
+  var p = (vh*0.88 - rect.top) / (rect.height + vh*0.35);
+  p = Math.max(0, Math.min(1, p));
+  if(reduceMotion) p = 1; // 降低动态时直接全部点亮
+  var pct = (p*100).toFixed(2) + "%";
+  if(verticalTL){ tlFill.style.height = pct; tlFill.style.width = "2px"; }
+  else { tlFill.style.width = pct; tlFill.style.height = "2px"; }
+  var n = tlNodes.length;
+  for(var i=0;i<n;i++){
+    var threshold = n>1 ? (i/(n-1))*0.92 : 0;
+    tlNodes[i].classList.toggle("lit", p >= threshold);
+  }
+}
+window.addEventListener("resize", function(){
+  verticalTL = window.matchMedia("(max-width: 900px)").matches;
+  updateTimeline();
+});
+
+/* ============================================================
+   导航：滚动加背景 + 当前区块高亮
+   ============================================================ */
+var nav = document.getElementById("nav");
+var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav-links a"));
+var sections = ["positioning","innovations","workflow","workbench","roles","boundaries"].map(function(id){ return document.getElementById(id); });
+
+function onScroll(){
+  var sc = window.scrollY || window.pageYOffset;
+  nav.classList.toggle("scrolled", sc > 40);
+  fadeCanvas();
+  updateTimeline();
+  // 高亮当前区块
+  var current = "";
+  for(var i=0;i<sections.length;i++){
+    if(sections[i] && sections[i].getBoundingClientRect().top < window.innerHeight*0.4) current = sections[i].id;
+  }
+  navLinks.forEach(function(a){
+    a.classList.toggle("active", a.getAttribute("href") === "#"+current);
+  });
+}
+window.addEventListener("scroll", onScroll, { passive:true });
+onScroll();
+
+/* ============================================================
+   自定义光标：小圆点即时跟随 + 圆环缓动跟随
+   悬停可交互元素时圆环放大染色，并驱动 hero 光效增亮（hoverBoost）
+   仅在精确指针（鼠标）且非降低动态偏好时启用，触屏自动回退系统光标
+   ============================================================ */
+var HOVER_SEL = "a, button, .card, .role, .bound, .pos-tag, .tl-node, .commit .ci, .hero-chip, .nav-status, .wb-shell, .wb-tab, .wb-button, .wb-field, .wb-risk, .wb-rule-card";
+if(window.matchMedia("(pointer:fine)").matches && !reduceMotion){
+  document.documentElement.classList.add("custom-cursor");
+  var cDot  = document.createElement("div"); cDot.className  = "cursor-dot";
+  var cRing = document.createElement("div"); cRing.className = "cursor-ring";
+  document.body.appendChild(cDot);
+  document.body.appendChild(cRing);
+
+  var ringX = window.innerWidth/2, ringY = window.innerHeight/2;
+  var curX = ringX, curY = ringY;
+  var ringHover = false;
+
+  document.addEventListener("mousemove", function(e){
+    curX = e.clientX; curY = e.clientY;
+    cDot.style.transform = "translate("+curX+"px,"+curY+"px) translate(-50%,-50%)";
+    // 悬停检测：命中可交互元素时放大圆环并联动光效
+    var isHover = !!(e.target.closest && e.target.closest(HOVER_SEL));
+    if(isHover !== ringHover){
+      ringHover = isHover;
+      cRing.classList.toggle("is-hover", isHover);
+      hoverBoostTarget = isHover ? 1 : 0;
+    }
+  }, { passive:true });
+
+  // 圆环用独立的缓动循环，形成"延迟跟随"的高级感
+  (function ringLoop(){
+    ringX += (curX - ringX)*0.16;
+    ringY += (curY - ringY)*0.16;
+    cRing.style.transform = "translate("+ringX+"px,"+ringY+"px) translate(-50%,-50%)";
+    requestAnimationFrame(ringLoop);
+  })();
+
+  // 鼠标移出窗口时淡出光标
+  document.addEventListener("mouseout", function(e){
+    if(!e.relatedTarget){ cDot.style.opacity = 0; cRing.style.opacity = 0; }
+    else { cDot.style.opacity = 1; cRing.style.opacity = 1; }
+  });
+}
+
+/* ============================================================
+   卡片聚光灯：鼠标划过时更新 --mx/--my，冷光跟随鼠标位置
+   ============================================================ */
+Array.prototype.forEach.call(document.querySelectorAll(".card,.role,.bound"), function(el){
+  el.addEventListener("mousemove", function(e){
+    var r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", (e.clientX - r.left) + "px");
+    el.style.setProperty("--my", (e.clientY - r.top) + "px");
+  }, { passive:true });
+});
+
+  /* ============================================================
+    本地开发工作台：网页保留明确标注的 R1 静态预览；本地后端复算 R1/R2。
+    没有后端或模型Key时只显示真实失败/缺失状态，不能伪造结果。
+    ============================================================ */
+var wbRoot = document.getElementById("workbench");
+if(wbRoot){
+  var WB_REVIEW_KEY = "audittrace_root_workbench_review_v1";
+  var WB_SCOPE_KEY = "audittrace_root_workbench_rule_scope_v1";
+  var wbCompany = "西安标准工业股份有限公司（标准股份）";
+  var wbT0 = "2026-04-30";
+   var wbFields = [
+     { id:"revenue_current", label:"本年营业收入" },
+     { id:"revenue_previous", label:"上年营业收入" },
+     { id:"ar_current", label:"本年应收账款" },
+     { id:"ar_previous", label:"上年应收账款" },
+     { id:"operating_cash_flow_current", label:"本年经营活动现金流量净额" },
+     { id:"operating_cash_flow_previous", label:"上年经营活动现金流量净额" },
+     { id:"net_profit_current", label:"本年净利润（R2增强项）" }
+   ];
+  // 每个 evidence_id 固定绑定年度自身年报；切换年度时整组数据同步切换。
+  var wbPeriods = {
+    "2025": { previous:"2024", data:{
+      revenue_current:{ value:337238620.57, evidenceId:"STD_REV_2025", sourceFile:"标准股份：标准股份2025年年度报告全文(1).pdf", disclosureDate:"2026-04-30", pdfPage:"64", printPage:"64（页脚印与 PDF 一致）", locator:"合并利润表／营业收入（2025 本期）" },
+      revenue_previous:{ value:446351660.77, evidenceId:"STD_REV_2024", sourceFile:"标准股份：标准股份2024年年度报告全文（修订版）.pdf", disclosureDate:"2025-04-29", pdfPage:"67", printPage:"67（页脚印与 PDF 一致）", locator:"合并利润表／营业收入（2024 本期）" },
+      ar_current:{ value:176388063.66, evidenceId:"STD_AR_2025", sourceFile:"标准股份：标准股份2025年年度报告全文(1).pdf", disclosureDate:"2026-04-30", pdfPage:"59", printPage:"59（页脚印与 PDF 一致）", locator:"合并资产负债表／应收账款（2025 期末）" },
+     ar_previous:{ value:282866689.51, evidenceId:"STD_AR_2024", sourceFile:"标准股份：标准股份2024年年度报告全文（修订版）.pdf", disclosureDate:"2025-04-29", pdfPage:"62", printPage:"62（页脚印与 PDF 一致）", locator:"合并资产负债表／应收账款（2024 期末）" },
+     operating_cash_flow_current:{ value:-32280442.49, evidenceId:"STD_CFO_2025", sourceFile:"标准股份：标准股份2025年年度报告全文(1).pdf", disclosureDate:"2026-04-30", pdfPage:"67", printPage:"67（页脚印与 PDF 一致）", locator:"合并现金流量表／经营活动产生的现金流量净额（2025 本期）" },
+     operating_cash_flow_previous:{ value:1570534.28, evidenceId:"STD_CFO_2024", sourceFile:"标准股份：标准股份2024年年度报告全文（修订版）.pdf", disclosureDate:"2025-04-29", pdfPage:"71", printPage:"71（页脚印与 PDF 一致）", locator:"合并现金流量表／经营活动产生的现金流量净额（2024 本期）" },
+     net_profit_current:{ value:-170193631.28, evidenceId:"STD_NP_2025", sourceFile:"标准股份：标准股份2025年年度报告全文(1).pdf", disclosureDate:"2026-04-30", pdfPage:"64", printPage:"64（页脚印与 PDF 一致）", locator:"合并利润表／净利润（2025 本期）" }
+    }},
+    "2024": { previous:"2023", data:{
+      revenue_current:{ value:446351660.77, evidenceId:"STD_REV_2024", sourceFile:"标准股份：标准股份2024年年度报告全文（修订版）.pdf", disclosureDate:"2025-04-29", pdfPage:"67", printPage:"67（页脚印与 PDF 一致）", locator:"合并利润表／营业收入（2024 本期）" },
+      revenue_previous:{ value:506925296.14, evidenceId:"STD_REV_2023", sourceFile:"标准股份：标准股份2023年年度报告.pdf", disclosureDate:"2024-04-18", pdfPage:"70", printPage:"70（页脚印与 PDF 一致）", locator:"合并利润表／营业收入（2023 本期）" },
+      ar_current:{ value:282866689.51, evidenceId:"STD_AR_2024", sourceFile:"标准股份：标准股份2024年年度报告全文（修订版）.pdf", disclosureDate:"2025-04-29", pdfPage:"62", printPage:"62（页脚印与 PDF 一致）", locator:"合并资产负债表／应收账款（2024 期末）" },
+     ar_previous:{ value:329742664.91, evidenceId:"STD_AR_2023", sourceFile:"标准股份：标准股份2023年年度报告.pdf", disclosureDate:"2024-04-18", pdfPage:"66", printPage:"66（页脚印与 PDF 一致）", locator:"合并资产负债表／应收账款（2023 期末）" },
+     operating_cash_flow_current:{ value:1570534.28, evidenceId:"STD_CFO_2024", sourceFile:"标准股份：标准股份2024年年度报告全文（修订版）.pdf", disclosureDate:"2025-04-29", pdfPage:"71", printPage:"71（页脚印与 PDF 一致）", locator:"合并现金流量表／经营活动产生的现金流量净额（2024 本期）" },
+     operating_cash_flow_previous:{ value:-29688300.25, evidenceId:"STD_CFO_2023", sourceFile:"标准股份：标准股份2023年年度报告.pdf", disclosureDate:"2024-04-18", pdfPage:"74", printPage:"74（页脚印与 PDF 一致）", locator:"合并现金流量表／经营活动产生的现金流量净额（2023 本期）" },
+     net_profit_current:{ value:-165447424.92, evidenceId:"STD_NP_2024", sourceFile:"标准股份：标准股份2024年年度报告全文（修订版）.pdf", disclosureDate:"2025-04-29", pdfPage:"68", printPage:"68（页脚印与 PDF 一致）", locator:"合并利润表／净利润（2024 本期）" }
+    }},
+    "2023": { previous:"2022", data:{
+      revenue_current:{ value:506925296.14, evidenceId:"STD_REV_2023", sourceFile:"标准股份：标准股份2023年年度报告.pdf", disclosureDate:"2024-04-18", pdfPage:"70", printPage:"70（页脚印与 PDF 一致）", locator:"合并利润表／营业收入（2023 本期）" },
+      revenue_previous:{ value:1050779931.05, evidenceId:"STD_REV_2022", sourceFile:"标准股份：标准股份2022年年度报告.pdf", disclosureDate:"2023-04-19", pdfPage:"63", printPage:"63（页脚印与 PDF 一致）", locator:"合并利润表／营业收入（2022 本期）" },
+      ar_current:{ value:329742664.91, evidenceId:"STD_AR_2023", sourceFile:"标准股份：标准股份2023年年度报告.pdf", disclosureDate:"2024-04-18", pdfPage:"66", printPage:"66（页脚印与 PDF 一致）", locator:"合并资产负债表／应收账款（2023 期末）" },
+     ar_previous:{ value:439176425.31, evidenceId:"STD_AR_2022", sourceFile:"标准股份：标准股份2022年年度报告.pdf", disclosureDate:"2023-04-19", pdfPage:"59", printPage:"59（页脚印与 PDF 一致）", locator:"合并资产负债表／应收账款（2022 期末）" },
+     operating_cash_flow_current:{ value:-29688300.25, evidenceId:"STD_CFO_2023", sourceFile:"标准股份：标准股份2023年年度报告.pdf", disclosureDate:"2024-04-18", pdfPage:"74", printPage:"74（页脚印与 PDF 一致）", locator:"合并现金流量表／经营活动产生的现金流量净额（2023 本期）" },
+     operating_cash_flow_previous:{ value:24322281.01, evidenceId:"STD_CFO_2022", sourceFile:"标准股份：标准股份2022年年度报告.pdf", disclosureDate:"2023-04-19", pdfPage:"66", printPage:"66（页脚印与 PDF 一致）", locator:"合并现金流量表／经营活动产生的现金流量净额（2022 本期）" },
+     net_profit_current:{ value:-212351971.28, evidenceId:"STD_NP_2023", sourceFile:"标准股份：标准股份2023年年度报告.pdf", disclosureDate:"2024-04-18", pdfPage:"71", printPage:"71（页脚印与 PDF 一致）", locator:"合并利润表／净利润（2023 本期）" }
+    }}
+  };
+  var wbYear = document.getElementById("wb-current-year");
+  var wbScene = document.getElementById("wb-scene");
+  var wbAmountUnit = document.getElementById("wb-amount-unit");
+  var wbUnitMap = {
+    "yuan": { label:"元", divisor:1 },
+    "ten-thousand": { label:"万元", divisor:10000 },
+    "million": { label:"百万元", divisor:1000000 }
+  };
+  var wbTabs = Array.prototype.slice.call(document.querySelectorAll(".wb-tab"));
+  var wbPanels = Array.prototype.slice.call(document.querySelectorAll(".wb-panel"));
+  var wbToastTimer;
+  var wbLastRunId = null;
+  var wbApiBase = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
+  // R1—R8 来自计划书中的规则库 v0.1。当前只有 R1、R2 可以由本地后端计算。
+  var wbRuleCatalog = [
+    { id:"R1", name:"应收—收入背离", detail:"应收增速相对收入偏高时，进一步看账龄、期后回款和合同结算。", meta:"本地后端可运行（四字段方向比较）", runnable:true },
+    { id:"R2", name:"收入—经营现金流背离", detail:"收入增长但经营现金流未同步改善时，结合经营性应收应付、存货、税费和结算周期再看；跨期变号或基数过小时不做同比判断。", meta:"本地后端可运行（方向比较版，含可比性保护）", runnable:true },
+    { id:"R3", name:"产销量—收入不匹配", detail:"在产品、单位、期间和合并范围可比时，核对收入规模与产能、产量、销量之间是否需要解释。", meta:"待产能产量资料" },
+    { id:"R4", name:"客户集中度与交易特征变化", detail:"关注前五大客户集中度变化及交易对手公开特征与披露规模之间是否存在待解释事项。", meta:"待客户披露与官方登记资料" },
+    { id:"R5", name:"总额法 / 净额法判断依据", detail:"围绕控制权、履约责任、定价和存货风险，检查收入政策与业务模式的判断依据是否充分。", meta:"待合同和收入政策资料" },
+    { id:"R6", name:"毛利率逆行业变化", detail:"在产品结构、成本范围和会计政策可比时，关注公司毛利率与行业趋势背离且缺少可核验解释的情况。", meta:"待同行与成本资料" },
+    { id:"R7", name:"管理层表述与数字不一致", detail:"管理层讨论称竞争加剧、价格承压或需求下降，但收入或毛利率显著改善且缺少解释时，保留为披露一致性线索。", meta:"待披露切片与语义复核" },
+    { id:"R8", name:"年末 / 第四季度收入集中", detail:"第四季度或年末收入占比异常时，结合应收、合同资产、退货折让和减值资料一起核查。", meta:"待分季度与期后资料" }
+  ];
+  var wbRuleLibrary = document.getElementById("wb-rule-library");
+
+  function wbCurrent(){ return wbPeriods[wbYear.value] || null; }
+  function wbPercent(value){ return (value * 100).toFixed(2) + "%"; }
+  function wbCurrentUnit(){ return wbUnitMap[wbAmountUnit.value] || wbUnitMap.yuan; }
+  function wbFormatAmount(value){
+    // 原始字段始终按“元”保存；单位切换仅影响展示，绝不参与 R1 计算。
+    return Number(value / wbCurrentUnit().divisor).toLocaleString("zh-CN", { minimumFractionDigits:2, maximumFractionDigits:2 });
+  }
+  function wbShowToast(message){
+    var el = document.getElementById("wb-toast");
+    if(!el) return;
+    el.textContent = message;
+    el.classList.add("show");
+    window.clearTimeout(wbToastTimer);
+    wbToastTimer = window.setTimeout(function(){ el.classList.remove("show"); }, 3200);
+  }
+  function wbGetSelectedRules(){
+    try{
+      var stored = JSON.parse(localStorage.getItem(WB_SCOPE_KEY) || "[\"R1\",\"R2\"]");
+      var valid = Array.isArray(stored) ? stored.filter(function(id){ return wbRuleCatalog.some(function(rule){ return rule.id === id; }); }) : [];
+      return valid.length ? valid : ["R1", "R2"];
+    }catch(error){ return ["R1", "R2"]; }
+  }
+  function wbSaveSelectedRules(ids){
+    try { localStorage.setItem(WB_SCOPE_KEY, JSON.stringify(ids)); }
+    catch(error){}
+  }
+  function wbSelectedRuleNames(){
+    var selected = wbGetSelectedRules();
+    return wbRuleCatalog.filter(function(rule){ return selected.indexOf(rule.id) > -1; }).map(function(rule){ return rule.id; });
+  }
+  function wbRenderRuleLibrary(){
+    if(!wbRuleLibrary) return;
+    var selected = wbGetSelectedRules();
+    wbRuleLibrary.innerHTML = wbRuleCatalog.map(function(rule){
+      var checked = selected.indexOf(rule.id) > -1;
+      return '<label class="wb-rule-card' + (checked ? ' is-selected' : '') + '"><input type="checkbox" data-rule-id="' + rule.id + '"' + (checked ? ' checked' : '') + '><span><span class="wb-rule-code">' + rule.id + ' · 规则库 v0.1</span><span class="wb-rule-name">' + rule.name + '</span><p>' + rule.detail + '</p><span class="wb-rule-meta' + (rule.runnable ? ' runnable' : '') + '">' + rule.meta + '</span></span></label>';
+    }).join("");
+    var selectedNames = wbSelectedRuleNames();
+    var libraryStatus = document.getElementById("wb-library-status");
+    var scopeNote = document.getElementById("wb-rule-scope-note");
+    if(libraryStatus){
+      libraryStatus.textContent = selectedNames.length + " 项已选";
+       libraryStatus.className = "wb-state " + (selectedNames.some(function(id){ return id === "R1" || id === "R2"; }) ? "ok" : "");
+    }
+    if(scopeNote){
+      var runnable = selectedNames.filter(function(id){ return id === "R1" || id === "R2"; });
+      var waiting = selectedNames.filter(function(id){ return runnable.indexOf(id) === -1; });
+      scopeNote.innerHTML = "<b>本次关注范围：</b>" + (selectedNames.length ? selectedNames.join("、") : "暂未选择") + "。" + (runnable.length ? runnable.join("、") + " 可进入当前本地后端。" : "当前没有可运行的已选规则。") + (waiting.length ? " " + waiting.join("、") + " 已记录为关注项，但缺字段、来源或专业复核，暂不计算也不生成风险卡。" : "");
+    }
+  }
+  function wbSetBackendStatus(text, type, note){
+    var badge = document.getElementById("wb-runtime-status");
+    var backendNote = document.getElementById("wb-backend-note");
+    badge.textContent = text;
+    badge.className = "wb-mode" + (type === "ok" ? " ok" : "");
+    if(backendNote && note) backendNote.innerHTML = "<b>后端状态：</b>" + note;
+  }
+  function wbModelStatusText(check){
+    if(!check) return "未请求模型检查";
+    if(check.status === "model_success") return "三Agent结构化草稿已通过校验（不参与数字计算或人工结论）";
+    if(check.status === "config_missing") return "模型未配置（未生成AI草稿）";
+    if(check.status === "provider_unreachable") return "模型调用失败（未生成AI草稿）";
+    if(check.status === "MODEL_OUTPUT_INVALID") return "模型输出无效（已停止AI草稿链）";
+    if(check.status === "not_applicable") return "本次规则未触发，未调用模型";
+    return "模型状态：" + check.status;
+  }
+  async function wbCheckBackend(){
+    try{
+      var response = await fetch(wbApiBase + "/api/health");
+      if(!response.ok) throw new Error("health " + response.status);
+      var health = await response.json();
+      wbSetBackendStatus("本地后端已启动 · " + (health.model_status === "configured" ? "模型已配置" : "模型未配置"), "ok", "后端可用；" + (health.model_status === "configured" ? "模型配置存在，仍须在规则触发后完成真实三Agent调用验收。" : "未配置模型Key，运行R1/R2时只做确定性计算与来源校验。"));
+    }catch(error){
+      wbSetBackendStatus("本地开发样例 · 后端未启动", "", "当前仅为网页内本地预览。请按 README_RUN.md 启动后端后再运行正式计算。");
+    }
+  }
+  function wbSetTab(step){
+    wbTabs.forEach(function(tab){
+      var active = tab.getAttribute("data-wb-step") === step;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    wbPanels.forEach(function(panel){ panel.hidden = panel.id !== "wb-panel-" + step; });
+  }
+  function wbGetReviews(){
+    try { return JSON.parse(localStorage.getItem(WB_REVIEW_KEY) || "{}"); }
+    catch(error){ return {}; }
+  }
+  function wbRestoreReview(){
+    var reviews = wbGetReviews();
+    var review = reviews[wbYear.value] || { status:"未复核", note:"" };
+    document.getElementById("wb-review-status").value = review.status;
+    document.getElementById("wb-review-note").value = review.note;
+  }
+  function wbRenderProject(){
+    var period = wbCurrent();
+    document.getElementById("wb-company").textContent = wbCompany;
+    document.getElementById("wb-t0").textContent = wbT0;
+    document.getElementById("wb-previous-year").textContent = period ? period.previous : "—";
+    var projectStatus = document.getElementById("wb-project-status");
+    projectStatus.textContent = period ? "开发样例已载入" : "年度未支持";
+    projectStatus.className = "wb-state " + (period ? "ok" : "");
+  }
+  function wbRowComplete(row){
+    return Boolean(row && row.evidenceId && row.sourceFile && row.disclosureDate && row.pdfPage && row.printPage && row.locator && row.disclosureDate <= wbT0 && Number.isFinite(Number(row.value)));
+  }
+  function wbRenderData(){
+    var period = wbCurrent();
+    var body = document.getElementById("wb-data-body");
+    var dataStatus = document.getElementById("wb-data-status");
+    var unit = wbCurrentUnit();
+    document.getElementById("wb-amount-head").textContent = "数值（" + unit.label + "）";
+    document.getElementById("wb-data-unit-note").textContent = "显示金额单位：" + unit.label + "；计算时仍使用原始元值。每条来源都绑定到对应年度年报；披露时间晚于 T0 或定位不全时，对应规则不继续生成候选卡。";
+    if(!period){
+      body.innerHTML = '<tr><td colspan="5">当前年度没有对应的本地开发样例，已阻断计算。</td></tr>';
+      dataStatus.textContent = "0 / " + wbFields.length + " 来源完整";
+      dataStatus.className = "wb-state";
+      return;
+    }
+    var complete = 0;
+    body.innerHTML = wbFields.map(function(field){
+      var row = period.data[field.id];
+      if(wbRowComplete(row)) complete++;
+      var year = field.id.indexOf("current") > -1 ? wbYear.value : period.previous;
+      return '<tr><td><strong>'+field.label+'</strong></td><td>'+year+'</td><td class="amount">'+wbFormatAmount(row.value)+'</td><td class="eid">'+row.evidenceId+'</td><td class="wb-source">'+row.sourceFile+'<small>披露 '+row.disclosureDate+' · PDF '+row.pdfPage+' 页 · 印刷 '+row.printPage+' · '+row.locator+'</small></td></tr>';
+    }).join("");
+    dataStatus.textContent = complete + " / " + wbFields.length + " 来源完整";
+    dataStatus.className = "wb-state " + (complete === wbFields.length ? "ok" : "");
+  }
+  function wbRenderEvidence(period){
+    var list = document.getElementById("wb-evidence-list");
+    list.innerHTML = wbFields.map(function(field){
+      var row = period.data[field.id];
+      var year = field.id.indexOf("current") > -1 ? wbYear.value : period.previous;
+      return '<div><strong>'+row.evidenceId+' · '+field.label+'（'+year+'）</strong><span>'+row.sourceFile+'｜披露 '+row.disclosureDate+'｜PDF '+row.pdfPage+' 页｜印刷 '+row.printPage+'｜'+row.locator+'</span></div>';
+    }).join("");
+  }
+  function wbRenderBackendEvidence(sources){
+    var list = document.getElementById("wb-evidence-list");
+    list.innerHTML = sources.map(function(row){
+      return '<div><strong>'+row.evidence_id+' · '+row.field_label+'（'+row.year+'）</strong><span>'+row.source_file+'｜披露 '+row.disclosure_date+'｜PDF '+row.pdf_page+' 页｜印刷 '+row.print_page+'｜'+row.locator+'</span></div>';
+    }).join("");
+  }
+  function wbRenderBackendData(sources){
+    var body = document.getElementById("wb-data-body");
+    var dataStatus = document.getElementById("wb-data-status");
+    var unit = wbCurrentUnit();
+    if(!body || !Array.isArray(sources)) return;
+    body.innerHTML = sources.map(function(row){
+      return '<tr><td><strong>'+wbEscape(row.field_label)+'</strong></td><td>'+wbEscape(row.year)+'</td><td class="amount">'+wbFormatAmount(row.value)+'</td><td class="eid">'+wbEscape(row.evidence_id)+'</td><td class="wb-source">'+wbEscape(row.source_file)+'<small>披露 '+wbEscape(row.disclosure_date)+' · PDF '+wbEscape(row.pdf_page)+' 页 · 印刷 '+wbEscape(row.print_page)+' · '+wbEscape(row.locator)+'</small></td></tr>';
+    }).join("");
+    document.getElementById("wb-amount-head").textContent = "数值（" + unit.label + "）";
+    dataStatus.textContent = sources.length + " / " + sources.length + " 本次来源完整";
+    dataStatus.className = "wb-state ok";
+  }
+  function wbSetMetrics(revenueGrowth, arGrowth, gap){
+    document.getElementById("wb-revenue-growth").textContent = revenueGrowth === null ? "—" : wbPercent(revenueGrowth);
+    document.getElementById("wb-ar-growth").textContent = arGrowth === null ? "—" : wbPercent(arGrowth);
+    document.getElementById("wb-growth-gap").textContent = gap === null ? "—" : (gap >= 0 ? "+" : "") + (gap * 100).toFixed(2) + " 个百分点";
+  }
+  function wbRunR1(moveToRisk){
+    var period = wbCurrent();
+    var gate = document.getElementById("wb-risk-gate");
+    var card = document.getElementById("wb-risk-card");
+    var status = document.getElementById("wb-risk-status");
+    document.getElementById("wb-run-results").hidden = true;
+    if(!period){
+      wbSetMetrics(null, null, null);
+      gate.innerHTML = "<b>当前年度无本地样例</b>请切换至 2025/2024、2024/2023 或 2023/2022 的连续年度组合。";
+      gate.hidden = false; card.hidden = true;
+      status.textContent = "年度未支持"; status.className = "wb-state";
+      if(moveToRisk) wbSetTab("risk");
+      return;
+    }
+    var missing = wbFields.filter(function(field){ return !wbRowComplete(period.data[field.id]); }).map(function(field){ return field.label; });
+    if(missing.length){
+      wbSetMetrics(null, null, null);
+      gate.innerHTML = "<b>来源准入未通过</b>缺少或不符合 T0 边界的字段：" + missing.join("、") + "。系统停止生成候选卡。";
+      gate.hidden = false; card.hidden = true;
+      status.textContent = "资料不完整"; status.className = "wb-state";
+      if(moveToRisk) wbSetTab("risk");
+      return;
+    }
+    var revenueGrowth = (period.data.revenue_current.value - period.data.revenue_previous.value) / period.data.revenue_previous.value;
+    var arGrowth = (period.data.ar_current.value - period.data.ar_previous.value) / period.data.ar_previous.value;
+    var gap = arGrowth - revenueGrowth;
+    var candidate = gap > 0;
+    wbSetMetrics(revenueGrowth, arGrowth, gap);
+    document.getElementById("wb-risk-title").textContent = candidate ? "应收账款增速高于收入增速，建议进一步了解" : "本次未出现“应收增速高于收入增速”的方向";
+    document.getElementById("wb-risk-chip").textContent = candidate ? "候选现象" : "仅完成计算";
+    document.getElementById("wb-risk-chip").className = "wb-chip" + (candidate ? " candidate" : "");
+    document.getElementById("wb-risk-observation").textContent = candidate
+      ? wbYear.value + " 年，" + wbCompany + "应收账款增速为 " + wbPercent(arGrowth) + "，营业收入增速为 " + wbPercent(revenueGrowth) + "，前者高出 " + (gap * 100).toFixed(2) + " 个百分点。按 R1 当前方向规则，形成“待进一步了解”的候选现象；是否保留须人工复核。"
+      : wbYear.value + " 年，" + wbCompany + "应收账款增速为 " + wbPercent(arGrowth) + "，营业收入增速为 " + wbPercent(revenueGrowth) + "。按当前两个指标的方向，本次未形成 R1 候选；这不代表不存在其他收入确认相关风险。";
+    status.textContent = candidate ? "候选现象，待人工复核" : "未形成 R1 方向候选";
+    status.className = "wb-state " + (candidate ? "candidate" : "ok");
+    document.getElementById("wb-planning-block").hidden = wbScene.value !== "审计计划";
+    wbRenderEvidence(period);
+    wbRestoreReview();
+    gate.hidden = true; card.hidden = false;
+    if(moveToRisk) wbSetTab("risk");
+  }
+  function wbEscape(value){
+    return String(value === undefined || value === null ? "" : value).replace(/[&<>"']/g, function(char){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char];
+    });
+  }
+  function wbMetricText(key, value, result){
+    if(result && result.status === "DATA_NOT_COMPARABLE" && (key === "operating_cash_flow_growth" || key === "growth_gap")) return "同比不宜比较";
+    if(value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
+    if(key === "growth_gap") return (value >= 0 ? "+" : "") + (value * 100).toFixed(2) + " 个百分点";
+    return wbPercent(Number(value));
+  }
+  function wbMetricNote(result, key){
+    if(result && result.status === "DATA_NOT_COMPARABLE" && (key === "operating_cash_flow_growth" || key === "growth_gap")){
+      return "经营现金流跨期变号或基数过小；改看金额及待补资料。";
+    }
+    return result && result.status === "candidate" ? "已形成待进一步了解候选" : "本次仅完成规则计算";
+  }
+  function wbMetricLabel(key){
+    var labels = {
+      revenue_growth:"营业收入增速", ar_growth:"应收账款增速", operating_cash_flow_growth:"经营现金流增速",
+      growth_gap:"增速差额", cashflow_to_revenue_current:"本年现金流 / 收入", cashflow_to_revenue_previous:"上年现金流 / 收入",
+      net_profit_cashflow_gap:"本年现金流与净利润偏差率"
+    };
+    return labels[key] || key;
+  }
+  function wbRuleName(ruleId){
+    var rule = wbRuleCatalog.filter(function(item){ return item.id === ruleId; })[0];
+    return rule ? rule.name : ruleId;
+  }
+  function wbTextList(items){
+    if(!Array.isArray(items) || !items.length) return "尚未提供。";
+    return items.map(wbEscape).join("<br>");
+  }
+  function wbAgentStepsHtml(steps){
+    var roleNames = {challenge:"质疑",counter:"反证",review:"语义复核"};
+    if(!Array.isArray(steps) || !steps.length) return "<p>本次没有可展示的 Agent 步骤。</p>";
+    return '<div class="wb-agent-steps">' + steps.map(function(step){
+      var detail = step.detail || "—";
+      if(step.status === "completed" && step.output && step.output.reason_for_status) detail += " “" + step.output.reason_for_status + "”";
+      return '<div class="wb-agent-step"><b>'+wbEscape(roleNames[step.role] || step.role)+' · '+wbEscape(step.status)+'</b><em>'+wbEscape(detail)+'</em></div>';
+    }).join("") + "</div>";
+  }
+  function wbRenderBackendMetrics(results){
+    var box = document.querySelector(".wb-metrics");
+    if(!box) return;
+    var cards = [];
+    results.forEach(function(result){
+      Object.keys(result.metrics || {}).forEach(function(key){
+        cards.push('<div class="wb-metric"><span>'+wbEscape(result.rule_id+' · '+wbMetricLabel(key))+'</span><strong>'+wbMetricText(key, result.metrics[key], result)+'</strong><small>'+wbEscape(wbMetricNote(result, key))+'</small></div>');
+      });
+    });
+    box.innerHTML = cards.length ? cards.join("") : '<div class="wb-metric"><span>计算结果</span><strong>—</strong><small>未返回可展示指标。</small></div>';
+  }
+  function wbRunReviewHtml(){
+    return '<article class="wb-run-result"><div class="wb-risk-head"><div><span class="rule">本次运行 · 人工复核</span><h4>由项目组决定是否保留待核查事项</h4></div><span class="wb-chip">人工环节</span></div><div class="wb-risk-body"><div class="wb-risk-block wide"><span class="lab">复核意见</span><div class="wb-review"><label>处理<select id="wb-backend-review-status"><option>未复核</option><option>保留为待核查候选</option><option>降级</option><option>暂缓</option></select></label><label>复核说明<textarea id="wb-backend-review-note" placeholder="由审计项目组填写理由或下一步"></textarea></label><button class="wb-button" type="button" id="wb-save-backend-review">保存本次复核</button></div><div class="wb-toast" id="wb-backend-toast" role="status" aria-live="polite"></div></div></div></article>';
+  }
+  function wbRenderBackendResults(result){
+    var resultsBox = document.getElementById("wb-run-results");
+    var card = document.getElementById("wb-risk-card");
+    var gate = document.getElementById("wb-risk-gate");
+    var status = document.getElementById("wb-risk-status");
+    var results = Array.isArray(result.rule_results) ? result.rule_results : [];
+    var candidateCount = results.filter(function(item){ return item.status === "candidate"; }).length;
+    var notComparableCount = results.filter(function(item){ return item.status === "DATA_NOT_COMPARABLE"; }).length;
+    wbLastRunId = result.run_id || null;
+    wbRenderBackendMetrics(results);
+    wbRenderBackendEvidence(result.sources || []);
+    wbRenderBackendData(result.sources || []);
+    card.hidden = true;
+    if(result.source_validation.status !== "passed"){
+      resultsBox.hidden = true;
+      gate.innerHTML = "<b>后端来源准入未通过</b>" + wbEscape((result.source_validation.issues || []).join("、")) + "。系统停止生成候选卡。";
+      gate.hidden = false;
+      status.textContent = "来源未通过"; status.className = "wb-state";
+      return;
+    }
+    resultsBox.innerHTML = results.map(function(item){
+      var risk = item.risk_card || {};
+      var candidate = item.status === "candidate";
+      var notComparable = item.status === "DATA_NOT_COMPARABLE";
+      var resultChip = candidate ? "候选现象" : (notComparable ? "同比不宜比较" : "仅完成计算");
+      return '<article class="wb-run-result"><div class="wb-risk-head"><div><span class="rule">'+wbEscape(item.rule_id+' · '+wbRuleName(item.rule_id))+'</span><h4>'+wbEscape(risk.title || "规则未返回风险卡内容")+'</h4></div><span class="wb-chip'+(candidate ? ' candidate' : '')+'">'+resultChip+'</span></div><div class="wb-risk-body"><div class="wb-risk-block wide"><span class="lab">本次观察</span><p>'+wbEscape(risk.observation || "来源或基数条件不满足，未生成观察说明。")+'</p></div><div class="wb-risk-block"><span class="lab">可能的正常解释</span><p>'+wbTextList(risk.normal_explanations)+'</p></div><div class="wb-risk-block"><span class="lab">当前资料缺口</span><p>'+wbTextList(risk.data_gaps)+'</p></div><div class="wb-risk-block wide"><span class="lab">建议索取资料</span><p>'+wbTextList(risk.requested_materials)+'</p></div><div class="wb-risk-block wide"><span class="lab">三Agent执行记录</span>'+wbAgentStepsHtml(item.agent_steps)+'</div></div></article>';
+    }).join("") + wbRunReviewHtml();
+    resultsBox.hidden = false;
+    gate.hidden = true;
+    status.textContent = candidateCount ? "后端计算完成，待人工复核" : (notComparableCount ? "后端计算完成，R2 同比不宜比较" : "后端计算完成，未形成方向候选");
+    status.className = "wb-state " + (candidateCount ? "candidate" : "ok");
+    var saveButton = document.getElementById("wb-save-backend-review");
+    if(saveButton) saveButton.addEventListener("click", wbSaveBackendReview);
+  }
+  function wbBackendToast(message){
+    var el = document.getElementById("wb-backend-toast");
+    if(!el) return;
+    el.textContent = message;
+    el.classList.add("show");
+    window.setTimeout(function(){ el.classList.remove("show"); }, 3200);
+  }
+  async function wbSaveBackendReview(){
+    if(!wbLastRunId){ wbBackendToast("没有可保存的后端运行编号。请先运行规则。"); return; }
+    var button = document.getElementById("wb-save-backend-review");
+    var review = {status:document.getElementById("wb-backend-review-status").value, note:document.getElementById("wb-backend-review-note").value.trim()};
+    button.disabled = true;
+    try{
+      var response = await fetch(wbApiBase + "/api/runs/" + encodeURIComponent(wbLastRunId) + "/review", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(review)});
+      if(!response.ok) throw new Error("review " + response.status);
+      wbBackendToast("本次人工复核已保存到本地运行记录。");
+    }catch(error){
+      wbBackendToast("未能保存到后端；请确认本地服务仍在运行后重试。");
+    }finally{ button.disabled = false; }
+  }
+  async function wbRunR1ThroughBackend(){
+    var period = wbCurrent();
+    if(!period){ wbRunR1(true); return; }
+    var selected = wbGetSelectedRules();
+    var runnable = selected.filter(function(id){ return id === "R1" || id === "R2"; });
+    if(!runnable.length){
+      wbSetTab("library");
+      wbShowToast("当前没有勾选已接入的 R1 或 R2；其余候选项暂不进入后端。 ");
+      return;
+    }
+    var button = document.getElementById("wb-run-r1");
+    var gate = document.getElementById("wb-risk-gate");
+    button.disabled = true;
+    wbSetTab("risk");
+    gate.innerHTML = "<b>正在请求本地后端</b>后端将复算 " + wbEscape(runnable.join("、")) + "、检查来源定位，并如实返回模型配置状态。";
+    gate.hidden = false;
+    try{
+      var response = await fetch(wbApiBase + "/api/runs", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ case_id:"STD_DEV_T0", current_year:Number(wbYear.value), scene:wbScene.value, rule_ids:runnable, check_model:true })
+      });
+      if(!response.ok) throw new Error("run " + response.status);
+      var result = await response.json();
+      wbRenderBackendResults(result);
+      wbSetBackendStatus("本地后端已启动 · " + runnable.join(" / ") + " 已复算", "ok", "运行编号 " + result.run_id + "；" + wbModelStatusText(result.model_check) + "；来源仍待团队人工确认。");
+      wbShowToast("后端规则运行完成。" + wbModelStatusText(result.model_check));
+    }catch(error){
+      if(runnable.indexOf("R1") > -1) wbRunR1(true);
+      else {
+        document.getElementById("wb-risk-card").hidden = true;
+        document.getElementById("wb-run-results").hidden = true;
+        gate.innerHTML = "<b>未连接到本地后端</b>R2 不在网页内模拟计算。请启动 FastAPI 后重试。";
+        gate.hidden = false;
+      }
+      wbSetBackendStatus("本地开发样例 · 后端未启动", "", "后端请求失败，页面只保留明确标注的本地预览；没有把预览结果当作后端运行。请启动 FastAPI 后重试。");
+      wbShowToast("未连接到本地后端，当前未生成后端运行记录。 ");
+    }finally{
+      button.disabled = false;
+    }
+  }
+  function wbRenderAll(){
+    wbResetBackendRun();
+    wbRenderProject();
+    wbRenderData();
+    wbRunR1(false);
+    wbRenderRuleLibrary();
+  }
+  function wbResetBackendRun(){
+    wbLastRunId = null;
+    var resultsBox = document.getElementById("wb-run-results");
+    if(resultsBox){ resultsBox.hidden = true; resultsBox.innerHTML = ""; }
+    var metrics = document.querySelector(".wb-metrics");
+    if(metrics) metrics.innerHTML = '<div class="wb-metric"><span>营业收入增速</span><strong id="wb-revenue-growth">—</strong><small>（本年收入 − 上年收入）/ 上年收入</small></div><div class="wb-metric"><span>应收账款增速</span><strong id="wb-ar-growth">—</strong><small>（本年应收 − 上年应收）/ 上年应收</small></div><div class="wb-metric"><span>两者差额</span><strong id="wb-growth-gap">—</strong><small>应收账款增速 − 收入增速</small></div>';
+  }
+  wbTabs.forEach(function(tab){ tab.addEventListener("click", function(){ wbSetTab(tab.getAttribute("data-wb-step")); }); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-wb-go]"), function(button){ button.addEventListener("click", function(){ wbSetTab(button.getAttribute("data-wb-go")); }); });
+  wbYear.addEventListener("change", function(){ wbRenderAll(); wbCheckBackend(); wbShowToast(wbYear.value + "/" + wbCurrent().previous + " 开发样例已同步切换，未沿用旧年度数字。 "); });
+  wbScene.addEventListener("change", function(){ wbResetBackendRun(); wbRunR1(false); wbCheckBackend(); });
+  wbAmountUnit.addEventListener("change", function(){ wbResetBackendRun(); wbRenderData(); wbRunR1(false); wbCheckBackend(); wbShowToast("金额已切换为" + wbCurrentUnit().label + "显示；增长率与规则判断不变。 "); });
+  document.getElementById("wb-load-sample").addEventListener("click", function(){ wbYear.value = "2025"; wbScene.value = "审计计划"; wbRenderAll(); wbShowToast("标准股份 2025/2024 本地开发样例已载入。 "); });
+  document.getElementById("wb-run-r1").addEventListener("click", wbRunR1ThroughBackend);
+  if(wbRuleLibrary){
+    wbRuleLibrary.addEventListener("change", function(event){
+      var input = event.target;
+      if(!input || !input.matches("input[data-rule-id]")) return;
+      var selected = wbGetSelectedRules().filter(function(id){ return id !== input.getAttribute("data-rule-id"); });
+      if(input.checked) selected.push(input.getAttribute("data-rule-id"));
+      wbSaveSelectedRules(selected);
+      wbRenderRuleLibrary();
+      wbShowToast("候选规则范围已更新；未接入规则不会被当作已运行。 ");
+    });
+  }
+  document.getElementById("wb-save-review").addEventListener("click", function(){
+    var reviews = wbGetReviews();
+    reviews[wbYear.value] = { status:document.getElementById("wb-review-status").value, note:document.getElementById("wb-review-note").value.trim() };
+    try { localStorage.setItem(WB_REVIEW_KEY, JSON.stringify(reviews)); wbShowToast("人工复核说明已保存在本浏览器。 "); }
+    catch(error){ wbShowToast("当前浏览器未允许保存，但本页内容未上传。 "); }
+  });
+  wbRenderAll();
+  wbCheckBackend();
+}
+
+})();
+</script>
+</body>
+</html>

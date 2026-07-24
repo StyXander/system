@@ -1,0 +1,18 @@
+# 永不提交密钥、运行环境、临时文件或开发运行日志。
+.env
+.venv/
+backend/.venv/
+__pycache__/
+backend/**/__pycache__/
+.pytest_cache/
+backend/runtime/runs/
+tmp/
+交付包/
+~$*.docx
+
+# 大型二进制文件（GitHub 单文件限100MB）
+*.zip
+**/node_modules/
+**/_hosting_tools/
+*.exe
+
