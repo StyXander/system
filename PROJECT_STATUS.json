@@ -1,0 +1,202 @@
+{
+  "status_file": "registered",
+  "status_schema_version": "project_status_v1",
+  "project_name": "审迹智链 AuditTrace",
+  "updated_at": "2026-08-04T00:34:22+08:00",
+  "formal_scope": "审计计划阶段—销售与收款循环",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "versions": {
+    "proposal": "V3.3",
+    "implementation_plan": "V2.4.6",
+    "team_division": "V3.5",
+    "engine": "0.7.1",
+    "run_schema": "run_output_v2",
+    "case_schema": "case_manifest_v1",
+    "r1": "r1_v0.4-draft",
+    "r2": "r2_v0.2-auxiliary-draft",
+    "rag_index": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+    "rag_retrieval": "rag-retrieval-v1.2-case-isolated-20260728",
+    "rag_question_set": "rag-question-set-w3-v1.1-20260727",
+    "agent_prompt": "agent_prompt_v2",
+    "agent_output": "agent_output_v2",
+    "report": "report_v2"
+  },
+  "capabilities": {
+    "standard_case_import": "implemented_and_tested",
+    "model_transfer_confirmation_gate": "implemented_requires_confirmer_date_basis_provider_scope_and_reference_pending_independent_human_review",
+    "case_isolated_sources": "implemented_and_tested",
+    "r1_deterministic_calculation": "implemented_and_tested",
+    "r2_auxiliary_calculation": "implemented_and_tested",
+    "rag_to_agent_evidence_bundle": "implemented_and_tested",
+    "three_agent_hard_validation": "role_specific_schema_failure_codes_and_deterministic_fact_language_guard_implemented_and_tested",
+    "second_public_case": "jack_603337_imported_rag_isolated_local_calculation_negative_control_pending_two_human_freeze_and_legal_confirmation",
+    "supplement_full_rerun": "implemented_and_tested",
+    "human_review_and_report_v2": "implemented_and_tested_pending_real_human_approval",
+    "live_model_full_run": "no_current_valid_b3_historical_run_failed_posthoc_deterministic_fact_guard",
+    "ai_notice_invariant": "implemented_for_new_and_api_json_web_drafts_and_report_v2_historical_raw_json_preserved_and_wrapped_on_read",
+    "append_only_evaluation_records": "implemented_no_overwrite_json_with_hashes_human_scores_blank",
+    "r3_to_r8": "roadmap_only"
+  },
+  "tests": {
+    "source_repository": {
+      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
+      "latest_result": "64 passed, 1 warning, 7.58s",
+      "executed_on": "2026-08-04",
+      "status": "passed"
+    },
+    "clean_package": {
+      "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
+      "previous_snapshot_result": "51 passed, 1 warning",
+      "latest_result": "57 passed, 1 warning",
+      "executed_on": "2026-07-30",
+      "status": "passed",
+      "independent_smoke": "status, standard_case_transfer_gate, rag_prepare_and_retrieve, r1_calculation_only, exact_ai_notice_all_passed",
+      "boundary": "57 passed属于本轮无密钥清洁运行包独立解包结果；与源码仓库64 passed分开记录。",
+      "distribution_boundary": "清洁运行包为保留标准案例复验能力而包含四份公开年报全文；在真人确认全文再分发边界前仅限团队内部技术复验，禁止外发。队员和老师材料包不含年报全文。"
+    },
+    "chinese_comments": {
+      "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
+      "latest_result": "447/4463 = 10.02%",
+      "executed_on": "2026-08-04",
+      "status": "passed"
+    },
+    "warning": "Starlette TestClient httpx compatibility deprecation warning"
+  },
+  "quality_evidence": {
+    "compileall": "passed_after_final_source_and_document_generator_sync_2026-07-30",
+    "ui_contrast": "text_min_4.95_to_1_meaningful_boundary_min_3.99_to_1",
+    "browser_status": "passed_real_fastapi_chrome_4_viewports_console_0_failed_request_0_http_error_0_document_overflow_0_axe_violation",
+    "browser_artifacts": "local:tmp/public-deploy-verify-20260804-0034/browser-qa (not distributed)",
+    "browser_boundary": "axe retained one color_contrast incomplete per viewport because pseudo-element background could not be inferred; manual screenshot review found no unreadable text",
+    "proposal_pdf_status": "regenerated_12_pages_and_visually_verified",
+    "proposal_pdf_path": "02_最终确定方案/05_审迹智链_项目方案书_V3.3_审计计划单场景与AI主链闭环版.pdf",
+    "proposal_pdf_artifacts": "artifacts/review-2026-07-30/proposal-pdf-final",
+    "docx_status": "8_current_documents_77_pages_rendered_with_word_and_visually_verified_a11y_high_medium_low_all_zero_table_geometry_passed",
+    "docx_artifacts": "artifacts/review-2026-07-30/docx-render-final and artifacts/review-2026-07-30/docx-audits-final"
+  },
+  "standard_annual_report_sources": [
+    {
+      "year": 2022,
+      "announcement_title": "标准股份：标准股份2022年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2023-04-19/1216455382.PDF",
+      "file_sha256": "9A466F987E16948A06F3E6222E139E707A7D9F6C35A60DE7074C8545B02E7DE8",
+      "technical_verification": "online_bytes_and_local_sha256_match"
+    },
+    {
+      "year": 2023,
+      "announcement_title": "标准股份：标准股份2023年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-18/1219646140.PDF",
+      "file_sha256": "6BFF4D4084010EAB55FED5447CFFDC8DA14AD842064F072E83ACB811FD909C87",
+      "technical_verification": "online_bytes_and_local_sha256_match"
+    },
+    {
+      "year": 2024,
+      "announcement_title": "标准股份：标准股份2024年年度报告全文（修订版）",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-29/1223359539.PDF",
+      "file_sha256": "4665665125EBA8B83504D1A2DA59A4083CD3E2FE158EC2B9466983EAB4C65A09",
+      "technical_verification": "online_bytes_and_local_sha256_match"
+    },
+    {
+      "year": 2025,
+      "announcement_title": "标准股份：标准股份2025年年度报告全文",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225266733.PDF",
+      "file_sha256": "CC52826B24EB54AC09784BAA31DCDC2F8E7B0FD165D0EA559E707124F219ED35",
+      "technical_verification": "online_bytes_and_local_sha256_match"
+    }
+  ],
+  "standard_case": {
+    "case_id": "STD_DEV_T0",
+    "model_transfer_allowed": false,
+    "retention_expires_at": "2026-12-31",
+    "legal_sample_confirmation_status": "pending_human_confirmation",
+    "allowed_current_run_mode": "calculation_only",
+    "boundary": "公开可下载不等于取得全文再分发或外部模型传输许可；真人确认前失败关闭。"
+  },
+  "second_case": {
+    "case_id": "JACK_603337_T0_20250415",
+    "current_calculation_run_id": "RUN-V7-B1EB77EDB151",
+    "calculation_result": "RULE_NOT_TRIGGERED",
+    "model_transfer_allowed": false,
+    "retention_expires_at": "2026-12-31",
+    "retention_status": "provisional_pending_human_legal_confirmation",
+    "t0_status": "pending_human_freeze_same_day_as_2024_report_disclosure",
+    "two_human_review": "pending",
+    "legal_sample_confirmation": "pending",
+    "formal_case_freeze": "pending",
+    "boundary": "本地技术预检不等于无风险、合法样例确认或正式第二案例冻结。"
+  },
+  "controlled_evaluation": {
+    "evaluation_id": "EVAL-20260729-STD2023-R1-02",
+    "raw_record_directory": "outputs/2026-07-29-controlled-evaluation/retry-01",
+    "B0": {
+      "definition": "真人仅看冻结资料的人工基线",
+      "execution_status": "not_executed_human_only",
+      "human_score": null
+    },
+    "B1": {
+      "definition": "确定性计算",
+      "run_id": "RUN-V7-0BDE5060FBED",
+      "execution_status": "executed",
+      "run_completeness": "incomplete_calculation_only",
+      "human_score": null
+    },
+    "B2": {
+      "definition": "确定性计算加一次单模型草稿",
+      "run_id": "EVAL-B2-2F8BE053630D",
+      "execution_status": "failed",
+      "validation_error_summary": "模型返回5条claims，超过合同最多4条",
+      "raw_response_preserved": true,
+      "automatic_truncation_or_additional_retry": false,
+      "compliance_boundary": "调用发生于本轮模型传输失败关闭补丁前，当前只读保留且不具备正式比较资格",
+      "human_score": null
+    },
+    "B3": {
+      "definition": "确定性计算、RAG、三Agent与硬校验的完整链",
+      "historical_run_id": "RUN-V7-00ED00962F34",
+      "execution_status": "failed_posthoc_deterministic_fact_guard",
+      "validation_error_summary": "模型把未达到的R1强阈值写成已达到",
+      "formal_comparison_eligible": false,
+      "human_score": null
+    },
+    "human_scores": "all_blank",
+    "formal_experiment_complete": false
+  },
+  "manual_gates": [
+    "R1专业签字",
+    "第二公开案例双人冻结",
+    "标准股份与第二公开案例的合法样例、保存期限、再分发和模型传输许可确认",
+    "当前事实闸门下的有效B3及真人复核/报告批准",
+    "B0—B3真人评分"
+  ],
+  "live_model_acceptance": {
+    "run_id": "RUN-V7-00ED00962F34",
+    "source_run_sha256": "5908E0414C5055BD6268049F5924EDBD2E2058D31CAE6EB8481BCCACEABADBE9",
+    "case_id": "STD_DEV_T0",
+    "year": 2023,
+    "rule_id": "R1",
+    "original_run_completeness": "complete_full_analysis",
+    "original_agent_steps": {
+      "challenge": "completed",
+      "counter": "completed",
+      "review": "completed"
+    },
+    "result": "invalidated_by_posthoc_deterministic_fact_guard",
+    "posthoc_validation_error": "模型把未达到的R1强阈值写成已达到",
+    "formal_comparison_eligible": false,
+    "compliance_boundary": "历史调用只读保留；两个真实公开案例在合法样例真人确认前均不允许外部模型传输。",
+    "human_review": "not_applicable_to_invalidated_run",
+    "report_v2_export": "prohibited_for_formal_use",
+    "conclusion": "保留为旧版本失败反例，不再作为当前有效B3或真实模型验收证据。"
+  },
+  "innovation_evidence": [
+    "程序筛查、AI建议、人工处理和完整性四层分离",
+    "RAG与补充资料进入统一证据包并绑定evidence ID",
+    "确定性事实语言一致性闸门",
+    "失败关闭",
+    "模板化换公司与杰克科技负向控制",
+    "AI声明不变式",
+    "追加式原始评估记录与哈希",
+    "完整版本链"
+  ],
+  "truth_boundary": "已实现与已测试不等于专业定稿、合法样例确认或竞赛效果结论；AI不得代签双人复核、B0基线和B0—B3专业评分。"
+}

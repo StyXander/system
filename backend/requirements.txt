@@ -4,3 +4,10 @@ pydantic>=2.7,<3
 python-dotenv>=1.0,<2
 httpx>=0.27,<1
 pytest>=8,<9
+# RAG V1：页级文本抽取、SQLite 元数据和本地 FAISS 向量索引。
+PyMuPDF>=1.24,<2
+numpy>=2.0,<3
+faiss-cpu>=1.8,<2
+python-multipart>=0.0.9,<1
+python-docx>=1.1,<2
+openpyxl>=3.1,<4

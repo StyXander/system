@@ -1,36 +1,65 @@
-"""审迹智链运行接口的结构化输入输出。
+"""审迹智链 0.7.1 的结构化输入输出契约。
 
-模型只能提交受约束的语义草稿；数字、来源定位、规则触发和人工结论不由模型决定。
+程序筛查、AI 建议、人工处理和运行完整性始终是四个独立字段。兼容字段
+``check_model`` 只负责把旧请求映射到新运行模式，不能把失败运行包装成完整分析。
 """
 
 from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 RuleId = Literal["R1", "R2"]
 AgentRole = Literal["challenge", "counter", "review"]
+RunMode = Literal["full_analysis", "calculation_only"]
+SupportStatus = Literal["supported", "unverified_hypothesis"]
+
+
+# 所有对外机器可读结果与人可读草稿共用同一句声明，避免不同出口弱化边界。
+AI_GENERATED_CONTENT_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+
+
+class AiGeneratedContentNotice(BaseModel):
+    """为公开 JSON 输出提供稳定、可测试的 AI 生成内容声明。"""
+
+    ai_generated_content_notice: Literal[
+        "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+    ] = AI_GENERATED_CONTENT_NOTICE
 
 
 class RunRequest(BaseModel):
-    """网页发起一次确定性规则运行时的最小输入。"""
+    """发起一次案例运行；完整分析是主路径，计算预检明确属于不完整运行。"""
 
-    case_id: str = Field(default="STD_DEV_T0")
-    current_year: int = Field(description="本年年度；当前DEV资料仅支持2025、2024、2023")
-    scene: str = Field(default="审计计划")
+    case_id: str = Field(default="STD_DEV_T0", min_length=3, max_length=40)
+    current_year: int = Field(description="本年年度；必须在所选案例的连续期间登记表中存在。")
+    scene: Literal["审计计划"] = "审计计划"
     rule_ids: list[RuleId] = Field(default_factory=lambda: ["R1"])
-    check_model: bool = Field(
-        default=True,
-        description="允许对已触发规则执行真实三Agent调用；无Key或失败时只返回真实状态。",
+    run_mode: RunMode = "full_analysis"
+    check_model: bool | None = Field(
+        default=None,
+        description="旧接口兼容：true 映射完整分析，false 映射仅计算预检；新前端不再发送。",
     )
-    r2_min_gap: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=1.0,
-        description="R2方向比较工程版的最小背离阈值；现金流跨期变号、基数过小时先返回“同比不宜比较”。",
+    planned_materiality: float | None = Field(
+        default=None,
+        ge=0,
+        description="计划重要性金额（与案例金额单位一致）；缺失时不得评价金额重要性。",
     )
+    r1_gap_threshold: float = Field(
+        default=0.15,
+        ge=0,
+        le=2,
+        description="R1 工程草案增速差阈值；未获专业签字，不是正式审计标准。",
+    )
+    r1_strong_gap_threshold: float = Field(default=0.30, ge=0, le=3)
+    r1_absolute_threshold: float = Field(default=0.0, ge=0)
+    r2_min_gap: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    @field_validator("case_id")
+    @classmethod
+    def normalize_case_id(cls, value: str) -> str:
+        return value.strip().upper()
 
     @field_validator("rule_ids")
     @classmethod
@@ -39,6 +68,14 @@ class RunRequest(BaseModel):
         if not ordered:
             raise ValueError("至少选择一条已接入规则。")
         return ordered
+
+    @model_validator(mode="after")
+    def map_legacy_check_model(self) -> "RunRequest":
+        if self.check_model is not None:
+            self.run_mode = "full_analysis" if self.check_model else "calculation_only"
+        if self.r1_strong_gap_threshold < self.r1_gap_threshold:
+            raise ValueError("R1 强提示阈值不得低于基本提示阈值。")
+        return self
 
 
 class ModelCheck(BaseModel):
@@ -49,38 +86,45 @@ class ModelCheck(BaseModel):
     detail: str
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(AiGeneratedContentNotice):
     service_status: str
     model_status: str
     model_id: str | None = None
     source_snapshot_id: str
     detail: str
+    engine_version: str = "0.7.1"
 
 
 class AgentClaim(BaseModel):
     text: str = Field(min_length=1, max_length=500)
-    evidence_ids: list[str] = Field(default_factory=list, max_length=6)
+    evidence_ids: list[str] = Field(default_factory=list, max_length=8)
+    support_status: SupportStatus = "supported"
 
 
-class AgentOutput(BaseModel):
-    """三个角色共用的最小JSON Schema。"""
+class AgentOutput(AiGeneratedContentNotice):
+    """v2 增加最终草稿与支持状态；v1 只用于读取历史运行。"""
 
-    schema_version: Literal["agent_output_v1"]
+    schema_version: Literal["agent_output_v1", "agent_output_v2"]
     run_id: str
     role: AgentRole
     rule_id: RuleId
     status: Literal["candidate", "retain", "downgrade", "defer"]
-    claims: list[AgentClaim] = Field(min_length=1, max_length=3)
+    claims: list[AgentClaim] = Field(min_length=1, max_length=4)
     normal_explanations: list[AgentClaim] = Field(default_factory=list, max_length=5)
     data_gaps: list[str] = Field(default_factory=list, max_length=8)
     requested_materials: list[str] = Field(default_factory=list, max_length=8)
     reason_for_status: str = Field(min_length=1, max_length=500)
+    draft_title: str = Field(default="", max_length=200)
+    draft_observation: str = Field(default="", max_length=1000)
+    ai_recommendation: Literal["retain", "downgrade", "defer", "not_applicable"] | None = None
 
 
 class AgentStep(BaseModel):
     role: AgentRole
     status: str
     detail: str
+    failure_stage: Literal["provider", "tool_arguments", "schema", "evidence", "policy"] | None = None
+    failure_code: str | None = Field(default=None, max_length=80)
     model_id: str | None = None
     prompt_version: str | None = None
     input_sha256: str | None = None
@@ -95,12 +139,16 @@ class RuleResult(BaseModel):
     rule_id: RuleId
     status: str
     source_validation: dict[str, Any]
-    metrics: dict[str, float | None]
+    metrics: dict[str, float | int | str | bool | None]
     risk_card: dict[str, Any] | None = None
     agent_steps: list[AgentStep] = Field(default_factory=list)
+    screening_status: str | None = None
+    ai_recommendation: str = "not_generated"
+    ai_draft: dict[str, Any] | None = None
+    evidence_ids: list[str] = Field(default_factory=list)
 
 
-class RunResponse(BaseModel):
+class RunResponse(AiGeneratedContentNotice):
     run_id: str
     status: str
     context: dict[str, Any]
@@ -108,15 +156,60 @@ class RunResponse(BaseModel):
     sources: list[dict[str, Any]]
     rule_results: list[RuleResult]
     model_check: ModelCheck
+    schema_version: Literal["run_output_v2"] = "run_output_v2"
+    engine_version: str = "0.7.1"
+    screening_status: str = "not_run"
+    ai_recommendation: str = "not_generated"
+    human_disposition: str = "未复核"
+    run_completeness: str = "incomplete"
+    evidence_bundle: dict[str, Any] = Field(default_factory=dict)
+    retrievals: list[dict[str, Any]] = Field(default_factory=list)
+    final_ai_draft: dict[str, Any] | None = None
 
 
 class HumanReviewRequest(BaseModel):
     status: Literal["未复核", "保留为待核查候选", "降级", "暂缓"]
     note: str = Field(default="", max_length=1000)
+    reviewer: str = Field(default="", max_length=100)
+    reviewed_at: str | None = None
+    export_approved: bool = False
+    reviewer_type: Literal["human", "automation"] = "human"
 
 
-class StoredRunResponse(BaseModel):
-    """读取运行日志时使用；review字段只表示人工保存状态。"""
+class RagRetrieveRequest(BaseModel):
+    query: str = Field(default="", max_length=500)
+    question_id: str | None = Field(default=None, max_length=20)
+    t0: str = Field(default="2026-04-30", pattern=r"^\d{4}-\d{2}-\d{2}$")
+    rule_id: RuleId = "R1"
+    top_k: int = Field(default=5, ge=1, le=10)
+    case_id: str = "STD_DEV_T0"
+    company_name: str | None = Field(default=None, max_length=200)
+
+    @field_validator("case_id")
+    @classmethod
+    def normalize_case_id(cls, value: str) -> str:
+        return value.strip().upper()
+
+    @model_validator(mode="after")
+    def query_or_question_is_required(self) -> "RagRetrieveRequest":
+        if not self.query.strip() and not self.question_id:
+            raise ValueError("检索词和固定问题编号至少填写一项。")
+        return self
+
+
+class SupplementRerunRequest(BaseModel):
+    run_mode: RunMode = "full_analysis"
+    check_model: bool | None = None
+
+    @model_validator(mode="after")
+    def map_legacy(self) -> "SupplementRerunRequest":
+        if self.check_model is not None:
+            self.run_mode = "full_analysis" if self.check_model else "calculation_only"
+        return self
+
+
+class StoredRunResponse(AiGeneratedContentNotice):
+    """读取运行日志时使用；human_review 是真实人工保存状态。"""
 
     run: RunResponse
     human_review: HumanReviewRequest | None = None
