@@ -85,6 +85,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
@@ -122,6 +123,7 @@ from .schemas import (
     StoredRunResponse,
     SupplementRerunRequest,
 )
+from .source_cache import ensure_standard_sources
 from .supplements import create_supplement, load_supplement
 
 
@@ -273,9 +275,23 @@ def _registered_standard_source_url(document_id: str) -> str | None:
     return source_url
 
 
+def _ensure_public_standard_sources(case_id: str) -> None:
+    """Render 公开演示缺少年报缓存时受控补取；其他案例不允许联网补文件。"""
+    if not _public_demo_enabled() or case_id.upper() != CASE_ID:
+        return
+    try:
+        ensure_standard_sources(WORKSPACE_ROOT)
+    except (httpx.HTTPError, OSError, ValueError) as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"官方来源缓存准备失败，已关闭本次运行：{type(error).__name__}: {error}",
+        ) from error
+
+
 def _validate_sources(rows: list[dict[str, Any]], t0: str) -> list[str]:
     """字段证据必须可定位、可哈希、口径明确；模型不能替代这个闸门。"""
     issues: list[str] = []
+    verified_hashes: dict[Path, str] = {}
     for row in rows:
         required = (
             "evidence_id",
@@ -301,8 +317,12 @@ def _validate_sources(rows: list[dict[str, Any]], t0: str) -> list[str]:
         source_path = WORKSPACE_ROOT / row.get("storage_relpath", row.get("source_file", ""))
         if not source_path.is_file():
             issues.append(f"{row.get('evidence_id', 'UNKNOWN')}来源文件不存在")
-        elif hashlib.sha256(source_path.read_bytes()).hexdigest().upper() != str(row.get("file_sha256", "")).upper():
-            issues.append(f"{row.get('evidence_id', 'UNKNOWN')}来源文件SHA-256不一致")
+        else:
+            if source_path not in verified_hashes:
+                verified_hashes[source_path] = hashlib.sha256(source_path.read_bytes()).hexdigest().upper()
+            actual_sha256 = verified_hashes[source_path]
+            if actual_sha256 != str(row.get("file_sha256", "")).upper():
+                issues.append(f"{row.get('evidence_id', 'UNKNOWN')}来源文件SHA-256不一致")
     return issues
 
 
@@ -1060,6 +1080,10 @@ def get_case_detail(case_id: str) -> dict[str, Any]:
 def open_case_source(case_id: str, document_id: str) -> Response:
     normalized_case_id = case_id.upper()
     normalized_document_id = document_id.upper()
+    if normalized_case_id == CASE_ID and _public_demo_enabled():
+        source_url = _registered_standard_source_url(normalized_document_id)
+        if source_url:
+            return RedirectResponse(source_url, status_code=307)
     resolved = resolve_case_document(WORKSPACE_ROOT, normalized_case_id, normalized_document_id)
     if resolved is None:
         if normalized_case_id == CASE_ID:
@@ -1073,6 +1097,7 @@ def open_case_source(case_id: str, document_id: str) -> Response:
 
 @app.post("/api/runs", response_model=RunResponse)
 def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
+    _ensure_public_standard_sources(request.case_id)
     case = get_case(WORKSPACE_ROOT, request.case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="案例未登记。")
@@ -1171,9 +1196,14 @@ def open_registered_source(filename: str) -> Response:
     registered = next((row for row in EVIDENCE.values() if row["source_file"] == filename), None)
     if registered is None:
         raise HTTPException(status_code=404, detail="该文件不在标准案例旧来源白名单中。")
+    document_id = f"STD-AR-{registered['year']}-{registered['file_sha256'][:12]}"
+    if _public_demo_enabled():
+        source_url = _registered_standard_source_url(document_id)
+        if source_url:
+            return RedirectResponse(source_url, status_code=307)
     path = WORKSPACE_ROOT / filename
     if not path.is_file():
-        source_url = _registered_standard_source_url(registered["document_id"])
+        source_url = _registered_standard_source_url(document_id)
         if source_url:
             return RedirectResponse(source_url, status_code=307)
         raise HTTPException(status_code=404, detail="已登记来源文件不存在且没有安全的官方回退地址。")
@@ -1182,8 +1212,10 @@ def open_registered_source(filename: str) -> Response:
 
 @app.post("/api/rag/prepare")
 def prepare_rag(case_id: str = CASE_ID, force: bool = False) -> dict[str, Any]:
+    normalized_case_id = case_id.upper()
+    _ensure_public_standard_sources(normalized_case_id)
     try:
-        return _with_ai_notice(prepare_index(WORKSPACE_ROOT, case_id=case_id.upper(), force=force))
+        return _with_ai_notice(prepare_index(WORKSPACE_ROOT, case_id=normalized_case_id, force=force))
     except (FileNotFoundError, ValueError, OSError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 

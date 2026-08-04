@@ -374,8 +374,26 @@
     const runnable = selectedRunnableRules();
     byId("wb-library-status").textContent = `${runnable.join(" / ") || "未选择"} 可运行`;
     byId("wb-scope-note").textContent = `本次运行：${runnable.join("、") || "无"}。R1 是主规则；R2 仅为辅助工程规则；R3—R8 不会进入请求。`;
-    byId("run-scope").textContent = runnable.length ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。` : "当前没有可运行规则。";
-    [byId("wb-run-full"), byId("wb-run-calculation")].forEach((button) => { button.disabled = !state.backendAvailable || !runnable.length || !state.currentCase; });
+    const fullButton = byId("wb-run-full");
+    const calculationButton = byId("wb-run-calculation");
+    const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase;
+    const modelTransferAllowed = Boolean(state.currentCase?.model_transfer_allowed);
+    fullButton.disabled = unavailable || !modelTransferAllowed;
+    calculationButton.disabled = unavailable;
+    fullButton.classList.toggle("primary", modelTransferAllowed);
+    fullButton.classList.toggle("quiet", !modelTransferAllowed);
+    calculationButton.classList.toggle("primary", !modelTransferAllowed);
+    calculationButton.classList.toggle("quiet", modelTransferAllowed);
+    fullButton.innerHTML = modelTransferAllowed ? '开始完整分析 <span aria-hidden="true">→</span>' : "完整分析需许可";
+    fullButton.setAttribute("aria-describedby", "wb-case-permission");
+    fullButton.title = modelTransferAllowed ? "执行RAG、三Agent与硬校验" : "当前案例禁止模型传输，只能运行仅计算预检";
+    byId("run-scope").textContent = runnable.length
+      ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${modelTransferAllowed ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}`
+      : "当前没有可运行规则。";
+    if (!state.run && state.currentCase && !modelTransferAllowed) {
+      byId("wb-gate").className = "status-banner warning";
+      byId("wb-gate").innerHTML = "<strong>完整分析需真人许可</strong><span>当前真实公开案例禁止模型传输；仅计算预检与本地原文检索仍可使用。</span>";
+    }
   }
 
   function renderAgentSteps(steps) {

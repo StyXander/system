@@ -3,7 +3,7 @@ services:
     name: audittrace-demo
     runtime: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: pip install -r backend/requirements.txt && python -m backend.app.public_demo_bootstrap
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:

@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-04T00:34:22+08:00",
+  "updated_at": "2026-08-04T18:47:19+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -35,12 +35,13 @@
     "live_model_full_run": "no_current_valid_b3_historical_run_failed_posthoc_deterministic_fact_guard",
     "ai_notice_invariant": "implemented_for_new_and_api_json_web_drafts_and_report_v2_historical_raw_json_preserved_and_wrapped_on_read",
     "append_only_evaluation_records": "implemented_no_overwrite_json_with_hashes_human_scores_blank",
+    "public_demo_source_cache": "implemented_render_build_hash_verified_official_source_cache_with_public_redirect_only_and_runtime_fail_closed",
     "r3_to_r8": "roadmap_only"
   },
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
-      "latest_result": "64 passed, 1 warning, 7.58s",
+      "latest_result": "68 passed, 1 warning, 9.04s",
       "executed_on": "2026-08-04",
       "status": "passed"
     },
@@ -51,12 +52,12 @@
       "executed_on": "2026-07-30",
       "status": "passed",
       "independent_smoke": "status, standard_case_transfer_gate, rag_prepare_and_retrieve, r1_calculation_only, exact_ai_notice_all_passed",
-      "boundary": "57 passed属于本轮无密钥清洁运行包独立解包结果；与源码仓库64 passed分开记录。",
+      "boundary": "57 passed属于本轮无密钥清洁运行包独立解包结果；与源码仓库68 passed分开记录。",
       "distribution_boundary": "清洁运行包为保留标准案例复验能力而包含四份公开年报全文；在真人确认全文再分发边界前仅限团队内部技术复验，禁止外发。队员和老师材料包不含年报全文。"
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "447/4463 = 10.02%",
+      "latest_result": "466/4644 = 10.03%",
       "executed_on": "2026-08-04",
       "status": "passed"
     },
@@ -65,8 +66,8 @@
   "quality_evidence": {
     "compileall": "passed_after_final_source_and_document_generator_sync_2026-07-30",
     "ui_contrast": "text_min_4.95_to_1_meaningful_boundary_min_3.99_to_1",
-    "browser_status": "passed_real_fastapi_chrome_4_viewports_console_0_failed_request_0_http_error_0_document_overflow_0_axe_violation",
-    "browser_artifacts": "local:tmp/public-deploy-verify-20260804-0034/browser-qa (not distributed)",
+    "browser_status": "passed_public_runtime_snapshot_real_fastapi_chrome_4_viewports_console_0_failed_request_0_http_error_0_document_overflow_0_axe_violation_and_calculation_interaction",
+    "browser_artifacts": "local:tmp/browser-qa-public-fix-20260804-171824 and tmp/browser-qa-public-fix-interactive-20260804-171851 (not distributed)",
     "browser_boundary": "axe retained one color_contrast incomplete per viewport because pseudo-element background could not be inferred; manual screenshot review found no unreadable text",
     "proposal_pdf_status": "regenerated_12_pages_and_visually_verified",
     "proposal_pdf_path": "02_最终确定方案/05_审迹智链_项目方案书_V3.3_审计计划单场景与AI主链闭环版.pdf",
@@ -198,5 +199,15 @@
     "追加式原始评估记录与哈希",
     "完整版本链"
   ],
+  "public_runtime_bootstrap": {
+    "status": "passed",
+    "snapshot_boundary": "独立公开部署快照初始不含PDF；Render构建阶段从四个登记巨潮资讯URL下载并校验后，仅写入运行环境，不进入GitHub公开树。",
+    "source_count": 4,
+    "rag_chunk_count": 1167,
+    "source_route": "公开访问始终307跳转登记巨潮资讯原件，不由Render转发缓存PDF。",
+    "calculation_smoke": "source_validation=passed; run_completeness=incomplete_calculation_only",
+    "full_analysis_gate": "source_validation=passed; run_completeness=incomplete_model_transfer_not_allowed; model call not attempted",
+    "human_boundary": "标准股份model_transfer_allowed=false与合法样例确认待真人决定。"
+  },
   "truth_boundary": "已实现与已测试不等于专业定稿、合法样例确认或竞赛效果结论；AI不得代签双人复核、B0基线和B0—B3专业评分。"
 }
