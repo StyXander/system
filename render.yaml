@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: audittrace-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt && python -m backend.app.public_demo_bootstrap
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: AUDITTRACE_PUBLIC_DEMO
+        value: "true"
+      - key: AUDITTRACE_MODEL_RUN_WINDOW_SECONDS
+        value: "900"
+      - key: AUDITTRACE_MODEL_RUN_LIMIT
+        value: "2"
+      - key: AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT
+        value: "40"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: DEEPSEEK_MODEL
+        value: deepseek-v4-flash

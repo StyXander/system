@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#05080B">
+  <meta name="description" content="审迹智链 AuditTrace 审计计划阶段证据工作台">
+  <title>审迹智链 · 证据地平线</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.1">
+  <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
+  <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.1">
+  <script src="/assets/official-v4/app.js?v=0.7.1" defer></script>
+  <script src="/assets/official-v4/fusion.js?v=0.7.1" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+  <div class="paper-grain" aria-hidden="true"></div>
+
+  <section class="fusion-landing" id="fusion-landing" role="region" aria-label="沉浸式项目首页">
+    <canvas id="fusion-fx" aria-hidden="true"></canvas>
+    <div class="fusion-grid" aria-hidden="true"></div>
+    <div class="fusion-grain" aria-hidden="true"></div>
+
+    <nav class="fusion-nav" aria-label="首页导航">
+      <a class="fusion-brand" href="#fusion-landing" aria-label="审迹智链 首页">
+        <span class="zh">审迹智链</span><span class="en">AuditTrace</span>
+      </a>
+      <div class="fusion-nav-links">
+        <a href="#positioning" data-fusion-view="overview">定位</a>
+        <a href="#innovations" data-fusion-view="overview">创新</a>
+        <a href="#workflow" data-fusion-view="overview">流程</a>
+        <a href="#workspace-root" data-fusion-view="project">工作台</a>
+        <a href="#roles-heading" data-fusion-view="methods">角色</a>
+        <a href="#boundary-heading" data-fusion-view="methods">边界</a>
+        <span class="fusion-nav-status" id="hero-version">0.7.1 · 正式 DEV</span>
+      </div>
+    </nav>
+
+    <div class="fusion-telemetry fusion-telemetry-left" aria-hidden="true">
+      <span>AT / FORENSIC EDITORIAL</span>
+      <i></i>
+      <span id="hero-case">正在读取案例</span>
+    </div>
+    <div class="fusion-telemetry fusion-telemetry-right" aria-hidden="true">
+      <span id="hero-source-count">REGISTERED SOURCES —</span>
+      <i></i>
+      <span id="hero-chunk-count">SOURCE CHUNKS —</span>
+    </div>
+
+    <div class="fusion-hero">
+      <span class="fusion-chip fusion-rise"><span class="dot" aria-hidden="true"></span>北京市大学生数智会计创新应用竞赛 · 财会 Multi-Agent 应用</span>
+      <h1 class="fusion-rise" id="fusion-title">审迹智链</h1>
+      <div class="fusion-en-name fusion-rise" lang="en">AuditTrace</div>
+      <p class="fusion-tagline fusion-rise">
+        面向会计师事务所<strong>审计计划阶段</strong>，围绕销售与收款循环，
+        把<strong>确定性计算、原文检索与三 Agent 草稿</strong>绑定到可回查证据，再交由人作最终处理。
+      </p>
+      <a class="fusion-scroll-cue fusion-rise" href="#workspace-root" data-fusion-view="overview">
+        <span>向下探索</span>
+        <span class="line" aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <div class="fusion-corner fusion-corner-a" aria-hidden="true"></div>
+    <div class="fusion-corner fusion-corner-b" aria-hidden="true"></div>
+  </section>
+
+  <header class="topbar" id="workspace-root">
+    <a class="brand" href="?view=overview" data-view="overview" aria-label="审迹智链总览">
+      <span class="brand-mark" aria-hidden="true">审</span>
+      <span>
+        <strong>审迹智链</strong>
+        <small>AUDITTRACE</small>
+      </span>
+    </a>
+    <div class="topbar-context">
+      <span class="context-label">审计计划 / 销售与收款循环</span>
+      <span class="service-pill pending" id="service-pill">
+        <i aria-hidden="true"></i>
+        <span id="service-status">正在检查本地后端</span>
+      </span>
+      <button class="icon-button mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-label="打开主导航" aria-expanded="false" aria-controls="primary-navigation">
+        <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#menu"></use></svg>
+        <span class="sr-only">打开主导航</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="primary-navigation">
+      <nav aria-label="主工作区">
+        <p class="nav-group-label">项目工作流</p>
+        <a href="?view=overview" data-view="overview">
+          <span class="nav-index">01</span>
+          <span>总览</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#overview"></use></svg>
+        </a>
+        <a href="?view=project" data-view="project">
+          <span class="nav-index">02</span>
+          <span>项目与资料</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#folder"></use></svg>
+        </a>
+        <a href="?view=rules" data-view="rules">
+          <span class="nav-index">03</span>
+          <span>候选指标</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#rules"></use></svg>
+        </a>
+        <a href="?view=analysis" data-view="analysis">
+          <span class="nav-index">04</span>
+          <span>分析工作台</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#analysis"></use></svg>
+        </a>
+        <a href="?view=rag" data-view="rag">
+          <span class="nav-index">05</span>
+          <span>原文检索</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#search"></use></svg>
+        </a>
+        <a href="?view=supplement" data-view="supplement">
+          <span class="nav-index">06</span>
+          <span>补充资料</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#paperclip"></use></svg>
+        </a>
+        <a href="?view=delivery" data-view="delivery">
+          <span class="nav-index">07</span>
+          <span>复核与交付</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#review"></use></svg>
+        </a>
+        <a href="?view=methods" data-view="methods">
+          <span class="nav-index">08</span>
+          <span>方法与边界</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#shield"></use></svg>
+        </a>
+      </nav>
+
+      <section class="sidebar-ledger" aria-labelledby="scope-heading">
+        <p class="nav-group-label" id="scope-heading">当前资料范围</p>
+        <dl>
+          <div><dt>案例</dt><dd id="sidebar-case">正在读取</dd></div>
+          <div><dt>场景</dt><dd>审计计划</dd></div>
+          <div><dt>主规则</dt><dd>R1 v0.4 草案</dd></div>
+          <div><dt>模型主链</dt><dd class="muted" id="sidebar-model">正在读取</dd></div>
+        </dl>
+      </section>
+    </aside>
+
+    <main id="main-content" tabindex="-1">
+      <p class="sr-only">审迹智链</p>
+
+      <section class="view active" data-view-panel="overview" aria-label="总览页面">
+        <section class="overview-showcase" id="positioning" aria-labelledby="overview-heading">
+          <div class="overview-copy">
+            <p class="overview-eyebrow">产品定位 · AUDIT PLANNING · EVIDENCE FIRST</p>
+            <h2 id="overview-heading">
+              <span class="overview-title-sans">证据先行的</span>
+              <span class="overview-title-outline">销售收款预审</span>
+              <span class="overview-title-serif">审迹智链</span>
+            </h2>
+            <p class="overview-summary">从模板化案例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿；完整性与人工处理始终单独显示。</p>
+            <div class="overview-actions">
+              <a class="button primary" href="?view=project" data-view="project">进入证据工作台</a>
+              <a class="button quiet" href="?view=methods" data-view="methods">查看边界</a>
+            </div>
+          </div>
+
+          <figure class="overview-visual" id="innovations">
+            <div class="overview-visual-frame">
+              <div class="overview-visual-meta" aria-hidden="true">
+                <span>DETERMINISTIC ANALYSIS</span>
+                <span>R1 v0.4 / RAG / 3-AGENT</span>
+              </div>
+              <img id="overview-workbench-image" src="/assets/official-v4/overview-workbench.png" width="1440" height="900" alt="审迹智链正式工作台的真实运行截图">
+            </div>
+            <figcaption>证据工作台 · 单场景 · 四层状态 · 真实后端</figcaption>
+          </figure>
+
+          <dl class="overview-facts" id="workflow" aria-label="当前资料与能力摘要">
+            <div><dt>已登记案例</dt><dd><strong id="fact-case-count">—</strong><span>个</span></dd></div>
+            <div><dt>本地原文索引</dt><dd><strong id="fact-chunk-count">—</strong><span>个原文块</span></dd></div>
+            <div><dt>工程与模型</dt><dd><strong id="fact-engine-version">0.7.1</strong><span id="fact-model-status">正在读取</span></dd></div>
+            <div><dt>源码 / 清洁包复验</dt><dd><strong id="fact-test-counts">— / —</strong><span id="fact-test-note">正在读取</span></dd></div>
+          </dl>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="project" aria-labelledby="project-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">标准案例包 · 字段先行 · 来源可回查</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>正式入口只接受标准案例包，不承诺任意 PDF 自动取数。下载模板、填入已核验字段与来源页、更新真实文件哈希，再完成授权与脱敏确认；通过导入校验后才能选择年度与运行。</p></div>
+          <span class="state pending" id="project-state">正在读取案例注册表</span>
+        </header>
+
+        <div class="legacy-steps" role="tablist" aria-label="原工作台步骤">
+          <button type="button" role="tab" aria-selected="true" data-wb-step="project">01导入案例</button>
+          <button type="button" role="tab" aria-selected="false" data-wb-step="data">02字段与来源</button>
+          <button type="button" role="tab" aria-selected="false" data-wb-step="risk">03规则结果</button>
+          <button type="button" role="tab" aria-selected="false" data-wb-step="library">04候选指标</button>
+          <button type="button" role="tab" aria-selected="false" data-wb-step="rag">05原文检索</button>
+          <button type="button" role="tab" aria-selected="false" data-wb-step="supplement">06补充资料</button>
+        </div>
+
+        <section class="project-sheet" aria-labelledby="project-sheet-heading">
+          <div class="sheet-title">
+             <div><p class="folio">AUDITTRACE / CASE CONTRACT / EVIDENCE-BOUND</p><h3 id="project-sheet-heading">审迹智链工作台</h3><p>每个参与计算的数字必须绑定案例、文档编号、披露日期、页码、哈希和 evidence_id。资料不全时，完整分析会如实关闭。</p></div>
+            <span class="state pending" id="project-health-state">正在检查后端</span>
+          </div>
+          <section class="case-intake" aria-labelledby="case-intake-heading">
+            <div class="case-intake-copy"><span class="folio">DOWNLOAD → IMPORT → VALIDATE → PREVIEW</span><h4 id="case-intake-heading">标准案例包入口</h4><p>模板内含 manifest、财务字段、账龄、期后回款、合同条款、脱敏日志和合成 PDF；模型传输默认关闭。</p></div>
+            <div class="case-intake-actions">
+              <a class="button quiet" id="case-template-download" href="/api/cases/template" download>下载标准案例 ZIP</a>
+              <form id="case-import-form" enctype="multipart/form-data">
+                <label for="case-import-file"><span>选择案例 ZIP</span><input id="case-import-file" name="file" type="file" accept=".zip" required></label>
+                <div class="authorization-block compact-auth">
+                  <label class="check-control"><input id="case-import-authorized" type="checkbox"><span>合法公开或已获授权</span></label>
+                  <label class="check-control"><input id="case-import-desensitized" type="checkbox"><span>已完成脱敏检查</span></label>
+                </div>
+                <button class="button primary" id="case-import-submit" type="submit">导入并校验</button>
+              </form>
+              <div class="form-message" id="case-import-message" role="status" aria-live="polite">尚未上传新案例；可直接使用已登记标准案例。</div>
+            </div>
+          </section>
+          <div class="form-grid project-fields">
+            <label for="wb-case"><span>已登记案例</span><select id="wb-case" name="case_id" autocomplete="off"></select></label>
+            <label><span>公司</span><output id="wb-company">正在读取</output></label>
+            <label><span>证券代码</span><output id="wb-ticker">—</output></label>
+            <label><span>分析截止日 T0</span><output id="wb-t0">—</output></label>
+            <label><span>分析场景</span><output id="wb-scene">审计计划</output></label>
+            <label for="wb-current-year"><span>本年年度</span><select id="wb-current-year" name="current_year" autocomplete="off"></select></label>
+            <label><span>上年年度</span><output id="wb-previous-year">2024</output></label>
+            <label for="wb-amount-unit"><span>金额显示单位</span><select id="wb-amount-unit" name="amount_unit" autocomplete="off"><option value="yuan">元</option><option value="thousand">千元</option><option value="ten-thousand">万元</option><option value="million">百万元</option></select></label>
+            <div class="locked-mode"><span>案例与模型许可</span><strong id="wb-case-mode">正在读取</strong><small id="wb-case-permission">完整分析以 manifest 的模型传输许可为硬边界。</small></div>
+          </div>
+          <div class="project-time-note">
+            <strong>项目与分析时点</strong>
+            <span>换案例或年份后，字段、文档编号、披露日期、页码与哈希会一起切换，不跨案例复用。</span>
+          </div>
+          <div class="action-row">
+            <button class="button quiet" type="button" id="wb-refresh-case">重新读取案例字段</button>
+            <button class="button primary" type="button" data-wb-go="data">查看年报资料 <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="boundary-strip">当前做到的：R1 v0.4 草案为主链规则，R2 只作辅助工程规则；R3—R8 仅保留在路线图。导入通过不等于第二正式案例已冻结，也不等于字段口径已获专业签字。</p>
+          <p class="boundary-strip" id="backend-status-note">后端状态：正在检查本地后端。</p>
+        </section>
+
+        <section class="ledger-section" id="source-ledger" aria-labelledby="source-heading">
+          <header class="subheading">
+            <div><p class="kicker">VALIDATED FIELD & SOURCE LEDGER</p><h3 id="source-heading">字段校验与来源预览</h3><p id="wb-data-unit-note">字段将从案例注册表读取；页面不从 PDF 猜数字。</p></div>
+            <span class="state pending" id="wb-data-status">等待案例字段</span>
+          </header>
+          <p class="mobile-scroll-hint">手机端可横向滑动并聚焦此表格查看全部列。</p>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="年报字段与来源台账表格">
+            <table class="data-table">
+              <thead><tr><th>字段 / 口径</th><th>年度</th><th class="numeric" id="wb-amount-head">数值（元）</th><th>证据 / 文档编号</th><th>来源文件与定位</th></tr></thead>
+              <tbody id="wb-data-body"></tbody>
+            </table>
+          </div>
+          <div class="action-row">
+            <button class="button quiet" type="button" data-wb-go="project">← 返回项目</button>
+            <button class="button primary" type="button" data-wb-go="library">查看候选指标 <span aria-hidden="true">→</span></button>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="rules" aria-labelledby="rules-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">03 / RULE CONTRACT & ROADMAP</p><h2 id="rules-heading">规则合同与路线图</h2><p>R1 v0.4 草案是当前主链；R2 为辅助工程规则。R3—R8 只展示未来方向，不能勾选、不能生成运行结果。</p></div>
+          <span class="state info" id="wb-library-status">R1 主规则</span>
+        </header>
+        <div class="scope-note" id="wb-scope-note">本次默认运行 R1；R2 可作为辅助项加入。</div>
+        <div class="rule-library" id="wb-rule-library"></div>
+        <div class="action-row">
+          <button class="button quiet" type="button" data-wb-go="project">← 返回项目</button>
+          <button class="button primary" type="button" data-wb-go="risk">运行前检查 <span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="analysis" aria-labelledby="analysis-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">04 / FULL ANALYSIS CHAIN</p><h2 id="analysis-heading">程序筛查、RAG 与 AI 草稿</h2><p>完整分析按“确定性计算→RAG→质疑→反证→复核→硬校验”执行；任一关键环节失败都显示为不完整，不回退成貌似完成的风险卡。</p></div>
+          <span class="state pending" id="analysis-state">等待运行</span>
+        </header>
+
+        <section class="run-console" aria-labelledby="run-console-heading">
+          <div>
+            <p class="folio">CURRENT EXECUTION</p>
+            <h3 id="run-console-heading">本次运行</h3>
+             <p id="run-scope">当前将运行 R1；数据来自所选案例注册表。</p>
+          </div>
+          <div class="run-controls">
+            <label for="planned-materiality"><span>计划重要性（案例金额单位，可留空）</span><input id="planned-materiality" name="planned_materiality" type="number" min="0" step="0.01" inputmode="decimal" placeholder="未输入则不评价金额重要性"></label>
+            <button class="button primary" type="button" id="wb-run-full">开始完整分析 <span aria-hidden="true">→</span></button>
+            <button class="button quiet" type="button" id="wb-run-calculation">仅计算预检</button>
+          </div>
+        </section>
+        <div class="status-banner neutral" id="wb-gate" role="status" aria-live="polite"><strong>尚未运行</strong><span>完整分析是主路径；仅计算预检会明确标记为不完整运行。</span></div>
+        <p class="boundary-strip" id="ai-generated-content-notice">AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</p>
+        <section class="run-summary" id="run-summary" hidden>
+          <div class="summary-meta"><span>run_id</span><strong class="mono" id="current-run-id">—</strong></div>
+          <div class="summary-meta"><span>程序筛查</span><strong id="screening-status">—</strong></div>
+          <div class="summary-meta"><span>AI建议</span><strong id="ai-recommendation-status">—</strong></div>
+          <div class="summary-meta"><span>人工处理</span><strong id="review-summary-status">未复核</strong></div>
+          <div class="summary-meta"><span>运行完整性</span><strong id="run-completeness-status">—</strong></div>
+          <div class="summary-meta"><span>RAG / 模型</span><strong id="model-check-status">—</strong></div>
+        </section>
+        <div class="analysis-layout">
+          <section class="analysis-main" aria-labelledby="result-heading">
+            <h3 id="result-heading">确定性计算</h3>
+            <div id="wb-run-results" class="run-results">
+              <div class="empty-state"><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#analysis"></use></svg><strong>暂无运行结果</strong><p>后端返回前不展示模拟成功、AI建议或装饰性指标。</p></div>
+            </div>
+          </section>
+          <section class="analysis-context" aria-labelledby="context-heading">
+            <h3 id="context-heading">证据追踪轴</h3>
+            <ol class="evidence-rail" id="evidence-rail">
+              <li class="pending"><span>01</span><div><strong>程序筛查</strong><small>等待运行</small></div></li>
+              <li class="pending"><span>02</span><div><strong>RAG 与 AI</strong><small>等待完整分析</small></div></li>
+              <li class="pending"><span>03</span><div><strong>证据支持 / 缺口</strong><small>等待证据包</small></div></li>
+              <li class="pending"><span>04</span><div><strong>人工处理</strong><small>未复核</small></div></li>
+            </ol>
+          </section>
+        </div>
+
+        <section class="ledger-section" aria-labelledby="live-matrix-heading">
+          <header class="subheading"><div><p class="kicker">EVIDENCE SUPPORT MATRIX</p><h3 id="live-matrix-heading">计算—RAG—Agent—人工状态矩阵</h3></div></header>
+          <p class="mobile-scroll-hint">手机端可横向滑动查看全部验证维度。</p>
+          <div class="matrix-scroll" tabindex="0" role="region" aria-label="本次运行交叉验证矩阵">
+            <table class="evidence-matrix" id="live-evidence-matrix">
+              <thead><tr><th>规则</th><th>程序筛查</th><th>RAG参与</th><th>AI建议</th><th>支持状态</th><th>正常解释 / 假设</th><th>资料缺口</th></tr></thead>
+              <tbody><tr><th>等待运行</th><td colspan="6">没有真实后端结果时，不生成证据支持结论。</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <div class="action-row"><button class="button quiet" type="button" data-wb-go="data">← 返回资料页</button><button class="button quiet" type="button" data-wb-go="rag">回查年报原文</button><button class="button primary" type="button" data-wb-go="delivery">进入人工复核</button></div>
+      </section>
+
+      <section class="view" data-view-panel="rag" aria-labelledby="rag-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">05 / CASE-ISOLATED SOURCE READER</p><h2 id="rag-heading">案例隔离的年报原文检索</h2><p>每个案例独立建立 SQLite / FAISS 索引；公司、case_id 与 T0 在服务端硬过滤。完整分析会自动运行固定问题集，这里保留人工回页入口。</p></div>
+          <span class="state pending" id="wb-rag-status">正在读取索引</span>
+        </header>
+        <form class="rag-query-bar" id="rag-form">
+          <label for="wb-rag-rule"><span>绑定规则</span><select id="wb-rag-rule" name="rule_id" autocomplete="off"><option>R1</option><option>R2</option></select></label>
+          <label><span>分析时点 T0</span><output id="wb-rag-t0">2026-04-30</output></label>
+          <label class="grow" for="wb-rag-query"><span>检索问题</span><input id="wb-rag-query" name="query" autocomplete="off" value="应收账款、回款与收入变化是否存在需要回查的披露？"></label>
+          <button class="button quiet" type="button" id="wb-rag-prepare">构建 / 校验本地索引</button>
+          <button class="button primary" type="submit" id="wb-rag-search">检索已锁定 T0 的原文</button>
+        </form>
+        <p class="boundary-strip">检索结果只作为候选原文；请根据来源文件和 PDF 页码回到原件复核。</p>
+        <div class="reader-layout">
+          <section class="reader-results" aria-labelledby="rag-results-heading">
+            <div class="reader-heading"><h3 id="rag-results-heading">检索结果</h3><span class="mono" id="retrieval-id">—</span></div>
+            <div id="wb-rag-results"><div class="empty-state compact"><strong>等待检索</strong><p>不会以聊天回答替代原文片段。</p></div></div>
+          </section>
+          <article class="source-reader" id="source-reader" aria-labelledby="source-reader-heading">
+            <div class="source-reader-empty">
+              <span class="folio">SOURCE / PDF / CHUNK</span>
+              <h3 id="source-reader-heading">选择一条命中原文</h3>
+              <p>文件名、披露日期、PDF 页码、chunk ID 和哈希将在这里并列展示。</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="supplement" aria-labelledby="supplement-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">06 / CONTROLLED CONTINUATION</p><h2 id="supplement-heading">补充证据与续分析</h2><p>账龄、期后回款、信用政策和合同结算条款独立保存，资料日期与原 T0 分开；续分析默认重新执行 RAG 与三 Agent，并显示建议变化。</p></div>
+          <span class="state pending" id="wb-sup-state">等待本次运行</span>
+        </header>
+        <form id="supplement-form" class="supplement-sheet" enctype="multipart/form-data">
+          <div class="form-grid">
+            <label for="wb-sup-parent"><span>父运行编号</span><input id="wb-sup-parent" name="parent_run_id" required autocomplete="off" spellcheck="false" placeholder="RUN-W6-…"></label>
+            <label for="wb-sup-type"><span>资料类型</span><select id="wb-sup-type" name="material_type" autocomplete="off"><option>账龄明细</option><option>期后回款</option><option>主要合同摘要</option><option>现金流补充明细</option><option>其他补充资料</option></select></label>
+            <label for="wb-sup-date"><span>资料日期</span><input id="wb-sup-date" name="as_of_date" type="date" required autocomplete="off" value="2026-04-30"></label>
+            <fieldset class="rule-bind"><legend>绑定规则</legend><label><input type="checkbox" name="bound_rule" value="R1" checked>R1</label><label><input type="checkbox" name="bound_rule" value="R2">R2</label></fieldset>
+            <label class="wide" for="wb-sup-file"><span>上传文件（PDF / XLSX / CSV / JSON / DOCX / TXT，≤15MB）</span><input id="wb-sup-file" name="file" type="file" accept=".pdf,.xlsx,.csv,.json,.docx,.txt"></label>
+             <label class="wide" for="wb-sup-json"><span>结构化补充证据 JSON（可选）</span><textarea id="wb-sup-json" name="structured_json" rows="7" autocomplete="off" spellcheck="false" placeholder='{"aging_summary":{"over_180_days_ratio":0.21},"subsequent_receipts_summary":{"receipt_ratio":0.63}}'></textarea></label>
+            <label class="wide" for="wb-sup-note"><span>资料说明</span><textarea id="wb-sup-note" name="note" rows="3" autocomplete="off"></textarea></label>
+          </div>
+          <div class="authorization-block">
+            <label class="check-control"><input id="wb-sup-authorized" name="authorized" type="checkbox"><span>我确认资料已获授权</span></label>
+            <label class="check-control"><input id="wb-sup-desensitized" name="desensitized" type="checkbox"><span>我确认资料已脱敏</span></label>
+          </div>
+          <p class="form-help">独立证据字段：aging_summary、subsequent_receipts_summary、credit_policy_change、contract_terms。旧版报表字段更正仅作兼容并醒目标注，不作为主要补充资料路径。</p>
+          <div class="action-row">
+            <button class="button primary" type="submit" id="wb-sup-register">预检并登记</button>
+             <button class="button quiet" type="button" id="wb-sup-rerun" disabled>用新增证据完整续分析</button>
+          </div>
+          <div class="form-message" id="supplement-message" role="status" aria-live="polite">尚未登记补充资料。</div>
+        </form>
+        <section class="version-compare" id="supplement-result" hidden aria-labelledby="version-heading">
+          <h3 id="version-heading">新旧证据与建议差异</h3>
+          <div class="compare-grid"><div><span>父运行</span><strong class="mono" id="parent-run-label">—</strong></div><div><span>补充资料</span><strong class="mono" id="supplement-id-label">—</strong></div><div><span>续分析 / 建议变化</span><strong id="rerun-scope-label">等待预检</strong></div></div>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="delivery" aria-labelledby="delivery-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">07 / HUMAN REVIEW & DELIVERY</p><h2 id="delivery-heading">人工复核与交付</h2><p><strong>AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</strong>只有真实复核人回查证据、保存处理意见并明确允许导出后，缓存与 report_v2 Word 备忘录才可用。</p></div>
+          <span class="state waiting" id="delivery-state">未复核</span>
+        </header>
+
+        <section class="lookup-bar" aria-labelledby="lookup-heading">
+          <div><p class="folio">RUN LOOKUP</p><h3 id="lookup-heading">按真实运行编号回看</h3><p>这里只读取指定 run_id，不伪装成全局运行历史列表。</p></div>
+          <form id="run-lookup-form"><label for="run-lookup-input"><span>run_id</span><input id="run-lookup-input" name="run_id" autocomplete="off" spellcheck="false" placeholder="RUN-W6-…"></label><button class="button quiet" type="submit">读取运行</button></form>
+        </section>
+
+        <div class="delivery-layout">
+          <section class="review-sheet" aria-labelledby="review-heading">
+            <header><p class="folio">HUMAN DECISION</p><h3 id="review-heading">人工复核</h3><p id="review-run-context">尚未绑定运行。</p></header>
+            <form id="review-form">
+              <label for="wb-backend-review-status"><span>处理</span><select id="wb-backend-review-status" name="status"><option>未复核</option><option>保留为待核查候选</option><option>降级</option><option>暂缓</option></select></label>
+              <label for="wb-backend-reviewer"><span>复核人</span><input id="wb-backend-reviewer" name="reviewer" autocomplete="name" placeholder="请填写真实姓名或团队角色"></label>
+              <label for="wb-backend-review-note"><span>复核说明</span><textarea id="wb-backend-review-note" name="note" rows="6" autocomplete="off" placeholder="由审计项目组填写理由或下一步"></textarea></label>
+              <label class="check-control approval"><input type="checkbox" id="wb-backend-export-approved" name="export_approved"><span>我已回查来源并允许生成缓存与 Word 备忘录</span></label>
+              <button class="button quiet" id="wb-save-local-review" type="button">保存本机复核</button>
+              <button class="button primary" id="wb-save-backend-review" type="submit" disabled>保存本次复核</button>
+              <div class="form-message" id="wb-backend-toast" role="status" aria-live="polite"></div>
+            </form>
+          </section>
+          <section class="delivery-actions" aria-labelledby="export-heading">
+            <p class="folio">CONTROLLED OUTPUT</p>
+            <h3 id="export-heading">缓存与导出</h3>
+            <p>未完成人工批准时，操作保持禁用，不以视觉样式暗示可直接使用。</p>
+            <button class="button quiet" id="wb-cache-run" type="button" disabled>写入批准缓存</button>
+            <button class="button primary" id="wb-export-report" type="button" disabled>导出 Word 备忘录</button>
+            <div class="cache-replay">
+              <label for="cache-id-input"><span>已批准缓存编号</span><input id="cache-id-input" name="cache_id" autocomplete="off" spellcheck="false" placeholder="CACHE-…"></label>
+              <button class="button quiet" id="cache-replay-button" type="button">回放缓存</button>
+            </div>
+            <div class="form-message" id="delivery-message" role="status" aria-live="polite">缓存回放会明确标记，不冒充实时模型调用。</div>
+          </section>
+        </div>
+
+        <section class="run-timeline" aria-labelledby="history-heading">
+          <header class="subheading"><div><p class="kicker">CURRENT RUN VERSION</p><h3 id="history-heading">本次运行与版本</h3></div></header>
+          <dl id="run-history-detail">
+            <div><dt>run_id</dt><dd>—</dd></div>
+            <div><dt>规则版本</dt><dd>—</dd></div>
+            <div><dt>数据快照</dt><dd>—</dd></div>
+            <div><dt>模型状态</dt><dd>—</dd></div>
+            <div><dt>资料范围</dt><dd>—</dd></div>
+            <div><dt>人工确认状态</dt><dd>—</dd></div>
+            <div><dt>运行方式</dt><dd>—</dd></div>
+          </dl>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="methods" aria-labelledby="methods-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">08 / METHOD & BOUNDARIES</p><h2 id="methods-heading">角色、方法与边界</h2><p>三个角色按固定分工配合，程序和审计师负责最后的校验。</p></div>
+        </header>
+        <section class="editorial-section roles-section" aria-labelledby="roles-heading">
+          <header class="section-heading"><span class="section-number">01</span><div><p>智能体角色 · AGENTS</p><h3 id="roles-heading">三个角色，各做各的事</h3></div></header>
+          <div class="role-ledger">
+            <article><span class="folio">质疑角色</span><h4>提出风险假设</h4><dl><div><dt>负责什么</dt><dd>按专业规则提出需要进一步了解的情况，并标明资料依据。</dd></div><div><dt>不做什么</dt><dd>不猜测主体动机，也不下舞弊结论。</dd></div></dl></article>
+            <article><span class="folio">反证角色</span><h4>寻找正常解释</h4><dl><div><dt>负责什么</dt><dd>找可能的正常解释、相反资料和还缺的资料；找不到也会写明。</dd></div><div><dt>不做什么</dt><dd>不为了凑答案而补造事实。</dd></div></dl></article>
+            <article><span class="folio">语义复核角色</span><h4>把关措辞与证据</h4><dl><div><dt>负责什么</dt><dd>检查文字表述能不能被资料支持，必要时保留、降级或暂缓。</dd></div><div><dt>不做什么</dt><dd>不跳过程序校验，也不直接批准导出。</dd></div></dl></article>
+          </div>
+          <p class="reading-note">怎么配合：数字计算、日期筛选、字段完整性、禁用词和来源定位由程序处理； AI 负责阅读与推理；最后由人确认。</p>
+        </section>
+
+        <section class="editorial-section" aria-labelledby="boundary-heading">
+          <header class="section-heading"><span class="section-number">02</span><div><p>边界与承诺 · BOUNDARIES</p><h3 id="boundary-heading">把边界说清楚</h3></div></header>
+          <p class="section-intro">这套工具只帮审计师做风险预筛。审计结论仍需要审计师按程序作出，页面也会把边界写清楚。</p>
+          <div class="boundary-ledger">
+            <article><span>01</span><h4>不做舞弊认定</h4><p>只输出待核查风险线索，不对交易是否舞弊下结论。</p></article>
+            <article><span>02</span><h4>不出审计意见</h4><p>不替代函证、检查、访谈等程序，不形成审计结论。</p></article>
+            <article><span>03</span><h4>不给投资建议</h4><p>不做公司估值、投资判断或全市场实时扫描。</p></article>
+            <article><span>04</span><h4>不替代人工判断</h4><p>关键专业判断、案例选定与最终发布，始终由人决定。</p></article>
+          </div>
+          <ul class="commitment-list"><li>资料不全 · 先不导出</li><li>案例脱敏 · 禁用词校验</li><li>已登记来源 · 文件与页码可回查</li><li>人工确认 · 最终把关</li></ul>
+        </section>
+
+        <section class="editorial-section current-status" aria-labelledby="current-status-heading">
+          <header class="section-heading"><span class="section-number">03</span><div><p>CURRENT STATUS</p><h3 id="current-status-heading">当前状态</h3></div></header>
+          <p>当前工程版本 0.7.1：正式入口已采用“证据地平线”V4 设计；案例模板、安全导入、案例隔离来源与 RAG、R1 v0.4 草案、完整分析 / 仅计算双模式、四层状态、补充证据续分析、缓存和 report_v2 已接入。杰克科技公开案例已完成技术导入与 R1 未触发复验，但案例冻结仍待人工签字。R2 仅作辅助规则，R3—R8 只保留路线图。其余人工门槛为 R1 专业签字、合法样例确认、真人复核及 B0—B3 评分；真实模型结果以接口状态和验收记录为准。</p>
+        </section>
+
+        <footer class="project-footer">
+          <div><strong>审迹智链</strong><span>AUDITTRACE</span></div>
+          <div><b>北京市大学生数智会计创新应用竞赛</b> · 财会专业领域 Multi-Agent 应用<br>方案书 V3.3 · 详细计划书 V2.4.6 · 工程 0.7.1</div>
+          <p>本系统只服务审计计划阶段销售与收款循环的风险预筛，不构成舞弊认定、重大错报认定、审计意见、鉴证结论或投资建议。合成案例只用于系统验收，第二正式公开案例与 B0—B3 结果不得由页面或代码伪造。</p>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="detail-drawer" id="risk-dialog" aria-labelledby="risk-dialog-title">
+    <div class="dialog-head">
+      <div><span class="folio" id="risk-dialog-kicker">EVIDENCE-BOUND DRAFT</span><h2 id="risk-dialog-title">待核查草稿详情</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭待核查草稿详情" data-close-dialog><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭待核查草稿详情</span></button>
+    </div>
+    <div id="risk-dialog-body"></div>
+  </dialog>
+</body>
+</html>

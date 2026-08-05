@@ -1,0 +1,46 @@
+# 永不提交密钥、运行环境、临时文件或开发运行日志。
+.env
+.venv/
+backend/.venv/
+__pycache__/
+backend/**/__pycache__/
+.pytest_cache/
+backend/runtime/
+tmp/
+交付包/
+~$*.docx
+
+# 本地验收截图与明确禁止发送的隔离旧包不进入代码提交。
+artifacts/
+
+# 公开仓库与 Render 部署不分发年报全文或案例包内 PDF。
+标准股份：*.pdf
+**/documents/*.pdf
+
+# 大型二进制文件（GitHub 单文件限100MB）
+*.zip
+**/node_modules/
+**/_hosting_tools/
+*.exe
+
+# 当前公开分支只承载正式 V4 网站与 FastAPI；竞赛原件、周报、验收材料和本地工具保留在电脑中。
+/.agents/
+/.claude/
+/[0-9][0-9]_*/
+/[0-9][0-9]_*.md
+/AGENTS.md
+/PROJECT_STATUS.md
+/README_*.md
+/backend/tests/
+/backend/requirements-lock.txt
+/docs/
+/outputs/
+/scripts/
+/assets/icons/
+/pytest.ini
+/*.py
+/*.bat
+*.docx
+*.xlsx
+*.pptx
+*.pdf
