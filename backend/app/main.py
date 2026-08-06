@@ -99,7 +99,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from .agents import PROMPT_VERSION, run_agent_chain
 from .cases import (
     build_case_template_zip,
+    confirm_cninfo_field,
     get_case,
+    get_cninfo_field_readiness,
     get_financial_rows,
     get_period_sources,
     import_case_zip,
@@ -114,6 +116,7 @@ from .schemas import (
     AI_GENERATED_CONTENT_NOTICE,
     AgentStep,
     CNInfoCompanyConfirmation,
+    CNInfoFieldConfirmation,
     CNInfoPipelineRequest,
     HealthResponse,
     HumanReviewRequest,
@@ -1078,12 +1081,45 @@ def get_case_detail(case_id: str) -> dict[str, Any]:
         **_public_case(case),
         "financial_fields": rows,
         "field_validation": {
-            "status": "passed_import_or_registry_validation",
+            "status": case.get("financial_fields_status", "passed_import_or_registry_validation"),
             "field_count": len(rows),
             "years": sorted({row["year"] for row in rows}, reverse=True),
+            "human_confirmed_available_years": case.get("human_confirmed_available_years", []),
             "boundary": "字段已通过结构和来源登记校验；金额口径与专业含义仍待人工复核。",
         },
     })
+
+
+@app.post("/api/cases/{case_id}/fields/confirm")
+def confirm_case_field(case_id: str, confirmation: CNInfoFieldConfirmation) -> dict[str, Any]:
+    """保存巨潮字段候选的真人确认、修正或拒绝，并返回最新闸门状态。"""
+
+    normalized = case_id.upper()
+    try:
+        result = confirm_cninfo_field(
+            WORKSPACE_ROOT,
+            normalized,
+            confirmation.model_dump(mode="json"),
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    case = result["case"]
+    rows = [_public_source(row) for row in get_financial_rows(WORKSPACE_ROOT, normalized)]
+    return _with_ai_notice(
+        {
+            "status": "field_review_saved",
+            "case": _public_case(case),
+            "field": _public_source(result["field"]),
+            "financial_fields": rows,
+            "field_validation": {
+                "status": case.get("financial_fields_status"),
+                "field_count": len(rows),
+                "human_confirmed_available_years": case.get("human_confirmed_available_years", []),
+                "boundary": "真人确认记录已追加保存；仍不等于专业签字或审计结论。",
+            },
+            "readiness": result["readiness"],
+        }
+    )
 
 
 @app.get("/api/cases/{case_id}/sources/{document_id}")
@@ -1111,6 +1147,21 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
     case = get_case(WORKSPACE_ROOT, request.case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="案例未登记。")
+    cninfo_readiness_issues = get_cninfo_field_readiness(
+        WORKSPACE_ROOT,
+        request.case_id,
+        request.rule_ids,
+        request.current_year,
+    )
+    if cninfo_readiness_issues:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "CNINFO_FIELDS_PENDING_HUMAN_CONFIRMATION",
+                "message": "巨潮自动字段必须经过真人确认后才能进入规则计算。",
+                "issues": cninfo_readiness_issues,
+            },
+        )
     try:
         context, sources = get_period_sources(
             WORKSPACE_ROOT,

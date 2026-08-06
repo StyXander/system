@@ -67,6 +67,21 @@
     not_attempted_rag_failure: "RAG失败，模型未调用",
     cache_replay: "批准缓存回放",
   };
+  const CNINFO_STEP_LABELS = {
+    company_resolve: "确认企业",
+    announcement_search: "搜索年报公告",
+    document_select: "选择全文版本",
+    download: "下载 PDF 原件",
+    document_validate: "校验来源与 PDF",
+    case_register: "登记独立案例",
+    rag_prepare: "建立案例 RAG",
+    rag_smoke_test: "执行 RAG 烟测",
+    field_extract: "提取字段候选",
+    field_validate: "校验字段闸门",
+    analysis_run: "进入分析 API",
+  };
+  const CNINFO_STEP_ORDER = Object.keys(CNINFO_STEP_LABELS);
+  const CNINFO_ACTIVE_STATUSES = new Set(["queued", "searching", "downloading", "validating", "indexing", "extracting_fields", "analyzing"]);
   const RULES = [
     { id: "R1", name: "应收—收入背离", detail: "计算增速差、绝对影响、应收占收入、周转趋势、持续期间和重要性；净额只能过渡使用。", meta: "r1_v0.4-draft / 待A专业签字", status: "主链可运行", runnable: true },
     { id: "R2", name: "收入—经营现金流辅助筛查", detail: "跨期变号或基数过小时阻断伪同比；默认不抢占 R1 主演示。", meta: "r2_v0.2-auxiliary-draft", status: "辅助工程规则", runnable: true },
@@ -94,6 +109,9 @@
     ragStatus: null,
     ragResults: [],
     supplementId: null,
+    cninfoTask: null,
+    cninfoPollTimer: null,
+    cninfoPollToken: 0,
   };
 
   function byId(id) { return document.getElementById(id); }
@@ -288,6 +306,29 @@
     const year = Number(state.year);
     return (state.currentCase.financial_fields || []).filter((row) => [year, year - 1, year - 2].includes(Number(row.year)));
   }
+  function cninfoHumanReviewLabel(row) {
+    const status = row.human_review?.status || "pending";
+    return { confirmed: "已确认", corrected: "已修正", rejected: "已拒绝", pending: "待确认" }[status] || status;
+  }
+  function renderCninfoFieldReview() {
+    const panel = byId("cninfo-field-review");
+    if (!panel || state.currentCase?.registry_mode !== "cninfo_official_auto") {
+      if (panel) panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    const rows = state.currentCase.financial_fields || [];
+    const accepted = rows.filter((row) => ["confirmed", "corrected"].includes(row.human_review?.status)).length;
+    const rejected = rows.filter((row) => row.human_review?.status === "rejected").length;
+    const pending = rows.length - accepted - rejected;
+    setStatePill(byId("cninfo-field-review-state"), `${accepted}/${rows.length} 已处理 · ${pending} 待确认`, accepted && !pending && !rejected ? "success" : "waiting");
+    byId("cninfo-field-review-list").innerHTML = rows.length ? rows.map((row) => {
+      const fieldId = row.field_id || `${row.field_kind}_${row.year}`;
+      const status = row.human_review?.status || "pending";
+      const source = row.document_id && row.pdf_page ? `<a class="source-link" href="${sourceUrl(row.document_id, row.pdf_page)}" target="_blank" rel="noopener">打开原件第 ${escapeHtml(row.pdf_page)} 页 ↗</a>` : "来源页待补";
+      return `<article class="cninfo-field-record ${status === "rejected" ? "rejected" : status !== "pending" ? "reviewed" : "pending"}" data-cninfo-field-record="${escapeHtml(fieldId)}"><div class="cninfo-field-record-head"><div><span class="folio">${escapeHtml(fieldId)}</span><h4>${escapeHtml(FIELD_KIND_LABELS[row.field_kind] || row.field_kind)} · ${escapeHtml(row.year)}</h4><p>${escapeHtml(row.statement_scope || "合并")} · ${escapeHtml(row.field_basis || "口径待核验")} · ${escapeHtml(row.unit || "单位待核验")}</p></div><span class="state ${status === "rejected" ? "danger" : status === "pending" ? "waiting" : "success"}">${escapeHtml(cninfoHumanReviewLabel(row))}</span></div><div class="cninfo-field-evidence"><div><span>自动候选金额（元）</span><strong class="mono">${escapeHtml(row.candidate?.value ?? row.value ?? "—")}</strong></div><div><span>当前规则输入金额（元）</span><input class="cninfo-field-value-input" type="number" step="any" value="${escapeHtml(row.value ?? "")}" aria-label="${escapeHtml(fieldId)} 当前金额"></div><div><span>当前 PDF 页码</span><input class="cninfo-field-page-input" type="number" min="1" step="1" value="${escapeHtml(row.pdf_page ?? "")}" aria-label="${escapeHtml(fieldId)} PDF页码"></div><div><span>定位</span><p>${escapeHtml(row.locator || row.candidate?.locator || "—")}</p>${source}</div></div><div class="cninfo-field-record-actions"><button class="button quiet" type="button" data-cninfo-field-action="confirm" data-field-id="${escapeHtml(fieldId)}">确认候选</button><button class="button quiet" type="button" data-cninfo-field-action="correct" data-field-id="${escapeHtml(fieldId)}">按上方金额修正</button><button class="button quiet" type="button" data-cninfo-field-action="reject" data-field-id="${escapeHtml(fieldId)}">拒绝候选</button></div></article>`;
+    }).join("") : '<div class="empty-state compact"><strong>尚未形成字段候选</strong><p>请先执行 full_analysis 模式的巨潮流程；rag_only 只建立 RAG，不猜测财务金额。</p></div>';
+  }
   function renderProject() {
     const current = state.currentCase;
     byId("wb-case").innerHTML = state.cases.map((item) => `<option value="${escapeHtml(item.case_id)}">${escapeHtml(item.company_alias || item.company_name)} · ${escapeHtml(item.case_id)}</option>`).join("");
@@ -325,6 +366,7 @@
         <td><span class="source-id">${escapeHtml(row.evidence_id)}</span><div class="source-detail">${escapeHtml(row.document_id)}</div></td>
         <td><strong>${escapeHtml(row.source_file)}</strong><div class="source-detail">披露 ${escapeHtml(row.disclosure_date)} · PDF ${escapeHtml(row.pdf_page)} 页 · ${escapeHtml(row.locator)}</div><a class="source-link" href="${sourceUrl(row.document_id, row.pdf_page)}" target="_blank" rel="noopener">回到登记 PDF 第 ${escapeHtml(row.pdf_page)} 页</a></td>
       </tr>`).join("") || '<tr><td colspan="5">该期间没有可预览字段。</td></tr>';
+    renderCninfoFieldReview();
     setStatePill(byId("project-state"), `${current.case_id} 已载入`, "info");
     renderHeroStatus();
   }
@@ -359,6 +401,274 @@
     await loadCaseDetail(preferred, { keepYear: true });
   }
 
+  function cninfoTaskStatusLabel(value) {
+    const labels = {
+      queued: "已排队",
+      searching: "正在搜索巨潮",
+      downloading: "正在下载年报",
+      validating: "正在校验 PDF",
+      indexing: "正在建立 RAG",
+      extracting_fields: "正在提取字段候选",
+      analyzing: "正在调用分析 API",
+      completed: "流程完成",
+      needs_human: "需要真人处理",
+      failed: "流程失败",
+    };
+    return labels[value] || value || "等待提交";
+  }
+  function cninfoStepStatusLabel(value) {
+    return { pending: "等待", running: "进行中", passed: "已通过", needs_human: "待人工", failed: "失败" }[value] || value || "等待";
+  }
+  function cninfoStatusKind(value) {
+    if (value === "completed" || value === "passed") return "success";
+    if (value === "failed") return "danger";
+    if (value === "needs_human" || value === "running" || CNINFO_ACTIVE_STATUSES.has(value)) return "waiting";
+    return "info";
+  }
+  function renderCninfoTaskMeta(task) {
+    const result = task.result || {};
+    const company = task.company || result.company || {};
+    const index = task.steps?.rag_prepare?.index || {};
+    const rag = result.rag || {};
+    const fields = result.field_extraction || {};
+    const values = [
+      ["企业", company.company_name || company.name || task.request?.company_query || "—"],
+      ["证券代码", company.ticker || "—"],
+      ["报告年度", (task.report_years || result.report_years || []).join(" / ") || "—"],
+      ["案例编号", task.case_id || result.case_id || "—"],
+      ["RAG 原文块", rag.chunk_count ?? index.chunk_count ?? "—"],
+      ["检索编号", rag.smoke_retrieval_id || task.steps?.rag_smoke_test?.retrieval_id || "—"],
+      ["字段候选", fields.row_count ?? "—"],
+      ["尝试次数", task.attempt ?? 0],
+    ];
+    byId("cninfo-task-meta").innerHTML = values.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd class="${label.includes("编号") ? "mono" : ""}">${escapeHtml(value)}</dd></div>`).join("");
+  }
+  function renderCninfoSteps(task) {
+    byId("cninfo-step-list").innerHTML = CNINFO_STEP_ORDER.map((name, index) => {
+      const step = task.steps?.[name] || { status: "pending", detail: "尚未执行。" };
+      const kind = cninfoStatusKind(step.status);
+      const extra = step.status === "passed" && step.retrieval_id ? ` · ${step.retrieval_id}` : step.status === "passed" && step.case_id ? ` · ${step.case_id}` : "";
+      return `<li class="cninfo-step ${kind}"><span class="cninfo-step-index">${String(index + 1).padStart(2, "0")}</span><div><strong>${escapeHtml(CNINFO_STEP_LABELS[name])}</strong><small>${escapeHtml(step.detail || "—")}${escapeHtml(extra)}</small></div><span class="state ${kind}">${escapeHtml(cninfoStepStatusLabel(step.status))}</span></li>`;
+    }).join("");
+  }
+  function renderCninfoMessage(task) {
+    const status = task.status;
+    const message = task.error?.message || task.error?.detail?.message || "";
+    const result = task.result || {};
+    const banner = byId("cninfo-task-message");
+    let title = cninfoTaskStatusLabel(status);
+    let detail = message || `已完成 ${task.steps ? Object.values(task.steps).filter((step) => step.status === "passed").length : 0} 个可追溯步骤。`;
+    let kind = cninfoStatusKind(status);
+    if (status === "completed" && result.status === "rag_ready") {
+      title = "RAG 建库完成，等待真人字段确认";
+      detail = "年报原件、哈希和检索链已完成；RAG 结果不能直接视为审计证据。";
+      kind = "success";
+    } else if (status === "needs_human") {
+      title = "流程已安全停在真人处理";
+      detail = message || "需要确认企业、补充字段口径或完成专业/许可确认；系统没有伪装成成功。";
+      kind = "waiting";
+    } else if (status === "failed") {
+      title = "巨潮自动流程失败";
+      detail = message || "请查看失败原因；历史任务会保留，可在确认原因后重试。";
+      kind = "danger";
+    } else if (CNINFO_ACTIVE_STATUSES.has(status) || status === "queued") {
+      title = cninfoTaskStatusLabel(status);
+      detail = "页面正在读取真实后端任务状态，不使用假进度。";
+      kind = "info";
+    }
+    banner.className = `status-banner ${kind === "info" ? "neutral" : kind}`;
+    banner.innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span>`;
+  }
+  function renderCninfoCandidates(task) {
+    const container = byId("cninfo-candidates");
+    const candidates = task.error?.detail?.candidates || task.error?.candidates || [];
+    if (!Array.isArray(candidates) || !candidates.length) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+    container.hidden = false;
+    container.innerHTML = `<div><p class="folio">HUMAN CONFIRMATION REQUIRED</p><h5>巨潮返回了多个同名企业，请选择准确证券代码</h5><p>系统不会根据名称自行猜测企业。候选只来自本次官方股票清单查询。</p></div><div class="cninfo-candidate-list">${candidates.map((item) => `<button class="button quiet" type="button" data-cninfo-candidate="${escapeHtml(item.ticker)}"><strong>${escapeHtml(item.ticker)}</strong><span>${escapeHtml(item.company_name || item.name || "未返回企业名称")}</span><small>${escapeHtml(item.exchange || item.market || "交易所待核验")}</small></button>`).join("")}</div>`;
+  }
+  function renderCninfoDocuments(task) {
+    const result = task.result || {};
+    const documents = result.documents?.length ? result.documents : task.steps?.document_validate?.documents || [];
+    if (!documents.length) return "<p class=\"empty-state compact\">尚未形成可展示的年报校验记录。</p>";
+    return `<div class="cninfo-document-list">${documents.map((document) => `<article class="cninfo-document"><div><span class="folio">${escapeHtml(document.document_id || `REPORT-${document.report_year}`)}</span><h6>${escapeHtml(document.announcement_title || `${document.report_year} 年年度报告`)}</h6><p>${escapeHtml(document.report_year)} 年 · ${escapeHtml(document.page_count ?? "—")} 页 · ${escapeHtml(document.byte_count ? `${document.byte_count} bytes` : "文件大小待记录")}</p></div><div class="cninfo-document-meta"><span class="mono">SHA-256 ${escapeHtml(document.sha256 || "—")}</span>${document.source_url ? `<a class="source-link" href="${escapeHtml(document.source_url)}" target="_blank" rel="noopener">打开巨潮官方原件 ↗</a>` : ""}</div></article>`).join("")}</div>`;
+  }
+  function renderCninfoResult(task) {
+    const container = byId("cninfo-result");
+    const result = task.result;
+    if (!result) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+    const rag = result.rag || {};
+    const extraction = result.field_extraction || {};
+    const analysis = result.analysis || {};
+    const caseId = result.case_id || task.case_id || "";
+    const extractionText = extraction.row_count !== undefined ? `${extraction.row_count} 条候选 · ${extraction.status || "待人工"}` : "未进入字段提取";
+    const analysisText = analysis.run_id ? `${analysis.run_id} · ${statusLabel(analysis.run_completeness)}` : result.human_review_required ? "需要真人确认后再放行" : "未请求完整分析";
+    container.hidden = false;
+    container.innerHTML = `<div class="cninfo-result-head"><div><p class="folio">TRACEABLE OUTPUT</p><h5>自动流程结果摘要</h5><p>结果状态：<strong>${escapeHtml(result.status || task.status)}</strong> · ${escapeHtml(aiNotice(result))}</p></div><span class="state ${cninfoStatusKind(result.status)}">${escapeHtml(result.status || task.status)}</span></div><div class="cninfo-result-stats"><div><span>RAG块数</span><strong>${escapeHtml(rag.chunk_count ?? "—")}</strong></div><div><span>检索编号</span><strong class="mono">${escapeHtml(rag.smoke_retrieval_id || "—")}</strong></div><div><span>字段候选</span><strong>${escapeHtml(extractionText)}</strong></div><div><span>分析状态</span><strong>${escapeHtml(analysisText)}</strong></div></div><h6>官方年报与校验记录</h6>${renderCninfoDocuments(task)}<p class="boundary-strip">来源可追溯不等于专业结论；完整分析前仍需确认单位、合并范围、字段页码、口径和模型传输许可。</p>${caseId ? `<button type="button" class="button quiet" data-cninfo-inline-case="${escapeHtml(caseId)}">查看该案例字段与来源台账</button>` : ""}`;
+    container.querySelector("[data-cninfo-inline-case]")?.addEventListener("click", () => openCninfoCase(caseId));
+  }
+  function renderCninfoTask(task) {
+    state.cninfoTask = task;
+    byId("cninfo-pipeline-panel").hidden = false;
+    byId("cninfo-task-id").textContent = task.task_id || "—";
+    setStatePill(byId("cninfo-task-state"), cninfoTaskStatusLabel(task.status), cninfoStatusKind(task.status));
+    renderCninfoSteps(task);
+    renderCninfoTaskMeta(task);
+    renderCninfoMessage(task);
+    renderCninfoCandidates(task);
+    renderCninfoResult(task);
+    const retryable = ["failed", "needs_human"].includes(task.status);
+    byId("cninfo-retry").hidden = !retryable;
+    byId("cninfo-retry").textContent = task.status === "needs_human" ? "确认后重新执行" : "保留历史并重试";
+    const caseId = task.case_id || task.result?.case_id || "";
+    byId("cninfo-open-case").hidden = !caseId;
+    byId("cninfo-open-case").dataset.caseId = caseId;
+  }
+  async function pollCninfoTask(taskId, token) {
+    if (!taskId || token !== state.cninfoPollToken) return;
+    try {
+      const task = await api(`/api/pipelines/${encodeURIComponent(taskId)}`);
+      if (token !== state.cninfoPollToken) return;
+      renderCninfoTask(task);
+      if (CNINFO_ACTIVE_STATUSES.has(task.status)) {
+        state.cninfoPollTimer = window.setTimeout(() => pollCninfoTask(taskId, token), 1200);
+      } else {
+        state.cninfoPollTimer = null;
+      }
+    } catch (error) {
+      if (token !== state.cninfoPollToken) return;
+      const banner = byId("cninfo-task-message");
+      banner.className = "status-banner danger";
+      banner.innerHTML = `<strong>任务状态读取失败</strong><span>${escapeHtml(error.message)}；任务本身未被删除，可稍后重试读取。</span>`;
+      state.cninfoPollTimer = window.setTimeout(() => pollCninfoTask(taskId, token), 2500);
+    }
+  }
+  function beginCninfoPolling(taskId) {
+    if (state.cninfoPollTimer) window.clearTimeout(state.cninfoPollTimer);
+    state.cninfoPollToken += 1;
+    const token = state.cninfoPollToken;
+    pollCninfoTask(taskId, token);
+  }
+  async function startCninfoPipeline(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const query = form.elements.company_query.value.trim();
+    if (!query) { form.elements.company_query.focus(); return; }
+    if (state.cninfoPollTimer) window.clearTimeout(state.cninfoPollTimer);
+    const endBusy = beginButtonBusy(byId("cninfo-pipeline-submit"), "正在排队…");
+    byId("cninfo-pipeline-panel").hidden = false;
+    showMessage(byId("case-import-message"), "");
+    const latestYear = form.elements.latest_year.value.trim();
+    const payload = {
+      company_query: query,
+      years: Number(form.elements.years.value),
+      latest_year: latestYear ? Number(latestYear) : null,
+      analysis_mode: form.elements.analysis_mode.value,
+      rule_ids: ["R1"],
+      force_refresh: false,
+      planned_materiality: null,
+    };
+    try {
+      const task = await api("/api/pipelines/cninfo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      renderCninfoTask(task);
+      beginCninfoPolling(task.task_id);
+    } catch (error) {
+      renderCninfoTask({ task_id: "—", status: "failed", request: payload, steps: {}, error: { message: error.message } });
+    } finally {
+      endBusy();
+    }
+  }
+  async function retryCninfoPipeline() {
+    const taskId = state.cninfoTask?.task_id;
+    if (!taskId || !["failed", "needs_human"].includes(state.cninfoTask?.status)) return;
+    const endBusy = beginButtonBusy(byId("cninfo-retry"), "正在重新排队…");
+    try {
+      const queued = await api(`/api/pipelines/${encodeURIComponent(taskId)}/retry`, { method: "POST" });
+      renderCninfoTask({ ...state.cninfoTask, status: "queued", attempt: queued.attempt || state.cninfoTask.attempt, steps: Object.fromEntries(CNINFO_STEP_ORDER.map((name) => [name, { status: "pending", detail: "等待重新执行。" }])) });
+      beginCninfoPolling(taskId);
+    } catch (error) {
+      const banner = byId("cninfo-task-message");
+      banner.className = "status-banner danger";
+      banner.innerHTML = `<strong>重试未提交</strong><span>${escapeHtml(error.message)}</span>`;
+    } finally {
+      endBusy();
+    }
+  }
+  async function confirmCninfoCandidate(ticker, button) {
+    const taskId = state.cninfoTask?.task_id;
+    if (!taskId) return;
+    const endBusy = beginButtonBusy(button, "确认中…");
+    try {
+      await api(`/api/pipelines/${encodeURIComponent(taskId)}/confirm-company`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker }) });
+      renderCninfoTask({ ...state.cninfoTask, status: "queued", error: null, steps: Object.fromEntries(CNINFO_STEP_ORDER.map((name) => [name, { status: "pending", detail: "等待重新执行。" }])) });
+      beginCninfoPolling(taskId);
+    } catch (error) {
+      const banner = byId("cninfo-task-message");
+      banner.className = "status-banner danger";
+      banner.innerHTML = `<strong>企业确认未提交</strong><span>${escapeHtml(error.message)}</span>`;
+    } finally {
+      endBusy();
+    }
+  }
+  async function submitCninfoFieldReview(button) {
+    const caseId = state.currentCase?.case_id;
+    const fieldId = button.dataset.fieldId;
+    const record = button.closest("[data-cninfo-field-record]");
+    const reviewer = byId("cninfo-field-reviewer").value.trim();
+    const reason = byId("cninfo-field-reason").value.trim();
+    const decision = button.dataset.cninfoFieldAction;
+    if (!caseId || !fieldId || !record) return;
+    if (!reviewer) {
+      showMessage(byId("cninfo-field-review-message"), "请先填写真实复核人或团队角色；系统不代填真人确认。", "error");
+      byId("cninfo-field-reviewer").focus();
+      return;
+    }
+    if (["correct", "reject"].includes(decision) && !reason) {
+      showMessage(byId("cninfo-field-review-message"), "修正或拒绝候选必须填写原因。", "error");
+      byId("cninfo-field-reason").focus();
+      return;
+    }
+    const payload = { field_id: fieldId, decision, reviewer, reason };
+    if (decision === "correct") {
+      payload.corrected_value = Number(record.querySelector(".cninfo-field-value-input").value);
+      payload.corrected_pdf_page = Number(record.querySelector(".cninfo-field-page-input").value);
+      if (!Number.isFinite(payload.corrected_value) || !Number.isInteger(payload.corrected_pdf_page) || payload.corrected_pdf_page < 1) {
+        showMessage(byId("cninfo-field-review-message"), "修正时必须填写有效金额和 PDF 页码。", "error");
+        return;
+      }
+    }
+    const endBusy = beginButtonBusy(button, "正在保存…");
+    try {
+      const response = await api(`/api/cases/${encodeURIComponent(caseId)}/fields/confirm`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      state.currentCase = { ...response.case, financial_fields: response.financial_fields, field_validation: response.field_validation };
+      renderProject();
+      renderRuleLibrary();
+      showMessage(byId("cninfo-field-review-message"), `${fieldId} 已保存为“${cninfoHumanReviewLabel(response.field)}”；历史记录已追加。`, "success");
+    } catch (error) {
+      showMessage(byId("cninfo-field-review-message"), `字段处理失败：${error.message}`, "error");
+    } finally {
+      endBusy();
+    }
+  }
+  async function openCninfoCase(caseId) {
+    if (!caseId) return;
+    try {
+      await loadCaseDetail(caseId, { keepYear: true });
+      showView("project");
+    } catch (error) {
+      const banner = byId("cninfo-task-message");
+      banner.className = "status-banner danger";
+      banner.innerHTML = `<strong>案例读取失败</strong><span>${escapeHtml(error.message)}</span>`;
+    }
+  }
+
   function selectedRunnableRules() {
     return RULES.filter((rule) => rule.runnable && state.selectedRules.includes(rule.id)).map((rule) => rule.id);
   }
@@ -378,8 +688,9 @@
     const calculationButton = byId("wb-run-calculation");
     const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase;
     const modelTransferAllowed = Boolean(state.currentCase?.model_transfer_allowed);
+    const cninfoFieldsConfirmed = state.currentCase?.registry_mode !== "cninfo_official_auto" || state.currentCase?.field_validation?.status === "human_confirmed";
     fullButton.disabled = unavailable || !modelTransferAllowed;
-    calculationButton.disabled = unavailable;
+    calculationButton.disabled = unavailable || !cninfoFieldsConfirmed;
     fullButton.classList.toggle("primary", modelTransferAllowed);
     fullButton.classList.toggle("quiet", !modelTransferAllowed);
     calculationButton.classList.toggle("primary", !modelTransferAllowed);
@@ -388,7 +699,7 @@
     fullButton.setAttribute("aria-describedby", "wb-case-permission");
     fullButton.title = modelTransferAllowed ? "执行RAG、三Agent与硬校验" : "当前案例禁止模型传输，只能运行仅计算预检";
     byId("run-scope").textContent = runnable.length
-      ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${modelTransferAllowed ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}`
+      ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${modelTransferAllowed ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${cninfoFieldsConfirmed ? "" : " 巨潮字段尚未完成人工确认，暂不能计算。"}`
       : "当前没有可运行规则。";
     if (!state.run && state.currentCase && !modelTransferAllowed) {
       byId("wb-gate").className = "status-banner warning";
@@ -713,6 +1024,11 @@
     byId("wb-current-year").addEventListener("change", (event) => { state.year = event.target.value; renderProject(); updateUrl("replace"); });
     byId("wb-amount-unit").addEventListener("change", (event) => { state.unit = event.target.value; renderProject(); });
     byId("wb-refresh-case").addEventListener("click", () => loadCaseDetail(state.caseId, { keepYear: true }));
+    byId("cninfo-pipeline-form").addEventListener("submit", startCninfoPipeline);
+    byId("cninfo-retry").addEventListener("click", retryCninfoPipeline);
+    byId("cninfo-open-case").addEventListener("click", (event) => openCninfoCase(event.currentTarget.dataset.caseId));
+    byId("cninfo-candidates").addEventListener("click", (event) => { const button = event.target.closest("[data-cninfo-candidate]"); if (button) confirmCninfoCandidate(button.dataset.cninfoCandidate, button); });
+    byId("cninfo-field-review-list").addEventListener("click", (event) => { const button = event.target.closest("[data-cninfo-field-action]"); if (button) submitCninfoFieldReview(button); });
     byId("case-import-form").addEventListener("submit", importCase);
     byId("wb-rule-library").addEventListener("change", (event) => { const input = event.target.closest("[data-rule-id]"); if (!input) return; if (input.checked && !state.selectedRules.includes(input.dataset.ruleId)) state.selectedRules.push(input.dataset.ruleId); if (!input.checked) state.selectedRules = state.selectedRules.filter((id) => id !== input.dataset.ruleId); state.selectedRules.sort(); safeLocalStorageSet(SCOPE_KEY, state.selectedRules); renderRuleLibrary(); updateUrl("replace"); });
     byId("wb-run-full").addEventListener("click", () => runAnalysis("full_analysis"));

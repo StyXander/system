@@ -904,9 +904,22 @@ def update_cninfo_financial_fields(
 
     # 更新只允许发生在自动注册案例，人工 ZIP 案例仍遵循原有财务字段协议。
     case = get_case(workspace_root, case_id)
+    # ZIP 案例仍沿用原有人工字段协议，不能通过新接口改变其审查方式。
     if case is None or case.get("registry_mode") != "cninfo_official_auto":
         raise ValueError("不是可更新的巨潮自动案例。")
+    # 自动候选更新必须读取旧记录，保证同一来源重新跑时不会丢失真人复核。
     documents = {item["document_id"]: item for item in case.get("documents", [])}
+    # 候选快照和规则输入值分开保存，修正只能改变后者。
+    previous_path = _case_dir(workspace_root, case_id) / "financial_fields.json"
+    try:
+        previous_rows = json.loads(previous_path.read_text(encoding="utf-8")) if previous_path.is_file() else []
+    except (OSError, json.JSONDecodeError):
+        previous_rows = []
+    previous_by_field_id = {
+        str(row.get("field_id") or f"{row.get('field_kind')}_{row.get('year')}"): row
+        for row in previous_rows
+        if isinstance(row, dict)
+    }
     normalized: list[dict[str, Any]] = []
     seen: set[tuple[str, int]] = set()
     # 同一字段年度只能有一个候选，避免重复候选让规则误以为年度已完整。
@@ -929,13 +942,42 @@ def update_cninfo_financial_fields(
         evidence_id = str(row.get("evidence_id") or f"{case_id}_{FIELD_PREFIX[kind]}_{year}").upper()
         if not DOCUMENT_ID_PATTERN.fullmatch(evidence_id):
             raise ValueError("巨潮自动字段 evidence_id 不合法。")
+        # 字段编号由字段种类和年度组成，页面、接口和审计日志共同使用。
+        field_id = f"{kind}_{year}"
+        previous = previous_by_field_id.get(field_id)
+        # 只有文档、页码和金额都没有变化时，才继承上一轮真人决定。
+        same_candidate = bool(
+            previous
+            and float(previous.get("candidate", {}).get("value", previous.get("value"))) == value
+            and int(previous.get("candidate", {}).get("pdf_page", previous.get("pdf_page"))) == pdf_page
+            and str(previous.get("document_id")) == document_id
+        )
+        # 来源发生变化时必须重新待确认，不能把旧年报的签字带到新版本。
+        human_review = (
+            deepcopy(previous.get("human_review"))
+            if same_candidate and isinstance(previous.get("human_review"), dict)
+            else {"status": "pending", "decision": None}
+        )
+        # 历史记录追加保存，便于评审回看每次确认、修正和拒绝。
+        human_review_history = (
+            deepcopy(previous.get("human_review_history"))
+            if same_candidate and isinstance(previous.get("human_review_history"), list)
+            else []
+        )
         normalized.append(
             {
                 "case_id": case_id,
                 "evidence_id": evidence_id,
+                "field_id": field_id,
                 "field_kind": kind,
                 "year": year,
                 "value": value,
+                "candidate": {
+                    "value": value,
+                    "pdf_page": pdf_page,
+                    "document_id": document_id,
+                    "locator": str(row.get("locator") or "自动提取候选；待人工回页确认")[:300],
+                },
                 "unit": "元",
                 "currency": "CNY",
                 "statement_scope": "合并",
@@ -953,6 +995,8 @@ def update_cninfo_financial_fields(
                 "source_review_status": str(row.get("source_review_status") or "auto_extracted_pending_human_page_confirmation"),
                 "extraction_method": str(row.get("extraction_method") or "pdf_text_heuristic_candidate")[:100],
                 "raw_excerpt": str(row.get("raw_excerpt") or "")[:1000],
+                "human_review": human_review,
+                "human_review_history": human_review_history,
             }
         )
     # 连续年度由必需字段的交集决定，不用单个字段的最长年度误判完整性。
@@ -965,8 +1009,22 @@ def update_cninfo_financial_fields(
         reverse=True,
     )
     available_years = [year for year in complete_years if year - 1 in complete_years]
+    confirmed_years = sorted(
+        {
+            row["year"]
+            for row in normalized
+            if row["field_kind"] in {"revenue", "accounts_receivable"}
+            and row.get("human_review", {}).get("decision") in {"confirm", "correct"}
+        },
+        reverse=True,
+    )
+    human_confirmed_available_years = [year for year in confirmed_years if year - 1 in confirmed_years]
+    # available_years 表示技术上有候选，不代表已经可以进入规则。
     case["available_years"] = available_years
+    # human_confirmed_available_years 才是人工闸门之后允许规则使用的期间。
+    case["human_confirmed_available_years"] = human_confirmed_available_years
     case["three_year_r1_ready"] = len(complete_years) >= 3
+    case["human_confirmed_three_year_r1_ready"] = len(human_confirmed_available_years) >= 2 and len(confirmed_years) >= 3
     case["financial_fields_status"] = status
     case["material_gaps"] = list(material_gaps or [])
     case["source_review_status"] = (
@@ -980,6 +1038,184 @@ def update_cninfo_financial_fields(
     (case_dir / "financial_fields.json").write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
     (case_dir / "case.json").write_text(json.dumps(case, ensure_ascii=False, indent=2), encoding="utf-8")
     return case
+
+
+def _cninfo_field_is_human_accepted(row: dict[str, Any]) -> bool:
+    """只有真人确认或真人修正后的字段才能进入规则输入。"""
+
+    # 拒绝、待确认和缺少复核字段都必须保持关闭，不以页面按钮状态推断。
+    return row.get("human_review", {}).get("decision") in {"confirm", "correct"}
+
+
+def _recompute_cninfo_human_status(case: dict[str, Any], rows: list[dict[str, Any]]) -> None:
+    """更新字段候选的真人状态，但不改写原始自动候选和历史复核记录。"""
+
+    technical_years = sorted(
+        {
+            int(row["year"])
+            for row in rows
+            if row.get("field_kind") in {"revenue", "accounts_receivable"}
+        },
+        reverse=True,
+    )
+    confirmed_years = sorted(
+        {
+            int(row["year"])
+            for row in rows
+            if row.get("field_kind") in {"revenue", "accounts_receivable"}
+            and _cninfo_field_is_human_accepted(row)
+        },
+        reverse=True,
+    )
+    case["available_years"] = [year for year in technical_years if year - 1 in technical_years]
+    case["human_confirmed_available_years"] = [year for year in confirmed_years if year - 1 in confirmed_years]
+    case["three_year_r1_ready"] = len(technical_years) >= 3
+    case["human_confirmed_three_year_r1_ready"] = len(confirmed_years) >= 3
+    required_rows = [
+        row
+        for row in rows
+        if row.get("field_kind") in {"revenue", "accounts_receivable"}
+    ]
+    accepted_required = bool(required_rows) and all(_cninfo_field_is_human_accepted(row) for row in required_rows)
+    case["financial_fields_status"] = "human_confirmed" if accepted_required else "pending_human_review"
+    case["source_review_status"] = (
+        "cninfo_fields_human_confirmed"
+        if accepted_required
+        else "cninfo_fields_candidate_pending_human_professional_confirmation"
+    )
+
+
+def confirm_cninfo_field(
+    workspace_root: Path,
+    case_id: str,
+    confirmation: dict[str, Any],
+) -> dict[str, Any]:
+    """追加保存一条真人字段处理记录，并返回当前字段和案例闸门状态。"""
+
+    case = get_case(workspace_root, case_id)
+    if case is None or case.get("registry_mode") != "cninfo_official_auto":
+        raise ValueError("只有巨潮自动案例支持字段真人确认。")
+    # 复核人由操作者明确填写，AI 不代填姓名、角色或签字日期。
+    reviewer = str(confirmation.get("reviewer") or "").strip()
+    decision = str(confirmation.get("decision") or "")
+    reason = str(confirmation.get("reason") or "").strip()
+    # 空白复核人不是有效的人工作业记录，接口必须拒绝保存。
+    if not reviewer:
+        raise ValueError("字段确认必须填写真实复核人或团队角色。")
+    if decision not in {"confirm", "correct", "reject"}:
+        raise ValueError("字段处理动作只能是 confirm、correct 或 reject。")
+    # 修正和拒绝会改变后续规则资格，必须留下可解释的原因。
+    if decision in {"correct", "reject"} and not reason:
+        raise ValueError("修正或拒绝字段必须填写原因。")
+    path = _case_dir(workspace_root, case_id) / "financial_fields.json"
+    if not path.is_file():
+        raise ValueError("案例尚未形成字段候选。")
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    field_id = str(confirmation.get("field_id") or "")
+    # 兼容字段确认功能上线前已经生成的自动案例，旧记录按字段种类和年度补出编号。
+    row = next(
+        (
+            item
+            for item in rows
+            if str(item.get("field_id") or f"{item.get('field_kind')}_{item.get('year')}") == field_id
+        ),
+        None,
+    )
+    # 字段编号找不到时停止，不根据年度和字段名称模糊匹配其他候选。
+    if row is None:
+        raise ValueError("未找到对应字段候选。")
+    row["field_id"] = field_id
+    # 旧记录没有候选快照时，以原始自动值建立一次不可变基线。
+    row.setdefault(
+        "candidate",
+        {
+            "value": row.get("value"),
+            "pdf_page": row.get("pdf_page"),
+            "document_id": row.get("document_id"),
+            "locator": row.get("locator"),
+        },
+    )
+    row.setdefault("human_review_history", [])
+    documents = {item["document_id"]: item for item in case.get("documents", [])}
+    # original 保存处理前的金额、页码和定位，修正时不能覆盖证据链。
+    original = {
+        "value": row.get("value"),
+        "pdf_page": row.get("pdf_page"),
+        "document_id": row.get("document_id"),
+        "locator": row.get("locator"),
+    }
+    # 修正动作仍绑定原登记文档，并检查页码不超过已校验 PDF。
+    if decision == "correct":
+        corrected_value = confirmation.get("corrected_value")
+        corrected_page = confirmation.get("corrected_pdf_page")
+        if corrected_value is None or corrected_page is None:
+            raise ValueError("修正字段必须同时提供金额和 PDF 页码。")
+        document = documents.get(str(row.get("document_id")))
+        if document and int(corrected_page) > int(document.get("page_count") or 0):
+            raise ValueError("修正后的 PDF 页码超过已校验原件页数。")
+        row["value"] = float(corrected_value)
+        row["pdf_page"] = int(corrected_page)
+        if confirmation.get("corrected_locator"):
+            row["locator"] = str(confirmation["corrected_locator"])[:300]
+        row["source_review_status"] = "human_corrected"
+    elif decision == "confirm":
+        row["source_review_status"] = "human_confirmed"
+    else:
+        row["source_review_status"] = "human_rejected"
+    # 服务器生成复核时间，防止浏览器伪造历史时间线。
+    review = {
+        "status": {"confirm": "confirmed", "correct": "corrected", "reject": "rejected"}[decision],
+        "decision": decision,
+        "reviewer": reviewer,
+        "reviewed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "reason": reason,
+        "original": original,
+    }
+    # 当前决定供规则闸门读取，历史列表供项目审查和答辩回查。
+    row.setdefault("human_review_history", []).append(deepcopy(review))
+    row["human_review"] = review
+    # 每次单字段处理后重新计算整个案例闸门，避免页面局部状态失真。
+    _recompute_cninfo_human_status(case, rows)
+    case["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    (_case_dir(workspace_root, case_id) / "case.json").write_text(json.dumps(case, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"case": case, "field": row, "readiness": get_cninfo_field_readiness(workspace_root, case_id, ["R1", "R2"], max(case.get("available_years") or [0]))}
+
+
+def get_cninfo_field_readiness(
+    workspace_root: Path,
+    case_id: str,
+    rule_ids: Iterable[str],
+    current_year: int,
+) -> list[str]:
+    """按规则检查巨潮字段是否已经过真人确认，返回阻断原因。"""
+
+    case = get_case(workspace_root, case_id)
+    if case is None or case.get("registry_mode") != "cninfo_official_auto":
+        return []
+    # readiness 与技术候选数量分开计算，明确回答“能不能进规则”。
+    rows = get_financial_rows(workspace_root, case_id)
+    row_map = {(row.get("field_kind"), int(row.get("year"))): row for row in rows}
+    required: set[tuple[str, int]] = set()
+    # R1 只要求收入和应收主字段，三年候选存在时也必须确认被实际使用的第三年。
+    if "R1" in set(rule_ids):
+        required.update({("revenue", current_year), ("revenue", current_year - 1), ("accounts_receivable", current_year), ("accounts_receivable", current_year - 1)})
+        if all((kind, current_year - 2) in row_map for kind in ("revenue", "accounts_receivable")):
+            required.update({("revenue", current_year - 2), ("accounts_receivable", current_year - 2)})
+    # R2 额外要求经营现金流，净利润存在时不能跳过其人工回查。
+    if "R2" in set(rule_ids):
+        required.update({("revenue", current_year), ("revenue", current_year - 1), ("operating_cash_flow", current_year), ("operating_cash_flow", current_year - 1)})
+        if ("net_profit", current_year) in row_map:
+            required.add(("net_profit", current_year))
+    issues: list[str] = []
+    # 按年度和字段稳定排序，确保页面提示和日志在多次运行中可复现。
+    for kind, year in sorted(required, key=lambda item: (item[1], item[0])):
+        row = row_map.get((kind, year))
+        if row is None:
+            issues.append(f"{year}年{kind}字段缺失")
+        elif not _cninfo_field_is_human_accepted(row):
+            issues.append(f"{year}年{kind}字段尚未真人确认")
+    return issues
 
 
 def _standard_financial_rows() -> list[dict[str, Any]]:

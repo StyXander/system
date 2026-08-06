@@ -186,7 +186,7 @@
 
       <section class="view" data-view-panel="project" aria-labelledby="project-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">标准案例包 · 字段先行 · 来源可回查</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>正式入口只接受标准案例包，不承诺任意 PDF 自动取数。下载模板、填入已核验字段与来源页、更新真实文件哈希，再完成授权与脱敏确认；通过导入校验后才能选择年度与运行。</p></div>
+          <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">巨潮官方年报 · RAG 来源锁定 · 字段先行</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>本页支持从巨潮资讯网输入新企业并自动搜索、下载、校验和建立案例隔离 RAG。自动字段只形成候选，必须经过真人核对后才允许进入完整分析；标准案例 ZIP 仍保留为离线与合成验收入口。</p></div>
           <span class="state pending" id="project-state">正在读取案例注册表</span>
         </header>
 
@@ -204,6 +204,36 @@
              <div><p class="folio">AUDITTRACE / CASE CONTRACT / EVIDENCE-BOUND</p><h3 id="project-sheet-heading">审迹智链工作台</h3><p>每个参与计算的数字必须绑定案例、文档编号、披露日期、页码、哈希和 evidence_id。资料不全时，完整分析会如实关闭。</p></div>
             <span class="state pending" id="project-health-state">正在检查后端</span>
           </div>
+          <section class="cninfo-pipeline" aria-labelledby="cninfo-pipeline-heading">
+            <div class="cninfo-pipeline-intro">
+              <span class="folio">CNINFO OFFICIAL SOURCE → VALIDATE → RAG</span>
+              <h4 id="cninfo-pipeline-heading">输入新企业，自动建立年报证据包</h4>
+              <p>只访问巨潮官方公开来源。系统会保存公告标题、报告年度、来源 URL、PDF 页数、SHA-256、案例编号和 RAG 检索编号；网络失败、同名企业和字段不确定都会停在明确状态。</p>
+            </div>
+            <form id="cninfo-pipeline-form" class="cninfo-pipeline-form">
+              <label for="cninfo-company-query"><span>企业名称或股票代码</span><input id="cninfo-company-query" name="company_query" required autocomplete="organization" spellcheck="false" placeholder="例如 603337 或 标准股份"></label>
+              <label for="cninfo-years"><span>下载年报数量</span><select id="cninfo-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
+              <label for="cninfo-latest-year"><span>最新报告年度（可留空）</span><input id="cninfo-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
+              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only" selected>只下载 + RAG（安全默认）</option><option value="full_analysis">继续完整分析（需字段/模型许可）</option></select></label>
+              <button class="button primary" id="cninfo-pipeline-submit" type="submit">开始巨潮自动流程 <span aria-hidden="true">→</span></button>
+            </form>
+            <p class="boundary-strip">安全边界：默认不向外部模型传输公开年报；RAG 命中只是候选原文，不是审计证据或审计结论。完整分析如遇真人确认、模型传输或专业口径门槛，会显示 <code>needs_human</code> 并停止。</p>
+            <section class="cninfo-pipeline-panel" id="cninfo-pipeline-panel" hidden aria-labelledby="cninfo-task-heading">
+              <div class="cninfo-task-head">
+                <div><p class="folio">LIVE PIPELINE TASK</p><h5 id="cninfo-task-heading">巨潮自动任务</h5><p class="mono" id="cninfo-task-id">—</p></div>
+                <span class="state pending" id="cninfo-task-state">等待提交</span>
+              </div>
+              <ol class="cninfo-step-list" id="cninfo-step-list" aria-label="巨潮自动流程步骤"></ol>
+              <div class="cninfo-task-meta" id="cninfo-task-meta"></div>
+              <div class="status-banner neutral" id="cninfo-task-message" role="status" aria-live="polite"><strong>尚未提交</strong><span>输入企业后，页面会轮询真实后端任务。</span></div>
+              <div class="cninfo-candidates" id="cninfo-candidates" hidden></div>
+              <div class="cninfo-result" id="cninfo-result" hidden></div>
+              <div class="action-row cninfo-task-actions">
+                <button class="button quiet" id="cninfo-retry" type="button" hidden>保留历史并重试</button>
+                <button class="button primary" id="cninfo-open-case" type="button" hidden>打开已登记案例</button>
+              </div>
+            </section>
+          </section>
           <section class="case-intake" aria-labelledby="case-intake-heading">
             <div class="case-intake-copy"><span class="folio">DOWNLOAD → IMPORT → VALIDATE → PREVIEW</span><h4 id="case-intake-heading">标准案例包入口</h4><p>模板内含 manifest、财务字段、账龄、期后回款、合同条款、脱敏日志和合成 PDF；模型传输默认关闭。</p></div>
             <div class="case-intake-actions">
@@ -258,6 +288,18 @@
             <button class="button quiet" type="button" data-wb-go="project">← 返回项目</button>
             <button class="button primary" type="button" data-wb-go="library">查看候选指标 <span aria-hidden="true">→</span></button>
           </div>
+          <section class="cninfo-field-review" id="cninfo-field-review" hidden aria-labelledby="cninfo-field-review-heading">
+            <header class="subheading">
+              <div><p class="kicker">HUMAN FIELD CONFIRMATION GATE</p><h3 id="cninfo-field-review-heading">字段候选真人确认</h3><p>逐项回到年报原件确认金额、单位、合并范围、口径和 PDF 页码。自动候选原值不会被覆盖，修正与拒绝都会留下历史。</p></div>
+              <span class="state waiting" id="cninfo-field-review-state">等待确认</span>
+            </header>
+            <div class="cninfo-review-controls">
+              <label for="cninfo-field-reviewer"><span>真实复核人 / 团队角色</span><input id="cninfo-field-reviewer" name="reviewer" autocomplete="name" placeholder="例如 A：会计专业复核"></label>
+              <label for="cninfo-field-reason"><span>本次修正或拒绝原因（确认可留空）</span><textarea id="cninfo-field-reason" name="reason" rows="2" placeholder="请写明回查页码、单位或口径判断依据"></textarea></label>
+            </div>
+            <div class="cninfo-field-review-list" id="cninfo-field-review-list"></div>
+            <p class="form-message" id="cninfo-field-review-message" role="status" aria-live="polite">未提交字段处理。</p>
+          </section>
         </section>
       </section>
 

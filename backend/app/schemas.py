@@ -233,6 +233,27 @@ class CNInfoCompanyConfirmation(BaseModel):
     ticker: str = Field(pattern=r"^\d{6}$")
 
 
+class CNInfoFieldConfirmation(BaseModel):
+    """巨潮自动字段候选的真人确认、修正或拒绝记录。"""
+
+    # 字段编号由案例内的字段种类和报告年度组成，不能由前端拼接任意路径。
+    field_id: str = Field(pattern=r"^(revenue|accounts_receivable|accounts_receivable_allowance|accounts_receivable_net|operating_cash_flow|net_profit)_\d{4}$")
+    decision: Literal["confirm", "correct", "reject"]
+    reviewer: str = Field(min_length=1, max_length=120)
+    reason: str = Field(default="", max_length=500)
+    corrected_value: float | None = None
+    corrected_pdf_page: int | None = Field(default=None, ge=1, le=10000)
+    corrected_locator: str | None = Field(default=None, max_length=300)
+
+    @model_validator(mode="after")
+    def corrected_value_is_complete(self) -> "CNInfoFieldConfirmation":
+        if self.decision == "correct" and self.corrected_value is None:
+            raise ValueError("修正字段必须提供 corrected_value。")
+        if self.decision == "correct" and self.corrected_pdf_page is None:
+            raise ValueError("修正字段必须提供 corrected_pdf_page。")
+        return self
+
+
 class SupplementRerunRequest(BaseModel):
     run_mode: RunMode = "full_analysis"
     check_model: bool | None = None

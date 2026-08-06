@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-05T17:26:06+08:00",
+  "updated_at": "2026-08-06T18:30:00+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -28,6 +28,8 @@
     "cninfo_case_isolated_rag_pipeline": "implemented_and_tested_live_603337_3_years_1103_chunks",
     "cninfo_field_candidate_extraction": "implemented_technical_pass_pending_human_page_unit_scope_confirmation",
     "cninfo_pipeline_api": "implemented_task_progress_result_retry_and_company_confirmation_endpoints",
+    "cninfo_formal_web_entry": "implemented_11_step_task_polling_document_hash_rag_and_fail_closed_status_ui_browser_checked_20260806",
+    "cninfo_field_human_confirmation": "implemented_confirm_correct_reject_append_only_history_and_rule_gate_pending_real_professional_review",
     "cninfo_full_analysis_orchestration": "implemented_reuses_api_runs_and_closes_external_model_when_transfer_not_allowed",
     "model_transfer_confirmation_gate": "implemented_requires_confirmer_date_basis_provider_scope_and_reference_pending_independent_human_review",
     "case_isolated_sources": "implemented_and_tested",
@@ -46,8 +48,8 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp tmp\\pytest-cninfo-full",
-      "latest_result": "71 passed, 1 warning, 22.19s",
-      "executed_on": "2026-08-05",
+      "latest_result": "72 passed, 1 warning, 71.58s",
+      "executed_on": "2026-08-06",
       "status": "passed"
     },
     "clean_package": {
@@ -57,13 +59,13 @@
       "executed_on": "2026-07-30",
       "status": "passed",
       "independent_smoke": "status, standard_case_transfer_gate, rag_prepare_and_retrieve, r1_calculation_only, exact_ai_notice_all_passed",
-      "boundary": "57 passed属于2026-07-30无密钥清洁运行包独立解包结果；与2026-08-05源码仓库71 passed分开记录。",
+      "boundary": "57 passed属于2026-07-30无密钥清洁运行包独立解包结果；与2026-08-06源码仓库72 passed分开记录。",
       "distribution_boundary": "清洁运行包为保留标准案例复验能力而包含四份公开年报全文；在真人确认全文再分发边界前仅限团队内部技术复验，禁止外发。队员和老师材料包不含年报全文。"
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "613/6121 = 10.01%",
-      "executed_on": "2026-08-05",
+      "latest_result": "645/6410 = 10.06%",
+      "executed_on": "2026-08-06",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
