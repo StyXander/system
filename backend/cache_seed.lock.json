@@ -1,0 +1,3599 @@
+{
+  "schema_version": "cninfo_cache_seed_lock_v1",
+  "description": "已校验巨潮公开年报热缓存的可复现元数据锁定清单；不包含 PDF、FAISS 或可写 runtime。",
+  "source": "CNINFO official public reports",
+  "requested_years": [
+    2025,
+    2024,
+    2023
+  ],
+  "company_count": 50,
+  "ready_count": 50,
+  "industry_distribution": {
+    "conditional_business": 1,
+    "energy": 6,
+    "financial": 20,
+    "general_business": 23
+  },
+  "entries": [
+    {
+      "ticker": "000001",
+      "company_name": "平安银行",
+      "company_alias": "平安银行",
+      "market": "szse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_000001_T0_20260320",
+      "snapshot_id": "b6be54f08b912b96b0b18fd9",
+      "source_fingerprint": "7a12be2d67745441559d67b81d48051b27ad008835af2b9360b279f4c500c1c0",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:49+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-20",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-21/1225022887.PDF",
+          "sha256": "2273565ECBE1B32536631FD4A019A4F4A990F4C793CFD5B70EAE90D44D3FF16C",
+          "byte_count": 1975076,
+          "page_count": 288,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-15/1222806505.PDF",
+          "sha256": "77D98B2636F31C0A546728637D99DA85D00C4D1783E1372B090A753AD46E14F1",
+          "byte_count": 1945169,
+          "page_count": 296,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-15/1219306493.PDF",
+          "sha256": "8561144288E31FF5CCE0789723233335749DF2183305999D097B67A1DF46D7BD",
+          "byte_count": 5661677,
+          "page_count": 294,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "7a12be2d67745441559d67b81d48051b27ad008835af2b9360b279f4c500c1c0",
+        "chunk_count": 1341,
+        "status": "ready",
+        "built_at": "2026-08-07T20:46:30+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "600000",
+      "company_name": "浦发银行",
+      "company_alias": "浦发银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_600000_T0_20260330",
+      "snapshot_id": "50c6cf8ca8dbac7d99960ca7",
+      "source_fingerprint": "90287983104df6900eb9ca2512c0baaa2c5a20f5effd8836ebfcaa5b27806826",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:07:38+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "上海浦东发展银行股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225062336.PDF",
+          "sha256": "E4D1CFF0461C0EF24D26551CA68E31AD323A1B3EADD8A3C03F00FEADA364DE22",
+          "byte_count": 36054699,
+          "page_count": 454,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "上海浦东发展银行股份有限公司2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222948214.PDF",
+          "sha256": "29BFA3E8FC0A55E1DF8DA991A6EDBE3F460BA5D8F5F00E2E81FC9078CD22D94E",
+          "byte_count": 39565794,
+          "page_count": 444,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "上海浦东发展银行股份有限公司2023年年度报告",
+          "disclosure_date": "2024-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-30/1219910205.PDF",
+          "sha256": "BA3266DFF368947C5B23EC5FED82E0F5505E7B3AF74B54ECC326381C0853F595",
+          "byte_count": 6551984,
+          "page_count": 400,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "90287983104df6900eb9ca2512c0baaa2c5a20f5effd8836ebfcaa5b27806826",
+        "chunk_count": 2299,
+        "status": "ready",
+        "built_at": "2026-08-07T21:07:38+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "600036",
+      "company_name": "招商银行",
+      "company_alias": "招商银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_600036_T0_20260327",
+      "snapshot_id": "ee9b400dafcdc5da607f12d7",
+      "source_fingerprint": "80c461b4a23fda56c07380232a42ae21f893b54bf1db885c3dfd941b5e0fce7a",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "招商银行股份有限公司2025年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047590.PDF",
+          "sha256": "ABE612A273468072B176DD51EA460C1E1596F8CA729CBC6DB3FA28BA9A57EA79",
+          "byte_count": 32081947,
+          "page_count": 350,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "招商银行股份有限公司2024年度报告",
+          "disclosure_date": "2025-03-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-26/1222895154.PDF",
+          "sha256": "44A8759C94E1BA92F1D96897CA3778592D9A7EB33B53420C19268F0B140D81C3",
+          "byte_count": 6215121,
+          "page_count": 362,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "招商银行股份有限公司2023年度报告",
+          "disclosure_date": "2024-03-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-26/1219403503.PDF",
+          "sha256": "948A390B579A8D46F281D3F88A346B4388F1BB6B82A90DB61D5CD48B4627598A",
+          "byte_count": 5834543,
+          "page_count": 362,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "80c461b4a23fda56c07380232a42ae21f893b54bf1db885c3dfd941b5e0fce7a",
+        "chunk_count": 1906,
+        "status": "ready",
+        "built_at": "2026-08-07T20:47:51+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601166",
+      "company_name": "兴业银行",
+      "company_alias": "兴业银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601166_T0_20260326",
+      "snapshot_id": "eeceaea82557b88670bb18c5",
+      "source_fingerprint": "e6aa175edad11565f806e6e51b8da1b72490193aa803bd39464b248ff890d599",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "兴业银行2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225039240.PDF",
+          "sha256": "8AD7C2264A38441715CAFD485A9214F0C180BC1EB037837BB0403013FADD586C",
+          "byte_count": 20409748,
+          "page_count": 348,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "兴业银行2024年年度报告",
+          "disclosure_date": "2025-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222927176.PDF",
+          "sha256": "B7784A8DD0B6B2798683C9DB9EA5CB129EABD30F0352F0CCE080BB8D06FC17B8",
+          "byte_count": 16536762,
+          "page_count": 388,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "兴业银行2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219445697.PDF",
+          "sha256": "296CE7E3F505668068985D4771A7B7EC88BA6BFC8A9A312CBDAD67F98BAE3C1E",
+          "byte_count": 4024528,
+          "page_count": 379,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "e6aa175edad11565f806e6e51b8da1b72490193aa803bd39464b248ff890d599",
+        "chunk_count": 1756,
+        "status": "ready",
+        "built_at": "2026-08-07T20:48:35+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601398",
+      "company_name": "工商银行",
+      "company_alias": "工商银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601398_T0_20260327",
+      "snapshot_id": "139f190af6526a175c814eaf",
+      "source_fingerprint": "800bba7b59804fcb4eb67951c9fc147803d6c67125b5ce5590079e3cf70bddff",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "工商银行2025年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047240.PDF",
+          "sha256": "E2EDAB73032F143AAD881F612382BC613C8B96B424BB197B125D64A0EF23C78B",
+          "byte_count": 9289165,
+          "page_count": 408,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "工商银行2024年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222948914.PDF",
+          "sha256": "27B9C08E81061722AB4166AD23D4F90366A3F075AF1422543FA6DCB8C7D1A03C",
+          "byte_count": 9880426,
+          "page_count": 410,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "工商银行2023年度报告",
+          "disclosure_date": "2024-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219429144.PDF",
+          "sha256": "E310E8A55FF8F057782C6C70B003FA220CA5A2E484334BFFBF308BDC39B3434D",
+          "byte_count": 9493877,
+          "page_count": 394,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "800bba7b59804fcb4eb67951c9fc147803d6c67125b5ce5590079e3cf70bddff",
+        "chunk_count": 2034,
+        "status": "ready",
+        "built_at": "2026-08-07T20:38:53+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601939",
+      "company_name": "建设银行",
+      "company_alias": "建设银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601939_T0_20260427",
+      "snapshot_id": "4db55b7f85d829d0bcd123b9",
+      "source_fingerprint": "6b728231f3c05d8ff690d1d8159d659f6073db5eef383a9f354d5325f84f8f92",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:11:05+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "建设银行H股公告-2025年年度报告",
+          "disclosure_date": "2026-04-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225204147.PDF",
+          "sha256": "BA4C75090839CB1FE1F4F26FB9712FB88ED753CACEC62A134A63A26D1C2ABCAB",
+          "byte_count": 14006717,
+          "page_count": 328,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "建设银行H股公告-2024年年度报告",
+          "disclosure_date": "2025-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223304668.PDF",
+          "sha256": "C0A09177C9AFFF9365B915CD0275B6FA5E4C00BD69A6AF9B5493DDFAEDE056AC",
+          "byte_count": 11135710,
+          "page_count": 336,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "建设银行H股公告-2023年年度报告",
+          "disclosure_date": "2024-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-26/1219819406.PDF",
+          "sha256": "69B2744653300F3B4EBA6805106A57DC6629B251D5ED1A9A2726D40530D45CB5",
+          "byte_count": 18389973,
+          "page_count": 376,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "6b728231f3c05d8ff690d1d8159d659f6073db5eef383a9f354d5325f84f8f92",
+        "chunk_count": 1717,
+        "status": "ready",
+        "built_at": "2026-08-07T21:11:05+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601288",
+      "company_name": "农业银行",
+      "company_alias": "农业银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601288_T0_20260330",
+      "snapshot_id": "0711faffb250b3cf94963f5d",
+      "source_fingerprint": "bdbbecff8a12ebd8be3bd9a0aff93fa2cc9fc138c982e15aa68ff645de10b8ee",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "农业银行2025年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225056196.PDF",
+          "sha256": "9353F9A05D9CDF19CABEF785E4C633FBD29AB63E7933DCD3C472CA02BC691D83",
+          "byte_count": 5038004,
+          "page_count": 418,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "农业银行2024年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222943086.PDF",
+          "sha256": "377C245794096C5DC60BC70B64BF78ADD24EB17B838219DFC82FC466991ECCE2",
+          "byte_count": 4988663,
+          "page_count": 424,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "农业银行2023年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219445723.PDF",
+          "sha256": "E357E20EDEABCF3F9A468F31D2415FA8A6B121F7FE25D96E5B87D6666AA957B4",
+          "byte_count": 6950718,
+          "page_count": 440,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "bdbbecff8a12ebd8be3bd9a0aff93fa2cc9fc138c982e15aa68ff645de10b8ee",
+        "chunk_count": 2169,
+        "status": "ready",
+        "built_at": "2026-08-07T20:49:39+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601988",
+      "company_name": "中国银行",
+      "company_alias": "中国银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601988_T0_20260330",
+      "snapshot_id": "5c5c35d6be592eb20fb028af",
+      "source_fingerprint": "3e17b8bb81902b3f7f45b32541f8d77fab8598bf29957b58f3a2e7572ef77d5e",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:10:35+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "H股公告-2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225058594.PDF",
+          "sha256": "E1544BA31C9738FB8214C807081D9E6788ED5A098B725241F3BBC6EEB280EA7A",
+          "byte_count": 2958565,
+          "page_count": 411,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "H股公告-2024年年度报告",
+          "disclosure_date": "2025-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-27/1222911381.PDF",
+          "sha256": "F71AC40111B34CC25E24C8E10EB7F7F6C5A28371B1D8D64D1E4FB171729AED7E",
+          "byte_count": 2979440,
+          "page_count": 441,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国银行股份有限公司2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219445780.PDF",
+          "sha256": "5C61E11EF03B9195801561A44369554004BA7029F0BDCBFDCC0B3A4306C03739",
+          "byte_count": 11657557,
+          "page_count": 369,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "3e17b8bb81902b3f7f45b32541f8d77fab8598bf29957b58f3a2e7572ef77d5e",
+        "chunk_count": 1815,
+        "status": "ready",
+        "built_at": "2026-08-07T21:10:35+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601328",
+      "company_name": "交通银行",
+      "company_alias": "交通银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601328_T0_20260327",
+      "snapshot_id": "2ae4f3ace45a1e2a0aa78956",
+      "source_fingerprint": "41290d0cf6052b70849d67fdde8d8ceb140696d2aa75dd256ce9d43e5bfef668",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "交通银行2025年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047367.PDF",
+          "sha256": "DF52361E0A40791E9A37634437700B168EB2F76A2DB41FE70B6D17099A549963",
+          "byte_count": 5081677,
+          "page_count": 362,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "交通银行2024年度报告",
+          "disclosure_date": "2025-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-22/1222869580.PDF",
+          "sha256": "8F1DBEDB72983921F5C80D6BA33E3F1131B85F50FF215237A5200A6B9BF9A727",
+          "byte_count": 3349385,
+          "page_count": 345,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "交通银行2023年度报告",
+          "disclosure_date": "2024-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219427333.PDF",
+          "sha256": "F92728B28E3E45C066E12FC7C4CA9D3B63CBFB7DFCA147B0311E641FCBC40045",
+          "byte_count": 5031578,
+          "page_count": 357,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "41290d0cf6052b70849d67fdde8d8ceb140696d2aa75dd256ce9d43e5bfef668",
+        "chunk_count": 1783,
+        "status": "ready",
+        "built_at": "2026-08-07T20:50:22+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601818",
+      "company_name": "光大银行",
+      "company_alias": "光大银行",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601818_T0_20260330",
+      "snapshot_id": "82749dac3e9acd19ac6435c2",
+      "source_fingerprint": "d3e23abee5f27e0796ddbdf4f5a02988a0d27ca1b3755abcc5a35a4d1237bb34",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国光大银行股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225068417.PDF",
+          "sha256": "004E9B3673FFDE2311EB0EA6289A0C78D2A3109F51A00324804FD99C8A8BD6BC",
+          "byte_count": 3370276,
+          "page_count": 354,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国光大银行股份有限公司2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222947763.PDF",
+          "sha256": "5D75E02C2CDF8606C907A4E0511A7587F4FD7F8EC0B5931A1674316DDC1B133A",
+          "byte_count": 3976450,
+          "page_count": 366,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国光大银行股份有限公司2023年年度报告",
+          "disclosure_date": "2024-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219427340.PDF",
+          "sha256": "35BBB3A935C8B4DF52E395EF0FE58773685D97D32278D4F6EF6CA01CB22C102B",
+          "byte_count": 3227851,
+          "page_count": 366,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "d3e23abee5f27e0796ddbdf4f5a02988a0d27ca1b3755abcc5a35a4d1237bb34",
+        "chunk_count": 1596,
+        "status": "ready",
+        "built_at": "2026-08-07T20:50:48+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601628",
+      "company_name": "中国人寿",
+      "company_alias": "中国人寿",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601628_T0_20260325",
+      "snapshot_id": "42046f7004784286705deca9",
+      "source_fingerprint": "002c40d37f7d6baf6d6d449ba4f66c7fc9c2eb7a50439122d57c4aaf0aec0599",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T22:10:46+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国人寿2025年年度报告",
+          "disclosure_date": "2026-03-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225030448.PDF",
+          "sha256": "575A833FD7B83AD3568483273645236EDDB751A92AB89F7E1C09105D92CEDB27",
+          "byte_count": 5031381,
+          "page_count": 228,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国人寿2024年年度报告",
+          "disclosure_date": "2025-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-27/1222910598.PDF",
+          "sha256": "3CC6DB9BBD9C3C754548B6BE288BCEBAE7187E5264EBA59025237F5AA8C667E0",
+          "byte_count": 13075666,
+          "page_count": 256,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国人寿2023年年度报告",
+          "disclosure_date": "2024-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219426152.PDF",
+          "sha256": "5EA1048C3A9323B37B1AD2E870DA0FB54D9CFACDFBA159AAD4B9BEC070EDC18A",
+          "byte_count": 5800764,
+          "page_count": 244,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "002c40d37f7d6baf6d6d449ba4f66c7fc9c2eb7a50439122d57c4aaf0aec0599",
+        "chunk_count": 1157,
+        "status": "ready",
+        "built_at": "2026-08-07T16:06:15+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601318",
+      "company_name": "中国平安",
+      "company_alias": "中国平安",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601318_T0_20260326",
+      "snapshot_id": "5956fb675ba272f2eee22bc9",
+      "source_fingerprint": "b80e3567503b546d0c4f1f2878f8a065174d682f53fd6aa1c80da52fdeedf61b",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国平安2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038263.PDF",
+          "sha256": "860C455BBAD9BE59D3D1BF64BF683733FEB79157212532DF44B91D49A0B03C2A",
+          "byte_count": 9497402,
+          "page_count": 370,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国平安2024年年度报告",
+          "disclosure_date": "2025-03-19",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-20/1222847447.PDF",
+          "sha256": "6FFFF1CADE59C64C8178494C083CAC8A4011EF5AE2FED32F85DD488A64A809B2",
+          "byte_count": 11542073,
+          "page_count": 346,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国平安2023年年度报告",
+          "disclosure_date": "2024-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-22/1219376072.PDF",
+          "sha256": "F55538814200D77A61492BA216E45508F487064207BCA6A4D90C7B55ADD43823",
+          "byte_count": 7225491,
+          "page_count": 334,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "b80e3567503b546d0c4f1f2878f8a065174d682f53fd6aa1c80da52fdeedf61b",
+        "chunk_count": 1661,
+        "status": "ready",
+        "built_at": "2026-08-07T20:51:29+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601601",
+      "company_name": "中国太保",
+      "company_alias": "中国太保",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601601_T0_20260326",
+      "snapshot_id": "0904d33aa6809dad6f54a990",
+      "source_fingerprint": "8b6953c7e7648389e3a11582a7de8941c72465f43f51b06dfc245ec49bb8a190",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国太保2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225035569.PDF",
+          "sha256": "3787B6A6EC1BF480BE2092E7BAE156BD0F1D1B7F9F28BD9226D038951C788DEE",
+          "byte_count": 13107566,
+          "page_count": 310,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国太保2024年年度报告",
+          "disclosure_date": "2025-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-27/1222910802.PDF",
+          "sha256": "90D594E772763C99CC4BC302CD7B070082239F07809CDF1DF25F8DAFC7B853B5",
+          "byte_count": 13374402,
+          "page_count": 302,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国太保2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219443217.PDF",
+          "sha256": "716A65F266F6ED6DC12F6906DB26B84AEAC4745C212C8CB8687C7A4FA0FC9DAB",
+          "byte_count": 8324038,
+          "page_count": 287,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "8b6953c7e7648389e3a11582a7de8941c72465f43f51b06dfc245ec49bb8a190",
+        "chunk_count": 1466,
+        "status": "ready",
+        "built_at": "2026-08-07T20:52:10+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601319",
+      "company_name": "中国人保",
+      "company_alias": "中国人保",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601319_T0_20260326",
+      "snapshot_id": "2495684d05340a64e9d25bc0",
+      "source_fingerprint": "bb69a1277dea6a416e226f09664848fe463cbdf729bc036034e7ee9b64290317",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国人保2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225037867.PDF",
+          "sha256": "C8E5ED5435197FF0C056EE9AD6AA630B6E7A655A47BA61E18D352E89745791FE",
+          "byte_count": 12461533,
+          "page_count": 278,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国人保2024年年度报告",
+          "disclosure_date": "2025-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222927515.PDF",
+          "sha256": "7EDE132C8AF8D5215B24ECF7B0375374649555E55D058B2EEBED02F2E9AAC978",
+          "byte_count": 3579323,
+          "page_count": 299,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国人保2023年年度报告",
+          "disclosure_date": "2024-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-27/1219411146.PDF",
+          "sha256": "F30387D9797371DE358B10FD0F9F8237C8909A0CE1D5033CA6AB26378FCC48CE",
+          "byte_count": 11761172,
+          "page_count": 311,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "bb69a1277dea6a416e226f09664848fe463cbdf729bc036034e7ee9b64290317",
+        "chunk_count": 1158,
+        "status": "ready",
+        "built_at": "2026-08-07T20:52:42+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601336",
+      "company_name": "新华保险",
+      "company_alias": "新华保险",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601336_T0_20260327",
+      "snapshot_id": "b245d7f9e8be6b6833d590d4",
+      "source_fingerprint": "c1c8d63a68cd996d47ac2e63ce8e3b5e0eaf95598faf155bf4a3d682d2dec635",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "新华保险2025年年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047616.PDF",
+          "sha256": "4A5D6EE54DC0A351ACAC6D9D3CE1D0EEE6D4A388C4C36C1668A35D5FFD35C528",
+          "byte_count": 6694301,
+          "page_count": 295,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "新华保险2024年年度报告",
+          "disclosure_date": "2025-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222924627.PDF",
+          "sha256": "EE3E08B983B1B4B75DEE14DCC67B935F4AD4EFB58E6685B100BEC2E09EFE0C7D",
+          "byte_count": 5022073,
+          "page_count": 292,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "新华保险2023年年度报告",
+          "disclosure_date": "2024-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219426892.PDF",
+          "sha256": "046DBB6F39AB859F8C6C7BEABF06010ABF775A860964B24AB076F8053B1365B0",
+          "byte_count": 4651395,
+          "page_count": 284,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "c1c8d63a68cd996d47ac2e63ce8e3b5e0eaf95598faf155bf4a3d682d2dec635",
+        "chunk_count": 1166,
+        "status": "ready",
+        "built_at": "2026-08-07T20:53:08+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "600030",
+      "company_name": "中信证券",
+      "company_alias": "中信证券",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_600030_T0_20260326",
+      "snapshot_id": "df81dab1f135bab8fd22cc57",
+      "source_fingerprint": "f67c4faecbcf6260f591302396b29450426b624117c2674a553d79be0e8f4962",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中信证券股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225036081.PDF",
+          "sha256": "438F2A53DCF4BF0569B6783B51674AAE25076D23D53198B08CF7B539E14003C2",
+          "byte_count": 10435774,
+          "page_count": 389,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中信证券股份有限公司2024年年度报告",
+          "disclosure_date": "2025-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-27/1222912838.PDF",
+          "sha256": "27EE61AD5296D8F200861692AF538A7DB034AADF770BA0AE67F736D4E693D50D",
+          "byte_count": 10986340,
+          "page_count": 393,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中信证券股份有限公司2023年年度报告",
+          "disclosure_date": "2024-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-27/1219411922.PDF",
+          "sha256": "53CCD5DEA81365B5DBBE22C7163B9FEF658B36BF25D68FA69DBD5C7FD1CD24FF",
+          "byte_count": 11895413,
+          "page_count": 405,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "f67c4faecbcf6260f591302396b29450426b624117c2674a553d79be0e8f4962",
+        "chunk_count": 2009,
+        "status": "ready",
+        "built_at": "2026-08-07T20:37:59+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "000166",
+      "company_name": "申万宏源",
+      "company_alias": "申万宏源",
+      "market": "szse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_000166_T0_20260327",
+      "snapshot_id": "515cafc4d6eebba53c7d2a4f",
+      "source_fingerprint": "a546805b3192311de3f1576ab831ddc81807c32a7069b9a6af839205fe60615a",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:49+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225045474.PDF",
+          "sha256": "6AF80F88D108B19FFAAD9340395F3512E6A654A2272F04CFC0CDC694D2D82471",
+          "byte_count": 25046372,
+          "page_count": 458,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222948663.PDF",
+          "sha256": "9191DBAD64FE3778C90425526913202FF245A2CF05F8E4D3D0A942EC23DDBC07",
+          "byte_count": 12922654,
+          "page_count": 466,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219447296.PDF",
+          "sha256": "F67C6850AFB40ADF6DDA42E18986CBD9671BFB34B08B7764564FA8DE3B7924AD",
+          "byte_count": 6063493,
+          "page_count": 386,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "a546805b3192311de3f1576ab831ddc81807c32a7069b9a6af839205fe60615a",
+        "chunk_count": 2343,
+        "status": "ready",
+        "built_at": "2026-08-07T20:53:56+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "600999",
+      "company_name": "招商证券",
+      "company_alias": "招商证券",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_600999_T0_20260327",
+      "snapshot_id": "a6c2d4368bb2c6f78908a199",
+      "source_fingerprint": "3e84f44b95c5d19597cd65febdbe3784cebc6fecba2c3c5b75e38f8a5a66bed3",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "招商证券股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047540.PDF",
+          "sha256": "39236D94EB481BD4B808D805007BAA671468FC7AEEEA7CA905FE9172477CF7E9",
+          "byte_count": 32024774,
+          "page_count": 281,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "招商证券股份有限公司2024年年度报告",
+          "disclosure_date": "2025-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222929494.PDF",
+          "sha256": "7DFF0A5CAED00B447EF13B371B62B9EBCF8D188E04EEB288C44FADFD855CC062",
+          "byte_count": 9926701,
+          "page_count": 282,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219449486.PDF",
+          "sha256": "602EECBA1A37CF76587E76EBC122E6D3AE79C7A15C0256971C20EBD62EE37D20",
+          "byte_count": 14290375,
+          "page_count": 290,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "3e84f44b95c5d19597cd65febdbe3784cebc6fecba2c3c5b75e38f8a5a66bed3",
+        "chunk_count": 1753,
+        "status": "ready",
+        "built_at": "2026-08-07T20:54:57+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601688",
+      "company_name": "华泰证券",
+      "company_alias": "华泰证券",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601688_T0_20260330",
+      "snapshot_id": "faac1421db3e7f83efb3200c",
+      "source_fingerprint": "beaba84925d90276d1e0e8f3d6d6ecfd3956a8999bb8b4b1ec59a2f963453efa",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "华泰证券股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225050753.PDF",
+          "sha256": "21CC964443B83A0CEFF0333600E53ABE8D948E987EC2604DE992443258CD3D34",
+          "byte_count": 7530691,
+          "page_count": 384,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "华泰证券股份有限公司2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222949445.PDF",
+          "sha256": "3F8CE2BA02CF2D32EF425E0380582BB8EEFA44FFDEB99C8368B3C507901BBDF2",
+          "byte_count": 8319533,
+          "page_count": 364,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "华泰证券股份有限公司2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219442543.PDF",
+          "sha256": "01009B39D816441A3631765BD31803B3D20A9B5FC18563B8B3DD6A1AA566FF79",
+          "byte_count": 9974884,
+          "page_count": 374,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "beaba84925d90276d1e0e8f3d6d6ecfd3956a8999bb8b4b1ec59a2f963453efa",
+        "chunk_count": 2287,
+        "status": "ready",
+        "built_at": "2026-08-07T20:55:34+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "601878",
+      "company_name": "浙商证券",
+      "company_alias": "浙商证券",
+      "market": "sse",
+      "industry_family": "financial",
+      "case_id": "CNINFO_601878_T0_20260417",
+      "snapshot_id": "28301429a2957be6def9fb8d",
+      "source_fingerprint": "b0bbabebeef455e8c1f65c2a14d554b8c41cfee63297f8159c610993acd12d33",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "浙商证券股份有限公司2025年年度报告",
+          "disclosure_date": "2026-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225119499.PDF",
+          "sha256": "0DB495368AA4DB8F1A946539259EFC6DE95DB324BDE3732F828FACD497D1DAFE",
+          "byte_count": 5597589,
+          "page_count": 190,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "浙商证券股份有限公司2024年年度报告",
+          "disclosure_date": "2025-04-10",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-11/1223057398.PDF",
+          "sha256": "063A45867178AF4DB1CE65A0D56D36232043A9D876DF016AA3D8CBBAF2F7E003",
+          "byte_count": 2458679,
+          "page_count": 312,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "浙商证券股份有限公司2023年年度报告",
+          "disclosure_date": "2024-04-10",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-11/1219564546.PDF",
+          "sha256": "38D776C1615800791AFD7B8CA6A9C128130F890EE146E5C129881F275EC4BF08",
+          "byte_count": 5250478,
+          "page_count": 302,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "b0bbabebeef455e8c1f65c2a14d554b8c41cfee63297f8159c610993acd12d33",
+        "chunk_count": 1520,
+        "status": "ready",
+        "built_at": "2026-08-07T20:56:03+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "not_applicable",
+        "industry_family": "financial",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "reason_codes": [
+          "FINANCIAL_INDUSTRY_RULE_SCOPE"
+        ]
+      }
+    },
+    {
+      "ticker": "600938",
+      "company_name": "中国海油",
+      "company_alias": "中国海油",
+      "market": "sse",
+      "industry_family": "energy",
+      "case_id": "CNINFO_600938_T0_20260326",
+      "snapshot_id": "72739e356fa47432b2e40e50",
+      "source_fingerprint": "067812deae33db4916cc9be959052acd45e730306982912dedc073974dbe7021",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T22:15:23+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国海洋石油有限公司2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225036017.PDF",
+          "sha256": "8B8B0577C0F38A5A1D54582ED64F233521A986CE27C805679C7846A1BB475606",
+          "byte_count": 1511001,
+          "page_count": 236,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国海洋石油有限公司2024年年度报告",
+          "disclosure_date": "2025-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222929636.PDF",
+          "sha256": "802B2139219C681FC2D7A3C9360CA9FF36DEFE4F54DEE9CF5E67336F42ED48CE",
+          "byte_count": 1485912,
+          "page_count": 244,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国海洋石油有限公司2023年年度报告",
+          "disclosure_date": "2024-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-22/1219375212.PDF",
+          "sha256": "D1D6DBA5B52882D7C6D9D46913EDB14378C8A32BC4E8E4DE794337BAA185E8F5",
+          "byte_count": 1793077,
+          "page_count": 270,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "067812deae33db4916cc9be959052acd45e730306982912dedc073974dbe7021",
+        "chunk_count": 904,
+        "status": "ready",
+        "built_at": "2026-08-07T16:41:21+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "energy",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_STATEMENTS",
+          "ENERGY_COMPANY_METADATA_HINT"
+        ]
+      }
+    },
+    {
+      "ticker": "601857",
+      "company_name": "中国石油",
+      "company_alias": "中国石油",
+      "market": "sse",
+      "industry_family": "energy",
+      "case_id": "CNINFO_601857_T0_20260329",
+      "snapshot_id": "9a582ee5b08175c79cfbfc06",
+      "source_fingerprint": "ee3403f125fd6d9e7b35be987cc7d4762943151c79fdd8a2d85d35070232318e",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国石油天然气股份有限公司2025年年报",
+          "disclosure_date": "2026-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-30/1225049376.PDF",
+          "sha256": "840B15AA4DC38745A6B86A3656063E6A73081CE87407ACB0CA93554F4E836E65",
+          "byte_count": 9416509,
+          "page_count": 273,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国石油天然气股份有限公司2024年度报告",
+          "disclosure_date": "2025-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-31/1222962164.PDF",
+          "sha256": "15A2DE01653CEEFA46FDD18A02A127F434F06DB02DA9EFB0B62C3A12A35A9BBA",
+          "byte_count": 11167845,
+          "page_count": 280,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国石油天然气股份有限公司2023年度报告",
+          "disclosure_date": "2024-03-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-26/1219405975.PDF",
+          "sha256": "B845502E533311280F89D59C2A92C67F94F2BE17451E51E55F93A1D52ABE6692",
+          "byte_count": 12437650,
+          "page_count": 293,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "ee3403f125fd6d9e7b35be987cc7d4762943151c79fdd8a2d85d35070232318e",
+        "chunk_count": 1372,
+        "status": "ready",
+        "built_at": "2026-08-07T20:56:42+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "energy",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_STATEMENTS",
+          "ENERGY_COMPANY_METADATA_HINT"
+        ]
+      }
+    },
+    {
+      "ticker": "600028",
+      "company_name": "中国石化",
+      "company_alias": "中国石化",
+      "market": "sse",
+      "industry_family": "energy",
+      "case_id": "CNINFO_600028_T0_20260322",
+      "snapshot_id": "70d14c2e8d6681c8ca8a3ce6",
+      "source_fingerprint": "9d1960bcb53537690c64e85a2cdcfe6e26350ca9f80afb7b6e981975bad63f23",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国石化2025年度报告",
+          "disclosure_date": "2026-03-22",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+          "sha256": "4B425D76E97F8C151D986A7F1E83AE2D4B22D43F89B950C352240A5AAFFEA329",
+          "byte_count": 13112821,
+          "page_count": 239,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国石化2024年年度报告",
+          "disclosure_date": "2025-03-23",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-24/1222873281.PDF",
+          "sha256": "DA8459D1DBD5D10CADC6FFE5D4F7D11F9935F148104D0DE6165EF2D6CC3E50E0",
+          "byte_count": 5484519,
+          "page_count": 243,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国石化2023年年度报告",
+          "disclosure_date": "2024-03-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-25/1219392152.PDF",
+          "sha256": "CB5001428BCAD173BCBF0B8F207501A8FE033614FF308D3FAF049B5EE7392614",
+          "byte_count": 9590240,
+          "page_count": 248,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "9d1960bcb53537690c64e85a2cdcfe6e26350ca9f80afb7b6e981975bad63f23",
+        "chunk_count": 1417,
+        "status": "ready",
+        "built_at": "2026-08-07T20:57:18+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "energy",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_STATEMENTS",
+          "ENERGY_COMPANY_METADATA_HINT"
+        ]
+      }
+    },
+    {
+      "ticker": "601088",
+      "company_name": "中国神华",
+      "company_alias": "中国神华",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_601088_T0_20260330",
+      "snapshot_id": "3e76f0bc03e795e93b04441a",
+      "source_fingerprint": "5c717b4a54e4b7d8fc276f00b00346628c29e374c8be2684f0869c0f2a8ef34f",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国神华2025年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225064293.PDF",
+          "sha256": "7068DF1231922B8A2FCFD0336D9AE6550DABF7C7EDC152D680089DF8CC126BD2",
+          "byte_count": 6100255,
+          "page_count": 310,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国神华2024年度报告",
+          "disclosure_date": "2025-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-22/1222870380.PDF",
+          "sha256": "4B3A8DB26AE2FB07083966FADEA0F92535CFBE6D0791C3318C6511113B138E8F",
+          "byte_count": 7282829,
+          "page_count": 291,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国神华2023年度报告",
+          "disclosure_date": "2024-03-22",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-23/1219390021.PDF",
+          "sha256": "451AAACB1779C2572807A0F25985D8C18DB355C2B40F3EEF0A673210C9820BF9",
+          "byte_count": 7175196,
+          "page_count": 307,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "5c717b4a54e4b7d8fc276f00b00346628c29e374c8be2684f0869c0f2a8ef34f",
+        "chunk_count": 1431,
+        "status": "ready",
+        "built_at": "2026-08-07T20:57:49+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600900",
+      "company_name": "长江电力",
+      "company_alias": "长江电力",
+      "market": "sse",
+      "industry_family": "energy",
+      "case_id": "CNINFO_600900_T0_20260429",
+      "snapshot_id": "b0701ed6f1081fa96cb9e237",
+      "source_fingerprint": "00bd66776c993a64bb5eb29c539af56704ccc85017921559eb7b71fcef15b1bc",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:58:11+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "长江电力2025年年度报告",
+          "disclosure_date": "2026-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225262036.PDF",
+          "sha256": "AA0CDB92E3AAD81B1E6454594A64CACBCFEB9013B10DD31F47A93A94E7A70F91",
+          "byte_count": 1533692,
+          "page_count": 259,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "长江电力2024年年度报告",
+          "disclosure_date": "2025-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-30/1223421172.PDF",
+          "sha256": "556767CA1F7C06BB679C827AA6522FF9927D2A63DC2AB64B57194FDC57192048",
+          "byte_count": 1711311,
+          "page_count": 262,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "长江电力2023年年度报告",
+          "disclosure_date": "2024-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-30/1219922588.PDF",
+          "sha256": "A32AA92211F533BEF9BD426A29158060D6BED4A31FCA6C9F6805FD8659C90D38",
+          "byte_count": 1799710,
+          "page_count": 265,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "00bd66776c993a64bb5eb29c539af56704ccc85017921559eb7b71fcef15b1bc",
+        "chunk_count": 1253,
+        "status": "ready",
+        "built_at": "2026-08-07T20:58:11+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "energy",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_STATEMENTS",
+          "ENERGY_COMPANY_METADATA_HINT"
+        ]
+      }
+    },
+    {
+      "ticker": "601985",
+      "company_name": "中国核电",
+      "company_alias": "中国核电",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_601985_T0_20260429",
+      "snapshot_id": "85dab39ec148fbca6acac531",
+      "source_fingerprint": "392064f93d3a69ac0ab7da40280bf2262f68f8fd231bbd1d10ecf45cd21d167f",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:12:57+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国核电2025年年度报告",
+          "disclosure_date": "2026-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257680.PDF",
+          "sha256": "6DBA7DD3B9E5B70EBECB9784C0B380558FDE04D3C5B380DECB4493B82BB4067F",
+          "byte_count": 2031785,
+          "page_count": 323,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国核能电力股份有限公司2024年年度报告",
+          "disclosure_date": "2025-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-29/1223364592.PDF",
+          "sha256": "051330BC1E62786CAB88D9ADDE07C84BE2F819C339F73BD110F32F5E9FBEF127",
+          "byte_count": 2020963,
+          "page_count": 325,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国核电2023年年度报告",
+          "disclosure_date": "2024-04-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-27/1219878447.PDF",
+          "sha256": "E407A96D93E79769F1A20D099A9E76D69AD8269F29DE8397A848E6CB639D2331",
+          "byte_count": 10168968,
+          "page_count": 323,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "392064f93d3a69ac0ab7da40280bf2262f68f8fd231bbd1d10ecf45cd21d167f",
+        "chunk_count": 1778,
+        "status": "ready",
+        "built_at": "2026-08-07T21:12:57+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600023",
+      "company_name": "浙能电力",
+      "company_alias": "浙能电力",
+      "market": "sse",
+      "industry_family": "energy",
+      "case_id": "CNINFO_600023_T0_20260427",
+      "snapshot_id": "4ba4f5d66f408e3a852be254",
+      "source_fingerprint": "12383e5d3df7c7399278bece8eb5ca6bee7ef8ffdaa85ee78e3301a5e3b4d598",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:12:38+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225200695.PDF",
+          "sha256": "72239DD644E8BA1DC1E78B66B406344562959A14B87362A98729D6045E7BCD40",
+          "byte_count": 1592655,
+          "page_count": 224,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-29/1223358285.PDF",
+          "sha256": "EDE25F801718DE36727BB90F7FBBF17FBE5DB5E0E71D2CBE877DDB5714D3F238",
+          "byte_count": 1595560,
+          "page_count": 260,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-30/1219904656.PDF",
+          "sha256": "0FBB42C98BB0BDD4D4EE22D80F070C7F5DC88A490870CC8747082298357877F4",
+          "byte_count": 5132155,
+          "page_count": 292,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "12383e5d3df7c7399278bece8eb5ca6bee7ef8ffdaa85ee78e3301a5e3b4d598",
+        "chunk_count": 1303,
+        "status": "ready",
+        "built_at": "2026-08-07T21:12:38+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "energy",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_STATEMENTS",
+          "ENERGY_COMPANY_METADATA_HINT"
+        ]
+      }
+    },
+    {
+      "ticker": "601390",
+      "company_name": "中国中铁",
+      "company_alias": "中国中铁",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_601390_T0_20260330",
+      "snapshot_id": "ed7f47dc24b6577d73118e8f",
+      "source_fingerprint": "1661d4c6b749d6e591451249b09b54da78a7993cdd1ee619fe92248616c579da",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:14:26+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国中铁2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225056528.PDF",
+          "sha256": "FE19F08FA3A075F492F1059CF7D58F5228ED791646AB654C26CD2EFC3261E6F2",
+          "byte_count": 33928130,
+          "page_count": 375,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国中铁2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222946654.PDF",
+          "sha256": "5BB53DC068F7A708286ED562FEE24DFE2BDE2EB95555B4842F099C25407022E5",
+          "byte_count": 7841683,
+          "page_count": 405,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国中铁2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219446628.PDF",
+          "sha256": "0D07D4688724959B70D5A90A33E21D45DBD78997E61F47A153B747F60C5F1802",
+          "byte_count": 5408292,
+          "page_count": 371,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "1661d4c6b749d6e591451249b09b54da78a7993cdd1ee619fe92248616c579da",
+        "chunk_count": 1987,
+        "status": "ready",
+        "built_at": "2026-08-07T21:14:26+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "601186",
+      "company_name": "中国铁建",
+      "company_alias": "中国铁建",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_601186_T0_20260330",
+      "snapshot_id": "0a8a3b63c4354f0aa464e634",
+      "source_fingerprint": "d80e7ef1cffc0df37e575938dd3d60128f9ee583af28ba210233aca71defb7df",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:13:58+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国铁建2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225052234.PDF",
+          "sha256": "A1ABE921A1E9C543284469E31A2EAC2E39B7C6EAD597662836C870FD41E8B8A9",
+          "byte_count": 7126436,
+          "page_count": 394,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国铁建2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222941013.PDF",
+          "sha256": "464B0B97B8DF5D10D2F4D3A593906021DC75F77A63ACE5C3003C054A4368CE43",
+          "byte_count": 6055866,
+          "page_count": 383,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国铁建2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219444058.PDF",
+          "sha256": "2FCBCC48C4D69C1C01E8E134D6B3D4FE5AB6D4FD2C641D96AA57B437FE3775C8",
+          "byte_count": 6148758,
+          "page_count": 392,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "d80e7ef1cffc0df37e575938dd3d60128f9ee583af28ba210233aca71defb7df",
+        "chunk_count": 2033,
+        "status": "ready",
+        "built_at": "2026-08-07T21:13:58+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "601668",
+      "company_name": "中国建筑",
+      "company_alias": "中国建筑",
+      "market": "sse",
+      "industry_family": "conditional_business",
+      "case_id": "CNINFO_601668_T0_20260417",
+      "snapshot_id": "c2e093f5898fa212faab503c",
+      "source_fingerprint": "359d214c6af692ca24b199a475930f77674db271f80f454ed0bc70353bfb3cc0",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:15:10+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国建筑股份有限公司2025年年度报告",
+          "disclosure_date": "2026-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123321.PDF",
+          "sha256": "BE7C5A9A87AF23F0F08405942C4159AAC7BE9DBB72C6979DA56B81E69F588815",
+          "byte_count": 21957373,
+          "page_count": 370,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国建筑股份有限公司2024年年度报告",
+          "disclosure_date": "2025-04-15",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-16/1223102350.PDF",
+          "sha256": "FB6F713453DA7DC53C12CB53653CEEF590E5CF503D721FAF16D9D9B3CDAF090D",
+          "byte_count": 18321926,
+          "page_count": 392,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国建筑股份有限公司2023年年度报告",
+          "disclosure_date": "2024-04-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-19/1219674825.PDF",
+          "sha256": "5E4E7E5DCF13B1E4D20EE52FD0F05872729F9BC9D86D08F49785F9400EA82DA8",
+          "byte_count": 14758994,
+          "page_count": 390,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "359d214c6af692ca24b199a475930f77674db271f80f454ed0bc70353bfb3cc0",
+        "chunk_count": 1783,
+        "status": "ready",
+        "built_at": "2026-08-07T21:15:10+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "conditional",
+        "industry_family": "conditional_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL_CONDITIONAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "CONDITIONAL_INDUSTRY_REVIEW"
+        ]
+      }
+    },
+    {
+      "ticker": "000002",
+      "company_name": "万科A",
+      "company_alias": "万科A",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_000002_T0_20260331",
+      "snapshot_id": "5b946b6a5383bb1338e8b1e2",
+      "source_fingerprint": "82f731cd3e8291d5db83565ce1f75db2cefce33c9c8da7bae7c0d10b48fe3778",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:15:40+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-31",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225067794.PDF",
+          "sha256": "B2BEFC9DA2A9E09C798702C351E6AF65A4B148E32BAA07737B941EDC2CAF1EBA",
+          "byte_count": 6696262,
+          "page_count": 298,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-31",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-01/1222974139.PDF",
+          "sha256": "734370D32036C1A18716E42F2E96C0F6FFD8A48C1FE115ECDA945A09EB416AC0",
+          "byte_count": 9908485,
+          "page_count": 327,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219487237.PDF",
+          "sha256": "511A089558610E86605841F39B98F67993BD444C1E23018A204E704706882D0D",
+          "byte_count": 10999883,
+          "page_count": 324,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "82f731cd3e8291d5db83565ce1f75db2cefce33c9c8da7bae7c0d10b48fe3778",
+        "chunk_count": 1937,
+        "status": "ready",
+        "built_at": "2026-08-07T21:15:40+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600048",
+      "company_name": "保利发展",
+      "company_alias": "保利发展",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600048_T0_20260417",
+      "snapshot_id": "fa7ca9f6dd90902364961e44",
+      "source_fingerprint": "ad2347189d178e8ce23c89c8815ea4f704a485a2cde2f650a0379711a29441c2",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:16:28+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "保利发展控股集团股份有限公司2025年年度报告",
+          "disclosure_date": "2026-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123569.PDF",
+          "sha256": "830B11815F1D493465A8913335C5937B06D6221797A59E9256DB00A4746C59C8",
+          "byte_count": 6789205,
+          "page_count": 349,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "保利发展控股集团股份有限公司2024年年度报告",
+          "disclosure_date": "2025-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-29/1223382905.PDF",
+          "sha256": "59F0076B1B450A4A5FE3F2FDCAAA875FEE20C8B80FA1701568F592A95E5263AA",
+          "byte_count": 5297374,
+          "page_count": 360,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "保利发展控股集团股份有限公司2023年年度报告",
+          "disclosure_date": "2024-04-22",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-23/1219740785.PDF",
+          "sha256": "D106465E50D2A96C7D93A486F183CE8D91F50A3DA42E168ABC2633F6ACBC726F",
+          "byte_count": 4704316,
+          "page_count": 331,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "ad2347189d178e8ce23c89c8815ea4f704a485a2cde2f650a0379711a29441c2",
+        "chunk_count": 2239,
+        "status": "ready",
+        "built_at": "2026-08-07T21:16:28+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "002594",
+      "company_name": "比亚迪",
+      "company_alias": "比亚迪",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_002594_T0_20260327",
+      "snapshot_id": "468423855b9f90ebc3f187d0",
+      "source_fingerprint": "021d8ed32488c39152428b85a4e23a078d7f84678c203b98d3c26f2cc3d4a807",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:49+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225045351.PDF",
+          "sha256": "710D8B2E08E37BA521F1C4071D2C3E2369D3CADABC21A45073215D9F72138B0B",
+          "byte_count": 7533972,
+          "page_count": 268,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-25/1222881496.PDF",
+          "sha256": "E9C2D7FDD088E151CCB6C8AD3D95587B2B014B10F2C9731508D23CE07FDE4DE3",
+          "byte_count": 10092140,
+          "page_count": 290,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-27/1219412018.PDF",
+          "sha256": "959B00A12055470A63962303D90557DCA90E84D104D92025AEB70805AA7CC036",
+          "byte_count": 9638124,
+          "page_count": 266,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "021d8ed32488c39152428b85a4e23a078d7f84678c203b98d3c26f2cc3d4a807",
+        "chunk_count": 1442,
+        "status": "ready",
+        "built_at": "2026-08-07T20:39:55+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "300750",
+      "company_name": "宁德时代",
+      "company_alias": "宁德时代",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_300750_T0_20260309",
+      "snapshot_id": "703345f4972badbdb2b218f5",
+      "source_fingerprint": "7c12b25c04d44dc9a6a5259c8c9b3317efbf8452d9a827e4fd6057eb8d67f035",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-09",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-10/1225002214.PDF",
+          "sha256": "C15272977147DEE7E6935A38EA0E4FD6855370AABB106F54CFE20F7CF6048EC9",
+          "byte_count": 2043710,
+          "page_count": 232,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-15/1222806982.PDF",
+          "sha256": "B4F1713D7B821EB076C102711D177FE942CCC2BC8DD171AE5D7A95799A65B0AD",
+          "byte_count": 2070073,
+          "page_count": 229,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-15",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-16/1219313047.PDF",
+          "sha256": "6081F0377617DDDB82F900569D6458C278A7AB26697B34C87684188EAC083471",
+          "byte_count": 5986207,
+          "page_count": 231,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "7c12b25c04d44dc9a6a5259c8c9b3317efbf8452d9a827e4fd6057eb8d67f035",
+        "chunk_count": 1210,
+        "status": "ready",
+        "built_at": "2026-08-07T14:38:47+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "000333",
+      "company_name": "美的集团",
+      "company_alias": "美的集团",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_000333_T0_20260330",
+      "snapshot_id": "ebf65b55c6f1b92f624e6944",
+      "source_fingerprint": "b7409ee3abba4f165385cf1a9ecdb109465ca724955306b8f04221b8dad61a34",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:49+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+          "sha256": "16F95F70527DB59DCF2736F276A9479CF7EE917E5F71E4F6CBBE83ACBAD9F4B6",
+          "byte_count": 5942399,
+          "page_count": 276,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222951181.PDF",
+          "sha256": "B17A9B9B84BCA1D2A4E4A3CADC5DD5BA5C85E3F1FD2D758ACD3315B5B040ECD9",
+          "byte_count": 6737887,
+          "page_count": 295,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219429374.PDF",
+          "sha256": "22F4915D91ADA74A37EAB8D074AEF4C15420F3B1A8B5F5BD5777C00F97D58B86",
+          "byte_count": 6617110,
+          "page_count": 291,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "b7409ee3abba4f165385cf1a9ecdb109465ca724955306b8f04221b8dad61a34",
+        "chunk_count": 1412,
+        "status": "ready",
+        "built_at": "2026-08-07T20:43:13+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600519",
+      "company_name": "贵州茅台",
+      "company_alias": "贵州茅台",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600519_T0_20260416",
+      "snapshot_id": "e93a9c04587620e21aa33117",
+      "source_fingerprint": "424cbf8aa99ea466c4243476667f6b2d25428dcbdc8c08ff747cd8986e2abf0d",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "贵州茅台2025年年度报告",
+          "disclosure_date": "2026-04-16",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-17/1225114741.PDF",
+          "sha256": "474905DEEAF0F875FC0A1B097A626C0C7852C427FAADC5D7FC7816CBF45EA288",
+          "byte_count": 1082847,
+          "page_count": 143,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "贵州茅台2024年年度报告",
+          "disclosure_date": "2025-04-02",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-03/1222993920.PDF",
+          "sha256": "5299F4940E2CE4E91084B73DC457D558B9D335FA76FBFEE6227E4254EB7F4A30",
+          "byte_count": 3626217,
+          "page_count": 143,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "贵州茅台2023年年度报告",
+          "disclosure_date": "2024-04-02",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-03/1219506510.PDF",
+          "sha256": "2125FF97A452EA79B0D784E2432F7D224B6AECC330B644B593477D69E22F4ED1",
+          "byte_count": 3563819,
+          "page_count": 143,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "424cbf8aa99ea466c4243476667f6b2d25428dcbdc8c08ff747cd8986e2abf0d",
+        "chunk_count": 800,
+        "status": "ready",
+        "built_at": "2026-08-07T20:39:13+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "000858",
+      "company_name": "五粮液",
+      "company_alias": "五粮液",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_000858_T0_20260430",
+      "snapshot_id": "181e5e6d151b4e472d0eed99",
+      "source_fingerprint": "23e8c47641812cfc231f33efb08e10239b2e3749c41b8fcd4c7f1e9d83dc910b",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:16:28+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+          "sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4",
+          "byte_count": 3085658,
+          "page_count": 141,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223311527.PDF",
+          "sha256": "B737191A758994A35E9442D46847DE771FE48B758FEB9A7F35601DEF922435E7",
+          "byte_count": 7895552,
+          "page_count": 147,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-29/1219873658.PDF",
+          "sha256": "1AAB0EFBE751C145990AC9652C3AFF165452EE060BF22A0FE0412996A55E8566",
+          "byte_count": 4646198,
+          "page_count": 150,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "23e8c47641812cfc231f33efb08e10239b2e3749c41b8fcd4c7f1e9d83dc910b",
+        "chunk_count": 848,
+        "status": "ready",
+        "built_at": "2026-08-07T21:16:28+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600276",
+      "company_name": "恒瑞医药",
+      "company_alias": "恒瑞医药",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600276_T0_20260325",
+      "snapshot_id": "4d50c06b51499845f37107b2",
+      "source_fingerprint": "7de9ede1260383453ed1498c1505fd41ecc00c6116febfe8dc2cb755ba2a6c7e",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "恒瑞医药2025年年度报告",
+          "disclosure_date": "2026-03-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032585.PDF",
+          "sha256": "FAE80E2D132F5B6F2BFBB8BCDFD40E1267EDB91D689389D63C8E291B0856ACE6",
+          "byte_count": 3457175,
+          "page_count": 236,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "恒瑞医药2024年年度报告",
+          "disclosure_date": "2025-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-31/1222961962.PDF",
+          "sha256": "7FAD40FEF23755F81CE5322F45483EA257EF026EBF1F7F5655C8D5998D7049FC",
+          "byte_count": 7710195,
+          "page_count": 249,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "恒瑞医药2023年年度报告",
+          "disclosure_date": "2024-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-18/1219650115.PDF",
+          "sha256": "4FE601137654ACBB46898486BB61501678BA952426E66E7B0EFBBD8FA48639CC",
+          "byte_count": 6014937,
+          "page_count": 246,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "7de9ede1260383453ed1498c1505fd41ecc00c6116febfe8dc2cb755ba2a6c7e",
+        "chunk_count": 1232,
+        "status": "ready",
+        "built_at": "2026-08-07T20:40:42+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "300015",
+      "company_name": "爱尔眼科",
+      "company_alias": "爱尔眼科",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_300015_T0_20260423",
+      "snapshot_id": "bda41c300ff28907eed18d5b",
+      "source_fingerprint": "fd2f35c44e2830f3d63a3b9263dd328dd43a7842fca8c685b14121bede6cd59c",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:17:30+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-23",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-24/1225174505.PDF",
+          "sha256": "8AA8857331CFC403E60E19E005A94AA67DEFCBA28451B586741DC3757373D41E",
+          "byte_count": 2438977,
+          "page_count": 498,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-25/1223271221.PDF",
+          "sha256": "1F377F2FBA711B4AA2468541DA889BF7FC406C464EF034477BA78986496C8ABD",
+          "byte_count": 10638910,
+          "page_count": 439,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-26/1219826392.PDF",
+          "sha256": "6C5126D972FF52B2518E6B8EA238AC49D22AE7C9C66587DF15C4A172CC58E8AD",
+          "byte_count": 8590903,
+          "page_count": 367,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "fd2f35c44e2830f3d63a3b9263dd328dd43a7842fca8c685b14121bede6cd59c",
+        "chunk_count": 2357,
+        "status": "ready",
+        "built_at": "2026-08-07T21:17:30+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "000651",
+      "company_name": "格力电器",
+      "company_alias": "格力电器",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_000651_T0_20260428",
+      "snapshot_id": "756f5fa68e07e542929e777d",
+      "source_fingerprint": "911b6aed5d751c02adc6e8f699e7922067e00ad925364753e40d561bfe68859c",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:17:29+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250396.PDF",
+          "sha256": "7CC972F2D199E2EC3797CC5DA479E8268AFA59B77875770DE3BCD3648242FB8C",
+          "byte_count": 2350012,
+          "page_count": 219,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-28/1223330631.PDF",
+          "sha256": "C7184706CAF5F57C04A795990967CFC4F4253024E02F8BDAFFE2B260DF2C6006",
+          "byte_count": 5087621,
+          "page_count": 248,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-30/1219928418.PDF",
+          "sha256": "32EBC475A2291CE4F1B5C1A9F9DA55227E03192F07E75041E976C29D213EC8AA",
+          "byte_count": 3911496,
+          "page_count": 249,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "911b6aed5d751c02adc6e8f699e7922067e00ad925364753e40d561bfe68859c",
+        "chunk_count": 1287,
+        "status": "ready",
+        "built_at": "2026-08-07T21:17:29+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600690",
+      "company_name": "海尔智家",
+      "company_alias": "海尔智家",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600690_T0_20260326",
+      "snapshot_id": "1c4cbe049bd30eed51ea9fe4",
+      "source_fingerprint": "81e3fd662535695a080e3f149d5c4ba1d3a84016de7bf3587e6fd043f82b9be0",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:18:16+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "海尔智家股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038336.PDF",
+          "sha256": "14186F9F9B47F687C527BA14825664F3B09E51759D581636CDDCC248F26E3660",
+          "byte_count": 1823191,
+          "page_count": 245,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "海尔智家股份有限公司2024年年度报告",
+          "disclosure_date": "2025-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222926246.PDF",
+          "sha256": "CB2830D04860A0C18A491B9998C0928D1B77E740F07824A34F7543D823F7B10B",
+          "byte_count": 5167345,
+          "page_count": 247,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "海尔智家股份有限公司2023年年度报告",
+          "disclosure_date": "2024-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219427279.PDF",
+          "sha256": "B6A8748C3A59722FD1DCD302D1FFA83DFDBE4230A1B727D8182699B7CC407570",
+          "byte_count": 5241643,
+          "page_count": 243,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "81e3fd662535695a080e3f149d5c4ba1d3a84016de7bf3587e6fd043f82b9be0",
+        "chunk_count": 1315,
+        "status": "ready",
+        "built_at": "2026-08-07T21:18:16+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600588",
+      "company_name": "用友网络",
+      "company_alias": "用友网络",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600588_T0_20260417",
+      "snapshot_id": "b8463e5977b6bda4db24fa01",
+      "source_fingerprint": "7de5271fcb2faf0682773152ec31dfe63a360f6ebfb7f15df892207b02897a00",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:18:16+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "用友网络2025年年度报告",
+          "disclosure_date": "2026-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225120765.PDF",
+          "sha256": "04AF3511B61D5C22CAD4CFCCA68BC9DA88EB5144D6C22C6EE87E79C32F5C1052",
+          "byte_count": 1648221,
+          "page_count": 261,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "用友网络2024年年度报告",
+          "disclosure_date": "2025-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222946316.PDF",
+          "sha256": "3D057DC1334F65DBC18C34501EB0145DF75A2B9D86FB8F49D9075B657B8E3C66",
+          "byte_count": 4729534,
+          "page_count": 261,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "用友网络2023年年度报告",
+          "disclosure_date": "2024-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-30/1219465845.PDF",
+          "sha256": "0A78F501C4D3AB8EE6C78CA4C0ADC936613F3DF5EB3326696A0C2FEEB10D5749",
+          "byte_count": 4814950,
+          "page_count": 279,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "7de5271fcb2faf0682773152ec31dfe63a360f6ebfb7f15df892207b02897a00",
+        "chunk_count": 1177,
+        "status": "ready",
+        "built_at": "2026-08-07T21:18:16+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "688111",
+      "company_name": "金山办公",
+      "company_alias": "金山办公",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_688111_T0_20260325",
+      "snapshot_id": "02c28a77c3b21415b9e45a96",
+      "source_fingerprint": "d328b93b71821348e1420ecbfe3c42aacd5a59d756c2c6935c429ec40a06f918",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:18:59+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "金山办公2025年年度报告",
+          "disclosure_date": "2026-03-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032227.PDF",
+          "sha256": "BF6ADE124527896EDB1C1BE6AF04A7D6B4C0EB964DE42A96A77DB7DBC6CEE281",
+          "byte_count": 1867850,
+          "page_count": 262,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "金山办公2024年年度报告",
+          "disclosure_date": "2025-03-19",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-20/1222847501.PDF",
+          "sha256": "168FB9DCAAEDB27756391912837DDB96098726829305D251A8F8BD64EE908848",
+          "byte_count": 5081954,
+          "page_count": 296,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "金山办公2023年年度报告",
+          "disclosure_date": "2024-03-20",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-21/1219361803.PDF",
+          "sha256": "E07701BBF871A58308EFC05126C25377E37F8CC917FBEC6AB52530C557829DCE",
+          "byte_count": 5997926,
+          "page_count": 305,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "d328b93b71821348e1420ecbfe3c42aacd5a59d756c2c6935c429ec40a06f918",
+        "chunk_count": 1331,
+        "status": "ready",
+        "built_at": "2026-08-07T21:18:59+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "300059",
+      "company_name": "东方财富",
+      "company_alias": "东方财富",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_300059_T0_20260319",
+      "snapshot_id": "f48c5642df3c72a53b97a6f0",
+      "source_fingerprint": "50b4405719007760df8f53ac24798eb1dca5f4220bb3af2cd8d3d789481eac8f",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:18:59+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-19",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-20/1225019509.PDF",
+          "sha256": "A5EDB3304600D7FF7FAEEFA65FEA3846F4326743CC72D9ADE14CF93AF20C1737",
+          "byte_count": 4982101,
+          "page_count": 181,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-15/1222806709.PDF",
+          "sha256": "A803C2D1D188F4E88D208566ADFF32A32D7FDABE3B361E01E110FFAE0C4CDEDA",
+          "byte_count": 5089512,
+          "page_count": 177,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-15/1219307793.PDF",
+          "sha256": "A0351FA1C1A676AEEF55D2C7FDA466A2ED431DC3DC79EF44EF58F943727D1FCB",
+          "byte_count": 4917979,
+          "page_count": 185,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "50b4405719007760df8f53ac24798eb1dca5f4220bb3af2cd8d3d789481eac8f",
+        "chunk_count": 1048,
+        "status": "ready",
+        "built_at": "2026-08-07T21:18:59+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "002415",
+      "company_name": "海康威视",
+      "company_alias": "海康威视",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_002415_T0_20260417",
+      "snapshot_id": "97ff162e358cea438ee4b44f",
+      "source_fingerprint": "30c9a651754a50122fbf67309119cddce3550d612feaf7a07f3a3fe8d23b46c7",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:20:47+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123062.PDF",
+          "sha256": "A805779EFB81BEA8158E119AD7C733C4669B8D492DC03C7613199970BFA4B8B2",
+          "byte_count": 17337277,
+          "page_count": 263,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-19/1223153152.PDF",
+          "sha256": "F1A8771D81D6ED723C4D1A7D552400CF408CCA4752033F5BBD0F88AE2729757B",
+          "byte_count": 12527217,
+          "page_count": 272,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-19",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-20/1219703072.PDF",
+          "sha256": "258CD87781E0EA36F2E4E73521D8E6C4AB740612969102D2C31A6AC279F5F67F",
+          "byte_count": 10136455,
+          "page_count": 278,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "30c9a651754a50122fbf67309119cddce3550d612feaf7a07f3a3fe8d23b46c7",
+        "chunk_count": 1384,
+        "status": "ready",
+        "built_at": "2026-08-07T21:20:47+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "601899",
+      "company_name": "紫金矿业",
+      "company_alias": "紫金矿业",
+      "market": "sse",
+      "industry_family": "energy",
+      "case_id": "CNINFO_601899_T0_20260320",
+      "snapshot_id": "40e5db4d4299df8dee780a65",
+      "source_fingerprint": "37f22e7ada422e230b70385ac0ddc5f4b8b41b463755b954651aaf4c0eaa9164",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T20:57:50+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "紫金矿业集团股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-20",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-21/1225023658.PDF",
+          "sha256": "01819E1C7DAAD939D1779A8AA729F50F02151192E609CB28C2C405634A8F343D",
+          "byte_count": 79925886,
+          "page_count": 352,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "紫金矿业集团股份有限公司2024年年报报告",
+          "disclosure_date": "2025-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-22/1222870413.PDF",
+          "sha256": "004F733E709BEEA878229AE02B80A952C543129037FC940AAF01B77DFA977A89",
+          "byte_count": 32100114,
+          "page_count": 379,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "紫金矿业集团股份有限公司2023年年度报告",
+          "disclosure_date": "2024-03-22",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-23/1219390064.PDF",
+          "sha256": "2007E9F79034AC154C5CDC066F8F9A1145BDB1CD5EF4A12287AB63A3DFA93268",
+          "byte_count": 15779180,
+          "page_count": 377,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "37f22e7ada422e230b70385ac0ddc5f4b8b41b463755b954651aaf4c0eaa9164",
+        "chunk_count": 1969,
+        "status": "ready",
+        "built_at": "2026-08-07T20:42:37+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "energy",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_STATEMENTS",
+          "ENERGY_COMPANY_METADATA_HINT"
+        ]
+      }
+    },
+    {
+      "ticker": "600031",
+      "company_name": "三一重工",
+      "company_alias": "三一重工",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600031_T0_20260330",
+      "snapshot_id": "58facb184bed87a30907ead4",
+      "source_fingerprint": "f05ad6293593c4253718c939ab23eeef5ed9d805ad3e23c1cdac6a2fa2b423fa",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:19:27+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "三一重工股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225061378.PDF",
+          "sha256": "D3F470600EC7D03FF9EB6257A74D1A07486406E02BEB55B1F2BAB5AAABB173E5",
+          "byte_count": 1682689,
+          "page_count": 250,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "三一重工股份有限公司2024年年度报告",
+          "disclosure_date": "2025-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-18/1223129214.PDF",
+          "sha256": "09B21DF2CEF24FD85B4EFA625579138241AE1DE4FA7AD4F2C9FCEF0C694A0D1A",
+          "byte_count": 5378376,
+          "page_count": 255,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "三一重工股份有限公司2023年年度报告",
+          "disclosure_date": "2024-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-29/1219890100.PDF",
+          "sha256": "4CAB0DA4413E97BECC91CAC969D4CD19DC0FB87D8645D750424E1BDF600EBEE9",
+          "byte_count": 5222615,
+          "page_count": 247,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "f05ad6293593c4253718c939ab23eeef5ed9d805ad3e23c1cdac6a2fa2b423fa",
+        "chunk_count": 1259,
+        "status": "ready",
+        "built_at": "2026-08-07T21:19:27+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "002475",
+      "company_name": "立讯精密",
+      "company_alias": "立讯精密",
+      "market": "szse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_002475_T0_20260414",
+      "snapshot_id": "310a4e9aa8ddf2a1d5a066e8",
+      "source_fingerprint": "af44bddbf5be53b3c2ca66f081d106e41900aaf06ef1df5a1b1623a5253377d2",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:20:31+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-15/1225104908.PDF",
+          "sha256": "957556C331A237CC3235B63659E884C7E1E877B6460F06D5039159F1598E4E46",
+          "byte_count": 5000312,
+          "page_count": 309,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223326862.PDF",
+          "sha256": "E436B5AB1775CFA05AACB4A16DD8E5C6B89E926ED18A7A55A86728BAB6FCB1DA",
+          "byte_count": 1698863,
+          "page_count": 276,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-25/1219799516.PDF",
+          "sha256": "631D4D331124B052A1C0BF9B5E2414F53866EC9C595FD8D8C9047C8DD24F6B66",
+          "byte_count": 10427619,
+          "page_count": 260,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "af44bddbf5be53b3c2ca66f081d106e41900aaf06ef1df5a1b1623a5253377d2",
+        "chunk_count": 1632,
+        "status": "ready",
+        "built_at": "2026-08-07T21:20:31+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600104",
+      "company_name": "上汽集团",
+      "company_alias": "上汽集团",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600104_T0_20260401",
+      "snapshot_id": "7861b52f7111a58bbbd2019b",
+      "source_fingerprint": "afcd99b4654520f2ad09a1261c394e40e9e900a310c282f1de4aed9b431e28d0",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:21:23+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "上汽集团2025年年度报告",
+          "disclosure_date": "2026-04-01",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-02/1225071780.PDF",
+          "sha256": "ACA3B701A1D6C2D59C8063801C579C0B1A589FD7D183E13146E4790CCE3D0874",
+          "byte_count": 1570114,
+          "page_count": 205,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "上汽集团2024年年度报告",
+          "disclosure_date": "2025-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-30/1223418977.PDF",
+          "sha256": "C980B2D827F372B5B90742E299D609345C83342584901C96EA95891C43F4AB3F",
+          "byte_count": 1577457,
+          "page_count": 219,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "上汽集团2023年年度报告",
+          "disclosure_date": "2024-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-30/1219463815.PDF",
+          "sha256": "4A2339816A97DC00B9196ED9D82B91373F1C3FC1F200313996B0605D74219E45",
+          "byte_count": 4796308,
+          "page_count": 214,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "afcd99b4654520f2ad09a1261c394e40e9e900a310c282f1de4aed9b431e28d0",
+        "chunk_count": 1225,
+        "status": "ready",
+        "built_at": "2026-08-07T21:21:23+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    },
+    {
+      "ticker": "600309",
+      "company_name": "万华化学",
+      "company_alias": "万华化学",
+      "market": "sse",
+      "industry_family": "general_business",
+      "case_id": "CNINFO_600309_T0_20260420",
+      "snapshot_id": "3a4d915ba6d8c1b2b4a8e245",
+      "source_fingerprint": "3c113f2f7be3197285fc9405d698ad4b3dd178c3be81d990b2333a0ede1028c4",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "cache_status": "ready",
+      "verified_at": "2026-08-07T21:21:23+0800",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "extractor_version": "field_extraction_v1",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "万华化学2025年年度报告",
+          "disclosure_date": "2026-04-20",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-21/1225130793.PDF",
+          "sha256": "766717CC1A3B74221D4A20892B28152B3180EF5C63D683623E8A903EEBDDAC95",
+          "byte_count": 1664944,
+          "page_count": 229,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "万华化学2024年年度报告",
+          "disclosure_date": "2025-04-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-15/1223097325.PDF",
+          "sha256": "0C37E70C554609F4A22990FD97F3DA4EE92BB717E44D641AC7800083789D4DF7",
+          "byte_count": 4804744,
+          "page_count": 223,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "万华化学2023年年度报告",
+          "disclosure_date": "2024-03-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-19/1219331064.PDF",
+          "sha256": "64EB90A55396ADD030FAAA7A05996FDD5F0095C1C26F0F1309AB6F19522991F1",
+          "byte_count": 4647177,
+          "page_count": 224,
+          "validation_status": "passed"
+        }
+      ],
+      "rag": {
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "3c113f2f7be3197285fc9405d698ad4b3dd178c3be81d990b2333a0ede1028c4",
+        "chunk_count": 1219,
+        "status": "ready",
+        "built_at": "2026-08-07T21:21:23+0800"
+      },
+      "industry_gate": {
+        "gate_version": "industry_gate_v1",
+        "fit_level": "direct",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ]
+      }
+    }
+  ]
+}

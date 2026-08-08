@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-06T18:30:00+08:00",
+  "updated_at": "2026-08-08T00:00:00+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -26,18 +26,25 @@
     "standard_case_import": "implemented_and_tested",
     "cninfo_official_auto_search_download_validate": "implemented_offline_tested_and_live_smoked_with_603337_20260805",
     "cninfo_case_isolated_rag_pipeline": "implemented_and_tested_live_603337_3_years_1103_chunks",
-    "cninfo_field_candidate_extraction": "implemented_technical_pass_pending_human_page_unit_scope_confirmation",
-    "cninfo_pipeline_api": "implemented_task_progress_result_retry_and_company_confirmation_endpoints",
-    "cninfo_formal_web_entry": "implemented_11_step_task_polling_document_hash_rag_and_fail_closed_status_ui_browser_checked_20260806",
-    "cninfo_field_human_confirmation": "implemented_confirm_correct_reject_append_only_history_and_rule_gate_pending_real_professional_review",
-    "cninfo_full_analysis_orchestration": "implemented_reuses_api_runs_and_closes_external_model_when_transfer_not_allowed",
-    "model_transfer_confirmation_gate": "implemented_requires_confirmer_date_basis_provider_scope_and_reference_pending_independent_human_review",
+    "cninfo_field_candidate_extraction": "implemented_technical_validation_with_year_and_rule_graceful_degradation_optional_human_review",
+    "cninfo_public_prescreen_degradation": "implemented_latest_complete_pair_rule_level_skip_missing_field_report_and_cutoff_year",
+    "cninfo_pipeline_api": "implemented_task_progress_result_retry_company_confirmation_and_public_prescreen_summary_endpoints",
+    "cninfo_formal_web_entry": "implemented_11_step_task_polling_document_hash_rag_public_prescreen_and_optional_review_status_ui",
+    "cninfo_field_human_confirmation": "implemented_confirm_correct_reject_append_only_history_for_formal_adoption_freeze_cache_and_export_gate",
+    "cninfo_full_analysis_orchestration": "implemented_reuses_api_runs_public_cases_with_project_owner_authorization_and_gap_tolerant_prescreen",
+    "industry_gate_v1": "implemented_direct_conditional_not_applicable_unknown_with_traceable_metadata_evidence",
+    "sqlite_catalog_v1": "implemented_existing_cninfo_case_bootstrap_cache_resolve_preheat_refresh_stale_policy_content_addressed_pdf_and_source_fingerprint",
+    "cninfo_hot_cache_path": "implemented_cache_hit_skips_company_search_download_pdf_validation_and_rag_rebuild_with_incremental_year_reuse",
+    "cache_seed_50": "implemented_and_real_preheated_50_company_whitelist_2025_2024_2023_ready_without_distributing_pdf",
+    "cninfo_cache_batch_audit": "implemented_per_company_isolation_success_not_found_not_applicable_field_gaps_needs_human_failure_duration_and_error_code_report",
+    "cninfo_runtime_stability": "implemented_service_restart_recovery_bounded_two_worker_prewarm_runtime_quota_and_stale_snapshot_policy",
+    "model_transfer_confirmation_gate": "project_owner_authorization_recorded_with_confirmer_date_basis_provider_scope_reference_and_snapshot_boundary",
     "case_isolated_sources": "implemented_and_tested",
     "r1_deterministic_calculation": "implemented_and_tested",
     "r2_auxiliary_calculation": "implemented_and_tested",
     "rag_to_agent_evidence_bundle": "implemented_and_tested",
     "three_agent_hard_validation": "role_specific_schema_failure_codes_and_deterministic_fact_language_guard_implemented_and_tested",
-    "second_public_case": "jack_603337_imported_rag_isolated_local_calculation_negative_control_pending_two_human_freeze_and_legal_confirmation",
+    "second_public_case": "jack_603337_imported_rag_isolated_local_calculation_negative_control_project_owner_public_source_authorized_formal_freeze_pending",
     "supplement_full_rerun": "implemented_and_tested",
     "human_review_and_report_v2": "implemented_and_tested_pending_real_human_approval",
     "live_model_full_run": "no_current_valid_b3_historical_run_failed_posthoc_deterministic_fact_guard",
@@ -47,9 +54,9 @@
   },
   "tests": {
     "source_repository": {
-      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp tmp\\pytest-cninfo-full",
-      "latest_result": "72 passed, 1 warning, 71.58s",
-      "executed_on": "2026-08-06",
+      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp tmp\\pytest-cninfo-bugfix",
+      "latest_result": "84 passed, 1 warning, 113.76s",
+      "executed_on": "2026-08-08",
       "status": "passed"
     },
     "clean_package": {
@@ -59,13 +66,13 @@
       "executed_on": "2026-07-30",
       "status": "passed",
       "independent_smoke": "status, standard_case_transfer_gate, rag_prepare_and_retrieve, r1_calculation_only, exact_ai_notice_all_passed",
-      "boundary": "57 passed属于2026-07-30无密钥清洁运行包独立解包结果；与2026-08-06源码仓库72 passed分开记录。",
+      "boundary": "57 passed属于2026-07-30无密钥清洁运行包独立解包结果；与本轮源码仓库回归分开记录。",
       "distribution_boundary": "清洁运行包为保留标准案例复验能力而包含四份公开年报全文；在真人确认全文再分发边界前仅限团队内部技术复验，禁止外发。队员和老师材料包不含年报全文。"
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "645/6410 = 10.06%",
-      "executed_on": "2026-08-06",
+      "latest_result": "676/6670 = 10.13%",
+      "executed_on": "2026-08-07",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -81,9 +88,9 @@
       "rag_status": "ready",
       "rag_chunk_count": 1103,
       "rag_smoke_retrieval_id": "RET-21B8956381F7",
-      "field_extraction_status": "passed_technical_pending_human",
+      "field_extraction_status": "passed_technical_pending_optional_human_review",
       "field_candidate_rows": 6,
-      "final_task_status": "needs_human",
+      "final_task_status": "historical_needs_human_before_new_public_prescreen_flow",
       "field_candidate_values": {
         "revenue": {
           "2024": 6093653800.0,
@@ -100,7 +107,21 @@
       "analysis_run_completeness": "incomplete_model_transfer_not_allowed",
       "model_status": "model_transfer_not_allowed",
       "external_model_called": false,
-      "boundary": "真实公开来源流程已技术通过；字段页码/单位/合并口径与合法样例边界仍需真人确认。"
+      "boundary": "该记录来自人工确认前的历史运行；当前公开预筛允许继续运行并展示缺口，正式采用、缓存或导出仍需真人复核。"
+    },
+    "cninfo_hot_cache_smoke": {
+      "company_query": "600938",
+      "case_id": "CNINFO_600938_T0_20260326",
+      "task_id": "CNINFO-6D1D53501534",
+      "cache_hit": true,
+      "analysis_run_id": "RUN-V7-84CBDF21F6B7",
+      "analysis_run_completeness": "complete_public_prescreen_no_candidate",
+      "field_evidence": {
+        "accounts_receivable_pages": [120, 124, 148],
+        "available_years": [2025, 2024, 2023]
+      },
+      "browser_page": "passed_single_click_rag_only_full_analysis_result_summary_and_analysis_context_restore",
+      "boundary": "热缓存复用已校验公开快照，不代表最新公告已自动确认；需要最新数据时使用 force_refresh。"
     }
   },
   "quality_evidence": {
@@ -147,22 +168,24 @@
   ],
   "standard_case": {
     "case_id": "STD_DEV_T0",
-    "model_transfer_allowed": false,
+    "model_transfer_allowed": true,
     "retention_expires_at": "2026-12-31",
-    "legal_sample_confirmation_status": "pending_human_confirmation",
-    "allowed_current_run_mode": "calculation_only",
-    "boundary": "公开可下载不等于取得全文再分发或外部模型传输许可；真人确认前失败关闭。"
+    "legal_sample_confirmation_status": "project_owner_authorized_public_source",
+    "evidence_owner_review_status": "owner_confirmed",
+    "allowed_current_run_mode": "full_analysis",
+    "boundary": "项目所有者已许可当前公开来源快照进入完整分析；来源哈希变化后必须重新核验。"
   },
   "second_case": {
     "case_id": "JACK_603337_T0_20250415",
     "current_calculation_run_id": "RUN-V7-B1EB77EDB151",
     "calculation_result": "RULE_NOT_TRIGGERED",
-    "model_transfer_allowed": false,
+    "model_transfer_allowed": true,
     "retention_expires_at": "2026-12-31",
     "retention_status": "provisional_pending_human_legal_confirmation",
     "t0_status": "pending_human_freeze_same_day_as_2024_report_disclosure",
     "two_human_review": "pending",
-    "legal_sample_confirmation": "pending",
+    "legal_sample_confirmation": "project_owner_authorized_public_source",
+    "evidence_owner_review_status": "owner_confirmed",
     "formal_case_freeze": "pending",
     "boundary": "本地技术预检不等于无风险、合法样例确认或正式第二案例冻结。"
   },
@@ -224,7 +247,7 @@
     "result": "invalidated_by_posthoc_deterministic_fact_guard",
     "posthoc_validation_error": "模型把未达到的R1强阈值写成已达到",
     "formal_comparison_eligible": false,
-    "compliance_boundary": "历史调用只读保留；两个真实公开案例在合法样例真人确认前均不允许外部模型传输。",
+    "compliance_boundary": "历史调用只读保留；当前项目授权仅覆盖公开来源的最小必要字段和RAG片段，不覆盖全文再分发、内部客户资料或正式专业采用。",
     "human_review": "not_applicable_to_invalidated_run",
     "report_v2_export": "prohibited_for_formal_use",
     "conclusion": "保留为旧版本失败反例，不再作为当前有效B3或真实模型验收证据。"

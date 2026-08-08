@@ -52,6 +52,14 @@
     not_generated: "未形成AI建议",
     complete_full_analysis: "完整分析已完成",
     complete_full_analysis_no_candidate: "完整分析完成，无程序候选",
+    complete_public_prescreen_with_gaps: "公开财报预筛已完成（部分指标未计算）",
+    complete_public_prescreen_no_candidate: "公开财报预筛已完成，无程序候选",
+    complete_public_prescreen_not_applicable: "公开财报预筛完成：当前规则不适用",
+    complete_rule_not_applicable: "当前规则不适用",
+    complete_public_prescreen_industry_unknown: "公开预筛完成：行业待确认",
+    complete_rule_industry_unknown: "行业待确认，当前规则未执行",
+    NOT_APPLICABLE: "当前规则不适用",
+    INDUSTRY_UNKNOWN: "行业待确认",
     incomplete_calculation_only: "不完整：仅计算预检",
     incomplete_model_chain_failed: "不完整：模型链未完成",
     incomplete_rag_failure: "不完整：RAG失败",
@@ -81,7 +89,7 @@
     analysis_run: "进入分析 API",
   };
   const CNINFO_STEP_ORDER = Object.keys(CNINFO_STEP_LABELS);
-  const CNINFO_ACTIVE_STATUSES = new Set(["queued", "searching", "downloading", "validating", "indexing", "extracting_fields", "analyzing"]);
+  const CNINFO_ACTIVE_STATUSES = new Set(["queued", "searching", "downloading", "validating", "indexing", "extracting_fields", "ready_for_analysis", "analyzing"]);
   const RULES = [
     { id: "R1", name: "应收—收入背离", detail: "计算增速差、绝对影响、应收占收入、周转趋势、持续期间和重要性；净额只能过渡使用。", meta: "r1_v0.4-draft / 待A专业签字", status: "主链可运行", runnable: true },
     { id: "R2", name: "收入—经营现金流辅助筛查", detail: "跨期变号或基数过小时阻断伪同比；默认不抢占 R1 主演示。", meta: "r2_v0.2-auxiliary-draft", status: "辅助工程规则", runnable: true },
@@ -112,6 +120,7 @@
     cninfoTask: null,
     cninfoPollTimer: null,
     cninfoPollToken: 0,
+    cninfoAnalysisLoadedTaskId: null,
   };
 
   function byId(id) { return document.getElementById(id); }
@@ -121,7 +130,7 @@
   function statusLabel(value) { return STATUS_LABELS[value] || value || "—"; }
   function aiNotice(value) { return value?.ai_generated_content_notice || AI_GENERATED_CONTENT_NOTICE; }
   function statusKind(value) {
-    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "model_success", "retain"].includes(value)) return "success";
+    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "complete_public_prescreen_with_gaps", "complete_public_prescreen_no_candidate", "complete_public_prescreen_not_applicable", "complete_rule_not_applicable", "complete_public_prescreen_industry_unknown", "complete_rule_industry_unknown", "model_success", "retain"].includes(value)) return "success";
     if (["SOURCE_INCOMPLETE", "provider_unreachable", "MODEL_OUTPUT_INVALID", "not_attempted_rag_failure"].includes(value)) return "danger";
     if (["candidate", "downgrade", "defer"].includes(value) || String(value || "").startsWith("incomplete")) return "waiting";
     return "info";
@@ -344,7 +353,9 @@
     byId("wb-sup-date").value = current.t0;
     byId("sidebar-case").textContent = current.case_id;
     byId("wb-case-mode").textContent = `${current.sample_type} / ${current.registry_mode}`;
-    byId("wb-case-permission").textContent = current.model_transfer_allowed ? "允许本次证据包进入已配置模型；仍按运行状态验收。" : "manifest 禁止模型传输，只能本地预检。";
+    byId("wb-case-permission").textContent = current.model_transfer_allowed
+      ? `${current.project_owner_authorization?.confirmed_by || "项目所有者"}已许可完整分析与已配置模型调用${current.evidence_owner_review_status === "owner_confirmed" ? "；当前来源快照证据已核验。" : "；新来源快照仍须重新核验。"}`
+      : "该案例未纳入项目所有者的公开数据许可，只能本地预检。";
     const years = (current.available_years || []).map(String);
     if (!years.includes(String(state.year))) state.year = years[0] || null;
     byId("wb-current-year").innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
@@ -378,7 +389,7 @@
     try {
       state.currentCase = await api(`/api/cases/${encodeURIComponent(normalized)}`);
       state.caseId = state.currentCase.case_id;
-      const requestedYear = options.keepYear ? state.year : null;
+      const requestedYear = options.preferredYear ?? (options.keepYear ? state.year : null);
       const years = (state.currentCase.available_years || []).map(String);
       state.year = requestedYear && years.includes(String(requestedYear)) ? String(requestedYear) : years[0] || null;
       state.unit = unitKeyForLabel(state.currentCase.amount_unit);
@@ -409,6 +420,7 @@
       validating: "正在校验 PDF",
       indexing: "正在建立 RAG",
       extracting_fields: "正在提取字段候选",
+      ready_for_analysis: "准备进入分析 API",
       analyzing: "正在调用分析 API",
       completed: "流程完成",
       needs_human: "需要真人处理",
@@ -417,10 +429,10 @@
     return labels[value] || value || "等待提交";
   }
   function cninfoStepStatusLabel(value) {
-    return { pending: "等待", running: "进行中", passed: "已通过", needs_human: "待人工", failed: "失败" }[value] || value || "等待";
+    return { pending: "等待", running: "进行中", passed: "已通过", passed_with_gaps: "已通过（有缺口）", needs_human: "待人工", failed: "失败" }[value] || value || "等待";
   }
   function cninfoStatusKind(value) {
-    if (value === "completed" || value === "passed") return "success";
+    if (value === "completed" || value === "passed" || value === "passed_with_gaps") return "success";
     if (value === "failed") return "danger";
     if (value === "needs_human" || value === "running" || CNINFO_ACTIVE_STATUSES.has(value)) return "waiting";
     return "info";
@@ -447,7 +459,7 @@
     byId("cninfo-step-list").innerHTML = CNINFO_STEP_ORDER.map((name, index) => {
       const step = task.steps?.[name] || { status: "pending", detail: "尚未执行。" };
       const kind = cninfoStatusKind(step.status);
-      const extra = step.status === "passed" && step.retrieval_id ? ` · ${step.retrieval_id}` : step.status === "passed" && step.case_id ? ` · ${step.case_id}` : "";
+      const extra = ["passed", "passed_with_gaps"].includes(step.status) && step.retrieval_id ? ` · ${step.retrieval_id}` : ["passed", "passed_with_gaps"].includes(step.status) && step.case_id ? ` · ${step.case_id}` : "";
       return `<li class="cninfo-step ${kind}"><span class="cninfo-step-index">${String(index + 1).padStart(2, "0")}</span><div><strong>${escapeHtml(CNINFO_STEP_LABELS[name])}</strong><small>${escapeHtml(step.detail || "—")}${escapeHtml(extra)}</small></div><span class="state ${kind}">${escapeHtml(cninfoStepStatusLabel(step.status))}</span></li>`;
     }).join("");
   }
@@ -457,12 +469,30 @@
     const result = task.result || {};
     const banner = byId("cninfo-task-message");
     let title = cninfoTaskStatusLabel(status);
-    let detail = message || `已完成 ${task.steps ? Object.values(task.steps).filter((step) => step.status === "passed").length : 0} 个可追溯步骤。`;
+    let detail = message || `已完成 ${task.steps ? Object.values(task.steps).filter((step) => ["passed", "passed_with_gaps"].includes(step.status)).length : 0} 个可追溯步骤。`;
     let kind = cninfoStatusKind(status);
+    const analysis = result.analysis || {};
+    const prescreen = analysis.context?.prescreen_summary || analysis.evidence_bundle?.prescreen_summary || result.prescreen_summary || {};
     if (status === "completed" && result.status === "rag_ready") {
       title = "RAG 建库完成，等待真人字段确认";
       detail = "年报原件、哈希和检索链已完成；RAG 结果不能直接视为审计证据。";
       kind = "success";
+    } else if (status === "completed" && analysis.context?.industry_gate?.fit_level === "not_applicable") {
+      title = "公开年报与 RAG 已完成，当前规则不适用";
+      detail = "当前行业需要专用规则；系统没有把行业不适用误报成资料不足或无风险。仍可进入分析工作台查看 RAG、闸门证据和后续资料路线。";
+      kind = "success";
+    } else if (status === "completed" && analysis.context?.industry_gate?.fit_level === "unknown") {
+      title = "公开年报已完成，行业待确认";
+      detail = "系统没有猜测行业，也没有执行当前数值规则；请先确认报表体系或改用行业专用规则。";
+      kind = "waiting";
+    } else if (status === "completed" && String(analysis.run_completeness || "").startsWith("complete_public_prescreen")) {
+      title = "公开财报预筛已完成";
+      detail = `已分析至 ${prescreen.analysis_cutoff_year || "可用最近年度"} 年；${prescreen.missing_fields?.length || prescreen.skipped_rules?.length ? "部分指标未计算，缺口已列出。" : "当前可运行指标均已计算。"} 正式采用、缓存或导出前再做人工复核。`;
+      kind = "success";
+    } else if (status === "completed" && analysis.run_id) {
+      title = String(analysis.run_completeness || "").startsWith("incomplete") ? "分析结果未完整完成" : "完整分析已完成";
+      detail = `运行编号 ${analysis.run_id} 已载入；${statusLabel(analysis.run_completeness)}。请进入分析工作台查看指标、证据和资料缺口。`;
+      kind = String(analysis.run_completeness || "").startsWith("incomplete") ? "waiting" : "success";
     } else if (status === "needs_human") {
       title = "流程已安全停在真人处理";
       detail = message || "需要确认企业、补充字段口径或完成专业/许可确认；系统没有伪装成成功。";
@@ -496,6 +526,43 @@
     if (!documents.length) return "<p class=\"empty-state compact\">尚未形成可展示的年报校验记录。</p>";
     return `<div class="cninfo-document-list">${documents.map((document) => `<article class="cninfo-document"><div><span class="folio">${escapeHtml(document.document_id || `REPORT-${document.report_year}`)}</span><h6>${escapeHtml(document.announcement_title || `${document.report_year} 年年度报告`)}</h6><p>${escapeHtml(document.report_year)} 年 · ${escapeHtml(document.page_count ?? "—")} 页 · ${escapeHtml(document.byte_count ? `${document.byte_count} bytes` : "文件大小待记录")}</p></div><div class="cninfo-document-meta"><span class="mono">SHA-256 ${escapeHtml(document.sha256 || "—")}</span>${document.source_url ? `<a class="source-link" href="${escapeHtml(document.source_url)}" target="_blank" rel="noopener">打开巨潮官方原件 ↗</a>` : ""}</div></article>`).join("")}</div>`;
   }
+  function renderCninfoAnalysisPreview(result) {
+    const analysis = result.analysis || {};
+    if (result.status === "rag_ready" && !analysis.run_id) {
+      return `<section class="cninfo-analysis-preview waiting"><div class="cninfo-analysis-preview-head"><div><p class="folio">ANALYSIS NOT STARTED</p><h5>资料与 RAG 已完成，尚未执行风险分析</h5><p>当前结果可以用于原文检索；如需风险预筛，请在分析工作台选择“继续完整分析”。</p></div><span class="state waiting">未分析</span></div></section>`;
+    }
+    if (!analysis.run_id) return "";
+    const ruleResult = analysis.rule_results?.[0] || {};
+    const riskCard = ruleResult.risk_card || {};
+    const industryGate = analysis.context?.industry_gate || result.industry_gate || {};
+    const prescreen = analysis.context?.prescreen_summary || analysis.evidence_bundle?.prescreen_summary || {};
+    const completeness = analysis.run_completeness || analysis.status;
+    const screeningStatus = ruleResult.screening_status || ruleResult.status || analysis.screening_status;
+    const industryNotApplicable = industryGate.fit_level === "not_applicable" || screeningStatus === "NOT_APPLICABLE";
+    const industryUnknown = industryGate.fit_level === "unknown" || screeningStatus === "INDUSTRY_UNKNOWN";
+    const noCandidate = ["RULE_NOT_TRIGGERED", "complete_public_prescreen_no_candidate", "complete_full_analysis_no_candidate"].includes(screeningStatus) || String(completeness).endsWith("_no_candidate");
+    const headline = industryNotApplicable ? (riskCard.title || "当前规则不适用") : industryUnknown ? "行业待确认，当前规则未执行" : noCandidate ? "未形成程序风险候选" : riskCard.title || "已形成程序筛查结果";
+    const observation = industryNotApplicable ? (industryGate.rationale || riskCard.observation || "当前行业需要专用规则。") : industryUnknown ? "公司行业或报表体系元数据不足，系统没有猜测行业。" : ruleResult.ai_draft?.draft_observation || riskCard.observation || "完整结果已载入分析工作台。";
+    const metricKeys = ["revenue_growth", "ar_growth", "growth_gap", "absolute_ar_change", "ar_to_revenue_current", "turnover_days_current"];
+    const metrics = metricKeys.filter((key) => ruleResult.metrics?.[key] !== null && ruleResult.metrics?.[key] !== undefined);
+    const missingFields = prescreen.missing_fields || riskCard.prescreen_missing_fields || [];
+    const dataGaps = [...new Set([...(riskCard.data_gaps || []), ...missingFields])];
+    const requestedMaterials = [...new Set(riskCard.requested_materials || [])];
+    const statusKindName = statusKind(completeness);
+    const statusText = statusLabel(completeness);
+    const boundary = industryNotApplicable
+      ? "当前规则不适用不等于企业无风险；请使用行业专用规则，公开年报 RAG 仍可继续复核。"
+      : industryUnknown
+        ? "行业待确认不等于企业无风险；系统未执行当前数值规则，需先确认行业和报表体系。"
+        : noCandidate
+      ? "未形成程序风险候选不等于无风险；仍需结合账龄、期后回款、信用政策和合同条款继续核查。"
+      : "这是审计计划阶段的工程筛查结果，不是审计认定或审计意见。";
+    const metricMarkup = metrics.length
+      ? `<div class="metric-ledger">${metrics.map((key) => `<div class="metric"><span>${escapeHtml(METRIC_LABELS[key] || key)}</span><strong>${escapeHtml(metricValue(key, ruleResult.metrics[key]))}</strong><small>${escapeHtml(metricFormula(key))}</small></div>`).join("")}</div>`
+      : `<p class="empty-state compact">当前运行没有可展示的核心指标，请查看完整运行状态和数据缺口。</p>`;
+    const listMarkup = (items, emptyText) => items.length ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p>${escapeHtml(emptyText)}</p>`;
+    return `<section class="cninfo-analysis-preview ${statusKindName === "waiting" ? "waiting" : ""}"><div class="cninfo-analysis-preview-head"><div><p class="folio">ANALYSIS RESULT · ${escapeHtml(ruleResult.rule_id || "R1")}</p><h5>${escapeHtml(headline)}</h5><p>${escapeHtml(observation)}</p></div><span class="state ${statusKindName}">${escapeHtml(statusText)}</span></div><div class="cninfo-analysis-meta"><span>运行编号 <strong class="mono">${escapeHtml(analysis.run_id)}</strong></span><span>程序筛查 <strong>${escapeHtml(statusLabel(screeningStatus))}</strong></span><span>AI建议 <strong>${escapeHtml(statusLabel(analysis.ai_recommendation))}</strong></span><span>分析截止年度 <strong>${escapeHtml(prescreen.analysis_cutoff_year || analysis.context?.current_year || "—")}</strong></span></div>${metricMarkup}<div class="cninfo-analysis-lists"><section><h6>数据缺口</h6>${listMarkup(dataGaps, "当前规则没有额外列出的字段缺口。")}</section><section><h6>建议索取资料</h6>${listMarkup(requestedMaterials, "当前结果未返回额外资料清单。")}</section></div><p class="boundary-strip">${escapeHtml(boundary)} 人工复核、证据回查和导出闸门仍保留。</p><div class="cninfo-analysis-actions"><button class="button primary" type="button" data-cninfo-open-analysis="${escapeHtml(analysis.run_id)}">查看完整分析结果 →</button></div></section>`;
+  }
   function renderCninfoResult(task) {
     const container = byId("cninfo-result");
     const result = task.result;
@@ -507,12 +574,32 @@
     const rag = result.rag || {};
     const extraction = result.field_extraction || {};
     const analysis = result.analysis || {};
+    const industryGate = analysis.context?.industry_gate || result.industry_gate || {};
     const caseId = result.case_id || task.case_id || "";
     const extractionText = extraction.row_count !== undefined ? `${extraction.row_count} 条候选 · ${extraction.status || "待人工"}` : "未进入字段提取";
-    const analysisText = analysis.run_id ? `${analysis.run_id} · ${statusLabel(analysis.run_completeness)}` : result.human_review_required ? "需要真人确认后再放行" : "未请求完整分析";
+    const prescreen = analysis.context?.prescreen_summary || analysis.evidence_bundle?.prescreen_summary || result.prescreen_summary || {};
+    const analysisPreview = renderCninfoAnalysisPreview(result);
+    const analysisText = analysis.run_id
+      ? `${analysis.run_id} · ${statusLabel(analysis.run_completeness)}${prescreen.analysis_cutoff_year ? ` · 截止 ${prescreen.analysis_cutoff_year} 年` : ""}`
+      : result.human_review_required ? "需要真人确认后再放行" : result.human_review_recommended ? "公开预筛已完成；正式采用前可人工复核" : "未请求完整分析";
+    const cache = result.cache || {};
+    const cacheStateText = cache.cache_state === "stale" ? "过期快照临时复用（建议刷新）" : cache.hit ? "热缓存命中" : "本次实时校验后写入缓存";
+    const cacheFreshness = cache.verified_at ? `；校验时间：${escapeHtml(cache.verified_at)}；缓存年龄：${escapeHtml(cache.cache_age_days ?? "—")} 天` : "";
+    const cacheDetails = cache.source_fingerprint || cache.snapshot_id ? `<section class="prescreen-summary"><h6>来源快照与缓存</h6><p>路径：<strong>${cacheStateText}</strong>；年度：${escapeHtml((cache.report_years || result.report_years || []).join(" / ") || "—")}；RAG版本：${escapeHtml(cache.rag_index_version || rag.index_version || "—")}${cacheFreshness}</p><p>快照：<span class="mono">${escapeHtml(cache.snapshot_id || "—")}</span>；来源指纹：<span class="mono">${escapeHtml(cache.source_fingerprint || "—")}</span></p>${cache.cache_state === "stale" ? `<p class="boundary-strip">本次为可追溯的旧快照回退，不冒充最新公告；点击“强制刷新”可重新搜索巨潮并生成新快照。</p>` : ""}</section>` : "";
+    const extractionPages = [...new Set((extraction.rows || []).map((row) => row.pdf_page).filter((page) => page !== null && page !== undefined))];
+    const extractionDetails = ["failed", "technical_parse_failed", "industry_unknown"].includes(extraction.status)
+      ? `<section class="status-banner warning"><strong>年报存在，解析待适配</strong><span>${escapeHtml((extraction.issues || []).join("；") || "系统没有形成可靠字段候选。")}${extractionPages.length ? ` 已命中 PDF 页码：${escapeHtml(extractionPages.join("、"))}。` : ""}</span></section>`
+      : extraction.status === "passed_technical_with_gaps" || extraction.status === "cached_with_gaps"
+        ? `<section class="status-banner warning"><strong>字段技术校验通过，但仍有缺口</strong><span>${escapeHtml((extraction.issues || []).join("；") || "部分年度或规则字段缺失。")}${extractionPages.length ? ` 已命中 PDF 页码：${escapeHtml(extractionPages.join("、"))}。` : ""}</span></section>`
+        : "";
+    const gateDetails = industryGate.fit_level ? `<section class="prescreen-summary"><h6>行业适配闸门</h6><p>行业组：<strong>${escapeHtml(industryGate.industry_family || "—")}</strong>；适配等级：${escapeHtml(industryGate.fit_level)}；闸门版本：${escapeHtml(industryGate.gate_version || "—")}</p><p>${escapeHtml(industryGate.rationale || "—")}</p>${industryGate.reason_codes?.length ? `<p>理由代码：${escapeHtml(industryGate.reason_codes.join("、"))}</p>` : ""}</section>` : "";
+    const prescreenDetails = (prescreen.mode ? `<section class="prescreen-summary"><h6>公开预筛说明</h6><p>分析截止年度：<strong>${escapeHtml(prescreen.analysis_cutoff_year || "—")}</strong>；使用年度：${escapeHtml((prescreen.analysis_years || []).join(" / ") || "—")}；置信度：${escapeHtml(prescreen.confidence || "—")}</p>${prescreen.missing_fields?.length ? `<p>缺失字段：${escapeHtml(prescreen.missing_fields.join("、"))}</p>` : ""}${prescreen.skipped_rules?.length ? `<p>跳过规则：${escapeHtml(prescreen.skipped_rules.map((item) => `${item.rule_id}（${item.reason}）`).join("；"))}</p>` : ""}<p>人工复核：正式采用、缓存或导出前需要；本次公开预筛不因缺口停止。</p></section>` : "") + gateDetails + cacheDetails + extractionDetails;
     container.hidden = false;
-    container.innerHTML = `<div class="cninfo-result-head"><div><p class="folio">TRACEABLE OUTPUT</p><h5>自动流程结果摘要</h5><p>结果状态：<strong>${escapeHtml(result.status || task.status)}</strong> · ${escapeHtml(aiNotice(result))}</p></div><span class="state ${cninfoStatusKind(result.status)}">${escapeHtml(result.status || task.status)}</span></div><div class="cninfo-result-stats"><div><span>RAG块数</span><strong>${escapeHtml(rag.chunk_count ?? "—")}</strong></div><div><span>检索编号</span><strong class="mono">${escapeHtml(rag.smoke_retrieval_id || "—")}</strong></div><div><span>字段候选</span><strong>${escapeHtml(extractionText)}</strong></div><div><span>分析状态</span><strong>${escapeHtml(analysisText)}</strong></div></div><h6>官方年报与校验记录</h6>${renderCninfoDocuments(task)}<p class="boundary-strip">来源可追溯不等于专业结论；完整分析前仍需确认单位、合并范围、字段页码、口径和模型传输许可。</p>${caseId ? `<button type="button" class="button quiet" data-cninfo-inline-case="${escapeHtml(caseId)}">查看该案例字段与来源台账</button>` : ""}`;
+     container.innerHTML = `<div class="cninfo-result-head"><div><p class="folio">TRACEABLE OUTPUT</p><h5>自动流程结果摘要</h5><p>结果状态：<strong>${escapeHtml(result.status || task.status)}</strong> · ${escapeHtml(aiNotice(result))}</p></div><span class="state ${cninfoStatusKind(result.status)}">${escapeHtml(result.status || task.status)}</span></div><div class="cninfo-result-stats"><div><span>RAG块数</span><strong>${escapeHtml(rag.chunk_count ?? "—")}</strong></div><div><span>检索编号</span><strong class="mono">${escapeHtml(rag.smoke_retrieval_id || "—")}</strong></div><div><span>字段候选</span><strong>${escapeHtml(extractionText)}</strong></div><div><span>分析状态</span><strong>${escapeHtml(analysisText)}</strong></div><div><span>来源路径</span><strong>${cache.hit ? "热缓存命中" : "巨潮实时校验"}</strong></div></div>${prescreenDetails}<h6>官方年报与校验记录</h6>${renderCninfoDocuments(task)}<p class="boundary-strip">公开预筛不会因单个字段缺失整体停止，也不会猜测缺失金额；正式采用、缓存或导出前仍需确认单位、合并范围、字段页码、口径和模型传输许可。</p>${caseId ? `<button type="button" class="button quiet" data-cninfo-inline-case="${escapeHtml(caseId)}">查看该案例字段与来源台账</button>` : ""}`;
+    container.querySelector(".cninfo-result-stats")?.insertAdjacentHTML("afterend", analysisPreview);
     container.querySelector("[data-cninfo-inline-case]")?.addEventListener("click", () => openCninfoCase(caseId));
+    const analysisRunId = analysis.run_id || "";
+    container.querySelector("[data-cninfo-open-analysis]")?.addEventListener("click", () => openCninfoAnalysis(analysisRunId, task.task_id));
   }
   function renderCninfoTask(task) {
     state.cninfoTask = task;
@@ -524,9 +611,11 @@
     renderCninfoMessage(task);
     renderCninfoCandidates(task);
     renderCninfoResult(task);
+    const analysisRunId = task.status === "completed" ? task.result?.analysis?.run_id : "";
+    if (analysisRunId && state.cninfoAnalysisLoadedTaskId !== task.task_id) void openCninfoAnalysis(analysisRunId, task.task_id);
     const retryable = ["failed", "needs_human"].includes(task.status);
     byId("cninfo-retry").hidden = !retryable;
-    byId("cninfo-retry").textContent = task.status === "needs_human" ? "确认后重新执行" : "保留历史并重试";
+     byId("cninfo-retry").textContent = task.status === "needs_human" ? "查看原因后重试" : "保留历史并重试";
     const caseId = task.case_id || task.result?.case_id || "";
     byId("cninfo-open-case").hidden = !caseId;
     byId("cninfo-open-case").dataset.caseId = caseId;
@@ -558,9 +647,11 @@
   }
   async function startCninfoPipeline(event) {
     event.preventDefault();
+    if (state.cninfoSubmitting) return;
     const form = event.currentTarget;
     const query = form.elements.company_query.value.trim();
     if (!query) { form.elements.company_query.focus(); return; }
+    state.cninfoSubmitting = true;
     if (state.cninfoPollTimer) window.clearTimeout(state.cninfoPollTimer);
     const endBusy = beginButtonBusy(byId("cninfo-pipeline-submit"), "正在排队…");
     byId("cninfo-pipeline-panel").hidden = false;
@@ -572,16 +663,42 @@
       latest_year: latestYear ? Number(latestYear) : null,
       analysis_mode: form.elements.analysis_mode.value,
       rule_ids: ["R1"],
-      force_refresh: false,
+      force_refresh: Boolean(form.elements.force_refresh?.checked),
+      cache_policy: form.elements.force_refresh?.checked ? "force_refresh" : "prefer_cache",
       planned_materiality: null,
     };
+    const cachePreview = byId("cninfo-cache-preview");
     try {
+      if (payload.force_refresh) {
+        showMessage(cachePreview, "已选择强制刷新：本次会重新搜索、下载并校验巨潮公告。", "warning");
+      } else {
+        try {
+          const resolution = await api("/api/cache/resolve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ company_query: query, years: payload.years, latest_year: payload.latest_year, cache_policy: payload.cache_policy }),
+          });
+          if (resolution.cache_hit) {
+            const match = resolution.match || {};
+            if (match.cache_state === "stale") {
+              showMessage(cachePreview, `已命中过期快照：${match.ticker || query} · ${match.report_years?.join(" / ") || "已登记年度"}；本次可先快速分析，但建议勾选强制刷新获取最新公告。`, "warning");
+            } else {
+              showMessage(cachePreview, `已命中热缓存：${match.ticker || query} · ${match.report_years?.join(" / ") || "已登记年度"} · ${match.rag_index_version || "RAG版本待返回"}；流程将跳过重复搜索和下载。`, "success");
+            }
+          } else {
+            showMessage(cachePreview, "未命中热缓存：本次将实时搜索、下载、校验并在成功后写入缓存。", "info");
+          }
+        } catch (_error) {
+          showMessage(cachePreview, "热缓存检查暂时不可用；流程仍会按实时巨潮路径继续。", "warning");
+        }
+      }
       const task = await api("/api/pipelines/cninfo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       renderCninfoTask(task);
       beginCninfoPolling(task.task_id);
     } catch (error) {
       renderCninfoTask({ task_id: "—", status: "failed", request: payload, steps: {}, error: { message: error.message } });
     } finally {
+      state.cninfoSubmitting = false;
       endBusy();
     }
   }
@@ -657,6 +774,13 @@
       endBusy();
     }
   }
+  async function openCninfoAnalysis(runId, taskId = null) {
+    if (!runId) return false;
+    if (taskId && state.cninfoAnalysisLoadedTaskId === taskId) return true;
+    const loaded = await loadRun(runId, { openAnalysis: true });
+    if (loaded && taskId) state.cninfoAnalysisLoadedTaskId = taskId;
+    return loaded;
+  }
   async function openCninfoCase(caseId) {
     if (!caseId) return;
     try {
@@ -697,13 +821,13 @@
     calculationButton.classList.toggle("quiet", modelTransferAllowed);
     fullButton.innerHTML = modelTransferAllowed ? '开始完整分析 <span aria-hidden="true">→</span>' : "完整分析需许可";
     fullButton.setAttribute("aria-describedby", "wb-case-permission");
-    fullButton.title = modelTransferAllowed ? "执行RAG、三Agent与硬校验" : "当前案例禁止模型传输，只能运行仅计算预检";
-    byId("run-scope").textContent = runnable.length
-      ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${modelTransferAllowed ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${cninfoFieldsConfirmed ? "" : " 巨潮字段尚未完成人工确认，暂不能计算。"}`
+    fullButton.title = modelTransferAllowed ? "项目所有者已许可：执行RAG、三Agent与硬校验" : "当前案例未获项目所有者许可，只能运行仅计算预检";
+     byId("run-scope").textContent = runnable.length
+       ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${modelTransferAllowed ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && !cninfoFieldsConfirmed ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
       : "当前没有可运行规则。";
     if (!state.run && state.currentCase && !modelTransferAllowed) {
       byId("wb-gate").className = "status-banner warning";
-      byId("wb-gate").innerHTML = "<strong>完整分析需真人许可</strong><span>当前真实公开案例禁止模型传输；仅计算预检与本地原文检索仍可使用。</span>";
+      byId("wb-gate").innerHTML = "<strong>当前案例未纳入许可</strong><span>请登记项目所有者许可后再运行完整分析；仅计算预检与本地原文检索仍可使用。</span>";
     }
   }
 
@@ -741,6 +865,12 @@
     if (issues.length) {
       gate.className = "status-banner danger";
       gate.innerHTML = `<strong>来源闸门未通过</strong><span>${escapeHtml(issues.join("；"))}</span>`;
+    } else if (run.context?.industry_gate?.fit_level === "not_applicable") {
+      gate.className = "status-banner success";
+      gate.innerHTML = `<strong>行业适配闸门：当前规则不适用</strong><span>${escapeHtml(run.context.industry_gate.rationale || "请使用行业专用规则；公开年报 RAG 仍可继续使用。")}</span>`;
+    } else if (run.context?.industry_gate?.fit_level === "unknown") {
+      gate.className = "status-banner warning";
+      gate.innerHTML = `<strong>行业适配闸门：待确认</strong><span>系统没有猜测行业，也没有执行当前数值规则；请确认报表体系或选择行业专用规则。</span>`;
     } else if (String(run.run_completeness).startsWith("incomplete")) {
       gate.className = "status-banner warning";
       gate.innerHTML = `<strong>${escapeHtml(statusLabel(run.run_completeness))}</strong><span>程序筛查：${escapeHtml(statusLabel(run.screening_status))}；AI建议：${escapeHtml(statusLabel(run.ai_recommendation))}。不得把不完整运行当作完整风险卡。</span>`;
@@ -765,11 +895,15 @@
     const registered = run.evidence_bundle?.supplement_evidence?.length || 0;
     byId("evidence-rail").innerHTML = `<li><span>01</span><div><strong>程序筛查</strong><small>${escapeHtml(statusLabel(run.screening_status))}</small></div></li><li class="${run.ai_recommendation === "not_generated" ? "pending" : ""}"><span>02</span><div><strong>RAG 与 AI</strong><small>${escapeHtml(`${run.retrievals?.length || 0} 次检索；${statusLabel(run.ai_recommendation)}`)}</small></div></li><li class="${gaps.length ? "pending" : ""}"><span>03</span><div><strong>证据支持 / 缺口</strong><small>${escapeHtml(`${run.evidence_bundle?.field_evidence?.length || 0} 字段；${run.evidence_bundle?.rag_evidence?.length || 0} 片段；${registered} 条案例/补充证据；${gaps.length} 检索缺口`)}</small></div></li><li class="${(humanReview?.status || run.human_disposition) === "未复核" ? "pending" : ""}"><span>04</span><div><strong>人工处理</strong><small>${escapeHtml(humanReview?.status || run.human_disposition || "未复核")}</small></div></li>`;
   }
+  function runPrescreenMissingFields(run) {
+    return run.context?.prescreen_summary?.missing_fields || run.evidence_bundle?.prescreen_summary?.missing_fields || [];
+  }
   function renderLiveMatrix(run) {
+    const prescreenMissingFields = runPrescreenMissingFields(run);
     byId("live-evidence-matrix").querySelector("tbody").innerHTML = run.rule_results.map((result) => {
       const ragCount = (run.evidence_bundle?.rag_evidence || []).filter((item) => item.rule_id === result.rule_id).length;
       const normal = result.ai_draft?.normal_explanations || [];
-      const gaps = result.ai_draft?.data_gaps || result.risk_card?.data_gaps || [];
+      const gaps = [...new Set([...(result.ai_draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...prescreenMissingFields])];
       const support = result.ai_draft?.claims?.length ? `${result.ai_draft.claims.length} 条主张均绑定 evidence ID` : "无AI主张";
       return `<tr><th><span class="mono">${escapeHtml(result.rule_id)}</span><br><small>${escapeHtml(statusLabel(result.screening_status || result.status))}</small></th><td><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></td><td>${ragCount ? `${ragCount} 个候选片段` : "未参与 / 无命中"}</td><td>${escapeHtml(statusLabel(result.ai_recommendation))}</td><td>${escapeHtml(support)}</td><td>${escapeHtml(normal.map((item) => `${item.text}（${item.support_status}）`).join("；") || "未形成")}</td><td>${escapeHtml(gaps.join("；") || "未返回")}</td></tr>`;
     }).join("");
@@ -784,7 +918,9 @@
     const sources = (state.run.evidence_bundle?.field_evidence || []).filter((item) => result.evidence_ids?.includes(item.evidence_id));
     const rag = (state.run.evidence_bundle?.rag_evidence || []).filter((item) => item.rule_id === result.rule_id);
     const registered = state.run.evidence_bundle?.supplement_evidence || [];
-    byId("risk-dialog-body").innerHTML = `<section class="risk-detail-section"><h3>四层状态</h3><p>程序：${escapeHtml(statusLabel(result.screening_status || result.status))}；AI：${escapeHtml(statusLabel(result.ai_recommendation))}；人工：${escapeHtml(state.humanReview?.status || state.run.human_disposition)}；完整性：${escapeHtml(statusLabel(state.run.run_completeness))}。</p></section><section class="risk-detail-section"><h3>AI生成内容待核查草稿</h3><p><strong>${escapeHtml(aiNotice(draft || state.run))}</strong></p><p>${escapeHtml(draft?.draft_observation || "未形成通过硬校验的AI草稿。")}</p>${list(draft?.claims, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/")}`)}</section><section class="risk-detail-section"><h3>正常解释 / 待验证假设</h3>${list(draft?.normal_explanations, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/") || "无证据"}`)}</section><section class="risk-detail-section"><h3>资料缺口与待索取资料</h3>${list(draft?.data_gaps || result.risk_card?.data_gaps)}${list(draft?.requested_materials || result.risk_card?.requested_materials)}</section><section class="risk-detail-section"><h3>计算字段证据</h3>${list(sources, (item) => `${item.evidence_id}｜${item.document_id}｜PDF ${item.pdf_page}｜${item.locator}`)}</section><section class="risk-detail-section"><h3>案例包 / 补充证据</h3>${list(registered, (item) => `${item.evidence_id}｜${item.field_label}｜${item.document_id || item.source_file || "结构化资料"}｜PDF ${item.pdf_page || "—"}｜${item.support_status}`)}</section><section class="risk-detail-section"><h3>RAG候选原文</h3>${list(rag, (item) => `${item.evidence_id}｜${item.retrieval_id}｜PDF ${item.pdf_page}｜${item.excerpt}`)}</section>`;
+    const missingFields = runPrescreenMissingFields(state.run);
+    const detailGaps = [...new Set([...(draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...missingFields])];
+    byId("risk-dialog-body").innerHTML = `<section class="risk-detail-section"><h3>四层状态</h3><p>程序：${escapeHtml(statusLabel(result.screening_status || result.status))}；AI：${escapeHtml(statusLabel(result.ai_recommendation))}；人工：${escapeHtml(state.humanReview?.status || state.run.human_disposition)}；完整性：${escapeHtml(statusLabel(state.run.run_completeness))}。</p></section><section class="risk-detail-section"><h3>AI生成内容待核查草稿</h3><p><strong>${escapeHtml(aiNotice(draft || state.run))}</strong></p><p>${escapeHtml(draft?.draft_observation || "未形成通过硬校验的AI草稿。")}</p>${list(draft?.claims, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/")}`)}</section><section class="risk-detail-section"><h3>正常解释 / 待验证假设</h3>${list(draft?.normal_explanations, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/") || "无证据"}`)}</section><section class="risk-detail-section"><h3>资料缺口与待索取资料</h3>${list(detailGaps)}${list(draft?.requested_materials || result.risk_card?.requested_materials)}</section><section class="risk-detail-section"><h3>计算字段证据</h3>${list(sources, (item) => `${item.evidence_id}｜${item.document_id}｜PDF ${item.pdf_page}｜${item.locator}`)}</section><section class="risk-detail-section"><h3>案例包 / 补充证据</h3>${list(registered, (item) => `${item.evidence_id}｜${item.field_label}｜${item.document_id || item.source_file || "结构化资料"}｜PDF ${item.pdf_page || "—"}｜${item.support_status}`)}</section><section class="risk-detail-section"><h3>RAG候选原文</h3>${list(rag, (item) => `${item.evidence_id}｜${item.retrieval_id}｜PDF ${item.pdf_page}｜${item.excerpt}`)}</section>`;
     byId("risk-dialog").showModal();
   }
 
@@ -864,14 +1000,28 @@
     }
   }
   async function loadRun(runId, options = {}) {
-    if (!runId) return;
+    if (!runId) return false;
     showMessage(byId("wb-backend-toast"), "正在读取运行记录…");
     try {
       const stored = await api(`/api/runs/${encodeURIComponent(runId)}`);
+      const runCaseId = stored.run?.context?.case_id;
+      const runYear = stored.run?.context?.current_year;
+      if (runCaseId && runCaseId !== state.caseId) {
+        await loadCaseDetail(runCaseId, { preferredYear: runYear });
+      }
+      if (runCaseId && state.caseId !== runCaseId) {
+        showMessage(byId("wb-backend-toast"), `运行记录属于案例 ${runCaseId}，但案例上下文加载失败；已停止展示以避免与 ${state.caseId || "当前案例"} 混淆。`, "error");
+        return false;
+      }
       renderRun(stored.run, stored.human_review);
       showMessage(byId("wb-backend-toast"), "运行记录已读取。", "success");
-      if (options.openDelivery) showView("delivery");
-    } catch (error) { showMessage(byId("wb-backend-toast"), `读取失败：${error.message}`, "error"); }
+      if (options.openAnalysis) showView("analysis");
+      else if (options.openDelivery) showView("delivery");
+      return true;
+    } catch (error) {
+      showMessage(byId("wb-backend-toast"), `读取失败：${error.message}`, "error");
+      return false;
+    }
   }
 
   async function checkRagStatus() {

@@ -8,10 +8,10 @@
   <meta name="description" content="审迹智链 AuditTrace 审计计划阶段证据工作台">
   <title>审迹智链 · 证据地平线</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.1">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.2">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
   <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.1">
-  <script src="/assets/official-v4/app.js?v=0.7.1" defer></script>
+  <script src="/assets/official-v4/app.js?v=0.7.2" defer></script>
   <script src="/assets/official-v4/fusion.js?v=0.7.1" defer></script>
 </head>
 <body>
@@ -186,7 +186,7 @@
 
       <section class="view" data-view-panel="project" aria-labelledby="project-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">巨潮官方年报 · RAG 来源锁定 · 字段先行</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>本页支持从巨潮资讯网输入新企业并自动搜索、下载、校验和建立案例隔离 RAG。自动字段只形成候选，必须经过真人核对后才允许进入完整分析；标准案例 ZIP 仍保留为离线与合成验收入口。</p></div>
+           <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">巨潮官方年报 · RAG 来源锁定 · 字段先行</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>本页支持从巨潮资讯网输入新企业并自动搜索、下载、校验、建立案例隔离 RAG 和公开财报预筛。字段缺口会按可用年度与规则降级，不会猜测金额；正式采用或导出前再做人工复核。</p></div>
           <span class="state pending" id="project-state">正在读取案例注册表</span>
         </header>
 
@@ -200,8 +200,8 @@
         </div>
 
         <section class="project-sheet" aria-labelledby="project-sheet-heading">
-          <div class="sheet-title">
-             <div><p class="folio">AUDITTRACE / CASE CONTRACT / EVIDENCE-BOUND</p><h3 id="project-sheet-heading">审迹智链工作台</h3><p>每个参与计算的数字必须绑定案例、文档编号、披露日期、页码、哈希和 evidence_id。资料不全时，完整分析会如实关闭。</p></div>
+             <div class="sheet-title">
+              <div><p class="folio">AUDITTRACE / CASE CONTRACT / EVIDENCE-BOUND</p><h3 id="project-sheet-heading">审迹智链工作台</h3><p>每个参与计算的数字必须绑定案例、文档编号、披露日期、页码、哈希和 evidence_id。资料不全时只跳过受影响指标，RAG 与其他可运行规则继续；不猜测、不补造。</p></div>
             <span class="state pending" id="project-health-state">正在检查后端</span>
           </div>
           <section class="cninfo-pipeline" aria-labelledby="cninfo-pipeline-heading">
@@ -214,10 +214,12 @@
               <label for="cninfo-company-query"><span>企业名称或股票代码</span><input id="cninfo-company-query" name="company_query" required autocomplete="organization" spellcheck="false" placeholder="例如 603337 或 标准股份"></label>
               <label for="cninfo-years"><span>下载年报数量</span><select id="cninfo-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
               <label for="cninfo-latest-year"><span>最新报告年度（可留空）</span><input id="cninfo-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
-              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only" selected>只下载 + RAG（安全默认）</option><option value="full_analysis">继续完整分析（需字段/模型许可）</option></select></label>
+              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only">只下载 + RAG</option><option value="full_analysis" selected>继续完整分析（项目所有者已许可）</option></select></label>
+              <label class="check-control cninfo-refresh-control"><input id="cninfo-force-refresh" name="force_refresh" type="checkbox"><span>忽略热缓存，重新搜索巨潮最新公告</span></label>
               <button class="button primary" id="cninfo-pipeline-submit" type="submit">开始巨潮自动流程 <span aria-hidden="true">→</span></button>
             </form>
-            <p class="boundary-strip">安全边界：默认不向外部模型传输公开年报；RAG 命中只是候选原文，不是审计证据或审计结论。完整分析如遇真人确认、模型传输或专业口径门槛，会显示 <code>needs_human</code> 并停止。</p>
+            <p class="form-message" id="cninfo-cache-preview" role="status" aria-live="polite">输入企业后会先检查是否存在已校验的热缓存。</p>
+             <p class="boundary-strip">运行方式：公开年报预筛自动执行；系统只传输规则所需字段和 RAG 命中片段。逐字段复核不再阻断首次预筛，但正式采用、证据冻结、缓存或导出前仍需人工复核；新来源快照仍按哈希重新校验。</p>
             <section class="cninfo-pipeline-panel" id="cninfo-pipeline-panel" hidden aria-labelledby="cninfo-task-heading">
               <div class="cninfo-task-head">
                 <div><p class="folio">LIVE PIPELINE TASK</p><h5 id="cninfo-task-heading">巨潮自动任务</h5><p class="mono" id="cninfo-task-id">—</p></div>
@@ -235,14 +237,14 @@
             </section>
           </section>
           <section class="case-intake" aria-labelledby="case-intake-heading">
-            <div class="case-intake-copy"><span class="folio">DOWNLOAD → IMPORT → VALIDATE → PREVIEW</span><h4 id="case-intake-heading">标准案例包入口</h4><p>模板内含 manifest、财务字段、账龄、期后回款、合同条款、脱敏日志和合成 PDF；模型传输默认关闭。</p></div>
+            <div class="case-intake-copy"><span class="folio">DOWNLOAD → IMPORT → VALIDATE → PREVIEW</span><h4 id="case-intake-heading">标准案例包入口</h4><p>模板内含 manifest、财务字段、账龄、期后回款、合同条款、脱敏日志和合成 PDF；公开案例的项目所有者许可已启用。</p></div>
             <div class="case-intake-actions">
               <a class="button quiet" id="case-template-download" href="/api/cases/template" download>下载标准案例 ZIP</a>
               <form id="case-import-form" enctype="multipart/form-data">
                 <label for="case-import-file"><span>选择案例 ZIP</span><input id="case-import-file" name="file" type="file" accept=".zip" required></label>
                 <div class="authorization-block compact-auth">
-                  <label class="check-control"><input id="case-import-authorized" type="checkbox"><span>合法公开或已获授权</span></label>
-                  <label class="check-control"><input id="case-import-desensitized" type="checkbox"><span>已完成脱敏检查</span></label>
+                  <label class="check-control"><input id="case-import-authorized" type="checkbox" checked><span>项目所有者已确认：合法公开或已获授权</span></label>
+                  <label class="check-control"><input id="case-import-desensitized" type="checkbox" checked><span>项目所有者已确认：完成个人信息与脱敏检查</span></label>
                 </div>
                 <button class="button primary" id="case-import-submit" type="submit">导入并校验</button>
               </form>
@@ -290,7 +292,7 @@
           </div>
           <section class="cninfo-field-review" id="cninfo-field-review" hidden aria-labelledby="cninfo-field-review-heading">
             <header class="subheading">
-              <div><p class="kicker">HUMAN FIELD CONFIRMATION GATE</p><h3 id="cninfo-field-review-heading">字段候选真人确认</h3><p>逐项回到年报原件确认金额、单位、合并范围、口径和 PDF 页码。自动候选原值不会被覆盖，修正与拒绝都会留下历史。</p></div>
+              <div><p class="kicker">HUMAN FIELD REVIEW / BEFORE ADOPTION</p><h3 id="cninfo-field-review-heading">字段证据复核（正式采用前）</h3><p>公开预筛不会被此处阻断。需要正式采用、证据冻结、缓存或导出时，再逐项回到年报原件确认金额、单位、合并范围、口径和 PDF 页码；自动候选原值不会被覆盖，修正与拒绝都会留下历史。</p></div>
               <span class="state waiting" id="cninfo-field-review-state">等待确认</span>
             </header>
             <div class="cninfo-review-controls">
@@ -419,8 +421,8 @@
             <label class="wide" for="wb-sup-note"><span>资料说明</span><textarea id="wb-sup-note" name="note" rows="3" autocomplete="off"></textarea></label>
           </div>
           <div class="authorization-block">
-            <label class="check-control"><input id="wb-sup-authorized" name="authorized" type="checkbox"><span>我确认资料已获授权</span></label>
-            <label class="check-control"><input id="wb-sup-desensitized" name="desensitized" type="checkbox"><span>我确认资料已脱敏</span></label>
+            <label class="check-control"><input id="wb-sup-authorized" name="authorized" type="checkbox" checked><span>项目所有者已确认资料合法公开或已获授权</span></label>
+            <label class="check-control"><input id="wb-sup-desensitized" name="desensitized" type="checkbox" checked><span>项目所有者已确认完成个人信息与脱敏检查</span></label>
           </div>
           <p class="form-help">独立证据字段：aging_summary、subsequent_receipts_summary、credit_policy_change、contract_terms。旧版报表字段更正仅作兼容并醒目标注，不作为主要补充资料路径。</p>
           <div class="action-row">
@@ -498,7 +500,7 @@
             <article><span class="folio">反证角色</span><h4>寻找正常解释</h4><dl><div><dt>负责什么</dt><dd>找可能的正常解释、相反资料和还缺的资料；找不到也会写明。</dd></div><div><dt>不做什么</dt><dd>不为了凑答案而补造事实。</dd></div></dl></article>
             <article><span class="folio">语义复核角色</span><h4>把关措辞与证据</h4><dl><div><dt>负责什么</dt><dd>检查文字表述能不能被资料支持，必要时保留、降级或暂缓。</dd></div><div><dt>不做什么</dt><dd>不跳过程序校验，也不直接批准导出。</dd></div></dl></article>
           </div>
-          <p class="reading-note">怎么配合：数字计算、日期筛选、字段完整性、禁用词和来源定位由程序处理； AI 负责阅读与推理；最后由人确认。</p>
+           <p class="reading-note">怎么配合：数字计算、日期筛选、字段完整性、禁用词和来源定位由程序处理；AI 负责阅读与推理；公开预筛先给出可用结果，正式采用与发布最后由人确认。</p>
         </section>
 
         <section class="editorial-section" aria-labelledby="boundary-heading">
@@ -510,12 +512,12 @@
             <article><span>03</span><h4>不给投资建议</h4><p>不做公司估值、投资判断或全市场实时扫描。</p></article>
             <article><span>04</span><h4>不替代人工判断</h4><p>关键专业判断、案例选定与最终发布，始终由人决定。</p></article>
           </div>
-          <ul class="commitment-list"><li>资料不全 · 先不导出</li><li>案例脱敏 · 禁用词校验</li><li>已登记来源 · 文件与页码可回查</li><li>人工确认 · 最终把关</li></ul>
+           <ul class="commitment-list"><li>资料不全 · 缺口降级，不猜金额</li><li>案例脱敏 · 禁用词校验</li><li>已登记来源 · 文件与页码可回查</li><li>人工复核 · 正式采用与导出前把关</li></ul>
         </section>
 
         <section class="editorial-section current-status" aria-labelledby="current-status-heading">
           <header class="section-heading"><span class="section-number">03</span><div><p>CURRENT STATUS</p><h3 id="current-status-heading">当前状态</h3></div></header>
-          <p>当前工程版本 0.7.1：正式入口已采用“证据地平线”V4 设计；案例模板、安全导入、案例隔离来源与 RAG、R1 v0.4 草案、完整分析 / 仅计算双模式、四层状态、补充证据续分析、缓存和 report_v2 已接入。杰克科技公开案例已完成技术导入与 R1 未触发复验，但案例冻结仍待人工签字。R2 仅作辅助规则，R3—R8 只保留路线图。其余人工门槛为 R1 专业签字、合法样例确认、真人复核及 B0—B3 评分；真实模型结果以接口状态和验收记录为准。</p>
+           <p>当前工程版本 0.7.1：正式入口已采用“证据地平线”V4 设计；案例模板、安全导入、案例隔离来源与 RAG、R1 v0.4 草案、公开财报规则级/年度级降级预筛、完整分析 / 仅计算双模式、四层状态、补充证据续分析、缓存和 report_v2 已接入。字段缺口不再阻断首次公开预筛，但正式采用、证据冻结、导出、R1 专业签字、合法样例确认和 B0—B3 评分仍由真人完成。R2 仅作辅助规则，R3—R8 只保留路线图；真实模型结果以接口状态和验收记录为准。</p>
         </section>
 
         <footer class="project-footer">

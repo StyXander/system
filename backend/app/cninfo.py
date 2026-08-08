@@ -148,6 +148,35 @@ def _stock_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return [row for row in rows if isinstance(row, dict)]
 
 
+def _network_error_detail(error: Exception | None, attempts: int) -> dict[str, Any]:
+    """把底层网络异常转换为不泄露本机路径的可操作诊断。"""
+
+    error_type = type(error).__name__ if error is not None else "NetworkError"
+    message = _safe_text(error)
+    # Windows 10013 表示当前服务进程被系统或沙箱拒绝建立外网连接。
+    if "10013" in message or isinstance(error, PermissionError):
+        reason = "network_permission_denied"
+        suggestion = "当前服务进程没有外网访问权限；请关闭该服务后，用项目根目录的启动审迹智链.bat重新启动，再重试任务。"
+    # 域名解析失败应提示检查本机 DNS 或代理，而不是误报巨潮无数据。
+    elif "getaddrinfo" in message.lower() or "name or service not known" in message.lower():
+        reason = "dns_resolution_failed"
+        suggestion = "当前电脑无法解析巨潮域名；请检查 DNS、代理或网络连接后重试。"
+    # 超时保留为可重试故障，不把它解释成企业或年报不存在。
+    elif isinstance(error, (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.PoolTimeout)):
+        reason = "network_timeout"
+        suggestion = "连接巨潮超时；任务历史已保留，可稍后直接重试。"
+    else:
+        # 其他连接异常统一收口，页面仍只展示不含本机路径的安全信息。
+        reason = "official_endpoint_unreachable"
+        suggestion = "当前无法连接巨潮官方接口；请检查网络后重试，系统不会改用非官方来源。"
+    return {
+        "reason": reason,
+        "error_type": error_type,
+        "attempts": attempts,
+        "suggestion": suggestion,
+    }
+
+
 def _company_from_row(row: dict[str, Any], market: str) -> dict[str, Any] | None:
     """把股票清单的一行规范成案例可保存的公司元数据。"""
 
@@ -156,13 +185,17 @@ def _company_from_row(row: dict[str, Any], market: str) -> dict[str, Any] | None
     org_id = _safe_text(row.get("orgId") or row.get("orgID"))
     if not code or not name or not org_id:
         return None
-    column, plate = _column_and_plate(market)
+    # 巨潮目前给沪、深、北市场返回的是同一份统一股票清单。名称查询会先读取
+    # szse_stock.json，不能把“从哪个循环读取”误当成证券所属市场；应以代码
+    # 前缀重新判定，否则 6 开头的沪市公司会被送到深市公告栏目而查不到年报。
+    resolved_market = _market_for_code(code)
+    column, plate = _column_and_plate(resolved_market)
     return {
         "ticker": code,
         "company_name": _safe_text(row.get("zwjcFull") or row.get("fullname") or name),
         "company_alias": name,
         "org_id": org_id,
-        "market": market,
+        "market": resolved_market,
         "column": column,
         "plate": plate,
         "source_mode": "cninfo_official",
@@ -244,7 +277,12 @@ class CNInfoClient:
                 if attempt < self.max_retries:
                     time.sleep(min(8.0, 2.0 ** attempt))
                     continue
-        raise CNInfoError("CNINFO_NETWORK_ERROR", f"巨潮{source}请求失败，已停止重试。") from last_error
+        detail = _network_error_detail(last_error, self.max_retries + 1)
+        raise CNInfoError(
+            "CNINFO_NETWORK_ERROR",
+            f"巨潮{source}请求失败，已停止重试。{detail['suggestion']}",
+            detail=detail,
+        ) from last_error
 
     def resolve_company(self, company_query: str) -> dict[str, Any]:
         """用代码或名称解析唯一公司；名称多匹配时返回人工确认状态。"""
@@ -426,11 +464,15 @@ class CNInfoClient:
             page_count = len(document)
             if page_count < min_pages:
                 raise CNInfoError("PDF_PAGE_COUNT_INVALID", f"PDF 页数过少：{page_count}。")
-            # 只读取前几页做身份校验，完整文本留给后续 RAG 建库处理。
-            sample_text = "\n".join(document[index].get_text("text") for index in range(min(8, page_count)))
+            # 读取文档元数据和前几页做身份校验；完整文本留给后续 RAG 建库处理。
+            # 部分银行/保险 H 股年报封面只保留英文或图片，不能只依赖中文“年度报告”。
+            metadata_text = "\n".join(str(value or "") for value in (document.metadata or {}).values())
+            page_text = "\n".join(document[index].get_text("text") for index in range(min(12, page_count)))
+            sample_text = f"{metadata_text}\n{page_text}"
         finally:
             document.close()
         compact = re.sub(r"\s+", "", sample_text).lower()
+        announcement_title = re.sub(r"\s+", "", str(announcement.get("announcement_title") or "")).lower()
         company_names = {
             _normalize_name(company.get("company_name", "")),
             _normalize_name(company.get("company_alias", "")),
@@ -439,7 +481,11 @@ class CNInfoClient:
         name_hit = any(name and name in compact for name in company_names)
         code_hit = str(company.get("ticker", "")) in compact
         year_hit = f"{announcement['report_year']}年" in compact or str(announcement["report_year"]) in compact
-        annual_hit = "年度报告" in compact
+        annual_content_hit = any(term in compact for term in ("年度报告", "年报", "annualreport"))
+        # H 股公告的 PDF 封面有时是图片或纯英文，正文前 12 页不含“年度报告”。
+        # 此时只有在官方公告标题本身明确为年度报告时才允许通过，并保留该来源依据。
+        official_annual_title_hit = any(term in announcement_title for term in ("年度报告", "年报", "annualreport"))
+        annual_hit = annual_content_hit or official_annual_title_hit
         score = sum((name_hit, code_hit, year_hit, annual_hit))
         if score < 3 or not annual_hit:
             raise CNInfoError(
@@ -458,6 +504,8 @@ class CNInfoClient:
                 "code_hit": code_hit,
                 "year_hit": year_hit,
                 "annual_report_hit": annual_hit,
+                "annual_report_content_hit": annual_content_hit,
+                "annual_report_title_hit": official_annual_title_hit,
                 "text_sample_chars": len(sample_text),
             },
             "ocr_required": len(sample_text.strip()) < 200,

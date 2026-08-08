@@ -81,6 +81,8 @@ import threading
 import time
 import uuid
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import asynccontextmanager
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -108,6 +110,16 @@ from .cases import (
     list_cases,
     resolve_case_document,
 )
+from .industry_gate import build_not_applicable_context, evaluate_industry_gate
+from .catalog import (
+    bootstrap_runtime_catalog,
+    create_refresh_job,
+    list_cache_entries,
+    recover_orphaned_refresh_jobs,
+    refresh_report,
+    resolve_analysis_source,
+    update_refresh_job,
+)
 from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
 from .delivery import build_report, cache_run, replay_cache
 from .rag import get_retrieval, prepare_index, question_set, retrieve, status as rag_status
@@ -115,6 +127,8 @@ from .run_store import load_run, save_human_review, save_run
 from .schemas import (
     AI_GENERATED_CONTENT_NOTICE,
     AgentStep,
+    CachePrewarmRequest,
+    CacheResolveRequest,
     CNInfoCompanyConfirmation,
     CNInfoFieldConfirmation,
     CNInfoPipelineRequest,
@@ -134,6 +148,7 @@ from .pipeline import (
     create_task,
     load_task,
     mark_analysis_failure,
+    prepare_report_years,
     queue_retry,
     run_ingestion,
     update_analysis_result,
@@ -152,7 +167,20 @@ _PUBLIC_MODEL_REQUESTS_BY_IP: dict[str, deque[float]] = {}
 _PUBLIC_MODEL_REQUESTS_GLOBAL: deque[float] = deque()
 _PUBLIC_MODEL_REQUEST_LOCK = threading.Lock()
 
-app = FastAPI(title="审迹智链 AuditTrace API", version=ENGINE_VERSION)
+@asynccontextmanager
+async def app_lifespan(_app: FastAPI):
+    """Make interrupted prewarm work explicit instead of leaving stale progress forever."""
+
+    try:
+        recover_orphaned_refresh_jobs(WORKSPACE_ROOT)
+    except (OSError, ValueError, TypeError):
+        # A catalog problem must not prevent the HTTP service from exposing its
+        # health endpoint; individual cache calls still return a clear 503.
+        pass
+    yield
+
+
+app = FastAPI(title="审迹智链 AuditTrace API", version=ENGINE_VERSION, lifespan=app_lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -658,6 +686,10 @@ def _r2_result(rows: list[dict[str, Any]], source_issues: list[str], min_gap: fl
 
 
 def _screening_overall(results: list[RuleResult]) -> str:
+    if results and all(result.status == "INDUSTRY_UNKNOWN" for result in results):
+        return "INDUSTRY_UNKNOWN"
+    if results and all(result.status == "NOT_APPLICABLE" for result in results):
+        return "NOT_APPLICABLE"
     if any(result.status == "SOURCE_INCOMPLETE" for result in results):
         return "SOURCE_INCOMPLETE"
     if any(result.status == "candidate" for result in results):
@@ -667,6 +699,41 @@ def _screening_overall(results: list[RuleResult]) -> str:
     if any(result.status == "DATA_GAP" for result in results):
         return "DATA_GAP"
     return "RULE_NOT_TRIGGERED"
+
+
+def _industry_not_applicable_result(rule_id: str, gate: dict[str, Any]) -> RuleResult:
+    """行业不适用时返回明确卡片，不把它伪装成资料缺失或无风险。"""
+
+    unknown = gate.get("fit_level") == "unknown"
+    status = "INDUSTRY_UNKNOWN" if unknown else "NOT_APPLICABLE"
+    title = f"{rule_id}待确认行业适配" if unknown else f"{rule_id}当前行业不适用"
+    observation = (
+        "公司行业或报表体系元数据不足，系统没有猜测行业，也没有执行当前数值规则。"
+        if unknown
+        else gate.get("rationale") or "当前工程规则不适合该行业。"
+    )
+    return RuleResult(
+        rule_id=rule_id,
+        status=status,
+        screening_status=status,
+        source_validation={
+            "status": "not_applicable",
+            "issues": [],
+            "review_boundary": "当前行业需要专用规则；本次没有对不适用的 R1/R2 指标作数值判断。",
+        },
+        metrics={},
+        risk_card={
+            "card_type": "industry_gate",
+            "rule_id": rule_id,
+            "title": title,
+            "observation": observation,
+            "data_gaps": [],
+            "requested_materials": ["对应行业专用财务指标、会计政策和风险资料"],
+            "boundary": "规则不适用或行业待确认不等于企业无风险；仍可继续使用公开年报 RAG，并选择行业专用规则。",
+            "industry_gate": gate,
+        },
+        evidence_ids=[],
+    )
 
 
 def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model_id: str) -> ModelCheck:
@@ -820,22 +887,66 @@ def _execute_run(
     )
     rule_results: list[RuleResult] = []
     sources_by_rule: dict[str, list[dict[str, Any]]] = {}
+    industry_gate = context.get("industry_gate") or {}
+    industry_gate_blocked = industry_gate.get("fit_level") in {"not_applicable", "unknown"}
     for rule_id in rule_ids:
         rows = _rule_rows(sources, rule_id)
         sources_by_rule[rule_id] = rows
-        issues = _validate_sources(rows, context["t0"])
-        if rule_id == "R1":
-            result = _r1_result(
-                rows,
-                issues,
-                planned_materiality=planned_materiality,
-                gap_threshold=r1_gap_threshold,
-                strong_gap_threshold=r1_strong_gap_threshold,
-                absolute_threshold=r1_absolute_threshold,
-            )
+        if industry_gate_blocked:
+            result = _industry_not_applicable_result(rule_id, industry_gate)
         else:
-            result = _r2_result(rows, issues, r2_min_gap)
+            issues = _validate_sources(rows, context["t0"])
+            if rule_id == "R1":
+                result = _r1_result(
+                    rows,
+                    issues,
+                    planned_materiality=planned_materiality,
+                    gap_threshold=r1_gap_threshold,
+                    strong_gap_threshold=r1_strong_gap_threshold,
+                    absolute_threshold=r1_absolute_threshold,
+                )
+            else:
+                result = _r2_result(rows, issues, r2_min_gap)
+            if industry_gate.get("fit_level") == "conditional" and result.risk_card is not None:
+                result.risk_card["industry_gate"] = industry_gate
+                result.risk_card["boundary"] = (
+                    f"条件适用行业：{industry_gate.get('rationale', '')} 当前结果只能作为公开预筛，不能替代专用口径复核。"
+                )
         rule_results.append(result)
+
+    prescreen_plan = context.get("prescreen_plan") if context.get("public_prescreen") else None
+    if prescreen_plan:
+        # 把降级范围写入每次运行，使用者能看见“分析了什么、跳过了什么、为什么”。
+        # 分析截止年度和请求年度分开保存，避免使用者把旧年度结果误认为最新年报。
+        # 风险卡只描述待核查事项，不把缺口转换成舞弊或审计意见。
+        prescreen_summary = {
+            "mode": "公开财报快速预筛",
+            "requested_current_year": prescreen_plan.get("requested_current_year"),
+            "analysis_cutoff_year": prescreen_plan.get("analysis_current_year"),
+            "analysis_years": prescreen_plan.get("analysis_years", []),
+            "missing_fields": prescreen_plan.get("missing_fields", []),
+            "skipped_rules": prescreen_plan.get("skipped_rules", []),
+            "rule_plans": prescreen_plan.get("rule_plans", {}),
+            "confidence": prescreen_plan.get("confidence"),
+            "human_review": "正式采用、缓存或导出前复核；不阻断本次公开预筛。",
+        }
+        context["prescreen_summary"] = prescreen_summary
+        for result in rule_results:
+            plan = prescreen_plan.get("rule_plans", {}).get(result.rule_id)
+            if result.risk_card is None and not plan:
+                result.risk_card = {
+                    "card_type": "screening_only",
+                    "rule_id": result.rule_id,
+                    "title": f"{result.rule_id}本次未计算：公开数据不足",
+                    "observation": "系统保留 RAG 和其他可运行规则，未对缺失金额作任何猜测。",
+                    "data_gaps": [item.get("reason", "缺少连续可比字段") for item in prescreen_plan.get("skipped_rules", []) if item.get("rule_id") == result.rule_id],
+                    "requested_materials": ["缺失年度的官方年报字段或可回查的补充资料"],
+                    "boundary": "公开预筛允许降级；正式采用前仍需人工回查证据。",
+                }
+            if result.risk_card is not None and plan and not plan.get("three_year_available"):
+                result.risk_card["trend_limitation"] = "缺少第三个连续年度，未评价三年持续趋势。"
+            if result.risk_card is not None and prescreen_plan.get("missing_fields"):
+                result.risk_card["prescreen_missing_fields"] = prescreen_plan["missing_fields"]
 
     screening_status = _screening_overall(rule_results)
     public_sources = [_public_source(row) for row in sources]
@@ -864,6 +975,20 @@ def _execute_run(
             ]
         model_check = _model_check_from_results(rule_results, enabled=False, model_id=model_id)
         run_completeness = "incomplete_calculation_only"
+    elif all(result.status in {"NOT_APPLICABLE", "INDUSTRY_UNKNOWN"} for result in rule_results):
+        for result in rule_results:
+            result.agent_steps = [
+                AgentStep(
+                    role="challenge",
+                    status="not_applicable",
+                    detail="行业适配闸门已关闭当前规则，未调用模型；请使用行业专用规则或 RAG。",
+                )
+            ]
+        model_check = ModelCheck(status="not_applicable", model_id=model_id, detail="当前规则不适用于该行业或行业信息不足，三Agent未调用。")
+        if industry_gate.get("fit_level") == "unknown":
+            run_completeness = "complete_public_prescreen_industry_unknown" if prescreen_plan else "complete_rule_industry_unknown"
+        else:
+            run_completeness = "complete_public_prescreen_not_applicable" if prescreen_plan else "complete_rule_not_applicable"
     elif not context.get("model_transfer_allowed", False):
         for result in rule_results:
             result.agent_steps = [
@@ -919,10 +1044,16 @@ def _execute_run(
                 result.ai_recommendation = review_step.output.ai_recommendation or review_step.output.status
                 result.ai_draft = review_step.output.model_dump(mode="json")
         model_check = _model_check_from_results(rule_results, enabled=True, model_id=model_id)
-        if not candidate_exists:
-            run_completeness = "complete_full_analysis_no_candidate"
+        partial_prescreen = bool(prescreen_plan and (prescreen_plan.get("missing_fields") or prescreen_plan.get("skipped_rules")))
+        if all(result.status in {"NOT_APPLICABLE", "INDUSTRY_UNKNOWN"} for result in rule_results):
+            if industry_gate.get("fit_level") == "unknown":
+                run_completeness = "complete_public_prescreen_industry_unknown" if prescreen_plan else "complete_rule_industry_unknown"
+            else:
+                run_completeness = "complete_public_prescreen_not_applicable" if prescreen_plan else "complete_rule_not_applicable"
+        elif not candidate_exists:
+            run_completeness = "complete_public_prescreen_no_candidate" if prescreen_plan else "complete_full_analysis_no_candidate"
         elif model_check.status == "model_success":
-            run_completeness = "complete_full_analysis"
+            run_completeness = "complete_public_prescreen_with_gaps" if partial_prescreen else "complete_full_analysis"
         else:
             run_completeness = "incomplete_model_chain_failed"
 
@@ -949,6 +1080,7 @@ def _execute_run(
         "supplement_evidence": supplementary,
         "evidence_gaps": evidence_gaps,
         "rag_error": rag_error,
+        "prescreen_summary": context.get("prescreen_summary"),
     }
     response = RunResponse(
         run_id=run_id,
@@ -1033,7 +1165,7 @@ def get_cases() -> dict[str, Any]:
     return _with_ai_notice({
         "schema_version": "case_list_v1",
         "cases": [_public_case(case) for case in list_cases(WORKSPACE_ROOT)],
-        "boundary": "导入通过只表示结构与安全预检通过；正式第二案例仍须人工冻结。",
+        "boundary": "项目所有者已许可公开案例完整分析；来源快照变化后仍须重新核验。",
     })
 
 
@@ -1077,6 +1209,7 @@ def get_case_detail(case_id: str) -> dict[str, Any]:
     if case is None:
         raise HTTPException(status_code=404, detail="案例未登记。")
     rows = [_public_source(row) for row in get_financial_rows(WORKSPACE_ROOT, normalized)]
+    evidence_confirmed = case.get("evidence_owner_review_status") == "owner_confirmed"
     return _with_ai_notice({
         **_public_case(case),
         "financial_fields": rows,
@@ -1085,7 +1218,11 @@ def get_case_detail(case_id: str) -> dict[str, Any]:
             "field_count": len(rows),
             "years": sorted({row["year"] for row in rows}, reverse=True),
             "human_confirmed_available_years": case.get("human_confirmed_available_years", []),
-            "boundary": "字段已通过结构和来源登记校验；金额口径与专业含义仍待人工复核。",
+            "boundary": (
+                "当前来源快照的字段、页码、披露日期与哈希已由项目所有者核验。"
+                if evidence_confirmed
+                else "字段已通过结构和来源登记校验；金额口径与专业含义仍待人工复核。"
+            ),
         },
     })
 
@@ -1147,30 +1284,33 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
     case = get_case(WORKSPACE_ROOT, request.case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="案例未登记。")
-    cninfo_readiness_issues = get_cninfo_field_readiness(
-        WORKSPACE_ROOT,
-        request.case_id,
-        request.rule_ids,
-        request.current_year,
-    )
-    if cninfo_readiness_issues:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "CNINFO_FIELDS_PENDING_HUMAN_CONFIRMATION",
-                "message": "巨潮自动字段必须经过真人确认后才能进入规则计算。",
-                "issues": cninfo_readiness_issues,
-            },
+    company = {
+        key: case.get(key)
+        for key in ("ticker", "company_name", "company_alias", "org_id", "market", "source_mode")
+        if case.get(key) is not None
+    }
+    gate = evaluate_industry_gate(company=company, case=case, rule_ids=request.rule_ids)
+    # 金融行业等不适用规则不要求先伪造一组 R1 字段；仍然生成有来源时点的 RAG/闸门运行记录。
+    if gate["fit_level"] in {"not_applicable", "unknown"}:
+        context = build_not_applicable_context(
+            case=case,
+            current_year=request.current_year,
+            rule_ids=request.rule_ids,
+            gate=gate,
         )
-    try:
-        context, sources = get_period_sources(
-            WORKSPACE_ROOT,
-            request.case_id,
-            request.current_year,
-            tuple(request.rule_ids),
-        )
-    except KeyError as error:
-        raise HTTPException(status_code=422, detail="当前案例没有该年度所需的连续字段。") from error
+        sources = []
+    else:
+        # 公开财报预筛不把逐字段人工确认作为前置门槛；正式缓存和报告导出仍由 delivery 层要求真人复核。
+        try:
+            context, sources = get_period_sources(
+                WORKSPACE_ROOT,
+                request.case_id,
+                request.current_year,
+                tuple(request.rule_ids),
+            )
+        except KeyError as error:
+            raise HTTPException(status_code=422, detail="当前案例没有该年度所需的连续字段。") from error
+        context["industry_gate"] = gate
     return _execute_run(
         context=context,
         sources=sources,
@@ -1190,26 +1330,45 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
 def _execute_cninfo_task(task_id: str, payload: dict[str, Any], http_request: Request) -> None:
     """后台执行巨潮导入；完整分析仍复用现有 /api/runs 主链和保存逻辑。"""
 
+    job_id = payload.get("cache_job_id")
+    if job_id:
+        update_refresh_job(WORKSPACE_ROOT, str(job_id), status="running", reason={"message": "任务正在执行。"})
     # 后台任务先独立完成来源与 RAG，再决定是否进入已有规则分析入口。
     # 这样公开数据导入失败时不会生成一条内容不完整的分析运行记录。
     result = run_ingestion(WORKSPACE_ROOT, task_id)
     if result.get("status") != "ready_for_analysis":
+        if job_id:
+            error = result.get("error") or {}
+            completed_rag = result.get("status") == "rag_ready"
+            update_refresh_job(
+                WORKSPACE_ROOT,
+                str(job_id),
+                status="completed" if completed_rag else str(result.get("status") or "failed"),
+                reason={
+                    "message": "RAG预热完成。" if completed_rag else error.get("message") or "公开年报任务未形成可分析结果。",
+                    "error_code": error.get("code"),
+                    "result_status": result.get("status"),
+                    "industry_fit_level": (result.get("industry_gate") or {}).get("fit_level"),
+                    "field_extraction_status": (result.get("field_extraction") or {}).get("status"),
+                    "field_gap_count": len((result.get("field_extraction") or {}).get("issues") or []),
+                },
+            )
         return
     task = load_task(WORKSPACE_ROOT, task_id)
     case_id = str((task or {}).get("case_id") or result.get("case_id") or "")
     case = get_case(WORKSPACE_ROOT, case_id)
-    if case is None or not case.get("available_years"):
+    if case is None:
         mark_analysis_failure(
             WORKSPACE_ROOT,
             task_id,
-            ValueError("字段技术校验通过后仍没有可运行的连续年度。"),
+            ValueError("巨潮案例登记后不存在可读取的案例记录。"),
         )
         return
     try:
         # 当前分析统一走 run_rules，保证规则、日志和模型开关只有一套实现。
         from .pipeline import _set_status, _set_step  # 局部导入避免把状态机 API 暴露到常规路由。
 
-        current_year = max(case["available_years"])
+        current_year = max(case.get("available_years") or case.get("available_report_years") or [0])
         _set_status(WORKSPACE_ROOT, task or {}, "analyzing")
         if task is not None:
             _set_step(WORKSPACE_ROOT, task, "analysis_run", "running", "正在调用现有 /api/runs 分析主链。")
@@ -1222,8 +1381,59 @@ def _execute_cninfo_task(task_id: str, payload: dict[str, Any], http_request: Re
         )
         run_response = run_rules(run_request, http_request)
         update_analysis_result(WORKSPACE_ROOT, task_id, run_response.model_dump(mode="json"))
+        if job_id:
+            summary = {
+                "message": "预热任务完成。",
+                "result_status": run_response.status,
+                "industry_fit_level": (run_response.context.get("industry_gate") or {}).get("fit_level"),
+                "field_extraction_status": (result.get("field_extraction") or {}).get("status"),
+                "field_gap_count": len((result.get("field_extraction") or {}).get("issues") or [])
+                + len((run_response.context.get("prescreen_summary") or {}).get("missing_fields") or []),
+                "run_id": run_response.run_id,
+            }
+            update_refresh_job(WORKSPACE_ROOT, str(job_id), status="completed", reason=summary)
     except Exception as error:
         mark_analysis_failure(WORKSPACE_ROOT, task_id, error)
+        if job_id:
+            update_refresh_job(
+                WORKSPACE_ROOT,
+                str(job_id),
+                status="failed",
+                reason={"message": f"分析阶段失败：{type(error).__name__}。", "error_code": "ANALYSIS_FAILED"},
+            )
+
+
+def _execute_cninfo_batch(
+    task_specs: list[tuple[str, dict[str, Any]]],
+    http_request: Request,
+) -> None:
+    """Run a prewarm batch with bounded concurrency and per-company isolation."""
+
+    if not task_specs:
+        return
+    # Two workers keep CNINFO traffic bounded while preventing one large PDF from
+    # serially blocking every other company in the administrator's batch.
+    max_workers = min(2, len(task_specs))
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="cninfo-prewarm") as executor:
+        futures = {
+            executor.submit(_execute_cninfo_task, task_id, payload, http_request): (task_id, payload)
+            for task_id, payload in task_specs
+        }
+        for future in as_completed(futures):
+            task_id, payload = futures[future]
+            try:
+                future.result()
+            except Exception as error:
+                # A worker-level exception must close only its own job; other
+                # companies continue and the batch report remains truthful.
+                mark_analysis_failure(WORKSPACE_ROOT, task_id, error)
+                if payload.get("cache_job_id"):
+                    update_refresh_job(
+                        WORKSPACE_ROOT,
+                        str(payload["cache_job_id"]),
+                        status="failed",
+                        reason={"message": f"后台任务异常：{type(error).__name__}。", "error_code": "WORKER_FAILED"},
+                    )
 
 
 @app.post("/api/pipelines/cninfo", status_code=202)
@@ -1333,6 +1543,212 @@ def create_run_cache(run_id: str) -> dict[str, Any]:
         return _with_ai_notice(cache_run(WORKSPACE_ROOT, stored))
     except ValueError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.get("/api/cache/status")
+def get_catalog_status(company_query: str | None = None) -> dict[str, Any]:
+    """读取公开年报热缓存目录，不触发搜索、下载或模型调用。"""
+
+    try:
+        synced = bootstrap_runtime_catalog(WORKSPACE_ROOT)
+        entries = list_cache_entries(WORKSPACE_ROOT, company_query=company_query)
+    except (OSError, ValueError, TypeError) as error:
+        raise HTTPException(status_code=503, detail="热缓存目录暂时不可用。") from error
+    return _with_ai_notice(
+        {
+            "schema_version": "catalog_status_v1",
+            "bootstrap_synced": synced,
+            "count": len(entries),
+            "entries": entries,
+            "storage_boundary": "SQLite只保存元数据、结构化字段、证据定位和RAG指纹；PDF与索引仍按案例目录保存。",
+            "cache_boundary": "缓存命中只代表复用已校验公开来源，不代表最新公告已自动确认；需要最新数据时使用force_refresh。",
+        }
+    )
+
+
+@app.post("/api/cache/resolve")
+def resolve_catalog_cache(request: CacheResolveRequest) -> dict[str, Any]:
+    """按证券代码或名称查询可直接复用的公开年报快照。"""
+
+    try:
+        synced = bootstrap_runtime_catalog(WORKSPACE_ROOT)
+        years = prepare_report_years(request.latest_year, request.years)
+        resolution = resolve_analysis_source(
+            WORKSPACE_ROOT,
+            request.company_query,
+            years,
+            cache_policy=request.cache_policy,
+        )
+        match = resolution.get("match")
+        resolution_reason = str(resolution.get("reason") or "snapshot_not_found_or_incomplete")
+    except (OSError, ValueError, TypeError) as error:
+        raise HTTPException(status_code=503, detail="热缓存目录暂时不可用。") from error
+    return _with_ai_notice(
+        {
+            "schema_version": "catalog_resolve_v1",
+            "company_query": request.company_query,
+            "requested_years": years,
+            "cache_hit": bool(match),
+            "match": match,
+            "bootstrap_synced": synced,
+            "cache_policy": request.cache_policy,
+            "reason": resolution_reason,
+            "stale_match": resolution.get("stale_match"),
+            "next_step": "直接读取案例字段与RAG并进入规则分析。" if match else "未命中；继续执行巨潮搜索、下载、校验和建库。",
+        }
+    )
+
+
+@app.post("/api/cache/prewarm", status_code=202)
+def prewarm_catalog(
+    request: CachePrewarmRequest,
+    background_tasks: BackgroundTasks,
+    http_request: Request,
+) -> dict[str, Any]:
+    """为最多 50 家常用企业排队建立公开年报热缓存。"""
+
+    batch_id = f"CACHE-BATCH-{uuid.uuid4().hex[:12].upper()}"
+    requested_years = prepare_report_years(request.latest_year, request.years)
+    tasks: list[dict[str, Any]] = []
+    cache_policy = "force_refresh" if request.force_refresh else "prefer_cache"
+    task_specs: list[tuple[str, dict[str, Any]]] = []
+    for index, company_query in enumerate(request.companies, start=1):
+        job_id = f"CACHE-JOB-{batch_id[-12:]}-{index:02d}"
+        payload = {
+            "company_query": company_query,
+            "years": request.years,
+            "latest_year": request.latest_year,
+            "analysis_mode": request.analysis_mode,
+            "rule_ids": request.rule_ids,
+            "force_refresh": request.force_refresh,
+            "cache_policy": cache_policy,
+            "planned_materiality": None,
+            "cache_batch_id": batch_id,
+            "cache_job_id": job_id,
+        }
+        task = create_task(WORKSPACE_ROOT, payload)
+        create_refresh_job(
+            WORKSPACE_ROOT,
+            job_id=job_id,
+            batch_id=batch_id,
+            task_id=task["task_id"],
+            ticker=company_query,
+            requested_years=requested_years,
+        )
+        task_specs.append((task["task_id"], payload))
+        tasks.append({"task_id": task["task_id"], "company_query": company_query, "status": task["status"]})
+    background_tasks.add_task(_execute_cninfo_batch, task_specs, http_request)
+    return _with_ai_notice(
+        {
+            "schema_version": "catalog_prewarm_v1",
+            "batch_id": batch_id,
+            "requested_years": requested_years,
+            "queued_count": len(tasks),
+            "tasks": tasks,
+            "analysis_mode": request.analysis_mode,
+            "boundary": "每家公司仍执行官方股票清单确认、全文选择、PDF校验和RAG建库；批量接口不会绕过来源闸门。",
+        }
+    )
+
+
+@app.get("/api/cache/prewarm/{batch_id}")
+def get_prewarm_report(batch_id: str) -> dict[str, Any]:
+    """读取批量预热报告，不重新执行任务。"""
+
+    report = refresh_report(WORKSPACE_ROOT, batch_id.strip().upper())
+    if not report["items"]:
+        raise HTTPException(status_code=404, detail="未找到该批量预热批次。")
+    return _with_ai_notice(report)
+
+
+@app.get("/api/cache/companies/{ticker}")
+def get_cached_company(ticker: str) -> dict[str, Any]:
+    """读取单家企业的热缓存状态和快照版本。"""
+
+    try:
+        bootstrap_runtime_catalog(WORKSPACE_ROOT)
+        entries = list_cache_entries(WORKSPACE_ROOT, company_query=ticker.strip())
+    except (OSError, ValueError, TypeError) as error:
+        raise HTTPException(status_code=503, detail="热缓存目录暂时不可用。") from error
+    exact = next((entry for entry in entries if str(entry.get("ticker")) == ticker.strip()), None)
+    if exact is None:
+        raise HTTPException(status_code=404, detail="该证券代码尚未进入热缓存目录。")
+    return _with_ai_notice({"schema_version": "catalog_company_v1", "cache_hit": True, "entry": exact})
+
+
+@app.post("/api/cache/refresh/{ticker}", status_code=202)
+def refresh_cached_company(
+    ticker: str,
+    background_tasks: BackgroundTasks,
+    http_request: Request,
+    years: int = 3,
+    latest_year: int | None = None,
+) -> dict[str, Any]:
+    """按证券代码强制刷新一家企业的公开年报缓存。"""
+
+    if years < 2 or years > 5:
+        raise HTTPException(status_code=422, detail="years 必须在 2 到 5 之间。")
+    batch_id = f"CACHE-BATCH-{uuid.uuid4().hex[:12].upper()}"
+    job_id = f"CACHE-JOB-{batch_id[-12:]}-01"
+    requested_years = prepare_report_years(latest_year, years)
+    payload = {
+        "company_query": ticker.strip(),
+        "years": years,
+        "latest_year": latest_year,
+        "analysis_mode": "rag_only",
+        "rule_ids": ["R1"],
+        "force_refresh": True,
+        "cache_policy": "force_refresh",
+        "planned_materiality": None,
+        "cache_batch_id": batch_id,
+        "cache_job_id": job_id,
+    }
+    task = create_task(WORKSPACE_ROOT, payload)
+    create_refresh_job(
+        WORKSPACE_ROOT,
+        job_id=job_id,
+        batch_id=batch_id,
+        task_id=task["task_id"],
+        ticker=ticker.strip(),
+        requested_years=requested_years,
+    )
+    background_tasks.add_task(_execute_cninfo_task, task["task_id"], payload, http_request)
+    return _with_ai_notice(
+        {
+            "schema_version": "catalog_refresh_v1",
+            "task_id": task["task_id"],
+            "batch_id": batch_id,
+            "ticker": ticker.strip(),
+            "status": task["status"],
+            "boundary": "刷新仍需重新确认巨潮官方股票清单、年报全文、哈希和RAG指纹。",
+        }
+    )
+
+
+@app.get("/api/industry-gates/{case_id}")
+def get_industry_gate(case_id: str) -> dict[str, Any]:
+    """读取当前案例在现行闸门版本下的确定性适配结果。"""
+
+    case = get_case(WORKSPACE_ROOT, case_id.upper())
+    if case is None:
+        raise HTTPException(status_code=404, detail="案例未登记。")
+    company = {
+        key: case.get(key)
+        for key in (
+            "ticker",
+            "company_name",
+            "company_alias",
+            "org_id",
+            "market",
+            "source_mode",
+            "industry",
+            "industry_name",
+            "reporting_profile",
+        )
+        if case.get(key) is not None
+    }
+    gate = evaluate_industry_gate(company=company, case=case, rule_ids=["R1", "R2"])
+    return _with_ai_notice({"schema_version": "industry_gate_v1", "case_id": case["case_id"], "industry_gate": gate})
 
 
 @app.post("/api/cache/{cache_id}/replay", response_model=RunResponse)

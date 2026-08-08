@@ -3,7 +3,7 @@
 字段提取只读取已经通过来源校验的 PDF，不访问任意本机文件。
 程序先按财务报表关键词定位页面，再从同一行附近提取候选数字。
 候选数字必须保留文档编号、报告年度、PDF 页码、单位、口径和原文窗口。
-模块不声称自动提取就是专业确认；不确定时返回 needs_human 并停止完整分析。
+模块不声称自动提取就是专业确认；公开预筛会返回明确缺口并按可比期间降级，正式采用与导出前仍需真人复核。
 """
 
 from __future__ import annotations
@@ -26,7 +26,9 @@ FIELD_CONFIG: dict[str, dict[str, Any]] = {
     "accounts_receivable": {
         "terms": ["应收账款"],
         "hints": ["资产及负债状况", "资产负债表", "按欠款方归集"],
-        "basis": "gross",
+        # 自动候选优先读取合并资产负债表列示额；该金额通常已扣除减值准备，
+        # 因此必须标为 net，不能把报表列示额冒充应收账款账面余额。
+        "basis": "net",
     },
     "operating_cash_flow": {
         "terms": ["经营活动产生的现金流量净额", "经营活动现金流量净额"],
@@ -41,9 +43,14 @@ FIELD_CONFIG: dict[str, dict[str, Any]] = {
 }
 # 数字解析只服务于候选生成，任何候选都必须带原文窗口和 PDF 页码。
 NUMBER_PATTERN = re.compile(r"(?<![\d.])[-−]?(?:\(?\d[\d,]*(?:\.\d+)?\)?)(?![\d.])")
-UNIT_PATTERN = re.compile(r"单位\s*[:：]\s*(元|千元|万元|百万元)")
+# 兼容“单位：百万元”“单位：人民币百万元”和“人民币百万元”等常见表头。
+# 仍然只接受明确写出的金额单位，不根据企业规模或数值大小猜单位。
+UNIT_PATTERN = re.compile(r"(?:单位\s*[:：]?\s*(?:人民币)?|人民币\s*)(百万元|万元|千元|元)")
 UNIT_MULTIPLIER = {"元": 1.0, "千元": 1_000.0, "万元": 10_000.0, "百万元": 1_000_000.0}
-NOTE_REFERENCE_PATTERN = re.compile(r"^[一二三四五六七八九十百千万]+[、.．]\d{1,3}$")
+# 附注编号可能写成“七、5”，也可能写成“（六）4”；都不能当成金额。
+NOTE_REFERENCE_PATTERN = re.compile(
+    r"^(?:[一二三四五六七八九十百千万]+[、.．]\d{1,3}|[（(][一二三四五六七八九十百千万]+[）)]\d{1,3})$"
+)
 
 
 def _number(raw: str) -> float | None:
@@ -243,7 +250,8 @@ def extract_cninfo_fields(
                 issue = f"{year}年{kind}字段未形成可回查候选。"
                 if issue not in issues:
                     issues.append(issue)
-    status = "passed_technical_pending_human" if not issues else "needs_human"
+    # 公开预筛允许带着明确缺口继续运行；人工确认保留为正式采用/导出前的推荐动作。
+    status = "passed_technical_pending_human" if not issues else "passed_technical_with_gaps"
     if not rows:
         status = "failed"
     case = update_cninfo_financial_fields(
@@ -263,5 +271,7 @@ def extract_cninfo_fields(
         "issues": issues,
         "optional_missing": optional_missing,
         "available_years": case.get("available_years", []),
-        "human_review_required": True,
+        "human_review_required": False,
+        "human_review_recommended": bool(rows),
+        "formal_adoption_requires_human_review": True,
     }

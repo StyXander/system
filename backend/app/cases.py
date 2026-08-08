@@ -42,7 +42,7 @@ R1 至少需要连续两个年度的营业收入和应收账款主字段。
 信用政策未取得时必须保持未验证，不因行业相同而自动补齐。
 案例包的增强证据进入运行证据包，但不会改写原始报表数字。
 增强证据关闭同名资料缺口时仍保留人工专业复核状态。
-标准案例模板默认禁止模型传输，避免合成资料误入外部模型。
+标准案例模板本身默认禁止模型传输；项目级真实许可只对公开案例生效。
 公开案例可以声明允许模型传输，但真实调用仍受运行模式控制。
 模型传输许可属于案例级属性，不由前端复选框临时绕过。
 案例来源存储按案例编号隔离，跨案例文档引用必须返回未登记。
@@ -87,6 +87,61 @@ from openpyxl import load_workbook
 
 from . import data as standard_data
 from .schemas import AI_GENERATED_CONTENT_NOTICE
+
+
+PROJECT_AUTHORIZATION_FILE = "PROJECT_AUTHORIZATION.json"
+
+
+def _apply_project_authorization(workspace_root: Path, case: dict[str, Any]) -> dict[str, Any]:
+    """把项目所有者的公开数据许可叠加到案例，并保留来源快照边界。"""
+
+    # 许可文件属于项目配置；测试临时目录或未配置部署继续保持原来的失败关闭状态。
+    path = workspace_root / PROJECT_AUTHORIZATION_FILE
+    if not path.is_file() or case.get("sample_type") != "public":
+        return case
+    try:
+        authorization = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return case
+    policies = authorization.get("policies") or {}
+    if authorization.get("status") != "confirmed" or not policies.get("public_source_model_transfer_allowed"):
+        return case
+
+    authorized = deepcopy(case)
+    confirmation = {
+        "confirmed_by": str(authorization.get("confirmed_by") or "项目所有者（用户）"),
+        "confirmed_on": str(authorization.get("confirmed_on") or ""),
+        "permission_basis": str(authorization.get("permission_basis") or ""),
+        "model_provider": str(authorization.get("model_provider") or "已配置模型供应商"),
+        "transmission_scope": str(authorization.get("transmission_scope") or "最小必要证据片段"),
+        "approval_reference": str(authorization.get("authorization_id") or "PROJECT-OWNER-AUTH"),
+    }
+    authorized["model_transfer_allowed"] = True
+    authorized["model_transfer_confirmation"] = confirmation
+    authorized["legal_sample_confirmation_status"] = "project_owner_authorized_public_source"
+    authorized["project_owner_authorization"] = {
+        "status": "confirmed",
+        "authorization_id": confirmation["approval_reference"],
+        "confirmed_by": confirmation["confirmed_by"],
+        "confirmed_on": confirmation["confirmed_on"],
+        "scope": confirmation["transmission_scope"],
+    }
+
+    # 证据确认只在案例编号、来源快照以及可选的案例包哈希全部一致时生效。
+    for record in authorization.get("evidence_confirmations") or []:
+        if record.get("case_id") != authorized.get("case_id"):
+            continue
+        if record.get("source_snapshot_id") != authorized.get("source_snapshot_id"):
+            continue
+        expected_package_hash = str(record.get("package_sha256") or "").upper()
+        actual_package_hash = str(authorized.get("package_sha256") or "").upper()
+        if expected_package_hash and expected_package_hash != actual_package_hash:
+            continue
+        authorized["evidence_owner_review_status"] = "owner_confirmed"
+        authorized["evidence_owner_confirmation"] = deepcopy(record)
+        authorized["source_review_status"] = "owner_confirmed_registered_public_evidence"
+        break
+    return authorized
 
 
 CASE_SCHEMA_VERSION = "case_manifest_v1"
@@ -150,6 +205,56 @@ def _case_dir(workspace_root: Path, case_id: str) -> Path:
     if not CASE_ID_PATTERN.fullmatch(case_id):
         raise ValueError("案例编号只允许 3—40 位大写字母、数字、下划线或连字符。")
     return _cases_dir(workspace_root) / case_id
+
+
+def _pdf_content_store_dir(workspace_root: Path) -> Path:
+    """Return the content-addressed PDF store shared by automatic cases."""
+
+    path = _runtime_base(workspace_root) / "pdf_store"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _runtime_quota_bytes() -> int:
+    try:
+        quota_mb = int(os.environ.get("AUDITTRACE_RUNTIME_QUOTA_MB", "5120"))
+    except ValueError:
+        quota_mb = 5120
+    return max(256, min(quota_mb, 102400)) * 1024 * 1024
+
+
+def _runtime_size_bytes(workspace_root: Path) -> int:
+    total = 0
+    runtime = _runtime_base(workspace_root)
+    if not runtime.exists():
+        return 0
+    for path in runtime.rglob("*"):
+        if path.is_file():
+            try:
+                total += path.stat().st_size
+            except OSError:
+                continue
+    return total
+
+
+def _ensure_content_addressed_pdf(workspace_root: Path, sha256: str, content: bytes) -> Path:
+    """Write one immutable PDF blob and return its shared path.
+
+    Case directories receive a hard link to this blob, so repeated official
+    reports consume one physical copy while keeping case-local paths stable.
+    """
+
+    blob = _pdf_content_store_dir(workspace_root) / f"{sha256.upper()}.pdf"
+    if blob.is_file():
+        if _sha256_bytes(blob.read_bytes()) != sha256.upper():
+            raise ValueError("内容寻址 PDF 已存在但 SHA-256 不一致。")
+        return blob
+    if _runtime_size_bytes(workspace_root) + len(content) > _runtime_quota_bytes():
+        raise ValueError(
+            "运行目录已达到 PDF 缓存配额，请清理可恢复的临时运行记录或提高 AUDITTRACE_RUNTIME_QUOTA_MB。"
+        )
+    blob.write_bytes(content)
+    return blob
 
 
 def _sha256_bytes(content: bytes) -> str:
@@ -574,7 +679,7 @@ def _standard_case(workspace_root: Path) -> dict[str, Any]:
                 "sha256": evidence["file_sha256"],
             },
         )
-    return {
+    case = {
         "schema_version": CASE_SCHEMA_VERSION,
         "case_id": standard_data.CASE_ID,
         "company_name": standard_data.CASE_NAME,
@@ -585,8 +690,7 @@ def _standard_case(workspace_root: Path) -> dict[str, Any]:
         "amount_unit": "元",
         "statement_scope": "合并",
         "sample_type": "public",
-        # 标准股份仍是待真人确认的开发案例。公开披露不自动等于允许把原文
-        # 传给外部模型或无限期保存，因此默认关闭模型链，待真实许可记录后再开。
+        # 内置清单保持失败关闭默认值；项目根目录的实名许可记录可在读取时解锁。
         "model_transfer_allowed": False,
         "retention_expires_at": "2026-12-31",
         "legal_sample_confirmation_status": "pending_human_confirmation",
@@ -597,6 +701,7 @@ def _standard_case(workspace_root: Path) -> dict[str, Any]:
         "three_year_r1_ready": True,
         "registry_mode": "built_in",
     }
+    return _apply_project_authorization(workspace_root, case)
 
 
 def get_case(workspace_root: Path, case_id: str) -> dict[str, Any] | None:
@@ -607,7 +712,7 @@ def get_case(workspace_root: Path, case_id: str) -> dict[str, Any] | None:
     path = _case_dir(workspace_root, case_id) / "case.json"
     if not path.is_file():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return _apply_project_authorization(workspace_root, json.loads(path.read_text(encoding="utf-8")))
 
 
 def list_cases(workspace_root: Path) -> list[dict[str, Any]]:
@@ -617,7 +722,7 @@ def list_cases(workspace_root: Path) -> list[dict[str, Any]]:
             case = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        cases.append(case)
+        cases.append(_apply_project_authorization(workspace_root, case))
     return cases
 
 
@@ -789,6 +894,9 @@ def register_cninfo_case(
                 "source_file": file_name,
                 "original_source_file": str(item.get("source_file") or file_name)[:160],
                 "storage_relpath": f"backend/runtime/cases/{case_id}/documents/{file_name}",
+                "content_store_relpath": (
+                    _pdf_content_store_dir(workspace_root) / f"{actual_hash.upper()}.pdf"
+                ).relative_to(workspace_root).as_posix(),
                 "document_type": "annual_report",
                 "report_year": report_year,
                 "disclosure_date": disclosure_date,
@@ -845,7 +953,13 @@ def register_cninfo_case(
             normalized_documents,
         ):
             destination = documents_dir / normalized["source_file"]
-            destination.write_bytes(item["content"])
+            shared_blob = _ensure_content_addressed_pdf(workspace_root, normalized["sha256"], item["content"])
+            try:
+                os.link(shared_blob, destination)
+            except FileExistsError:
+                pass
+            except OSError as error:
+                raise ValueError("当前文件系统不支持 PDF 内容寻址硬链接，已停止写入以避免重复存储。") from error
         disclosure_dates = [item["disclosure_date"] for item in normalized_documents]
         # 以下元数据明确标出公开来源、待人工确认和模型传输关闭状态。
         case = {
@@ -999,12 +1113,15 @@ def update_cninfo_financial_fields(
                 "human_review_history": human_review_history,
             }
         )
-    # 连续年度由必需字段的交集决定，不用单个字段的最长年度误判完整性。
+    # R1 的可用年度必须同时有营业收入和应收账款，不能用单个字段的最长年度误判完整性。
     complete_years = sorted(
         {
-            row["year"]
-            for row in normalized
-            if row["field_kind"] in {"revenue", "accounts_receivable"}
+            year
+            for year in {row["year"] for row in normalized}
+            if all(
+                any(row["field_kind"] == kind and row["year"] == year for row in normalized)
+                for kind in ("revenue", "accounts_receivable")
+            )
         },
         reverse=True,
     )
@@ -1288,6 +1405,96 @@ def _select(rows: Iterable[dict[str, Any]], kind: str, year: int) -> dict[str, A
     return next((deepcopy(row) for row in rows if row["field_kind"] == kind and row["year"] == year), None)
 
 
+def _technical_complete_years(rows: list[dict[str, Any]], kinds: tuple[str, ...]) -> list[int]:
+    """返回同时具备指定字段候选的年度；不要求真人确认，供公开预筛选年。"""
+
+    # 这里读取的是技术候选，不读取真人决定，避免预筛被人工按钮状态卡住。
+    # 每个年度必须同时具备规则所需字段，不能用单个字段拼出伪完整年度。
+    years = {int(row["year"]) for row in rows if row.get("field_kind") in kinds}
+    return sorted(
+        [year for year in years if all(_select(rows, kind, year) is not None for kind in kinds)],
+        reverse=True,
+    )
+
+
+def get_cninfo_prescreen_plan(
+    workspace_root: Path,
+    case_id: str,
+    requested_current_year: int,
+    rule_ids: Iterable[str] = ("R1",),
+) -> dict[str, Any]:
+    """为公开财报预筛选择最近可比期间，并记录可运行与缺失规则。"""
+
+    # 公开预筛优先保证审计师先看到结果，再把证据缺口放进结果摘要。
+    # 选择年度时只使用真实候选，不对缺失金额、单位或口径作推断。
+    case = get_case(workspace_root, case_id)
+    if case is None:
+        raise KeyError(case_id)
+    rows = get_financial_rows(workspace_root, case_id)
+    report_years = sorted(
+        {int(item.get("report_year")) for item in case.get("documents", []) if item.get("report_year") is not None},
+        reverse=True,
+    )
+    requested = tuple(dict.fromkeys(str(rule_id) for rule_id in rule_ids))
+    required_by_rule = {
+        "R1": ("revenue", "accounts_receivable"),
+        "R2": ("revenue", "operating_cash_flow"),
+    }
+    plans: dict[str, dict[str, Any]] = {}
+    skipped: list[dict[str, Any]] = []
+    missing_fields: list[str] = []
+    for rule_id in requested:
+        kinds = required_by_rule.get(rule_id, ())
+        complete_years = _technical_complete_years(rows, kinds)
+        pair_years = [year for year in complete_years if year - 1 in complete_years]
+        eligible = [year for year in pair_years if year <= requested_current_year]
+        selected = max(eligible or pair_years, default=None)
+        if selected is None:
+            skipped.append(
+                {
+                    "rule_id": rule_id,
+                    "reason": "没有连续两年完整字段，无法进行同比计算。",
+                    "required_fields": list(kinds),
+                }
+            )
+        else:
+            prior_year = selected - 2
+            plans[rule_id] = {
+                "status": "ready",
+                "current_year": selected,
+                "previous_year": selected - 1,
+                "prior_year": prior_year if prior_year in complete_years else None,
+                "complete_years": complete_years,
+                "three_year_available": prior_year in complete_years,
+            }
+        # 对本次下载的每个报告年度登记缺口，让用户知道哪一年不能参与趋势比较。
+        # 缺口清单同时服务网页展示、资料索取和后续补充证据续分析。
+        for year in report_years:
+            if year > requested_current_year:
+                continue
+            for kind in kinds:
+                if _select(rows, kind, year) is None:
+                    missing_fields.append(f"{year}年{kind}")
+
+    primary_rule = "R1" if "R1" in plans else next(iter(plans), None)
+    selected_plan = plans.get(primary_rule or "")
+    selected_year = selected_plan["current_year"] if selected_plan else requested_current_year
+    return {
+        "mode": "public_prescreen",
+        "requested_current_year": requested_current_year,
+        "analysis_current_year": selected_year,
+        "analysis_previous_year": selected_year - 1,
+        "analysis_years": [selected_year, selected_year - 1],
+        "rule_plans": plans,
+        "skipped_rules": skipped,
+        "missing_fields": list(dict.fromkeys(missing_fields)),
+        "has_calculable_rule": bool(plans),
+        "source_candidate_count": len(rows),
+        "human_confirmation": "recommended_before_formal_adoption_or_export",
+        "confidence": "technical_candidate_pending_optional_human_confirmation" if rows else "insufficient_data",
+    }
+
+
 def get_period_sources(
     workspace_root: Path,
     case_id: str,
@@ -1297,9 +1504,14 @@ def get_period_sources(
     case = get_case(workspace_root, case_id)
     if case is None:
         raise KeyError(case_id)
-    if current_year not in case["available_years"]:
-        raise KeyError(current_year)
     rows = get_financial_rows(workspace_root, case_id)
+    requested_current_year = current_year
+    prescreen_plan = None
+    if case.get("registry_mode") == "cninfo_official_auto":
+        prescreen_plan = get_cninfo_prescreen_plan(workspace_root, case_id, current_year, rule_ids)
+        current_year = int(prescreen_plan["analysis_current_year"])
+    elif current_year not in case["available_years"]:
+        raise KeyError(current_year)
     previous_year = current_year - 1
     prior_year = current_year - 2
     requested: list[tuple[str, str, str, int]] = []
@@ -1353,6 +1565,9 @@ def get_period_sources(
                 "net_profit",
             }:
                 continue
+            # 公开预筛允许规则返回 DATA_GAP；不能因为某一字段缺失而阻断其他规则和 RAG。
+            if prescreen_plan is not None:
+                continue
             raise KeyError(f"{kind}/{year}")
         source.update({"field_id": field_id, "field_label": label})
         sources.append(source)
@@ -1374,6 +1589,10 @@ def get_period_sources(
         "source_snapshot_id": case["source_snapshot_id"],
         "source_review_status": case["source_review_status"],
         "three_year_r1_ready": case["three_year_r1_ready"],
+        "requested_current_year": requested_current_year,
+        "analysis_cutoff_year": current_year,
+        "public_prescreen": prescreen_plan is not None,
+        "prescreen_plan": prescreen_plan,
         "case_evidence_count": len(case.get("structured_evidence", [])),
         "case_material_gaps": deepcopy(case.get("material_gaps", [])),
     }

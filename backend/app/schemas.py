@@ -15,6 +15,7 @@ RuleId = Literal["R1", "R2"]
 AgentRole = Literal["challenge", "counter", "review"]
 RunMode = Literal["full_analysis", "calculation_only"]
 PipelineAnalysisMode = Literal["rag_only", "full_analysis"]
+CachePolicy = Literal["prefer_cache", "refresh_if_stale", "force_refresh"]
 SupportStatus = Literal["supported", "unverified_hypothesis"]
 
 
@@ -199,17 +200,18 @@ class RagRetrieveRequest(BaseModel):
 
 
 class CNInfoPipelineRequest(BaseModel):
-    """从巨潮资讯网创建新企业导入任务；默认只做本地 RAG，不自动开放模型传输。"""
+    """从巨潮资讯网创建新企业公开预筛任务；默认继续规则、RAG 与可配置模型分析。"""
 
     # 企业字段支持股票代码或名称，最终必须回到官方股票清单确认。
     company_query: str = Field(min_length=1, max_length=120)
     years: int = Field(default=3, ge=2, le=5)
     latest_year: int | None = Field(default=None, ge=2000, le=2100)
-    # 默认路径只下载、校验和建库，不自动把公开年报发送给外部模型。
-    analysis_mode: PipelineAnalysisMode = "rag_only"
+    # 默认路径完成公开财报预筛；调用者仍可显式选择 rag_only 只下载、校验和建库。
+    analysis_mode: PipelineAnalysisMode = "full_analysis"
     # R1 是当前项目最稳定的演示规则，其他规则仍沿用已有字段校验。
     rule_ids: list[RuleId] = Field(default_factory=lambda: ["R1"])
     force_refresh: bool = False
+    cache_policy: CachePolicy = "prefer_cache"
     planned_materiality: float | None = Field(default=None, ge=0)
 
     @field_validator("company_query")
@@ -220,6 +222,53 @@ class CNInfoPipelineRequest(BaseModel):
     @field_validator("rule_ids")
     @classmethod
     def pipeline_rule_ids_must_be_unique(cls, value: list[RuleId]) -> list[RuleId]:
+        ordered = list(dict.fromkeys(value))
+        if not ordered:
+            raise ValueError("至少选择一条规则。")
+        return ordered
+
+    @model_validator(mode="after")
+    def force_refresh_sets_cache_policy(self) -> "CNInfoPipelineRequest":
+        if self.force_refresh:
+            self.cache_policy = "force_refresh"
+        return self
+
+
+class CacheResolveRequest(BaseModel):
+    """查询本地公开年报热缓存；命中后不触发巨潮网络请求。"""
+
+    company_query: str = Field(min_length=1, max_length=120)
+    years: int = Field(default=3, ge=2, le=5)
+    latest_year: int | None = Field(default=None, ge=2000, le=2100)
+    cache_policy: CachePolicy = "prefer_cache"
+
+    @field_validator("company_query")
+    @classmethod
+    def normalize_cache_company_query(cls, value: str) -> str:
+        return value.strip()
+
+
+class CachePrewarmRequest(BaseModel):
+    """批量建立常用企业热缓存；每个企业仍走同一条来源校验流程。"""
+
+    companies: list[str] = Field(min_length=1, max_length=50)
+    years: int = Field(default=3, ge=2, le=5)
+    latest_year: int | None = Field(default=None, ge=2000, le=2100)
+    analysis_mode: PipelineAnalysisMode = "rag_only"
+    rule_ids: list[RuleId] = Field(default_factory=lambda: ["R1"])
+    force_refresh: bool = False
+
+    @field_validator("companies")
+    @classmethod
+    def normalize_prewarm_companies(cls, values: list[str]) -> list[str]:
+        normalized = list(dict.fromkeys(value.strip() for value in values if value.strip()))
+        if not normalized:
+            raise ValueError("至少提供一家企业。")
+        return normalized
+
+    @field_validator("rule_ids")
+    @classmethod
+    def prewarm_rule_ids_must_be_unique(cls, value: list[RuleId]) -> list[RuleId]:
         ordered = list(dict.fromkeys(value))
         if not ordered:
             raise ValueError("至少选择一条规则。")
