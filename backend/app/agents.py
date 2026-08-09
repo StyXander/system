@@ -63,6 +63,21 @@
 角色输出是待核查事项生成链的一部分，而不是旁路说明文字。
 只有三角色全部完成并形成最终草稿，主运行才可标记完整分析。
 任一角色失败都会保留程序结果，但完整性状态必须保持失败。
+模型输入在调用前压缩为最小证据卡，不能把整个案例对象直接发送。
+证据卡哈希随步骤记录，复验时可以确认三角色看到的输入是否一致。
+每个角色工具模式绑定本次运行和规则编号，供应商输出不能跨单复用。
+工具调用名称必须与受控名称完全一致，普通文本 JSON 不能冒充严格调用。
+输出令牌上限按角色设置，过长回答不能无限挤占服务资源和日志空间。
+网络超时只重试受控次数，重复失败后保留供应商错误阶段并停止链条。
+模型返回多个工具调用时只接受协议允许的结构，不能任意挑选有利结果。
+解析后的对象还要经过 Pydantic 和业务双重校验，模式通过不等于政策通过。
+质疑角色至少提出一条候选主张，但每条仍需当前证据或明确未验证标记。
+反证角色的正常解释不能引用不存在的资料，也不能把假设写成已支持事实。
+复核角色必须解释保留、降级或暂缓原因，空草稿不能获得完成状态。
+确定性规则未触发时，模型不得用修辞把它改写为已触发的程序事实。
+模型调用计时只反映供应商响应，不应被解释为推理质量或证据充分性。
+调用失败日志不保存原始提示词全文，减少证据和个人信息在日志中复制。
+三角色机制增加对立检查机会，但不能替代审计人员的职业怀疑和复核程序。
 本模块的设计目标是可证伪、可回查和诚实失败，而不是提高成功率表象。
 """
 
@@ -72,7 +87,7 @@ import hashlib
 import json
 import time
 from copy import deepcopy
-from typing import Any
+from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -444,7 +459,14 @@ def _validate_deterministic_fact_language(output: AgentOutput, rule_result: Rule
 
         if output.role == "review":
             basis_limitation = str(risk_card.get("basis_limitation") or "")
-            if basis_limitation and not any(token in joined for token in ("净额", "口径局限", "口径限制")):
+            if basis_limitation and not any(
+                token in joined
+                for token in (
+                    ("净额", "口径局限", "口径限制")
+                    if "净额" in basis_limitation
+                    else ("账面余额", "口径", "未在登记表")
+                )
+            ):
                 raise ValueError("复核Agent遗漏了R1应收口径局限")
             trend_limitation = str(risk_card.get("trend_limitation") or "")
             if trend_limitation and not any(token in joined for token in ("趋势不可评价", "无法评价趋势", "缺少第三年")):
@@ -526,6 +548,7 @@ def run_agent_chain(
     api_key: str | None,
     base_url: str,
     model_id: str,
+    before_role: Callable[[AgentRole], bool] | None = None,
 ) -> list[AgentStep]:
     """串行执行三角色；任一步失败即关闭AI草稿链，不生成伪造的后续角色答案。"""
     if rule_result.status != "candidate":
@@ -542,6 +565,24 @@ def run_agent_chain(
     previous_outputs: dict[str, AgentOutput] = {}
     steps: list[AgentStep] = []
     for role in ROLE_ORDER:
+        if before_role is not None:
+            try:
+                authorized = before_role(role)
+            except Exception:
+                authorized = False
+            if not authorized:
+                steps.append(
+                    AgentStep(
+                        role=role,
+                        status="model_transfer_revoked",
+                        model_id=model_id,
+                        prompt_version=PROMPT_VERSION,
+                        detail="逐案模型传输同意已撤销或暂时无法确认，已停止后续模型调用。",
+                        failure_stage="policy",
+                        failure_code="MODEL_TRANSFER_REVOKED",
+                    )
+                )
+                break
         payload = _user_payload(run_id, role, rule_result, compact_bundle, previous_outputs)
         input_sha256 = _json_hash(payload)
         try:
@@ -552,7 +593,7 @@ def run_agent_chain(
                 role=role,
                 payload=payload,
             )
-        except (HTTPError, URLError, TimeoutError) as error:
+        except (HTTPError, URLError, TimeoutError, OSError) as error:
             steps.append(
                 AgentStep(
                     role=role,
@@ -580,7 +621,7 @@ def run_agent_chain(
                 )
             )
             break
-        except (KeyError, IndexError, UnicodeDecodeError, ValueError) as error:
+        except (KeyError, IndexError, UnicodeDecodeError, TypeError, ValueError) as error:
             steps.append(
                 AgentStep(
                     role=role,

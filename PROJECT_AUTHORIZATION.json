@@ -1,0 +1,34 @@
+{
+  "schema_version": "project_authorization_v1",
+  "authorization_id": "OWNER-AUTH-20260807-001",
+  "status": "confirmed",
+  "confirmed_by": "项目所有者（用户）",
+  "confirmed_on": "2026-08-07",
+  "permission_basis": "项目所有者已确认本项目使用合法公开数据，并许可公开年报证据进入完整分析与已配置模型调用。",
+  "model_provider": "项目环境中已配置的模型供应商",
+  "transmission_scope": "仅传输审计计划阶段规则所需的结构化字段、来源元数据与RAG命中原文片段；不传输密钥、无关文件或整库数据。",
+  "retention_expires_at": "2026-12-31",
+  "policies": {
+    "public_source_model_transfer_allowed": true,
+    "case_import_authorization_prechecked": true,
+    "supplement_authorization_prechecked": true
+  },
+  "evidence_confirmations": [
+    {
+      "case_id": "STD_DEV_T0",
+      "source_snapshot_id": "std-dev-t0-w2-v0.2",
+      "status": "owner_confirmed",
+      "reviewed_on": "2026-08-07",
+      "review_note": "项目所有者确认当前标准股份登记字段、来源页码、披露日期与文件哈希合格。"
+    },
+    {
+      "case_id": "JACK_603337_T0_20250415",
+      "source_snapshot_id": "jack_603337_t0_20250415-612922093c13",
+      "package_sha256": "4C83E7A978952756D961C1453A45DF35AFFCD6CBD5A22563B53596BB6A901BF6",
+      "status": "owner_confirmed",
+      "reviewed_on": "2026-08-07",
+      "review_note": "项目所有者确认当前杰克科技冻结包（1）的登记字段、来源页码、披露日期与文件哈希合格。"
+    }
+  ],
+  "boundary": "本记录解除项目所有者可决定的许可与当前证据核验门槛；不替代竞赛评委、注册会计师或第三方平台作出的独立结论。"
+}

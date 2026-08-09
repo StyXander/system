@@ -56,6 +56,21 @@ RAG 进入 Agent 前仍要转换为证据编号白名单。
 修改切块策略时必须同步索引版本并重建所有案例索引。
 修改锚点时必须补充命中、无命中和近义噪声回归测试。
 修改来源过滤时必须优先验证跨案例引用仍被拦截。
+索引重建先写入唯一版本目录，未完成目录不会被活动指针公开。
+活动指针只在数据库、向量和清单全部落盘后原子切换。
+一次检索固定读取同一活动版本，指针并发变化不能造成文件串版。
+状态检查和证据块导出同样固定版本目录，避免检查与读取之间的竞态。
+Windows 活动指针共享冲突只有限重试，失败后保留旧版本继续可读。
+强制重建不会原地修改旧数据库，正在检索的请求仍能完成原快照读取。
+检索日志保存在对应索引版本中，后续重建不能让既有编号失去回查能力。
+历史日志读取只遍历案例自己的版本目录，不能借编号搜索任意 SQLite 文件。
+单个旧版本损坏时跳过该版本，其他完整版本的留痕仍可继续查询。
+SQLite 连接在成功和异常路径都显式关闭，避免悬挂句柄阻塞版本发布。
+检索数量在内部函数再次校验，后台调用不能绕过 API 模型上限。
+索引清单损坏时返回未构建，不能仅凭 FAISS 文件存在宣称就绪。
+导出的证据块排除本机存储路径，只携带公开持久化需要的最小元数据。
+旧索引版本为审计留痕暂时保留，未来清理必须先建立引用和保留策略。
+并发安全保证版本一致性，不提升向量召回本身的专业准确性。
 RAG 成功只证明候选原文可召回，不证明风险识别正确。
 本模块的核心目标是让模型看到可回查原文，同时保持案例隔离。
 """
@@ -70,6 +85,7 @@ import re
 import sqlite3
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -92,6 +108,7 @@ INDEX_VERSION = "rag-v1.2-case-isolated-hash-ngram-faiss-20260728"
 RETRIEVAL_VERSION = "rag-retrieval-v1.2-case-isolated-20260728"
 QUESTION_SET_VERSION = "rag-question-set-w3-v1.1-20260727"
 QUESTION_SET_REVIEW_STATUS = "professional_input_received_pending_team_source_page_review"
+ACTIVE_POINTER_RETRY_SECONDS = 2.0
 
 # A 成员提交的 6 个专业问题经过队长审校后形成受控问题集。这里保留问题、
 # 检索词、目标章节、返回字段和无命中提示，避免前端各自改写专业口径。
@@ -198,21 +215,77 @@ def _runtime_dir(workspace_root: Path, case_id: str = CASE_ID) -> Path:
     return path
 
 
+def _active_data_dir(workspace_root: Path, case_id: str = CASE_ID) -> Path:
+    """读取已原子发布的索引版本；没有指针时兼容旧版根目录索引。"""
+
+    root = _runtime_dir(workspace_root, case_id)
+    pointer = root / "active.json"
+    if pointer.is_file():
+        try:
+            version = str(json.loads(pointer.read_text(encoding="utf-8")).get("version") or "")
+        except (OSError, json.JSONDecodeError, AttributeError):
+            version = ""
+        if re.fullmatch(r"[a-f0-9]{16}-[A-Z0-9]{8,32}", version):
+            candidate = root / "versions" / version
+            if candidate.is_dir():
+                return candidate
+    return root
+
+
+def _version_dir(workspace_root: Path, case_id: str, fingerprint: str) -> Path:
+    version = f"{fingerprint[:16]}-{uuid.uuid4().hex[:12].upper()}"
+    path = _runtime_dir(workspace_root, case_id) / "versions" / version
+    path.mkdir(parents=True, exist_ok=False)
+    return path
+
+
+def _publish_version(workspace_root: Path, case_id: str, version_dir: Path) -> None:
+    """只替换小型 active 指针，检索线程不会看到未完成的版本目录。"""
+
+    root = _runtime_dir(workspace_root, case_id)
+    pointer = root / "active.json"
+    temporary = root / f"active.{uuid.uuid4().hex}.tmp"
+    temporary.write_text(
+        json.dumps({"version": version_dir.name, "published_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}),
+        encoding="utf-8",
+    )
+    try:
+        # Windows 上轮询接口可能正短暂读取 active.json，文件共享冲突不应让
+        # 已完整建好的索引误报失败；只重试这个瞬时错误，超时仍然失败关闭。
+        started = time.monotonic()
+        while True:
+            try:
+                temporary.replace(pointer)
+                break
+            except PermissionError:
+                if time.monotonic() - started >= ACTIVE_POINTER_RETRY_SECONDS:
+                    raise
+                time.sleep(0.02)
+    finally:
+        if temporary.exists():
+            temporary.unlink(missing_ok=True)
+
+
 def _db_path(workspace_root: Path, case_id: str = CASE_ID) -> Path:
-    return _runtime_dir(workspace_root, case_id) / "rag.sqlite3"
+    return _active_data_dir(workspace_root, case_id) / "rag.sqlite3"
 
 
 def _index_path(workspace_root: Path, case_id: str = CASE_ID) -> Path:
-    return _runtime_dir(workspace_root, case_id) / "rag.faiss"
+    return _active_data_dir(workspace_root, case_id) / "rag.faiss"
 
 
 def _manifest_path(workspace_root: Path, case_id: str = CASE_ID) -> Path:
-    return _runtime_dir(workspace_root, case_id) / "manifest.json"
+    return _active_data_dir(workspace_root, case_id) / "manifest.json"
 
 
-def _connect(workspace_root: Path, case_id: str = CASE_ID) -> sqlite3.Connection:
-    connection = sqlite3.connect(_db_path(workspace_root, case_id))
+def _connect(workspace_root: Path, case_id: str = CASE_ID, *, data_dir: Path | None = None) -> sqlite3.Connection:
+    database = (data_dir or _active_data_dir(workspace_root, case_id)) / "rag.sqlite3"
+    database.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(database, timeout=15)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("PRAGMA busy_timeout=15000")
+    connection.execute("PRAGMA foreign_keys=ON")
     connection.execute(
         """CREATE TABLE IF NOT EXISTS chunks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -313,6 +386,27 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest().upper()
 
 
+def snapshot_id_for_chunks(chunks: list[dict[str, Any]]) -> str:
+    """按远端发布合同计算完整 chunk 快照摘要，供本机/远端一致性比较。"""
+
+    canonical = [
+        {
+            "chunk_id": str(chunk.get("chunk_id") or ""),
+            "document_id": chunk.get("document_id"),
+            "pdf_page": chunk.get("pdf_page"),
+            "content": str(chunk.get("content") or ""),
+            "metadata": chunk.get("metadata") if isinstance(chunk.get("metadata"), dict) else {},
+        }
+        for chunk in chunks
+        if chunk.get("chunk_id") and chunk.get("content")
+    ]
+    digest = hashlib.sha256()
+    for chunk in sorted(canonical, key=lambda item: item["chunk_id"]):
+        digest.update(json.dumps(chunk, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+        digest.update(b"\0")
+    return f"RAG-SNAPSHOT-{digest.hexdigest()[:24].upper()}"
+
+
 def prepare_index(workspace_root: Path, *, case_id: str = CASE_ID, force: bool = False) -> dict[str, Any]:
     case = get_case(workspace_root, case_id)
     if case is None:
@@ -331,62 +425,91 @@ def prepare_index(workspace_root: Path, *, case_id: str = CASE_ID, force: bool =
     fingerprint = hashlib.sha256(
         json.dumps(fingerprints, ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
-    manifest_path = _manifest_path(workspace_root, case_id)
-    if not force and manifest_path.exists() and _index_path(workspace_root, case_id).exists():
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # 缓存判断期间只解析一次 active 指针。若建库线程恰好发布新版本，清单
+    # 和 FAISS 文件仍来自同一个目录，不会把两个版本拼成一次“ready”。
+    active_dir = _active_data_dir(workspace_root, case_id)
+    manifest_path = active_dir / "manifest.json"
+    index_path = active_dir / "rag.faiss"
+    if not force and manifest_path.exists() and index_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, AttributeError):
+            manifest = {}
         if manifest.get("source_fingerprint") == fingerprint and manifest.get("index_version") == INDEX_VERSION:
             return {**manifest, "status": "ready", "rebuilt": False}
 
-    connection = _connect(workspace_root, case_id)
-    connection.execute("DELETE FROM chunks")
-    connection.execute("DELETE FROM sqlite_sequence WHERE name='chunks'")
+    version_dir = _version_dir(workspace_root, case_id, fingerprint)
+    connection = _connect(workspace_root, case_id, data_dir=version_dir)
     rows: list[tuple[Any, ...]] = []
     vectors: list[np.ndarray] = []
-    for source in registry:
-        path = workspace_root / source["storage_relpath"]
-        document = fitz.open(path)
-        try:
-            for page_number, page in enumerate(document, start=1):
-                page_text = page.get_text("text")
-                for offset, chunk_text in enumerate(_chunks(page_text)):
-                    title = next((line.strip() for line in chunk_text.splitlines() if line.strip()), "年报原文")[:120]
-                    chunk_prefix = "STD" if case_id == CASE_ID else case_id
-                    chunk_id = f"{chunk_prefix}-{source['report_year']}-P{page_number:04d}-C{offset:02d}"
-                    rows.append(
-                        (
-                            chunk_id,
-                            case_id,
-                            case["company_name"],
-                            case.get("ticker", ""),
-                            source["document_id"],
-                            source["source_file"],
-                            source["storage_relpath"],
-                            source["source_sha256"],
-                            source["disclosure_date"],
-                            source["report_year"],
-                            page_number,
-                            title,
-                            chunk_text,
+    try:
+        for source in registry:
+            path = (workspace_root / source["storage_relpath"]).resolve()
+            try:
+                path.relative_to(workspace_root.resolve())
+            except ValueError as error:
+                raise ValueError(f"{source['source_file']}来源文件超出工作区边界") from error
+            document = fitz.open(path)
+            try:
+                for page_number, page in enumerate(document, start=1):
+                    page_text = page.get_text("text")
+                    for offset, chunk_text in enumerate(_chunks(page_text)):
+                        title = next((line.strip() for line in chunk_text.splitlines() if line.strip()), "年报原文")[:120]
+                        chunk_prefix = "STD" if case_id == CASE_ID else case_id
+                        chunk_id = f"{chunk_prefix}-{source['report_year']}-P{page_number:04d}-C{offset:02d}"
+                        rows.append(
+                            (
+                                chunk_id,
+                                case_id,
+                                case["company_name"],
+                                case.get("ticker", ""),
+                                source["document_id"],
+                                source["source_file"],
+                                source["storage_relpath"],
+                                source["source_sha256"],
+                                source["disclosure_date"],
+                                source["report_year"],
+                                page_number,
+                                title,
+                                chunk_text,
+                            )
                         )
-                    )
-                    vectors.append(_vector(f"{title}\n{chunk_text}"))
-        finally:
-            document.close()
-    connection.executemany(
-        """INSERT INTO chunks
-        (chunk_id,case_id,company_name,ticker,document_id,source_file,storage_relpath,source_sha256,disclosure_date,report_year,page,title,text)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        rows,
-    )
-    connection.commit()
-    connection.close()
+                        vectors.append(_vector(f"{title}\n{chunk_text}"))
+            finally:
+                document.close()
+        connection.executemany(
+            """INSERT INTO chunks
+            (chunk_id,case_id,company_name,ticker,document_id,source_file,storage_relpath,source_sha256,disclosure_date,report_year,page,title,text)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            rows,
+        )
+        connection.commit()
+    finally:
+        connection.close()
 
     matrix = np.vstack(vectors).astype("float32") if vectors else np.zeros((0, VECTOR_DIM), dtype="float32")
     index = faiss.IndexFlatIP(VECTOR_DIM)
     if len(matrix):
         index.add(matrix)
     # FAISS 的 Windows FileIOWriter 不支持含中文的路径；先序列化到内存再由 pathlib 落盘。
-    _index_path(workspace_root, case_id).write_bytes(faiss.serialize_index(index).tobytes())
+    (version_dir / "rag.faiss").write_bytes(faiss.serialize_index(index).tobytes())
+    snapshot_chunks = [
+        {
+            "chunk_id": row[0],
+            "document_id": row[4],
+            "pdf_page": row[10],
+            "content": row[12],
+            "metadata": {
+                "title": row[11],
+                "source_sha256": row[7],
+                "disclosure_date": row[8],
+                "report_year": row[9],
+                "company_name": row[2],
+                "ticker": row[3],
+            },
+        }
+        for row in rows
+    ]
     manifest = {
         "status": "ready",
         "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE,
@@ -397,19 +520,64 @@ def prepare_index(workspace_root: Path, *, case_id: str = CASE_ID, force: bool =
         "case_id": case_id,
         "company_name": case["company_name"],
         "source_fingerprint": fingerprint,
+        "rag_snapshot_id": snapshot_id_for_chunks(snapshot_chunks),
         "source_count": len(registry),
         "chunk_count": len(rows),
-        "built_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (version_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    _publish_version(workspace_root, case_id, version_dir)
     return manifest
 
 
 def status(workspace_root: Path, case_id: str = CASE_ID) -> dict[str, Any]:
-    manifest = _manifest_path(workspace_root, case_id)
-    if not manifest.exists() or not _index_path(workspace_root, case_id).exists():
+    # 状态接口也固定一个版本快照，避免 active 指针切换时出现短暂假阴性。
+    active_dir = _active_data_dir(workspace_root, case_id)
+    manifest = active_dir / "manifest.json"
+    if not manifest.exists() or not (active_dir / "rag.faiss").exists():
         return {"status": "not_built", "index_version": INDEX_VERSION, "case_id": case_id, "chunk_count": 0}
-    return json.loads(manifest.read_text(encoding="utf-8"))
+    try:
+        return json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"status": "not_built", "index_version": INDEX_VERSION, "case_id": case_id, "chunk_count": 0}
+
+
+def export_chunks(workspace_root: Path, case_id: str = CASE_ID) -> list[dict[str, Any]]:
+    """导出已发布 RAG 版本的证据块，供公网 Postgres 持久化；不导出本机路径。"""
+
+    # 先固定 active 版本，再用同一路径检查和连接；发布切换不会导致
+    # exists() 检查旧库、随后却打开新库的 TOCTOU 串版本。
+    active_dir = _active_data_dir(workspace_root, case_id)
+    database = active_dir / "rag.sqlite3"
+    if not database.exists():
+        return []
+    connection = _connect(workspace_root, case_id, data_dir=active_dir)
+    try:
+        rows = connection.execute(
+            """SELECT chunk_id, document_id, page, title, text, source_sha256,
+                      disclosure_date, report_year, company_name, ticker
+               FROM chunks WHERE case_id=? ORDER BY id""",
+            (case_id,),
+        ).fetchall()
+        return [
+            {
+                "chunk_id": row["chunk_id"],
+                "document_id": row["document_id"],
+                "pdf_page": row["page"],
+                "content": row["text"],
+                "metadata": {
+                    "title": row["title"],
+                    "source_sha256": row["source_sha256"],
+                    "disclosure_date": row["disclosure_date"],
+                    "report_year": row["report_year"],
+                    "company_name": row["company_name"],
+                    "ticker": row["ticker"],
+                },
+            }
+            for row in rows
+        ]
+    finally:
+        connection.close()
 
 
 def _keyword_score(query_tokens: set[str], text: str) -> float:
@@ -441,6 +609,98 @@ def _matched_excerpt(text: str, terms: list[str], limit: int = 500) -> tuple[str
     return text[start:end], start, end
 
 
+def _retrieve_candidates(
+    connection: sqlite3.Connection,
+    active_dir: Path,
+    workspace_root: Path,
+    *,
+    case_id: str,
+    company_name: str,
+    t0: str,
+    effective_query: str,
+    top_k: int,
+    question: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """在一个固定版本内完成召回，调用方负责事务与连接生命周期。"""
+
+    rows = connection.execute(
+        """SELECT * FROM chunks
+        WHERE case_id=? AND company_name=? AND disclosure_date<=?
+        ORDER BY id""",
+        (case_id, company_name, t0),
+    ).fetchall()
+    if not rows:
+        return []
+
+    index_bytes = np.frombuffer((active_dir / "rag.faiss").read_bytes(), dtype="uint8")
+    index = faiss.deserialize_index(index_bytes)
+    vector = _vector(effective_query).reshape(1, -1)
+    search_k = min(max(top_k * 20, 100), index.ntotal)
+    scores, positions = index.search(vector, search_k)
+    allowed = {row["id"] - 1: row for row in rows}
+    query_tokens = set(_tokens(effective_query))
+    vector_scores = {
+        int(position): float(score)
+        for score, position in zip(scores[0], positions[0])
+        if int(position) >= 0
+    }
+    candidate_positions = set(vector_scores)
+    if question:
+        # 向量前 100 名之外仍可能存在明确专业词命中，因此把主题锚点命中页并入候选池。
+        for row in rows:
+            if _anchor_score(question["anchor_terms"], f"{row['title']} {row['text']}") > 0:
+                candidate_positions.add(row["id"] - 1)
+
+    candidates: list[dict[str, Any]] = []
+    for position in candidate_positions:
+        row = allowed.get(int(position))
+        if row is None:
+            continue
+        vector_score = vector_scores.get(int(position))
+        if vector_score is None:
+            vector_score = float(np.dot(vector[0], index.reconstruct(int(position))))
+        keyword_score = _keyword_score(query_tokens, f"{row['title']} {row['text']}")
+        anchor_score = _anchor_score(question["anchor_terms"], f"{row['title']} {row['text']}") if question else 0.0
+        if question and anchor_score <= 0:
+            continue
+        hybrid_score = (
+            float(vector_score) * 0.45 + keyword_score * 0.25 + anchor_score * 0.30
+            if question
+            else float(vector_score) * 0.65 + keyword_score * 0.35
+        )
+        page_metadata = registered_page_metadata(workspace_root, case_id, row["document_id"], row["page"])
+        excerpt_terms = question["anchor_terms"] if question else [part for part in effective_query.split() if part]
+        excerpt, excerpt_start, excerpt_end = _matched_excerpt(row["text"], excerpt_terms)
+        candidates.append(
+            {
+                "evidence_id": f"RAG-{row['chunk_id']}",
+                "chunk_id": row["chunk_id"],
+                "document_id": row["document_id"],
+                "score": round(hybrid_score, 6),
+                "vector_score": round(float(vector_score), 6),
+                "keyword_score": round(keyword_score, 6),
+                "anchor_score": round(anchor_score, 6),
+                "source_file": row["source_file"],
+                "source_sha256": row["source_sha256"],
+                "disclosure_date": row["disclosure_date"],
+                "report_year": row["report_year"],
+                "pdf_page": row["page"],
+                "print_page": page_metadata["print_page"],
+                "linked_field_evidence_ids": page_metadata["linked_field_evidence_ids"],
+                "source_locator": f"PDF 第 {row['page']} 页 / {row['chunk_id']}",
+                "title": row["title"],
+                "excerpt": excerpt,
+                "excerpt_char_start": excerpt_start,
+                "excerpt_char_end": excerpt_end,
+                "chunk_char_length": len(row["text"]),
+                "excerpt_is_verbatim": True,
+                "review_status": "candidate_fragment_pending_human_page_review",
+            }
+        )
+    candidates.sort(key=lambda item: item["score"], reverse=True)
+    return [item for item in candidates[:top_k] if item["score"] > 0]
+
+
 def retrieve(
     workspace_root: Path,
     *,
@@ -452,6 +712,9 @@ def retrieve(
     company_name: str | None = None,
     question_id: str | None = None,
 ) -> dict[str, Any]:
+    if isinstance(top_k, bool) or not isinstance(top_k, int) or not 1 <= top_k <= 10:
+        # API 模型已有同一限制；内部函数仍需自守边界，避免测试或后台调用绕过验证。
+        raise ValueError("top_k 必须是 1 至 10 的整数")
     question = _get_question(question_id)
     if question and rule_id not in question["rule_ids"]:
         raise ValueError(f"{question_id} 不属于规则 {rule_id}")
@@ -462,116 +725,63 @@ def retrieve(
     if case is None:
         raise ValueError("案例未登记。")
     effective_company_name = company_name if company_name is not None else case["company_name"]
-    current = status(workspace_root, case_id)
-    if current.get("status") != "ready":
+    # 清单、向量与数据库固定在同一已发布目录；不能先调 status 再重新读取
+    # active，否则并发重建可能让一次请求跨越两个证据快照。
+    active_dir = _active_data_dir(workspace_root, case_id)
+    manifest_path = active_dir / "manifest.json"
+    index_path = active_dir / "rag.faiss"
+    try:
+        current = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, AttributeError):
+        current = {}
+    if current.get("status") != "ready" or not index_path.exists():
         raise RuntimeError("RAG 索引尚未构建")
 
-    connection = _connect(workspace_root, case_id)
-    rows = connection.execute(
-        """SELECT * FROM chunks
-        WHERE case_id=? AND company_name=? AND disclosure_date<=?
-        ORDER BY id""",
-        (case_id, effective_company_name, t0),
-    ).fetchall()
-    if not rows:
-        candidates: list[dict[str, Any]] = []
-    else:
-        index_bytes = np.frombuffer(_index_path(workspace_root, case_id).read_bytes(), dtype="uint8")
-        index = faiss.deserialize_index(index_bytes)
-        vector = _vector(effective_query).reshape(1, -1)
-        search_k = min(max(top_k * 20, 100), index.ntotal)
-        scores, positions = index.search(vector, search_k)
-        allowed = {row["id"] - 1: row for row in rows}
-        query_tokens = set(_tokens(effective_query))
-        vector_scores = {
-            int(position): float(score)
-            for score, position in zip(scores[0], positions[0])
-            if int(position) >= 0
-        }
-        candidate_positions = set(vector_scores)
-        if question:
-            # 向量前 100 名之外仍可能存在明确专业词命中，因此把主题锚点命中页并入候选池。
-            for row in rows:
-                if _anchor_score(question["anchor_terms"], f"{row['title']} {row['text']}") > 0:
-                    candidate_positions.add(row["id"] - 1)
-        candidates = []
-        for position in candidate_positions:
-            row = allowed.get(int(position))
-            if row is None:
-                continue
-            vector_score = vector_scores.get(int(position))
-            if vector_score is None:
-                vector_score = float(np.dot(vector[0], index.reconstruct(int(position))))
-            keyword_score = _keyword_score(query_tokens, f"{row['title']} {row['text']}")
-            anchor_score = _anchor_score(question["anchor_terms"], f"{row['title']} {row['text']}") if question else 0.0
-            if question and anchor_score <= 0:
-                continue
-            hybrid_score = (
-                float(vector_score) * 0.45 + keyword_score * 0.25 + anchor_score * 0.30
-                if question
-                else float(vector_score) * 0.65 + keyword_score * 0.35
-            )
-            page_metadata = registered_page_metadata(workspace_root, case_id, row["document_id"], row["page"])
-            excerpt_terms = question["anchor_terms"] if question else [part for part in effective_query.split() if part]
-            excerpt, excerpt_start, excerpt_end = _matched_excerpt(row["text"], excerpt_terms)
-            candidates.append(
-                {
-                    "evidence_id": f"RAG-{row['chunk_id']}",
-                    "chunk_id": row["chunk_id"],
-                    "document_id": row["document_id"],
-                    "score": round(hybrid_score, 6),
-                    "vector_score": round(float(vector_score), 6),
-                    "keyword_score": round(keyword_score, 6),
-                    "anchor_score": round(anchor_score, 6),
-                    "source_file": row["source_file"],
-                    "source_sha256": row["source_sha256"],
-                    "disclosure_date": row["disclosure_date"],
-                    "report_year": row["report_year"],
-                    "pdf_page": row["page"],
-                    "print_page": page_metadata["print_page"],
-                    "linked_field_evidence_ids": page_metadata["linked_field_evidence_ids"],
-                    "source_locator": f"PDF 第 {row['page']} 页 / {row['chunk_id']}",
-                    "title": row["title"],
-                    "excerpt": excerpt,
-                    "excerpt_char_start": excerpt_start,
-                    "excerpt_char_end": excerpt_end,
-                    "chunk_char_length": len(row["text"]),
-                    "excerpt_is_verbatim": True,
-                    "review_status": "candidate_fragment_pending_human_page_review",
-                }
-            )
-        candidates.sort(key=lambda item: item["score"], reverse=True)
-        candidates = [item for item in candidates[:top_k] if item["score"] > 0]
-
-    retrieval_id = f"RET-{uuid.uuid4().hex[:12].upper()}"
-    connection.execute(
-        """INSERT INTO retrieval_logs VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-        (
-            retrieval_id,
-            time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-            case_id,
-            effective_company_name,
-            t0,
-            rule_id,
-            effective_query,
-            top_k,
-            json.dumps([item["chunk_id"] for item in candidates]),
-            json.dumps(
-                {
-                    "case_id": case_id,
-                    "company_name": effective_company_name,
-                    "t0_lte": t0,
-                    "question_id": question_id,
-                    "question_set_version": QUESTION_SET_VERSION if question else None,
-                    "retrieval_version": RETRIEVAL_VERSION,
-                },
-                ensure_ascii=False,
+    connection = _connect(workspace_root, case_id, data_dir=active_dir)
+    try:
+        candidates = _retrieve_candidates(
+            connection,
+            active_dir,
+            workspace_root,
+            case_id=case_id,
+            company_name=effective_company_name,
+            t0=t0,
+            effective_query=effective_query,
+            top_k=top_k,
+            question=question,
+        )
+        retrieval_id = f"RET-{uuid.uuid4().hex[:12].upper()}"
+        connection.execute(
+            """INSERT INTO retrieval_logs VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                retrieval_id,
+                datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                case_id,
+                effective_company_name,
+                t0,
+                rule_id,
+                effective_query,
+                top_k,
+                json.dumps([item["chunk_id"] for item in candidates]),
+                json.dumps(
+                    {
+                        "case_id": case_id,
+                        "company_name": effective_company_name,
+                        "t0_lte": t0,
+                        "question_id": question_id,
+                        "question_set_version": QUESTION_SET_VERSION if question else None,
+                        "retrieval_version": RETRIEVAL_VERSION,
+                    },
+                    ensure_ascii=False,
+                ),
+                INDEX_VERSION,
             ),
-            INDEX_VERSION,
-        ),
-    )
-    connection.commit()
-    connection.close()
+        )
+        connection.commit()
+    finally:
+        # FAISS 反序列化、页元数据或日志落库任一失败都要立即释放 SQLite；
+        # 否则 Windows 上后续版本发布与临时目录清理会被悬挂句柄阻塞。
+        connection.close()
     return {
         "retrieval_id": retrieval_id,
         "status": "hit" if candidates else "no_hit",
@@ -599,15 +809,37 @@ def retrieve(
 
 
 def get_retrieval(workspace_root: Path, retrieval_id: str) -> dict[str, Any] | None:
-    """检索编号不暴露案例路径；在已登记案例的隔离日志中逐一查找。"""
+    """检索编号不暴露案例路径；在案例当前及历史版本日志中逐一查找。"""
+
     for case in list_cases(workspace_root):
-        path = _db_path(workspace_root, case["case_id"])
-        if not path.exists():
-            continue
-        connection = sqlite3.connect(path)
-        connection.row_factory = sqlite3.Row
-        row = connection.execute("SELECT * FROM retrieval_logs WHERE retrieval_id=?", (retrieval_id,)).fetchone()
-        connection.close()
-        if row:
-            return dict(row)
+        case_id = case["case_id"]
+        root = _runtime_dir(workspace_root, case_id)
+        active_dir = _active_data_dir(workspace_root, case_id)
+        # 检索日志是审计留痕，不随 active 指针切换而失效。当前版本优先，
+        # 其余不可变版本和旧版根目录依次回查，并去掉重复路径。
+        candidates = [active_dir / "rag.sqlite3"]
+        versions_dir = root / "versions"
+        if versions_dir.is_dir():
+            candidates.extend(path / "rag.sqlite3" for path in sorted(versions_dir.iterdir(), reverse=True) if path.is_dir())
+        candidates.append(root / "rag.sqlite3")
+        seen: set[str] = set()
+        for path in candidates:
+            path_key = str(path.resolve())
+            if path_key in seen or not path.is_file():
+                continue
+            seen.add(path_key)
+            connection = sqlite3.connect(path, timeout=5)
+            connection.row_factory = sqlite3.Row
+            try:
+                row = connection.execute(
+                    "SELECT * FROM retrieval_logs WHERE retrieval_id=?",
+                    (retrieval_id,),
+                ).fetchone()
+            except sqlite3.DatabaseError:
+                # 单个旧版本损坏不能阻断其他已发布版本的留痕回查。
+                row = None
+            finally:
+                connection.close()
+            if row:
+                return dict(row)
     return None

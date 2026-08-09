@@ -7,6 +7,27 @@
 同一年度存在修订版时保留全部候选，只把最新有效全文作为当前版本。
 下载访问限制为巨潮域名，使用低频、有限重试和明确的大小上限。
 任何校验失败都返回稳定的错误码，调用方必须停止后续建库。
+股票清单只用于发现企业身份，不作为企业行业分类或财务信息来源。
+企业查询同时支持证券代码和规范化名称，但多候选时不能自动猜选。
+企业名称归一化只处理排版差异，不能用模糊相似度越过唯一性要求。
+市场代码根据受控证券代码前缀判断，未知前缀不会臆造交易板块参数。
+公告请求按年度分别执行，接口分页不能把其他年度候选混进选择池。
+公告标题必须明确包含目标年度和年度报告语义，摘要会被单独排除。
+附件必须是受信静态域名的 PDF，网页和第三方镜像不能进入下载流程。
+公告秒或毫秒时间戳按量级区分，并统一解释为上海自然日。
+缺失或无效公告日期不能参与修订版排序，因为它无法证明证据时点。
+修订版优先规则只在其他来源条件均有效后比较，不能掩盖附件错误。
+公告选择保留候选数量和标题，便于人工复验为什么采用当前全文。
+下载设置连接、读取和总大小边界，网络卡住不能无限占用后台任务。
+有限重试只处理暂时网络错误，确定性响应错误不会被反复请求掩盖。
+错误详情不包含响应正文、请求头或代理信息，避免日志扩散敏感环境数据。
+PDF 下载完成后先核验文件头，再用解析器确认页数和可读取结构。
+文档正文身份检查同时寻找企业标识和报告年度，错文件必须失败关闭。
+整份内容哈希在下载后计算并随来源登记，后续缓存复用仍需重新核验。
+年份窗口限制为合理数量和范围，未来或异常年份不能制造无界公告请求。
+客户端生命周期由创建方管理，流水线只关闭自己内部创建的连接。
+公开接口可用性变化可能导致技术失败，但不能因此回退到未经登记的来源。
+本适配器成功只证明公开原件发现与技术身份通过，不证明字段专业正确。
 """
 
 from __future__ import annotations
@@ -14,7 +35,7 @@ from __future__ import annotations
 import hashlib
 import re
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 from urllib.parse import urljoin, urlparse
 
@@ -44,6 +65,9 @@ MIN_PDF_PAGES = 10
 MAX_ANNOUNCEMENT_PAGES = 10
 REPORT_YEAR_PATTERN = re.compile(r"(?<!\d)(20\d{2})\s*年")
 STOCK_CODE_PATTERN = re.compile(r"^\d{6}$")
+# 巨潮公告面向中国境内市场，公告日应按上海时区解释。固定时区可避免
+# 同一毫秒时间戳在本机 +08:00 与云端 UTC 上落到不同自然日。
+CNINFO_TIMEZONE = timezone(timedelta(hours=8))
 
 
 class CNInfoError(RuntimeError):
@@ -70,15 +94,28 @@ def _normalize_name(value: str) -> str:
     return text
 
 
+def _timestamp_date(value: int | float | str) -> str:
+    """同时接受秒和毫秒时间戳，并按巨潮业务时区返回公告日。"""
+
+    try:
+        numeric = float(value)
+        # 当前 Unix 秒约为 1e9，毫秒约为 1e12。按量级区分可兼容接口
+        # 在不同响应中返回数字、十位字符串或十三位字符串的情况。
+        seconds = numeric / 1000 if abs(numeric) >= 100_000_000_000 else numeric
+        return datetime.fromtimestamp(seconds, tz=CNINFO_TIMEZONE).date().isoformat()
+    except (OverflowError, OSError, TypeError, ValueError):
+        return ""
+
+
 def _date_from_value(value: Any) -> str:
-    """把公告毫秒时间戳或日期文本转换为 ISO 日期。"""
+    """把公告秒/毫秒时间戳或日期文本转换为 ISO 日期。"""
 
     if isinstance(value, (int, float)):
-        try:
-            return datetime.fromtimestamp(float(value) / 1000, tz=timezone.utc).date().isoformat()
-        except (OverflowError, OSError, ValueError):
-            return ""
+        return _timestamp_date(value)
     text = _safe_text(value)
+    # 巨潮有时把毫秒时间戳序列化为字符串；不能把它当成普通日期文本丢弃。
+    if re.fullmatch(r"\d{10,}", text):
+        return _timestamp_date(text)
     match = re.search(r"20\d{2}[-/]\d{1,2}[-/]\d{1,2}", text)
     if not match:
         return text[:10] if re.match(r"^20\d{2}-\d{2}-\d{2}", text) else ""
@@ -407,6 +444,21 @@ class CNInfoClient:
         valid = [item for item in candidates if item.get("report_year") == report_year]
         if not valid:
             raise CNInfoError("ANNUAL_REPORT_NOT_FOUND", f"未找到 {report_year} 年年度报告全文。")
+        # 公告日期决定 T0 和修订版先后顺序。日期缺失的候选不能用
+        # “0000-00-00”静默参与排序，否则可能选择无法证明证据时点的原件。
+        dated: list[dict[str, Any]] = []
+        for item in valid:
+            try:
+                date.fromisoformat(str(item.get("announcement_date") or ""))
+            except ValueError:
+                continue
+            dated.append(item)
+        if not dated:
+            raise CNInfoError(
+                "ANNOUNCEMENT_DATE_INVALID",
+                f"{report_year} 年年度报告候选缺少可验证公告日期。",
+            )
+        valid = dated
         valid.sort(
             key=lambda item: (
                 item.get("announcement_date") or "0000-00-00",

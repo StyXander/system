@@ -6,9 +6,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 
 
 RuleId = Literal["R1", "R2"]
@@ -29,6 +30,26 @@ class AiGeneratedContentNotice(BaseModel):
     ai_generated_content_notice: Literal[
         "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
     ] = AI_GENERATED_CONTENT_NOTICE
+
+
+class AuthLoginRequest(BaseModel):
+    """同源登录只接收账号凭据，令牌始终由服务端写入 HttpOnly Cookie。"""
+
+    email: str = Field(min_length=3, max_length=320)
+    password: SecretStr = Field(min_length=1, max_length=1024)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_login_email(cls, value: str) -> str:
+        """做最小且不依赖额外包的邮箱校验，避免把空白或控制字符交给身份服务。"""
+
+        normalized = value.strip().lower()
+        if any(character.isspace() for character in normalized) or normalized.count("@") != 1:
+            raise ValueError("请输入有效的邮箱地址。")
+        local, domain = normalized.split("@", 1)
+        if not local or "." not in domain or domain.startswith(".") or domain.endswith("."):
+            raise ValueError("请输入有效的邮箱地址。")
+        return normalized
 
 
 class RunRequest(BaseModel):
@@ -176,6 +197,30 @@ class HumanReviewRequest(BaseModel):
     reviewed_at: str | None = None
     export_approved: bool = False
     reviewer_type: Literal["human", "automation"] = "human"
+
+
+class ModelTransferConsentRequest(BaseModel):
+    """逐案例、限时、最小范围的外部模型传输同意。"""
+
+    provider: str = Field(min_length=1, max_length=100)
+    model_id: str = Field(min_length=1, max_length=160)
+    transmission_scope: str = Field(min_length=1, max_length=500)
+    purpose: str = Field(min_length=1, max_length=300)
+    valid_until: str = Field(min_length=10, max_length=40)
+    confirmed: bool = False
+
+    @field_validator("valid_until")
+    @classmethod
+    def valid_until_must_be_future_iso(cls, value: str) -> str:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValueError("有效期必须是 ISO-8601 日期时间。") from error
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        if parsed <= datetime.now(timezone.utc):
+            raise ValueError("模型传输同意有效期必须晚于当前时间。")
+        return parsed.astimezone(timezone.utc).isoformat(timespec="seconds")
 
 
 class RagRetrieveRequest(BaseModel):

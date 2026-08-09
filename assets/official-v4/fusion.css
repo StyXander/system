@@ -684,14 +684,27 @@ output {
 }
 
 @media (max-width: 520px) {
+  /* 390px 窄屏仍保留的首屏入口必须有至少 40px 可点击框；仅扩大
+     透明内边距，不放大文字或装饰线，保持现有轻量导航视觉。 */
+  .fusion-brand {
+    min-width: 40px;
+    min-height: 40px;
+    align-items: center;
+    padding: 8px 4px;
+  }
+
   .fusion-brand .en,
   .fusion-nav-links a:nth-last-of-type(2) {
     display: none;
   }
 
   .fusion-nav-links a {
+    display: inline-flex;
+    min-width: 40px;
     min-height: 44px;
-    align-content: center;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 7px;
   }
 
   .fusion-chip {
@@ -710,6 +723,9 @@ output {
 
   .fusion-scroll-cue {
     bottom: 20px;
+    min-width: 40px;
+    min-height: 40px;
+    padding-block: 12px;
   }
 }
 
@@ -1826,6 +1842,29 @@ body::after {
   align-self: flex-end;
   margin-bottom: 8px;
   backdrop-filter: blur(10px);
+}
+
+/* 每个 02 之后的工作页都保留当前公司上下文，避免跨页操作时只看到规则或 run_id。 */
+.page-heading > div > .case-context-line {
+  max-width: 75ch;
+  margin-top: 14px;
+  overflow: hidden;
+  color: var(--accent-primary) !important;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-company-context {
+  max-width: min(34vw, 420px);
+  overflow: hidden;
+  color: var(--accent-primary) !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .legacy-workbench-label {

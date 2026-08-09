@@ -77,6 +77,9 @@
     </a>
     <div class="topbar-context">
       <span class="context-label">审计计划 / 销售与收款循环</span>
+      <span class="context-label active-company-context" id="active-company-context">当前公司：未选择</span>
+      <span class="context-label" id="auth-status">正在读取登录状态</span>
+      <button class="button quiet auth-action" id="auth-action" type="button" hidden>登录</button>
       <span class="service-pill pending" id="service-pill">
         <i aria-hidden="true"></i>
         <span id="service-status">正在检查本地后端</span>
@@ -137,11 +140,17 @@
       <section class="sidebar-ledger" aria-labelledby="scope-heading">
         <p class="nav-group-label" id="scope-heading">当前资料范围</p>
         <dl>
+          <div><dt>公司</dt><dd id="sidebar-company">正在读取</dd></div>
           <div><dt>案例</dt><dd id="sidebar-case">正在读取</dd></div>
           <div><dt>场景</dt><dd>审计计划</dd></div>
           <div><dt>主规则</dt><dd>R1 v0.4 草案</dd></div>
           <div><dt>模型主链</dt><dd class="muted" id="sidebar-model">正在读取</dd></div>
         </dl>
+      </section>
+      <section class="sidebar-ledger auth-ledger" aria-labelledby="auth-heading">
+        <p class="nav-group-label" id="auth-heading">访问状态</p>
+        <p id="sidebar-auth-status">正在读取登录状态</p>
+        <button class="button quiet" id="sidebar-auth-action" type="button" hidden>登录</button>
       </section>
     </aside>
 
@@ -186,7 +195,7 @@
 
       <section class="view" data-view-panel="project" aria-labelledby="project-heading" hidden>
         <header class="page-heading">
-           <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">巨潮官方年报 · RAG 来源锁定 · 字段先行</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>本页支持从巨潮资讯网输入新企业并自动搜索、下载、校验、建立案例隔离 RAG 和公开财报预筛。字段缺口会按可用年度与规则降级，不会猜测金额；正式采用或导出前再做人工复核。</p></div>
+           <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">巨潮官方年报 · RAG 来源锁定 · 字段先行</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>本页支持从巨潮资讯网输入新企业并自动搜索、下载、校验、建立案例隔离 RAG 和公开财报预筛。字段缺口会按可用年度与规则降级，不会猜测金额；正式采用或导出前再做人工复核。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
           <span class="state pending" id="project-state">正在读取案例注册表</span>
         </header>
 
@@ -214,7 +223,7 @@
               <label for="cninfo-company-query"><span>企业名称或股票代码</span><input id="cninfo-company-query" name="company_query" required autocomplete="organization" spellcheck="false" placeholder="例如 603337 或 标准股份"></label>
               <label for="cninfo-years"><span>下载年报数量</span><select id="cninfo-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
               <label for="cninfo-latest-year"><span>最新报告年度（可留空）</span><input id="cninfo-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
-              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only">只下载 + RAG</option><option value="full_analysis" selected>继续完整分析（项目所有者已许可）</option></select></label>
+              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only">只下载 + RAG（不执行字段提取与风险分析）</option><option id="cninfo-full-analysis-option" value="full_analysis" selected>继续完整分析（项目所有者已许可）</option></select></label>
               <label class="check-control cninfo-refresh-control"><input id="cninfo-force-refresh" name="force_refresh" type="checkbox"><span>忽略热缓存，重新搜索巨潮最新公告</span></label>
               <button class="button primary" id="cninfo-pipeline-submit" type="submit">开始巨潮自动流程 <span aria-hidden="true">→</span></button>
             </form>
@@ -259,8 +268,9 @@
             <label><span>分析场景</span><output id="wb-scene">审计计划</output></label>
             <label for="wb-current-year"><span>本年年度</span><select id="wb-current-year" name="current_year" autocomplete="off"></select></label>
             <label><span>上年年度</span><output id="wb-previous-year">2024</output></label>
-            <label for="wb-amount-unit"><span>金额显示单位</span><select id="wb-amount-unit" name="amount_unit" autocomplete="off"><option value="yuan">元</option><option value="thousand">千元</option><option value="ten-thousand">万元</option><option value="million">百万元</option></select></label>
+            <label for="wb-amount-unit"><span>金额显示单位</span><select id="wb-amount-unit" name="amount_unit" autocomplete="off"><option value="yuan">元</option><option value="thousand">千元</option><option value="ten-thousand">万元</option><option value="million">百万元</option><option value="hundred-million">亿元</option></select></label>
             <div class="locked-mode"><span>案例与模型许可</span><strong id="wb-case-mode">正在读取</strong><small id="wb-case-permission">完整分析以 manifest 的模型传输许可为硬边界。</small></div>
+            <div class="locked-mode model-consent-box"><span>外部模型逐案同意</span><strong id="wb-model-consent-status">正在读取</strong><small id="wb-model-consent-note">公网模式默认禁止传输；只允许字段证据、来源元数据和 RAG 命中片段。</small><div class="action-row"><button class="button quiet" type="button" id="wb-model-consent-button" hidden>确认本案最小范围传输</button><button class="button quiet" type="button" id="wb-model-consent-revoke" hidden>撤销本案同意</button></div></div>
           </div>
           <div class="project-time-note">
             <strong>项目与分析时点</strong>
@@ -307,7 +317,7 @@
 
       <section class="view" data-view-panel="rules" aria-labelledby="rules-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">03 / RULE CONTRACT & ROADMAP</p><h2 id="rules-heading">规则合同与路线图</h2><p>R1 v0.4 草案是当前主链；R2 为辅助工程规则。R3—R8 只展示未来方向，不能勾选、不能生成运行结果。</p></div>
+          <div><p class="kicker">03 / RULE CONTRACT & ROADMAP</p><h2 id="rules-heading">规则合同与路线图</h2><p>R1 v0.4 草案是当前主链；R2 为辅助工程规则。R3—R8 只展示未来方向，不能勾选、不能生成运行结果。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
           <span class="state info" id="wb-library-status">R1 主规则</span>
         </header>
         <div class="scope-note" id="wb-scope-note">本次默认运行 R1；R2 可作为辅助项加入。</div>
@@ -320,7 +330,7 @@
 
       <section class="view" data-view-panel="analysis" aria-labelledby="analysis-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">04 / FULL ANALYSIS CHAIN</p><h2 id="analysis-heading">程序筛查、RAG 与 AI 草稿</h2><p>完整分析按“确定性计算→RAG→质疑→反证→复核→硬校验”执行；任一关键环节失败都显示为不完整，不回退成貌似完成的风险卡。</p></div>
+          <div><p class="kicker">04 / FULL ANALYSIS CHAIN</p><h2 id="analysis-heading">程序筛查、RAG 与 AI 草稿</h2><p>完整分析按“确定性计算→RAG→质疑→反证→复核→硬校验”执行；任一关键环节失败都显示为不完整，不回退成貌似完成的风险卡。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
           <span class="state pending" id="analysis-state">等待运行</span>
         </header>
 
@@ -379,7 +389,7 @@
 
       <section class="view" data-view-panel="rag" aria-labelledby="rag-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">05 / CASE-ISOLATED SOURCE READER</p><h2 id="rag-heading">案例隔离的年报原文检索</h2><p>每个案例独立建立 SQLite / FAISS 索引；公司、case_id 与 T0 在服务端硬过滤。完整分析会自动运行固定问题集，这里保留人工回页入口。</p></div>
+          <div><p class="kicker">05 / CASE-ISOLATED SOURCE READER</p><h2 id="rag-heading">案例隔离的年报原文检索</h2><p>每个案例独立建立 SQLite / FAISS 索引；公司、case_id 与 T0 在服务端硬过滤。完整分析会自动运行固定问题集，这里保留人工回页入口。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
           <span class="state pending" id="wb-rag-status">正在读取索引</span>
         </header>
         <form class="rag-query-bar" id="rag-form">
@@ -407,7 +417,7 @@
 
       <section class="view" data-view-panel="supplement" aria-labelledby="supplement-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">06 / CONTROLLED CONTINUATION</p><h2 id="supplement-heading">补充证据与续分析</h2><p>账龄、期后回款、信用政策和合同结算条款独立保存，资料日期与原 T0 分开；续分析默认重新执行 RAG 与三 Agent，并显示建议变化。</p></div>
+          <div><p class="kicker">06 / CONTROLLED CONTINUATION</p><h2 id="supplement-heading">补充证据与续分析</h2><p>账龄、期后回款、信用政策和合同结算条款独立保存，资料日期与原 T0 分开；续分析默认重新执行 RAG 与三 Agent，并显示建议变化。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
           <span class="state pending" id="wb-sup-state">等待本次运行</span>
         </header>
         <form id="supplement-form" class="supplement-sheet" enctype="multipart/form-data">
@@ -439,13 +449,13 @@
 
       <section class="view" data-view-panel="delivery" aria-labelledby="delivery-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">07 / HUMAN REVIEW & DELIVERY</p><h2 id="delivery-heading">人工复核与交付</h2><p><strong>AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</strong>只有真实复核人回查证据、保存处理意见并明确允许导出后，缓存与 report_v2 Word 备忘录才可用。</p></div>
+          <div><p class="kicker">07 / HUMAN REVIEW & DELIVERY</p><h2 id="delivery-heading">人工复核与交付</h2><p><strong>AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</strong>只有真实复核人回查证据、保存处理意见并明确允许导出后，缓存与 report_v2 Word 备忘录才可用。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
           <span class="state waiting" id="delivery-state">未复核</span>
         </header>
 
         <section class="lookup-bar" aria-labelledby="lookup-heading">
           <div><p class="folio">RUN LOOKUP</p><h3 id="lookup-heading">按真实运行编号回看</h3><p>这里只读取指定 run_id，不伪装成全局运行历史列表。</p></div>
-          <form id="run-lookup-form"><label for="run-lookup-input"><span>run_id</span><input id="run-lookup-input" name="run_id" autocomplete="off" spellcheck="false" placeholder="RUN-W6-…"></label><button class="button quiet" type="submit">读取运行</button></form>
+          <form id="run-lookup-form"><label for="run-lookup-input"><span>run_id</span><input id="run-lookup-input" name="run_id" required autocomplete="off" spellcheck="false" placeholder="RUN-W6-…"></label><button class="button quiet" type="submit">读取运行</button></form>
         </section>
 
         <div class="delivery-layout">
@@ -491,7 +501,7 @@
 
       <section class="view" data-view-panel="methods" aria-labelledby="methods-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">08 / METHOD & BOUNDARIES</p><h2 id="methods-heading">角色、方法与边界</h2><p>三个角色按固定分工配合，程序和审计师负责最后的校验。</p></div>
+          <div><p class="kicker">08 / METHOD & BOUNDARIES</p><h2 id="methods-heading">角色、方法与边界</h2><p>三个角色按固定分工配合，程序和审计师负责最后的校验。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
         </header>
         <section class="editorial-section roles-section" aria-labelledby="roles-heading">
           <header class="section-heading"><span class="section-number">01</span><div><p>智能体角色 · AGENTS</p><h3 id="roles-heading">三个角色，各做各的事</h3></div></header>
@@ -528,6 +538,22 @@
       </section>
     </main>
   </div>
+
+  <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-dialog-title" aria-describedby="auth-dialog-note">
+    <form id="auth-login-form" method="dialog">
+      <div class="dialog-head">
+        <div><span class="folio">SECURE TENANT ACCESS</span><h2 id="auth-dialog-title">登录公网工作区</h2></div>
+        <button class="icon-button" type="button" aria-label="关闭登录窗口" data-close-auth-dialog><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭登录窗口</span></button>
+      </div>
+      <div class="auth-dialog-body">
+        <p id="auth-dialog-note">凭据仅提交到同源后端换取 HttpOnly 会话 Cookie，不会写入本机存储或运行日志。</p>
+        <label for="auth-email"><span>邮箱</span><input id="auth-email" name="email" type="email" required autocomplete="username" inputmode="email"></label>
+        <label for="auth-password"><span>密码</span><input id="auth-password" name="password" type="password" required autocomplete="current-password"></label>
+        <p class="form-message" id="auth-message" role="alert" aria-live="assertive"></p>
+        <div class="action-row"><button class="button primary" id="auth-login-submit" type="submit">安全登录</button><button class="button quiet" type="button" data-close-auth-dialog>取消</button></div>
+      </div>
+    </form>
+  </dialog>
 
   <dialog class="detail-drawer" id="risk-dialog" aria-labelledby="risk-dialog-title">
     <div class="dialog-head">

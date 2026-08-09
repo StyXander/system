@@ -83,6 +83,11 @@
   box-sizing: border-box;
 }
 
+/* 原生 hidden 属性必须优先于组件 display，避免本地模式仍露出不可用的公网入口。 */
+[hidden] {
+  display: none !important;
+}
+
 html {
   min-width: 320px;
   color: var(--ink);
@@ -320,6 +325,11 @@ table {
 
 .topbar-context {
   gap: var(--space-4);
+}
+
+.auth-action {
+  min-height: 34px;
+  padding: 5px 11px;
 }
 
 .context-label {
@@ -1191,6 +1201,27 @@ output,
 .locked-mode strong,
 .locked-mode small {
   display: block;
+}
+
+.model-consent-box .action-row {
+  margin-top: 10px;
+}
+
+.model-consent-box .button {
+  min-height: 34px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.auth-ledger p:not(.nav-group-label) {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.auth-ledger .button {
+  width: 100%;
 }
 
 .locked-mode small {
@@ -2190,6 +2221,37 @@ mark {
   background: var(--overlay);
 }
 
+.auth-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  padding: 0;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-1);
+  box-shadow: var(--shadow-drawer);
+}
+
+.auth-dialog::backdrop {
+  background: var(--overlay);
+}
+
+.auth-dialog-body {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.auth-dialog-body > p:first-child {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.auth-dialog-body .action-row {
+  margin-top: 0;
+}
+
 @keyframes drawer-in {
   from {
     transform: translateX(36px);
@@ -2621,6 +2683,14 @@ mark {
 }
 
 @media (max-width: 520px) {
+  /* 品牌链接本身是回到总览的交互控件；图标保持 32px，使用透明
+     padding 把 390px 屏幕上的实际命中框扩到不低于 40px。 */
+  .brand {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px 2px;
+  }
+
   .brand-mark {
     width: 32px;
     height: 32px;
@@ -2960,12 +3030,11 @@ mark {
 
 .cninfo-step small {
   margin-top: 4px;
-  overflow: hidden;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.5;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .cninfo-task-meta,
@@ -2996,11 +3065,10 @@ mark {
 .cninfo-result-stats strong {
   display: block;
   margin: 6px 0 0;
-  overflow: hidden;
   color: var(--text-primary);
   font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .cninfo-candidates {
@@ -3107,10 +3175,9 @@ mark {
 .cninfo-analysis-meta strong {
   display: block;
   margin-top: 5px;
-  overflow: hidden;
   color: var(--text-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .cninfo-analysis-preview .metric-ledger {

@@ -741,7 +741,7 @@
         2023
       ],
       "cache_status": "ready",
-      "verified_at": "2026-08-07T22:10:46+0800",
+      "verified_at": "2026-08-08T12:30:09+0800",
       "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
       "extractor_version": "field_extraction_v1",
       "documents": [

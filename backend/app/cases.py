@@ -63,6 +63,41 @@ R1 未触发只说明未出现规定增长错配，不代表公司没有其他�
 新增字段种类时必须同步前缀、口径校验、来源选择和测试。
 新增结构化表时必须决定它是主字段、增强证据还是资料缺口。
 任何自动提取能力上线前都应保留人工页码确认与原文回查入口。
+项目级许可文件只叠加公开资料传输授权，不能放宽私有案例的访问边界。
+许可文件损坏或状态未确认时保持原案例策略，不从缺失配置推断同意。
+授权确认记录保留确认人、日期和政策来源，便于后续撤销或复验。
+运行目录配额覆盖案例与内容存储，防止批量下载耗尽服务磁盘。
+配额解析失败时回到受控默认值，不能把无效配置解释为无限空间。
+内容寻址 PDF 以整份哈希命名，相同原件在多个案例间只保存一份实体。
+内容寻址存储发布前再次计算临时文件哈希，磁盘写入错误必须被发现。
+并发下载同一原件使用排他硬链接发布，后到线程不能覆盖已有内容。
+已有同名内容若哈希不符立即失败，不能假设文件名足以证明身份。
+案例目录在完整写入前可能被并发线程看到，读取方需要等待发布完成。
+同一案例同一快照的重复登记可以复用，不同快照必须拒绝静默覆盖。
+并发等待设有时限，崩溃遗留的半成品目录不能让请求永久阻塞。
+案例写入异常只删除当前调用新建的目录，共享内容存储仍按哈希保持不可变。
+字段金额必须是有限数值，字符串无穷值和非数字不能进入 JSON 证据。
+比例字段仅接受明确百分比单位，不能继承案例金额单位。
+亿元等合法金额单位仍需全案例一致，不能逐字段随意切换数量级。
+字段页码必须为正并且不超过登记 PDF 页数，避免生成无法回查的定位。
+人工更正同样执行有限数值和页码边界校验，人工输入不享有技术绕过。
+人工确认只改变复核决定，不修改原自动候选和来源哈希。
+候选内容发生变化时旧人工决定不继承，防止批准错误地跨版本延续。
+更正记录同时保存原值和更正值，使导出能够区分机器候选与真人处理。
+只有收入与应收账款在同一年度均存在，R1 才把该年度视为技术完整。
+人工可用年度还要求两个主字段分别确认，单字段批准不能放行比较。
+三年准备状态检查连续窗口，不以三个离散年度冒充趋势资料。
+行业专用字段完整性按专用规则要求计算，不强迫金融企业提供普通 R1 字段。
+期间来源会排除披露日晚于时点的行，候选存在不代表当时可见。
+同一字段存在多条来源时应由前置登记消歧，选择器不按金额大小猜测。
+来源文档解析为实际路径后再次检查工作区边界，符号链接不能逃逸案例根。
+登记页元数据只返回该页关联证据编号，不把其他页面字段错误附加。
+模板 PDF 是合成占位资料，不能被页面描述为真实企业年报。
+模板压缩包用于说明协议，默认许可和人工状态必须保持失败关闭。
+公开案例自动登记仍保留合法样例确认待处理，下载成功不等于合规冻结。
+租户和所有者标识只能由已认证服务端注入，浏览器 manifest 不能自行声明归属。
+私有存储后端标记影响访问控制，但不会改变财务字段的来源校验要求。
+案例注册的成功边界是资料身份和结构可复验，不是字段真实完整或风险成立。
 本模块的核心原则是先证明来源可回查，再允许计算和模型使用。
 """
 
@@ -72,13 +107,14 @@ import csv
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import time
 import uuid
 import zipfile
 from copy import deepcopy
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
@@ -86,6 +122,7 @@ import fitz
 from openpyxl import load_workbook
 
 from . import data as standard_data
+from .industry_rules import INDUSTRY_RULES_VERSION, get_specialized_spec
 from .schemas import AI_GENERATED_CONTENT_NOTICE
 
 
@@ -153,7 +190,7 @@ MAX_COMPRESSION_RATIO = 120
 CASE_ID_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9_-]{2,39}$")
 DOCUMENT_ID_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9_-]{2,63}$")
 SHA256_PATTERN = re.compile(r"^[0-9A-Fa-f]{64}$")
-ALLOWED_AMOUNT_UNITS = {"元", "千元", "万元", "百万元"}
+ALLOWED_AMOUNT_UNITS = {"元", "千元", "万元", "百万元", "亿元"}
 ALLOWED_SAMPLE_TYPES = {"public", "authorized_deidentified", "synthetic"}
 ALLOWED_STATEMENT_SCOPES = {"合并", "母公司"}
 ALLOWED_FILE_NAMES = {
@@ -178,6 +215,20 @@ ALLOWED_FIELD_KINDS = {
     "accounts_receivable_net",
     "operating_cash_flow",
     "net_profit",
+    "contract_assets",
+    "long_term_receivables",
+    "contract_liabilities",
+    "loan_balance",
+    "interest_income",
+    "nonperforming_loan_ratio",
+    "provision_coverage_ratio",
+    "insurance_revenue",
+    "insurance_service_result",
+    "claims_expense",
+    "insurance_liabilities",
+    "commission_income",
+    "margin_financing_assets",
+    "impairment_provision",
 }
 FIELD_PREFIX = {
     "revenue": "REV",
@@ -186,7 +237,23 @@ FIELD_PREFIX = {
     "accounts_receivable_net": "AR_NET",
     "operating_cash_flow": "CFO",
     "net_profit": "NP",
+    "contract_assets": "CA",
+    "long_term_receivables": "LTR",
+    "contract_liabilities": "CL",
+    "loan_balance": "LOAN",
+    "interest_income": "INT",
+    "nonperforming_loan_ratio": "NPL",
+    "provision_coverage_ratio": "PCR",
+    "insurance_revenue": "INS_REV",
+    "insurance_service_result": "ISR",
+    "claims_expense": "CLAIMS",
+    "insurance_liabilities": "INS_LIAB",
+    "commission_income": "COMMISSION",
+    "margin_financing_assets": "MARGIN",
+    "impairment_provision": "IMPAIR",
 }
+RATIO_FIELD_KINDS = {"nonperforming_loan_ratio", "provision_coverage_ratio"}
+ALLOWED_RATIO_UNITS = {"%", "％", "百分比"}
 
 
 def _runtime_base(workspace_root: Path) -> Path:
@@ -195,22 +262,113 @@ def _runtime_base(workspace_root: Path) -> Path:
     return base / namespace if namespace else base
 
 
-def _cases_dir(workspace_root: Path) -> Path:
-    path = _runtime_base(workspace_root) / "cases"
+def _resolved_path_text(path: Path) -> str:
+    """去除 Windows 可变长路径前缀，同时保留原目录大小写供相对路径使用。"""
+
+    text = str(path.resolve())
+    if text.startswith("\\\\?\\UNC\\"):
+        text = "\\\\" + text[8:]
+    elif text.startswith("\\\\?\\"):
+        text = text[4:]
+    return os.path.normpath(text)
+
+
+def _canonical_path_text(path: Path) -> str:
+    """统一 Windows 长路径前缀和大小写，供安全边界比较而非展示。"""
+
+    return os.path.normcase(_resolved_path_text(path))
+
+
+def _path_is_within(path: Path, parent: Path) -> bool:
+    """按规范化绝对路径判断包含关系，避免 Windows 并发解析前缀误报。"""
+
+    child_text = _canonical_path_text(path)
+    parent_text = _canonical_path_text(parent)
+    try:
+        return os.path.commonpath((child_text, parent_text)) == parent_text
+    except ValueError:
+        # 不同盘符或不兼容根路径明确不属于同一安全边界。
+        return False
+
+
+def _relative_path_within(path: Path, parent: Path) -> Path:
+    """在完成规范化边界校验后生成稳定相对路径，兼容 Windows 长路径前缀。"""
+
+    if not _path_is_within(path, parent):
+        raise ValueError("登记文件路径解析后超出工作区边界。")
+    return Path(os.path.relpath(_resolved_path_text(path), _resolved_path_text(parent)))
+
+
+def _safe_runtime_child(workspace_root: Path, *parts: str) -> Path:
+    """解析运行目录子路径，并拒绝符号链接或异常根目录造成的越界。"""
+
+    workspace = workspace_root.resolve()
+    runtime = _runtime_base(workspace).resolve()
+    if not _path_is_within(runtime, workspace):
+        raise ValueError("运行目录解析后超出工作区边界。")
+    child = runtime.joinpath(*parts).resolve()
+    if not _path_is_within(child, runtime):
+        raise ValueError("运行目录子路径解析后越界。")
+    return child
+
+
+def _normalized_server_tenant_id(tenant_id: str | None) -> str | None:
+    """规范化由认证层注入的租户编号；浏览器 manifest 不能调用此边界。"""
+
+    if tenant_id is None:
+        return None
+    normalized = str(tenant_id).strip()
+    if not normalized:
+        raise ValueError("租户作用域不能为空。")
+    if len(normalized) > 200 or any(ord(character) < 32 for character in normalized):
+        raise ValueError("租户作用域格式无效。")
+    return normalized
+
+
+def _tenant_runtime_key(tenant_id: str) -> str:
+    """租户原值不进入文件名；固定长度哈希同时消除路径穿越与目录泄露。"""
+
+    normalized = _normalized_server_tenant_id(tenant_id)
+    if normalized is None:  # pragma: no cover - 调用签名保证非空，保留防御式边界。
+        raise ValueError("租户作用域不能为空。")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest().upper()
+
+
+def _cases_dir(workspace_root: Path, *, tenant_id: str | None = None) -> Path:
+    """返回案例目录；公网私有临时副本按认证租户哈希隔离。"""
+
+    normalized_tenant = _normalized_server_tenant_id(tenant_id)
+    path = (
+        _safe_runtime_child(workspace_root, "cases")
+        if normalized_tenant is None
+        else _safe_runtime_child(
+            workspace_root,
+            "tenant_cases",
+            "v1",
+            _tenant_runtime_key(normalized_tenant),
+            "cases",
+        )
+    )
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def _case_dir(workspace_root: Path, case_id: str) -> Path:
+def _case_dir(workspace_root: Path, case_id: str, *, tenant_id: str | None = None) -> Path:
+    """解析单个案例目录，并把最终路径限定在所选租户案例根下。"""
+
     if not CASE_ID_PATTERN.fullmatch(case_id):
         raise ValueError("案例编号只允许 3—40 位大写字母、数字、下划线或连字符。")
-    return _cases_dir(workspace_root) / case_id
+    cases_root = _cases_dir(workspace_root, tenant_id=tenant_id).resolve()
+    path = (cases_root / case_id).resolve()
+    if not _path_is_within(path, cases_root):
+        raise ValueError("案例目录解析后超出当前租户作用域。")
+    return path
 
 
 def _pdf_content_store_dir(workspace_root: Path) -> Path:
     """Return the content-addressed PDF store shared by automatic cases."""
 
-    path = _runtime_base(workspace_root) / "pdf_store"
+    path = _safe_runtime_child(workspace_root, "pdf_store")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -253,8 +411,51 @@ def _ensure_content_addressed_pdf(workspace_root: Path, sha256: str, content: by
         raise ValueError(
             "运行目录已达到 PDF 缓存配额，请清理可恢复的临时运行记录或提高 AUDITTRACE_RUNTIME_QUOTA_MB。"
         )
-    blob.write_bytes(content)
+    # 先写唯一临时文件，再以硬链接的“仅当不存在时创建”语义发布。
+    # 多个任务同时下载同一官方 PDF 时不会让读线程看到半个 blob，也不会
+    # 让后到线程覆盖先到线程已经被案例目录引用的不可变内容。
+    temporary = blob.with_name(f".{blob.stem}.{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_bytes(content)
+        if _sha256_bytes(temporary.read_bytes()) != sha256.upper():
+            raise ValueError("内容寻址 PDF 临时文件写入后哈希不一致。")
+        try:
+            os.link(temporary, blob)
+        except FileExistsError:
+            if _sha256_bytes(blob.read_bytes()) != sha256.upper():
+                raise ValueError("内容寻址 PDF 并发发布后 SHA-256 不一致。")
+    finally:
+        temporary.unlink(missing_ok=True)
     return blob
+
+
+def _wait_for_registered_case(
+    case_dir: Path,
+    source_snapshot_id: str,
+    *,
+    timeout_seconds: float = 5.0,
+) -> dict[str, Any] | None:
+    """等待同一 case_id 的并发发布完成；目录消失时允许当前调用接管。"""
+
+    deadline = time.monotonic() + timeout_seconds
+    while case_dir.exists():
+        existing_path = case_dir / "case.json"
+        if existing_path.is_file():
+            try:
+                existing = json.loads(existing_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                existing = None
+            if isinstance(existing, dict):
+                if existing.get("source_snapshot_id") != source_snapshot_id:
+                    raise ValueError("case_id 已存在且来源快照不同；系统不会静默覆盖旧案例。")
+                # 返回副本标记本次没有重写旧字段或人工复核历史。
+                result = deepcopy(existing)
+                result["reused_existing_case"] = True
+                return result
+        if time.monotonic() >= deadline:
+            raise ValueError("同一 case_id 正在登记但尚未完成，请稍后重试。")
+        time.sleep(0.02)
+    return None
 
 
 def _sha256_bytes(content: bytes) -> str:
@@ -401,7 +602,14 @@ def _required_text(data: dict[str, Any], key: str, label: str, max_length: int =
     return value
 
 
-def _validate_manifest(raw: Any, files: dict[str, bytes]) -> dict[str, Any]:
+def _validate_manifest(
+    raw: Any,
+    files: dict[str, bytes],
+    *,
+    allow_scoped_standard_case_id: bool = False,
+) -> dict[str, Any]:
+    """校验案例清单；只有已认证租户的隔离目录可与内置案例同名。"""
+
     if not isinstance(raw, dict):
         raise ValueError("case_manifest.json 必须是 JSON 对象。")
     if raw.get("schema_version") != CASE_SCHEMA_VERSION:
@@ -409,11 +617,11 @@ def _validate_manifest(raw: Any, files: dict[str, bytes]) -> dict[str, Any]:
     case_id = _required_text(raw, "case_id", "case_id", 40).upper()
     if not CASE_ID_PATTERN.fullmatch(case_id):
         raise ValueError("case_id 只允许 3—40 位大写字母、数字、下划线或连字符。")
-    if case_id == standard_data.CASE_ID:
+    if case_id == standard_data.CASE_ID and not allow_scoped_standard_case_id:
         raise ValueError("不能覆盖内置标准股份案例。")
     amount_unit = _required_text(raw, "amount_unit", "金额单位", 10)
     if amount_unit not in ALLOWED_AMOUNT_UNITS:
-        raise ValueError("金额单位只允许元、千元、万元或百万元。")
+        raise ValueError("金额单位只允许元、千元、万元、百万元或亿元。")
     statement_scope = _required_text(raw, "statement_scope", "报表口径", 20)
     if statement_scope not in ALLOWED_STATEMENT_SCOPES:
         raise ValueError("报表口径只允许合并或母公司。")
@@ -495,6 +703,14 @@ def _validate_manifest(raw: Any, files: dict[str, bytes]) -> dict[str, Any]:
         "amount_unit": amount_unit,
         "statement_scope": statement_scope,
         "sample_type": sample_type,
+        "industry": str(raw.get("industry") or "")[:100],
+        "industry_name": str(raw.get("industry_name") or "")[:100],
+        "specialized_rule": str(raw.get("specialized_rule") or "")[:100],
+        "specialized_required_fields": [
+            str(item).strip()
+            for item in (raw.get("specialized_required_fields") or [])
+            if str(item).strip() in ALLOWED_FIELD_KINDS
+        ],
         "model_transfer_allowed": model_transfer_allowed,
         "model_transfer_confirmation": transfer_confirmation,
         "retention_expires_at": retention_expires_at,
@@ -537,6 +753,8 @@ def _validate_financial_rows(
             pdf_page = int(row.get("pdf_page"))
         except (TypeError, ValueError) as error:
             raise ValueError(f"financial_fields 第 {index} 行的年度、金额或 PDF 页码无效。") from error
+        if not math.isfinite(value):
+            raise ValueError(f"financial_fields 第 {index} 行金额必须是有限数值。")
         document_id = str(row.get("document_id") or "").strip().upper()
         if document_id not in document_ids:
             raise ValueError(f"financial_fields 第 {index} 行引用未登记 document_id。")
@@ -547,7 +765,10 @@ def _validate_financial_rows(
             raise ValueError(f"financial_fields 重复登记 {kind}/{year}。")
         seen.add(key)
         unit = str(row.get("unit") or manifest["amount_unit"]).strip()
-        if unit != manifest["amount_unit"]:
+        if kind in RATIO_FIELD_KINDS:
+            if unit not in ALLOWED_RATIO_UNITS:
+                raise ValueError(f"financial_fields 第 {index} 行比例字段必须明确使用百分比单位。")
+        elif unit != manifest["amount_unit"]:
             raise ValueError(f"financial_fields 第 {index} 行金额单位与 manifest 不一致。")
         statement_scope = str(row.get("statement_scope") or manifest["statement_scope"]).strip()
         if statement_scope != manifest["statement_scope"]:
@@ -587,14 +808,18 @@ def _validate_financial_rows(
     year_kinds: dict[int, set[str]] = {}
     for row in normalized:
         year_kinds.setdefault(row["year"], set()).add(row["field_kind"])
+    specialized_required = set(manifest.get("specialized_required_fields") or [])
+    required_for_continuity = specialized_required or {"revenue", "accounts_receivable"}
     complete_years = sorted(
-        (year for year, kinds in year_kinds.items() if {"revenue", "accounts_receivable"}.issubset(kinds)),
+        (year for year, kinds in year_kinds.items() if required_for_continuity.issubset(kinds)),
         reverse=True,
     )
     if len(complete_years) < 2:
-        raise ValueError("R1 至少需要连续两年的营业收入和应收账款字段。")
+        rule_label = "行业专用规则" if specialized_required else "R1"
+        raise ValueError(f"{rule_label} 至少需要连续两年的完整字段。")
     if any(a - b != 1 for a, b in zip(complete_years, complete_years[1:])):
-        raise ValueError("R1 基本计算要求至少两年连续期间。")
+        rule_label = "行业专用规则" if specialized_required else "R1"
+        raise ValueError(f"{rule_label} 基本计算要求至少两年连续期间。")
     return normalized
 
 
@@ -704,23 +929,45 @@ def _standard_case(workspace_root: Path) -> dict[str, Any]:
     return _apply_project_authorization(workspace_root, case)
 
 
-def get_case(workspace_root: Path, case_id: str) -> dict[str, Any] | None:
-    if case_id == standard_data.CASE_ID:
-        return _standard_case(workspace_root)
+def get_case(
+    workspace_root: Path,
+    case_id: str,
+    *,
+    tenant_id: str | None = None,
+) -> dict[str, Any] | None:
+    """读取本地案例；传入租户时只读取该租户的临时物化副本。"""
+
     if not CASE_ID_PATTERN.fullmatch(case_id):
         return None
-    path = _case_dir(workspace_root, case_id) / "case.json"
+    normalized_tenant = _normalized_server_tenant_id(tenant_id)
+    # 显式 tenant 是精确私有查询，不能被同 ID 的内置/全局公开案例遮蔽。
+    # 无 tenant 才保持本地竞赛模式的内置标准案例兼容合同。
+    if case_id == standard_data.CASE_ID and normalized_tenant is None:
+        return _standard_case(workspace_root)
+    path = _case_dir(workspace_root, case_id, tenant_id=normalized_tenant) / "case.json"
     if not path.is_file():
         return None
-    return _apply_project_authorization(workspace_root, json.loads(path.read_text(encoding="utf-8")))
+    try:
+        case = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    # 即使目录内容被本机误拷贝，也不允许把其他租户的清单当作当前副本读取。
+    if normalized_tenant is not None and str(case.get("tenant_id") or "").strip() != normalized_tenant:
+        return None
+    return _apply_project_authorization(workspace_root, case)
 
 
-def list_cases(workspace_root: Path) -> list[dict[str, Any]]:
-    cases = [_standard_case(workspace_root)]
-    for path in sorted(_cases_dir(workspace_root).glob("*/case.json")):
+def list_cases(workspace_root: Path, *, tenant_id: str | None = None) -> list[dict[str, Any]]:
+    """列出本地案例；显式租户查询不扫描其他租户或旧全局私有目录。"""
+
+    normalized_tenant = _normalized_server_tenant_id(tenant_id)
+    cases = [] if normalized_tenant is not None else [_standard_case(workspace_root)]
+    for path in sorted(_cases_dir(workspace_root, tenant_id=normalized_tenant).glob("*/case.json")):
         try:
             case = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
+            continue
+        if normalized_tenant is not None and str(case.get("tenant_id") or "").strip() != normalized_tenant:
             continue
         cases.append(_apply_project_authorization(workspace_root, case))
     return cases
@@ -732,7 +979,10 @@ def import_case_zip(
     *,
     authorized: bool,
     desensitized: bool,
+    tenant_id: str | None = None,
+    owner_user_id: str | None = None,
 ) -> dict[str, Any]:
+    normalized_tenant = _normalized_server_tenant_id(tenant_id)
     if not authorized:
         raise ValueError("必须确认案例资料已获授权或来自合法公开来源。")
     if not desensitized:
@@ -750,11 +1000,17 @@ def import_case_zip(
         raw_manifest = json.loads(files["case_manifest.json"].decode("utf-8-sig"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError("case_manifest.json 无法解析。") from error
-    manifest = _validate_manifest(raw_manifest, files)
+    manifest = _validate_manifest(
+        raw_manifest,
+        files,
+        allow_scoped_standard_case_id=normalized_tenant is not None,
+    )
     raw_rows = _rows_from_csv(files[financial_name]) if financial_name.endswith(".csv") else _rows_from_xlsx(files[financial_name])
     financial_rows = _validate_financial_rows(raw_rows, manifest)
     structured_evidence, material_gaps = _validate_public_case_evidence(files, manifest, financial_rows)
-    case_dir = _case_dir(workspace_root, manifest["case_id"])
+    # tenant_id 只能来自已认证服务端参数；manifest 即使伪造同名字段也已被
+    # 白名单解析丢弃。公网副本进入租户哈希目录，普通本地读取不会看到它。
+    case_dir = _case_dir(workspace_root, manifest["case_id"], tenant_id=normalized_tenant)
     if case_dir.exists():
         raise ValueError("case_id 已存在；系统不会静默覆盖旧案例。")
     case_dir.mkdir(parents=True, exist_ok=False)
@@ -771,7 +1027,7 @@ def import_case_zip(
                     **document,
                     "original_package_path": document["source_file"],
                     "source_file": Path(document["source_file"]).name,
-                    "storage_relpath": destination.relative_to(workspace_root).as_posix(),
+                    "storage_relpath": _relative_path_within(destination, workspace_root).as_posix(),
                 }
             )
         complete_years = sorted(
@@ -797,6 +1053,11 @@ def import_case_zip(
         case = {
             **manifest,
             "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE,
+            # 仅由已认证服务端写入；浏览器提交的组织编号不会进入案例清单。
+            "tenant_id": normalized_tenant,
+            "owner_user_id": owner_user_id,
+            "storage_backend": "supabase_private" if normalized_tenant else "local_competition",
+            "runtime_materialization": "tenant_scoped_ephemeral" if normalized_tenant else "local_authoritative",
             "documents": normalized_documents,
             "available_years": [year for year in complete_years if year - 1 in complete_years],
             "three_year_r1_ready": len(complete_years) >= 3,
@@ -842,6 +1103,8 @@ def register_cninfo_case(
     company: dict[str, Any],
     documents: list[dict[str, Any]],
     retention_expires_at: str = "2026-12-31",
+    tenant_id: str | None = None,
+    owner_user_id: str | None = None,
 ) -> dict[str, Any]:
     """登记已经通过巨潮下载和 PDF 校验的公开年报案例。
 
@@ -895,8 +1158,11 @@ def register_cninfo_case(
                 "original_source_file": str(item.get("source_file") or file_name)[:160],
                 "storage_relpath": f"backend/runtime/cases/{case_id}/documents/{file_name}",
                 "content_store_relpath": (
-                    _pdf_content_store_dir(workspace_root) / f"{actual_hash.upper()}.pdf"
-                ).relative_to(workspace_root).as_posix(),
+                    _relative_path_within(
+                        _pdf_content_store_dir(workspace_root) / f"{actual_hash.upper()}.pdf",
+                        workspace_root,
+                    ).as_posix()
+                ),
                 "document_type": "annual_report",
                 "report_year": report_year,
                 "disclosure_date": disclosure_date,
@@ -932,19 +1198,26 @@ def register_cninfo_case(
     # 因此来源路径必须根据实际案例目录计算，不能手写未带命名空间的路径。
     for document in normalized_documents:
         document["storage_relpath"] = (
-            case_dir / "documents" / document["source_file"]
-        ).relative_to(workspace_root).as_posix()
+            _relative_path_within(
+                case_dir / "documents" / document["source_file"],
+                workspace_root,
+            ).as_posix()
+        )
     if case_dir.exists():
-        existing_path = case_dir / "case.json"
-        if existing_path.is_file():
-            existing = json.loads(existing_path.read_text(encoding="utf-8"))
-            if existing.get("source_snapshot_id") == source_snapshot_id:
-                # 重复提交相同快照只复用原案例，不重复下载、不改写旧字段。
-                existing["reused_existing_case"] = True
-                return existing
-        raise ValueError("case_id 已存在且来源快照不同；系统不会静默覆盖旧案例。")
+        existing = _wait_for_registered_case(case_dir, source_snapshot_id)
+        if existing is not None:
+            return existing
 
-    case_dir.mkdir(parents=True, exist_ok=False)
+    # exists()+mkdir 之间仍可能被另一 worker 抢先创建。失败时等待其写完
+    # case.json 并比较快照；相同快照复用，不同快照继续失败关闭。
+    while True:
+        try:
+            case_dir.mkdir(parents=True, exist_ok=False)
+            break
+        except FileExistsError:
+            existing = _wait_for_registered_case(case_dir, source_snapshot_id)
+            if existing is not None:
+                return existing
     documents_dir = case_dir / "documents"
     documents_dir.mkdir()
     try:
@@ -975,6 +1248,9 @@ def register_cninfo_case(
             "amount_unit": "元",
             "statement_scope": "合并",
             "sample_type": "public",
+            "tenant_id": tenant_id,
+            "owner_user_id": owner_user_id,
+            "storage_backend": "supabase_private" if tenant_id else "public_official_or_local_cache",
             "model_transfer_allowed": False,
             "retention_expires_at": retention_expires_at,
             "legal_sample_confirmation_status": "pending_human_confirmation",
@@ -1013,6 +1289,8 @@ def update_cninfo_financial_fields(
     *,
     status: str,
     material_gaps: list[str] | None = None,
+    specialized_required_fields: list[str] | None = None,
+    industry_rule: str | None = None,
 ) -> dict[str, Any]:
     """把字段候选写入巨潮案例，并重新计算可用于 R1 的连续年度。"""
 
@@ -1051,7 +1329,7 @@ def update_cninfo_financial_fields(
             raise ValueError(f"{kind}/{year} 未绑定同年度年报。")
         value = float(row["value"])
         pdf_page = int(row["pdf_page"])
-        if pdf_page < 1 or not value == value:
+        if pdf_page < 1 or not math.isfinite(value):
             raise ValueError("巨潮自动字段页码或金额无效。")
         evidence_id = str(row.get("evidence_id") or f"{case_id}_{FIELD_PREFIX[kind]}_{year}").upper()
         if not DOCUMENT_ID_PATTERN.fullmatch(evidence_id):
@@ -1060,9 +1338,17 @@ def update_cninfo_financial_fields(
         field_id = f"{kind}_{year}"
         previous = previous_by_field_id.get(field_id)
         # 只有文档、页码和金额都没有变化时，才继承上一轮真人决定。
+        previous_value = None
+        if previous:
+            try:
+                previous_value = float(previous.get("candidate", {}).get("value", previous.get("value")))
+            except (TypeError, ValueError):
+                previous_value = None
         same_candidate = bool(
             previous
-            and float(previous.get("candidate", {}).get("value", previous.get("value"))) == value
+            and previous_value is not None
+            and math.isfinite(previous_value)
+            and previous_value == value
             and int(previous.get("candidate", {}).get("pdf_page", previous.get("pdf_page"))) == pdf_page
             and str(previous.get("document_id")) == document_id
         )
@@ -1092,9 +1378,10 @@ def update_cninfo_financial_fields(
                     "document_id": document_id,
                     "locator": str(row.get("locator") or "自动提取候选；待人工回页确认")[:300],
                 },
-                "unit": "元",
-                "currency": "CNY",
-                "statement_scope": "合并",
+                "unit": str(row.get("unit") or ("%" if kind in RATIO_FIELD_KINDS else case.get("amount_unit", "元"))),
+                "source_unit": str(row.get("source_unit") or row.get("unit") or ""),
+                "currency": case.get("currency", "CNY"),
+                "statement_scope": case.get("statement_scope", "合并"),
                 "field_basis": str(row.get("field_basis") or ("gross" if kind == "accounts_receivable" else "reported")),
                 "document_id": document_id,
                 "source_file": document["source_file"],
@@ -1114,34 +1401,67 @@ def update_cninfo_financial_fields(
             }
         )
     # R1 的可用年度必须同时有营业收入和应收账款，不能用单个字段的最长年度误判完整性。
-    complete_years = sorted(
-        {
-            year
-            for year in {row["year"] for row in normalized}
-            if all(
-                any(row["field_kind"] == kind and row["year"] == year for row in normalized)
-                for kind in ("revenue", "accounts_receivable")
-            )
-        },
-        reverse=True,
-    )
-    available_years = [year for year in complete_years if year - 1 in complete_years]
-    confirmed_years = sorted(
-        {
-            row["year"]
-            for row in normalized
-            if row["field_kind"] in {"revenue", "accounts_receivable"}
-            and row.get("human_review", {}).get("decision") in {"confirm", "correct"}
-        },
-        reverse=True,
-    )
-    human_confirmed_available_years = [year for year in confirmed_years if year - 1 in confirmed_years]
+    # 行业专用规则不一定使用 R1 字段；先分别计算普通字段和专用字段，避免银行、保险、
+    # 券商案例明明有候选却因为 R1 为空而在页面显示“无可用年度”。
+    complete_years = _complete_r1_years(normalized)
+    r1_available_years = [year for year in complete_years if year - 1 in complete_years]
+    confirmed_years = _complete_r1_years(normalized, accepted_only=True)
+    r1_human_confirmed_available_years = [year for year in confirmed_years if year - 1 in confirmed_years]
     # available_years 表示技术上有候选，不代表已经可以进入规则。
-    case["available_years"] = available_years
+    case["available_years"] = r1_available_years
+    case["r1_available_years"] = r1_available_years
+    if specialized_required_fields:
+        specialized_complete_years = sorted(
+            year
+            for year in {int(row["year"]) for row in normalized}
+            if all(
+                any(item.get("field_kind") == kind and int(item.get("year")) == year for item in normalized)
+                for kind in specialized_required_fields
+            )
+        )
+        specialized_available_years = [
+            year for year in reversed(specialized_complete_years) if year - 1 in specialized_complete_years
+        ]
+        case["specialized_required_fields"] = list(specialized_required_fields)
+        case["specialized_rule"] = industry_rule
+        case["industry_rule_version"] = INDUSTRY_RULES_VERSION if industry_rule else None
+        case["specialized_available_years"] = specialized_available_years
+        case["available_years"] = specialized_available_years
+        confirmed_specialized_years = sorted(
+            year
+            for year in {int(row["year"]) for row in normalized}
+            if all(
+                any(
+                    item.get("field_kind") == kind
+                    and int(item.get("year")) == year
+                    and _cninfo_field_is_human_accepted(item)
+                    for item in normalized
+                )
+                for kind in specialized_required_fields
+            )
+        )
+        case["specialized_human_confirmed_available_years"] = [
+            year for year in reversed(confirmed_specialized_years) if year - 1 in confirmed_specialized_years
+        ]
+    else:
+        # 案例从专用规则切回普通 R1/R2 时，不能继续沿用上一轮专用年度和规则键。
+        # 否则下一次页面读取会把旧行业结果误当成本轮字段完整性。
+        for key in (
+            "specialized_required_fields",
+            "specialized_rule",
+            "industry_rule_version",
+            "specialized_available_years",
+            "specialized_human_confirmed_available_years",
+        ):
+            case.pop(key, None)
     # human_confirmed_available_years 才是人工闸门之后允许规则使用的期间。
-    case["human_confirmed_available_years"] = human_confirmed_available_years
-    case["three_year_r1_ready"] = len(complete_years) >= 3
-    case["human_confirmed_three_year_r1_ready"] = len(human_confirmed_available_years) >= 2 and len(confirmed_years) >= 3
+    case["human_confirmed_available_years"] = (
+        case.get("specialized_human_confirmed_available_years", r1_human_confirmed_available_years)
+        if specialized_required_fields
+        else r1_human_confirmed_available_years
+    )
+    case["three_year_r1_ready"] = _has_three_consecutive_years(complete_years)
+    case["human_confirmed_three_year_r1_ready"] = _has_three_consecutive_years(confirmed_years)
     case["financial_fields_status"] = status
     case["material_gaps"] = list(material_gaps or [])
     case["source_review_status"] = (
@@ -1150,7 +1470,7 @@ def update_cninfo_financial_fields(
         if normalized
         else "cninfo_download_validated_pending_human_professional_confirmation"
     )
-    case["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    case["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     case_dir = _case_dir(workspace_root, case_id)
     (case_dir / "financial_fields.json").write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
     (case_dir / "case.json").write_text(json.dumps(case, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1164,30 +1484,38 @@ def _cninfo_field_is_human_accepted(row: dict[str, Any]) -> bool:
     return row.get("human_review", {}).get("decision") in {"confirm", "correct"}
 
 
+def _complete_r1_years(rows: list[dict[str, Any]], *, accepted_only: bool = False) -> list[int]:
+    """只返回收入和应收账款同时存在的年度，必要时再叠加人工确认条件。"""
+
+    complete: list[int] = []
+    for year in sorted({int(row["year"]) for row in rows}, reverse=True):
+        kinds = {
+            row.get("field_kind")
+            for row in rows
+            if int(row.get("year")) == year
+            and (not accepted_only or _cninfo_field_is_human_accepted(row))
+        }
+        if {"revenue", "accounts_receivable"}.issubset(kinds):
+            complete.append(year)
+    return complete
+
+
+def _has_three_consecutive_years(years: list[int]) -> bool:
+    """三年准备状态必须是连续年度，而不是任意三个离散年度。"""
+
+    values = set(years)
+    return any(year - 1 in values and year - 2 in values for year in values)
+
+
 def _recompute_cninfo_human_status(case: dict[str, Any], rows: list[dict[str, Any]]) -> None:
     """更新字段候选的真人状态，但不改写原始自动候选和历史复核记录。"""
 
-    technical_years = sorted(
-        {
-            int(row["year"])
-            for row in rows
-            if row.get("field_kind") in {"revenue", "accounts_receivable"}
-        },
-        reverse=True,
-    )
-    confirmed_years = sorted(
-        {
-            int(row["year"])
-            for row in rows
-            if row.get("field_kind") in {"revenue", "accounts_receivable"}
-            and _cninfo_field_is_human_accepted(row)
-        },
-        reverse=True,
-    )
+    technical_years = _complete_r1_years(rows)
+    confirmed_years = _complete_r1_years(rows, accepted_only=True)
     case["available_years"] = [year for year in technical_years if year - 1 in technical_years]
     case["human_confirmed_available_years"] = [year for year in confirmed_years if year - 1 in confirmed_years]
-    case["three_year_r1_ready"] = len(technical_years) >= 3
-    case["human_confirmed_three_year_r1_ready"] = len(confirmed_years) >= 3
+    case["three_year_r1_ready"] = _has_three_consecutive_years(technical_years)
+    case["human_confirmed_three_year_r1_ready"] = _has_three_consecutive_years(confirmed_years)
     required_rows = [
         row
         for row in rows
@@ -1267,11 +1595,18 @@ def confirm_cninfo_field(
         corrected_page = confirmation.get("corrected_pdf_page")
         if corrected_value is None or corrected_page is None:
             raise ValueError("修正字段必须同时提供金额和 PDF 页码。")
+        try:
+            normalized_value = float(corrected_value)
+            normalized_page = int(corrected_page)
+        except (TypeError, ValueError) as error:
+            raise ValueError("修正后的金额或 PDF 页码不是有效数值。") from error
+        if not math.isfinite(normalized_value) or normalized_page < 1:
+            raise ValueError("修正后的金额必须为有限数值，PDF 页码必须大于零。")
         document = documents.get(str(row.get("document_id")))
-        if document and int(corrected_page) > int(document.get("page_count") or 0):
+        if document and normalized_page > int(document.get("page_count") or 0):
             raise ValueError("修正后的 PDF 页码超过已校验原件页数。")
-        row["value"] = float(corrected_value)
-        row["pdf_page"] = int(corrected_page)
+        row["value"] = normalized_value
+        row["pdf_page"] = normalized_page
         if confirmation.get("corrected_locator"):
             row["locator"] = str(confirmation["corrected_locator"])[:300]
         row["source_review_status"] = "human_corrected"
@@ -1366,25 +1701,49 @@ def _standard_financial_rows() -> list[dict[str, Any]]:
     return rows
 
 
-def get_financial_rows(workspace_root: Path, case_id: str) -> list[dict[str, Any]]:
-    if case_id == standard_data.CASE_ID:
+def get_financial_rows(
+    workspace_root: Path,
+    case_id: str,
+    *,
+    tenant_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """读取结构化字段；租户参数必须与案例临时目录和清单归属同时匹配。"""
+
+    normalized_tenant = _normalized_server_tenant_id(tenant_id)
+    if case_id == standard_data.CASE_ID and normalized_tenant is None:
         return _standard_financial_rows()
-    case = get_case(workspace_root, case_id)
+    case = get_case(workspace_root, case_id, tenant_id=normalized_tenant)
     if case is None:
         raise KeyError(case_id)
-    path = _case_dir(workspace_root, case_id) / "financial_fields.json"
+    path = _case_dir(workspace_root, case_id, tenant_id=normalized_tenant) / "financial_fields.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def get_case_documents(workspace_root: Path, case_id: str) -> list[dict[str, Any]]:
-    case = get_case(workspace_root, case_id)
+def get_case_documents(
+    workspace_root: Path,
+    case_id: str,
+    *,
+    tenant_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """返回当前作用域文档登记副本，不跨租户回退同名案例。"""
+
+    case = get_case(workspace_root, case_id, tenant_id=tenant_id)
     if case is None:
         raise KeyError(case_id)
     return deepcopy(case["documents"])
 
 
-def resolve_case_document(workspace_root: Path, case_id: str, document_id: str) -> tuple[Path, dict[str, Any]] | None:
-    case = get_case(workspace_root, case_id)
+def resolve_case_document(
+    workspace_root: Path,
+    case_id: str,
+    document_id: str,
+    *,
+    tenant_id: str | None = None,
+) -> tuple[Path, dict[str, Any]] | None:
+    """解析已登记原件；非内置案例必须落在当前作用域的 documents 目录。"""
+
+    normalized_tenant = _normalized_server_tenant_id(tenant_id)
+    case = get_case(workspace_root, case_id, tenant_id=normalized_tenant)
     if case is None:
         return None
     document = next((item for item in case["documents"] if item["document_id"] == document_id), None)
@@ -1393,10 +1752,19 @@ def resolve_case_document(workspace_root: Path, case_id: str, document_id: str) 
     path = (workspace_root / document["storage_relpath"]).resolve()
     if not path.is_file():
         return None
-    allowed_root = workspace_root.resolve()
-    try:
-        path.relative_to(allowed_root)
-    except ValueError:
+    allowed_root = (
+        workspace_root.resolve()
+        if case_id == standard_data.CASE_ID and normalized_tenant is None
+        else (_case_dir(workspace_root, case_id, tenant_id=normalized_tenant) / "documents").resolve()
+    )
+    if not _path_is_within(path, allowed_root):
+        return None
+    # 导入和巨潮登记都以 document_id 作为不可变文件名；拒绝元数据把同租户
+    # 另一文档甚至另一案例的合法路径冒充成本次登记原件。
+    if (
+        not (case_id == standard_data.CASE_ID and normalized_tenant is None)
+        and _canonical_path_text(path) != _canonical_path_text(allowed_root / f"{document_id}.pdf")
+    ):
         return None
     return path, deepcopy(document)
 
@@ -1448,12 +1816,17 @@ def get_cninfo_prescreen_plan(
         complete_years = _technical_complete_years(rows, kinds)
         pair_years = [year for year in complete_years if year - 1 in complete_years]
         eligible = [year for year in pair_years if year <= requested_current_year]
-        selected = max(eligible or pair_years, default=None)
+        # 请求时点之后的公告只属于未来信息，不能因为当前期间缺失就回退使用。
+        selected = max(eligible, default=None)
         if selected is None:
             skipped.append(
                 {
                     "rule_id": rule_id,
-                    "reason": "没有连续两年完整字段，无法进行同比计算。",
+                    "reason": (
+                        "可用期间均晚于请求时点，不能使用未来年度。"
+                        if pair_years and not eligible
+                        else "没有连续两年完整字段，无法进行同比计算。"
+                    ),
                     "required_fields": list(kinds),
                 }
             )
@@ -1478,13 +1851,13 @@ def get_cninfo_prescreen_plan(
 
     primary_rule = "R1" if "R1" in plans else next(iter(plans), None)
     selected_plan = plans.get(primary_rule or "")
-    selected_year = selected_plan["current_year"] if selected_plan else requested_current_year
+    selected_year = selected_plan["current_year"] if selected_plan else None
     return {
         "mode": "public_prescreen",
         "requested_current_year": requested_current_year,
         "analysis_current_year": selected_year,
-        "analysis_previous_year": selected_year - 1,
-        "analysis_years": [selected_year, selected_year - 1],
+        "analysis_previous_year": selected_year - 1 if selected_year is not None else None,
+        "analysis_years": [selected_year, selected_year - 1] if selected_year is not None else [],
         "rule_plans": plans,
         "skipped_rules": skipped,
         "missing_fields": list(dict.fromkeys(missing_fields)),
@@ -1507,15 +1880,20 @@ def get_period_sources(
     rows = get_financial_rows(workspace_root, case_id)
     requested_current_year = current_year
     prescreen_plan = None
+    no_calculable_public_period = False
     if case.get("registry_mode") == "cninfo_official_auto":
         prescreen_plan = get_cninfo_prescreen_plan(workspace_root, case_id, current_year, rule_ids)
-        current_year = int(prescreen_plan["analysis_current_year"])
+        if prescreen_plan.get("analysis_current_year") is None:
+            # 保留请求年度作为上下文标签，但不构造任何未来或伪造可比字段。
+            no_calculable_public_period = True
+        else:
+            current_year = int(prescreen_plan["analysis_current_year"])
     elif current_year not in case["available_years"]:
         raise KeyError(current_year)
     previous_year = current_year - 1
     prior_year = current_year - 2
     requested: list[tuple[str, str, str, int]] = []
-    if "R1" in rule_ids:
+    if "R1" in rule_ids and not no_calculable_public_period:
         requested.extend(
             [
                 ("revenue_current", "本年营业收入", "revenue", current_year),
@@ -1540,7 +1918,7 @@ def get_period_sources(
             ("ar_net_previous", "上年应收账款净额", "accounts_receivable_net", previous_year),
         )
         requested.extend(item for item in optional_r1_fields if _select(rows, item[2], item[3]))
-    if "R2" in rule_ids:
+    if "R2" in rule_ids and not no_calculable_public_period:
         requested.extend(
             [
                 ("revenue_current", "本年营业收入", "revenue", current_year),
@@ -1590,7 +1968,7 @@ def get_period_sources(
         "source_review_status": case["source_review_status"],
         "three_year_r1_ready": case["three_year_r1_ready"],
         "requested_current_year": requested_current_year,
-        "analysis_cutoff_year": current_year,
+        "analysis_cutoff_year": None if no_calculable_public_period else current_year,
         "public_prescreen": prescreen_plan is not None,
         "prescreen_plan": prescreen_plan,
         "case_evidence_count": len(case.get("structured_evidence", [])),

@@ -4,6 +4,12 @@
 
 统一 AI 声明：AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。
 
+## 2026-08-09 验收快照
+
+本轮源码仓库全量回归 **177 passed、1 warning、35.05s**；前端契约 **193 unique ids、324 refs、8 views**，JavaScript、CSS、Python 编译、中文说明比例 **1569/14535=10.79%** 和差异卫生检查通过。真实 FastAPI 与浏览器完成八个视图及 1440×1000、1024×768、768×1024、390×844 四档视口操作，横向溢出和 console error/warning 均为 0。fresh-web RAG 快照一致性、staging 发布、租户隔离、worker fencing、模型同意合同、运行深链接以及 02—08 页面当前公司上下文均有回归覆盖。
+
+详细执行记录以 `PROJECT_STATUS.json` 为机器可读事实源；本地教师材料包另附《全功能再次验收与 Bug 修复报告》和《剩余任务执行计划》。真实 Supabase 迁移/RLS、真实登录 consent、真实外部模型调用、专业签字和 B0—B3 正式评分仍保持人工/部署环境边界。
+
 ## 项目边界
 
 - 正式场景：审计计划阶段—销售与收款循环。
@@ -92,7 +98,7 @@ GET  /api/industry-gates/{case_id}
 
 ## 自动化验证
 
-源码仓库当前一次性复验结果（2026-08-07）：**84 passed、1 warning**；定向巨潮回归：**16 passed、1 warning**；`node --check assets/official-v4/app.js` 和 `git diff --check` 通过。中文说明性行检查：**676/6670 = 10.13%**。
+源码仓库当前一次性复验结果（2026-08-09）：**177 passed、1 warning**；前端契约 **193 unique ids、324 refs、8 views**；`node --check assets/official-v4/app.js`、Python compileall、CSS 对比度和 `git diff --check` 均通过。中文说明性行检查：**1569/14535 = 10.79%**。
 
 ```powershell
 backend\.venv\Scripts\python.exe -m pytest backend\tests -q
@@ -106,7 +112,7 @@ backend\.venv\Scripts\python.exe scripts\export_cninfo_cache_manifest.py --outpu
 backend\.venv\Scripts\python.exe -m pytest backend\tests -q --basetemp tmp\pytest-local
 ```
 
-当前无密钥清洁运行包的历史独立复验结果为 **57 passed、1 warning**（2026-07-30）。它与源码仓库测试分开登记，不代表新的清洁包已经重新构建。
+2026-08-09 重建的无密钥清洁运行包独立解包结果为 **171 passed、1 warning**；它与源码仓库测试分开登记，清洁包不含仓库级交付构建/取证测试。
 
 ## 真实状态与人工门槛
 

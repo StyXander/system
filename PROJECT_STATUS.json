@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-08T00:00:00+08:00",
+  "updated_at": "2026-08-09T21:35:31+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -21,6 +21,22 @@
     "agent_output": "agent_output_v2",
     "report": "report_v2",
     "cninfo_pipeline": "cninfo_pipeline_v1"
+  },
+  "acceptance_snapshot": {
+    "date": "2026-08-09",
+    "source_repository_pytest": "177 passed, 1 warning, 35.05s",
+    "rag_specialized_pytest": "13 passed, 1 warning",
+    "frontend_contract": "193 unique ids, 324 refs, 8 views",
+    "chinese_comments": "1569/14535 = 10.79%",
+    "browser": "8 views, 1440x1000, 1024x768, 768x1024, 390x844, console 0, document overflow 0, company context 02-08 verified",
+    "company_context": "02-08 page headings, topbar and sidebar update on case switch and reload; BYD 002594 verified",
+    "controlled_cninfo": {
+      "network_denied": "CNINFO_NETWORK_ERROR/network_permission_denied",
+      "rag_only_task": "CNINFO-75E108E6F4A0 completed with CNINFO_600938_T0_20250328 and 623 chunks",
+      "full_analysis_task": "CNINFO-396B4BD22EF completed with DATA_GAP, no model call"
+    },
+    "report": "审迹智链_全功能再次验收与Bug修复报告_2026-08-09.md",
+    "truth_boundary": "真实 Supabase 迁移/RLS、真实登录 consent、真实外部模型调用、专业签字和 B0-B3 正式评分仍待环境或真人验收"
   },
   "capabilities": {
     "standard_case_import": "implemented_and_tested",
@@ -54,25 +70,25 @@
   },
   "tests": {
     "source_repository": {
-      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp tmp\\pytest-cninfo-bugfix",
-      "latest_result": "84 passed, 1 warning, 113.76s",
-      "executed_on": "2026-08-08",
+      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp .pytest_tmp\\final-20260809-current",
+      "latest_result": "177 passed, 1 warning, 35.05s",
+      "executed_on": "2026-08-09",
       "status": "passed"
     },
     "clean_package": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
       "previous_snapshot_result": "51 passed, 1 warning",
-      "latest_result": "57 passed, 1 warning",
-      "executed_on": "2026-07-30",
+      "latest_result": "171 passed, 1 warning",
+      "executed_on": "2026-08-09",
       "status": "passed",
       "independent_smoke": "status, standard_case_transfer_gate, rag_prepare_and_retrieve, r1_calculation_only, exact_ai_notice_all_passed",
-      "boundary": "57 passed属于2026-07-30无密钥清洁运行包独立解包结果；与本轮源码仓库回归分开记录。",
+      "boundary": "171 passed属于2026-08-09无密钥清洁运行包独立解包结果；与本轮源码仓库回归分开记录，清洁包不含仓库级交付构建检查。",
       "distribution_boundary": "清洁运行包为保留标准案例复验能力而包含四份公开年报全文；在真人确认全文再分发边界前仅限团队内部技术复验，禁止外发。队员和老师材料包不含年报全文。"
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "676/6670 = 10.13%",
-      "executed_on": "2026-08-07",
+      "latest_result": "1569/14535 = 10.79%",
+      "executed_on": "2026-08-09",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -125,20 +141,26 @@
     }
   },
   "quality_evidence": {
-    "compileall": "passed_after_final_source_and_document_generator_sync_2026-07-30",
-    "ui_contrast": "text_min_4.95_to_1_meaningful_boundary_min_3.99_to_1",
-    "browser_status": "passed_real_fastapi_chrome_4_viewports_console_0_failed_request_0_http_error_0_document_overflow_0_axe_violation",
-    "browser_artifacts": "local:tmp/public-deploy-verify-20260804-0034/browser-qa (not distributed)",
-    "browser_boundary": "axe retained one color_contrast incomplete per viewport because pseudo-element background could not be inferred; manual screenshot review found no unreadable text",
-    "github_release": "v1.2.0",
-    "github_commit": "e126d60ca473d34a5b7390fb83f383ef51749bde",
+    "compileall": "passed_backend_app_2026-08-09",
+    "ui_contrast": "passed_text_and_meaningful_boundaries_2026-08-09",
+    "browser_status": "passed_real_fastapi_browser_4_viewports_8_views_console_0_failed_request_0_http_error_0_document_overflow_0",
+    "browser_artifacts": "artifacts/review-2026-08-09-execution",
+    "browser_boundary": "真实 Supabase、登录 consent 和外部模型未在本地浏览器环境执行；人工专业闸门仍保留",
+    "github_release": "v1.2.0 historical tag; final code is on main",
+    "github_commit": "recorded by the final git commit; not embedded to avoid a self-referential hash",
     "cache_manifest": "backend/cache_seed.lock.json validated 50/50 ready with 2025/2024/2023 metadata",
     "demo_script": "17_审迹智链_最终答辩演示脚本_2026-08-08.md",
     "proposal_pdf_status": "regenerated_12_pages_and_visually_verified",
     "proposal_pdf_path": "02_最终确定方案/05_审迹智链_项目方案书_V3.3_审计计划单场景与AI主链闭环版.pdf",
     "proposal_pdf_artifacts": "artifacts/review-2026-07-30/proposal-pdf-final",
     "docx_status": "8_current_documents_77_pages_rendered_with_word_and_visually_verified_a11y_high_medium_low_all_zero_table_geometry_passed",
-    "docx_artifacts": "artifacts/review-2026-07-30/docx-render-final and artifacts/review-2026-07-30/docx-audits-final"
+    "docx_artifacts": "artifacts/review-2026-07-30/docx-render-final and artifacts/review-2026-07-30/docx-audits-final",
+    "delivery_packages": {
+      "team": "交付包/01_队员Word_Excel材料包_2026-08-09.zip",
+      "teacher": "交付包/02_老师方案材料包_2026-08-09.zip",
+      "clean_runtime": "交付包/03_审迹智链0.7.1_无密钥清洁运行包_2026-08-09.zip",
+      "scan": "3 packages zero blockers; clean runtime 171 passed, 1 warning, 24.15s; API/RAG/R1 smoke passed"
+    }
   },
   "standard_annual_report_sources": [
     {

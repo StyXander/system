@@ -2,6 +2,66 @@
 
 SQLite 只保存可查询的元数据、结构化字段、证据定位和版本指纹；PDF 与
 FAISS/RAG 文件仍保存在现有案例目录中，避免把大型二进制塞进数据库。
+目录只是公开年报的加速索引，案例清单和官方原件仍是来源真相。
+目录命中不能提升字段的人工复核状态，也不能替代原页核验。
+缓存状态为就绪必须同时具备已登记文档和已发布的 RAG 清单。
+只有字段存在而索引未完成时，快照仍保持已登记而不是伪装就绪。
+证券代码用于稳定关联企业，企业简称只作为便捷查询条件使用。
+模糊名称匹配后仍返回登记的证券代码，调用方不能自行拼接案例编号。
+同一企业允许保留多个来源快照，较新快照不会删除较早证据链。
+同一案例的新快照使用来源指纹区分，不能覆盖旧时点的可复验记录。
+来源指纹来自已发布索引清单，不能由查询参数临时指定。
+报告年度集合从案例文档重新计算，不信任调用方声称的可用年度。
+请求年度必须全部包含在快照内，部分覆盖不能作为完整热命中返回。
+目录会跳过损坏的单条快照，继续寻找同企业较早的有效版本。
+损坏的 JSON 列表按空集合解释，避免把不可解析内容误当完整年度。
+损坏的缓存键按缺失处理，旧记录必须重新同步后才能安全复用。
+缓存键同时记录字段提取器、行业闸门、RAG 和规则工程版本。
+任一关键版本变化都应阻止旧快照冒充当前规则计算结果。
+缓存更新时间表示目录写入活动，不等同于来源最近一次重新验证。
+来源验证时间只在真实刷新时推进，目录启动补录不能延长有效期。
+陈旧判定使用验证时间而不是访问时间，频繁读取不会刷新可信期限。
+陈旧快照可以用于显式降级展示，但不能被标成新鲜来源。
+强制刷新策略完全绕过热命中，确保请求确实回到官方发现流程。
+优先缓存策略会说明陈旧回退原因，不能把降级复用写成正常命中。
+严格缓存策略只返回期限内快照，同时单独暴露可能存在的陈旧版本。
+字段事实按快照和字段编号组成稳定主键，避免不同期间互相覆盖。
+金额、单位、计量基础、文档和页码必须随字段事实一起保存。
+字段证据表保留原文窗口与文件哈希，目录结果仍可回到登记原件。
+原文窗口属于辅助定位信息，不能脱离整页上下文形成独立结论。
+RAG 清单只保存版本和块数量，不把向量二进制复制进 SQLite。
+行业闸门结果保存允许规则、阻断规则和理由码，便于复验分流依据。
+闸门证据仍是公司元数据启发式，不因写入目录而升级为专业分类。
+SQLite 外键和唯一约束用于阻止重复记录，不替代业务层完整校验。
+写事务使用提交或回滚边界，半批字段不会留成可查询的完整快照。
+每次会话结束显式关闭连接，避免 Windows 的 WAL 文件句柄长期占用。
+忙等待时限只处理短暂锁竞争，超时后仍向上报告而不是无限等待。
+WAL 允许读取和写入适度并发，但不保证多个进程能无界同时迁移。
+表结构迁移在进程内串行执行，减少多个线程重复扫描旧表结构。
+多进程同时补列时会再次读取表结构，只容忍确已由其他进程完成的竞争。
+未知的 SQLite 操作错误不会被吞掉，防止数据库损坏被误报为空缓存。
+运行命名空间与案例、RAG 和任务模块使用同一白名单归一化规则。
+测试命名空间不能读取正式目录，也不能把测试预热状态写入演示数据。
+目录路径只由工作区根和受限命名空间组成，不接受外部数据库路径。
+启动补录只遍历已登记案例目录，不扫描用户工作区中的任意 JSON。
+补录遇到一个历史案例损坏时跳过该案例，其他企业仍可继续登记。
+补录不会刷新来源验证时间，避免服务重启制造虚假的最新验证日期。
+进程内补录标记避免每次热查询都重复遍历全部案例目录。
+显式强制补录用于验收或修复，调用方应理解它仍不重新下载原件。
+预热作业保存机器可读摘要，不把整份任务响应复制进目录数据库。
+作业状态区分排队、运行、完成、待人工和失败，页面不能只看总数。
+服务重启遗留的活动作业会转为待人工，不能永久显示为正在运行。
+批量报告把缺报、行业不适用和字段缺口分开，避免把业务分支统称失败。
+批量完成只表示不再有活动作业，不表示所有企业均形成可用字段。
+停滞判定使用最后活动时间，并保留可配置但有上下界的阈值。
+持续时间解析失败时返回空值，不用本机猜测修补异常时间格式。
+缓存列表输出会解析年度和版本键，不把内部 JSON 字符串直接交给页面。
+目录中的本机存储相对路径只服务后端复用，不应作为公开下载地址。
+已验证文档复用仍要求证券代码、年度和官方 URL 同时一致。
+同年度 URL 变化代表可能的修订来源，不能仅按年度复用旧 PDF。
+目录同步是幂等更新，但不会静默删除不再出现的历史证据记录。
+目录查询失败时主流程可回到实时官方流程，同时必须保留失败类型。
+任何缓存加速都不能改变证据时点、人工责任或正式采用边界。
 """
 
 from __future__ import annotations
@@ -11,7 +71,9 @@ import os
 import re
 import sqlite3
 import time
-from datetime import datetime
+import threading
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -20,10 +82,15 @@ CATALOG_SCHEMA_VERSION = "catalog_v1"
 CATALOG_DB_NAME = "catalog.sqlite3"
 DEFAULT_CACHE_MAX_AGE_DAYS = 365
 DEFAULT_REFRESH_STALL_SECONDS = 300
+DEFAULT_RULE_VERSION = "R1:r1_v0.4-draft|R2:r2_v0.2-auxiliary-draft"
+_BOOTSTRAP_LOCK = threading.Lock()
+_BOOTSTRAPPED_ROOTS: set[str] = set()
+_SCHEMA_LOCK = threading.Lock()
+_INITIALIZED_CATALOGS: set[str] = set()
 
 
 def _now() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def _duration_seconds(started_at: str | None, finished_at: str | None) -> int | None:
@@ -74,7 +141,9 @@ def _refresh_stall_seconds() -> int:
 
 
 def _runtime_dir(workspace_root: Path) -> Path:
-    namespace = re.sub(r"[^A-Za-z0-9_.-]", "_", os.environ.get("AUDITTRACE_RUNTIME_NAMESPACE", ""))
+    # cases、RAG、pipeline 和目录必须使用完全相同的白名单归一化；若某模块
+    # 把句点保留、另一模块删除，同一测试任务会看不到自己刚登记的案例。
+    namespace = re.sub(r"[^A-Za-z0-9_-]", "", os.environ.get("AUDITTRACE_RUNTIME_NAMESPACE", ""))
     base = workspace_root / "backend" / "runtime"
     return base / namespace if namespace else base
 
@@ -86,12 +155,49 @@ def catalog_path(workspace_root: Path) -> Path:
 
 
 def connect_catalog(workspace_root: Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(catalog_path(workspace_root), timeout=15)
+    path = catalog_path(workspace_root)
+    database_was_missing = not path.exists()
+    connection = sqlite3.connect(path, timeout=15)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA busy_timeout=15000")
     connection.execute("PRAGMA journal_mode=WAL")
     connection.execute("PRAGMA foreign_keys=ON")
-    initialize_catalog(connection)
+    catalog_key = str(path.resolve()).casefold()
+    # 表结构只需在每个进程、每个目录首次连接时检查。原实现每次热缓存
+    # 查询都重复执行建表、迁移和全表更新时间回填，既放大锁竞争也拖慢命中。
+    with _SCHEMA_LOCK:
+        if database_was_missing or catalog_key not in _INITIALIZED_CATALOGS:
+            initialize_catalog(connection)
+            _INITIALIZED_CATALOGS.add(catalog_key)
     return connection
+
+
+@contextmanager
+def _catalog_session(workspace_root: Path):
+    """提交或回滚后显式关闭 SQLite，及时释放 Windows WAL 文件句柄。"""
+
+    connection = connect_catalog(workspace_root)
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
+
+
+def _ensure_column(connection: sqlite3.Connection, table: str, column: str, declaration: str) -> bool:
+    """幂等增加旧目录列，并容忍两个服务进程同时完成同一迁移。"""
+
+    columns = {row[1] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column in columns:
+        return False
+    try:
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
+    except sqlite3.OperationalError:
+        # 多进程并发启动时，另一进程可能已在本进程等待锁期间加完列。
+        refreshed = {row[1] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in refreshed:
+            raise
+    return True
 
 
 def initialize_catalog(connection: sqlite3.Connection) -> None:
@@ -136,6 +242,7 @@ def initialize_catalog(connection: sqlite3.Connection) -> None:
             cache_status TEXT NOT NULL,
             rag_index_version TEXT,
             extractor_version TEXT,
+            cache_key_json TEXT,
             verified_at TEXT,
             updated_at TEXT NOT NULL,
             UNIQUE(case_id, source_fingerprint)
@@ -211,20 +318,16 @@ def initialize_catalog(connection: sqlite3.Connection) -> None:
         """
     )
     # 目录已经可能由 V1 创建；只增加列，不重建或删除已有缓存。
-    columns = {row[1] for row in connection.execute("PRAGMA table_info(cache_refresh_jobs)").fetchall()}
-    if "batch_id" not in columns:
-        connection.execute("ALTER TABLE cache_refresh_jobs ADD COLUMN batch_id TEXT")
-    if "task_id" not in columns:
-        connection.execute("ALTER TABLE cache_refresh_jobs ADD COLUMN task_id TEXT")
-    snapshot_columns = {row[1] for row in connection.execute("PRAGMA table_info(source_snapshots)").fetchall()}
-    if "verified_at" not in snapshot_columns:
-        connection.execute("ALTER TABLE source_snapshots ADD COLUMN verified_at TEXT")
-    connection.execute(
-        "UPDATE source_snapshots SET verified_at=updated_at WHERE verified_at IS NULL OR verified_at=''"
-    )
-    document_columns = {row[1] for row in connection.execute("PRAGMA table_info(report_documents)").fetchall()}
-    if "content_store_relpath" not in document_columns:
-        connection.execute("ALTER TABLE report_documents ADD COLUMN content_store_relpath TEXT")
+    _ensure_column(connection, "cache_refresh_jobs", "batch_id", "TEXT")
+    _ensure_column(connection, "cache_refresh_jobs", "task_id", "TEXT")
+    added_verified_at = _ensure_column(connection, "source_snapshots", "verified_at", "TEXT")
+    _ensure_column(connection, "source_snapshots", "cache_key_json", "TEXT")
+    if added_verified_at:
+        # 只在旧库第一次新增 verified_at 时回填；普通查询不再扫描整张快照表。
+        connection.execute(
+            "UPDATE source_snapshots SET verified_at=updated_at WHERE verified_at IS NULL OR verified_at=''"
+        )
+    _ensure_column(connection, "report_documents", "content_store_relpath", "TEXT")
     connection.execute("CREATE INDEX IF NOT EXISTS idx_refresh_jobs_batch ON cache_refresh_jobs(batch_id, created_at)")
     connection.execute(
         "INSERT INTO catalog_meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -237,6 +340,16 @@ def _json(value: Any) -> str:
     return json.dumps(value if value is not None else [], ensure_ascii=False, sort_keys=True)
 
 
+def _decode_json_list(value: str | None) -> list[Any]:
+    """损坏的单条目录 JSON 按空列表处理，不能阻断其他有效快照。"""
+
+    try:
+        decoded = json.loads(value or "[]")
+    except (json.JSONDecodeError, TypeError):
+        return []
+    return decoded if isinstance(decoded, list) else []
+
+
 def sync_case_to_catalog(
     workspace_root: Path,
     case: dict[str, Any],
@@ -245,6 +358,7 @@ def sync_case_to_catalog(
     rag_manifest: dict[str, Any] | None = None,
     industry_gate: dict[str, Any] | None = None,
     extractor_version: str = "field_extraction_v1",
+    rule_version: str = DEFAULT_RULE_VERSION,
     refresh_verified_at: bool = True,
 ) -> dict[str, Any]:
     """把一个已登记案例写入缓存目录，保留 PDF/RAG 文件的原有位置。"""
@@ -262,7 +376,16 @@ def sync_case_to_catalog(
     rag_status = str(rag_manifest.get("status") or "not_ready")
     cache_status = "ready" if documents and rag_status == "ready" else "registered"
     source_fingerprint = str(rag_manifest.get("source_fingerprint") or snapshot_id)
-    with connect_catalog(workspace_root) as connection:
+    cache_key = {
+        "report_years": report_years,
+        "source_fingerprint": source_fingerprint,
+        "extractor_version": extractor_version,
+        "industry_gate_version": (industry_gate or {}).get("gate_version"),
+        "industry_rule_version": (industry_gate or {}).get("industry_rule_version"),
+        "rag_index_version": rag_manifest.get("index_version"),
+        "rule_version": rule_version,
+    }
+    with _catalog_session(workspace_root) as connection:
         connection.execute(
             """
             INSERT INTO companies(ticker, company_name, company_alias, market, registry_mode, industry_family, updated_at)
@@ -309,18 +432,18 @@ def sync_case_to_catalog(
         connection.execute(
             """
             INSERT INTO source_snapshots(snapshot_id, case_id, ticker, source_fingerprint, report_years_json,
-              cache_status, rag_index_version, extractor_version, verified_at, updated_at)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              cache_status, rag_index_version, extractor_version, cache_key_json, verified_at, updated_at)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(snapshot_id) DO UPDATE SET case_id=excluded.case_id,
               source_fingerprint=excluded.source_fingerprint, report_years_json=excluded.report_years_json,
               cache_status=excluded.cache_status, rag_index_version=excluded.rag_index_version,
-              extractor_version=excluded.extractor_version,
+              extractor_version=excluded.extractor_version, cache_key_json=excluded.cache_key_json,
               verified_at=CASE WHEN ? THEN excluded.verified_at ELSE source_snapshots.verified_at END,
               updated_at=excluded.updated_at
             """,
             (snapshot_id, case_id, ticker, source_fingerprint, _json(report_years), cache_status,
              rag_manifest.get("index_version"), extractor_version,
-             updated_at if refresh_verified_at else None, updated_at, refresh_verified_at),
+             _json(cache_key), updated_at if refresh_verified_at else None, updated_at, refresh_verified_at),
         )
         for row in rows:
             field_id = str(row.get("field_id") or f"{row.get('field_kind')}_{row.get('year')}")
@@ -415,11 +538,11 @@ def lookup_cached_case(
     required_years = {int(year) for year in requested_years}
     if not normalized_query or not required_years:
         return None
-    with connect_catalog(workspace_root) as connection:
+    with _catalog_session(workspace_root) as connection:
         rows = connection.execute(
             """
             SELECT c.*, s.snapshot_id, s.case_id, s.source_fingerprint, s.report_years_json,
-              s.rag_index_version, s.extractor_version, s.verified_at, s.updated_at AS snapshot_updated_at
+              s.rag_index_version, s.extractor_version, s.cache_key_json, s.verified_at, s.updated_at AS snapshot_updated_at
             FROM companies c JOIN source_snapshots s ON s.ticker=c.ticker
             WHERE s.cache_status='ready' ORDER BY s.updated_at DESC
             """
@@ -433,7 +556,13 @@ def lookup_cached_case(
             }
             if not any(normalized_query == value or (value and normalized_query in value) for value in names):
                 continue
-            report_years = set(json.loads(row["report_years_json"] or "[]"))
+            try:
+                report_years = {int(year) for year in _decode_json_list(row["report_years_json"])}
+            except (TypeError, ValueError):
+                # 同一企业可以有多个快照；跳过坏行后继续寻找较早的有效版本。
+                continue
+            if not report_years:
+                continue
             if not required_years.issubset(report_years):
                 continue
             verified_at = row["verified_at"] or row["snapshot_updated_at"]
@@ -448,6 +577,7 @@ def lookup_cached_case(
                 "report_years": sorted(report_years, reverse=True),
                 "rag_index_version": row["rag_index_version"],
                 "extractor_version": row["extractor_version"],
+                "cache_key": _decode_json_object(row["cache_key_json"]),
                 "cache_state": _cache_state(verified_at),
                 "verified_at": verified_at,
                 "cache_age_days": _cache_age_days(verified_at),
@@ -511,7 +641,7 @@ def create_refresh_job(
 
     now = _now()
     years_json = _json([int(year) for year in requested_years])
-    with connect_catalog(workspace_root) as connection:
+    with _catalog_session(workspace_root) as connection:
         connection.execute(
             """
             INSERT INTO cache_refresh_jobs(job_id, batch_id, task_id, ticker, requested_years_json,
@@ -537,7 +667,7 @@ def update_refresh_job(
     """更新单家公司预热状态；reason 保留机器可读摘要而非整份任务。"""
 
     encoded_reason = reason if isinstance(reason, str) else json.dumps(reason or {}, ensure_ascii=False, sort_keys=True)
-    with connect_catalog(workspace_root) as connection:
+    with _catalog_session(workspace_root) as connection:
         connection.execute(
             "UPDATE cache_refresh_jobs SET status=?, reason=?, updated_at=? WHERE job_id=?",
             (status, encoded_reason, _now(), job_id),
@@ -557,7 +687,7 @@ def recover_orphaned_refresh_jobs(workspace_root: Path) -> int:
         ensure_ascii=False,
         sort_keys=True,
     )
-    with connect_catalog(workspace_root) as connection:
+    with _catalog_session(workspace_root) as connection:
         cursor = connection.execute(
             """
             UPDATE cache_refresh_jobs
@@ -573,7 +703,7 @@ def recover_orphaned_refresh_jobs(workspace_root: Path) -> int:
 def refresh_report(workspace_root: Path, batch_id: str) -> dict[str, Any]:
     """汇总一批预热任务，区分成功、缺报、不适用、字段缺口和失败。"""
 
-    with connect_catalog(workspace_root) as connection:
+    with _catalog_session(workspace_root) as connection:
         rows = connection.execute(
             """
             SELECT job_id, batch_id, task_id, ticker, requested_years_json, status, reason, created_at, updated_at
@@ -612,7 +742,7 @@ def refresh_report(workspace_root: Path, batch_id: str) -> dict[str, Any]:
                 "job_id": row["job_id"],
                 "task_id": row["task_id"],
                 "ticker": row["ticker"],
-                "requested_years": json.loads(row["requested_years_json"] or "[]"),
+                "requested_years": _decode_json_list(row["requested_years_json"]),
                 "status": status,
                 "category": category,
                 "result_status": result_status,
@@ -643,11 +773,11 @@ def refresh_report(workspace_root: Path, batch_id: str) -> dict[str, Any]:
 
 
 def list_cache_entries(workspace_root: Path, company_query: str | None = None) -> list[dict[str, Any]]:
-    with connect_catalog(workspace_root) as connection:
+    with _catalog_session(workspace_root) as connection:
         sql = """
             SELECT c.ticker, c.company_name, c.company_alias, c.market, c.industry_family,
               s.case_id, s.snapshot_id, s.source_fingerprint, s.report_years_json,
-              s.cache_status, s.rag_index_version, s.extractor_version,
+              s.cache_status, s.rag_index_version, s.extractor_version, s.cache_key_json,
               s.verified_at, s.updated_at AS snapshot_updated_at
             FROM companies c JOIN source_snapshots s ON s.ticker=c.ticker
         """
@@ -664,14 +794,25 @@ def list_cache_entries(workspace_root: Path, company_query: str | None = None) -
             entries.append(
                 {
                     **dict(row),
-                    "report_years": json.loads(row["report_years_json"] or "[]"),
+                    "report_years": _decode_json_list(row["report_years_json"]),
                     "report_years_json": None,
                     "cache_state": _cache_state(verified_at),
                     "cache_age_days": _cache_age_days(verified_at),
                     "cache_max_age_days": _cache_max_age_days(),
+                    "cache_key": _decode_json_object(row["cache_key_json"]),
                 }
             )
-        return entries
+    return entries
+
+
+def _decode_json_object(value: str | None) -> dict[str, Any]:
+    """兼容旧目录缺少缓存键的情况；旧条目必须重新同步后才可热复用。"""
+
+    try:
+        decoded = json.loads(value or "{}")
+    except json.JSONDecodeError:
+        return {}
+    return decoded if isinstance(decoded, dict) else {}
 
 
 def lookup_cached_document(
@@ -682,7 +823,7 @@ def lookup_cached_document(
 ) -> dict[str, Any] | None:
     """Find one already validated annual PDF that can be reused incrementally."""
 
-    with connect_catalog(workspace_root) as connection:
+    with _catalog_session(workspace_root) as connection:
         row = connection.execute(
             """
             SELECT document_id, case_id, ticker, report_year, source_url, sha256,
@@ -697,9 +838,14 @@ def lookup_cached_document(
     return dict(row) if row else None
 
 
-def bootstrap_runtime_catalog(workspace_root: Path) -> int:
+def bootstrap_runtime_catalog(workspace_root: Path, *, force: bool = False) -> int:
     """将已有巨潮案例的可验证元数据补入目录，供第一次热路径直接命中。"""
 
+    root_key = str((_runtime_dir(workspace_root)).resolve()).casefold()
+    with _BOOTSTRAP_LOCK:
+        if not force and root_key in _BOOTSTRAPPED_ROOTS:
+            return 0
+        _BOOTSTRAPPED_ROOTS.add(root_key)
     cases_dir = _runtime_dir(workspace_root) / "cases"
     if not cases_dir.is_dir():
         return 0
@@ -711,8 +857,11 @@ def bootstrap_runtime_catalog(workspace_root: Path) -> int:
                 continue
             fields_path = case_path.with_name("financial_fields.json")
             rows = json.loads(fields_path.read_text(encoding="utf-8")) if fields_path.is_file() else []
-            manifest_path = _runtime_dir(workspace_root) / "rag" / case["case_id"] / "manifest.json"
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+            # RAG 已改为版本目录加 active 指针；必须通过 RAG 自身读取器获得
+            # 同一个已发布版本，不能继续硬编码旧根目录 manifest.json。
+            from .rag import status as rag_status
+
+            manifest = rag_status(workspace_root, str(case["case_id"]))
             # 不信任旧 gate JSON；按当前版本重新计算，但不刷新来源验证时间。
             from .industry_gate import evaluate_industry_gate
 

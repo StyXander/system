@@ -3,25 +3,83 @@
 任务日志独立于现有 /api/runs 保存，便于回看搜索、下载、校验和建库过程。
 每一步都以 JSON 持久化，服务重启后仍能区分已通过、失败和待人工状态。
 本模块完成到 RAG 和字段候选，不直接调用外部模型，模型调用由主流程统一控制。
+任务编号由服务端随机生成，企业输入不能控制任务文件路径。
+任务路径再次校验编号白名单，读取接口不能借编号访问其他文件。
+测试命名空间隔离任务目录，自动化验收不得污染正式演示状态。
+任务 JSON 先写唯一临时文件再原子替换，读线程不会看到半份状态。
+同一任务写入使用跨进程文件锁，多个 worker 不能互相覆盖进度。
+Windows 短暂共享冲突只进行有限重试，超过时限仍失败关闭。
+任务创建只登记请求和待执行步骤，不提前声称企业或来源已经确认。
+所有步骤显式初始化为待执行，缺失键不能被前端解释为已经通过。
+状态更新时间使用统一 UTC 格式，不能依赖服务器所在本地时区。
+数据库队列投影保留原任务编号和尝试次数，避免 web 与 worker 生成两条历史。
+重试会把上一轮结果、错误和步骤保存进历史，不能覆盖失败证据。
+仍有真实运行步骤的任务拒绝重复提交，防止同一任务并发执行两次。
+服务重启留下无运行步骤的活动状态允许恢复，并追加明确中断记录。
+分析编排失败会把完整性标为不完整，不能保留之前的成功总状态。
+稳定业务错误向页面返回受控编码，内部异常不回显响应头或调用栈。
+企业歧义、缺报、PDF 不符和字段不确定进入人工分支而非技术成功。
+未知内部异常标记为失败，不能一律伪装成需要人工选择的业务情况。
+主流程从尝试计数开始即进入异常边界，前置类型错误也必须落盘。
+初始状态写入失败不能继续访问网络，避免产生无法追踪的外部活动。
+年份窗口由统一函数生成，断档或非法数量不能绕过期间校验。
+缓存目录只是加速入口，异常时可以回到实时官方流程并记录失败类型。
+强制刷新请求不得热命中，确保用户要求的官方重查真正发生。
+热缓存复用要求当前规则、字段提取器和 RAG 版本均兼容。
+缓存字段仍保留原人工复核状态，命中不能自动批准候选金额。
+缓存年度只开放连续完整期间，较老年度缺口不能抹掉较新的完整比较。
+企业解析必须得到唯一巨潮登记结果，多候选时停止并等待人工确认。
+每个年度独立搜索公告，缺少任一目标年度就不生成伪完整案例。
+公告筛选排除摘要和无效日期，证据时点不能由缺失日期候选决定。
+下载只针对最终选定公告，候选数量仍写入任务日志供复验选择过程。
+已验证 PDF 复用要求证券代码、年度和官方 URL 一致，并重新核验哈希。
+下载后的内容必须依次通过域名、哈希、页数和企业年度身份校验。
+任何一份目标年报失败都会阻止案例登记，不能保留部分年度冒充完整。
+来源快照指纹按年度和文档编号稳定排序，输入列表顺序不改变身份。
+同一企业同一时点出现不同快照时使用指纹后缀，旧案例不会被覆盖。
+案例登记完成后才建立 RAG，索引不能先引用尚未发布的案例目录。
+RAG 冒烟检索只验证接口和隔离性，不代表候选片段具有审计充分性。
+行业闸门在字段提取前运行，明确不适用时不会硬套普通企业字段。
+行业未知与行业不适用分别保存，页面需要展示不同的后续人工行动。
+字段候选缺失时保持资料缺口状态，不能用零值补全增长率计算。
+字段技术通过仍需人工回页，任务就绪不等于正式报告可导出。
+公网持久化启用时，案例、文档和 RAG 写入失败会阻止完整成功。
+外部持久化错误只保存稳定说明，不泄露服务密钥或供应商响应正文。
+任务结束时只关闭本流程创建的客户端，调用方传入客户端仍由调用方管理。
+异常发生后会关闭正在运行的步骤，使前端不会永久显示旋转状态。
+最终结果明确区分可分析、待人工和失败，调用方不能仅凭 HTTP 成功判断。
+完整分析挂回任务时复用真实运行完整性，不重新解释模型或规则状态。
+只有完整性前缀明确通过才标记完成，其他结果继续保留人工复核要求。
+任务状态机的目标是可追踪和诚实失败，不是保证每次请求都生成报告。
 """
 
 from __future__ import annotations
 
 import json
 import hashlib
+import os
 import re
 import time
 import uuid
+from datetime import datetime, timezone
+from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from .cases import get_case, get_financial_rows, register_cninfo_case
-from .catalog import bootstrap_runtime_catalog, lookup_cached_document, resolve_analysis_source, sync_case_to_catalog
+from .cases import get_case, get_financial_rows, register_cninfo_case, update_cninfo_financial_fields
+from .catalog import (
+    DEFAULT_RULE_VERSION,
+    bootstrap_runtime_catalog,
+    lookup_cached_document,
+    resolve_analysis_source,
+    sync_case_to_catalog,
+)
 from .cninfo import CNInfoClient, CNInfoError, prepare_report_years
 from .field_extraction import extract_cninfo_fields
 from .industry_gate import evaluate_industry_gate
-from .rag import prepare_index, retrieve, status as rag_status
+from .rag import export_chunks, prepare_index, retrieve, status as rag_status
+from .supabase_adapter import SupabaseError, get_supabase_client, supabase_enabled
 
 
 PIPELINE_SCHEMA_VERSION = "cninfo_pipeline_v1"
@@ -40,13 +98,17 @@ PIPELINE_STEP_NAMES = (
     "analysis_run",
 )
 TASK_ID_PATTERN = re.compile(r"^CNINFO-[A-Z0-9]{8,32}$")
+TASK_LOCK_TIMEOUT_SECONDS = 20
+TASK_REPLACE_RETRY_SECONDS = 2.0
 
 
 def _pipeline_dir(workspace_root: Path) -> Path:
     """创建任务目录；测试命名空间由现有环境变量统一隔离。"""
 
     # 运行目录跟随项目运行时命名空间，测试和演示可以互不污染。
-    path = workspace_root / "backend" / "runtime" / "pipelines"
+    namespace = re.sub(r"[^A-Za-z0-9_-]", "", os.getenv("AUDITTRACE_RUNTIME_NAMESPACE", ""))
+    runtime = workspace_root / "backend" / "runtime"
+    path = (runtime / namespace if namespace else runtime) / "pipelines"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -60,7 +122,7 @@ def _task_path(workspace_root: Path, task_id: str) -> Path:
 
 
 def _now() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def _new_steps() -> dict[str, dict[str, Any]]:
@@ -69,14 +131,86 @@ def _new_steps() -> dict[str, dict[str, Any]]:
     return {name: {"status": "pending", "detail": "尚未执行。"} for name in PIPELINE_STEP_NAMES}
 
 
+@contextmanager
+def _task_file_lock(workspace_root: Path, task_id: str):
+    """用跨进程文件锁保护同一任务的原子替换，避免并发 worker 互相踩写。"""
+
+    lock_path = _pipeline_dir(workspace_root) / f"{task_id}.lock"
+    lock_path.touch(exist_ok=True)
+    handle = lock_path.open("a+b")
+    handle.seek(0, os.SEEK_END)
+    if handle.tell() == 0:
+        handle.write(b"0")
+        handle.flush()
+    handle.seek(0)
+    locked = False
+    started = time.monotonic()
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            while True:
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    locked = True
+                    break
+                except OSError:
+                    if time.monotonic() - started >= TASK_LOCK_TIMEOUT_SECONDS:
+                        raise TimeoutError("任务状态写入锁超时。")
+                    time.sleep(0.05)
+        else:
+            import fcntl
+
+            while True:
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    locked = True
+                    break
+                except BlockingIOError:
+                    if time.monotonic() - started >= TASK_LOCK_TIMEOUT_SECONDS:
+                        raise TimeoutError("任务状态写入锁超时。")
+                    time.sleep(0.05)
+        yield
+    finally:
+        if locked:
+            if os.name == "nt":
+                import msvcrt
+
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
+
+
 def _save_task(workspace_root: Path, task: dict[str, Any]) -> dict[str, Any]:
     """以临时文件替换任务 JSON，避免服务中断留下半个 JSON。"""
 
     # 原子替换确保接口读取到的始终是完整 JSON，而不是写入中间态。
     path = _task_path(workspace_root, task["task_id"])
     temporary = path.with_suffix(f".{uuid.uuid4().hex}.tmp")
-    temporary.write_text(json.dumps(task, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
+    with _task_file_lock(workspace_root, task["task_id"]):
+        try:
+            temporary.write_text(json.dumps(task, ensure_ascii=False, indent=2), encoding="utf-8")
+            # Windows 轮询线程短暂打开目标 JSON 时，os.replace 可能返回共享冲突。
+            # 临时文件内容已经完整落盘，因此只对该瞬时错误有限重试；超时后仍失败关闭。
+            started = time.monotonic()
+            while True:
+                try:
+                    temporary.replace(path)
+                    break
+                except PermissionError:
+                    if time.monotonic() - started >= TASK_REPLACE_RETRY_SECONDS:
+                        raise
+                    time.sleep(0.02)
+        finally:
+            if temporary.exists():
+                try:
+                    temporary.unlink()
+                except OSError:
+                    pass
     return task
 
 
@@ -100,10 +234,43 @@ def create_task(workspace_root: Path, request: dict[str, Any]) -> dict[str, Any]
     return _save_task(workspace_root, task)
 
 
+def materialize_task(
+    workspace_root: Path,
+    task_id: str,
+    request: dict[str, Any],
+    *,
+    attempt: int = 0,
+) -> dict[str, Any]:
+    """把数据库队列任务投影到 worker 的临时工作目录，不依赖 web 实例磁盘。"""
+
+    existing = load_task(workspace_root, task_id)
+    if existing is not None:
+        existing["request"] = deepcopy(request)
+        return _save_task(workspace_root, existing)
+    if not TASK_ID_PATTERN.fullmatch(task_id):
+        raise ValueError("非法巨潮任务编号。")
+    task = {
+        "schema_version": PIPELINE_SCHEMA_VERSION,
+        "task_id": task_id,
+        "status": "queued",
+        "request": deepcopy(request),
+        "steps": _new_steps(),
+        "attempt": max(0, int(attempt)),
+        "created_at": _now(),
+        "updated_at": _now(),
+        "result": None,
+        "errors": [],
+    }
+    return _save_task(workspace_root, task)
+
+
 def load_task(workspace_root: Path, task_id: str) -> dict[str, Any] | None:
     """读取任务状态；坏日志按不存在处理，由接口返回稳定 404。"""
 
-    path = _task_path(workspace_root, task_id)
+    try:
+        path = _task_path(workspace_root, task_id)
+    except ValueError:
+        return None
     if not path.is_file():
         return None
     try:
@@ -226,6 +393,7 @@ def _needs_human(error: Exception) -> bool:
         "COMPANY_AMBIGUOUS",
         "COMPANY_NOT_FOUND",
         "ANNUAL_REPORT_NOT_FOUND",
+        "ANNOUNCEMENT_DATE_INVALID",
         "PDF_CONTENT_MISMATCH",
         "PDF_PAGE_COUNT_INVALID",
         "PDF_PARSE_FAILED",
@@ -238,6 +406,7 @@ def _cached_field_extraction(
     *,
     rule_ids: list[str],
     requested_years: list[int],
+    industry_family: str | None = None,
 ) -> dict[str, Any]:
     """从已经验证过的案例字段读取热缓存，不重新扫描 PDF。"""
 
@@ -246,10 +415,16 @@ def _cached_field_extraction(
         if int(row.get("year", 0)) in set(requested_years)
     ]
     required = set()
-    if "R1" in rule_ids:
-        required.update({"revenue", "accounts_receivable"})
-    if "R2" in rule_ids:
-        required.update({"revenue", "operating_cash_flow"})
+    if industry_family:
+        # 行业专用闸门的 family 参数实际保存的是 specialized_rule key；
+        # 这里直接读取缓存案例登记的规则字段，避免热路径重新扫描 PDF。
+        case = get_case(workspace_root, case_id) or {}
+        required.update(case.get("specialized_required_fields") or [])
+    else:
+        if "R1" in rule_ids:
+            required.update({"revenue", "accounts_receivable"})
+        if "R2" in rule_ids:
+            required.update({"revenue", "operating_cash_flow"})
     found = {(row.get("field_kind"), int(row.get("year", 0))) for row in rows}
     issues = [
         f"{year}年缺少{kind}字段候选。"
@@ -257,7 +432,18 @@ def _cached_field_extraction(
         for kind in sorted(required)
         if (kind, year) not in found
     ]
-    status = "cached_ready" if rows and not issues else "cached_with_gaps" if rows else "failed"
+    status = "cached_ready" if rows and not issues else "cached_with_gaps" if rows or industry_family else "failed"
+    complete_years = sorted(
+        {
+            year
+            for year in requested_years
+            if required and all((kind, year) in found for kind in required)
+        },
+        reverse=True,
+    )
+    # 与实时提取路径保持同一定义：available_years 保存“本年和上年均完整”
+    # 的本年，而不是所有出现过任意字段的报告年度。
+    available_years = [year for year in complete_years if year - 1 in complete_years]
     return {
         "status": status,
         "case_id": case_id,
@@ -267,12 +453,36 @@ def _cached_field_extraction(
         "optional_kinds": [],
         "issues": issues,
         "optional_missing": [],
-        "available_years": sorted({int(row["year"]) for row in rows if not issues}, reverse=True),
+        "available_years": available_years,
         "human_review_required": False,
         "human_review_recommended": bool(rows),
         "formal_adoption_requires_human_review": True,
         "cache_reused": True,
     }
+
+
+def _cached_document_cards(case: dict[str, Any]) -> list[dict[str, Any]]:
+    """缓存命中仍展示官方年报校验卡片，不公开本机存储路径。"""
+
+    return [
+        {
+            key: document.get(key)
+            for key in (
+                "document_id",
+                "report_year",
+                "announcement_title",
+                "announcement_date",
+                "disclosure_date",
+                "source_url",
+                "sha256",
+                "byte_count",
+                "page_count",
+                "validation_status",
+            )
+            if document.get(key) is not None
+        }
+        for document in case.get("documents", [])
+    ]
 
 
 def _cached_result(
@@ -297,8 +507,23 @@ def _cached_result(
     gate = evaluate_industry_gate(company=task["company"], case=case, rule_ids=request.get("rule_ids") or ["R1"])
     task["industry_gate"] = gate
     manifest = rag_status(workspace_root, case_id)
+    cache_key = cached.get("cache_key") or {}
     if manifest.get("status") != "ready":
         raise ValueError("缓存案例的 RAG 索引已过期，已关闭缓存复用。")
+    if manifest.get("source_fingerprint") != cached.get("source_fingerprint"):
+        raise ValueError("缓存来源指纹与当前 RAG 索引不一致，已关闭缓存复用。")
+    if cache_key.get("extractor_version") != "field_extraction_v1":
+        raise ValueError("缓存字段提取器版本不一致，已关闭缓存复用。")
+    if cache_key.get("industry_gate_version") != gate.get("gate_version"):
+        raise ValueError("缓存行业闸门版本不一致，已关闭缓存复用。")
+    if cache_key.get("industry_rule_version") != gate.get("industry_rule_version"):
+        raise ValueError("缓存行业专用规则版本不一致，已关闭缓存复用。")
+    if cache_key.get("rag_index_version") != manifest.get("index_version"):
+        raise ValueError("缓存 RAG 版本不一致，已关闭缓存复用。")
+    if cache_key.get("rule_version") != DEFAULT_RULE_VERSION:
+        # 热缓存只复用来源和字段，但其可用性仍受当前确定性规则版本约束。
+        # 旧规则键不能静默冒充当前预筛合同，应转入实时刷新或明确失败状态。
+        raise ValueError("缓存确定性规则版本不一致，已关闭缓存复用。")
     for step, detail in {
         "company_resolve": "已命中预热缓存并确认企业。",
         "announcement_search": "已读取缓存中的官方年报年度清单。",
@@ -339,6 +564,7 @@ def _cached_result(
             "case_id": case_id,
             "company": task["company"],
             "report_years": years,
+            "documents": _cached_document_cards(case),
             "rag": {
                 "status": manifest["status"],
                 "chunk_count": manifest.get("chunk_count"),
@@ -360,6 +586,7 @@ def _cached_result(
                 "verified_at": cached.get("verified_at"),
                 "cache_age_days": cached.get("cache_age_days"),
                 "cache_max_age_days": cached.get("cache_max_age_days"),
+                "documents": _cached_document_cards(case),
             },
             "analysis": None,
             "human_review_required": True,
@@ -367,7 +594,8 @@ def _cached_result(
         _set_status(workspace_root, task, "completed", result=result)
         return result
 
-    if gate["fit_level"] in {"not_applicable", "unknown"}:
+    specialized_rule = gate.get("specialized_rule")
+    if gate["fit_level"] in {"not_applicable", "unknown"} and not specialized_rule:
         extraction = {
             "status": "not_applicable" if gate["fit_level"] == "not_applicable" else "industry_unknown",
             "case_id": case_id,
@@ -389,15 +617,91 @@ def _cached_result(
             case_id,
             rule_ids=list(request.get("rule_ids") or ["R1"]),
             requested_years=years,
+            industry_family=specialized_rule,
         )
+    # 旧预热案例可能已经有专用字段和 specialized_available_years，但案例清单的
+    # 通用 available_years 仍是空列表。缓存命中也要把同一份候选重新计算一次元数据，
+    # 否则页面年度筛选和后续运行会继续看见旧状态；这一步不重新读取 PDF。
+    if (
+        specialized_rule
+        and extraction.get("available_years") != case.get("available_years")
+        and get_financial_rows(workspace_root, case_id)
+    ):
+        current_rows = get_financial_rows(workspace_root, case_id)
+        update_cninfo_financial_fields(
+            workspace_root,
+            case_id,
+            current_rows,
+            status=str(case.get("financial_fields_status") or extraction.get("status") or "passed_technical_pending_human"),
+            material_gaps=list(case.get("material_gaps") or extraction.get("issues") or []),
+            specialized_required_fields=list(case.get("specialized_required_fields") or gate.get("specialized_required_fields") or []),
+            industry_rule=specialized_rule,
+        )
+        case = get_case(workspace_root, case_id) or case
+    # 预热批次默认只做下载和 RAG。完整分析命中这类热缓存时，不能把“缓存中
+    # 暂无字段”当成最终结果；应复用已经校验的 PDF，补做一次确定性字段提取。
+    # 这样既避免再次访问巨潮，也保证输入公司后 full_analysis 一定真正进入字段闸门。
+    rescanned_cached_pdf = False
+    if (
+        str(request.get("analysis_mode") or "full_analysis") == "full_analysis"
+        and extraction.get("status") != "cached_ready"
+        and (specialized_rule is not None or gate.get("fit_level") == "direct")
+    ):
+        extraction = extract_cninfo_fields(
+            workspace_root,
+            case_id,
+            rule_ids=list(request.get("rule_ids") or ["R1"]),
+            requested_years=years,
+            industry_family=specialized_rule,
+        )
+        rescanned_cached_pdf = True
+        if extraction.get("status") == "failed":
+            # 官方 PDF 已存在但没有形成字段候选，必须明确进入人工处理，不能返回
+            # 一个看起来 ready、实际 0 条字段的成功缓存结果。
+            raise CNInfoError(
+                "FIELD_EXTRACTION_FAILED",
+                "缓存中的官方年报已存在，但未形成可用财务字段候选。",
+                detail=extraction,
+            )
+        refreshed_case = get_case(workspace_root, case_id) or case
+        if supabase_enabled():
+            try:
+                refreshed_case["persistence"] = get_supabase_client().persist_case_metadata(
+                    workspace_root=workspace_root,
+                    case=refreshed_case,
+                    rows=extraction["rows"],
+                    upload_private_documents=False,
+                )
+            except SupabaseError as error:
+                raise ValueError("缓存案例字段未完成 Supabase 持久化。") from error
+        # 把补提取结果写回本地目录缓存；下一次完整分析直接读取字段，不再扫描 PDF。
+        sync_case_to_catalog(
+            workspace_root,
+            refreshed_case,
+            rows=extraction["rows"],
+            rag_manifest=manifest,
+            industry_gate=gate,
+        )
+    extraction_step_status = (
+        "passed_with_gaps"
+        if extraction.get("status") in {"cached_with_gaps", "passed_technical_with_gaps"}
+        or extraction.get("issues")
+        else "passed"
+    )
+    extraction_detail = (
+        "已复用缓存字段；未重新扫描 PDF。"
+        if not rescanned_cached_pdf
+        else "已复用已校验 PDF，补做结构化字段提取。"
+    )
     _set_step(
         workspace_root,
         task,
         "field_extract",
-        "passed_with_gaps" if extraction["status"] == "cached_with_gaps" else "passed",
-        "已复用缓存字段；未重新扫描 PDF。" if extraction["status"] not in {"not_applicable", "industry_unknown"} else "行业适配闸门已跳过当前规则字段提取。",
+        extraction_step_status,
+        extraction_detail if extraction["status"] not in {"not_applicable", "industry_unknown"} else "行业适配闸门已跳过当前规则字段提取。",
         extraction_summary={key: extraction.get(key) for key in ("row_count", "status", "available_years")},
-        cache_hit=True,
+        cache_hit=not rescanned_cached_pdf,
+        source="validated_pdf_rescan" if rescanned_cached_pdf else "field_cache",
     )
     _set_step(
         workspace_root,
@@ -415,6 +719,7 @@ def _cached_result(
         "case_id": case_id,
         "company": task["company"],
         "report_years": years,
+        "documents": _cached_document_cards(case),
         "rag": {"status": manifest["status"], "chunk_count": manifest.get("chunk_count"), "smoke_retrieval_id": smoke["retrieval_id"], "cache_hit": True, "snapshot_id": cached["snapshot_id"]},
         "industry_gate": gate,
         "field_extraction": extraction,
@@ -432,6 +737,7 @@ def _cached_result(
             "verified_at": cached.get("verified_at"),
             "cache_age_days": cached.get("cache_age_days"),
             "cache_max_age_days": cached.get("cache_max_age_days"),
+            "documents": _cached_document_cards(case),
         },
     }
     _set_status(workspace_root, task, "ready_for_analysis", result=result)
@@ -469,6 +775,25 @@ def _document_id(ticker: str, year: int, sha256: str) -> str:
     return f"CNINFO-{ticker}-{year}-{sha256[:12]}".upper()
 
 
+def _source_snapshot_id(documents: list[dict[str, Any]]) -> str:
+    """按年度、官方 URL 和 PDF 哈希生成稳定快照指纹。"""
+
+    rows = sorted(
+        [
+        {
+            "document_id": item.get("document_id"),
+            "report_year": item.get("report_year"),
+            "source_url": item.get("source_url"),
+            "sha256": item.get("sha256"),
+        }
+        for item in documents
+        ],
+        key=lambda item: (int(item.get("report_year") or 0), str(item.get("document_id") or "")),
+        reverse=True,
+    )
+    return hashlib.sha256(json.dumps(rows, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()[:24].lower()
+
+
 def run_ingestion(
     workspace_root: Path,
     task_id: str,
@@ -480,34 +805,43 @@ def run_ingestion(
     task = load_task(workspace_root, task_id)
     if task is None:
         raise ValueError("巨潮任务不存在。")
-    task["attempt"] = int(task.get("attempt", 0)) + 1
-    _set_status(workspace_root, task, "searching")
-    request = task["request"]
-    requested_years = prepare_report_years(request.get("latest_year"), int(request.get("years", 3)))
-    cache_policy = str(request.get("cache_policy") or ("force_refresh" if request.get("force_refresh") else "prefer_cache"))
-    if cache_policy != "force_refresh":
-        # 目录只作为加速索引；任何读取异常都降级到既有巨潮实时流程。
-        try:
-            bootstrap_runtime_catalog(workspace_root)
-            resolution = resolve_analysis_source(
-                workspace_root,
-                str(request.get("company_query") or ""),
-                requested_years,
-                cache_policy=cache_policy,
-            )
-            if resolution["hit"] and resolution.get("match"):
-                result = _cached_result(workspace_root, task, resolution["match"])
-                result.setdefault("cache", {}).update({"policy": cache_policy, "reason": resolution["reason"]})
-                task["cache"] = result["cache"]
-                _save_task(workspace_root, task)
-                return result
-        except (OSError, ValueError, TypeError):
-            task["cache"] = {"hit": False, "fallback": "catalog_unavailable"}
     owns_client = client is None
-    cninfo = client or CNInfoClient()
+    cninfo: CNInfoClient | None = client
     # selected_reports 只保存最终版本，候选数量会另写入搜索步骤日志。
     selected_reports: list[dict[str, Any]] = []
     try:
+        # 从 attempt 到缓存解析都必须位于失败记录边界内。否则年份类型、目录
+        # 或初始状态写入一旦异常，后台任务会永久停留在 queued/searching。
+        task["attempt"] = int(task.get("attempt", 0)) + 1
+        _set_status(workspace_root, task, "searching")
+        request = task["request"]
+        requested_years = prepare_report_years(request.get("latest_year"), int(request.get("years", 3)))
+        cache_policy = str(request.get("cache_policy") or ("force_refresh" if request.get("force_refresh") else "prefer_cache"))
+        if cache_policy != "force_refresh":
+            # 目录是加速索引而非来源真相。版本不匹配可回到实时官方流程；
+            # 异常类型会保留在 task.cache，不能再伪装成一次正常缓存未命中。
+            try:
+                bootstrap_runtime_catalog(workspace_root)
+                resolution = resolve_analysis_source(
+                    workspace_root,
+                    str(request.get("company_query") or ""),
+                    requested_years,
+                    cache_policy=cache_policy,
+                )
+                if resolution["hit"] and resolution.get("match"):
+                    result = _cached_result(workspace_root, task, resolution["match"])
+                    result.setdefault("cache", {}).update({"policy": cache_policy, "reason": resolution["reason"]})
+                    task["cache"] = result["cache"]
+                    _save_task(workspace_root, task)
+                    return result
+            except (OSError, ValueError, TypeError) as cache_error:
+                task["cache"] = {
+                    "hit": False,
+                    "fallback": "catalog_unavailable_or_incompatible",
+                    "failure_type": type(cache_error).__name__,
+                }
+        if cninfo is None:
+            cninfo = CNInfoClient()
         _set_step(workspace_root, task, "company_resolve", "running", "正在从巨潮公开股票清单确认企业。")
         company = cninfo.resolve_company(str(request["company_query"]))
         task["company"] = company
@@ -635,13 +969,32 @@ def run_ingestion(
 
         _set_step(workspace_root, task, "case_register", "running", "正在创建企业独立案例目录。")
         latest_t0 = max(item["announcement_date"] for item in validated)
-        case_id = f"CNINFO_{company['ticker']}_T0_{latest_t0.replace('-', '')}"
+        snapshot_id = _source_snapshot_id(validated)
+        base_case_id = f"CNINFO_{company['ticker']}_T0_{latest_t0.replace('-', '')}"
+        existing_base = get_case(workspace_root, base_case_id)
+        # 首次快照保留旧版可读编号；同一证券同一T0出现新年度/修订版时，
+        # 改用来源指纹后缀，保证两年版、三年版和强制刷新版各自留存。
+        case_id = base_case_id
+        if existing_base and existing_base.get("source_snapshot_id") != snapshot_id:
+            case_id = f"CNINFO_{company['ticker']}_S_{snapshot_id[:16].upper()}"
         case = register_cninfo_case(
             workspace_root,
             case_id=case_id,
             company=company,
             documents=validated,
+            tenant_id=(request.get("requested_by_identity") or {}).get("tenant_id") if isinstance(request.get("requested_by_identity"), dict) else None,
+            owner_user_id=(request.get("requested_by_identity") or {}).get("user_id") if isinstance(request.get("requested_by_identity"), dict) else None,
         )
+        if supabase_enabled():
+            try:
+                case["persistence"] = get_supabase_client().persist_case_metadata(
+                    workspace_root=workspace_root,
+                    case=case,
+                    rows=[],
+                    upload_private_documents=bool(case.get("tenant_id")),
+                )
+            except SupabaseError as error:
+                raise ValueError("公网案例元数据或私有年报未完成 Supabase 持久化。") from error
         task["case_id"] = case_id
         industry_gate = evaluate_industry_gate(company=company, case=case, rule_ids=request.get("rule_ids") or ["R1"])
         task["industry_gate"] = industry_gate
@@ -659,6 +1012,16 @@ def run_ingestion(
         _set_status(workspace_root, task, "indexing")
         _set_step(workspace_root, task, "rag_prepare", "running", "正在建立案例隔离 RAG 索引。")
         index_manifest = prepare_index(workspace_root, case_id=case_id, force=bool(request.get("force_refresh", False)))
+        rag_persistence: dict[str, Any] | None = None
+        if supabase_enabled():
+            try:
+                rag_persistence = get_supabase_client().persist_rag_chunks(
+                    case_id=case_id,
+                    tenant_id=str(case.get("tenant_id") or "") or None,
+                    chunks=export_chunks(workspace_root, case_id),
+                )
+            except SupabaseError as error:
+                raise ValueError("公网 RAG 证据块未完成 Supabase 持久化。") from error
         cache_info = sync_case_to_catalog(
             workspace_root,
             case,
@@ -672,6 +1035,8 @@ def run_ingestion(
                 "reason": "force_refresh_completed" if cache_policy == "force_refresh" else "live_snapshot_created",
             }
         )
+        if rag_persistence:
+            cache_info["rag_persistence"] = rag_persistence
         _set_step(
             workspace_root,
             task,
@@ -739,7 +1104,8 @@ def run_ingestion(
             return result
 
         _set_status(workspace_root, task, "extracting_fields")
-        if industry_gate["fit_level"] in {"not_applicable", "unknown"}:
+        specialized_rule = industry_gate.get("specialized_rule")
+        if industry_gate["fit_level"] in {"not_applicable", "unknown"} and not specialized_rule:
             extraction = {
                 "status": "not_applicable" if industry_gate["fit_level"] == "not_applicable" else "industry_unknown",
                 "case_id": case_id,
@@ -785,6 +1151,7 @@ def run_ingestion(
             case_id,
             rule_ids=list(request.get("rule_ids") or ["R1"]),
             requested_years=years,
+            industry_family=specialized_rule,
         )
         if extraction["status"] == "failed":
             _set_step(workspace_root, task, "field_extract", "failed", "未形成任何字段候选。", extraction=extraction)
@@ -807,6 +1174,16 @@ def run_ingestion(
             issues=extraction["issues"],
         )
         refreshed_case = get_case(workspace_root, case_id) or case
+        if supabase_enabled():
+            try:
+                refreshed_case["persistence"] = get_supabase_client().persist_case_metadata(
+                    workspace_root=workspace_root,
+                    case=refreshed_case,
+                    rows=extraction["rows"],
+                    upload_private_documents=False,
+                )
+            except SupabaseError as error:
+                raise ValueError("公网字段证据未完成 Supabase 持久化。") from error
         cache_info = sync_case_to_catalog(
             workspace_root,
             refreshed_case,
@@ -820,6 +1197,8 @@ def run_ingestion(
                 "reason": "force_refresh_completed" if cache_policy == "force_refresh" else "live_snapshot_created",
             }
         )
+        if rag_persistence:
+            cache_info["rag_persistence"] = rag_persistence
         _set_status(
             workspace_root,
             task,
@@ -856,7 +1235,7 @@ def run_ingestion(
         _set_status(workspace_root, task, status, error=payload)
         return {"task_id": task_id, "status": status, "error": payload, "case_id": task.get("case_id")}
     finally:
-        if owns_client:
+        if owns_client and cninfo is not None:
             cninfo.close()
 
 

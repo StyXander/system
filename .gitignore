@@ -2,9 +2,11 @@
 .env
 .venv/
 backend/.venv/
+backend/.venv.broken-*/
 __pycache__/
 backend/**/__pycache__/
 .pytest_cache/
+.pytest_tmp/
 backend/runtime/
 tmp/
 交付包/
@@ -36,6 +38,8 @@ artifacts/
 /docs/
 /outputs/
 /scripts/
+/reasonix.toml
+/.reasonix/
 /assets/icons/
 /pytest.ini
 /*.py

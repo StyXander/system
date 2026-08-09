@@ -4,6 +4,27 @@
 程序先按财务报表关键词定位页面，再从同一行附近提取候选数字。
 候选数字必须保留文档编号、报告年度、PDF 页码、单位、口径和原文窗口。
 模块不声称自动提取就是专业确认；公开预筛会返回明确缺口并按可比期间降级，正式采用与导出前仍需真人复核。
+提取器只打开案例清单登记的相对路径，调用参数不能指定任意本机 PDF。
+页面关键词只缩小候选范围，不能单凭出现字段名称就认定报表项目。
+字段提示词用于提高报表页优先级，不会绕过文档年度和来源身份检查。
+数字解析会移除常见千位分隔符，但不会猜测缺失小数点或负号。
+括号负数保持负值含义，不能为方便比较而转换为正数。
+破折号和空白不被解释为零，缺失金额必须形成资料缺口。
+单位从候选页原文识别，无法识别时不能静默套用一个任意倍率。
+金额统一换算到案例登记口径，同时保留原始单位供人工复验。
+百分比字段使用独立单位规则，不能乘以万元或百万元倍率。
+同一行附近存在多个数字时按受控距离选择，结果仍只是自动候选。
+候选原文窗口限制长度，既支持回查也避免把整页内容扩散到日志。
+PDF 页码从一开始记录，与阅读器展示页保持一致并受总页数校验。
+报告年度来自已登记文档元数据，不能从页面零散年份自由推断。
+必需字段由所选普通规则或行业专用规则决定，二者不能混合凑齐。
+可选字段缺失只影响增强信息，必需字段缺失才进入对应资料缺口。
+每个年度逐文档提取，不能从下一年度比较列替代本年度官方原件。
+来源时点过滤在案例登记和规则阶段再次执行，提取成功不等于当期可用。
+技术通过状态只表示形成候选行，人工确认状态仍保持待处理。
+未形成任何候选时明确失败，部分字段存在时返回带缺口的降级状态。
+提取器写回案例前保留证据编号和页面定位，不能只保存最终浮点值。
+任何自动化准确率提升都不能取消原 PDF 页回查和人工更正入口。
 """
 
 from __future__ import annotations
@@ -15,6 +36,7 @@ from typing import Any
 import fitz
 
 from .cases import get_case, get_case_documents, update_cninfo_financial_fields
+from .industry_rules import SPECIALIZED_FIELD_CONFIG, get_specialized_spec
 
 
 FIELD_CONFIG: dict[str, dict[str, Any]] = {
@@ -41,12 +63,17 @@ FIELD_CONFIG: dict[str, dict[str, Any]] = {
         "basis": "reported",
     },
 }
+FIELD_CONFIG.update(SPECIALIZED_FIELD_CONFIG)
 # 数字解析只服务于候选生成，任何候选都必须带原文窗口和 PDF 页码。
 NUMBER_PATTERN = re.compile(r"(?<![\d.])[-−]?(?:\(?\d[\d,]*(?:\.\d+)?\)?)(?![\d.])")
-# 兼容“单位：百万元”“单位：人民币百万元”和“人民币百万元”等常见表头。
+# 兼容“单位：亿元”“单位：人民币亿元”“单位：百万元”和“人民币百万元”等常见表头。
 # 仍然只接受明确写出的金额单位，不根据企业规模或数值大小猜单位。
-UNIT_PATTERN = re.compile(r"(?:单位\s*[:：]?\s*(?:人民币)?|人民币\s*)(百万元|万元|千元|元)")
-UNIT_MULTIPLIER = {"元": 1.0, "千元": 1_000.0, "万元": 10_000.0, "百万元": 1_000_000.0}
+# 除“单位：元”表头外，巨潮年度报告还常把单位写在字段标题后，例如“营业收入（元）”。
+# 两种写法都必须显式出现，不能根据企业规模猜测数量级。
+UNIT_PATTERN = re.compile(
+    r"(?:单位\s*[:：]?\s*(?:人民币)?|人民币\s*|[（(]\s*(?:人民币)?)(亿元|百万元|万元|千元|元)\s*[）)]?"
+)
+UNIT_MULTIPLIER = {"元": 1.0, "千元": 1_000.0, "万元": 10_000.0, "百万元": 1_000_000.0, "亿元": 100_000_000.0}
 # 附注编号可能写成“七、5”，也可能写成“（六）4”；都不能当成金额。
 NOTE_REFERENCE_PATTERN = re.compile(
     r"^(?:[一二三四五六七八九十百千万]+[、.．]\d{1,3}|[（(][一二三四五六七八九十百千万]+[）)]\d{1,3})$"
@@ -80,7 +107,9 @@ def _unit(text: str) -> tuple[str | None, float]:
     return name, UNIT_MULTIPLIER[name]
 
 
-def _line_candidates(lines: list[str], start: int, *, term: str = "") -> list[tuple[float, str]]:
+def _line_candidates(
+    lines: list[str], start: int, *, term: str = "", allow_percent: bool = False
+) -> list[tuple[float, str]]:
     """读取关键词所在行之后的有限窗口，避免把整页其他表的数字串进来。"""
 
     # 限定窗口长度，减少把同页其他表格的金额误绑定到关键词。
@@ -97,7 +126,7 @@ def _line_candidates(lines: list[str], start: int, *, term: str = "") -> list[tu
         for match in NUMBER_PATTERN.finditer(line):
             raw = match.group(0)
             after = line[match.end() : match.end() + 2]
-            if "年" in after or "%" in after or "％" in after:
+            if "年" in after or (not allow_percent and ("%" in after or "％" in after)):
                 continue
             value = _number(raw)
             if value is None or abs(value) > 1e16:
@@ -119,15 +148,19 @@ def _find_page_candidate(
         if not text.strip():
             continue
         lines = [line.strip() for line in text.splitlines() if line.strip()]
-        unit_name, multiplier = _unit(text)
+        is_ratio = config.get("value_type") == "ratio"
+        unit_name, multiplier = ("%", 1.0) if is_ratio and re.search(r"%|％|百分比", text) else _unit(text)
         for term_rank, term in enumerate(config["terms"]):
             for line_index, line in enumerate(lines):
                 if term not in line:
                     continue
-                candidates = _line_candidates(lines, line_index, term=term)
+                candidates = _line_candidates(lines, line_index, term=term, allow_percent=is_ratio)
                 if not candidates:
                     continue
                 value, raw_line = candidates[0]
+                if is_ratio and unit_name is None:
+                    # 比例字段必须在同页或同一表头明确出现百分比单位，不能把普通金额猜成比例。
+                    continue
                 hint_hits = sum(1 for hint in config["hints"] if hint in text)
                 exact_bonus = max(0, len(config["terms"]) - term_rank)
                 score = hint_hits * 10 + exact_bonus * 3
@@ -142,8 +175,9 @@ def _find_page_candidate(
                         {
                             "page": page_index + 1,
                             "raw_value": value,
-                            "value": value * multiplier,
+                            "value": value if is_ratio else value * multiplier,
                             "unit": unit_name,
+                            "source_unit": unit_name,
                             "locator": f"PDF 第 {page_index + 1} 页：{term}",
                             "raw_excerpt": " | ".join(lines[max(0, line_index - 2) : min(len(lines), line_index + 8)]),
                             "term": term,
@@ -158,9 +192,12 @@ def _find_page_candidate(
     return ranked[0][2]
 
 
-def _required_kinds(rule_ids: list[str]) -> tuple[set[str], set[str]]:
+def _required_kinds(rule_ids: list[str], industry_family: str | None = None) -> tuple[set[str], set[str]]:
     """按现有 R1/R2 规则区分必需字段和可选增强字段。"""
 
+    specialized = get_specialized_spec(industry_family)
+    if specialized:
+        return set(specialized.get("required_fields") or []), set(specialized.get("optional_fields") or [])
     required: set[str] = set()
     optional: set[str] = set()
     if "R1" in rule_ids:
@@ -177,6 +214,7 @@ def extract_cninfo_fields(
     *,
     rule_ids: list[str],
     requested_years: list[int] | None = None,
+    industry_family: str | None = None,
 ) -> dict[str, Any]:
     """从巨潮案例的每份年度报告提取当前年度字段候选并写入案例。"""
 
@@ -184,7 +222,7 @@ def extract_cninfo_fields(
     if case is None:
         raise ValueError("案例未登记。")
     documents = get_case_documents(workspace_root, case_id)
-    required, optional = _required_kinds(rule_ids)
+    required, optional = _required_kinds(rule_ids, industry_family)
     years = set(requested_years or case.get("available_report_years", []))
     # 每个年度、每个字段最多生成一个候选，避免重复行影响连续年度判断。
     rows: list[dict[str, Any]] = []
@@ -195,6 +233,11 @@ def extract_cninfo_fields(
         if years and report_year not in years:
             continue
         path = (workspace_root / document["storage_relpath"]).resolve()
+        try:
+            path.relative_to(workspace_root.resolve())
+        except ValueError:
+            issues.append(f"{document['document_id']}来源文件超出工作区边界。")
+            continue
         if not path.is_file():
             issues.append(f"{document['document_id']}来源文件不存在。")
             continue
@@ -212,7 +255,17 @@ def extract_cninfo_fields(
             issues.append(f"{document['document_id']}文本过少，可能需要 OCR。")
             continue
         for kind in sorted(required | optional):
-            candidate = _find_page_candidate(pages, FIELD_CONFIG[kind])
+            config = FIELD_CONFIG.get(kind)
+            if config is None:
+                # 行业规则词表和提取器版本可能暂时不同步；可选字段应形成
+                # 明确资料缺口，不能把配置缺口升级为未处理的 KeyError。
+                message = f"字段提取器尚未登记{kind}字段词表。"
+                if kind in required:
+                    issues.append(message)
+                else:
+                    optional_missing.append(message)
+                continue
+            candidate = _find_page_candidate(pages, config)
             if candidate is None:
                 if kind in required:
                     issues.append(f"{report_year}年缺少{kind}字段候选。")
@@ -232,6 +285,10 @@ def extract_cninfo_fields(
                     "field_kind": kind,
                     "year": report_year,
                     "value": candidate["value"],
+                    # value 已按页面单位归一化；source_unit 保留原始表头，
+                    # 比例字段则以百分比点保存，不混入金额倍率。
+                    "unit": "元" if candidate["unit"] in {"元", "千元", "万元", "百万元", "亿元"} else candidate["unit"],
+                    "source_unit": candidate.get("source_unit") or candidate["unit"],
                     "field_basis": FIELD_CONFIG[kind]["basis"],
                     "document_id": document["document_id"],
                     "pdf_page": candidate["page"],
@@ -252,7 +309,11 @@ def extract_cninfo_fields(
                     issues.append(issue)
     # 公开预筛允许带着明确缺口继续运行；人工确认保留为正式采用/导出前的推荐动作。
     status = "passed_technical_pending_human" if not issues else "passed_technical_with_gaps"
-    if not rows:
+    if not rows and industry_family:
+        # 专用规则允许先形成“来源已校验但字段缺口”的结果，不能因普通 R1
+        # 字段不存在就把能源、银行或保险流程报成巨潮下载失败。
+        status = "passed_technical_with_gaps"
+    elif not rows:
         status = "failed"
     case = update_cninfo_financial_fields(
         workspace_root,
@@ -260,6 +321,8 @@ def extract_cninfo_fields(
         rows,
         status=status,
         material_gaps=issues + optional_missing,
+        specialized_required_fields=sorted(required) if industry_family else None,
+        industry_rule=industry_family,
     )
     return {
         "status": status,

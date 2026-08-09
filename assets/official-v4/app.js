@@ -5,6 +5,7 @@
   const AI_GENERATED_CONTENT_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。";
   const REVIEW_KEY = "audittrace_review_v2";
   const SCOPE_KEY = "audittrace_rule_scope_v2";
+  const PIPELINE_TASK_KEY = "audittrace_cninfo_task_v1";
   const VIEW_IDS = ["overview", "project", "rules", "analysis", "rag", "supplement", "delivery", "methods"];
   const LEGACY_VIEW_MAP = { project: "project", data: "project", risk: "analysis", library: "rules", rag: "rag", supplement: "supplement", delivery: "delivery" };
   const UNIT_MAP = {
@@ -12,6 +13,7 @@
     thousand: { label: "千元", factor: 1000 },
     "ten-thousand": { label: "万元", factor: 10000 },
     million: { label: "百万元", factor: 1000000 },
+    "hundred-million": { label: "亿元", factor: 100000000 },
   };
   const FIELD_KIND_LABELS = {
     revenue: "营业收入",
@@ -20,6 +22,20 @@
     accounts_receivable_net: "应收账款净额",
     operating_cash_flow: "经营活动现金流量净额",
     net_profit: "净利润",
+    contract_assets: "合同资产",
+    long_term_receivables: "长期应收款",
+    contract_liabilities: "合同负债",
+    loan_balance: "贷款余额",
+    interest_income: "利息收入",
+    nonperforming_loan_ratio: "不良贷款率",
+    provision_coverage_ratio: "拨备覆盖率",
+    insurance_revenue: "保险收入",
+    insurance_service_result: "保险服务结果",
+    claims_expense: "赔付/理赔费用",
+    insurance_liabilities: "保险负债",
+    commission_income: "手续费及佣金收入",
+    margin_financing_assets: "两融相关资产",
+    impairment_provision: "减值/拨备",
   };
   const METRIC_LABELS = {
     revenue_growth: "营业收入增速",
@@ -39,12 +55,33 @@
     cashflow_to_revenue_current: "本年经营现金流 / 收入",
     cashflow_to_revenue_previous: "上年经营现金流 / 收入",
     net_profit_cashflow_gap: "净利润—经营现金流差异",
+    loan_balance_growth: "贷款余额增速",
+    interest_income_growth: "利息收入增速",
+    loan_interest_growth_gap: "贷款—利息收入增速差",
+    npl_ratio_delta_pp: "不良率变动",
+    coverage_ratio_delta_pp: "拨备覆盖率变动",
+    insurance_revenue_growth: "保险收入增速",
+    claims_expense_growth: "赔付/理赔费用增速",
+    insurance_liabilities_growth: "保险负债增速",
+    claims_revenue_growth_gap: "赔付—保险收入增速差",
+    liability_revenue_growth_gap: "保险负债—收入增速差",
+    commission_income_growth: "佣金收入增速",
+    margin_financing_assets_growth: "两融资产增速",
+    impairment_provision_growth: "减值/拨备增速",
+    margin_commission_growth_gap: "两融资产—佣金收入增速差",
+    impairment_commission_growth_gap: "减值—佣金收入增速差",
+    accounts_receivable_growth: "应收账款增速",
+    contract_assets_growth: "合同资产增速",
+    long_term_receivables_growth: "长期应收款增速",
+    contract_liabilities_growth: "合同负债增速",
+    max_receivable_growth_deviation: "合同循环最大增速偏离",
+    insurance_service_result_current: "本期保险服务结果",
   };
   const STATUS_LABELS = {
     candidate: "程序候选",
     RULE_NOT_TRIGGERED: "程序未触发",
     DATA_NOT_COMPARABLE: "同比不宜比较",
-    DATA_GAP: "资料不足",
+    DATA_GAP: "资料缺口",
     SOURCE_INCOMPLETE: "来源未通过",
     retain: "建议保留",
     downgrade: "建议降级",
@@ -55,6 +92,10 @@
     complete_public_prescreen_with_gaps: "公开财报预筛已完成（部分指标未计算）",
     complete_public_prescreen_no_candidate: "公开财报预筛已完成，无程序候选",
     complete_public_prescreen_not_applicable: "公开财报预筛完成：当前规则不适用",
+    complete_public_prescreen_industry_rule: "行业专用公开预筛已完成",
+    complete_public_prescreen_industry_rule_with_gaps: "行业专用公开预筛已完成（有资料缺口）",
+    complete_industry_rule: "行业专用预筛已完成",
+    complete_industry_rule_with_gaps: "行业专用预筛已完成（有资料缺口）",
     complete_rule_not_applicable: "当前规则不适用",
     complete_public_prescreen_industry_unknown: "公开预筛完成：行业待确认",
     complete_rule_industry_unknown: "行业待确认，当前规则未执行",
@@ -64,6 +105,9 @@
     incomplete_model_chain_failed: "不完整：模型链未完成",
     incomplete_rag_failure: "不完整：RAG失败",
     incomplete_model_transfer_not_allowed: "不完整：禁止模型传输",
+    incomplete_sensitive_data_blocked: "不完整：敏感信息已阻断模型调用",
+    incomplete_model_transfer_revoked: "不完整：模型传输同意已撤销",
+    incomplete_persistence_unavailable: "不完整：持久化服务不可用",
     cache_replay_not_fresh_analysis: "缓存回放，非新分析",
     model_success: "三Agent已通过硬校验",
     config_missing: "模型配置缺失",
@@ -72,6 +116,8 @@
     not_requested: "仅计算，未请求模型",
     not_applicable: "本次不适用",
     model_transfer_not_allowed: "模型传输未获许可",
+    sensitive_data_blocked: "敏感信息已阻断模型调用",
+    model_transfer_revoked: "模型传输同意已撤销",
     not_attempted_rag_failure: "RAG失败，模型未调用",
     cache_replay: "批准缓存回放",
   };
@@ -89,7 +135,7 @@
     analysis_run: "进入分析 API",
   };
   const CNINFO_STEP_ORDER = Object.keys(CNINFO_STEP_LABELS);
-  const CNINFO_ACTIVE_STATUSES = new Set(["queued", "searching", "downloading", "validating", "indexing", "extracting_fields", "ready_for_analysis", "analyzing"]);
+  const CNINFO_ACTIVE_STATUSES = new Set(["queued", "running", "searching", "downloading", "validating", "indexing", "extracting_fields", "ready_for_analysis", "analyzing"]);
   const RULES = [
     { id: "R1", name: "应收—收入背离", detail: "计算增速差、绝对影响、应收占收入、周转趋势、持续期间和重要性；净额只能过渡使用。", meta: "r1_v0.4-draft / 待A专业签字", status: "主链可运行", runnable: true },
     { id: "R2", name: "收入—经营现金流辅助筛查", detail: "跨期变号或基数过小时阻断伪同比；默认不抢占 R1 主演示。", meta: "r2_v0.2-auxiliary-draft", status: "辅助工程规则", runnable: true },
@@ -104,6 +150,10 @@
   const state = {
     view: "overview",
     requestedCase: null,
+    requestedRun: null,
+    requestedPipelineTask: null,
+    authDialogTrigger: null,
+    riskDialogTrigger: null,
     caseId: null,
     cases: [],
     currentCase: null,
@@ -111,6 +161,9 @@
     unit: "yuan",
     selectedRules: ["R1"],
     projectStatus: null,
+    auth: null,
+    modelConsent: null,
+    industryGate: null,
     run: null,
     humanReview: null,
     backendAvailable: false,
@@ -122,6 +175,7 @@
     cninfoPollToken: 0,
     cninfoAnalysisLoadedTaskId: null,
   };
+  let authRefreshPromise = null;
 
   function byId(id) { return document.getElementById(id); }
   function escapeHtml(value) {
@@ -130,15 +184,43 @@
   function statusLabel(value) { return STATUS_LABELS[value] || value || "—"; }
   function aiNotice(value) { return value?.ai_generated_content_notice || AI_GENERATED_CONTENT_NOTICE; }
   function statusKind(value) {
-    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "complete_public_prescreen_with_gaps", "complete_public_prescreen_no_candidate", "complete_public_prescreen_not_applicable", "complete_rule_not_applicable", "complete_public_prescreen_industry_unknown", "complete_rule_industry_unknown", "model_success", "retain"].includes(value)) return "success";
-    if (["SOURCE_INCOMPLETE", "provider_unreachable", "MODEL_OUTPUT_INVALID", "not_attempted_rag_failure"].includes(value)) return "danger";
-    if (["candidate", "downgrade", "defer"].includes(value) || String(value || "").startsWith("incomplete")) return "waiting";
+    if (String(value || "").includes("with_gaps")) return "waiting";
+    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "complete_public_prescreen_no_candidate", "complete_public_prescreen_industry_rule", "complete_industry_rule", "model_success", "retain"].includes(value)) return "success";
+    if (["SOURCE_INCOMPLETE", "provider_unreachable", "MODEL_OUTPUT_INVALID", "not_attempted_rag_failure", "model_transfer_revoked"].includes(value)) return "danger";
+    if (["candidate", "downgrade", "defer", "DATA_GAP", "INDUSTRY_UNKNOWN", "complete_public_prescreen_industry_unknown", "complete_rule_industry_unknown"].includes(value) || String(value || "").startsWith("incomplete")) return "waiting";
     return "info";
   }
   function setStatePill(element, text, kind) {
     if (!element) return;
     element.textContent = text;
     element.className = `state ${kind}`;
+  }
+  function currentCaseContextText() {
+    const current = state.currentCase;
+    if (!current) return "当前公司：未选择 · 暂无案例";
+    const company = current.company_name || current.company_alias || "未命名公司";
+    const ticker = current.ticker ? `（${current.ticker}）` : "";
+    const caseId = current.case_id ? ` · 案例 ${current.case_id}` : "";
+    return `当前分析公司：${company}${ticker}${caseId}`;
+  }
+  function renderCaseContext() {
+    const text = currentCaseContextText();
+    document.querySelectorAll("[data-current-case-context]").forEach((node) => {
+      node.textContent = text;
+      node.title = text;
+    });
+    const topbar = byId("active-company-context");
+    if (topbar) {
+      topbar.textContent = text;
+      topbar.title = text;
+    }
+    const sidebarCompany = byId("sidebar-company");
+    if (sidebarCompany) {
+      sidebarCompany.textContent = state.currentCase
+        ? `${state.currentCase.company_name || state.currentCase.company_alias || "未命名公司"}${state.currentCase.ticker ? ` · ${state.currentCase.ticker}` : ""}`
+        : "没有可用案例";
+      sidebarCompany.title = text;
+    }
   }
   function setServiceStatus(text, kind) {
     if (!byId("service-pill")) return;
@@ -158,11 +240,94 @@
     button.textContent = loadingText;
     return () => { button.textContent = original; button.disabled = disabled; button.removeAttribute("aria-busy"); };
   }
-  async function api(path, options = {}) {
-    const response = await fetch(`${API_BASE}${path}`, options);
+  function formatErrorDetail(detail) {
+    if (Array.isArray(detail)) {
+      return detail.map((item) => {
+        if (!item || typeof item !== "object") return String(item);
+        const location = Array.isArray(item.loc) ? item.loc.filter((part) => part !== "body").join(".") : "";
+        return `${location ? `${location}：` : ""}${item.msg || item.message || JSON.stringify(item)}`;
+      }).join("；");
+    }
+    if (detail && typeof detail === "object") return detail.message || detail.error || JSON.stringify(detail);
+    return String(detail || "");
+  }
+  function authHeaders(initial = {}) {
+    const headers = new Headers(initial);
+    let token = "";
+    try { token = window.localStorage.getItem("AUDITTRACE_ACCESS_TOKEN") || ""; } catch (_error) { /* no token storage */ }
+    if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
+    return headers;
+  }
+  function isOneShotRequestBody(body) {
+    return (typeof FormData !== "undefined" && body instanceof FormData)
+      || (typeof Blob !== "undefined" && body instanceof Blob)
+      || (typeof ReadableStream !== "undefined" && body instanceof ReadableStream);
+  }
+  async function refreshCookieSession({ silent = false } = {}) {
+    if (authRefreshPromise) return authRefreshPromise;
+    authRefreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error("会话已过期，请重新登录。");
+        safeLocalStorageRemove("AUDITTRACE_ACCESS_TOKEN");
+        state.auth = await response.json();
+        renderAuthControls();
+        return true;
+      } catch (_error) {
+        const persistence = state.auth?.persistence
+          || state.projectStatus?.persistence
+          || { mode: state.projectStatus?.supabase?.enabled ? "supabase" : "local" };
+        state.auth = { authenticated: false, user: null, persistence };
+        state.modelConsent = null;
+        renderAuthControls();
+        renderModelConsent();
+        renderRuleLibrary();
+        if (!silent) showMessage(byId("case-import-message"), "登录会话已过期，请重新登录后继续。", "error");
+        return false;
+      } finally {
+        authRefreshPromise = null;
+      }
+    })();
+    return authRefreshPromise;
+  }
+  async function api(path, options = {}, authRecovery = { attempted: false }) {
+    const requestOptions = { credentials: "include", ...options, headers: authHeaders(options.headers || {}) };
+    let response = await fetch(`${API_BASE}${path}`, requestOptions);
+    const refreshExcluded = ["/api/auth/login", "/api/auth/refresh", "/api/auth/logout"]
+      .some((endpoint) => path.startsWith(endpoint));
+    // fresh load 时 state.auth 还未知；恢复资格只能由 401 和端点类型决定。
+    // 同一初始化链共享 authRecovery，并发请求再通过 authRefreshPromise 合并。
+    if (response.status === 401 && !refreshExcluded && !authRecovery.attempted) {
+      authRecovery.attempted = true;
+      if (isOneShotRequestBody(options.body)) {
+        const refreshed = await refreshCookieSession();
+        const error = new Error(refreshed
+          ? "登录会话已恢复；为避免重复上传，文件未自动重放，请再次提交。"
+          : "登录会话已过期；为避免重复上传，文件未自动重放。请重新登录后再次提交。");
+        error.status = 401;
+        throw error;
+      }
+      const refreshed = await refreshCookieSession();
+      if (refreshed) {
+        requestOptions.headers = authHeaders(options.headers || {});
+        response = await fetch(`${API_BASE}${path}`, requestOptions);
+      }
+      else {
+        const error = new Error("登录会话已过期，请重新登录。");
+        error.status = 401;
+        throw error;
+      }
+    }
     const type = response.headers.get("content-type") || "";
     const body = type.includes("application/json") ? await response.json() : await response.text();
-    if (!response.ok) throw new Error((body && typeof body === "object" ? body.detail : body) || `HTTP ${response.status}`);
+    if (!response.ok) {
+      const error = new Error(formatErrorDetail(body && typeof body === "object" ? body.detail ?? body : body) || `HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
     return body;
   }
   function safeLocalStorageGet(key, fallback) {
@@ -170,6 +335,9 @@
   }
   function safeLocalStorageSet(key, value) {
     try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (_error) { /* current session still works */ }
+  }
+  function safeLocalStorageRemove(key) {
+    try { window.localStorage.removeItem(key); } catch (_error) { /* current session still works */ }
   }
 
   function readUrlState() {
@@ -183,7 +351,9 @@
     }
     state.requestedCase = params.get("case");
     state.year = params.get("year");
-    return params.get("run");
+    state.requestedRun = params.get("run");
+    state.requestedPipelineTask = params.get("task");
+    return state.requestedRun;
   }
   function updateUrl(mode = "replace") {
     const url = new URL(window.location.href);
@@ -192,6 +362,7 @@
     if (state.year) url.searchParams.set("year", state.year);
     url.searchParams.set("rules", state.selectedRules.join(","));
     if (state.run?.run_id) url.searchParams.set("run", state.run.run_id); else url.searchParams.delete("run");
+    if (state.requestedPipelineTask) url.searchParams.set("task", state.requestedPipelineTask); else url.searchParams.delete("task");
     window.history[mode === "push" ? "pushState" : "replaceState"]({}, "", url);
   }
   function syncMobileNavigationAccessibility(open = false) {
@@ -199,6 +370,9 @@
     const toggle = byId("mobile-nav-toggle");
     const mobile = window.matchMedia("(max-width: 1024px)").matches;
     sidebar.inert = mobile && !open;
+    if (mobile && !open) sidebar.setAttribute("aria-hidden", "true"); else sidebar.removeAttribute("aria-hidden");
+    toggle.setAttribute("aria-label", open ? "关闭主导航" : "打开主导航");
+    toggle.querySelector(".sr-only").textContent = open ? "关闭主导航" : "打开主导航";
     if (!mobile) { sidebar.classList.remove("open"); toggle.setAttribute("aria-expanded", "false"); }
   }
   function closeMobileNavigation() {
@@ -209,6 +383,7 @@
   function showView(view, options = {}) {
     if (!VIEW_IDS.includes(view)) view = "overview";
     state.view = view;
+    renderCaseContext();
     document.querySelectorAll("[data-view-panel]").forEach((panel) => {
       const active = panel.dataset.viewPanel === view;
       panel.hidden = !active;
@@ -234,6 +409,20 @@
   function unitKeyForLabel(label) {
     return Object.keys(UNIT_MAP).find((key) => UNIT_MAP[key].label === label) || "yuan";
   }
+  function caseAvailableYears(current = state.currentCase) {
+    if (!current) return [];
+    const documentYears = (current.documents || []).map((item) => item.report_year);
+    return [...new Set([
+      ...(current.available_years || []),
+      ...(current.specialized_available_years || []),
+      ...(current.available_report_years || []),
+      ...documentYears,
+    ].filter((year) => Number.isFinite(Number(year))).map(String))].sort((a, b) => Number(b) - Number(a));
+  }
+  function isRatioField(row) {
+    return ["nonperforming_loan_ratio", "provision_coverage_ratio"].includes(row?.field_kind)
+      || row?.unit === "%";
+  }
   function formatAmount(value) {
     const baseLabel = state.currentCase?.amount_unit || "元";
     const baseFactor = Object.values(UNIT_MAP).find((item) => item.label === baseLabel)?.factor || 1;
@@ -244,12 +433,20 @@
     if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
     return new Intl.NumberFormat("zh-CN", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value));
   }
+  function formatFieldValue(row) {
+    if (row?.value === null || row?.value === undefined || row?.value === "") return "—";
+    return isRatioField(row)
+      ? `${new Intl.NumberFormat("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.value))}%`
+      : formatAmount(row.value);
+  }
   function metricValue(key, value) {
     if (value === null || value === undefined) return "—";
-    if (["revenue_growth", "ar_growth", "growth_gap", "ar_to_revenue_current", "ar_to_revenue_previous", "operating_cash_flow_growth", "cashflow_to_revenue_current", "cashflow_to_revenue_previous", "net_profit_cashflow_gap"].includes(key)) {
+    if (key.endsWith("_delta_pp")) return `${Number(value).toFixed(2)} 个百分点`;
+    if (key.endsWith("_growth_gap") || key.endsWith("_growth_deviation") || key === "growth_gap") return `${(Number(value) * 100).toFixed(2)} 个百分点`;
+    if (key.endsWith("_growth") || ["revenue_growth", "ar_growth", "ar_to_revenue_current", "ar_to_revenue_previous", "operating_cash_flow_growth", "cashflow_to_revenue_current", "cashflow_to_revenue_previous", "net_profit_cashflow_gap"].includes(key)) {
       return key === "growth_gap" ? `${(Number(value) * 100).toFixed(2)} 个百分点` : formatPercent(value);
     }
-    if (key === "absolute_ar_change") return `${formatAmount(value)} ${UNIT_MAP[state.unit].label}`;
+    if (["absolute_ar_change", "insurance_service_result_current"].includes(key)) return `${formatAmount(value)} ${UNIT_MAP[state.unit].label}`;
     if (["turnover_days_current", "turnover_days_previous", "turnover_trend_days"].includes(key)) return `${Number(value).toFixed(2)} 天`;
     if (key === "sustained_periods") return `${value} 期`;
     if (key === "materiality_multiple") return `${Number(value).toFixed(2)}×`;
@@ -310,6 +507,129 @@
   function sourceUrl(documentId, page) {
     return `${API_BASE}/api/cases/${encodeURIComponent(state.caseId)}/sources/${encodeURIComponent(documentId)}#page=${encodeURIComponent(page || 1)}`;
   }
+  function isProtectedSourceLink(link) {
+    const href = link?.getAttribute("href") || "";
+    const privateCase = state.currentCase?.storage_backend === "supabase_private"
+      || (state.currentCase?.sample_type !== "public" && Boolean(state.currentCase?.tenant_id));
+    return privateCase
+      && href.startsWith(`${API_BASE}/api/cases/`)
+      && href.includes("/sources/");
+  }
+  async function openProtectedSource(event) {
+    const link = event.target.closest("a");
+    if (!link || !isProtectedSourceLink(link)) return;
+    event.preventDefault();
+    if (!state.auth?.authenticated) {
+      showMessage(byId("case-import-message"), "该来源属于租户私有资料，请登录后打开。", "error");
+      return;
+    }
+    // 先打开空白页再异步请求，避免浏览器把带 Authorization 的受保护 PDF 判为弹窗拦截。
+    const popup = window.open("about:blank", "_blank");
+    if (!popup) {
+      showMessage(byId("case-import-message"), "浏览器阻止了新窗口，请允许本站打开来源 PDF。", "error");
+      return;
+    }
+    try {
+      popup.document.title = "正在打开受保护来源…";
+      const response = await fetch(link.href, { credentials: "include", headers: authHeaders(), redirect: "follow" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail || `HTTP ${response.status}`);
+      }
+      const blobUrl = URL.createObjectURL(await response.blob());
+      popup.location.href = `${blobUrl}${link.hash || ""}`;
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
+    } catch (error) {
+      popup.close();
+      showMessage(byId("case-import-message"), `受保护来源打开失败：${error.message}`, "error");
+    }
+  }
+  function renderAuthControls() {
+    const auth = state.auth || {};
+    const supabase = auth.persistence?.mode === "supabase";
+    const authenticated = Boolean(auth.authenticated);
+    const tenant = auth.user?.tenant_id || auth.user?.email || "当前租户";
+    const statusText = !supabase ? "本地竞赛模式" : authenticated ? `已登录 · ${tenant}` : "公开匿名 · 外部模型需登录";
+    byId("auth-status").textContent = statusText;
+    byId("sidebar-auth-status").textContent = statusText;
+    [byId("auth-action"), byId("sidebar-auth-action")].forEach((button) => {
+      button.hidden = !supabase;
+      button.textContent = authenticated ? "退出登录" : "登录";
+      button.setAttribute("aria-label", authenticated ? `退出 ${tenant}` : "登录公网工作区");
+    });
+    const option = byId("cninfo-full-analysis-option");
+    if (option) option.textContent = supabase && !authenticated
+      ? "继续公开预筛（外部模型需登录并逐案同意）"
+      : "继续完整分析（按当前案例许可）";
+  }
+  function openAuthDialog() {
+    const dialog = byId("auth-dialog");
+    state.authDialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : byId("auth-action");
+    showMessage(byId("auth-message"), "");
+    if (!dialog.open) dialog.showModal();
+    window.requestAnimationFrame(() => byId("auth-email").focus());
+  }
+  function closeAuthDialog() {
+    const dialog = byId("auth-dialog");
+    byId("auth-password").value = "";
+    showMessage(byId("auth-message"), "");
+    if (dialog.open) dialog.close();
+  }
+  function finishAuthDialogClose() {
+    byId("auth-password").value = "";
+    showMessage(byId("auth-message"), "");
+    const trigger = state.authDialogTrigger;
+    state.authDialogTrigger = null;
+    if (trigger?.isConnected && !trigger.hidden) trigger.focus();
+  }
+  async function submitLogin(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+    const email = form.elements.email.value.trim();
+    const password = form.elements.password.value;
+    const endBusy = beginButtonBusy(byId("auth-login-submit"), "正在登录…");
+    showMessage(byId("auth-message"), "正在建立安全会话…");
+    try {
+      safeLocalStorageRemove("AUDITTRACE_ACCESS_TOKEN");
+      await api("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      byId("auth-password").value = "";
+      closeAuthDialog();
+      await loadSystemAndCases({ keepCase: true });
+      showMessage(byId("case-import-message"), "登录成功；私有案例与逐案模型同意状态已重新读取。", "success");
+    } catch (error) {
+      byId("auth-password").value = "";
+      showMessage(byId("auth-message"), `登录失败：${error.message}`, "error");
+      byId("auth-password").focus();
+    } finally {
+      endBusy();
+    }
+  }
+  async function logout() {
+    const buttons = [byId("auth-action"), byId("sidebar-auth-action")];
+    buttons.forEach((button) => { button.disabled = true; button.setAttribute("aria-busy", "true"); });
+    try {
+      await api("/api/auth/logout", { method: "POST" });
+      safeLocalStorageRemove("AUDITTRACE_ACCESS_TOKEN");
+      state.auth = { authenticated: false, user: null, persistence: { mode: "supabase" } };
+      state.modelConsent = null;
+      renderAuthControls();
+      await loadSystemAndCases();
+      showMessage(byId("case-import-message"), "已安全退出；当前仅展示匿名可访问的公开案例。", "success");
+    } catch (error) {
+      showMessage(byId("case-import-message"), `退出失败：${error.message}`, "error");
+    } finally {
+      buttons.forEach((button) => { button.disabled = false; button.removeAttribute("aria-busy"); });
+    }
+  }
+  function handleAuthAction() {
+    if (state.auth?.persistence?.mode !== "supabase") return;
+    if (state.auth?.authenticated) void logout(); else openAuthDialog();
+  }
   function rowsForCurrentPeriod() {
     if (!state.currentCase || !state.year) return [];
     const year = Number(state.year);
@@ -335,14 +655,29 @@
       const fieldId = row.field_id || `${row.field_kind}_${row.year}`;
       const status = row.human_review?.status || "pending";
       const source = row.document_id && row.pdf_page ? `<a class="source-link" href="${sourceUrl(row.document_id, row.pdf_page)}" target="_blank" rel="noopener">打开原件第 ${escapeHtml(row.pdf_page)} 页 ↗</a>` : "来源页待补";
-      return `<article class="cninfo-field-record ${status === "rejected" ? "rejected" : status !== "pending" ? "reviewed" : "pending"}" data-cninfo-field-record="${escapeHtml(fieldId)}"><div class="cninfo-field-record-head"><div><span class="folio">${escapeHtml(fieldId)}</span><h4>${escapeHtml(FIELD_KIND_LABELS[row.field_kind] || row.field_kind)} · ${escapeHtml(row.year)}</h4><p>${escapeHtml(row.statement_scope || "合并")} · ${escapeHtml(row.field_basis || "口径待核验")} · ${escapeHtml(row.unit || "单位待核验")}</p></div><span class="state ${status === "rejected" ? "danger" : status === "pending" ? "waiting" : "success"}">${escapeHtml(cninfoHumanReviewLabel(row))}</span></div><div class="cninfo-field-evidence"><div><span>自动候选金额（元）</span><strong class="mono">${escapeHtml(row.candidate?.value ?? row.value ?? "—")}</strong></div><div><span>当前规则输入金额（元）</span><input class="cninfo-field-value-input" type="number" step="any" value="${escapeHtml(row.value ?? "")}" aria-label="${escapeHtml(fieldId)} 当前金额"></div><div><span>当前 PDF 页码</span><input class="cninfo-field-page-input" type="number" min="1" step="1" value="${escapeHtml(row.pdf_page ?? "")}" aria-label="${escapeHtml(fieldId)} PDF页码"></div><div><span>定位</span><p>${escapeHtml(row.locator || row.candidate?.locator || "—")}</p>${source}</div></div><div class="cninfo-field-record-actions"><button class="button quiet" type="button" data-cninfo-field-action="confirm" data-field-id="${escapeHtml(fieldId)}">确认候选</button><button class="button quiet" type="button" data-cninfo-field-action="correct" data-field-id="${escapeHtml(fieldId)}">按上方金额修正</button><button class="button quiet" type="button" data-cninfo-field-action="reject" data-field-id="${escapeHtml(fieldId)}">拒绝候选</button></div></article>`;
+      const ratio = isRatioField(row);
+      const valueLabel = ratio ? "比例（%）" : "金额（元）";
+      const candidateRow = { ...row, value: row.candidate?.value ?? row.value };
+      return `<article class="cninfo-field-record ${status === "rejected" ? "rejected" : status !== "pending" ? "reviewed" : "pending"}" data-cninfo-field-record="${escapeHtml(fieldId)}"><div class="cninfo-field-record-head"><div><span class="folio">${escapeHtml(fieldId)}</span><h4>${escapeHtml(FIELD_KIND_LABELS[row.field_kind] || row.field_kind)} · ${escapeHtml(row.year)}</h4><p>${escapeHtml(row.statement_scope || "合并")} · ${escapeHtml(row.field_basis || "口径待核验")} · ${escapeHtml(row.unit || "单位待核验")}</p></div><span class="state ${status === "rejected" ? "danger" : status === "pending" ? "waiting" : "success"}">${escapeHtml(cninfoHumanReviewLabel(row))}</span></div><div class="cninfo-field-evidence"><div><span>自动候选${valueLabel}</span><strong class="mono">${escapeHtml(formatFieldValue(candidateRow))}</strong></div><div><span>当前规则输入${valueLabel}</span><input class="cninfo-field-value-input" type="number" step="any" value="${escapeHtml(row.value ?? "")}" aria-label="${escapeHtml(fieldId)} 当前${ratio ? "比例" : "金额"}"></div><div><span>当前 PDF 页码</span><input class="cninfo-field-page-input" type="number" min="1" step="1" value="${escapeHtml(row.pdf_page ?? "")}" aria-label="${escapeHtml(fieldId)} PDF页码"></div><div><span>定位</span><p>${escapeHtml(row.locator || row.candidate?.locator || "—")}</p>${source}</div></div><div class="cninfo-field-record-actions"><button class="button quiet" type="button" data-cninfo-field-action="confirm" data-field-id="${escapeHtml(fieldId)}" aria-label="确认 ${escapeHtml(fieldId)} 候选">确认候选</button><button class="button quiet" type="button" data-cninfo-field-action="correct" data-field-id="${escapeHtml(fieldId)}" aria-label="修正 ${escapeHtml(fieldId)} ${ratio ? "比例" : "金额"}">按上方数值修正</button><button class="button quiet" type="button" data-cninfo-field-action="reject" data-field-id="${escapeHtml(fieldId)}" aria-label="拒绝 ${escapeHtml(fieldId)} 候选">拒绝候选</button></div></article>`;
     }).join("") : '<div class="empty-state compact"><strong>尚未形成字段候选</strong><p>请先执行 full_analysis 模式的巨潮流程；rag_only 只建立 RAG，不猜测财务金额。</p></div>';
   }
   function renderProject() {
     const current = state.currentCase;
+    renderCaseContext();
     byId("wb-case").innerHTML = state.cases.map((item) => `<option value="${escapeHtml(item.case_id)}">${escapeHtml(item.company_alias || item.company_name)} · ${escapeHtml(item.case_id)}</option>`).join("");
     if (!current) {
       byId("wb-data-body").innerHTML = '<tr><td colspan="5">没有可用案例。</td></tr>';
+      byId("wb-company").textContent = "—";
+      byId("wb-ticker").textContent = "—";
+      byId("wb-t0").textContent = "—";
+      byId("wb-rag-t0").textContent = "—";
+      byId("wb-current-year").innerHTML = "";
+      byId("wb-previous-year").textContent = "—";
+      byId("sidebar-case").textContent = "没有可用案例";
+      setStatePill(byId("wb-data-status"), "没有可用案例", "waiting");
+      byId("cninfo-field-review").hidden = true;
+      renderRuleLibrary();
+      renderHeroStatus();
       return;
     }
     byId("wb-case").value = current.case_id;
@@ -353,10 +688,21 @@
     byId("wb-sup-date").value = current.t0;
     byId("sidebar-case").textContent = current.case_id;
     byId("wb-case-mode").textContent = `${current.sample_type} / ${current.registry_mode}`;
-    byId("wb-case-permission").textContent = current.model_transfer_allowed
+    const supabaseMode = state.auth?.persistence?.mode === "supabase";
+    const noModelIndustryPath = Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level);
+    byId("wb-case-permission").textContent = noModelIndustryPath
+      ? "当前行业走确定性专用预筛或行业闸门，不调用外部模型；结果仍需专业人员复核。"
+      : state.modelConsent?.active
+      ? "当前案例已有有效的逐案模型传输同意；只发送最小证据包，结果仍需人工复核。"
+      : supabaseMode && !state.auth?.authenticated
+      ? "公开年报可匿名预筛；外部模型调用需登录并按案例确认传输范围。"
+      : supabaseMode
+      ? "公网模式默认禁止外部模型传输；请为当前案例确认最小范围与有效期。"
+      : current.model_transfer_allowed
       ? `${current.project_owner_authorization?.confirmed_by || "项目所有者"}已许可完整分析与已配置模型调用${current.evidence_owner_review_status === "owner_confirmed" ? "；当前来源快照证据已核验。" : "；新来源快照仍须重新核验。"}`
       : "该案例未纳入项目所有者的公开数据许可，只能本地预检。";
-    const years = (current.available_years || []).map(String);
+    renderModelConsent();
+    const years = caseAvailableYears(current);
     if (!years.includes(String(state.year))) state.year = years[0] || null;
     byId("wb-current-year").innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
     if (state.year) byId("wb-current-year").value = state.year;
@@ -364,16 +710,17 @@
     state.unit = state.unit || unitKeyForLabel(current.amount_unit);
     byId("wb-amount-unit").value = state.unit;
     const unit = UNIT_MAP[state.unit];
-    byId("wb-amount-head").textContent = `数值（${unit.label}）`;
-    byId("wb-data-unit-note").textContent = `案例原始单位：${current.amount_unit}；显示单位：${unit.label}。页面只读取注册字段，不从PDF猜数字。${current.field_validation?.boundary || ""}`;
+    byId("wb-amount-head").textContent = `数值（${unit.label} / %）`;
+    byId("wb-data-unit-note").textContent = `金额字段原始单位：${current.amount_unit}；显示单位：${unit.label}。比例字段按百分数原值显示，不参与金额换算。页面只读取注册字段，不从PDF猜数字。${current.field_validation?.boundary || ""}`;
     const rows = rowsForCurrentPeriod();
     byId("wb-data-status").textContent = `${rows.length} 条字段 · ${current.field_validation?.status || "待校验"}`;
-    byId("wb-data-status").className = "state success";
+    const validationStatus = String(current.field_validation?.status || "");
+    byId("wb-data-status").className = `state ${validationStatus.includes("failed") || validationStatus.includes("rejected") ? "danger" : validationStatus.includes("gap") || validationStatus.includes("pending") || !rows.length ? "waiting" : "success"}`;
     byId("wb-data-body").innerHTML = rows.map((row) => `
       <tr>
         <td>${escapeHtml(caseRowLabel(row))}</td>
         <td class="mono">${escapeHtml(row.year)}</td>
-        <td class="numeric mono">${escapeHtml(formatAmount(row.value))}</td>
+        <td class="numeric mono">${escapeHtml(formatFieldValue(row))}</td>
         <td><span class="source-id">${escapeHtml(row.evidence_id)}</span><div class="source-detail">${escapeHtml(row.document_id)}</div></td>
         <td><strong>${escapeHtml(row.source_file)}</strong><div class="source-detail">披露 ${escapeHtml(row.disclosure_date)} · PDF ${escapeHtml(row.pdf_page)} 页 · ${escapeHtml(row.locator)}</div><a class="source-link" href="${sourceUrl(row.document_id, row.pdf_page)}" target="_blank" rel="noopener">回到登记 PDF 第 ${escapeHtml(row.pdf_page)} 页</a></td>
       </tr>`).join("") || '<tr><td colspan="5">该期间没有可预览字段。</td></tr>';
@@ -382,39 +729,155 @@
     renderHeroStatus();
   }
 
+  function renderModelConsent() {
+    const statusNode = byId("wb-model-consent-status");
+    const noteNode = byId("wb-model-consent-note");
+    const grantButton = byId("wb-model-consent-button");
+    const revokeButton = byId("wb-model-consent-revoke");
+    if (!statusNode || !noteNode || !grantButton || !revokeButton) return;
+    const consent = state.modelConsent;
+    const supabase = state.auth?.persistence?.mode === "supabase";
+    const active = Boolean(consent?.active);
+    const unavailable = consent?.status === "unavailable";
+    const localAllowed = !supabase && Boolean(state.currentCase?.model_transfer_allowed);
+    statusNode.textContent = !supabase
+      ? localAllowed ? "本地 manifest 已许可" : "本地 manifest 未许可"
+      : active ? `已同意 · ${consent.consent?.model_id || "当前模型"}`
+      : consent?.status === "login_required" ? "登录后可同意"
+      : unavailable ? "同意状态不可用" : "未同意";
+    statusNode.className = `state ${active || localAllowed ? "success" : unavailable ? "danger" : "waiting"}`;
+    noteNode.textContent = active
+      ? `${consent.consent?.transmission_scope || "最小字段与RAG片段"} · 有效至 ${consent.consent?.valid_until || "—"}`
+      : !supabase
+      ? localAllowed ? "本地模式按案例 manifest 许可运行，不创建公网逐案同意记录。" : "本地模式按案例 manifest 阻断外部模型调用。"
+      : unavailable ? `暂时无法确认逐案同意：${consent.message || "请稍后重试。"}`
+      : consent?.minimum_scope || "公网模式默认禁止传输；只允许字段证据、来源元数据和 RAG 命中片段。";
+    grantButton.hidden = !supabase || active || unavailable || consent?.status === "login_required";
+    revokeButton.hidden = !supabase || !active || !consent.consent?.id;
+  }
+
+  async function loadModelConsent() {
+    if (!state.caseId) return;
+    try {
+      state.modelConsent = await api(`/api/cases/${encodeURIComponent(state.caseId)}/model-consent`);
+    } catch (error) {
+      state.modelConsent = { active: false, status: "unavailable", message: error.message };
+    }
+    renderModelConsent();
+    renderRuleLibrary();
+  }
+
+  async function grantModelConsent() {
+    if (!state.caseId) return;
+    const endBusy = beginButtonBusy(byId("wb-model-consent-button"), "正在保存同意…");
+    const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const contract = state.modelConsent?.contract || {};
+    try {
+      state.modelConsent = await api(`/api/cases/${encodeURIComponent(state.caseId)}/model-consent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: contract.provider || "当前服务端已配置供应商", model_id: contract.model_id || "configured-model", transmission_scope: contract.transmission_scope || "仅传输字段证据、来源元数据与 RAG 命中原文片段。", purpose: "审计计划阶段公开财报风险预筛的待核查草稿", valid_until: validUntil, confirmed: true }),
+      });
+      showMessage(byId("case-import-message"), "本案模型传输同意已保存；仅在有效期内传输最小证据包。", "success");
+      renderModelConsent(); renderRuleLibrary();
+    } catch (error) { showMessage(byId("case-import-message"), `同意保存失败：${error.message}`, "error"); } finally { endBusy(); }
+  }
+
+  async function revokeModelConsent() {
+    const consentId = state.modelConsent?.consent?.id;
+    if (!consentId) return;
+    const endBusy = beginButtonBusy(byId("wb-model-consent-revoke"), "正在撤销…");
+    try {
+      await api(`/api/model-consents/${encodeURIComponent(consentId)}/revoke`, { method: "POST" });
+      state.modelConsent = { ...state.modelConsent, active: false, status: "revoked", consent: { ...state.modelConsent.consent, revoked_at: new Date().toISOString() } };
+      showMessage(byId("case-import-message"), "本案模型传输同意已撤销；后续模型调用会重新被阻断。", "success");
+      renderModelConsent(); renderRuleLibrary();
+    } catch (error) { showMessage(byId("case-import-message"), `撤销失败：${error.message}`, "error"); } finally { endBusy(); }
+  }
+
+  async function loadIndustryGate() {
+    if (!state.caseId) return;
+    try {
+      const response = await api(`/api/industry-gates/${encodeURIComponent(state.caseId)}`);
+      state.industryGate = response.industry_gate || response;
+    } catch (_error) {
+      state.industryGate = null;
+    }
+  }
+
   async function loadCaseDetail(caseId, options = {}) {
     const normalized = String(caseId || "").toUpperCase();
-    if (!normalized) return;
+    if (!normalized) {
+      state.currentCase = null;
+      state.caseId = null;
+      clearRunDisplay();
+      renderProject();
+      setStatePill(byId("project-state"), "没有可用案例", "waiting");
+      return false;
+    }
     setStatePill(byId("project-state"), "正在读取案例字段", "pending");
     try {
       state.currentCase = await api(`/api/cases/${encodeURIComponent(normalized)}`);
       state.caseId = state.currentCase.case_id;
       const requestedYear = options.preferredYear ?? (options.keepYear ? state.year : null);
-      const years = (state.currentCase.available_years || []).map(String);
+      const years = caseAvailableYears(state.currentCase);
       state.year = requestedYear && years.includes(String(requestedYear)) ? String(requestedYear) : years[0] || null;
       state.unit = unitKeyForLabel(state.currentCase.amount_unit);
-      state.run = null;
+      clearRunDisplay();
+      state.modelConsent = null;
+      state.industryGate = null;
       state.ragResults = [];
       renderProject();
       renderRuleLibrary();
-      await checkRagStatus();
+      await Promise.all([checkRagStatus(), loadModelConsent(), loadIndustryGate()]);
+      renderProject();
+      renderRuleLibrary();
       updateUrl("replace");
+      return true;
     } catch (error) {
       setStatePill(byId("project-state"), "案例读取失败", "danger");
       showMessage(byId("case-import-message"), `案例读取失败：${error.message}`, "error");
+      return false;
     }
   }
-  async function loadSystemAndCases() {
-    const [status, listing] = await Promise.all([api("/api/status"), api("/api/cases")]);
-    state.projectStatus = status;
+  async function loadSystemAndCases(options = {}) {
+    // 先取得持久化模式，再用同一个恢复上下文读取 me 和 cases；这样一次
+    // refresh 最多发生一次，且私有案例不会在 access cookie 过期时先丢失。
+    state.projectStatus = await api("/api/status");
+    const authRecovery = { attempted: false };
+    const persistence = state.projectStatus.persistence
+      || { mode: state.projectStatus.supabase?.enabled ? "supabase" : "local" };
+    let auth = { authenticated: false, user: null, persistence };
+    try {
+      auth = await api("/api/auth/me", {}, authRecovery);
+    } catch (_error) {
+      auth = { authenticated: false, user: null, persistence };
+    }
+    // HttpOnly refresh cookie 无法由前端探测；Supabase 匿名响应时静默尝试
+    // 一次 refresh。真正匿名用户只多一次失败关闭请求，不会出现循环或提示噪声。
+    if (!auth.authenticated && persistence.mode === "supabase" && !authRecovery.attempted) {
+      authRecovery.attempted = true;
+      if (await refreshCookieSession({ silent: true })) {
+        try {
+          auth = await api("/api/auth/me", {}, authRecovery);
+        } catch (_error) {
+          auth = { authenticated: false, user: null, persistence };
+        }
+      }
+    }
+    state.auth = auth;
+    renderAuthControls();
+    const listing = await api("/api/cases", {}, authRecovery);
     state.cases = listing.cases || [];
-    const preferred = state.cases.some((item) => item.case_id === state.requestedCase) ? state.requestedCase : state.cases[0]?.case_id;
+    const preferredRequest = options.keepCase ? state.caseId : state.requestedCase;
+    const preferred = state.cases.some((item) => item.case_id === preferredRequest) ? preferredRequest : state.cases[0]?.case_id;
     await loadCaseDetail(preferred, { keepYear: true });
   }
 
   function cninfoTaskStatusLabel(value) {
     const labels = {
       queued: "已排队",
+      running: "后台任务正在执行",
       searching: "正在搜索巨潮",
       downloading: "正在下载年报",
       validating: "正在校验 PDF",
@@ -432,7 +895,8 @@
     return { pending: "等待", running: "进行中", passed: "已通过", passed_with_gaps: "已通过（有缺口）", needs_human: "待人工", failed: "失败" }[value] || value || "等待";
   }
   function cninfoStatusKind(value) {
-    if (value === "completed" || value === "passed" || value === "passed_with_gaps") return "success";
+    if (value === "completed" || value === "passed") return "success";
+    if (value === "passed_with_gaps") return "waiting";
     if (value === "failed") return "danger";
     if (value === "needs_human" || value === "running" || CNINFO_ACTIVE_STATUSES.has(value)) return "waiting";
     return "info";
@@ -473,14 +937,19 @@
     let kind = cninfoStatusKind(status);
     const analysis = result.analysis || {};
     const prescreen = analysis.context?.prescreen_summary || analysis.evidence_bundle?.prescreen_summary || result.prescreen_summary || {};
+    const industryPrescreen = analysis.context?.industry_prescreen || prescreen.industry_prescreen || {};
     if (status === "completed" && result.status === "rag_ready") {
-      title = "RAG 建库完成，等待真人字段确认";
-      detail = "年报原件、哈希和检索链已完成；RAG 结果不能直接视为审计证据。";
+      title = "RAG 建库完成，未执行字段提取与风险分析";
+      detail = "年报原件、哈希和检索链已完成；如需风险预筛，请把执行模式改为完整分析后重新提交。RAG 结果不能直接视为审计证据。";
       kind = "success";
+    } else if (status === "completed" && industryPrescreen.industry_rule_id) {
+      title = String(analysis.run_completeness || "").includes("with_gaps") ? "行业专用预筛已完成，存在资料缺口" : "行业专用预筛已完成";
+      detail = `${industryPrescreen.industry_rule_name || "行业专用工程规则"} 已完成；${industryPrescreen.data_gaps?.length ? "缺口已保留，不能解释为来源失败。" : "仍需专业人员确认口径和工程阈值。"}`;
+      kind = industryPrescreen.status === "SOURCE_INCOMPLETE" ? "danger" : industryPrescreen.status === "DATA_GAP" || industryPrescreen.data_gaps?.length ? "waiting" : "success";
     } else if (status === "completed" && analysis.context?.industry_gate?.fit_level === "not_applicable") {
       title = "公开年报与 RAG 已完成，当前规则不适用";
       detail = "当前行业需要专用规则；系统没有把行业不适用误报成资料不足或无风险。仍可进入分析工作台查看 RAG、闸门证据和后续资料路线。";
-      kind = "success";
+      kind = "info";
     } else if (status === "completed" && analysis.context?.industry_gate?.fit_level === "unknown") {
       title = "公开年报已完成，行业待确认";
       detail = "系统没有猜测行业，也没有执行当前数值规则；请先确认报表体系或改用行业专用规则。";
@@ -529,28 +998,33 @@
   function renderCninfoAnalysisPreview(result) {
     const analysis = result.analysis || {};
     if (result.status === "rag_ready" && !analysis.run_id) {
-      return `<section class="cninfo-analysis-preview waiting"><div class="cninfo-analysis-preview-head"><div><p class="folio">ANALYSIS NOT STARTED</p><h5>资料与 RAG 已完成，尚未执行风险分析</h5><p>当前结果可以用于原文检索；如需风险预筛，请在分析工作台选择“继续完整分析”。</p></div><span class="state waiting">未分析</span></div></section>`;
+      return `<section class="cninfo-analysis-preview waiting"><div class="cninfo-analysis-preview-head"><div><p class="folio">ANALYSIS NOT STARTED</p><h5>资料与 RAG 已完成，尚未执行字段提取与风险分析</h5><p>当前结果只可用于原文检索；如需风险预筛，请把上方执行模式改为完整分析后重新提交任务。</p></div><span class="state waiting">未分析</span></div></section>`;
     }
     if (!analysis.run_id) return "";
     const ruleResult = analysis.rule_results?.[0] || {};
     const riskCard = ruleResult.risk_card || {};
     const industryGate = analysis.context?.industry_gate || result.industry_gate || {};
     const prescreen = analysis.context?.prescreen_summary || analysis.evidence_bundle?.prescreen_summary || {};
+    const industryPrescreen = analysis.context?.industry_prescreen || prescreen.industry_prescreen || {};
     const completeness = analysis.run_completeness || analysis.status;
     const screeningStatus = ruleResult.screening_status || ruleResult.status || analysis.screening_status;
-    const industryNotApplicable = industryGate.fit_level === "not_applicable" || screeningStatus === "NOT_APPLICABLE";
+    const specialized = Boolean(industryPrescreen.industry_rule_id || industryGate.specialized_rule);
+    const industryNotApplicable = !specialized && (industryGate.fit_level === "not_applicable" || screeningStatus === "NOT_APPLICABLE");
     const industryUnknown = industryGate.fit_level === "unknown" || screeningStatus === "INDUSTRY_UNKNOWN";
     const noCandidate = ["RULE_NOT_TRIGGERED", "complete_public_prescreen_no_candidate", "complete_full_analysis_no_candidate"].includes(screeningStatus) || String(completeness).endsWith("_no_candidate");
-    const headline = industryNotApplicable ? (riskCard.title || "当前规则不适用") : industryUnknown ? "行业待确认，当前规则未执行" : noCandidate ? "未形成程序风险候选" : riskCard.title || "已形成程序筛查结果";
-    const observation = industryNotApplicable ? (industryGate.rationale || riskCard.observation || "当前行业需要专用规则。") : industryUnknown ? "公司行业或报表体系元数据不足，系统没有猜测行业。" : ruleResult.ai_draft?.draft_observation || riskCard.observation || "完整结果已载入分析工作台。";
-    const metricKeys = ["revenue_growth", "ar_growth", "growth_gap", "absolute_ar_change", "ar_to_revenue_current", "turnover_days_current"];
-    const metrics = metricKeys.filter((key) => ruleResult.metrics?.[key] !== null && ruleResult.metrics?.[key] !== undefined);
-    const missingFields = prescreen.missing_fields || riskCard.prescreen_missing_fields || [];
+    const headline = specialized ? (industryPrescreen.industry_rule_name || riskCard.title || "行业专用预筛结果") : industryNotApplicable ? (riskCard.title || "当前规则不适用") : industryUnknown ? "行业待确认，当前规则未执行" : noCandidate ? "未形成程序风险候选" : riskCard.title || "已形成程序筛查结果";
+    const observation = specialized ? (industryPrescreen.rationale || riskCard.observation || "行业专用工程预筛已完成。") : industryNotApplicable ? (industryGate.rationale || riskCard.observation || "当前行业需要专用规则。") : industryUnknown ? "公司行业或报表体系元数据不足，系统没有猜测行业。" : ruleResult.ai_draft?.draft_observation || riskCard.observation || "完整结果已载入分析工作台。";
+    const metricSource = specialized ? (industryPrescreen.metrics || ruleResult.metrics || {}) : (ruleResult.metrics || {});
+    const metricKeys = specialized ? Object.keys(metricSource) : ["revenue_growth", "ar_growth", "growth_gap", "absolute_ar_change", "ar_to_revenue_current", "turnover_days_current"];
+    const metrics = metricKeys.filter((key) => metricSource[key] !== null && metricSource[key] !== undefined);
+    const missingFields = specialized ? (industryPrescreen.data_gaps || riskCard.data_gaps || []) : (prescreen.missing_fields || riskCard.prescreen_missing_fields || []);
     const dataGaps = [...new Set([...(riskCard.data_gaps || []), ...missingFields])];
-    const requestedMaterials = [...new Set(riskCard.requested_materials || [])];
+    const requestedMaterials = [...new Set([...(riskCard.requested_materials || []), ...(industryPrescreen.requested_materials || [])])];
     const statusKindName = statusKind(completeness);
     const statusText = statusLabel(completeness);
-    const boundary = industryNotApplicable
+    const boundary = specialized
+      ? `${industryPrescreen.rule_not_triggered_boundary || "未形成程序候选不等于无风险。"} ${industryPrescreen.boundary || "行业专用规则仍需专业人员确认。"}`
+      : industryNotApplicable
       ? "当前规则不适用不等于企业无风险；请使用行业专用规则，公开年报 RAG 仍可继续复核。"
       : industryUnknown
         ? "行业待确认不等于企业无风险；系统未执行当前数值规则，需先确认行业和报表体系。"
@@ -558,7 +1032,7 @@
       ? "未形成程序风险候选不等于无风险；仍需结合账龄、期后回款、信用政策和合同条款继续核查。"
       : "这是审计计划阶段的工程筛查结果，不是审计认定或审计意见。";
     const metricMarkup = metrics.length
-      ? `<div class="metric-ledger">${metrics.map((key) => `<div class="metric"><span>${escapeHtml(METRIC_LABELS[key] || key)}</span><strong>${escapeHtml(metricValue(key, ruleResult.metrics[key]))}</strong><small>${escapeHtml(metricFormula(key))}</small></div>`).join("")}</div>`
+      ? `<div class="metric-ledger">${metrics.map((key) => `<div class="metric"><span>${escapeHtml(METRIC_LABELS[key] || key)}</span><strong>${escapeHtml(metricValue(key, metricSource[key]))}</strong><small>${escapeHtml(metricFormula(key))}</small></div>`).join("")}</div>`
       : `<p class="empty-state compact">当前运行没有可展示的核心指标，请查看完整运行状态和数据缺口。</p>`;
     const listMarkup = (items, emptyText) => items.length ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p>${escapeHtml(emptyText)}</p>`;
     return `<section class="cninfo-analysis-preview ${statusKindName === "waiting" ? "waiting" : ""}"><div class="cninfo-analysis-preview-head"><div><p class="folio">ANALYSIS RESULT · ${escapeHtml(ruleResult.rule_id || "R1")}</p><h5>${escapeHtml(headline)}</h5><p>${escapeHtml(observation)}</p></div><span class="state ${statusKindName}">${escapeHtml(statusText)}</span></div><div class="cninfo-analysis-meta"><span>运行编号 <strong class="mono">${escapeHtml(analysis.run_id)}</strong></span><span>程序筛查 <strong>${escapeHtml(statusLabel(screeningStatus))}</strong></span><span>AI建议 <strong>${escapeHtml(statusLabel(analysis.ai_recommendation))}</strong></span><span>分析截止年度 <strong>${escapeHtml(prescreen.analysis_cutoff_year || analysis.context?.current_year || "—")}</strong></span></div>${metricMarkup}<div class="cninfo-analysis-lists"><section><h6>数据缺口</h6>${listMarkup(dataGaps, "当前规则没有额外列出的字段缺口。")}</section><section><h6>建议索取资料</h6>${listMarkup(requestedMaterials, "当前结果未返回额外资料清单。")}</section></div><p class="boundary-strip">${escapeHtml(boundary)} 人工复核、证据回查和导出闸门仍保留。</p><div class="cninfo-analysis-actions"><button class="button primary" type="button" data-cninfo-open-analysis="${escapeHtml(analysis.run_id)}">查看完整分析结果 →</button></div></section>`;
@@ -592,17 +1066,52 @@
       : extraction.status === "passed_technical_with_gaps" || extraction.status === "cached_with_gaps"
         ? `<section class="status-banner warning"><strong>字段技术校验通过，但仍有缺口</strong><span>${escapeHtml((extraction.issues || []).join("；") || "部分年度或规则字段缺失。")}${extractionPages.length ? ` 已命中 PDF 页码：${escapeHtml(extractionPages.join("、"))}。` : ""}</span></section>`
         : "";
-    const gateDetails = industryGate.fit_level ? `<section class="prescreen-summary"><h6>行业适配闸门</h6><p>行业组：<strong>${escapeHtml(industryGate.industry_family || "—")}</strong>；适配等级：${escapeHtml(industryGate.fit_level)}；闸门版本：${escapeHtml(industryGate.gate_version || "—")}</p><p>${escapeHtml(industryGate.rationale || "—")}</p>${industryGate.reason_codes?.length ? `<p>理由代码：${escapeHtml(industryGate.reason_codes.join("、"))}</p>` : ""}</section>` : "";
+    const gateDetails = industryGate.fit_level ? `<section class="prescreen-summary"><h6>行业适配闸门</h6><p>行业组：<strong>${escapeHtml(industryGate.industry_family || "—")}</strong>；适配等级：${escapeHtml(industryGate.fit_level)}；闸门版本：${escapeHtml(industryGate.gate_version || "—")}</p>${industryGate.specialized_rule ? `<p>专用规则：<strong>${escapeHtml(industryGate.specialized_rule)}</strong>；规则版本：${escapeHtml(industryGate.industry_rule_version || "—")}</p><p>专用字段：${escapeHtml((industryGate.specialized_required_fields || []).join("、") || "—")}</p>` : ""}<p>${escapeHtml(industryGate.rationale || "—")}</p>${industryGate.reason_codes?.length ? `<p>理由代码：${escapeHtml(industryGate.reason_codes.join("、"))}</p>` : ""}</section>` : "";
     const prescreenDetails = (prescreen.mode ? `<section class="prescreen-summary"><h6>公开预筛说明</h6><p>分析截止年度：<strong>${escapeHtml(prescreen.analysis_cutoff_year || "—")}</strong>；使用年度：${escapeHtml((prescreen.analysis_years || []).join(" / ") || "—")}；置信度：${escapeHtml(prescreen.confidence || "—")}</p>${prescreen.missing_fields?.length ? `<p>缺失字段：${escapeHtml(prescreen.missing_fields.join("、"))}</p>` : ""}${prescreen.skipped_rules?.length ? `<p>跳过规则：${escapeHtml(prescreen.skipped_rules.map((item) => `${item.rule_id}（${item.reason}）`).join("；"))}</p>` : ""}<p>人工复核：正式采用、缓存或导出前需要；本次公开预筛不因缺口停止。</p></section>` : "") + gateDetails + cacheDetails + extractionDetails;
     container.hidden = false;
-     container.innerHTML = `<div class="cninfo-result-head"><div><p class="folio">TRACEABLE OUTPUT</p><h5>自动流程结果摘要</h5><p>结果状态：<strong>${escapeHtml(result.status || task.status)}</strong> · ${escapeHtml(aiNotice(result))}</p></div><span class="state ${cninfoStatusKind(result.status)}">${escapeHtml(result.status || task.status)}</span></div><div class="cninfo-result-stats"><div><span>RAG块数</span><strong>${escapeHtml(rag.chunk_count ?? "—")}</strong></div><div><span>检索编号</span><strong class="mono">${escapeHtml(rag.smoke_retrieval_id || "—")}</strong></div><div><span>字段候选</span><strong>${escapeHtml(extractionText)}</strong></div><div><span>分析状态</span><strong>${escapeHtml(analysisText)}</strong></div><div><span>来源路径</span><strong>${cache.hit ? "热缓存命中" : "巨潮实时校验"}</strong></div></div>${prescreenDetails}<h6>官方年报与校验记录</h6>${renderCninfoDocuments(task)}<p class="boundary-strip">公开预筛不会因单个字段缺失整体停止，也不会猜测缺失金额；正式采用、缓存或导出前仍需确认单位、合并范围、字段页码、口径和模型传输许可。</p>${caseId ? `<button type="button" class="button quiet" data-cninfo-inline-case="${escapeHtml(caseId)}">查看该案例字段与来源台账</button>` : ""}`;
+     container.innerHTML = `<div class="cninfo-result-head"><div><p class="folio">TRACEABLE OUTPUT</p><h5>自动流程结果摘要</h5><p>结果状态：<strong>${escapeHtml(result.status || task.status)}</strong> · ${escapeHtml(aiNotice(result))}</p></div><span class="state ${cninfoStatusKind(result.status)}">${escapeHtml(result.status || task.status)}</span></div><div class="cninfo-result-stats"><div><span>RAG块数</span><strong>${escapeHtml(rag.chunk_count ?? "—")}</strong></div><div><span>检索编号</span><strong class="mono">${escapeHtml(rag.smoke_retrieval_id || "—")}</strong></div><div><span>字段候选</span><strong>${escapeHtml(extractionText)}</strong></div><div><span>分析状态</span><strong>${escapeHtml(analysisText)}</strong></div><div><span>来源路径</span><strong>${escapeHtml(cacheStateText)}</strong></div></div>${prescreenDetails}<h6>官方年报与校验记录</h6>${renderCninfoDocuments(task)}<p class="boundary-strip">公开预筛不会因单个字段缺失整体停止，也不会猜测缺失金额；正式采用、缓存或导出前仍需确认单位、合并范围、字段页码、口径和模型传输许可。</p>${caseId ? `<button type="button" class="button quiet" data-cninfo-inline-case="${escapeHtml(caseId)}">查看该案例字段与来源台账</button>` : ""}`;
     container.querySelector(".cninfo-result-stats")?.insertAdjacentHTML("afterend", analysisPreview);
     container.querySelector("[data-cninfo-inline-case]")?.addEventListener("click", () => openCninfoCase(caseId));
     const analysisRunId = analysis.run_id || "";
     container.querySelector("[data-cninfo-open-analysis]")?.addEventListener("click", () => openCninfoAnalysis(analysisRunId, task.task_id));
   }
+  function rememberCninfoTask(task) {
+    const taskId = task?.task_id;
+    if (!taskId || taskId === "—") return;
+    state.requestedPipelineTask = taskId;
+    safeLocalStorageSet(PIPELINE_TASK_KEY, {
+      task_id: taskId,
+      tenant_id: state.auth?.user?.tenant_id || null,
+      status: task.status || null,
+    });
+    updateUrl("replace");
+  }
+  function forgetCninfoTask() {
+    state.requestedPipelineTask = null;
+    safeLocalStorageRemove(PIPELINE_TASK_KEY);
+    updateUrl("replace");
+  }
+  async function restoreCninfoTask() {
+    const stored = safeLocalStorageGet(PIPELINE_TASK_KEY, null);
+    const taskId = state.requestedPipelineTask || stored?.task_id;
+    if (!taskId) return;
+    const activeTenant = state.auth?.user?.tenant_id || null;
+    if (!state.requestedPipelineTask && stored?.tenant_id && stored.tenant_id !== activeTenant) {
+      forgetCninfoTask();
+      return;
+    }
+    try {
+      const task = await api(`/api/pipelines/${encodeURIComponent(taskId)}`);
+      renderCninfoTask(task);
+      if (CNINFO_ACTIVE_STATUSES.has(task.status)) beginCninfoPolling(taskId);
+    } catch (error) {
+      if (error.status === 404 || error.status === 403) forgetCninfoTask();
+      showMessage(byId("cninfo-cache-preview"), `历史任务恢复失败：${error.message}`, "warning");
+    }
+  }
   function renderCninfoTask(task) {
     state.cninfoTask = task;
+    rememberCninfoTask(task);
     byId("cninfo-pipeline-panel").hidden = false;
     byId("cninfo-task-id").textContent = task.task_id || "—";
     setStatePill(byId("cninfo-task-state"), cninfoTaskStatusLabel(task.status), cninfoStatusKind(task.status));
@@ -612,7 +1121,7 @@
     renderCninfoCandidates(task);
     renderCninfoResult(task);
     const analysisRunId = task.status === "completed" ? task.result?.analysis?.run_id : "";
-    if (analysisRunId && state.cninfoAnalysisLoadedTaskId !== task.task_id) void openCninfoAnalysis(analysisRunId, task.task_id);
+    if (analysisRunId && state.cninfoAnalysisLoadedTaskId !== task.task_id) void openCninfoAnalysis(analysisRunId, task.task_id, { openAnalysis: false });
     const retryable = ["failed", "needs_human"].includes(task.status);
     byId("cninfo-retry").hidden = !retryable;
      byId("cninfo-retry").textContent = task.status === "needs_human" ? "查看原因后重试" : "保留历史并重试";
@@ -633,6 +1142,11 @@
       }
     } catch (error) {
       if (token !== state.cninfoPollToken) return;
+      if (error.status === 404 || error.status === 403) {
+        forgetCninfoTask();
+        state.cninfoPollTimer = null;
+        return;
+      }
       const banner = byId("cninfo-task-message");
       banner.className = "status-banner danger";
       banner.innerHTML = `<strong>任务状态读取失败</strong><span>${escapeHtml(error.message)}；任务本身未被删除，可稍后重试读取。</span>`;
@@ -693,6 +1207,7 @@
         }
       }
       const task = await api("/api/pipelines/cninfo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      state.cninfoAnalysisLoadedTaskId = null;
       renderCninfoTask(task);
       beginCninfoPolling(task.task_id);
     } catch (error) {
@@ -774,10 +1289,14 @@
       endBusy();
     }
   }
-  async function openCninfoAnalysis(runId, taskId = null) {
+  async function openCninfoAnalysis(runId, taskId = null, options = {}) {
     if (!runId) return false;
-    if (taskId && state.cninfoAnalysisLoadedTaskId === taskId) return true;
-    const loaded = await loadRun(runId, { openAnalysis: true });
+    const shouldOpen = options.openAnalysis !== false;
+    if (taskId && state.cninfoAnalysisLoadedTaskId === taskId) {
+      if (shouldOpen) showView("analysis");
+      return true;
+    }
+    const loaded = await loadRun(runId, { openAnalysis: shouldOpen });
     if (loaded && taskId) state.cninfoAnalysisLoadedTaskId = taskId;
     return loaded;
   }
@@ -810,22 +1329,30 @@
     byId("wb-scope-note").textContent = `本次运行：${runnable.join("、") || "无"}。R1 是主规则；R2 仅为辅助工程规则；R3—R8 不会进入请求。`;
     const fullButton = byId("wb-run-full");
     const calculationButton = byId("wb-run-calculation");
-    const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase;
-    const modelTransferAllowed = Boolean(state.currentCase?.model_transfer_allowed);
-    const cninfoFieldsConfirmed = state.currentCase?.registry_mode !== "cninfo_official_auto" || state.currentCase?.field_validation?.status === "human_confirmed";
-    fullButton.disabled = unavailable || !modelTransferAllowed;
-    calculationButton.disabled = unavailable || !cninfoFieldsConfirmed;
-    fullButton.classList.toggle("primary", modelTransferAllowed);
-    fullButton.classList.toggle("quiet", !modelTransferAllowed);
-    calculationButton.classList.toggle("primary", !modelTransferAllowed);
-    calculationButton.classList.toggle("quiet", modelTransferAllowed);
-    fullButton.innerHTML = modelTransferAllowed ? '开始完整分析 <span aria-hidden="true">→</span>' : "完整分析需许可";
+    const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase || !state.year;
+    const supabaseMode = state.auth?.persistence?.mode === "supabase";
+    const noModelIndustryPath = Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level);
+    const modelTransferConfigured = Boolean(state.currentCase?.model_transfer_allowed);
+    const modelLoginRequired = !noModelIndustryPath && supabaseMode && !state.auth?.authenticated;
+    const modelConsentRequired = !noModelIndustryPath && supabaseMode && state.auth?.authenticated && !state.modelConsent?.active;
+    const modelTransferAvailable = noModelIndustryPath || (supabaseMode ? Boolean(state.auth?.authenticated && state.modelConsent?.active) : modelTransferConfigured);
+    fullButton.disabled = unavailable || !modelTransferAvailable;
+    calculationButton.disabled = unavailable;
+    fullButton.classList.toggle("primary", modelTransferAvailable);
+    fullButton.classList.toggle("quiet", !modelTransferAvailable);
+    calculationButton.classList.toggle("primary", !modelTransferAvailable);
+    calculationButton.classList.toggle("quiet", modelTransferAvailable);
+    fullButton.innerHTML = noModelIndustryPath
+      ? `${state.industryGate?.specialized_rule ? "运行行业专用预筛" : "查看行业适配结果"} <span aria-hidden="true">→</span>`
+      : modelLoginRequired ? "完整分析需登录"
+      : modelConsentRequired ? "完整分析需先同意"
+      : modelTransferAvailable ? '开始完整分析 <span aria-hidden="true">→</span>' : "完整分析需许可";
     fullButton.setAttribute("aria-describedby", "wb-case-permission");
-    fullButton.title = modelTransferAllowed ? "项目所有者已许可：执行RAG、三Agent与硬校验" : "当前案例未获项目所有者许可，只能运行仅计算预检";
+    fullButton.title = noModelIndustryPath ? "该路径只执行确定性行业规则或适配闸门，不调用外部模型" : modelLoginRequired ? "公网模式的外部模型调用必须登录" : modelConsentRequired ? "请先在当前案例保存模型传输同意" : modelTransferAvailable ? "执行RAG、三Agent与硬校验" : "当前案例未获模型传输许可，只能运行仅计算预检";
      byId("run-scope").textContent = runnable.length
-       ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${modelTransferAllowed ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && !cninfoFieldsConfirmed ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
+       ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${noModelIndustryPath ? " 当前行业路径不调用外部模型。" : modelLoginRequired ? " 外部模型调用需登录；匿名模式可运行仅计算预筛。" : modelConsentRequired ? " 请先保存当前案例的模型传输同意。" : modelTransferAvailable ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && state.currentCase?.field_validation?.status !== "human_confirmed" ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
       : "当前没有可运行规则。";
-    if (!state.run && state.currentCase && !modelTransferAllowed) {
+    if (!state.run && state.currentCase && !modelTransferAvailable && !noModelIndustryPath) {
       byId("wb-gate").className = "status-banner warning";
       byId("wb-gate").innerHTML = "<strong>当前案例未纳入许可</strong><span>请登记项目所有者许可后再运行完整分析；仅计算预检与本地原文检索仍可使用。</span>";
     }
@@ -845,7 +1372,21 @@
   }
   function riskCardButton(result, index) {
     if (!result.risk_card && !result.ai_draft) return "";
-    return `<div class="risk-summary"><div><span class="folio">${escapeHtml(result.rule_id)} / SCREENING + AI</span><h5>${escapeHtml(result.ai_draft?.draft_title || result.risk_card?.title || result.rule_id)}</h5><p>${escapeHtml(result.ai_draft?.draft_observation || result.risk_card?.observation || "等待更多证据。")}</p><small>${escapeHtml(aiNotice(result.ai_draft || result))}</small></div><button class="button quiet" type="button" data-risk-index="${index}">查看证据与草稿</button></div>`;
+    const displayRuleId = result.risk_card?.rule_id || result.rule_id;
+    return `<div class="risk-summary"><div><span class="folio">${escapeHtml(displayRuleId)} / SCREENING + AI</span><h5>${escapeHtml(result.ai_draft?.draft_title || result.risk_card?.title || displayRuleId)}</h5><p>${escapeHtml(result.ai_draft?.draft_observation || result.risk_card?.observation || "等待更多证据。")}</p><small>${escapeHtml(aiNotice(result.ai_draft || result))}</small></div><button class="button quiet" type="button" data-risk-index="${index}">查看证据与草稿</button></div>`;
+  }
+  function clearRunDisplay() {
+    state.run = null;
+    state.humanReview = null;
+    byId("run-summary").hidden = true;
+    byId("wb-run-results").innerHTML = "";
+    byId("live-evidence-matrix").querySelector("tbody").innerHTML = "";
+    byId("evidence-rail").innerHTML = "";
+    byId("wb-sup-parent").value = "";
+    byId("run-lookup-input").value = "";
+    setStatePill(byId("analysis-state"), "等待运行", "waiting");
+    hydrateReview(null);
+    updateDeliveryControls();
   }
   function renderRun(run, humanReview = null) {
     state.run = run;
@@ -865,8 +1406,12 @@
     if (issues.length) {
       gate.className = "status-banner danger";
       gate.innerHTML = `<strong>来源闸门未通过</strong><span>${escapeHtml(issues.join("；"))}</span>`;
+    } else if (run.context?.industry_prescreen?.industry_rule_id) {
+      const specialized = run.context.industry_prescreen;
+      gate.className = `status-banner ${specialized.status === "SOURCE_INCOMPLETE" ? "danger" : specialized.status === "DATA_GAP" || specialized.data_gaps?.length ? "warning" : "success"}`;
+      gate.innerHTML = `<strong>行业专用预筛：${escapeHtml(specialized.industry_rule_name || "已完成")}</strong><span>程序状态：${escapeHtml(statusLabel(run.screening_status))}；${escapeHtml(specialized.professional_signoff_status || "draft_pending_professional_signoff")}。${escapeHtml(specialized.data_gaps?.length ? "资料缺口已保留，来源技术校验仍可独立通过。" : "仍需专业人员确认行业口径和工程阈值。")}</span>`;
     } else if (run.context?.industry_gate?.fit_level === "not_applicable") {
-      gate.className = "status-banner success";
+      gate.className = "status-banner neutral";
       gate.innerHTML = `<strong>行业适配闸门：当前规则不适用</strong><span>${escapeHtml(run.context.industry_gate.rationale || "请使用行业专用规则；公开年报 RAG 仍可继续使用。")}</span>`;
     } else if (run.context?.industry_gate?.fit_level === "unknown") {
       gate.className = "status-banner warning";
@@ -880,7 +1425,9 @@
     }
     byId("wb-run-results").innerHTML = run.rule_results.map((result, index) => {
       const metrics = Object.entries(result.metrics || {}).filter(([, value]) => value !== null && value !== undefined);
-      return `<article class="result-record"><header class="result-head"><div><span class="folio">${escapeHtml(result.rule_id)} · ${escapeHtml(RULES.find((rule) => rule.id === result.rule_id)?.name || "规则")}</span><h4>${escapeHtml(result.risk_card?.title || "程序筛查")}</h4><p>${escapeHtml(result.risk_card?.engineering_version || "工程规则")}</p></div><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></header><div class="metric-ledger">${metrics.map(([key, value]) => `<div class="metric"><span>${escapeHtml(METRIC_LABELS[key] || key)}</span><strong>${escapeHtml(metricValue(key, value))}</strong><small>${escapeHtml(metricFormula(key))}</small></div>`).join("")}</div>${riskCardButton(result, index)}${renderAiDraft(result)}${renderAgentSteps(result.agent_steps)}</article>`;
+      const displayRuleId = result.risk_card?.rule_id || result.rule_id;
+      const displayRuleName = result.risk_card?.rule_name || result.risk_card?.title || RULES.find((rule) => rule.id === result.rule_id)?.name || "规则";
+      return `<article class="result-record"><header class="result-head"><div><span class="folio">${escapeHtml(displayRuleId)} · ${escapeHtml(displayRuleName)}</span><h4>${escapeHtml(result.risk_card?.title || "程序筛查")}</h4><p>${escapeHtml(result.risk_card?.engineering_version || "工程规则")}</p></div><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></header><div class="metric-ledger">${metrics.map(([key, value]) => `<div class="metric"><span>${escapeHtml(METRIC_LABELS[key] || key)}</span><strong>${escapeHtml(metricValue(key, value))}</strong><small>${escapeHtml(metricFormula(key))}</small></div>`).join("")}</div>${riskCardButton(result, index)}${renderAiDraft(result)}${renderAgentSteps(result.agent_steps)}</article>`;
     }).join("") + '<section class="scene-followup"><h4>审计计划场景的后续动作</h4><p>人工结合认定候选，决定账龄分析、期后回款检查、合同条款核对和大额交易测试；系统不代签。</p></section>';
     byId("wb-run-results").querySelectorAll("[data-risk-index]").forEach((button) => button.addEventListener("click", () => openRiskDialog(Number(button.dataset.riskIndex))));
     renderEvidenceRail(run, humanReview);
@@ -891,7 +1438,12 @@
     updateUrl("replace");
   }
   function renderEvidenceRail(run, humanReview) {
-    const gaps = run.evidence_bundle?.evidence_gaps || [];
+    const gaps = [...new Set([
+      ...(run.evidence_bundle?.evidence_gaps || []),
+      ...(run.context?.prescreen_summary?.missing_fields || []),
+      ...(run.context?.industry_prescreen?.data_gaps || []),
+      ...(run.rule_results || []).flatMap((result) => [...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || [])]),
+    ])];
     const registered = run.evidence_bundle?.supplement_evidence?.length || 0;
     byId("evidence-rail").innerHTML = `<li><span>01</span><div><strong>程序筛查</strong><small>${escapeHtml(statusLabel(run.screening_status))}</small></div></li><li class="${run.ai_recommendation === "not_generated" ? "pending" : ""}"><span>02</span><div><strong>RAG 与 AI</strong><small>${escapeHtml(`${run.retrievals?.length || 0} 次检索；${statusLabel(run.ai_recommendation)}`)}</small></div></li><li class="${gaps.length ? "pending" : ""}"><span>03</span><div><strong>证据支持 / 缺口</strong><small>${escapeHtml(`${run.evidence_bundle?.field_evidence?.length || 0} 字段；${run.evidence_bundle?.rag_evidence?.length || 0} 片段；${registered} 条案例/补充证据；${gaps.length} 检索缺口`)}</small></div></li><li class="${(humanReview?.status || run.human_disposition) === "未复核" ? "pending" : ""}"><span>04</span><div><strong>人工处理</strong><small>${escapeHtml(humanReview?.status || run.human_disposition || "未复核")}</small></div></li>`;
   }
@@ -911,6 +1463,7 @@
   function openRiskDialog(index) {
     const result = state.run?.rule_results?.[index];
     if (!result) return;
+    state.riskDialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const draft = result.ai_draft;
     const list = (items, format = (item) => item) => items?.length ? `<ul>${items.map((item) => `<li>${escapeHtml(format(item))}</li>`).join("")}</ul>` : "<p>未返回。</p>";
     byId("risk-dialog-kicker").textContent = `${result.rule_id} / ${statusLabel(result.screening_status || result.status)} / ${statusLabel(result.ai_recommendation)}`;
@@ -922,6 +1475,11 @@
     const detailGaps = [...new Set([...(draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...missingFields])];
     byId("risk-dialog-body").innerHTML = `<section class="risk-detail-section"><h3>四层状态</h3><p>程序：${escapeHtml(statusLabel(result.screening_status || result.status))}；AI：${escapeHtml(statusLabel(result.ai_recommendation))}；人工：${escapeHtml(state.humanReview?.status || state.run.human_disposition)}；完整性：${escapeHtml(statusLabel(state.run.run_completeness))}。</p></section><section class="risk-detail-section"><h3>AI生成内容待核查草稿</h3><p><strong>${escapeHtml(aiNotice(draft || state.run))}</strong></p><p>${escapeHtml(draft?.draft_observation || "未形成通过硬校验的AI草稿。")}</p>${list(draft?.claims, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/")}`)}</section><section class="risk-detail-section"><h3>正常解释 / 待验证假设</h3>${list(draft?.normal_explanations, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/") || "无证据"}`)}</section><section class="risk-detail-section"><h3>资料缺口与待索取资料</h3>${list(detailGaps)}${list(draft?.requested_materials || result.risk_card?.requested_materials)}</section><section class="risk-detail-section"><h3>计算字段证据</h3>${list(sources, (item) => `${item.evidence_id}｜${item.document_id}｜PDF ${item.pdf_page}｜${item.locator}`)}</section><section class="risk-detail-section"><h3>案例包 / 补充证据</h3>${list(registered, (item) => `${item.evidence_id}｜${item.field_label}｜${item.document_id || item.source_file || "结构化资料"}｜PDF ${item.pdf_page || "—"}｜${item.support_status}`)}</section><section class="risk-detail-section"><h3>RAG候选原文</h3>${list(rag, (item) => `${item.evidence_id}｜${item.retrieval_id}｜PDF ${item.pdf_page}｜${item.excerpt}`)}</section>`;
     byId("risk-dialog").showModal();
+  }
+  function finishRiskDialogClose() {
+    const trigger = state.riskDialogTrigger;
+    state.riskDialogTrigger = null;
+    if (trigger?.isConnected && !trigger.hidden) trigger.focus();
   }
 
   function hydrateReview(review) {
@@ -973,7 +1531,11 @@
   }
   async function runAnalysis(runMode) {
     const rules = selectedRunnableRules();
-    if (!rules.length || !state.currentCase || !state.year) return;
+    if (!rules.length || !state.currentCase || !state.year) {
+      byId("wb-gate").className = "status-banner warning";
+      byId("wb-gate").innerHTML = "<strong>尚不能运行</strong><span>请先选择可运行规则、案例和分析年度。</span>";
+      return;
+    }
     const fullButton = byId("wb-run-full");
     const calcButton = byId("wb-run-calculation");
     const clicked = runMode === "full_analysis" ? fullButton : calcButton;
@@ -1006,11 +1568,15 @@
       const stored = await api(`/api/runs/${encodeURIComponent(runId)}`);
       const runCaseId = stored.run?.context?.case_id;
       const runYear = stored.run?.context?.current_year;
-      if (runCaseId && runCaseId !== state.caseId) {
+      if (runCaseId && (runCaseId !== state.caseId || String(runYear || "") !== String(state.year || ""))) {
         await loadCaseDetail(runCaseId, { preferredYear: runYear });
       }
       if (runCaseId && state.caseId !== runCaseId) {
         showMessage(byId("wb-backend-toast"), `运行记录属于案例 ${runCaseId}，但案例上下文加载失败；已停止展示以避免与 ${state.caseId || "当前案例"} 混淆。`, "error");
+        return false;
+      }
+      if (runYear && String(state.year || "") !== String(runYear)) {
+        showMessage(byId("wb-backend-toast"), `运行记录属于 ${runYear} 年，但当前案例没有该分析年度；已停止展示以避免跨期混淆。`, "error");
         return false;
       }
       renderRun(stored.run, stored.human_review);
@@ -1131,8 +1697,18 @@
 
   async function saveReview(event) {
     event.preventDefault(); if (!state.run?.run_id) return;
-    const endBusy = beginButtonBusy(byId("wb-save-backend-review"), "正在保存…");
     const review = { status: byId("wb-backend-review-status").value, reviewer: byId("wb-backend-reviewer").value.trim(), note: byId("wb-backend-review-note").value.trim(), reviewed_at: new Date().toISOString(), export_approved: byId("wb-backend-export-approved").checked, reviewer_type: "human" };
+    if (review.status !== "未复核" && !review.reviewer) {
+      showMessage(byId("wb-backend-toast"), "选择人工处理结论时必须填写真实复核人或团队角色。", "error");
+      byId("wb-backend-reviewer").focus();
+      return;
+    }
+    if (review.export_approved && review.status === "未复核") {
+      showMessage(byId("wb-backend-toast"), "未复核状态不能批准缓存或导出；请先选择人工处理结论。", "error");
+      byId("wb-backend-review-status").focus();
+      return;
+    }
+    const endBusy = beginButtonBusy(byId("wb-save-backend-review"), "正在保存…");
     safeLocalStorageSet(REVIEW_KEY, review);
     try { const stored = await api(`/api/runs/${encodeURIComponent(state.run.run_id)}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(review) }); renderRun(stored.run, stored.human_review); showMessage(byId("wb-backend-toast"), "人工处理已保存。", "success"); } catch (error) { showMessage(byId("wb-backend-toast"), `复核保存失败：${error.message}`, "error"); } finally { endBusy(); updateDeliveryControls(); }
   }
@@ -1150,14 +1726,15 @@
     if (!state.run?.run_id) return;
     const endBusy = beginButtonBusy(byId("wb-export-report"), "正在生成…");
     try {
-      const response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(state.run.run_id)}/report.docx`);
+      const response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(state.run.run_id)}/report.docx`, { credentials: "include", headers: authHeaders() });
       if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.detail || `HTTP ${response.status}`); }
-      const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `${state.run.run_id}_预审风险备忘录_report_v2.docx`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+      const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `${state.run.run_id}_预审风险备忘录_report_v2.docx`; document.body.appendChild(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
       showMessage(byId("delivery-message"), "report_v2 已生成并开始下载。", "success");
     } catch (error) { showMessage(byId("delivery-message"), `导出失败：${error.message}`, "error"); } finally { endBusy(); updateDeliveryControls(); }
   }
 
   function bindEvents() {
+    document.addEventListener("click", (event) => { void openProtectedSource(event); });
     document.querySelectorAll("[data-view]").forEach((link) => link.addEventListener("click", (event) => { event.preventDefault(); showView(link.dataset.view); }));
     document.querySelectorAll("[data-wb-step]").forEach((button) => {
       button.addEventListener("click", () => handleLegacyStep(button.dataset.wbStep));
@@ -1167,13 +1744,21 @@
       });
     });
     document.querySelectorAll("[data-wb-go]").forEach((button) => button.addEventListener("click", () => handleLegacyStep(button.dataset.wbGo)));
-    byId("mobile-nav-toggle").addEventListener("click", () => { const open = byId("primary-navigation").classList.toggle("open"); byId("mobile-nav-toggle").setAttribute("aria-expanded", String(open)); syncMobileNavigationAccessibility(open); });
+    byId("mobile-nav-toggle").addEventListener("click", () => { const open = byId("primary-navigation").classList.toggle("open"); byId("mobile-nav-toggle").setAttribute("aria-expanded", String(open)); syncMobileNavigationAccessibility(open); if (open) byId("primary-navigation").querySelector("a")?.focus(); });
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && byId("primary-navigation").classList.contains("open")) { closeMobileNavigation(); byId("mobile-nav-toggle").focus(); } });
     window.addEventListener("resize", () => syncMobileNavigationAccessibility(byId("primary-navigation").classList.contains("open")));
     byId("wb-case").addEventListener("change", (event) => loadCaseDetail(event.target.value));
     byId("wb-current-year").addEventListener("change", (event) => { state.year = event.target.value; renderProject(); updateUrl("replace"); });
     byId("wb-amount-unit").addEventListener("change", (event) => { state.unit = event.target.value; renderProject(); });
     byId("wb-refresh-case").addEventListener("click", () => loadCaseDetail(state.caseId, { keepYear: true }));
+    byId("wb-model-consent-button").addEventListener("click", grantModelConsent);
+    byId("wb-model-consent-revoke").addEventListener("click", revokeModelConsent);
+    byId("auth-action").addEventListener("click", handleAuthAction);
+    byId("sidebar-auth-action").addEventListener("click", handleAuthAction);
+    byId("auth-login-form").addEventListener("submit", submitLogin);
+    byId("auth-dialog").querySelectorAll("[data-close-auth-dialog]").forEach((button) => button.addEventListener("click", closeAuthDialog));
+    byId("auth-dialog").addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); closeAuthDialog(); } });
+    byId("auth-dialog").addEventListener("close", finishAuthDialogClose);
     byId("cninfo-pipeline-form").addEventListener("submit", startCninfoPipeline);
     byId("cninfo-retry").addEventListener("click", retryCninfoPipeline);
     byId("cninfo-open-case").addEventListener("click", (event) => openCninfoCase(event.currentTarget.dataset.caseId));
@@ -1190,13 +1775,23 @@
     byId("review-form").addEventListener("submit", saveReview);
     byId("wb-save-local-review").addEventListener("click", () => { const draft = { status: byId("wb-backend-review-status").value, reviewer: byId("wb-backend-reviewer").value, note: byId("wb-backend-review-note").value, export_approved: byId("wb-backend-export-approved").checked }; safeLocalStorageSet(REVIEW_KEY, draft); showMessage(byId("wb-backend-toast"), "本机草稿已保存；不等于后端人工复核。", "success"); });
     byId("review-form").addEventListener("input", () => safeLocalStorageSet(REVIEW_KEY, { status: byId("wb-backend-review-status").value, reviewer: byId("wb-backend-reviewer").value, note: byId("wb-backend-review-note").value, export_approved: byId("wb-backend-export-approved").checked }));
-    byId("run-lookup-form").addEventListener("submit", (event) => { event.preventDefault(); loadRun(byId("run-lookup-input").value.trim()); });
+    byId("run-lookup-form").addEventListener("submit", (event) => { event.preventDefault(); const runId = byId("run-lookup-input").value.trim(); if (!runId) { showMessage(byId("wb-backend-toast"), "请填写要读取的 run_id。", "error"); byId("run-lookup-input").focus(); return; } loadRun(runId); });
     byId("wb-cache-run").addEventListener("click", cacheRun);
     byId("cache-replay-button").addEventListener("click", replayCache);
     byId("wb-export-report").addEventListener("click", exportReport);
     byId("risk-dialog").querySelector("[data-close-dialog]").addEventListener("click", () => byId("risk-dialog").close());
     byId("risk-dialog").addEventListener("click", (event) => { if (event.target === byId("risk-dialog")) byId("risk-dialog").close(); });
-    window.addEventListener("popstate", async () => { readUrlState(); if (state.requestedCase && state.requestedCase !== state.caseId) await loadCaseDetail(state.requestedCase, { keepYear: true }); renderRuleLibrary(); showView(state.view, { history: false }); });
+    byId("risk-dialog").addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); byId("risk-dialog").close(); } });
+    byId("risk-dialog").addEventListener("close", finishRiskDialogClose);
+    window.addEventListener("popstate", async () => {
+      const requestedRun = readUrlState();
+      if (state.requestedCase && state.requestedCase !== state.caseId) await loadCaseDetail(state.requestedCase, { keepYear: true });
+      if (state.requestedPipelineTask && state.requestedPipelineTask !== state.cninfoTask?.task_id) await restoreCninfoTask();
+      if (requestedRun && requestedRun !== state.run?.run_id) await loadRun(requestedRun);
+      if (!requestedRun && state.run) clearRunDisplay();
+      renderRuleLibrary();
+      showView(state.view, { history: false });
+    });
   }
 
   async function initialize() {
@@ -1209,8 +1804,11 @@
     showView(state.view, { history: false, focus: false });
     try { await loadSystemAndCases(); } catch (error) { setServiceStatus("状态接口不可用", "danger"); showMessage(byId("case-import-message"), `无法读取案例：${error.message}`, "error"); }
     await checkHealth();
+    await restoreCninfoTask();
+    if (requestedRun) await loadRun(requestedRun, { openAnalysis: state.view === "analysis" });
+    // 先恢复 URL 中的 run，再同步地址；否则 updateUrl 会在 loadRun 之前
+    // 看到空 state.run 并删除深链参数，刷新后补充资料/交付页无法恢复父运行。
     updateUrl("replace");
-    if (requestedRun) await loadRun(requestedRun);
   }
 
   initialize();

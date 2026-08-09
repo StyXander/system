@@ -57,10 +57,12 @@ import csv
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -98,19 +100,23 @@ def _directory(workspace_root: Path) -> Path:
 
 def _safe_name(filename: str) -> str:
     name = Path(filename).name
+    if name in {"", ".", ".."}:
+        return "supplement.bin"
     cleaned = re.sub(r"[^\w.\-（）()：： ]", "_", name, flags=re.UNICODE)
-    return cleaned[:120] or "supplement.bin"
+    return cleaned[:120] if cleaned not in {"", ".", ".."} else "supplement.bin"
 
 
 def _to_number(value: Any) -> float | None:
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
+        number = float(value)
+        return number if math.isfinite(number) else None
     if isinstance(value, str):
         clean = value.strip().replace(",", "").replace("，", "")
         if not clean:
             return None
         try:
-            return float(clean)
+            number = float(clean)
+            return number if math.isfinite(number) else None
         except ValueError:
             return None
     return None
@@ -240,6 +246,8 @@ def create_supplement(
     filename: str,
     content: bytes,
     structured_json: str | None,
+    tenant_id: str | None = None,
+    owner_user_id: str | None = None,
 ) -> dict[str, Any]:
     issues: list[str] = []
     if not authorized:
@@ -267,8 +275,13 @@ def create_supplement(
         if pattern.search(scan_text):
             issues.append(f"检出{label}，请脱敏后重传。")
 
-    structured_fields, supplemental_evidence, parse_issues = _extract_structured(safe_name, content, structured_json)
-    issues.extend(parse_issues)
+    metadata_only_rejection = not authorized or not desensitized or any(issue.startswith("检出") for issue in issues)
+    if metadata_only_rejection:
+        # 未授权、未脱敏或命中敏感信息时不解析、不落原始文件，只保留拒绝元数据。
+        structured_fields, supplemental_evidence, parse_issues = {}, [], []
+    else:
+        structured_fields, supplemental_evidence, parse_issues = _extract_structured(safe_name, content, structured_json)
+        issues.extend(parse_issues)
     supplement_id = f"SUP-{uuid.uuid4().hex[:12].upper()}"
     file_hash = hashlib.sha256(content).hexdigest().upper() if content else hashlib.sha256((structured_json or "").encode("utf-8")).hexdigest().upper()
     if not supplemental_evidence and not structured_fields and (content or note.strip()):
@@ -291,6 +304,9 @@ def create_supplement(
         "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE,
         "supplement_id": supplement_id,
         "parent_run_id": parent_run_id,
+        "tenant_id": tenant_id,
+        "owner_user_id": owner_user_id,
+        "storage_backend": "supabase_private" if tenant_id else "local_competition",
         "material_type": material_type.strip()[:100],
         "authorized": authorized,
         "desensitized": desensitized,
@@ -308,14 +324,18 @@ def create_supplement(
         "boundary": (
             "ready_for_rerun 只表示补充证据可被程序读取；原T0不会被资料日期改写，来源真实性、口径和专业含义仍须人工复核。"
             if status == "ready_for_rerun"
-            else "文件已登记但没有可靠结构化字段，不会自动改写风险卡。"
+            else "补充资料记录已登记，但没有可靠结构化字段，不会自动改写风险卡。"
         ),
-        "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "content_stored": False,
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     directory = _directory(workspace_root) / supplement_id
     directory.mkdir(parents=True, exist_ok=False)
-    if content:
+    if content and status != "rejected":
         (directory / safe_name).write_bytes(content)
+        record["content_stored"] = True
+        (directory / "record.json").write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+        return record
     (directory / "record.json").write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
     return record
 
@@ -324,4 +344,28 @@ def load_supplement(workspace_root: Path, supplement_id: str) -> dict[str, Any] 
     if not re.fullmatch(r"SUP-[A-Z0-9]+", supplement_id):
         return None
     path = _directory(workspace_root) / supplement_id / "record.json"
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def mark_supplement_storage(
+    workspace_root: Path,
+    supplement_id: str,
+    *,
+    storage_backend: str,
+    storage_object_path: str,
+) -> dict[str, Any] | None:
+    """记录私有 Storage 对象位置，但不把签名 URL 写入持久化文件。"""
+
+    record = load_supplement(workspace_root, supplement_id)
+    if record is None:
+        return None
+    record["storage_backend"] = storage_backend
+    record["storage_object_path"] = storage_object_path
+    path = _directory(workspace_root) / supplement_id / "record.json"
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    return record
