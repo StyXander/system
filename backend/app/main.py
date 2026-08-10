@@ -146,6 +146,7 @@ from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
 from .delivery import build_report, cache_run, replay_cache
 from .rag import get_retrieval, prepare_index, question_set, retrieve, status as rag_status
 from .run_store import load_run, save_human_review, save_run
+from .seed_catalog import get_seed_case, load_seed_cases, seed_catalog_summary
 from .schemas import (
     AI_GENERATED_CONTENT_NOTICE,
     AgentStep,
@@ -423,6 +424,38 @@ def _normalize_official_public_case(case: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _merge_public_seed_material(case: dict[str, Any]) -> dict[str, Any]:
+    """补齐远端公开目录缺失的已校验字段，不覆盖远端真人复核结果。"""
+
+    if not is_public_case(case):
+        return case
+    seed = get_seed_case(WORKSPACE_ROOT, str(case.get("case_id") or ""))
+    if seed is None:
+        return case
+    merged = deepcopy(case)
+    for key in ("documents", "financial_fields", "structured_evidence"):
+        if not merged.get(key) and seed.get(key):
+            merged[key] = deepcopy(seed[key])
+    for key in (
+        "company_alias",
+        "ticker",
+        "market",
+        "t0",
+        "available_years",
+        "available_report_years",
+        "source_snapshot_id",
+        "currency",
+        "amount_unit",
+        "statement_scope",
+        "registry_mode",
+        "financial_fields_status",
+    ):
+        if merged.get(key) in (None, "", []):
+            merged[key] = deepcopy(seed.get(key))
+    merged["seed_materialization"] = "verified_metadata_and_fields_no_pdf"
+    return merged
+
+
 def _identity_tenant(http_request: Request, *, required: bool = False) -> str | None:
     """先验证请求身份再把租户传给 service-role 查询，禁止按 case_id 整表回退。"""
 
@@ -586,12 +619,22 @@ def _remote_case_for_run(case_id: str, *, tenant_id: str | None = None) -> dict[
     try:
         remote = get_supabase_client().get_case_metadata(case_id, tenant_id=tenant_id)
     except SupabaseError as error:
+        # Render 的 web 实例不携带可写 runtime；公开演示仍可使用已校验的
+        # 元数据种子完成确定性预筛，不能因为远端目录短暂不可达而把运行
+        # 入口伪装成“案例不存在”。私有案例绝不走这个公开回退。
+        if not tenant_id:
+            local_fallback = get_case(WORKSPACE_ROOT, case_id)
+            if local_fallback is not None and is_public_case(local_fallback):
+                return _normalize_official_public_case(local_fallback)
+            fallback = get_seed_case(WORKSPACE_ROOT, case_id)
+            if fallback is not None:
+                return fallback
         raise HTTPException(status_code=503, detail="公网案例元数据暂时不可用。") from error
     if remote is None:
-        return None
+        return get_seed_case(WORKSPACE_ROOT, case_id) if not tenant_id else None
     # 全局本机副本没有 owner，必须先由 Postgres 确认同编号记录确实是 PUBLIC；
     # 否则租户私有案例会被同名公开缓存遮蔽，标准案例编号也会误命中内置样例。
-    return _confirmed_public_local_case(case_id, remote) or remote
+    return _merge_public_seed_material(_confirmed_public_local_case(case_id, remote) or remote)
 
 
 def _case_record(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any] | None:
@@ -606,13 +649,23 @@ def _case_record(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any
         if case and case.get("registry_mode") == "cninfo_official_auto":
             _recompute_cninfo_human_status(case, case.get("financial_fields") or [])
         if case is None:
-            return None
+            return get_seed_case(WORKSPACE_ROOT, case_id) if not tenant_id else None
         # 远端私有 bundle 始终原样返回；只有远端明确解析到无租户公开 scope，
         # 才允许复用同快照的全局本机材料，避免 case_id 成为跨租户选择器。
         # 登录租户读取公开案例时，adapter 已把该租户 field_review_overlays 合入
         # bundle；若此处换回本机 base，会悄悄丢掉真人修正。匿名公开读取才可整包回退。
+        case = _merge_public_seed_material(case)
         return (_confirmed_public_local_case(case_id, case) if not tenant_id else None) or case
     except SupabaseError as error:
+        # 同上：仅公开、已锁定的 CNINFO seed 可以降级；租户私有数据必须
+        # 继续失败关闭，防止把跨租户数据当作公开案例返回。
+        if not tenant_id:
+            local_fallback = get_case(WORKSPACE_ROOT, case_id)
+            if local_fallback is not None and is_public_case(local_fallback):
+                return _normalize_official_public_case(local_fallback)
+            fallback = get_seed_case(WORKSPACE_ROOT, case_id)
+            if fallback is not None:
+                return fallback
         raise HTTPException(status_code=503, detail="公网案例数据暂时不可用。") from error
 
 
@@ -1314,7 +1367,7 @@ def _remote_prewarm_report(batch: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _visible_case_records(http_request: Request) -> tuple[Any, list[dict[str, Any]]]:
+def _visible_case_records(http_request: Request) -> tuple[Any, list[dict[str, Any]], dict[str, Any]]:
     identity = optional_authenticated(http_request)
     local_cases = [_normalize_official_public_case(case) for case in list_cases(WORKSPACE_ROOT)]
     cases = [
@@ -1324,13 +1377,26 @@ def _visible_case_records(http_request: Request) -> tuple[Any, list[dict[str, An
         or is_public_case(case)
         or (identity and identity.tenant_id and str(case.get("tenant_id") or "") == identity.tenant_id)
     ]
+    catalog_state: dict[str, Any] = {
+        "status": "local_only" if not supabase_enabled() else "ready",
+        "source": "runtime",
+    }
     if supabase_enabled():
         try:
             remote_rows = get_supabase_client().list_case_metadata(
                 tenant_id=identity.tenant_id if identity and not identity.is_local else None,
             )
         except SupabaseError as error:
-            raise HTTPException(status_code=503, detail="公网案例目录暂时不可用。") from error
+            # 公开演示的 50 家企业元数据和字段候选随代码部署；远端目录
+            # 恢复时再自动合并。这样 Supabase 短暂 503 不会让整个页面永远
+            # 停留在“正在读取”，也不会把任何私有租户记录降级成公开数据。
+            remote_rows = []
+            catalog_state = {
+                "status": "degraded",
+                "source": "tracked_verified_cninfo_seed",
+                "detail": "Supabase 案例目录暂时不可用，当前展示已校验的公开企业种子；新任务仍需远端队列恢复。",
+                "error_code": getattr(error, "code", "SUPABASE_ERROR"),
+            }
         known = {str(case.get("case_id")) for case in cases}
         for row in remote_rows:
             case_id = str(row.get("case_id") or "")
@@ -1352,7 +1418,17 @@ def _visible_case_records(http_request: Request) -> tuple[Any, list[dict[str, An
                     "available_years": metadata.get("available_years") or [],
                 }
             )
-    return identity, cases
+        # 即使远端查询成功，仍合并公开 seed 中尚未同步到 Postgres 的企业。
+        # seed 只包含可信的 CNINFO public scope，不包含任何租户私有记录。
+        if _public_demo_enabled():
+            for seed_case in load_seed_cases(WORKSPACE_ROOT):
+                case_id = str(seed_case.get("case_id") or "")
+                if case_id and case_id not in known:
+                    cases.append(seed_case)
+                    known.add(case_id)
+            if catalog_state.get("status") == "ready":
+                catalog_state["source"] = "supabase_plus_verified_seed"
+    return identity, cases, catalog_state
 
 
 def _registered_standard_source_url(document_id: str) -> str | None:
@@ -2544,7 +2620,7 @@ def project_status(http_request: Request) -> dict[str, Any]:
             registered = {"status_file": "invalid"}
     else:
         registered = {"status_file": "missing"}
-    identity, cases = _visible_case_records(http_request)
+    identity, cases, catalog_state = _visible_case_records(http_request)
     rag_cases = [rag_status(WORKSPACE_ROOT, case["case_id"]) for case in cases]
     api_key, _, model_id = _model_settings()
     return _with_ai_notice({
@@ -2573,6 +2649,7 @@ def project_status(http_request: Request) -> dict[str, Any]:
             "boundary": "配置存在不代表真实完整运行已经验收。",
         },
         "persistence": configured_persistence(),
+        "catalog": {**catalog_state, "seed": seed_catalog_summary(WORKSPACE_ROOT)},
         "auth": {
             "authenticated": bool(identity and not identity.is_local),
             "tenant_id": identity.tenant_id if identity and not identity.is_local else None,
@@ -2582,10 +2659,11 @@ def project_status(http_request: Request) -> dict[str, Any]:
 
 @app.get("/api/cases")
 def get_cases(http_request: Request) -> dict[str, Any]:
-    identity, visible_cases = _visible_case_records(http_request)
+    identity, visible_cases, catalog_state = _visible_case_records(http_request)
     return _with_ai_notice({
         "schema_version": "case_list_v1",
         "cases": [_public_case(case) for case in visible_cases],
+        "catalog": {**catalog_state, "seed": seed_catalog_summary(WORKSPACE_ROOT)},
         "auth": {
             "authenticated": identity is not None and not identity.is_local,
             "tenant_id": identity.tenant_id if identity and not identity.is_local else None,
