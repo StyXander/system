@@ -96,6 +96,8 @@
     complete_public_prescreen_industry_rule_with_gaps: "行业专用公开预筛已完成（有资料缺口）",
     complete_industry_rule: "行业专用预筛已完成",
     complete_industry_rule_with_gaps: "行业专用预筛已完成（有资料缺口）",
+    complete_demo_fallback: "演示分析已完成（确定性草稿）",
+    complete_demo_fallback_with_gaps: "演示分析已完成（有资料缺口）",
     complete_rule_not_applicable: "当前规则不适用",
     complete_public_prescreen_industry_unknown: "公开预筛完成：行业待确认",
     complete_rule_industry_unknown: "行业待确认，当前规则未执行",
@@ -110,6 +112,7 @@
     incomplete_persistence_unavailable: "不完整：持久化服务不可用",
     cache_replay_not_fresh_analysis: "缓存回放，非新分析",
     model_success: "三Agent已通过硬校验",
+    demo_fallback: "演示确定性草稿已生成",
     config_missing: "模型配置缺失",
     provider_unreachable: "模型调用失败",
     MODEL_OUTPUT_INVALID: "模型输出校验失败",
@@ -185,7 +188,7 @@
   function aiNotice(value) { return value?.ai_generated_content_notice || AI_GENERATED_CONTENT_NOTICE; }
   function statusKind(value) {
     if (String(value || "").includes("with_gaps")) return "waiting";
-    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "complete_public_prescreen_no_candidate", "complete_public_prescreen_industry_rule", "complete_industry_rule", "model_success", "retain"].includes(value)) return "success";
+    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "complete_public_prescreen_no_candidate", "complete_public_prescreen_industry_rule", "complete_industry_rule", "complete_demo_fallback", "model_success", "demo_fallback", "retain"].includes(value)) return "success";
     if (["SOURCE_INCOMPLETE", "provider_unreachable", "MODEL_OUTPUT_INVALID", "not_attempted_rag_failure", "model_transfer_revoked"].includes(value)) return "danger";
     if (["candidate", "downgrade", "defer", "DATA_GAP", "INDUSTRY_UNKNOWN", "complete_public_prescreen_industry_unknown", "complete_rule_industry_unknown"].includes(value) || String(value || "").startsWith("incomplete")) return "waiting";
     return "info";
@@ -546,19 +549,22 @@
   }
   function renderAuthControls() {
     const auth = state.auth || {};
+    const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
     const supabase = auth.persistence?.mode === "supabase";
     const authenticated = Boolean(auth.authenticated);
     const tenant = auth.user?.tenant_id || auth.user?.email || "当前租户";
-    const statusText = !supabase ? "本地竞赛模式" : authenticated ? `已登录 · ${tenant}` : "公开匿名 · 外部模型需登录";
+    const statusText = demoMode ? "竞赛演示模式 · 无需登录" : !supabase ? "本地竞赛模式" : authenticated ? `已登录 · ${tenant}` : "公开匿名 · 外部模型需登录";
     byId("auth-status").textContent = statusText;
     byId("sidebar-auth-status").textContent = statusText;
     [byId("auth-action"), byId("sidebar-auth-action")].forEach((button) => {
-      button.hidden = !supabase;
+      button.hidden = demoMode || !supabase;
       button.textContent = authenticated ? "退出登录" : "登录";
       button.setAttribute("aria-label", authenticated ? `退出 ${tenant}` : "登录公网工作区");
     });
     const option = byId("cninfo-full-analysis-option");
-    if (option) option.textContent = supabase && !authenticated
+    if (option) option.textContent = demoMode
+      ? "继续完整演示分析（无需登录）"
+      : supabase && !authenticated
       ? "继续公开预筛（外部模型需登录并逐案同意）"
       : "继续完整分析（按当前案例许可）";
   }
@@ -736,24 +742,29 @@
     const revokeButton = byId("wb-model-consent-revoke");
     if (!statusNode || !noteNode || !grantButton || !revokeButton) return;
     const consent = state.modelConsent;
+    const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
     const supabase = state.auth?.persistence?.mode === "supabase";
     const active = Boolean(consent?.active);
     const unavailable = consent?.status === "unavailable";
     const localAllowed = !supabase && Boolean(state.currentCase?.model_transfer_allowed);
-    statusNode.textContent = !supabase
+    statusNode.textContent = demoMode
+      ? "无需登录 · 可直接演示"
+      : !supabase
       ? localAllowed ? "本地 manifest 已许可" : "本地 manifest 未许可"
       : active ? `已同意 · ${consent.consent?.model_id || "当前模型"}`
       : consent?.status === "login_required" ? "登录后可同意"
       : unavailable ? "同意状态不可用" : "未同意";
     statusNode.className = `state ${active || localAllowed ? "success" : unavailable ? "danger" : "waiting"}`;
-    noteNode.textContent = active
+    noteNode.textContent = demoMode
+      ? "样例字段、来源元数据和 RAG 命中片段可直接进入演示分析；仍执行来源与模型输出硬校验。"
+      : active
       ? `${consent.consent?.transmission_scope || "最小字段与RAG片段"} · 有效至 ${consent.consent?.valid_until || "—"}`
       : !supabase
       ? localAllowed ? "本地模式按案例 manifest 许可运行，不创建公网逐案同意记录。" : "本地模式按案例 manifest 阻断外部模型调用。"
       : unavailable ? `暂时无法确认逐案同意：${consent.message || "请稍后重试。"}`
       : consent?.minimum_scope || "公网模式默认禁止传输；只允许字段证据、来源元数据和 RAG 命中片段。";
-    grantButton.hidden = !supabase || active || unavailable || consent?.status === "login_required";
-    revokeButton.hidden = !supabase || !active || !consent.consent?.id;
+    grantButton.hidden = demoMode || !supabase || active || unavailable || consent?.status === "login_required";
+    revokeButton.hidden = demoMode || !supabase || !active || !consent.consent?.id;
   }
 
   async function loadModelConsent() {
@@ -829,7 +840,11 @@
       state.ragResults = [];
       renderProject();
       renderRuleLibrary();
-      await Promise.all([checkRagStatus(), loadModelConsent(), loadIndustryGate()]);
+      await Promise.all([
+        checkRagStatus(),
+        state.projectStatus?.demo_mode?.enabled ? Promise.resolve() : loadModelConsent(),
+        loadIndustryGate(),
+      ]);
       renderProject();
       renderRuleLibrary();
       updateUrl("replace");
@@ -845,17 +860,20 @@
     // refresh 最多发生一次，且私有案例不会在 access cookie 过期时先丢失。
     state.projectStatus = await api("/api/status");
     const authRecovery = { attempted: false };
+    const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
     const persistence = state.projectStatus.persistence
       || { mode: state.projectStatus.supabase?.enabled ? "supabase" : "local" };
     let auth = { authenticated: false, user: null, persistence };
-    try {
-      auth = await api("/api/auth/me", {}, authRecovery);
-    } catch (_error) {
-      auth = { authenticated: false, user: null, persistence };
+    if (!demoMode) {
+      try {
+        auth = await api("/api/auth/me", {}, authRecovery);
+      } catch (_error) {
+        auth = { authenticated: false, user: null, persistence };
+      }
     }
     // HttpOnly refresh cookie 无法由前端探测；Supabase 匿名响应时静默尝试
     // 一次 refresh。真正匿名用户只多一次失败关闭请求，不会出现循环或提示噪声。
-    if (!auth.authenticated && persistence.mode === "supabase" && !authRecovery.attempted) {
+    if (!demoMode && !auth.authenticated && persistence.mode === "supabase" && !authRecovery.attempted) {
       authRecovery.attempted = true;
       if (await refreshCookieSession({ silent: true })) {
         try {
@@ -1339,12 +1357,13 @@
     const fullButton = byId("wb-run-full");
     const calculationButton = byId("wb-run-calculation");
     const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase || !state.year;
+    const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
     const supabaseMode = state.auth?.persistence?.mode === "supabase";
     const noModelIndustryPath = Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level);
     const modelTransferConfigured = Boolean(state.currentCase?.model_transfer_allowed);
     const modelLoginRequired = !noModelIndustryPath && supabaseMode && !state.auth?.authenticated;
     const modelConsentRequired = !noModelIndustryPath && supabaseMode && state.auth?.authenticated && !state.modelConsent?.active;
-    const modelTransferAvailable = noModelIndustryPath || (supabaseMode ? Boolean(state.auth?.authenticated && state.modelConsent?.active) : modelTransferConfigured);
+    const modelTransferAvailable = demoMode || noModelIndustryPath || (supabaseMode ? Boolean(state.auth?.authenticated && state.modelConsent?.active) : modelTransferConfigured);
     fullButton.disabled = unavailable || !modelTransferAvailable;
     calculationButton.disabled = unavailable;
     fullButton.classList.toggle("primary", modelTransferAvailable);
@@ -1361,7 +1380,7 @@
      byId("run-scope").textContent = runnable.length
        ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${noModelIndustryPath ? " 当前行业路径不调用外部模型。" : modelLoginRequired ? " 外部模型调用需登录；匿名模式可运行仅计算预筛。" : modelConsentRequired ? " 请先保存当前案例的模型传输同意。" : modelTransferAvailable ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && state.currentCase?.field_validation?.status !== "human_confirmed" ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
       : "当前没有可运行规则。";
-    if (!state.run && state.currentCase && !modelTransferAvailable && !noModelIndustryPath) {
+    if (!state.run && state.currentCase && !modelTransferAvailable && !noModelIndustryPath && !demoMode) {
       byId("wb-gate").className = "status-banner warning";
       byId("wb-gate").innerHTML = "<strong>当前案例未纳入许可</strong><span>请登记项目所有者许可后再运行完整分析；仅计算预检与本地原文检索仍可使用。</span>";
     }
@@ -1502,10 +1521,12 @@
   function updateDeliveryControls() {
     const hasRun = Boolean(state.run?.run_id);
     const approved = Boolean(state.humanReview && state.humanReview.status !== "未复核" && state.humanReview.export_approved);
+    const demoPreview = Boolean(state.projectStatus?.demo_mode?.enabled && hasRun);
     byId("wb-save-backend-review").disabled = !hasRun;
     byId("wb-cache-run").disabled = !approved;
-    byId("wb-export-report").disabled = !approved;
-    setStatePill(byId("delivery-state"), state.humanReview?.status || state.run?.human_disposition || "未复核", approved ? "success" : "waiting");
+    byId("wb-export-report").disabled = !(approved || demoPreview);
+    byId("wb-export-report").textContent = demoPreview && !approved ? "下载竞赛演示报告" : "导出 Word 备忘录";
+    setStatePill(byId("delivery-state"), demoPreview && !approved ? "演示报告可下载 · 未经真人复核" : state.humanReview?.status || state.run?.human_disposition || "未复核", approved ? "success" : "waiting");
   }
   function renderHistory(run, review) {
     const values = [
@@ -1525,9 +1546,14 @@
       const health = await api("/api/health");
       state.backendAvailable = health.service_status === "ready";
       const configured = health.model_status === "configured";
-      setServiceStatus(configured ? "后端可用 · 模型已配置" : "后端可用 · 模型未配置", configured ? "success" : "pending");
-      setStatePill(byId("project-health-state"), configured ? "后端可用 · 模型按本次运行验收" : "后端可用 · 模型未配置", configured ? "success" : "waiting");
-      byId("backend-status-note").textContent = configured ? "后端状态：模型配置存在，但完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。" : "后端状态：确定性预检可用；模型未配置时，程序候选不会生成AI草稿。";
+      const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
+      setServiceStatus(demoMode ? "后端可用 · 竞赛演示模式" : configured ? "后端可用 · 模型已配置" : "后端可用 · 模型未配置", configured ? "success" : "pending");
+      setStatePill(byId("project-health-state"), demoMode ? "无需登录 · 50 家样例可直接分析" : configured ? "后端可用 · 模型按本次运行验收" : "后端可用 · 模型未配置", configured ? "success" : "waiting");
+      byId("backend-status-note").textContent = demoMode
+        ? "后端状态：公开样例可直接分析；默认使用证据绑定的确定性演示草稿，真实模型仅在显式开启时调用。"
+        : configured
+        ? "后端状态：模型配置存在，但完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。"
+        : "后端状态：确定性预检可用；模型未配置时，程序候选不会生成AI草稿。";
     } catch (error) {
       state.backendAvailable = false;
       setServiceStatus("本地后端不可用", "danger");

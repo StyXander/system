@@ -146,9 +146,18 @@ from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
 from .delivery import build_report, cache_run, replay_cache
 from .rag import get_retrieval, prepare_index, question_set, retrieve, status as rag_status
 from .run_store import load_run, save_human_review, save_run
-from .seed_catalog import get_seed_case, load_seed_cases, seed_catalog_summary
+from .seed_catalog import (
+    get_seed_case,
+    get_seed_retrieval,
+    load_seed_cases,
+    retrieve_seed_rag,
+    seed_catalog_summary,
+    seed_rag_status,
+)
 from .schemas import (
     AI_GENERATED_CONTENT_NOTICE,
+    AgentClaim,
+    AgentOutput,
     AgentStep,
     AuthLoginRequest,
     CachePrewarmRequest,
@@ -361,6 +370,12 @@ def _public_demo_enabled() -> bool:
     return os.getenv("AUDITTRACE_PUBLIC_DEMO", "false").strip().lower() in {"1", "true", "yes"}
 
 
+def _competition_demo_enabled() -> bool:
+    """竞赛演示关闭账号与租户依赖，但不放宽来源、文件和模型输出校验。"""
+
+    return os.getenv("AUDITTRACE_DEMO_MODE", "false").strip().lower() in {"1", "true", "yes"}
+
+
 def _client_identity(request: Request) -> str:
     forwarded_for = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
     if forwarded_for:
@@ -394,6 +409,8 @@ def _enforce_public_model_quota(request: Request) -> None:
 
 def _public_case(case: dict[str, Any]) -> dict[str, Any]:
     public = deepcopy(case)
+    # 演示检索片段只由服务端检索接口按需返回，案例目录不整包下发。
+    public.pop("demo_rag_evidence", None)
     private_case = not is_public_case(case)
     public.pop("package_sha256", None)
     public.pop("tenant_id", None)
@@ -406,6 +423,13 @@ def _public_case(case: dict[str, Any]) -> dict[str, Any]:
             # 内部来源只能通过 /sources/{document_id} 生成短时签名 URL，
             # 不把清单中的原始 URL带到前端或公开 JSON。
             document.pop("source_url", None)
+    documents = {str(item.get("document_id") or ""): item for item in public.get("documents", [])}
+    for field in public.get("financial_fields", []):
+        document = documents.get(str(field.get("document_id") or "")) or {}
+        # 种子不携带部署本机文件名；页面以稳定文档编号展示来源，不再显示空白或 undefined。
+        field["source_file"] = field.get("source_file") or field.get("document_id")
+        field["file_sha256"] = field.get("file_sha256") or document.get("sha256")
+        field["source_mode"] = field.get("source_mode") or "supabase_persisted_verified"
     return public
 
 
@@ -612,7 +636,9 @@ def _public_pipeline_task(task: dict[str, Any]) -> dict[str, Any]:
 def _remote_case_for_run(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any] | None:
     if not supabase_enabled():
         local = get_case(WORKSPACE_ROOT, case_id)
-        return _normalize_official_public_case(local) if local is not None else None
+        if local is not None:
+            return _normalize_official_public_case(local)
+        return get_seed_case(WORKSPACE_ROOT, case_id) if _competition_demo_enabled() else None
     scoped_local = _exact_tenant_local_case(case_id, tenant_id=tenant_id)
     if scoped_local is not None:
         return scoped_local
@@ -640,7 +666,9 @@ def _remote_case_for_run(case_id: str, *, tenant_id: str | None = None) -> dict[
 def _case_record(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any] | None:
     if not supabase_enabled():
         local = get_case(WORKSPACE_ROOT, case_id)
-        return _normalize_official_public_case(local) if local is not None else None
+        if local is not None:
+            return _normalize_official_public_case(local)
+        return get_seed_case(WORKSPACE_ROOT, case_id) if _competition_demo_enabled() else None
     scoped_local = _exact_tenant_local_case(case_id, tenant_id=tenant_id)
     if scoped_local is not None:
         return scoped_local
@@ -1370,17 +1398,31 @@ def _remote_prewarm_report(batch: dict[str, Any]) -> dict[str, Any]:
 def _visible_case_records(http_request: Request) -> tuple[Any, list[dict[str, Any]], dict[str, Any]]:
     identity = optional_authenticated(http_request)
     local_cases = [_normalize_official_public_case(case) for case in list_cases(WORKSPACE_ROOT)]
-    cases = [
-        case
-        for case in local_cases
-        if not supabase_enabled()
-        or is_public_case(case)
-        or (identity and identity.tenant_id and str(case.get("tenant_id") or "") == identity.tenant_id)
-    ]
+    if _competition_demo_enabled():
+        # 比赛目录固定为一个标准案例加 50 家公开 CNINFO 样例；历史运行目录
+        # 里的临时案例不混入选择器，避免重复公司和评委看到不相关状态。
+        standard = next((case for case in local_cases if str(case.get("case_id") or "") == CASE_ID), None)
+        cases = [standard] if standard is not None else []
+        cases.extend(load_seed_cases(WORKSPACE_ROOT))
+    else:
+        cases = [
+            case
+            for case in local_cases
+            if not supabase_enabled()
+            or is_public_case(case)
+            or (identity and identity.tenant_id and str(case.get("tenant_id") or "") == identity.tenant_id)
+        ]
     catalog_state: dict[str, Any] = {
         "status": "local_only" if not supabase_enabled() else "ready",
         "source": "runtime",
     }
+    if _competition_demo_enabled():
+        if not supabase_enabled():
+            catalog_state = {
+                "status": "demo_ready",
+                "source": "standard_case_plus_tracked_verified_cninfo_seed",
+                "detail": "竞赛演示目录固定展示标准案例和 50 家已校验的公开年报样例，不需要登录服务。",
+            }
     if supabase_enabled():
         try:
             remote_rows = get_supabase_client().list_case_metadata(
@@ -1891,7 +1933,9 @@ def _industry_period_sources(
         source["field_id"] = f"industry_{row.get('field_kind')}_{year}"
         source["field_label"] = f"{year}年{row.get('field_kind')}（行业专用字段）"
         if document:
-            source.setdefault("source_file", document.get("source_file"))
+            # 部署种子刻意不携带本机文件名；setdefault 会把首次写入的 None
+            # 永久保留，导致后续文档编号兜底失效。这里按有效值逐级回退。
+            source["source_file"] = source.get("source_file") or document.get("source_file") or source.get("document_id")
             source.setdefault("storage_relpath", document.get("storage_relpath"))
             source.setdefault("file_sha256", document.get("sha256") or document.get("file_sha256"))
             source.setdefault("source_url", document.get("source_url"))
@@ -1899,10 +1943,10 @@ def _industry_period_sources(
             source.setdefault("disclosure_date", document.get("disclosure_date"))
         if local_rows is None:
             source["source_mode"] = "supabase_persisted_verified"
-            source.setdefault("source_file", source.get("document_id"))
-            source.setdefault("file_sha256", (document or {}).get("sha256") or source.get("file_sha256"))
-            source.setdefault("locator", f"PDF 第 {source.get('pdf_page')} 页")
-            source.setdefault("unit", case.get("amount_unit", "元"))
+            source["source_file"] = source.get("source_file") or source.get("document_id")
+            source["file_sha256"] = source.get("file_sha256") or (document or {}).get("sha256")
+            source["locator"] = source.get("locator") or f"PDF 第 {source.get('pdf_page')} 页"
+            source["unit"] = source.get("unit") or case.get("amount_unit", "元")
         eligible.append(source)
     years = sorted({int(row["year"]) for row in eligible}, reverse=True)
     effective_year = max(years, default=None)
@@ -2052,6 +2096,12 @@ def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model
         return ModelCheck(status="model_transfer_revoked", model_id=model_id, detail="逐案模型传输同意已撤销或无法确认，已关闭后续AI调用。")
     if "MODEL_OUTPUT_INVALID" in statuses or "EVIDENCE_BUNDLE_EMPTY" in statuses:
         return ModelCheck(status="MODEL_OUTPUT_INVALID", model_id=model_id, detail="模型输出或证据包未通过硬校验，完整分析未完成。")
+    if any(step.failure_code == "DEMO_FALLBACK" for step in steps):
+        return ModelCheck(
+            status="demo_fallback",
+            model_id="demo-deterministic-v1",
+            detail="外部模型未作为比赛演示前置条件；本次使用绑定证据的确定性演示草稿。",
+        )
     completed = [step for step in steps if step.status == "completed"]
     candidate_count = sum(1 for result in results if result.status == "candidate")
     if candidate_count and len(completed) == candidate_count * 3:
@@ -2064,6 +2114,86 @@ def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model
             detail="三Agent完成结构化输出；数字、来源和人工处理未交给模型决定。",
         )
     return ModelCheck(status="MODEL_OUTPUT_INVALID", model_id=model_id, detail="AI草稿链没有形成完整可验证结果。")
+
+
+def _demo_agent_steps(
+    *,
+    run_id: str,
+    rule_result: RuleResult,
+    evidence_bundle: dict[str, Any],
+    model_id: str,
+) -> list[AgentStep]:
+    """在比赛模式提供可重复的证据绑定草稿，避免外部模型服务阻塞现场演示。"""
+
+    evidence_rows = [
+        item
+        for key in ("field_evidence", "rag_evidence", "supplement_evidence")
+        for item in evidence_bundle.get(key, [])
+        if isinstance(item, dict) and item.get("evidence_id")
+    ]
+    evidence_ids = list(dict.fromkeys(str(item["evidence_id"]) for item in evidence_rows))[:4]
+    fallback_ids = evidence_ids
+    support_status = "supported" if fallback_ids else "unverified_hypothesis"
+    gaps = list(dict.fromkeys(
+        str(item) for item in (
+            list((rule_result.risk_card or {}).get("data_gaps") or [])
+            + list(rule_result.source_validation.get("issues") or [])
+            + list(evidence_bundle.get("evidence_gaps") or [])
+        ) if str(item).strip()
+    ))[:8]
+    requested = list(dict.fromkeys(
+        str(item) for item in ((rule_result.risk_card or {}).get("requested_materials") or []) if str(item).strip()
+    ))[:8]
+    observation = str((rule_result.risk_card or {}).get("observation") or "规则已完成确定性预筛，结果仍需人工回看证据。")
+    status = "defer" if gaps or rule_result.status == "candidate" else "retain"
+    recommendation = "defer" if status == "defer" else "retain"
+    outputs: list[AgentStep] = []
+    role_text = {
+        "challenge": "挑战：检查候选是否有证据支持；演示模式不把缺失资料解释成负面结论。",
+        "counter": "反向：列出正常解释和仍需补充的公开资料，避免单一指标直接定性。",
+        "review": "复核：汇总当前证据、数据缺口和下一步人工回页动作。",
+    }
+    for role in ("challenge", "counter", "review"):
+        output = AgentOutput(
+            schema_version="agent_output_v2",
+            run_id=run_id,
+            role=role,
+            rule_id=rule_result.rule_id,
+            status=status,
+            claims=[AgentClaim(text=observation[:500], evidence_ids=fallback_ids, support_status=support_status)],
+            normal_explanations=[
+                AgentClaim(
+                    text="公开年报候选和演示检索片段只能形成待核查提示，不替代专业判断。",
+                    evidence_ids=fallback_ids,
+                    support_status=support_status,
+                )
+            ],
+            data_gaps=gaps,
+            requested_materials=requested,
+            reason_for_status="竞赛演示使用确定性模板；正式采用前仍需真人回查文档、口径、金额单位和页码。",
+            draft_title="竞赛演示：证据绑定的待核查建议",
+            draft_observation=observation[:1000],
+            ai_recommendation=recommendation,
+        )
+        outputs.append(
+            AgentStep(
+                role=role,
+                status="completed",
+                detail=role_text[role] + " 未调用外部模型。",
+                model_id=model_id,
+                prompt_version="demo-deterministic-v1",
+                response_sha256=hashlib.sha256(output.model_dump_json().encode("utf-8")).hexdigest(),
+                failure_code="DEMO_FALLBACK",
+                output=output,
+            )
+        )
+    return outputs
+
+
+def _demo_external_model_enabled() -> bool:
+    """比赛模式默认关闭外部模型网络调用，需显式开关才使用真实供应商。"""
+
+    return os.getenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false").strip().lower() in {"1", "true", "yes", "on"}
 
 
 RAG_QUESTIONS_BY_RULE = {
@@ -2115,6 +2245,15 @@ def _run_rag_for_candidates(
                         company_name=context["company_name"],
                     )
                     if local_case is not None
+                    else retrieve_seed_rag(
+                        remote_case,
+                        query="",
+                        question_id=question_id,
+                        t0=context["t0"],
+                        rule_id=rule_id,
+                        top_k=2,
+                    )
+                    if _competition_demo_enabled() and remote_case.get("demo_rag_evidence")
                     else _remote_rag_retrieve(
                         case=remote_case or {},
                         query="",
@@ -2470,16 +2609,28 @@ def _execute_run(
                 "supplement_evidence": supplementary,
                 "evidence_gaps": evidence_gaps,
             }
-            # RAG 片段在主链中显式进入 Agent；硬校验仍只允许引用该 bundle 的 evidence_id。
-            result.agent_steps = run_agent_chain(
-                run_id=run_id,
-                rule_result=result,
-                evidence_bundle=rule_bundle,
-                enabled=True,
-                api_key=api_key,
-                base_url=base_url,
-                model_id=model_id,
-                before_role=model_recheck,
+            # RAG 片段在主链中显式进入 Agent；比赛模式默认使用确定性演示
+            # 草稿，只有显式设置 AUDITTRACE_DEMO_USE_EXTERNAL_MODEL 才联网调用。
+            result.agent_steps = (
+                _demo_agent_steps(
+                    run_id=run_id,
+                    rule_result=result,
+                    evidence_bundle=rule_bundle,
+                    model_id="demo-deterministic-v1",
+                )
+                if result.status == "candidate"
+                and _competition_demo_enabled()
+                and not _demo_external_model_enabled()
+                else run_agent_chain(
+                    run_id=run_id,
+                    rule_result=result,
+                    evidence_bundle=rule_bundle,
+                    enabled=True,
+                    api_key=api_key,
+                    base_url=base_url,
+                    model_id=model_id,
+                    before_role=model_recheck,
+                )
             )
             review_step = next(
                 (step for step in result.agent_steps if step.role == "review" and step.status == "completed" and step.output),
@@ -2509,6 +2660,12 @@ def _execute_run(
                 else "complete_public_prescreen_no_candidate"
                 if prescreen_plan
                 else "complete_full_analysis_no_candidate"
+            )
+        elif model_check.status == "demo_fallback":
+            run_completeness = (
+                "complete_demo_fallback_with_gaps"
+                if partial_prescreen
+                else "complete_demo_fallback"
             )
         elif model_check.status == "model_success":
             run_completeness = "complete_public_prescreen_with_gaps" if partial_prescreen else "complete_full_analysis"
@@ -2621,7 +2778,12 @@ def project_status(http_request: Request) -> dict[str, Any]:
     else:
         registered = {"status_file": "missing"}
     identity, cases, catalog_state = _visible_case_records(http_request)
-    rag_cases = [rag_status(WORKSPACE_ROOT, case["case_id"]) for case in cases]
+    rag_cases = [
+        seed_rag_status(case)
+        if _competition_demo_enabled() and case.get("demo_rag_evidence") and _materialized_case_for_resolved(case, tenant_id=None) is None
+        else rag_status(WORKSPACE_ROOT, case["case_id"])
+        for case in cases
+    ]
     api_key, _, model_id = _model_settings()
     return _with_ai_notice({
         **registered,
@@ -2648,6 +2810,12 @@ def project_status(http_request: Request) -> dict[str, Any]:
             "model_id": model_id,
             "boundary": "配置存在不代表真实完整运行已经验收。",
         },
+        "demo_mode": {
+            "enabled": _competition_demo_enabled(),
+            "login_required": False if _competition_demo_enabled() else supabase_enabled(),
+            "supplement_policy": "public_sample_material" if _competition_demo_enabled() else "authorized_private_material",
+            "boundary": "竞赛演示仅展示产品思路；账号、多租户和生产保密流程未启用。" if _competition_demo_enabled() else "正式工程边界。",
+        },
         "persistence": configured_persistence(),
         "catalog": {**catalog_state, "seed": seed_catalog_summary(WORKSPACE_ROOT)},
         "auth": {
@@ -2668,7 +2836,11 @@ def get_cases(http_request: Request) -> dict[str, Any]:
             "authenticated": identity is not None and not identity.is_local,
             "tenant_id": identity.tenant_id if identity and not identity.is_local else None,
         },
-        "boundary": "公开案例可匿名读取；内部案例只展示给所属租户成员。来源快照变化后仍须重新核验。",
+        "boundary": (
+            "竞赛演示案例与补充资料均按公开样例处理；来源快照变化后仍须重新核验。"
+            if _competition_demo_enabled()
+            else "公开案例可匿名读取；内部案例只展示给所属租户成员。来源快照变化后仍须重新核验。"
+        ),
     })
 
 
@@ -3189,7 +3361,13 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
     # 外部模型调用在公网模式必须有真实登录身份；匿名用户仍可完成公开确定性预筛，
     # 但不会把项目级许可误当作用户级模型授权。
     original_model_transfer_allowed = bool(context.get("model_transfer_allowed"))
-    model_authorized = authorize_model_transfer(http_request, case) if supabase_enabled() else original_model_transfer_allowed
+    model_authorized = (
+        True
+        if _competition_demo_enabled()
+        else authorize_model_transfer(http_request, case)
+        if supabase_enabled()
+        else original_model_transfer_allowed
+    )
     model_recheck: Callable[[str], bool] | None = None
     if not model_authorized:
         context["model_transfer_allowed"] = False
@@ -3350,6 +3528,116 @@ def _execute_cninfo_batch(
                     )
 
 
+def _find_demo_seed_case(company_query: str) -> dict[str, Any] | None:
+    """按股票代码或公司名定位比赛目录中的公开样例。"""
+
+    query = str(company_query or "").strip().lower()
+    if not query:
+        return None
+    exact: list[dict[str, Any]] = []
+    partial: list[dict[str, Any]] = []
+    for case in load_seed_cases(WORKSPACE_ROOT):
+        values = {
+            str(case.get("ticker") or "").strip().lower(),
+            str(case.get("company_name") or "").strip().lower(),
+            str(case.get("company_alias") or "").strip().lower(),
+        }
+        values.discard("")
+        if query in values:
+            exact.append(case)
+        elif any(query in value or value in query for value in values):
+            partial.append(case)
+    if len(exact) == 1:
+        return exact[0]
+    if len(partial) == 1:
+        return partial[0]
+    return None
+
+
+def _execute_demo_seed_pipeline(task_id: str, payload: dict[str, Any], http_request: Request) -> None:
+    """直接使用已校验公开种子完成 Demo 任务，不重复下载同一份年报。"""
+
+    from .pipeline import _set_step
+
+    task = load_task(WORKSPACE_ROOT, task_id)
+    case = _find_demo_seed_case(str(payload.get("company_query") or ""))
+    if task is None or case is None:
+        if task is not None:
+            mark_analysis_failure(WORKSPACE_ROOT, task_id, ValueError("演示目录中没有匹配的公开企业样例。"))
+        return
+    task["case_id"] = case["case_id"]
+    task["company"] = {
+        "company_name": case.get("company_name"),
+        "ticker": case.get("ticker"),
+        "org_id": case.get("org_id"),
+    }
+    _save_task(WORKSPACE_ROOT, task)
+    try:
+        for step_name, detail in (
+            ("company_resolve", "已从比赛公开样例目录确认公司与股票代码。"),
+            ("announcement_search", "已读取预校验的巨潮年报公告元数据。"),
+            ("document_select", "已选定每年度登记的正式年报文档。"),
+            ("download", "Demo 复用已登记公开快照，不重复下载整本 PDF。"),
+            ("document_validate", "来源快照、文档编号和哈希已随种子构建时校验。"),
+            ("case_register", "已绑定公开案例和可回查字段证据。"),
+            ("rag_prepare", "已准备固定问题对应的公开 RAG 演示片段。"),
+            ("rag_smoke_test", "已完成固定问题 RAG 演示烟测。"),
+            ("field_extract", "已读取登记字段候选；缺口保持为数据缺口。"),
+            ("field_validate", "来源字段回填和技术校验通过，专业复核仍保留。"),
+        ):
+            _set_step(WORKSPACE_ROOT, task, step_name, "passed", detail)
+        report_years = [
+            int(year)
+            for year in (case.get("available_years") or case.get("available_report_years") or [])
+            if str(year).isdigit()
+        ]
+        if not report_years:
+            report_years = [
+                int(document["report_year"])
+                for document in case.get("documents", [])
+                if str(document.get("report_year") or "").isdigit()
+            ]
+        current_year = max(report_years)
+        analysis_mode = str(payload.get("analysis_mode") or "full_analysis")
+        run = run_rules(
+            RunRequest(
+                case_id=str(case["case_id"]),
+                current_year=current_year,
+                scene="审计计划",
+                rule_ids=list(payload.get("rule_ids") or ["R1"]),
+                run_mode="full_analysis" if analysis_mode == "full_analysis" else "calculation_only",
+            ),
+            http_request,
+        )
+        result = {
+            "status": "ready_for_analysis",
+            "case_id": case["case_id"],
+            "company": {
+                "company_name": case.get("company_name"),
+                "ticker": case.get("ticker"),
+                "org_id": case.get("org_id"),
+            },
+            "report_years": sorted(report_years, reverse=True),
+            "documents": deepcopy(case.get("documents") or []),
+            "rag": seed_rag_status(case),
+            "field_extraction": {
+                "status": case.get("financial_fields_status") or "passed_technical_with_gaps",
+                "row_count": len(case.get("financial_fields") or []),
+                "issues": deepcopy(case.get("material_gaps") or []),
+                "rows": deepcopy(case.get("financial_fields") or []),
+            },
+            "industry_gate": deepcopy(case.get("industry_gate") or {}),
+            "human_review_recommended": True,
+        }
+        task["result"] = result
+        _save_task(WORKSPACE_ROOT, task)
+        update_analysis_result(WORKSPACE_ROOT, task_id, run.model_dump(mode="json"))
+        task = load_task(WORKSPACE_ROOT, task_id) or task
+        _set_step(WORKSPACE_ROOT, task, "analysis_run", "passed", "公开样例已完成规则、RAG 和演示分析。", run_id=run.run_id, run_completeness=run.run_completeness)
+    except Exception as error:
+        mark_analysis_failure(WORKSPACE_ROOT, task_id, error)
+
+
 @app.post("/api/pipelines/cninfo", status_code=202)
 def create_cninfo_pipeline(
     request: CNInfoPipelineRequest,
@@ -3360,8 +3648,19 @@ def create_cninfo_pipeline(
 
     # 公网下载、解析和建库会消耗网络、CPU 与存储，必须绑定真实任务所有者；本地竞赛行为不变。
     require_authenticated(http_request) if supabase_enabled() else optional_authenticated(http_request)
-    # 接口只负责排队并返回任务编号，进度通过 GET 接口读取，适合长 PDF 下载。
+    # 比赛模式优先命中 50 家公开种子，现场不因网络、下载或 PDF 解析波动失去
+    # 主链；不在种子中的新企业仍保留原有巨潮实时搜索路径。
     task = create_task(WORKSPACE_ROOT, request.model_dump(mode="json"))
+    if _competition_demo_enabled() and _find_demo_seed_case(request.company_query) is not None:
+        background_tasks.add_task(_execute_demo_seed_pipeline, task["task_id"], task["request"], http_request)
+        return _with_ai_notice(
+            {
+                "task_id": task["task_id"],
+                "status": task["status"],
+                "steps": task["steps"],
+                "boundary": "已命中公开样例快照；流程不需要登录，不重复下载整本年报。",
+            }
+        )
     _queue_pipeline_task(background_tasks, task, task["request"], http_request)
     return _with_ai_notice(
         {
@@ -3590,6 +3889,49 @@ def get_catalog_status(company_query: str | None = None) -> dict[str, Any]:
 @app.post("/api/cache/resolve")
 def resolve_catalog_cache(request: CacheResolveRequest) -> dict[str, Any]:
     """按证券代码或名称查询可直接复用的公开年报快照。"""
+
+    if _competition_demo_enabled():
+        years = prepare_report_years(request.latest_year, request.years)
+        seed = _find_demo_seed_case(request.company_query)
+        seed_years = {
+            int(year)
+            for year in (seed or {}).get("available_report_years", [])
+            if str(year).isdigit()
+        }
+        if not seed_years:
+            seed_years = {
+                int(document["report_year"])
+                for document in (seed or {}).get("documents", [])
+                if str(document.get("report_year") or "").isdigit()
+            }
+        match = (
+            {
+                "cache_state": "ready",
+                "case_id": seed.get("case_id"),
+                "ticker": seed.get("ticker"),
+                "company_name": seed.get("company_name"),
+                "report_years": sorted(seed_years, reverse=True),
+                "rag_index_version": ((seed.get("seed_rag") or {}).get("index_version")),
+                "source_fingerprint": seed.get("source_snapshot_id"),
+                "storage_backend": "tracked_demo_seed",
+            }
+            if seed and set(years).issubset(seed_years) and request.cache_policy != "force_refresh"
+            else None
+        )
+        return _with_ai_notice(
+            {
+                "schema_version": "catalog_resolve_v1",
+                "company_query": request.company_query,
+                "requested_years": years,
+                "cache_hit": bool(match),
+                "match": match,
+                "bootstrap_synced": 0,
+                "cache_policy": request.cache_policy,
+                "reason": "tracked_demo_seed_ready" if match else "force_refresh_requested" if request.cache_policy == "force_refresh" else "snapshot_not_found_or_incomplete",
+                "stale_match": None,
+                "next_step": "直接读取公开样例字段与 RAG 并进入规则分析。" if match else "未命中；继续执行巨潮搜索、下载、校验和建库。",
+            }
+        )
 
     if supabase_enabled():
         years = prepare_report_years(request.latest_year, request.years)
@@ -3953,7 +4295,7 @@ def export_run_report(run_id: str, http_request: Request) -> FileResponse:
         raise HTTPException(status_code=404, detail="运行对应案例不存在。")
     authorize_case_write(http_request, case)
     try:
-        path = build_report(WORKSPACE_ROOT, stored)
+        path = build_report(WORKSPACE_ROOT, stored, demo_preview=_competition_demo_enabled())
     except ValueError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     return FileResponse(
@@ -3972,7 +4314,13 @@ def get_rag_status(http_request: Request, case_id: str = CASE_ID) -> dict[str, A
     authorize_case_access(http_request, case)
     if not supabase_enabled():
         local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
-        local_status = rag_status(WORKSPACE_ROOT, case_id.upper()) if local_case is not None else {"status": "not_built"}
+        local_status = (
+            rag_status(WORKSPACE_ROOT, case_id.upper())
+            if local_case is not None
+            else seed_rag_status(case)
+            if _competition_demo_enabled() and case.get("demo_rag_evidence")
+            else {"status": "not_built"}
+        )
         return _with_ai_notice(local_status)
     # 公网部署的 web 与 worker 不共享 SQLite；Supabase active snapshot 才是
     # 可恢复状态。即便本机有 ready 索引，也必须先读取远端，避免旧索引遮蔽新发布。
@@ -4035,6 +4383,8 @@ def prepare_rag(http_request: Request, case_id: str = CASE_ID, force: bool = Fal
             return _with_ai_notice({**remote_status, "rebuilt": False, "persistence": {"backend": "supabase", "cross_instance": True}})
         raise HTTPException(status_code=409, detail="fresh web 没有已登记原件，不能本地重建；请通过受控 pipeline 刷新。")
     local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
+    if local_case is None and _competition_demo_enabled() and case.get("demo_rag_evidence"):
+        return _with_ai_notice({**seed_rag_status(case), "rebuilt": False})
     _ensure_public_standard_sources(normalized_case_id)
     try:
         return _with_ai_notice(prepare_index(WORKSPACE_ROOT, case_id=normalized_case_id, force=force))
@@ -4052,18 +4402,28 @@ def rag_retrieve(request: RagRetrieveRequest, http_request: Request) -> dict[str
     try:
         if not supabase_enabled():
             local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
-            if local_case is None:
+            if local_case is not None:
+                record = retrieve(
+                    WORKSPACE_ROOT,
+                    query=request.query,
+                    t0=request.t0,
+                    rule_id=request.rule_id,
+                    top_k=request.top_k,
+                    case_id=request.case_id,
+                    company_name=request.company_name,
+                    question_id=request.question_id,
+                )
+            elif _competition_demo_enabled() and case.get("demo_rag_evidence"):
+                record = retrieve_seed_rag(
+                    case,
+                    query=request.query,
+                    t0=request.t0,
+                    rule_id=request.rule_id,
+                    top_k=request.top_k,
+                    question_id=request.question_id,
+                )
+            else:
                 raise RuntimeError("本地 RAG 索引尚未构建")
-            record = retrieve(
-                WORKSPACE_ROOT,
-                query=request.query,
-                t0=request.t0,
-                rule_id=request.rule_id,
-                top_k=request.top_k,
-                case_id=request.case_id,
-                company_name=request.company_name,
-                question_id=request.question_id,
-            )
         else:
             identity = request_identity(http_request)
             client = get_supabase_client()
@@ -4128,7 +4488,9 @@ def read_retrieval_log(retrieval_id: str, http_request: Request) -> dict[str, An
         if record is not None:
             record = {**record, "case_id": str(remote.get("case_id") or record.get("case_id") or "")}
     else:
-        record = get_retrieval(WORKSPACE_ROOT, retrieval_id)
+        record = get_retrieval(WORKSPACE_ROOT, retrieval_id) or (
+            get_seed_retrieval(retrieval_id) if _competition_demo_enabled() else None
+        )
     if record is None:
         raise HTTPException(status_code=404, detail="未找到该检索日志。")
     case_id = str(record.get("case_id") or "").upper()
@@ -4171,6 +4533,10 @@ async def register_supplement(
         rules = [item.strip() for item in bound_rule_ids.split(",") if item.strip()]
     content = await file.read() if file is not None else b""
     filename = file.filename if file is not None and file.filename else "structured.json"
+    # 竞赛站点只接收公开样例补充资料，不把授权与脱敏复选框做成展示阻塞项。
+    if _competition_demo_enabled():
+        authorized = True
+        desensitized = True
     record = create_supplement(
         WORKSPACE_ROOT,
         parent_run_id=parent_run_id,
@@ -4311,7 +4677,10 @@ def rerun_with_supplement(
     if identity and not identity.is_local:
         context["request_identity"] = identity.as_public_dict()
     model_recheck: Callable[[str], bool] | None = None
-    if supabase_enabled():
+    if _competition_demo_enabled():
+        context["model_transfer_allowed"] = True
+        context["model_transfer_scope"] = "公开样例字段、来源元数据和 RAG 片段；不上传整本 PDF。"
+    elif supabase_enabled():
         model_authorized = authorize_model_transfer(http_request, parent_case)
         if not model_authorized:
             context["model_transfer_allowed"] = False

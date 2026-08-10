@@ -78,7 +78,7 @@
     <div class="topbar-context">
       <span class="context-label">审计计划 / 销售与收款循环</span>
       <span class="context-label active-company-context" id="active-company-context">当前公司：未选择</span>
-      <span class="context-label" id="auth-status">正在读取登录状态</span>
+      <span class="context-label" id="auth-status">竞赛演示模式 · 无需登录</span>
       <button class="button quiet auth-action" id="auth-action" type="button" hidden>登录</button>
       <span class="service-pill pending" id="service-pill">
         <i aria-hidden="true"></i>
@@ -148,8 +148,8 @@
         </dl>
       </section>
       <section class="sidebar-ledger auth-ledger" aria-labelledby="auth-heading">
-        <p class="nav-group-label" id="auth-heading">访问状态</p>
-        <p id="sidebar-auth-status">正在读取登录状态</p>
+        <p class="nav-group-label" id="auth-heading">演示状态</p>
+        <p id="sidebar-auth-status">无需登录 · 样例资料</p>
         <button class="button quiet" id="sidebar-auth-action" type="button" hidden>登录</button>
       </section>
     </aside>
@@ -251,10 +251,11 @@
               <a class="button quiet" id="case-template-download" href="/api/cases/template" download>下载标准案例 ZIP</a>
               <form id="case-import-form" enctype="multipart/form-data">
                 <label for="case-import-file"><span>选择案例 ZIP</span><input id="case-import-file" name="file" type="file" accept=".zip" required></label>
-                <div class="authorization-block compact-auth">
+                <div class="authorization-block compact-auth" hidden>
                   <label class="check-control"><input id="case-import-authorized" type="checkbox" checked><span>项目所有者已确认：合法公开或已获授权</span></label>
                   <label class="check-control"><input id="case-import-desensitized" type="checkbox" checked><span>项目所有者已确认：完成个人信息与脱敏检查</span></label>
                 </div>
+                <p class="form-help">竞赛演示模式：导入内容仅作为公开样例资料，不设置账号或保密审批步骤。</p>
                 <button class="button primary" id="case-import-submit" type="submit">导入并校验</button>
               </form>
               <div class="form-message" id="case-import-message" role="status" aria-live="polite">尚未上传新案例；可直接使用已登记标准案例。</div>
@@ -270,7 +271,7 @@
             <label><span>上年年度</span><output id="wb-previous-year">2024</output></label>
             <label for="wb-amount-unit"><span>金额显示单位</span><select id="wb-amount-unit" name="amount_unit" autocomplete="off"><option value="yuan">元</option><option value="thousand">千元</option><option value="ten-thousand">万元</option><option value="million">百万元</option><option value="hundred-million">亿元</option></select></label>
             <div class="locked-mode"><span>案例与模型许可</span><strong id="wb-case-mode">正在读取</strong><small id="wb-case-permission">完整分析以 manifest 的模型传输许可为硬边界。</small></div>
-            <div class="locked-mode model-consent-box"><span>外部模型逐案同意</span><strong id="wb-model-consent-status">正在读取</strong><small id="wb-model-consent-note">公网模式默认禁止传输；只允许字段证据、来源元数据和 RAG 命中片段。</small><div class="action-row"><button class="button quiet" type="button" id="wb-model-consent-button" hidden>确认本案最小范围传输</button><button class="button quiet" type="button" id="wb-model-consent-revoke" hidden>撤销本案同意</button></div></div>
+            <div class="locked-mode model-consent-box"><span>竞赛演示模型链</span><strong id="wb-model-consent-status">无需登录</strong><small id="wb-model-consent-note">样例字段、来源元数据和 RAG 片段可直接进入演示分析；默认使用证据绑定的确定性演示草稿，配置真实模型后可切换。</small><div class="action-row"><button class="button quiet" type="button" id="wb-model-consent-button" hidden>演示模式无需确认</button><button class="button quiet" type="button" id="wb-model-consent-revoke" hidden>撤销</button></div></div>
           </div>
           <div class="project-time-note">
             <strong>项目与分析时点</strong>
@@ -430,10 +431,11 @@
              <label class="wide" for="wb-sup-json"><span>结构化补充证据 JSON（可选）</span><textarea id="wb-sup-json" name="structured_json" rows="7" autocomplete="off" spellcheck="false" placeholder='{"aging_summary":{"over_180_days_ratio":0.21},"subsequent_receipts_summary":{"receipt_ratio":0.63}}'></textarea></label>
             <label class="wide" for="wb-sup-note"><span>资料说明</span><textarea id="wb-sup-note" name="note" rows="3" autocomplete="off"></textarea></label>
           </div>
-          <div class="authorization-block">
+          <div class="authorization-block" hidden>
             <label class="check-control"><input id="wb-sup-authorized" name="authorized" type="checkbox" checked><span>项目所有者已确认资料合法公开或已获授权</span></label>
             <label class="check-control"><input id="wb-sup-desensitized" name="desensitized" type="checkbox" checked><span>项目所有者已确认完成个人信息与脱敏检查</span></label>
           </div>
+          <p class="form-help"><strong>竞赛演示模式：</strong>这里上传的内容一律视为无保密要求的样例补充资料。系统仍会记录资料日期、文件哈希和父子运行关系，并据此生成追加分析。</p>
           <p class="form-help">独立证据字段：aging_summary、subsequent_receipts_summary、credit_policy_change、contract_terms。旧版报表字段更正仅作兼容并醒目标注，不作为主要补充资料路径。</p>
           <div class="action-row">
             <button class="button primary" type="submit" id="wb-sup-register">预检并登记</button>
@@ -449,7 +451,7 @@
 
       <section class="view" data-view-panel="delivery" aria-labelledby="delivery-heading" hidden>
         <header class="page-heading">
-          <div><p class="kicker">07 / HUMAN REVIEW & DELIVERY</p><h2 id="delivery-heading">人工复核与交付</h2><p><strong>AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</strong>只有真实复核人回查证据、保存处理意见并明确允许导出后，缓存与 report_v2 Word 备忘录才可用。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
+          <div><p class="kicker">07 / DEMO REVIEW & DELIVERY</p><h2 id="delivery-heading">演示复核与报告</h2><p><strong>AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</strong>竞赛模式可直接下载带“未经真人复核”水印的演示报告；如需作为正式材料，仍应补做真人复核。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
           <span class="state waiting" id="delivery-state">未复核</span>
         </header>
 
@@ -539,7 +541,7 @@
     </main>
   </div>
 
-  <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-dialog-title" aria-describedby="auth-dialog-note">
+  <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-dialog-title" aria-describedby="auth-dialog-note" hidden>
     <form id="auth-login-form" method="dialog">
       <div class="dialog-head">
         <div><span class="folio">SECURE TENANT ACCESS</span><h2 id="auth-dialog-title">登录公网工作区</h2></div>

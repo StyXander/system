@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-09T21:35:31+08:00",
+  "updated_at": "2026-08-10T16:20:00+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -23,11 +23,11 @@
     "cninfo_pipeline": "cninfo_pipeline_v1"
   },
   "acceptance_snapshot": {
-    "date": "2026-08-09",
-    "source_repository_pytest": "177 passed, 1 warning, 35.05s",
+    "date": "2026-08-10",
+    "source_repository_pytest": "179 passed, 1 warning, 254.28s",
     "rag_specialized_pytest": "13 passed, 1 warning",
-    "frontend_contract": "193 unique ids, 324 refs, 8 views",
-    "chinese_comments": "1569/14535 = 10.79%",
+    "frontend_contract": "193 unique ids, 326 refs, 8 views",
+    "chinese_comments": "1596/15186 = 10.51%",
     "browser": "8 views, 1440x1000, 1024x768, 768x1024, 390x844, console 0, document overflow 0, company context 02-08 verified",
     "company_context": "02-08 page headings, topbar and sidebar update on case switch and reload; BYD 002594 verified",
     "controlled_cninfo": {
@@ -36,7 +36,19 @@
       "full_analysis_task": "CNINFO-396B4BD22EF completed with DATA_GAP, no model call"
     },
     "report": "审迹智链_全功能再次验收与Bug修复报告_2026-08-09.md",
-    "truth_boundary": "真实 Supabase 迁移/RLS、真实登录 consent、真实外部模型调用、专业签字和 B0-B3 正式评分仍待环境或真人验收"
+    "truth_boundary": "比赛 Demo 已完成本地验收；真实 Supabase 迁移/RLS、登录 consent、外部模型调用、专业签字和 B0-B3 正式评分仍不在比赛主链"
+  },
+  "competition_demo": {
+    "enabled_by": ["AUDITTRACE_DEMO_MODE=true", "AUDITTRACE_PUBLIC_DEMO=true", "AUDITTRACE_PERSISTENCE=local"],
+    "login_required": false,
+    "seed_company_count": 50,
+    "seed_rag_checked": 50,
+    "source_incomplete": 0,
+    "run_status_distribution": {"RULE_NOT_TRIGGERED": 28, "candidate": 15, "DATA_GAP": 7},
+    "model_fallback": "demo_fallback",
+    "supplement_rerun": "ready_for_rerun -> RUN-SUP-* with 2 independent evidence rows and recommendation_change",
+    "report": "DOCX demo preview with 未登录/未经真人专业复核 watermark",
+    "browser_local": "BYD 002594 context, RAG, supplement rerun, report download, 390x844 overflow gate passed"
   },
   "capabilities": {
     "standard_case_import": "implemented_and_tested",
@@ -71,8 +83,8 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp .pytest_tmp\\final-20260809-current",
-      "latest_result": "177 passed, 1 warning, 35.05s",
-      "executed_on": "2026-08-09",
+      "latest_result": "179 passed, 1 warning, 254.28s",
+      "executed_on": "2026-08-10",
       "status": "passed"
     },
     "clean_package": {
@@ -87,8 +99,8 @@
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "1569/14535 = 10.79%",
-      "executed_on": "2026-08-09",
+      "latest_result": "1596/15186 = 10.51%",
+      "executed_on": "2026-08-10",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -143,9 +155,9 @@
   "quality_evidence": {
     "compileall": "passed_backend_app_2026-08-09",
     "ui_contrast": "passed_text_and_meaningful_boundaries_2026-08-09",
-    "browser_status": "passed_real_fastapi_browser_4_viewports_8_views_console_0_failed_request_0_http_error_0_document_overflow_0",
+    "browser_status": "passed_local_competition_demo_BYD_RAG_supplement_report_390x844_no_overflow",
     "browser_artifacts": "artifacts/review-2026-08-09-execution",
-    "browser_boundary": "真实 Supabase、登录 consent 和外部模型未在本地浏览器环境执行；人工专业闸门仍保留",
+    "browser_boundary": "本地浏览器验收覆盖免登录比赛 Demo；真实 Supabase、登录 consent 和外部模型不进入比赛主链，人工专业闸门仍保留",
     "github_release": "v1.2.0 historical tag; final code is on main",
     "github_commit": "recorded by the final git commit; not embedded to avoid a self-referential hash",
     "cache_manifest": "backend/cache_seed.lock.json validated 50/50 ready with 2025/2024/2023 metadata",

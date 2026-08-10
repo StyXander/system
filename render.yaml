@@ -11,53 +11,18 @@ services:
         value: 3.12.10
       - key: AUDITTRACE_PUBLIC_DEMO
         value: "true"
+      - key: AUDITTRACE_DEMO_MODE
+        value: "true"
       - key: AUDITTRACE_PERSISTENCE
-        value: supabase
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: SUPABASE_PRIVATE_BUCKET
-        value: audittrace-private
-      - key: SUPABASE_SIGNED_URL_SECONDS
-        value: "600"
+        value: local
+      - key: AUDITTRACE_DEMO_USE_EXTERNAL_MODEL
+        value: "false"
       - key: AUDITTRACE_MODEL_RUN_WINDOW_SECONDS
         value: "900"
       - key: AUDITTRACE_MODEL_RUN_LIMIT
         value: "2"
       - key: AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT
         value: "40"
-      - key: DEEPSEEK_API_KEY
-        sync: false
-      - key: DEEPSEEK_BASE_URL
-        value: https://api.deepseek.com
-      - key: DEEPSEEK_MODEL
-        value: deepseek-v4-flash
-  - type: worker
-    name: audittrace-worker
-    runtime: python
-    plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: python -m backend.app.worker
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.10
-      - key: AUDITTRACE_PERSISTENCE
-        value: supabase
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: SUPABASE_PRIVATE_BUCKET
-        value: audittrace-private
-      - key: SUPABASE_SIGNED_URL_SECONDS
-        value: "600"
-      - key: AUDITTRACE_PUBLIC_DEMO
-        value: "true"
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: DEEPSEEK_BASE_URL

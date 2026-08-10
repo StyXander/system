@@ -84,7 +84,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from .schemas import AI_GENERATED_CONTENT_NOTICE, RunResponse, StoredRunResponse
+from .schemas import AI_GENERATED_CONTENT_NOTICE, HumanReviewRequest, RunResponse, StoredRunResponse
 
 
 REPORT_VERSION = "report_v2"
@@ -208,15 +208,24 @@ def _add_heading(document: Document, text: str, level: int = 1) -> None:
         run.font.color.rgb = RGBColor(12, 71, 82)
 
 
-def build_report(workspace_root: Path, stored: StoredRunResponse) -> Path:
+def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_preview: bool = False) -> Path:
     review = stored.human_review
     if review is None or review.status == "未复核" or not review.export_approved:
-        raise ValueError("导出前必须由人工复核并明确允许导出。")
+        if not demo_preview:
+            raise ValueError("导出前必须由人工复核并明确允许导出。")
+        review = HumanReviewRequest(
+            status="未复核",
+            reviewer="竞赛演示模式",
+            note="这是用于展示系统思路的自动演示报告，尚未经真人专业复核。",
+            reviewed_at=None,
+            export_approved=False,
+            reviewer_type="automation",
+        )
     if stored.run.schema_version != "run_output_v2" or stored.run.context.get("run_schema_version") != "run_output_v2":
         raise ValueError("旧 run_v1 记录只读兼容，不能重新包装成 report_v2。")
 
     namespace = re.sub(r"[^A-Za-z0-9_-]", "", os.getenv("AUDITTRACE_RUNTIME_NAMESPACE", ""))
-    is_automation = review.reviewer_type == "automation" or bool(namespace)
+    is_automation = demo_preview or review.reviewer_type == "automation" or bool(namespace)
     report_dir = _runtime_base(workspace_root) / "reports"
     report_dir.mkdir(parents=True, exist_ok=True)
     path = report_dir / f"{stored.run.run_id}_预审风险备忘录_{REPORT_VERSION}.docx"
@@ -265,6 +274,13 @@ def build_report(workspace_root: Path, stored: StoredRunResponse) -> Path:
         _set_run_font(ai_notice_run)
         ai_notice_run.bold = True
         ai_notice_run.font.color.rgb = RGBColor(170, 76, 24)
+    if demo_preview:
+        preview = document.add_paragraph()
+        preview.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        preview_run = preview.add_run("【竞赛演示报告｜未登录｜未经真人专业复核】")
+        _set_run_font(preview_run)
+        preview_run.bold = True
+        preview_run.font.color.rgb = RGBColor(176, 35, 35)
     if stored.run.run_completeness != "complete_full_analysis":
         incomplete = document.add_paragraph()
         incomplete.alignment = WD_ALIGN_PARAGRAPH.CENTER
