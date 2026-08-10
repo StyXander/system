@@ -869,6 +869,15 @@
     renderAuthControls();
     const listing = await api("/api/cases", {}, authRecovery);
     state.cases = listing.cases || [];
+    const catalog = state.projectStatus.catalog || listing.catalog || {};
+    if (catalog.status === "degraded") {
+      setServiceStatus("后端可用 · 公开目录降级", "pending");
+      showMessage(
+        byId("case-import-message"),
+        "Supabase 目录暂不可用，当前展示已校验的 50 家公开企业与字段候选；配置 Supabase 后可恢复跨实例队列、RAG 和报告持久化。",
+        "warning",
+      );
+    }
     const preferredRequest = options.keepCase ? state.caseId : state.requestedCase;
     const preferred = state.cases.some((item) => item.case_id === preferredRequest) ? preferredRequest : state.cases[0]?.case_id;
     await loadCaseDetail(preferred, { keepYear: true });
