@@ -134,6 +134,8 @@ from .cases import (
 from .industry_gate import build_not_applicable_context, evaluate_industry_gate
 from .industry_rules import build_industry_prescreen
 from .privacy import model_transmission_scope, scan_sensitive_payload
+from .public_model import PublicModelLedger, PublicModelQuotaError, build_cache_key
+from .evaluation import load_evaluation_dashboard
 from .catalog import (
     bootstrap_runtime_catalog,
     create_refresh_job,
@@ -175,6 +177,7 @@ from .schemas import (
     RunRequest,
     RunResponse,
     StoredRunResponse,
+    SupplementSampleRequest,
     SupplementRerunRequest,
 )
 from .source_cache import ensure_standard_sources
@@ -211,6 +214,14 @@ load_dotenv(WORKSPACE_ROOT / ".env")
 _PUBLIC_MODEL_REQUESTS_BY_IP: dict[str, deque[float]] = {}
 _PUBLIC_MODEL_REQUESTS_GLOBAL: deque[float] = deque()
 _PUBLIC_MODEL_REQUEST_LOCK = threading.Lock()
+_PUBLIC_MODEL_LEDGER: PublicModelLedger | None = None
+
+
+def _public_model_ledger() -> PublicModelLedger:
+    global _PUBLIC_MODEL_LEDGER
+    if _PUBLIC_MODEL_LEDGER is None:
+        _PUBLIC_MODEL_LEDGER = PublicModelLedger(WORKSPACE_ROOT)
+    return _PUBLIC_MODEL_LEDGER
 
 @asynccontextmanager
 async def app_lifespan(_app: FastAPI):
@@ -385,9 +396,14 @@ def _client_identity(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _enforce_public_model_quota(request: Request) -> None:
+def _enforce_public_model_quota(request: Request) -> str | None:
     if not _public_demo_enabled():
-        return
+        return None
+    if _demo_external_model_enabled():
+        try:
+            return _public_model_ledger().reserve(_client_identity(request))
+        except PublicModelQuotaError as error:
+            raise HTTPException(status_code=429, detail=str(error)) from error
     now = time.monotonic()
     window_seconds = _positive_int_env("AUDITTRACE_MODEL_RUN_WINDOW_SECONDS", 900)
     per_ip_limit = _positive_int_env("AUDITTRACE_MODEL_RUN_LIMIT", 2)
@@ -407,6 +423,7 @@ def _enforce_public_model_quota(request: Request) -> None:
             )
         recent_for_ip.append(now)
         _PUBLIC_MODEL_REQUESTS_GLOBAL.append(now)
+    return None
 
 
 def _public_case(case: dict[str, Any]) -> dict[str, Any]:
@@ -2143,6 +2160,55 @@ def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model
     return ModelCheck(status="MODEL_OUTPUT_INVALID", model_id=model_id, detail="AI草稿链没有形成完整可验证结果。")
 
 
+def _enrich_model_check(model_check: ModelCheck, results: list[RuleResult]) -> ModelCheck:
+    """把三 Agent 的实际 token、耗时和执行方式汇总到运行级状态。"""
+    steps = [step for result in results for step in result.agent_steps]
+    completed = [step for step in steps if step.status == "completed"]
+    calls = sum(1 for step in steps if step.model_id and step.status not in {"not_applicable", "not_requested"})
+    execution_mode = model_check.execution_mode
+    if any(step.failure_code == "DEMO_FALLBACK" for step in steps):
+        execution_mode = "deterministic_backup"
+    elif calls and model_check.status == "model_success":
+        execution_mode = "external_live"
+    return model_check.model_copy(update={
+        "input_tokens": sum(step.input_tokens or 0 for step in completed),
+        "output_tokens": sum(step.output_tokens or 0 for step in completed),
+        "duration_ms": sum(step.duration_ms or 0 for step in completed),
+        "provider_call_count": calls,
+        "execution_mode": execution_mode,
+    })
+
+
+def _cached_run_for_new_request(cached: RunResponse, *, run_id: str, context: dict[str, Any], cache_key_hash: str) -> RunResponse:
+    """复用已验证的模型结果，但为本次请求生成新的可追溯运行编号。"""
+    results: list[RuleResult] = []
+    for result in cached.rule_results:
+        steps: list[AgentStep] = []
+        for step in result.agent_steps:
+            output = step.output
+            if output is not None:
+                output = output.model_copy(update={"run_id": run_id})
+            steps.append(step.model_copy(update={"output": output}))
+        results.append(result.model_copy(update={"agent_steps": steps}))
+    cached_context = deepcopy(cached.context)
+    cached_context.update({"case_id": context.get("case_id"), "current_year": context.get("current_year"), "selected_rule_ids": context.get("selected_rule_ids")})
+    model_check = cached.model_check.model_copy(update={"execution_mode": "external_cached", "cache_hit": True, "cache_key_hash": cache_key_hash})
+    return cached.model_copy(
+        update={
+            "run_id": run_id,
+            "context": cached_context,
+            "rule_results": results,
+            "model_check": model_check,
+            "execution_mode": "external_cached",
+            "cache_hit": True,
+            "cache_key_hash": cache_key_hash,
+            "model_id": model_check.model_id,
+            "prompt_version": PROMPT_VERSION,
+            "parent_run_id": context.get("parent_run_id"),
+        }
+    )
+
+
 def _demo_agent_steps(
     *,
     run_id: str,
@@ -2370,6 +2436,7 @@ def _execute_run(
     )
     run_id = f"{run_prefix}-{run_suffix}"
     context = deepcopy(context)
+    cache_fill_owner = False
     if pipeline_task_id:
         context["pipeline_task_id"] = pipeline_task_id
         _require_worker_lease(http_request)
@@ -2503,6 +2570,7 @@ def _execute_run(
             rule_results=rule_results,
         )
 
+    api_key, base_url, model_id = _model_settings()
     sensitive_findings = scan_sensitive_payload(
         {
             "field_evidence": public_sources,
@@ -2516,9 +2584,18 @@ def _execute_run(
         "findings": sensitive_findings,
         "external_model_scope": model_transmission_scope(),
     }
-    sensitive_data_blocked = bool(context.get("model_transfer_allowed") and sensitive_findings)
-
-    api_key, base_url, model_id = _model_settings()
+    # 只有本次确实准备调用外部模型时，隐私扫描命中才会阻断运行。
+    # 外部模型关闭或用户明确选择确定性备用时，仍应返回可审计的本地结果，
+    # 不能把“没有发生模型传输”误报成模型传输被拒绝。
+    sensitive_data_blocked = bool(
+        context.get("model_transfer_allowed")
+        and sensitive_findings
+        and bool(api_key)
+        and (_demo_external_model_enabled() or not context.get("public_prescreen"))
+        and not context.get("force_deterministic_backup")
+    )
+    reservation_id: str | None = None
+    cache_key_hash: str | None = None
     if run_mode == "calculation_only":
         for result in rule_results:
             result.agent_steps = [
@@ -2626,8 +2703,67 @@ def _execute_run(
             except SupabaseError:
                 context["privacy_scan"]["audit_status"] = "unavailable"
     else:
-        if candidate_exists:
-            _enforce_public_model_quota(http_request)
+        if candidate_exists and _demo_external_model_enabled() and api_key:
+            supplement_hash = hashlib.sha256(
+                json.dumps(supplementary, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest() if supplementary else None
+            cache_key_hash = build_cache_key(
+                case_id=str(context.get("case_id") or ""),
+                year=int(context.get("current_year") or 0),
+                rule_ids=list(rule_ids),
+                source_snapshot_id=str(context.get("source_snapshot_id") or SOURCE_SNAPSHOT_ID),
+                prompt_version=PROMPT_VERSION,
+                model_id=model_id,
+                supplement_hash=supplement_hash,
+            )
+            cached_payload = _public_model_ledger().get_cache(cache_key_hash)
+            if cached_payload:
+                try:
+                    cached_response = _cached_run_for_new_request(
+                        RunResponse.model_validate(cached_payload),
+                        run_id=run_id,
+                        context=context,
+                        cache_key_hash=cache_key_hash,
+                    )
+                except Exception:
+                    cached_response = None
+                if cached_response is not None:
+                    _require_worker_lease(http_request)
+                    save_run(WORKSPACE_ROOT, cached_response)
+                    return cached_response
+            cache_fill_owner, cache_fill_event = _public_model_ledger().acquire_cache_fill(cache_key_hash)
+            if not cache_fill_owner:
+                # 同一输入已经有访客在执行真实模型；等待其写入 24 小时缓存，
+                # 避免重复消耗 token。超时后才允许后续请求重新尝试。
+                cache_fill_event.wait(timeout=125)
+                cached_payload = _public_model_ledger().get_cache(cache_key_hash)
+                if cached_payload:
+                    try:
+                        cached_response = _cached_run_for_new_request(
+                            RunResponse.model_validate(cached_payload),
+                            run_id=run_id,
+                            context=context,
+                            cache_key_hash=cache_key_hash,
+                        )
+                    except Exception:
+                        cached_response = None
+                    if cached_response is not None:
+                        _require_worker_lease(http_request)
+                        save_run(WORKSPACE_ROOT, cached_response)
+                        return cached_response
+                cache_fill_owner = True
+        # A full-analysis request is quota-controlled even when the provider is
+        # currently unconfigured.  This preserves the public-demo safety
+        # boundary for repeated attempts that would otherwise bypass the
+        # limiter and also keeps the legacy ``check_model=true`` contract
+        # deterministic in local validation.  Explicit deterministic backups
+        # never consume a live-model reservation.
+        if (
+            candidate_exists
+            and run_mode == "full_analysis"
+            and not context.get("force_deterministic_backup")
+        ):
+            reservation_id = _enforce_public_model_quota(http_request)
         for result in rule_results:
             allowed_field_ids = set(result.evidence_ids)
             rule_bundle = {
@@ -2646,8 +2782,10 @@ def _execute_run(
                     model_id="demo-deterministic-v1",
                 )
                 if result.status == "candidate"
-                and _competition_demo_enabled()
-                and not _demo_external_model_enabled()
+                and (
+                    context.get("force_deterministic_backup")
+                    or (_competition_demo_enabled() and not _demo_external_model_enabled())
+                )
                 else run_agent_chain(
                     run_id=run_id,
                     rule_result=result,
@@ -2703,6 +2841,31 @@ def _execute_run(
                 else "incomplete_model_chain_failed"
             )
 
+    model_check = _enrich_model_check(model_check, rule_results)
+    if candidate_exists and model_check.execution_mode in {"external_live", "deterministic_backup"}:
+        supplement_hash = hashlib.sha256(
+            json.dumps(supplementary, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest() if supplementary else None
+        cache_key_hash = build_cache_key(
+            case_id=str(context.get("case_id") or ""),
+            year=int(context.get("current_year") or 0),
+            rule_ids=list(rule_ids),
+            source_snapshot_id=str(context.get("source_snapshot_id") or SOURCE_SNAPSHOT_ID),
+            prompt_version=PROMPT_VERSION,
+            model_id=model_id,
+            supplement_hash=supplement_hash,
+        )
+        model_check = model_check.model_copy(update={"cache_key_hash": cache_key_hash})
+    if reservation_id:
+        try:
+            _public_model_ledger().settle(
+                reservation_id,
+                input_tokens=model_check.input_tokens or 0,
+                output_tokens=model_check.output_tokens or 0,
+            )
+        except PublicModelQuotaError as error:
+            model_check = model_check.model_copy(update={"status": "quota_exhausted", "execution_mode": "unavailable", "detail": str(error)})
+            run_completeness = "incomplete_model_quota"
     ai_recommendation = _aggregate_ai_recommendation(rule_results)
     final_items = [result.ai_draft for result in rule_results if result.ai_draft]
     final_ai_draft = (
@@ -2743,11 +2906,27 @@ def _execute_run(
         evidence_bundle=evidence_bundle,
         retrievals=retrievals,
         final_ai_draft=final_ai_draft,
+        execution_mode=model_check.execution_mode,
+        model_id=model_check.model_id,
+        prompt_version=PROMPT_VERSION if model_check.execution_mode == "external_live" else None,
+        input_tokens=model_check.input_tokens or 0,
+        output_tokens=model_check.output_tokens or 0,
+        duration_ms=model_check.duration_ms or 0,
+        provider_call_count=model_check.provider_call_count,
+        cache_hit=model_check.cache_hit,
+        cache_key_hash=model_check.cache_key_hash,
+        parent_run_id=context.get("parent_run_id"),
     )
     # 最终本地/远程落盘前再确认一次；即使租约恰在最后一个模型角色后丢失，
     # 旧 worker 也不能发布运行或覆盖新持有者的 checkpoint。
     _require_worker_lease(http_request)
     save_run(WORKSPACE_ROOT, response)
+    if cache_key_hash and model_check.status == "model_success" and _demo_external_model_enabled():
+        _public_model_ledger().put_cache(cache_key_hash, response.model_dump(mode="json"))
+        if cache_fill_owner:
+            _public_model_ledger().complete_cache_fill(cache_key_hash)
+    elif cache_fill_owner and cache_key_hash:
+        _public_model_ledger().complete_cache_fill(cache_key_hash)
     # 公网模式的 Postgres 记录用于跨实例恢复；本地 JSON 仍作为竞赛模式和失败回放兜底。
     if supabase_enabled():
         identity = context.get("request_identity") if isinstance(context.get("request_identity"), dict) else {}
@@ -2812,6 +2991,17 @@ def project_status(http_request: Request) -> dict[str, Any]:
         for case in cases
     ]
     api_key, _, model_id = _model_settings()
+    live_acceptance = registered.get("live_model_acceptance") if isinstance(registered, dict) else None
+    model_execution_mode = (
+        "external_live" if _demo_external_model_enabled() and api_key
+        else "deterministic_backup" if _competition_demo_enabled()
+        else "unavailable" if not api_key else "external_live"
+    )
+    quota_snapshot = (
+        _public_model_ledger().quota_snapshot(_client_identity(http_request))
+        if _public_demo_enabled() and _demo_external_model_enabled()
+        else None
+    )
     return _with_ai_notice({
         **registered,
         "engine_version": ENGINE_VERSION,
@@ -2835,6 +3025,15 @@ def project_status(http_request: Request) -> dict[str, Any]:
         "model": {
             "status": "configured" if api_key else "config_missing",
             "model_id": model_id,
+            "execution_mode": model_execution_mode,
+            "public_access": bool(_competition_demo_enabled()),
+            "quota": quota_snapshot,
+            "last_verified_live_run": {
+                "run_id": live_acceptance.get("run_id"),
+                "model_id": live_acceptance.get("model_id") or model_id,
+                "completed_at": live_acceptance.get("completed_at"),
+                "completed_roles": live_acceptance.get("completed_roles", 0),
+            } if isinstance(live_acceptance, dict) and live_acceptance.get("result") == "model_success" else None,
             "boundary": "配置存在不代表真实完整运行已经验收。",
         },
         "demo_mode": {
@@ -2880,6 +3079,12 @@ def get_cases(http_request: Request, summary: bool = False, http_response: Respo
             else "公开案例可匿名读取；内部案例只展示给所属租户成员。来源快照变化后仍须重新核验。"
         ),
     })
+
+
+@app.get("/api/evaluations/current")
+def current_evaluation() -> dict[str, Any]:
+    """公开只读评估页只返回已冻结的真实进度和结果。"""
+    return _with_ai_notice(load_evaluation_dashboard(WORKSPACE_ROOT))
 
 
 @app.get("/api/auth/me")
@@ -3402,12 +3607,13 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
             raise HTTPException(status_code=422, detail="当前案例没有该年度所需的连续字段。") from error
         context["industry_gate"] = gate
     context["private_case"] = not is_public_case(case)
+    context["force_deterministic_backup"] = bool(request.force_deterministic_backup)
     # 外部模型调用在公网模式必须有真实登录身份；匿名用户仍可完成公开确定性预筛，
     # 但不会把项目级许可误当作用户级模型授权。
     original_model_transfer_allowed = bool(context.get("model_transfer_allowed"))
     model_authorized = (
         True
-        if _competition_demo_enabled()
+        if request.force_deterministic_backup or _competition_demo_enabled()
         else authorize_model_transfer(http_request, case)
         if supabase_enabled()
         else original_model_transfer_allowed
@@ -3453,6 +3659,36 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
         supplement_evidence=case.get("structured_evidence", []),
         model_recheck=model_recheck,
     )
+
+
+@app.post("/api/runs/{run_id}/deterministic-backup", response_model=RunResponse)
+def deterministic_backup_run(run_id: str, http_request: Request) -> RunResponse:
+    """对失败的真实模型运行创建独立、明确标注的确定性备用子运行。"""
+    stored = _load_stored_run(run_id, owner_tenant_id=_identity_tenant(http_request))
+    if stored is None:
+        raise HTTPException(status_code=404, detail="未找到原始运行记录。")
+    if not str(stored.run.run_completeness or "").startswith("incomplete_"):
+        raise HTTPException(status_code=409, detail="只有未完成的真实模型运行可以生成备用分析。")
+    context = stored.run.context
+    try:
+        request = RunRequest(
+            case_id=str(context.get("case_id") or ""),
+            current_year=int(context.get("current_year") or context.get("t0", "0")[:4]),
+            rule_ids=list(context.get("selected_rule_ids") or ["R1"]),
+            run_mode="full_analysis",
+            planned_materiality=(context.get("configured_parameters") or {}).get("planned_materiality"),
+            force_deterministic_backup=True,
+        )
+    except (TypeError, ValueError) as error:
+        raise HTTPException(status_code=409, detail="原始运行缺少可恢复的案例或年度参数。") from error
+    response = run_rules(request, http_request)
+    response.context["parent_run_id"] = stored.run.run_id
+    response.context["continuation_mode"] = "explicit_deterministic_backup"
+    response.parent_run_id = stored.run.run_id
+    response.execution_mode = "deterministic_backup"
+    response.model_check = response.model_check.model_copy(update={"execution_mode": "deterministic_backup"})
+    save_run(WORKSPACE_ROOT, response)
+    return response
 
 
 def _execute_cninfo_task(task_id: str, payload: dict[str, Any], http_request: Request) -> None:
@@ -4544,6 +4780,105 @@ def read_retrieval_log(retrieval_id: str, http_request: Request) -> dict[str, An
             raise HTTPException(status_code=404, detail="检索对应案例不存在。")
         authorize_case_access(http_request, case)
     return _with_ai_notice(record)
+
+
+_PUBLIC_SUPPLEMENT_SAMPLES: dict[str, dict[str, Any]] = {
+    "aging": {
+        "sample_id": "aging",
+        "material_type": "应收账款账龄明细",
+        "title": "应收账款账龄及逾期情况",
+        "description": "公开演示样例：按账龄区间提供余额、逾期比例和客户集中度，供 R1 续分析回查。",
+        "structured_json": {
+            "aging_summary": {
+                "under_90_days_ratio": 0.46,
+                "90_to_180_days_ratio": 0.33,
+                "over_180_days_ratio": 0.21,
+                "overdue_ratio": 0.18,
+                "customer_concentration_top5_ratio": 0.54,
+            }
+        },
+    },
+    "receipts": {
+        "sample_id": "receipts",
+        "material_type": "期后回款及银行流水摘要",
+        "title": "期后回款及银行流水摘要",
+        "description": "公开演示样例：提供 T0 后回款比例、已核对流水笔数及异常回款说明。",
+        "structured_json": {
+            "subsequent_receipts_summary": {
+                "receipt_ratio": 0.63,
+                "verified_receipt_ratio": 0.58,
+                "bank_statement_checked_count": 12,
+                "exception_count": 1,
+            }
+        },
+    },
+}
+
+
+@app.get("/api/supplement-samples")
+def supplement_samples() -> dict[str, Any]:
+    """返回不含运行或访客数据的公开补充资料样例目录。"""
+
+    return _with_ai_notice(
+        {
+            "schema_version": "supplement_samples_v1",
+            "samples": [
+                {
+                    "sample_id": value["sample_id"],
+                    "material_type": value["material_type"],
+                    "title": value["title"],
+                    "description": value["description"],
+                    "field_keys": sorted(value["structured_json"]),
+                }
+                for value in _PUBLIC_SUPPLEMENT_SAMPLES.values()
+            ],
+            "boundary": "公开样例只用于竞赛演示，不代表真实公司资料或专业结论。",
+        }
+    )
+
+
+@app.post("/api/supplements/from-sample")
+def supplement_from_sample(payload: SupplementSampleRequest, http_request: Request) -> dict[str, Any]:
+    """将公开样例绑定到已有父运行，生成可追溯的独立补充资料记录。"""
+
+    sample = _PUBLIC_SUPPLEMENT_SAMPLES.get(str(payload.sample_id or "").strip().lower())
+    if sample is None:
+        raise HTTPException(status_code=404, detail="未找到该公开补充资料样例。")
+    identity = require_authenticated(http_request)
+    owner_tenant_id = str(identity.tenant_id or "").strip() or None if identity and not identity.is_local else None
+    parent = _load_stored_run(payload.parent_run_id, owner_tenant_id=owner_tenant_id)
+    if parent is None:
+        raise HTTPException(status_code=404, detail="父运行不存在，不能绑定补充资料。")
+    parent_case = _case_record(str(parent.run.context.get("case_id") or ""), tenant_id=owner_tenant_id)
+    if parent_case is None:
+        raise HTTPException(status_code=404, detail="父运行对应案例不存在。")
+    authorize_case_write(http_request, parent_case)
+    context_t0 = str(parent.run.context.get("t0") or "")
+    default_date = context_t0[:10] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", context_t0[:10]) else f"{int(parent.run.context.get('current_year') or 2026)}-12-31"
+    as_of_date = payload.as_of_date or default_date
+    try:
+        parsed_rules = list(dict.fromkeys(payload.bound_rule_ids or ["R1"]))
+        structured = json.dumps(sample["structured_json"], ensure_ascii=False, sort_keys=True)
+        record = create_supplement(
+            WORKSPACE_ROOT,
+            parent_run_id=payload.parent_run_id,
+            material_type=sample["material_type"],
+            authorized=True,
+            desensitized=True,
+            bound_rule_ids=parsed_rules,
+            as_of_date=as_of_date,
+            note=payload.note or sample["description"],
+            filename=f"{sample['sample_id']}_public_demo.json",
+            content=structured.encode("utf-8"),
+            structured_json=structured,
+            tenant_id=owner_tenant_id,
+            owner_user_id=identity.user_id if identity and not identity.is_local else None,
+        )
+    except (OSError, ValueError) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if supabase_enabled() and owner_tenant_id:
+        _persist_supplement_record_remote(record, owner_tenant_id)
+    return _with_ai_notice({**record, "sample_id": sample["sample_id"], "sample_title": sample["title"], "sample_payload": sample["structured_json"]})
 
 
 @app.post("/api/supplements")

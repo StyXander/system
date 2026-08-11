@@ -48,3 +48,16 @@ artifacts/
 *.xlsx
 *.pptx
 *.pdf
+
+# 竞赛演示收尾：保留评估冻结脚本、冻结快照和本轮合同测试，其余运行脚本与输出仍忽略。
+!/backend/tests/
+/backend/tests/*
+!/backend/tests/test_competition_demo_plan.py
+!/scripts/
+/scripts/*
+!/scripts/freeze_evaluation_v3.py
+!/outputs/
+/outputs/*
+!/outputs/evaluation_v3/
+/outputs/evaluation_v3/*
+!/outputs/evaluation_v3/current.json

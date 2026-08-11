@@ -10,8 +10,8 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.2">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
-  <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.1">
-  <script src="/assets/official-v4/app.js?v=0.7.2" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.2">
+  <script src="/assets/official-v4/app.js?v=0.7.3" defer></script>
   <script src="/assets/official-v4/fusion.js?v=0.7.1" defer></script>
 </head>
 <body>
@@ -134,6 +134,11 @@
           <span class="nav-index">08</span>
           <span>方法与边界</span>
           <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#shield"></use></svg>
+        </a>
+        <a href="?view=evaluation" data-view="evaluation">
+          <span class="nav-index">09</span>
+          <span>效果评估</span>
+          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#review"></use></svg>
         </a>
       </nav>
 
@@ -347,6 +352,7 @@
             <label for="planned-materiality"><span>计划重要性（案例金额单位，可留空）</span><input id="planned-materiality" name="planned_materiality" type="number" min="0" step="0.01" inputmode="decimal" placeholder="未输入则不评价金额重要性"></label>
             <button class="button primary" type="button" id="wb-run-full">开始完整分析 <span aria-hidden="true">→</span></button>
             <button class="button quiet" type="button" id="wb-run-calculation">仅计算预检</button>
+            <button class="button quiet" type="button" id="wb-run-backup" disabled>生成确定性备用分析</button>
           </div>
         </section>
         <div class="status-banner neutral" id="wb-gate" role="status" aria-live="polite"><strong>尚未运行</strong><span>完整分析是主路径；仅计算预检会明确标记为不完整运行。</span></div>
@@ -358,6 +364,8 @@
           <div class="summary-meta"><span>人工处理</span><strong id="review-summary-status">未复核</strong></div>
           <div class="summary-meta"><span>运行完整性</span><strong id="run-completeness-status">—</strong></div>
           <div class="summary-meta"><span>RAG / 模型</span><strong id="model-check-status">—</strong></div>
+          <div class="summary-meta"><span>执行模式</span><strong id="run-execution-mode">—</strong></div>
+          <div class="summary-meta"><span>Token / 耗时</span><strong id="run-token-summary">—</strong></div>
         </section>
         <div class="analysis-layout">
           <section class="analysis-main" aria-labelledby="result-heading">
@@ -433,6 +441,12 @@
              <label class="wide" for="wb-sup-json"><span>结构化补充证据 JSON（可选）</span><textarea id="wb-sup-json" name="structured_json" rows="7" autocomplete="off" spellcheck="false" placeholder='{"aging_summary":{"over_180_days_ratio":0.21},"subsequent_receipts_summary":{"receipt_ratio":0.63}}'></textarea></label>
             <label class="wide" for="wb-sup-note"><span>资料说明</span><textarea id="wb-sup-note" name="note" rows="3" autocomplete="off"></textarea></label>
           </div>
+          <div class="sample-actions" aria-label="公开演示补充资料样例">
+            <span class="folio">PUBLIC DEMO SAMPLES</span>
+            <button class="button quiet" type="button" id="wb-sup-sample-aging">一键加载账龄样例</button>
+            <button class="button quiet" type="button" id="wb-sup-sample-receipts">一键加载期后回款样例</button>
+            <small id="wb-sup-sample-note">样例会绑定当前父运行，生成独立补充证据，不覆盖原报告。</small>
+          </div>
           <div class="authorization-block" hidden>
             <label class="check-control"><input id="wb-sup-authorized" name="authorized" type="checkbox" checked><span>项目所有者已确认资料合法公开或已获授权</span></label>
             <label class="check-control"><input id="wb-sup-desensitized" name="desensitized" type="checkbox" checked><span>项目所有者已确认完成个人信息与脱敏检查</span></label>
@@ -500,6 +514,24 @@
             <div><dt>人工确认状态</dt><dd>—</dd></div>
             <div><dt>运行方式</dt><dd>—</dd></div>
           </dl>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="evaluation" aria-labelledby="evaluation-heading" hidden>
+        <header class="page-heading">
+          <div><p class="kicker">09 / EFFECT EVALUATION</p><h2 id="evaluation-heading">效果评估</h2><p>只读展示冻结评估版本的 B0—B3 对照结果、证据引用质量与人工复核效率。评估数据不回写规则或模型。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
+          <span class="state pending" id="evaluation-state">正在读取评估</span>
+        </header>
+        <section class="evaluation-sheet" aria-labelledby="evaluation-summary-heading">
+          <div class="sheet-title"><div><p class="folio">FROZEN EVALUATION SNAPSHOT</p><h3 id="evaluation-summary-heading">EVAL-20260811-COMPETITION-8CASE-V1</h3><p id="evaluation-freeze-note">尚未发布真实评分。</p></div></div>
+          <div class="evaluation-summary" id="evaluation-summary"></div>
+          <div class="matrix-scroll" tabindex="0" role="region" aria-label="B0到B3评估对照表">
+            <table class="evidence-matrix" id="evaluation-group-table"><thead><tr><th>组别</th><th>定义</th><th>状态</th><th>完成数</th><th>备注</th></tr></thead><tbody><tr><th colspan="5">等待评估数据</th></tr></tbody></table>
+          </div>
+          <div class="matrix-scroll" tabindex="0" role="region" aria-label="逐案例评估状态矩阵">
+            <table class="evidence-matrix" id="evaluation-case-matrix"><thead><tr><th>案例</th><th>公司</th><th>类型</th><th>B0</th><th>B1</th><th>B2</th><th>B3</th></tr></thead><tbody><tr><th colspan="7">等待冻结案例</th></tr></tbody></table>
+          </div>
+          <p class="boundary-strip">评分未用于训练模型；未完成的评估只显示真实进度，不填充虚假分数。争议项目单独记录，不计入准确率分母。</p>
         </section>
       </section>
 

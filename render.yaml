@@ -13,16 +13,28 @@ services:
         value: "true"
       - key: AUDITTRACE_DEMO_MODE
         value: "true"
+      - key: AUDITTRACE_PUBLIC_QUOTA_SECRET
+        sync: false
       - key: AUDITTRACE_PERSISTENCE
         value: local
       - key: AUDITTRACE_DEMO_USE_EXTERNAL_MODEL
-        value: "false"
+        value: "true"
       - key: AUDITTRACE_MODEL_RUN_WINDOW_SECONDS
         value: "900"
       - key: AUDITTRACE_MODEL_RUN_LIMIT
         value: "2"
       - key: AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT
-        value: "40"
+        value: "10"
+      - key: AUDITTRACE_MODEL_MAX_CONCURRENT
+        value: "2"
+      - key: AUDITTRACE_MODEL_DAILY_RUN_LIMIT
+        value: "60"
+      - key: AUDITTRACE_MODEL_DAILY_INPUT_TOKENS
+        value: "1000000"
+      - key: AUDITTRACE_MODEL_DAILY_OUTPUT_TOKENS
+        value: "300000"
+      - key: AUDITTRACE_MODEL_CACHE_SECONDS
+        value: "86400"
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: DEEPSEEK_BASE_URL

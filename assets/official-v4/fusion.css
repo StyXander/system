@@ -729,6 +729,55 @@ output {
   }
 }
 
+.evaluation-sheet {
+  margin-top: clamp(30px, 5vw, 74px);
+  padding: clamp(26px, 4vw, 58px) clamp(24px, 4.6vw, 72px);
+  background: linear-gradient(105deg, rgb(8 20 27 / 78%), rgb(3 10 15 / 32%) 72%, transparent);
+  border-top: 1px solid rgb(147 205 217 / 24%);
+}
+
+.evaluation-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  margin: 28px 0 38px;
+  background: rgb(147 205 217 / 20%);
+}
+
+.evaluation-summary .metric {
+  min-height: 78px;
+  padding: 16px;
+  background: rgb(3 10 15 / 72%);
+}
+
+.evaluation-summary .metric span,
+.evaluation-summary .metric strong { display: block; }
+.evaluation-summary .metric span { color: var(--fusion-muted); font-size: 12px; }
+.evaluation-summary .metric strong { margin-top: 8px; color: var(--fusion-bright); font-size: 20px; }
+
+.sample-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 4px;
+  padding: 16px;
+  border: 1px solid rgb(147 205 217 / 18%);
+  background: rgb(3 10 15 / 38%);
+}
+
+.sample-actions small { flex-basis: 100%; color: var(--fusion-muted); }
+
+@media (max-width: 900px) {
+  .evaluation-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .evaluation-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sample-actions { align-items: stretch; }
+  .sample-actions .button { flex: 1 1 100%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

@@ -214,6 +214,23 @@ create table if not exists public.audit_events (
   created_at timestamptz not null default now()
 );
 
+-- 公开竞赛模型额度仅由 web/worker service-role 写入；匿名浏览器没有任何读写权限。
+create table if not exists public.public_model_usage (
+  reservation_id text primary key,
+  client_hash text not null,
+  reserved_at timestamptz not null default now(),
+  input_tokens integer not null default 0,
+  output_tokens integer not null default 0,
+  settled boolean not null default false,
+  released boolean not null default false
+);
+
+create table if not exists public.public_model_cache (
+  cache_key_hash text primary key,
+  created_at timestamptz not null default now(),
+  run_payload jsonb not null
+);
+
 create index if not exists organization_members_user_idx on public.organization_members(user_id, active);
 create index if not exists cases_tenant_idx on public.cases(tenant_id);
 create index if not exists rag_chunks_active_scope_idx on public.rag_chunks(case_scope, active, rag_snapshot_id);
@@ -256,6 +273,11 @@ alter table public.run_caches enable row level security;
 alter table public.pipeline_tasks enable row level security;
 alter table public.cache_prewarm_batches enable row level security;
 alter table public.model_transfer_consents enable row level security;
+alter table public.public_model_usage enable row level security;
+alter table public.public_model_cache enable row level security;
+
+revoke all on public.public_model_usage from public, anon, authenticated;
+revoke all on public.public_model_cache from public, anon, authenticated;
 alter table public.audit_events enable row level security;
 
 -- 私有 bucket 由迁移脚本幂等创建；默认不公开，并限制为当前补充资料支持的文件类型。

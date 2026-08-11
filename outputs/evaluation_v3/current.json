@@ -1,0 +1,282 @@
+{
+  "schema_version": "evaluation_dashboard_v1",
+  "evaluation_id": "EVAL-20260811-COMPETITION-8CASE-V1",
+  "status": "frozen",
+  "frozen_at": "2026-08-11T08:15:56+00:00",
+  "model_id": null,
+  "reviewers_required": 2,
+  "cases_required": 8,
+  "review_forms_required": 16,
+  "review_forms_completed": 0,
+  "metrics": null,
+  "groups": {
+    "B0": {
+      "status": "not_started",
+      "definition": "人工仅查看字段和原文，自行判断",
+      "completed": 0,
+      "total": 8
+    },
+    "B1": {
+      "status": "not_started",
+      "definition": "只使用确定性规则",
+      "completed": 0,
+      "total": 8
+    },
+    "B2": {
+      "status": "not_started",
+      "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体",
+      "completed": 0,
+      "total": 8,
+      "not_applicable_count": 4
+    },
+    "B3": {
+      "status": "not_started",
+      "definition": "确定性规则、RAG、三智能体和硬校验完整链",
+      "completed": 0,
+      "total": 8,
+      "not_applicable_count": 4
+    }
+  },
+  "cases": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "company_name": "万科A",
+      "stratum": "strong_direct_candidate",
+      "t0": "2026-03-31",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "5b946b6a5383bb1338e8b1e2",
+      "source_fingerprint": "d09efba51aa5186de80425ce268da039ef243211cd6b4862c468ceab91dda572",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_started",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_started",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "company_name": "中国中铁",
+      "stratum": "standard_direct_candidate",
+      "t0": "2026-03-30",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "ed7f47dc24b6577d73118e8f",
+      "source_fingerprint": "9cc2b280b3f25a8f85d06e2cc1910a154c805491949d3e23d19e63b278389720",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_started",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_started",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "company_name": "中国铁建",
+      "stratum": "strong_direct_candidate",
+      "t0": "2026-03-30",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "0a8a3b63c4354f0aa464e634",
+      "source_fingerprint": "6ab8427ab71a0cfefd99ff551c9b1a9b0e1c80780041f9e0ad742058ad88276f",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_started",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_started",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "stratum": "strong_direct_candidate",
+      "t0": "2026-04-30",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "181e5e6d151b4e472d0eed99",
+      "source_fingerprint": "cd80dddd98f77030f9cc95272b92f3f02fd1434ff6737aa0dcf8a892ccf4fbb5",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_started",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_started",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "标准股份",
+      "stratum": "rule_not_triggered",
+      "t0": null,
+      "available_years": [],
+      "source_snapshot_id": null,
+      "source_fingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "stratum": "rule_not_triggered",
+      "t0": "2026-03-26",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "72739e356fa47432b2e40e50",
+      "source_fingerprint": "67cd6a88f4fe6ae366c4c494b6d14b5b48be00da512d2fd4601449963c3cdd0b",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "company_name": "中国建筑",
+      "stratum": "conditional_industry",
+      "t0": "2026-04-17",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "c2e093f5898fa212faab503c",
+      "source_fingerprint": "0c2855ce896b0c933e8daf718a0248e4d8cdfdfef7c87e06886609784c9c0c96",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "company_name": "中国人寿",
+      "stratum": "industry_not_applicable",
+      "t0": "2026-03-25",
+      "available_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "source_snapshot_id": "42046f7004784286705deca9",
+      "source_fingerprint": "72503c7bf65afb881c93de1ad8a53357592ac8e84fdf32c06ecff8b89a0436a3",
+      "groups": {
+        "B0": {
+          "status": "not_started",
+          "definition": "人工仅查看字段和原文，自行判断"
+        },
+        "B1": {
+          "status": "not_started",
+          "definition": "只使用确定性规则"
+        },
+        "B2": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"
+        },
+        "B3": {
+          "status": "not_applicable_no_call",
+          "definition": "确定性规则、RAG、三智能体和硬校验完整链"
+        }
+      }
+    }
+  ],
+  "disputes": 0,
+  "boundary": "评分仅用于竞赛效果展示，不用于训练模型或修改规则。"
+}

@@ -6,7 +6,7 @@
   const REVIEW_KEY = "audittrace_review_v2";
   const SCOPE_KEY = "audittrace_rule_scope_v2";
   const PIPELINE_TASK_KEY = "audittrace_cninfo_task_v1";
-  const VIEW_IDS = ["overview", "project", "rules", "analysis", "rag", "supplement", "delivery", "methods"];
+  const VIEW_IDS = ["overview", "project", "rules", "analysis", "rag", "supplement", "delivery", "methods", "evaluation"];
   const LEGACY_VIEW_MAP = { project: "project", data: "project", risk: "analysis", library: "rules", rag: "rag", supplement: "supplement", delivery: "delivery" };
   const UNIT_MAP = {
     yuan: { label: "元", factor: 1 },
@@ -118,11 +118,20 @@
     MODEL_OUTPUT_INVALID: "模型输出校验失败",
     not_requested: "仅计算，未请求模型",
     not_applicable: "本次不适用",
+    not_applicable_no_call: "不适用：不调用模型",
     model_transfer_not_allowed: "模型传输未获许可",
     sensitive_data_blocked: "敏感信息已阻断模型调用",
     model_transfer_revoked: "模型传输同意已撤销",
     not_attempted_rag_failure: "RAG失败，模型未调用",
     cache_replay: "批准缓存回放",
+    external_live: "真实模型现场执行",
+    external_cached: "真实模型缓存命中",
+    deterministic_backup: "确定性备用分析",
+    unavailable: "模型不可用",
+    frozen: "评估版本已冻结",
+    not_started: "评估尚未开始",
+    in_progress: "评估进行中",
+    published: "评估已发布",
   };
   const CNINFO_STEP_LABELS = {
     company_resolve: "确认企业",
@@ -174,6 +183,7 @@
     backendAvailable: false,
     ragStatus: null,
     ragResults: [],
+    evaluation: null,
     supplementId: null,
     cninfoTask: null,
     cninfoPollTimer: null,
@@ -489,6 +499,7 @@
     const sourceCount = String(sourceResult).match(/\d+(?=\s+passed)/)?.[0] || "—";
     const cleanCount = String(cleanResult).match(/\d+(?=\s+passed)/)?.[0] || "—";
     const demoMode = Boolean(status.demo_mode?.enabled);
+    const executionMode = status.model?.execution_mode;
     const livePassed = status.live_model_acceptance?.result === "model_success"
       && status.live_model_acceptance?.run_completeness === "complete_full_analysis";
     byId("hero-version").textContent = `${status.engine_version || "0.7.1"} · 正式 DEV`;
@@ -499,13 +510,13 @@
     byId("fact-chunk-count").textContent = status.rag?.chunk_count ?? "—";
     byId("fact-engine-version").textContent = status.engine_version || "0.7.1";
     byId("fact-model-status").textContent = demoMode
-      ? "确定性演示链可用"
+      ? executionMode === "external_live" ? "真实模型已启用" : "确定性备用分析可用"
       : status.model?.status === "configured"
         ? (livePassed ? "真实三Agent技术通过" : "真实模型已配置 · 按次验收")
         : "模型未配置";
     byId("fact-test-counts").textContent = `${sourceCount} / ${cleanCount}`;
-    byId("fact-test-note").textContent = demoMode ? "公开样例 · 确定性演示" : livePassed ? "passed · 三Agent技术通过" : "passed · 模型链按次验收";
-    byId("sidebar-model").textContent = demoMode ? "确定性演示链可用" : status.model?.status === "configured" ? "真实模型已配置 / 按次验收" : "未配置";
+    byId("fact-test-note").textContent = demoMode ? (executionMode === "external_live" ? "公开样例 · 真实三Agent" : "公开样例 · 确定性备用") : livePassed ? "passed · 三Agent技术通过" : "passed · 模型链按次验收";
+    byId("sidebar-model").textContent = demoMode ? (executionMode === "external_live" ? "真实模型已启用" : "确定性备用分析可用") : status.model?.status === "configured" ? "真实模型已配置 / 按次验收" : "未配置";
   }
 
   function caseRowLabel(row) {
@@ -1493,6 +1504,7 @@
     setStatePill(byId("analysis-state"), "等待运行", "waiting");
     hydrateReview(null);
     updateDeliveryControls();
+    updateBackupControl();
   }
   function renderRun(run, humanReview = null) {
     state.run = run;
@@ -1504,6 +1516,8 @@
     byId("review-summary-status").textContent = humanReview?.status || run.human_disposition || "未复核";
     byId("run-completeness-status").textContent = statusLabel(run.run_completeness);
     byId("model-check-status").textContent = `${run.retrievals?.length || 0} 次检索 / ${statusLabel(run.model_check?.status)}`;
+    byId("run-execution-mode").textContent = statusLabel(run.execution_mode || run.model_check?.execution_mode || "unavailable");
+    byId("run-token-summary").textContent = `${run.input_tokens || run.model_check?.input_tokens || 0} 输入 / ${run.output_tokens || run.model_check?.output_tokens || 0} 输出 / ${run.duration_ms || run.model_check?.duration_ms || 0} ms`;
     setStatePill(byId("analysis-state"), statusLabel(run.run_completeness), statusKind(run.run_completeness));
     byId("wb-sup-parent").value = run.run_id;
     byId("run-lookup-input").value = run.run_id;
@@ -1541,6 +1555,7 @@
     hydrateReview(humanReview);
     renderHistory(run, humanReview);
     updateDeliveryControls();
+    updateBackupControl();
     updateUrl("replace");
   }
   function renderEvidenceRail(run, humanReview) {
@@ -1624,9 +1639,62 @@
       ["模型状态", statusLabel(run.model_check?.status)],
       ["证据范围", `${run.evidence_bundle?.field_evidence?.length || 0} 字段 / ${run.evidence_bundle?.rag_evidence?.length || 0} RAG / ${run.evidence_bundle?.supplement_evidence?.length || 0} 补充`],
       ["人工处理", review?.status || run.human_disposition || "未复核"],
-      ["运行方式", run.context?.execution_mode === "cache_replay" ? "缓存回放" : run.context?.continuation_mode ? "补充证据续分析" : statusLabel(run.run_completeness)],
+      ["运行方式", run.execution_mode === "external_cached" || run.context?.execution_mode === "cache_replay" ? "真实模型缓存命中" : run.context?.continuation_mode ? "补充证据续分析" : statusLabel(run.execution_mode || run.run_completeness)],
     ];
     byId("run-history-detail").innerHTML = values.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd class="${label === "run_id" ? "mono" : ""}">${escapeHtml(value)}</dd></div>`).join("");
+  }
+
+  function renderEvaluation(dashboard) {
+    state.evaluation = dashboard || null;
+    const status = dashboard?.status || "not_started";
+    setStatePill(byId("evaluation-state"), statusLabel(status), statusKind(status));
+    const freezeNote = byId("evaluation-freeze-note");
+    if (freezeNote) {
+      const freeze = dashboard?.frozen_at ? `冻结时间：${dashboard.frozen_at}` : "尚未发布真实评分";
+      freezeNote.textContent = `${freeze}；${dashboard?.model_id || "模型版本待冻结"}；${dashboard?.prompt_version || "prompt 版本待冻结"}`;
+    }
+    const summary = byId("evaluation-summary");
+    const metrics = dashboard?.metrics || {};
+    const metricItems = [
+      ["案例数", dashboard?.case_count ?? dashboard?.cases?.length ?? "尚未完成"],
+      ["评分人", dashboard?.reviewer_count ?? "尚未完成"],
+      ["引用有效率", metrics.citation_validity_rate == null ? "尚未发布" : `${(Number(metrics.citation_validity_rate) * 100).toFixed(1)}%`],
+      ["问题覆盖率", metrics.issue_coverage_rate == null ? "尚未发布" : `${(Number(metrics.issue_coverage_rate) * 100).toFixed(1)}%`],
+      ["模型链完成率", metrics.model_chain_completion_rate == null ? "尚未发布" : `${(Number(metrics.model_chain_completion_rate) * 100).toFixed(1)}%`],
+      ["中位延迟", metrics.median_latency_ms == null ? "尚未发布" : `${metrics.median_latency_ms} ms`],
+    ];
+    if (summary) summary.innerHTML = metricItems.map(([label, value]) => `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("");
+    const groupBody = byId("evaluation-group-table")?.querySelector("tbody");
+    const groups = dashboard?.groups || dashboard?.b0_b3 || {};
+    const groupRows = ["B0", "B1", "B2", "B3"].map((id) => {
+      const item = groups[id] || {};
+      const complete = item.completed ?? item.completed_count ?? 0;
+      const total = item.total ?? dashboard?.case_count ?? 8;
+      const note = item.note || (item.status === "not_applicable_no_call" ? "规则不触发/行业不适用，不调用模型" : "真实评分完成后发布");
+      return `<tr><th>${id}</th><td>${escapeHtml(item.definition || "")}</td><td><span class="state ${statusKind(item.status)}">${escapeHtml(statusLabel(item.status || "not_started"))}</span></td><td>${escapeHtml(`${complete}/${total}`)}</td><td>${escapeHtml(note)}</td></tr>`;
+    }).join("");
+    if (groupBody) groupBody.innerHTML = groupRows;
+    const caseBody = byId("evaluation-case-matrix")?.querySelector("tbody");
+    const cases = dashboard?.cases || [];
+    if (caseBody) caseBody.innerHTML = cases.length
+      ? cases.map((item) => `<tr><th class="mono">${escapeHtml(item.case_id)}</th><td>${escapeHtml(item.company_name || item.company_alias || "—")}</td><td>${escapeHtml(item.expected_path || item.category || "—")}</td>${["B0", "B1", "B2", "B3"].map((group) => { const cell = item.groups?.[group] || item[group] || {}; return `<td><span class="state ${statusKind(cell.status)}">${escapeHtml(statusLabel(cell.status || "not_started"))}</span></td>`; }).join("")}</tr>`).join("")
+      : '<tr><th colspan="7">当前没有可发布的逐案例评估结果；系统不会填充演示分数。</th></tr>';
+  }
+
+  async function loadEvaluation() {
+    try {
+      renderEvaluation(await api("/api/evaluations/current"));
+    } catch (error) {
+      renderEvaluation({ status: "not_started", cases: [], groups: {}, error: error.message });
+      showMessage(byId("case-import-message"), `效果评估读取失败：${error.message}`, "error");
+    }
+  }
+
+  function updateBackupControl() {
+    const button = byId("wb-run-backup");
+    if (!button) return;
+    const incomplete = Boolean(state.run?.run_completeness && String(state.run.run_completeness).startsWith("incomplete_"));
+    button.disabled = !incomplete || state.run?.execution_mode === "deterministic_backup";
   }
 
   async function checkHealth() {
@@ -1635,10 +1703,12 @@
       state.backendAvailable = health.service_status === "ready";
       const configured = health.model_status === "configured";
       const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
-      setServiceStatus(demoMode ? "后端可用 · 竞赛演示模式" : configured ? "后端可用 · 模型已配置" : "后端可用 · 模型未配置", configured ? "success" : "pending");
-      setStatePill(byId("project-health-state"), demoMode ? "无需登录 · 50 家样例可直接分析" : configured ? "后端可用 · 模型按本次运行验收" : "后端可用 · 模型未配置", configured ? "success" : "waiting");
+      const executionMode = state.projectStatus?.model?.execution_mode;
+      const modelLabel = executionMode === "external_live" ? "真实模型已启用" : executionMode === "deterministic_backup" ? "确定性备用分析可用" : configured ? "模型已配置，待本次验收" : "确定性备用分析可用";
+      setServiceStatus(demoMode ? `后端可用 · ${modelLabel}` : configured ? "后端可用 · 模型已配置" : "后端可用 · 模型未配置", configured ? "success" : "pending");
+      setStatePill(byId("project-health-state"), demoMode ? `无需登录 · ${modelLabel}` : configured ? "后端可用 · 模型按本次运行验收" : "后端可用 · 模型未配置", configured ? "success" : "waiting");
       byId("backend-status-note").textContent = demoMode
-        ? "后端状态：公开样例可直接分析；默认使用证据绑定的确定性演示草稿，真实模型仅在显式开启时调用。"
+        ? `后端状态：公开样例可直接分析；${modelLabel}，每次运行仍保存模型、Token、耗时和引用状态。`
         : configured
         ? "后端状态：模型配置存在，但完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。"
         : "后端状态：确定性预检可用；模型未配置时，程序候选不会生成AI草稿。";
@@ -1684,6 +1754,24 @@
       renderRuleLibrary();
     }
   }
+  async function createDeterministicBackup() {
+    if (!state.run?.run_id) return;
+    const button = byId("wb-run-backup");
+    const endBusy = beginButtonBusy(button, "正在生成备用分析…");
+    try {
+      const run = await api(`/api/runs/${encodeURIComponent(state.run.run_id)}/deterministic-backup`, { method: "POST" });
+      renderRun(run, null);
+      byId("wb-gate").className = "status-banner success";
+      byId("wb-gate").innerHTML = `<strong>已创建确定性备用运行</strong><span>${escapeHtml(run.run_id)}；原失败记录已保留。</span>`;
+    } catch (error) {
+      byId("wb-gate").className = "status-banner danger";
+      byId("wb-gate").innerHTML = `<strong>备用分析失败</strong><span>${escapeHtml(error.message)}</span>`;
+    } finally {
+      endBusy();
+      updateBackupControl();
+    }
+  }
+
   async function loadRun(runId, options = {}) {
     if (!runId) return false;
     showMessage(byId("wb-backend-toast"), "正在读取运行记录…");
@@ -1781,6 +1869,43 @@
       showMessage(byId("case-import-message"), `${body.case.case_id} 已导入；仍待人工确认是否作为正式案例。`, "success");
     } catch (error) { showMessage(byId("case-import-message"), `导入失败：${error.message}`, "error"); } finally { endBusy(); }
   }
+  function renderSupplementRecord(body) {
+    state.supplementId = body.supplement_id;
+    setStatePill(byId("wb-sup-state"), body.status === "ready_for_rerun" ? "补充证据可续分析" : body.status, body.status === "ready_for_rerun" ? "success" : body.status === "rejected" ? "danger" : "waiting");
+    byId("wb-sup-rerun").disabled = body.status !== "ready_for_rerun";
+    byId("supplement-result").hidden = false;
+    byId("parent-run-label").textContent = body.parent_run_id || "—";
+    byId("supplement-id-label").textContent = body.supplement_id || "—";
+    byId("rerun-scope-label").textContent = `${body.structured_evidence?.length || 0} 条独立证据 / ${body.field_correction_mode || "none"}`;
+    showMessage(byId("supplement-message"), `${body.supplement_id || "补充资料"} · ${body.boundary || "已登记"}${body.issues?.length ? ` 问题：${body.issues.join("；")}` : ""}`, body.status === "rejected" ? "error" : "success");
+  }
+
+  async function loadSupplementSample(sampleId, button) {
+    if (!state.run?.run_id) {
+      showMessage(byId("supplement-message"), "请先运行一次分析，再绑定公开补充样例。", "error");
+      return;
+    }
+    const endBusy = beginButtonBusy(button, "正在加载样例…");
+    try {
+      const rules = Array.from(document.querySelectorAll('#supplement-form input[name="bound_rule"]:checked')).map((input) => input.value);
+      const body = await api("/api/supplements/from-sample", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parent_run_id: state.run.run_id, sample_id: sampleId, bound_rule_ids: rules.length ? rules : ["R1"], as_of_date: byId("wb-sup-date").value || null }),
+      });
+      byId("wb-sup-parent").value = body.parent_run_id;
+      byId("wb-sup-type").value = body.material_type;
+      byId("wb-sup-json").value = JSON.stringify(body.sample_payload || {}, null, 2);
+      byId("wb-sup-note").value = body.sample_title || "公开竞赛演示样例";
+      renderSupplementRecord(body);
+      showMessage(byId("wb-sup-sample-note"), `${body.sample_title || "公开样例"}已登记；点击“用新增证据完整续分析”查看前后结论。`, "success");
+    } catch (error) {
+      showMessage(byId("supplement-message"), `公开样例加载失败：${error.message}`, "error");
+    } finally {
+      endBusy();
+    }
+  }
+
   async function registerSupplement(event) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1795,14 +1920,7 @@
     const endBusy = beginButtonBusy(byId("wb-sup-register"), "正在预检…");
     try {
       const body = await api("/api/supplements", { method: "POST", body: formData });
-      state.supplementId = body.supplement_id;
-      setStatePill(byId("wb-sup-state"), body.status === "ready_for_rerun" ? "补充证据可续分析" : body.status, body.status === "ready_for_rerun" ? "success" : body.status === "rejected" ? "danger" : "waiting");
-      byId("wb-sup-rerun").disabled = body.status !== "ready_for_rerun";
-      byId("supplement-result").hidden = false;
-      byId("parent-run-label").textContent = body.parent_run_id;
-      byId("supplement-id-label").textContent = body.supplement_id;
-      byId("rerun-scope-label").textContent = `${body.structured_evidence?.length || 0} 条独立证据 / ${body.field_correction_mode}`;
-      showMessage(byId("supplement-message"), `${body.supplement_id} · ${body.boundary}${body.issues?.length ? ` 问题：${body.issues.join("；")}` : ""}`, body.status === "rejected" ? "error" : "success");
+      renderSupplementRecord(body);
     } catch (error) { showMessage(byId("supplement-message"), `补充资料登记失败：${error.message}`, "error"); } finally { endBusy(); }
   }
   async function rerunSupplement() {
@@ -1896,9 +2014,12 @@
     byId("wb-rule-library").addEventListener("change", (event) => { const input = event.target.closest("[data-rule-id]"); if (!input) return; if (input.checked && !state.selectedRules.includes(input.dataset.ruleId)) state.selectedRules.push(input.dataset.ruleId); if (!input.checked) state.selectedRules = state.selectedRules.filter((id) => id !== input.dataset.ruleId); state.selectedRules.sort(); renderRuleLibrary(); safeLocalStorageSet(SCOPE_KEY, state.selectedRules); updateUrl("replace"); });
     byId("wb-run-full").addEventListener("click", () => runAnalysis("full_analysis"));
     byId("wb-run-calculation").addEventListener("click", () => runAnalysis("calculation_only"));
+    byId("wb-run-backup").addEventListener("click", createDeterministicBackup);
     byId("wb-rag-prepare").addEventListener("click", prepareRag);
     byId("rag-form").addEventListener("submit", retrieveRag);
     byId("supplement-form").addEventListener("submit", registerSupplement);
+    byId("wb-sup-sample-aging").addEventListener("click", (event) => loadSupplementSample("aging", event.currentTarget));
+    byId("wb-sup-sample-receipts").addEventListener("click", (event) => loadSupplementSample("receipts", event.currentTarget));
     byId("wb-sup-rerun").addEventListener("click", rerunSupplement);
     byId("review-form").addEventListener("submit", saveReview);
     byId("wb-save-local-review").addEventListener("click", () => { const draft = { status: byId("wb-backend-review-status").value, reviewer: byId("wb-backend-reviewer").value, note: byId("wb-backend-review-note").value, export_approved: byId("wb-backend-export-approved").checked }; safeLocalStorageSet(REVIEW_KEY, draft); showMessage(byId("wb-backend-toast"), "本机草稿已保存；不等于后端人工复核。", "success"); });
@@ -1932,9 +2053,11 @@
     syncMobileNavigationAccessibility(false);
     hydrateReview(null);
     updateDeliveryControls();
+    updateBackupControl();
     showView(state.view, { history: false, focus: false });
     try { await loadSystemAndCases(); } catch (error) { setServiceStatus("状态接口不可用", "danger"); showMessage(byId("case-import-message"), `无法读取案例：${error.message}`, "error"); }
     await checkHealth();
+    await loadEvaluation();
     await restoreCninfoTask();
     if (requestedRun) await loadRun(requestedRun, { openAnalysis: state.view === "analysis" });
     // 先恢复 URL 中的 run，再同步地址；否则 updateUrl 会在 loadRun 之前

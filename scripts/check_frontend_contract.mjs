@@ -38,6 +38,10 @@ for (const route of [
   "/api/industry-gates/{case_id}",
   "/api/pipelines/{task_id}",
   "/api/runs/{run_id}",
+  "/api/runs/{run_id}/deterministic-backup",
+  "/api/evaluations/current",
+  "/api/supplement-samples",
+  "/api/supplements/from-sample",
 ]) {
   if (!backend.includes(`"${route}"`)) failures.push(`backend route missing: ${route}`);
 }

@@ -60,6 +60,7 @@ class RunRequest(BaseModel):
     scene: Literal["审计计划"] = "审计计划"
     rule_ids: list[RuleId] = Field(default_factory=lambda: ["R1"])
     run_mode: RunMode = "full_analysis"
+    force_deterministic_backup: bool = Field(default=False, description="仅在真实模型失败后由用户显式请求的确定性备用链")
     check_model: bool | None = Field(
         default=None,
         description="旧接口兼容：true 映射完整分析，false 映射仅计算预检；新前端不再发送。",
@@ -105,6 +106,12 @@ class ModelCheck(BaseModel):
     status: str
     model_id: str | None = None
     duration_ms: int | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    provider_call_count: int = 0
+    execution_mode: str = "not_applicable"
+    cache_hit: bool = False
+    cache_key_hash: str | None = None
     response_sha256: str | None = None
     detail: str
 
@@ -188,6 +195,16 @@ class RunResponse(AiGeneratedContentNotice):
     evidence_bundle: dict[str, Any] = Field(default_factory=dict)
     retrievals: list[dict[str, Any]] = Field(default_factory=list)
     final_ai_draft: dict[str, Any] | None = None
+    execution_mode: str = "not_applicable"
+    model_id: str | None = None
+    prompt_version: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    duration_ms: int = 0
+    provider_call_count: int = 0
+    cache_hit: bool = False
+    cache_key_hash: str | None = None
+    parent_run_id: str | None = None
 
 
 class HumanReviewRequest(BaseModel):
@@ -357,6 +374,16 @@ class SupplementRerunRequest(BaseModel):
         if self.check_model is not None:
             self.run_mode = "full_analysis" if self.check_model else "calculation_only"
         return self
+
+
+class SupplementSampleRequest(BaseModel):
+    """公开竞赛样例补充资料的最小请求合同。"""
+
+    parent_run_id: str
+    sample_id: str
+    bound_rule_ids: list[str] = Field(default_factory=lambda: ["R1"])
+    as_of_date: str | None = None
+    note: str = ""
 
 
 class StoredRunResponse(AiGeneratedContentNotice):
