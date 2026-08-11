@@ -96,6 +96,7 @@ from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -226,6 +227,7 @@ async def app_lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="审迹智链 AuditTrace API", version=ENGINE_VERSION, lifespan=app_lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -431,6 +433,31 @@ def _public_case(case: dict[str, Any]) -> dict[str, Any]:
         field["file_sha256"] = field.get("file_sha256") or document.get("sha256")
         field["source_mode"] = field.get("source_mode") or "supabase_persisted_verified"
     return public
+
+
+def _public_case_summary(case: dict[str, Any]) -> dict[str, Any]:
+    """案例目录只下发选择器所需元数据，完整字段仍由详情接口按案例读取。"""
+
+    years = case.get("available_years") or case.get("available_report_years") or []
+    if not years:
+        years = sorted(
+            {
+                int(row["year"])
+                for row in case.get("financial_fields", [])
+                if isinstance(row, dict) and str(row.get("year") or "").isdigit()
+            },
+            reverse=True,
+        )
+    return {
+        "case_id": case.get("case_id"),
+        "company_name": case.get("company_name"),
+        "company_alias": case.get("company_alias"),
+        "ticker": case.get("ticker"),
+        "t0": case.get("t0"),
+        "available_years": sorted({str(year) for year in years}, reverse=True),
+        "sample_type": case.get("sample_type"),
+        "registry_mode": case.get("registry_mode"),
+    }
 
 
 def _normalize_official_public_case(case: dict[str, Any]) -> dict[str, Any]:
@@ -2826,11 +2853,22 @@ def project_status(http_request: Request) -> dict[str, Any]:
 
 
 @app.get("/api/cases")
-def get_cases(http_request: Request) -> dict[str, Any]:
+def get_cases(http_request: Request, summary: bool = False, http_response: Response = None) -> dict[str, Any]:
     identity, visible_cases, catalog_state = _visible_case_records(http_request)
+    if http_response is not None:
+        http_response.headers["Cache-Control"] = (
+            "public, max-age=300, stale-while-revalidate=86400"
+            if _competition_demo_enabled()
+            else "private, no-store"
+        )
+    cases = (
+        [_public_case_summary(case) for case in visible_cases]
+        if summary
+        else [_public_case(case) for case in visible_cases]
+    )
     return _with_ai_notice({
-        "schema_version": "case_list_v1",
-        "cases": [_public_case(case) for case in visible_cases],
+        "schema_version": "case_list_summary_v1" if summary else "case_list_v1",
+        "cases": cases,
         "catalog": {**catalog_state, "seed": seed_catalog_summary(WORKSPACE_ROOT)},
         "auth": {
             "authenticated": identity is not None and not identity.is_local,
@@ -2955,13 +2993,19 @@ async def import_case(
 
 
 @app.get("/api/cases/{case_id}")
-def get_case_detail(case_id: str, http_request: Request) -> dict[str, Any]:
+def get_case_detail(case_id: str, http_request: Request, http_response: Response = None) -> dict[str, Any]:
     normalized = case_id.upper()
     tenant_id = _identity_tenant(http_request)
     case = _case_record(normalized, tenant_id=tenant_id)
     if case is None:
         raise HTTPException(status_code=404, detail="案例未登记。")
     authorize_case_access(http_request, case)
+    if http_response is not None:
+        http_response.headers["Cache-Control"] = (
+            "public, max-age=300, stale-while-revalidate=86400"
+            if _competition_demo_enabled() and is_public_case(case)
+            else "private, no-store"
+        )
     local_rows = _materialized_financial_rows(case, tenant_id=tenant_id)
     rows = [
         _public_source(row, private=not is_public_case(case))

@@ -158,6 +158,8 @@
     authDialogTrigger: null,
     riskDialogTrigger: null,
     caseId: null,
+    loadingCaseId: null,
+    loadingCaseLabel: null,
     cases: [],
     currentCase: null,
     year: null,
@@ -200,6 +202,10 @@
   }
   function currentCaseContextText() {
     const current = state.currentCase;
+    if (!current && state.loadingCaseId) {
+      const label = state.loadingCaseLabel ? ` ${state.loadingCaseLabel}` : "";
+      return `正在读取案例${label} · ${state.loadingCaseId}`;
+    }
     if (!current) return "当前公司：未选择 · 暂无案例";
     const company = current.company_name || current.company_alias || "未命名公司";
     const ticker = current.ticker ? `（${current.ticker}）` : "";
@@ -221,9 +227,11 @@
     if (sidebarCompany) {
       sidebarCompany.textContent = state.currentCase
         ? `${state.currentCase.company_name || state.currentCase.company_alias || "未命名公司"}${state.currentCase.ticker ? ` · ${state.currentCase.ticker}` : ""}`
-        : "没有可用案例";
+        : state.loadingCaseLabel || (state.loadingCaseId ? `正在读取 · ${state.loadingCaseId}` : "没有可用案例");
       sidebarCompany.title = text;
     }
+    const sidebarCase = byId("sidebar-case");
+    if (sidebarCase && !state.currentCase && state.loadingCaseId) sidebarCase.textContent = state.loadingCaseId;
   }
   function setServiceStatus(text, kind) {
     if (!byId("service-pill")) return;
@@ -480,21 +488,24 @@
     const cleanResult = status.tests?.clean_package?.latest_result || status.tests?.clean_package?.expected_result || "—";
     const sourceCount = String(sourceResult).match(/\d+(?=\s+passed)/)?.[0] || "—";
     const cleanCount = String(cleanResult).match(/\d+(?=\s+passed)/)?.[0] || "—";
+    const demoMode = Boolean(status.demo_mode?.enabled);
     const livePassed = status.live_model_acceptance?.result === "model_success"
       && status.live_model_acceptance?.run_completeness === "complete_full_analysis";
     byId("hero-version").textContent = `${status.engine_version || "0.7.1"} · 正式 DEV`;
-    byId("hero-case").textContent = current?.case_id || "NO CASE";
+    byId("hero-case").textContent = current?.case_id || state.loadingCaseId || "NO CASE";
     byId("hero-source-count").textContent = `${current?.documents?.length || 0} REGISTERED SOURCES`;
     byId("hero-chunk-count").textContent = `${status.rag?.chunk_count || 0} SOURCE CHUNKS`;
     byId("fact-case-count").textContent = status.case_count ?? state.cases.length ?? "—";
     byId("fact-chunk-count").textContent = status.rag?.chunk_count ?? "—";
     byId("fact-engine-version").textContent = status.engine_version || "0.7.1";
-    byId("fact-model-status").textContent = status.model?.status === "configured"
-      ? (livePassed ? "模型已配置 · 真实三Agent技术通过" : "模型已配置 · 完整链待验收")
-      : "模型未配置";
+    byId("fact-model-status").textContent = demoMode
+      ? "确定性演示链可用"
+      : status.model?.status === "configured"
+        ? (livePassed ? "真实三Agent技术通过" : "真实模型已配置 · 按次验收")
+        : "模型未配置";
     byId("fact-test-counts").textContent = `${sourceCount} / ${cleanCount}`;
-    byId("fact-test-note").textContent = livePassed ? "passed · 三Agent技术通过" : "passed · 模型链状态见验收记录";
-    byId("sidebar-model").textContent = status.model?.status === "configured" ? "已配置 / 按次验收" : "未配置";
+    byId("fact-test-note").textContent = demoMode ? "公开样例 · 确定性演示" : livePassed ? "passed · 三Agent技术通过" : "passed · 模型链按次验收";
+    byId("sidebar-model").textContent = demoMode ? "确定性演示链可用" : status.model?.status === "configured" ? "真实模型已配置 / 按次验收" : "未配置";
   }
 
   function caseRowLabel(row) {
@@ -672,15 +683,18 @@
     renderCaseContext();
     byId("wb-case").innerHTML = state.cases.map((item) => `<option value="${escapeHtml(item.case_id)}">${escapeHtml(item.company_alias || item.company_name)} · ${escapeHtml(item.case_id)}</option>`).join("");
     if (!current) {
-      byId("wb-data-body").innerHTML = '<tr><td colspan="5">没有可用案例。</td></tr>';
-      byId("wb-company").textContent = "—";
+      const loading = Boolean(state.loadingCaseId);
+      byId("wb-data-body").innerHTML = loading
+        ? `<tr><td colspan="5">正在读取 ${escapeHtml(state.loadingCaseLabel || state.loadingCaseId)} 的案例字段，请稍候。</td></tr>`
+        : '<tr><td colspan="5">没有可用案例。</td></tr>';
+      byId("wb-company").textContent = state.loadingCaseLabel || (loading ? state.loadingCaseId : "—");
       byId("wb-ticker").textContent = "—";
       byId("wb-t0").textContent = "—";
       byId("wb-rag-t0").textContent = "—";
       byId("wb-current-year").innerHTML = "";
       byId("wb-previous-year").textContent = "—";
-      byId("sidebar-case").textContent = "没有可用案例";
-      setStatePill(byId("wb-data-status"), "没有可用案例", "waiting");
+      byId("sidebar-case").textContent = loading ? state.loadingCaseId : "没有可用案例";
+      setStatePill(byId("wb-data-status"), loading ? "正在读取案例字段" : "没有可用案例", "waiting");
       byId("cninfo-field-review").hidden = true;
       renderRuleLibrary();
       renderHeroStatus();
@@ -821,15 +835,29 @@
     if (!normalized) {
       state.currentCase = null;
       state.caseId = null;
+      state.loadingCaseId = null;
+      state.loadingCaseLabel = null;
       clearRunDisplay();
       renderProject();
       setStatePill(byId("project-state"), "没有可用案例", "waiting");
       return false;
     }
+    const summary = state.cases.find((item) => String(item.case_id || "").toUpperCase() === normalized);
+    state.loadingCaseId = normalized;
+    state.loadingCaseLabel = summary?.company_alias || summary?.company_name || normalized;
+    state.currentCase = null;
+    state.caseId = null;
+    clearRunDisplay();
+    renderCaseContext();
+    renderProject();
     setStatePill(byId("project-state"), "正在读取案例字段", "pending");
     try {
-      state.currentCase = await api(`/api/cases/${encodeURIComponent(normalized)}`);
+      state.currentCase = options.prefetched?.case_id === normalized
+        ? options.prefetched
+        : await api(`/api/cases/${encodeURIComponent(normalized)}`);
       state.caseId = state.currentCase.case_id;
+      state.loadingCaseId = null;
+      state.loadingCaseLabel = null;
       const requestedYear = options.preferredYear ?? (options.keepYear ? state.year : null);
       const years = caseAvailableYears(state.currentCase);
       state.year = requestedYear && years.includes(String(requestedYear)) ? String(requestedYear) : years[0] || null;
@@ -850,16 +878,41 @@
       updateUrl("replace");
       return true;
     } catch (error) {
+      state.currentCase = null;
+      state.caseId = null;
+      state.loadingCaseId = null;
+      state.loadingCaseLabel = null;
+      renderCaseContext();
+      renderProject();
       setStatePill(byId("project-state"), "案例读取失败", "danger");
       showMessage(byId("case-import-message"), `案例读取失败：${error.message}`, "error");
       return false;
     }
   }
   async function loadSystemAndCases(options = {}) {
-    // 先取得持久化模式，再用同一个恢复上下文读取 me 和 cases；这样一次
-    // refresh 最多发生一次，且私有案例不会在 access cookie 过期时先丢失。
-    state.projectStatus = await api("/api/status");
+    const requestedCase = options.keepCase ? (state.caseId || state.requestedCase) : state.requestedCase;
+    if (requestedCase && !state.currentCase) {
+      state.loadingCaseId = String(requestedCase).toUpperCase();
+      state.loadingCaseLabel = state.loadingCaseId;
+      renderCaseContext();
+      renderProject();
+    }
     const authRecovery = { attempted: false };
+    const statusRecovery = { attempted: false };
+    const listingRecovery = { attempted: false };
+    const settle = (promise) => promise.then((value) => ({ ok: true, value })).catch((error) => ({ ok: false, error }));
+    const statusPromise = settle(api("/api/status", {}, statusRecovery));
+    const listingPromise = settle(api("/api/cases?summary=true", {}, listingRecovery));
+    const detailPromise = requestedCase
+      ? settle(api(`/api/cases/${encodeURIComponent(String(requestedCase).toUpperCase())}`, {}, listingRecovery))
+      : Promise.resolve({ ok: true, value: null });
+    const [statusResult, initialListingResult, initialDetailResult] = await Promise.all([statusPromise, listingPromise, detailPromise]);
+    if (statusResult.ok) state.projectStatus = statusResult.value;
+    else {
+      state.projectStatus = { persistence: { mode: "local" }, demo_mode: { enabled: false } };
+      setServiceStatus("状态接口不可用", "danger");
+      showMessage(byId("case-import-message"), `状态接口读取失败：${statusResult.error.message}`, "error");
+    }
     const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
     const persistence = state.projectStatus.persistence
       || { mode: state.projectStatus.supabase?.enabled ? "supabase" : "local" };
@@ -885,7 +938,20 @@
     }
     state.auth = auth;
     renderAuthControls();
-    const listing = await api("/api/cases", {}, authRecovery);
+    let listingResult = initialListingResult;
+    if (!listingResult.ok && !demoMode) listingResult = await settle(api("/api/cases?summary=true", {}, authRecovery));
+    if (!listingResult.ok) {
+      state.cases = [];
+      state.loadingCaseId = requestedCase ? String(requestedCase).toUpperCase() : null;
+      state.loadingCaseLabel = state.loadingCaseId || null;
+      renderCaseContext();
+      renderProject();
+      byId("wb-retry-cases").hidden = false;
+      showMessage(byId("case-import-message"), `案例目录读取失败：${listingResult.error.message}。请重试。`, "error");
+      return false;
+    }
+    byId("wb-retry-cases").hidden = true;
+    const listing = listingResult.value;
     state.cases = listing.cases || [];
     const catalog = state.projectStatus.catalog || listing.catalog || {};
     if (catalog.status === "degraded") {
@@ -896,9 +962,10 @@
         "warning",
       );
     }
-    const preferredRequest = options.keepCase ? state.caseId : state.requestedCase;
+    const preferredRequest = options.keepCase ? (state.caseId || state.requestedCase) : state.requestedCase;
     const preferred = state.cases.some((item) => item.case_id === preferredRequest) ? preferredRequest : state.cases[0]?.case_id;
-    await loadCaseDetail(preferred, { keepYear: true });
+    const prefetched = initialDetailResult.ok && initialDetailResult.value?.case_id === preferred ? initialDetailResult.value : null;
+    await loadCaseDetail(preferred, { keepYear: true, prefetched });
   }
 
   function cninfoTaskStatusLabel(value) {
@@ -1343,6 +1410,8 @@
     return RULES.filter((rule) => rule.runnable && state.selectedRules.includes(rule.id)).map((rule) => rule.id);
   }
   function renderRuleLibrary() {
+    const hadNoRunnableRule = !selectedRunnableRules().length;
+    if (hadNoRunnableRule) state.selectedRules = ["R1"];
     byId("wb-rule-library").innerHTML = RULES.map((rule) => {
       const selected = state.selectedRules.includes(rule.id);
       return `<article class="rule-record ${rule.runnable ? "" : "roadmap-only"}">
@@ -1354,6 +1423,14 @@
     const runnable = selectedRunnableRules();
     byId("wb-library-status").textContent = `${runnable.join(" / ") || "未选择"} 可运行`;
     byId("wb-scope-note").textContent = `本次运行：${runnable.join("、") || "无"}。R1 是主规则；R2 仅为辅助工程规则；R3—R8 不会进入请求。`;
+    const validationMessage = byId("wb-rule-validation-message");
+    if (validationMessage) {
+      validationMessage.hidden = !hadNoRunnableRule;
+      validationMessage.textContent = hadNoRunnableRule ? "至少选择一条可运行规则；已恢复 R1 主规则。" : "";
+      validationMessage.className = `form-message${hadNoRunnableRule ? " warning" : ""}`;
+    }
+    const preflightButton = byId("wb-rule-preflight");
+    if (preflightButton) preflightButton.disabled = !runnable.length || !state.currentCase || !state.year;
     const fullButton = byId("wb-run-full");
     const calculationButton = byId("wb-run-calculation");
     const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase || !state.year;
@@ -1412,6 +1489,7 @@
     byId("evidence-rail").innerHTML = "";
     byId("wb-sup-parent").value = "";
     byId("run-lookup-input").value = "";
+    byId("cache-id-input").value = "";
     setStatePill(byId("analysis-state"), "等待运行", "waiting");
     hydrateReview(null);
     updateDeliveryControls();
@@ -1522,9 +1600,19 @@
     const hasRun = Boolean(state.run?.run_id);
     const approved = Boolean(state.humanReview && state.humanReview.status !== "未复核" && state.humanReview.export_approved);
     const demoPreview = Boolean(state.projectStatus?.demo_mode?.enabled && hasRun);
+    ["wb-backend-review-status", "wb-backend-reviewer", "wb-backend-review-note", "wb-backend-export-approved"].forEach((id) => {
+      const control = byId(id);
+      if (control) control.disabled = !hasRun;
+    });
+    byId("wb-save-local-review").disabled = !hasRun;
     byId("wb-save-backend-review").disabled = !hasRun;
     byId("wb-cache-run").disabled = !approved;
     byId("wb-export-report").disabled = !(approved || demoPreview);
+    const runLookupInput = byId("run-lookup-input");
+    const runLookupButton = document.querySelector("#run-lookup-form button[type=submit]");
+    if (runLookupButton) runLookupButton.disabled = !runLookupInput?.value.trim();
+    const cacheIdInput = byId("cache-id-input");
+    byId("cache-replay-button").disabled = !cacheIdInput?.value.trim();
     byId("wb-export-report").textContent = demoPreview && !approved ? "下载竞赛演示报告" : "导出 Word 备忘录";
     setStatePill(byId("delivery-state"), demoPreview && !approved ? "演示报告可下载 · 未经真人复核" : state.humanReview?.status || state.run?.human_disposition || "未复核", approved ? "success" : "waiting");
   }
@@ -1783,6 +1871,11 @@
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && byId("primary-navigation").classList.contains("open")) { closeMobileNavigation(); byId("mobile-nav-toggle").focus(); } });
     window.addEventListener("resize", () => syncMobileNavigationAccessibility(byId("primary-navigation").classList.contains("open")));
     byId("wb-case").addEventListener("change", (event) => loadCaseDetail(event.target.value));
+    byId("wb-retry-cases").addEventListener("click", async (event) => {
+      const endBusy = beginButtonBusy(event.currentTarget, "正在重新读取…");
+      try { await loadSystemAndCases({ keepCase: true }); }
+      finally { endBusy(); }
+    });
     byId("wb-current-year").addEventListener("change", (event) => { state.year = event.target.value; renderProject(); updateUrl("replace"); });
     byId("wb-amount-unit").addEventListener("change", (event) => { state.unit = event.target.value; renderProject(); });
     byId("wb-refresh-case").addEventListener("click", () => loadCaseDetail(state.caseId, { keepYear: true }));
@@ -1800,7 +1893,7 @@
     byId("cninfo-candidates").addEventListener("click", (event) => { const button = event.target.closest("[data-cninfo-candidate]"); if (button) confirmCninfoCandidate(button.dataset.cninfoCandidate, button); });
     byId("cninfo-field-review-list").addEventListener("click", (event) => { const button = event.target.closest("[data-cninfo-field-action]"); if (button) submitCninfoFieldReview(button); });
     byId("case-import-form").addEventListener("submit", importCase);
-    byId("wb-rule-library").addEventListener("change", (event) => { const input = event.target.closest("[data-rule-id]"); if (!input) return; if (input.checked && !state.selectedRules.includes(input.dataset.ruleId)) state.selectedRules.push(input.dataset.ruleId); if (!input.checked) state.selectedRules = state.selectedRules.filter((id) => id !== input.dataset.ruleId); state.selectedRules.sort(); safeLocalStorageSet(SCOPE_KEY, state.selectedRules); renderRuleLibrary(); updateUrl("replace"); });
+    byId("wb-rule-library").addEventListener("change", (event) => { const input = event.target.closest("[data-rule-id]"); if (!input) return; if (input.checked && !state.selectedRules.includes(input.dataset.ruleId)) state.selectedRules.push(input.dataset.ruleId); if (!input.checked) state.selectedRules = state.selectedRules.filter((id) => id !== input.dataset.ruleId); state.selectedRules.sort(); renderRuleLibrary(); safeLocalStorageSet(SCOPE_KEY, state.selectedRules); updateUrl("replace"); });
     byId("wb-run-full").addEventListener("click", () => runAnalysis("full_analysis"));
     byId("wb-run-calculation").addEventListener("click", () => runAnalysis("calculation_only"));
     byId("wb-rag-prepare").addEventListener("click", prepareRag);
@@ -1811,8 +1904,10 @@
     byId("wb-save-local-review").addEventListener("click", () => { const draft = { status: byId("wb-backend-review-status").value, reviewer: byId("wb-backend-reviewer").value, note: byId("wb-backend-review-note").value, export_approved: byId("wb-backend-export-approved").checked }; safeLocalStorageSet(REVIEW_KEY, draft); showMessage(byId("wb-backend-toast"), "本机草稿已保存；不等于后端人工复核。", "success"); });
     byId("review-form").addEventListener("input", () => safeLocalStorageSet(REVIEW_KEY, { status: byId("wb-backend-review-status").value, reviewer: byId("wb-backend-reviewer").value, note: byId("wb-backend-review-note").value, export_approved: byId("wb-backend-export-approved").checked }));
     byId("run-lookup-form").addEventListener("submit", (event) => { event.preventDefault(); const runId = byId("run-lookup-input").value.trim(); if (!runId) { showMessage(byId("wb-backend-toast"), "请填写要读取的 run_id。", "error"); byId("run-lookup-input").focus(); return; } loadRun(runId); });
+    byId("run-lookup-input").addEventListener("input", updateDeliveryControls);
     byId("wb-cache-run").addEventListener("click", cacheRun);
     byId("cache-replay-button").addEventListener("click", replayCache);
+    byId("cache-id-input").addEventListener("input", updateDeliveryControls);
     byId("wb-export-report").addEventListener("click", exportReport);
     byId("risk-dialog").querySelector("[data-close-dialog]").addEventListener("click", () => byId("risk-dialog").close());
     byId("risk-dialog").addEventListener("click", (event) => { if (event.target === byId("risk-dialog")) byId("risk-dialog").close(); });
@@ -1836,6 +1931,7 @@
     bindEvents();
     syncMobileNavigationAccessibility(false);
     hydrateReview(null);
+    updateDeliveryControls();
     showView(state.view, { history: false, focus: false });
     try { await loadSystemAndCases(); } catch (error) { setServiceStatus("状态接口不可用", "danger"); showMessage(byId("case-import-message"), `无法读取案例：${error.message}`, "error"); }
     await checkHealth();

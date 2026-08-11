@@ -259,6 +259,7 @@
                 <button class="button primary" id="case-import-submit" type="submit">导入并校验</button>
               </form>
               <div class="form-message" id="case-import-message" role="status" aria-live="polite">尚未上传新案例；可直接使用已登记标准案例。</div>
+              <button class="button quiet compact-action" id="wb-retry-cases" type="button" hidden>重新读取案例目录</button>
             </div>
           </section>
           <div class="form-grid project-fields">
@@ -322,10 +323,11 @@
           <span class="state info" id="wb-library-status">R1 主规则</span>
         </header>
         <div class="scope-note" id="wb-scope-note">本次默认运行 R1；R2 可作为辅助项加入。</div>
+        <p class="form-message" id="wb-rule-validation-message" role="status" aria-live="polite" hidden></p>
         <div class="rule-library" id="wb-rule-library"></div>
         <div class="action-row">
           <button class="button quiet" type="button" data-wb-go="project">← 返回项目</button>
-          <button class="button primary" type="button" data-wb-go="risk">运行前检查 <span aria-hidden="true">→</span></button>
+          <button class="button primary" type="button" id="wb-rule-preflight" data-wb-go="risk">运行前检查 <span aria-hidden="true">→</span></button>
         </div>
       </section>
 

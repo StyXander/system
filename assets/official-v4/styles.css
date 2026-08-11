@@ -1357,14 +1357,38 @@ output,
 }
 
 .run-console {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
   background:
     linear-gradient(90deg, var(--emerald) 4px, transparent 4px),
     var(--paper);
 }
 
 .run-controls {
-  align-items: flex-end;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(140px, max-content));
+  align-items: end;
   gap: var(--space-4);
+}
+
+.run-controls > label {
+  min-width: 0;
+  width: 100%;
+}
+
+.run-controls > .button {
+  min-width: 140px;
+  min-height: 44px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.compact-action {
+  margin-top: var(--space-2);
 }
 
 .check-control {
@@ -2891,6 +2915,23 @@ mark {
 
   .detail-drawer {
     width: 100vw;
+  }
+}
+
+@media (max-width: 900px) {
+  .run-controls {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(140px, max-content));
+    align-items: end;
+  }
+}
+
+@media (max-width: 600px) {
+  .run-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .run-controls > .button {
+    width: 100%;
   }
 }
 
