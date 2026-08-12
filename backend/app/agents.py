@@ -239,9 +239,11 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 1. 检查三者是否引用同一案例、同一规则和当前证据白名单；
 2. 区分“程序已计算事实”“有证据支持的解释”“仍待验证的假设”和“资料缺口”；
 3. 形成非空 draft_title 与 draft_observation，简洁说明核查重点、证据边界和建议取得的材料；
-4. status 与 ai_recommendation 必须一致，只能是 retain、downgrade 或 defer；
-5. claims 仍需引用 evidence_id，不能因为前两角色写过就省略引用；
-6. 输出的是 AI 辅助草稿，最终处理必须留给人工复核。
+4. 如果 rule_result.risk_card 提供 basis_limitation 或 trend_limitation，必须把这些限制原样或等义写进 draft_observation；不能省略“净额/账面口径限制”或“趋势不可评价/缺少第三年”等程序边界；
+5. 只有 deterministic_constraints 明确允许时才能描述强阈值、持续趋势或周转变化；未达到强阈值、缺少第三年时必须明确写“未达到/不可评价”，不得用相反措辞；
+6. status 与 ai_recommendation 必须一致，只能是 retain、downgrade 或 defer；
+7. claims 仍需引用 evidence_id，不能因为前两角色写过就省略引用；
+8. 输出的是 AI 辅助草稿，最终处理必须留给人工复核。
 
 严禁：新增证据包没有的事实；把“保留”写成专业结论；认定舞弊、违法、重大错报或出具审计意见；把缺失数据补成金额或趋势。""",
 }

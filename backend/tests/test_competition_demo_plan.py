@@ -48,6 +48,9 @@ def test_summary_case_directory_is_compact() -> None:
 
 def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkeypatch: pytest.MonkeyPatch) -> None:
     assert all(ROLE_PROMPTS[role].strip() for role in ("challenge", "counter", "review"))
+    assert "basis_limitation" in ROLE_PROMPTS["review"]
+    assert "trend_limitation" in ROLE_PROMPTS["review"]
+    assert "未达到/不可评价" in ROLE_PROMPTS["review"]
     result = RuleResult(
         rule_id="R1",
         status="candidate",
