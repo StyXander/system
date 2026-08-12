@@ -393,6 +393,40 @@ def _parse_json_content(content: str) -> dict[str, Any]:
     return parsed
 
 
+def _with_review_boundaries(output: AgentOutput, rule_result: RuleResult | None) -> AgentOutput:
+    """将程序已知的口径/趋势边界显式补入复核草稿，不替模型新增事实。"""
+    if output.role != "review" or rule_result is None:
+        return output
+    risk_card = rule_result.risk_card or {}
+    observation = output.draft_observation.strip()
+    joined = "\n".join(
+        [
+            *(claim.text for claim in output.claims),
+            *(claim.text for claim in output.normal_explanations),
+            output.reason_for_status,
+            output.draft_title,
+            observation,
+        ]
+    )
+    additions: list[str] = []
+    basis_limitation = str(risk_card.get("basis_limitation") or "").strip()
+    if basis_limitation:
+        basis_tokens = (
+            ("净额", "口径局限", "口径限制")
+            if "净额" in basis_limitation
+            else ("账面余额", "口径", "未在登记表")
+        )
+        if not any(token in joined for token in basis_tokens):
+            additions.append(f"程序边界（口径）：{basis_limitation}")
+    trend_limitation = str(risk_card.get("trend_limitation") or "").strip()
+    if trend_limitation and not any(token in joined for token in ("趋势不可评价", "无法评价趋势", "缺少第三年")):
+        additions.append(f"程序边界（趋势）：{trend_limitation}")
+    if not additions:
+        return output
+    suffix = "\n".join(additions)
+    return output.model_copy(update={"draft_observation": f"{observation}\n{suffix}".strip()})
+
+
 def _strict_tool_base_url(base_url: str) -> str:
     """DeepSeek strict Tool Call 需要 beta 路径；保留用户填写的自定义 beta 地址。"""
     normalized = base_url.rstrip("/")
@@ -435,6 +469,7 @@ def validate_agent_output(
             raise ValueError("复核Agent未形成最终待核查草稿")
         if output.ai_recommendation != output.status:
             raise ValueError("复核Agent的ai_recommendation必须与status一致")
+        output = _with_review_boundaries(output, rule_result)
     # 禁用定性必须覆盖整个结构，不能只扫 claims 而漏掉资料缺口等自由文本字段。
     # 统一免责声明本身包含“审计意见”四字；禁用词只扫描模型生成的业务字段，
     # 不能把系统固定声明误判为模型越权表述。

@@ -56,7 +56,11 @@ def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkey
         status="candidate",
         source_validation={},
         metrics={"three_year_trend_available": False},
-        risk_card={"screening_strength": "standard"},
+        risk_card={
+            "screening_strength": "standard",
+            "basis_limitation": "应收账款仅有净额/报表列示额，未达到专业目标的账面余额口径。",
+            "trend_limitation": "缺少第三年，持续期间和周转趋势不可评价。",
+        },
     )
 
     def fake_provider(**kwargs):
@@ -91,3 +95,7 @@ def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkey
     assert [step.role for step in steps] == ["challenge", "counter", "review"]
     assert [step.status for step in steps] == ["completed", "completed", "completed"]
     assert all(step.prompt_version == "agent_prompt_v3" for step in steps)
+    review = steps[-1].output
+    assert review is not None
+    assert "程序边界" in review.draft_observation
+    assert "趋势不可评价" in review.draft_observation
