@@ -228,9 +228,10 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 1. 先判断 Challenge 的主张是否真的被当前证据支持，指出越界或不确定之处；
 2. 优先寻找同一证据包中的正常业务解释、口径差异、季节性、合并范围和反向证据；
 3. 找不到反证时要明确写“当前证据未发现相反材料”，不能编造反证；
-4. 列出仍需取得的资料和下一步核查动作；
-5. status 只能返回 candidate 或 defer，draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
-6. 将结构化结果交给 Review Agent，不替 Review 作最终建议。
+4. 如果解释没有 RAG-/SUP- evidence_id 直接支持，support_status 必须为 unverified_hypothesis，并在 text 中明确写“待验证假设”；字段数值本身不能证明季节性、口径差异或管理层原因；
+5. 列出仍需取得的资料和下一步核查动作；
+6. status 只能返回 candidate 或 defer，draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
+7. 将结构化结果交给 Review Agent，不替 Review 作最终建议。
 
 严禁：删除或弱化程序事实；根据增速差推断管理层动机；把待验证假设写成已确认事实；引用 Challenge 输出中不存在的 evidence_id。""",
     "review": """你是审迹智链 Review Agent，负责把程序筛查、Challenge 和 Counter 收敛成可交给人工复核的审计计划草稿。
@@ -427,6 +428,26 @@ def _with_review_boundaries(output: AgentOutput, rule_result: RuleResult | None)
     return output.model_copy(update={"draft_observation": f"{observation}\n{suffix}".strip()})
 
 
+def _normalize_unverified_explanations(output: AgentOutput) -> AgentOutput:
+    """把缺少原文/补充证据的因果解释降级为待验证假设，避免误标为已证实。"""
+    causal_terms = ("主要原因", "由于", "行业需求", "信用政策", "客户结构", "季节性", "结算方式", "催收措施")
+    explanations = []
+    changed = False
+    for explanation in output.normal_explanations:
+        if (
+            explanation.support_status == "supported"
+            and any(term in explanation.text for term in causal_terms)
+            and not any(str(evidence_id).startswith(("RAG-", "SUP-")) for evidence_id in explanation.evidence_ids)
+        ):
+            text = explanation.text.strip()
+            if "待验证假设" not in text:
+                text = f"待验证假设：{text}"
+            explanation = explanation.model_copy(update={"text": text, "support_status": "unverified_hypothesis"})
+            changed = True
+        explanations.append(explanation)
+    return output.model_copy(update={"normal_explanations": explanations}) if changed else output
+
+
 def _strict_tool_base_url(base_url: str) -> str:
     """DeepSeek strict Tool Call 需要 beta 路径；保留用户填写的自定义 beta 地址。"""
     normalized = base_url.rstrip("/")
@@ -454,6 +475,14 @@ def validate_agent_output(
     if role == "review" and output.status not in {"retain", "downgrade", "defer"}:
         raise ValueError("语义复核角色状态不允许")
 
+    if output.schema_version == "agent_output_v2" and role == "review":
+        if not output.draft_title.strip() or not output.draft_observation.strip():
+            raise ValueError("复核Agent未形成最终待核查草稿")
+        if output.ai_recommendation != output.status:
+            raise ValueError("复核Agent的ai_recommendation必须与status一致")
+        output = _with_review_boundaries(output, rule_result)
+    output = _normalize_unverified_explanations(output)
+
     for claim in output.claims:
         if not claim.evidence_ids or claim.support_status != "supported":
             raise ValueError("模型主张必须由本次evidence_id支持")
@@ -464,12 +493,6 @@ def validate_agent_output(
             raise ValueError("supported 表述缺少evidence_id")
         if claim.support_status == "unverified_hypothesis" and "待验证" not in claim.text:
             raise ValueError("未获支持的解释必须明确标为待验证假设")
-    if output.schema_version == "agent_output_v2" and role == "review":
-        if not output.draft_title.strip() or not output.draft_observation.strip():
-            raise ValueError("复核Agent未形成最终待核查草稿")
-        if output.ai_recommendation != output.status:
-            raise ValueError("复核Agent的ai_recommendation必须与status一致")
-        output = _with_review_boundaries(output, rule_result)
     # 禁用定性必须覆盖整个结构，不能只扫 claims 而漏掉资料缺口等自由文本字段。
     # 统一免责声明本身包含“审计意见”四字；禁用词只扫描模型生成的业务字段，
     # 不能把系统固定声明误判为模型越权表述。

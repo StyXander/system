@@ -72,7 +72,11 @@ def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkey
             "rule_id": "R1",
             "status": "candidate" if role != "review" else "retain",
             "claims": [{"text": "需要回查本次证据支持的事项", "evidence_ids": ["E1"], "support_status": "supported"}],
-            "normal_explanations": [],
+            "normal_explanations": (
+                [{"text": "季节性可能解释当前变化", "evidence_ids": ["E1"], "support_status": "supported"}]
+                if role == "counter"
+                else []
+            ),
             "data_gaps": ["期后回款资料"],
             "requested_materials": ["期后回款资料"],
             "reason_for_status": "仅依据当前证据包形成待核查草稿",
@@ -95,6 +99,10 @@ def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkey
     assert [step.role for step in steps] == ["challenge", "counter", "review"]
     assert [step.status for step in steps] == ["completed", "completed", "completed"]
     assert all(step.prompt_version == "agent_prompt_v3" for step in steps)
+    counter = steps[1].output
+    assert counter is not None
+    assert counter.normal_explanations[0].support_status == "unverified_hypothesis"
+    assert "待验证假设" in counter.normal_explanations[0].text
     review = steps[-1].output
     assert review is not None
     assert "程序边界" in review.draft_observation
