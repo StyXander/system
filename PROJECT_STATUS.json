@@ -23,8 +23,8 @@
     "cninfo_pipeline": "cninfo_pipeline_v1"
   },
   "acceptance_snapshot": {
-    "date": "2026-08-10",
-    "source_repository_pytest": "179 passed, 1 warning, 254.28s",
+    "date": "2026-08-12",
+    "source_repository_pytest": "184 passed, 1 warning, 53.42s",
     "rag_specialized_pytest": "13 passed, 1 warning",
     "frontend_contract": "193 unique ids, 326 refs, 8 views",
     "chinese_comments": "1596/15186 = 10.51%",
@@ -75,7 +75,7 @@
     "second_public_case": "jack_603337_imported_rag_isolated_local_calculation_negative_control_project_owner_public_source_authorized_formal_freeze_pending",
     "supplement_full_rerun": "implemented_and_tested",
     "human_review_and_report_v2": "implemented_and_tested_pending_real_human_approval",
-    "live_model_full_run": "no_current_valid_b3_historical_run_failed_posthoc_deterministic_fact_guard",
+    "live_model_full_run": "validated_external_live_v3_three_roles_run_RUN-V7-CBF3D7A07C37",
     "ai_notice_invariant": "implemented_for_new_and_api_json_web_drafts_and_report_v2_historical_raw_json_preserved_and_wrapped_on_read",
     "append_only_evaluation_records": "implemented_no_overwrite_json_with_hashes_human_scores_blank",
     "r3_to_r8": "roadmap_only"
@@ -273,24 +273,32 @@
     "B0—B3真人评分"
   ],
   "live_model_acceptance": {
-    "run_id": "RUN-V7-00ED00962F34",
-    "source_run_sha256": "5908E0414C5055BD6268049F5924EDBD2E2058D31CAE6EB8481BCCACEABADBE9",
+    "run_id": "RUN-V7-CBF3D7A07C37",
+    "source_run_sha256": "7713bf53e863e7f603c50298bb38e50c6f1ad38d6a50b3308c224da8f0b87ad1",
     "case_id": "STD_DEV_T0",
     "year": 2023,
     "rule_id": "R1",
+    "model_id": "deepseek-v4-flash",
+    "prompt_version": "agent_prompt_v3",
+    "source_snapshot_id": "std-dev-t0-w2-v0.2",
+    "completed_at": "2026-08-12T20:26:27+08:00",
+    "completed_roles": 3,
+    "input_tokens": 17434,
+    "output_tokens": 1609,
+    "duration_ms": 12247,
     "original_run_completeness": "complete_full_analysis",
     "original_agent_steps": {
       "challenge": "completed",
       "counter": "completed",
       "review": "completed"
     },
-    "result": "invalidated_by_posthoc_deterministic_fact_guard",
-    "posthoc_validation_error": "模型把未达到的R1强阈值写成已达到",
-    "formal_comparison_eligible": false,
+    "result": "model_success",
+    "posthoc_validation_error": null,
+    "formal_comparison_eligible": true,
     "compliance_boundary": "历史调用只读保留；当前项目授权仅覆盖公开来源的最小必要字段和RAG片段，不覆盖全文再分发、内部客户资料或正式专业采用。",
-    "human_review": "not_applicable_to_invalidated_run",
-    "report_v2_export": "prohibited_for_formal_use",
-    "conclusion": "保留为旧版本失败反例，不再作为当前有效B3或真实模型验收证据。"
+    "human_review": "pending_professional_review",
+    "report_v2_export": "available_after_human_review",
+    "conclusion": "当前 agent_prompt_v3、deepseek-v4-flash 三角色真实运行已完成；仍需人工复核后采用或导出。"
   },
   "innovation_evidence": [
     "程序筛查、AI建议、人工处理和完整性四层分离",
