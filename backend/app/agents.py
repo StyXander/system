@@ -231,7 +231,8 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 4. 如果解释没有 RAG-/SUP- evidence_id 直接支持，support_status 必须为 unverified_hypothesis，并在 text 中明确写“待验证假设”；字段数值本身不能证明季节性、口径差异或管理层原因；
 5. 列出仍需取得的资料和下一步核查动作；
 6. status 只能返回 candidate 或 defer，draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
-7. 将结构化结果交给 Review Agent，不替 Review 作最终建议。
+7. 不要声称达到强阈值，也不要写跨年度周转/回款趋势或变化；如果程序没有提供可比年度，只能列为资料缺口或待验证假设；
+8. 将结构化结果交给 Review Agent，不替 Review 作最终建议。
 
 严禁：删除或弱化程序事实；根据增速差推断管理层动机；把待验证假设写成已确认事实；引用 Challenge 输出中不存在的 evidence_id。""",
     "review": """你是审迹智链 Review Agent，负责把程序筛查、Challenge 和 Counter 收敛成可交给人工复核的审计计划草稿。
@@ -446,6 +447,19 @@ def _normalize_unverified_explanations(output: AgentOutput) -> AgentOutput:
             changed = True
         explanations.append(explanation)
     return output.model_copy(update={"normal_explanations": explanations}) if changed else output
+
+
+def _semantic_failure_code(message: str) -> str:
+    """将语义硬校验失败归类为稳定码，不把模型原文写入运行记录。"""
+    if "强阈值" in message:
+        return "MODEL_STRONG_THRESHOLD_CONTRADICTION"
+    if "周转趋势" in message or "跨期趋势" in message:
+        return "MODEL_TREND_CONTRADICTION"
+    if "应收口径" in message:
+        return "MODEL_BASIS_LIMITATION_MISSING"
+    if "外部因果" in message:
+        return "MODEL_CAUSAL_EVIDENCE_ERROR"
+    return "MODEL_SEMANTIC_VALIDATION_ERROR"
 
 
 def _strict_tool_base_url(base_url: str) -> str:
@@ -766,7 +780,7 @@ def run_agent_chain(
                 failure_code = "MODEL_POLICY_VIOLATION"
             else:
                 failure_stage = "schema"
-                failure_code = "MODEL_SEMANTIC_VALIDATION_ERROR"
+                failure_code = _semantic_failure_code(message)
             steps.append(
                 AgentStep(
                     role=role,
