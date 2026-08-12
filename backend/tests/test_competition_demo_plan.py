@@ -5,8 +5,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.app import agents as agents_module
+from backend.app.agents import ROLE_PROMPTS, run_agent_chain
 from backend.app.main import app
 from backend.app.public_model import PublicModelLedger, PublicModelQuotaError, QuotaConfig, build_cache_key
+from backend.app.schemas import RuleResult
 
 
 def test_public_model_ledger_enforces_ip_and_cache_key_scope(tmp_path: Path) -> None:
@@ -41,3 +44,47 @@ def test_summary_case_directory_is_compact() -> None:
     assert response.status_code == 200
     assert len(response.content) < 100_000
     assert all(set(item) >= {"case_id", "company_name", "available_years"} for item in response.json()["cases"])
+
+
+def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert all(ROLE_PROMPTS[role].strip() for role in ("challenge", "counter", "review"))
+    result = RuleResult(
+        rule_id="R1",
+        status="candidate",
+        source_validation={},
+        metrics={"three_year_trend_available": False},
+        risk_card={"screening_strength": "standard"},
+    )
+
+    def fake_provider(**kwargs):
+        role = kwargs["payload"]["role"]
+        output = {
+            "schema_version": "agent_output_v2",
+            "run_id": "RUN-PROMPT-V3",
+            "role": role,
+            "rule_id": "R1",
+            "status": "candidate" if role != "review" else "retain",
+            "claims": [{"text": "需要回查本次证据支持的事项", "evidence_ids": ["E1"], "support_status": "supported"}],
+            "normal_explanations": [],
+            "data_gaps": ["期后回款资料"],
+            "requested_materials": ["期后回款资料"],
+            "reason_for_status": "仅依据当前证据包形成待核查草稿",
+            "draft_title": "待核查事项" if role == "review" else "",
+            "draft_observation": "建议回查证据并由人工决定" if role == "review" else "",
+            "ai_recommendation": "retain" if role == "review" else "not_applicable",
+        }
+        return output, 5, f"response-{role}", f"input-{role}", 10, 5
+
+    monkeypatch.setattr(agents_module, "_call_model", fake_provider)
+    steps = run_agent_chain(
+        run_id="RUN-PROMPT-V3",
+        rule_result=result,
+        evidence_bundle=[{"evidence_id": "E1", "excerpt": "登记的原文片段"}],
+        enabled=True,
+        api_key="test-key",
+        base_url="https://example.invalid",
+        model_id="deepseek-v4-flash",
+    )
+    assert [step.role for step in steps] == ["challenge", "counter", "review"]
+    assert [step.status for step in steps] == ["completed", "completed", "completed"]
+    assert all(step.prompt_version == "agent_prompt_v3" for step in steps)

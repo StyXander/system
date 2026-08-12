@@ -17,7 +17,7 @@
     "rag_index": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
     "rag_retrieval": "rag-retrieval-v1.2-case-isolated-20260728",
     "rag_question_set": "rag-question-set-w3-v1.1-20260727",
-    "agent_prompt": "agent_prompt_v2",
+    "agent_prompt": "agent_prompt_v3",
     "agent_output": "agent_output_v2",
     "report": "report_v2",
     "cninfo_pipeline": "cninfo_pipeline_v1"
