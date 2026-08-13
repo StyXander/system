@@ -88,7 +88,9 @@
     defer: "建议暂缓",
     not_generated: "未形成AI建议",
     complete_full_analysis: "完整分析已完成",
+    complete_full_analysis_with_gaps: "完整分析已完成（有资料缺口）",
     complete_full_analysis_no_candidate: "完整分析完成，无程序候选",
+    complete_public_prescreen: "公开财报预筛已完成",
     complete_public_prescreen_with_gaps: "公开财报预筛已完成（部分指标未计算）",
     complete_public_prescreen_no_candidate: "公开财报预筛已完成，无程序候选",
     complete_public_prescreen_not_applicable: "公开财报预筛完成：当前规则不适用",
@@ -105,6 +107,7 @@
     INDUSTRY_UNKNOWN: "行业待确认",
     incomplete_calculation_only: "不完整：仅计算预检",
     incomplete_model_chain_failed: "不完整：模型链未完成",
+    incomplete_model_quota: "不完整：模型额度不足",
     incomplete_rag_failure: "不完整：RAG失败",
     incomplete_model_transfer_not_allowed: "不完整：禁止模型传输",
     incomplete_sensitive_data_blocked: "不完整：敏感信息已阻断模型调用",
@@ -115,19 +118,27 @@
     demo_fallback: "演示确定性草稿已生成",
     config_missing: "模型配置缺失",
     provider_unreachable: "模型调用失败",
+    provider_quota_exhausted: "模型供应商余额不足",
+    provider_unavailable: "模型供应商暂时不可用",
     MODEL_OUTPUT_INVALID: "模型输出校验失败",
     not_requested: "仅计算，未请求模型",
+    skipped: "跳过：前置角色未完成",
     not_applicable: "本次不适用",
-    not_applicable_no_call: "不适用：不调用模型",
+    not_applicable_no_call: "仅计算模式：未调用模型",
     model_transfer_not_allowed: "模型传输未获许可",
     sensitive_data_blocked: "敏感信息已阻断模型调用",
     model_transfer_revoked: "模型传输同意已撤销",
-    not_attempted_rag_failure: "RAG失败，模型未调用",
+    not_attempted_rag_failure: "RAG失败，完整分析未完成",
     cache_replay: "批准缓存回放",
     external_live: "真实模型现场执行",
     external_cached: "真实模型缓存命中",
     deterministic_backup: "确定性备用分析",
     unavailable: "模型不可用",
+    risk_candidate: "风险候选复核",
+    no_trigger_confirmed: "未触发结果已复核",
+    additional_procedure_required: "需要追加程序",
+    data_gap: "数据缺口待补充",
+    industry_boundary: "行业边界已复核",
     frozen: "评估版本已冻结",
     not_started: "评估尚未开始",
     in_progress: "评估进行中",
@@ -198,11 +209,12 @@
   }
   function statusLabel(value) { return STATUS_LABELS[value] || value || "—"; }
   function aiNotice(value) { return value?.ai_generated_content_notice || AI_GENERATED_CONTENT_NOTICE; }
+  STATUS_LABELS.provider_region_opt_in_required = "OpenCode Go 需要开启中国托管模型";
   function statusKind(value) {
     if (String(value || "").includes("with_gaps")) return "waiting";
-    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "complete_public_prescreen_no_candidate", "complete_public_prescreen_industry_rule", "complete_industry_rule", "complete_demo_fallback", "model_success", "demo_fallback", "retain"].includes(value)) return "success";
-    if (["SOURCE_INCOMPLETE", "provider_unreachable", "MODEL_OUTPUT_INVALID", "not_attempted_rag_failure", "model_transfer_revoked"].includes(value)) return "danger";
-    if (["candidate", "downgrade", "defer", "DATA_GAP", "INDUSTRY_UNKNOWN", "complete_public_prescreen_industry_unknown", "complete_rule_industry_unknown"].includes(value) || String(value || "").startsWith("incomplete")) return "waiting";
+    if (["complete_full_analysis", "complete_full_analysis_no_candidate", "complete_public_prescreen", "complete_public_prescreen_no_candidate", "complete_public_prescreen_not_applicable", "complete_public_prescreen_industry_rule", "complete_public_prescreen_industry_unknown", "complete_rule_not_applicable", "complete_industry_rule", "complete_demo_fallback", "model_success", "demo_fallback", "retain"].includes(value)) return "success";
+    if (["SOURCE_INCOMPLETE", "provider_unreachable", "provider_quota_exhausted", "provider_region_opt_in_required", "provider_unavailable", "MODEL_OUTPUT_INVALID", "not_attempted_rag_failure", "model_transfer_revoked"].includes(value)) return "danger";
+    if (["candidate", "downgrade", "defer", "DATA_GAP", "INDUSTRY_UNKNOWN", "skipped", "complete_public_prescreen_industry_unknown", "complete_rule_industry_unknown"].includes(value) || String(value || "").startsWith("incomplete")) return "waiting";
     return "info";
   }
   function setStatePill(element, text, kind) {
@@ -720,8 +732,12 @@
     byId("sidebar-case").textContent = current.case_id;
     byId("wb-case-mode").textContent = `${current.sample_type} / ${current.registry_mode}`;
     const supabaseMode = state.auth?.persistence?.mode === "supabase";
-    const noModelIndustryPath = Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level);
-    byId("wb-case-permission").textContent = noModelIndustryPath
+    const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
+    // 比赛演示中行业闸门只决定 AI 分析路线，不再把完整模型链按钮改成预筛入口。
+    const noModelIndustryPath = !demoMode && (Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level));
+    byId("wb-case-permission").textContent = demoMode
+      ? "竞赛演示模式：当前案例将进入确定性规则、RAG 与三 Agent 分析链；结果仅供现场展示和人工复核。"
+      : noModelIndustryPath
       ? "当前行业走确定性专用预筛或行业闸门，不调用外部模型；结果仍需专业人员复核。"
       : state.modelConsent?.active
       ? "当前案例已有有效的逐案模型传输同意；只发送最小证据包，结果仍需人工复核。"
@@ -1447,7 +1463,7 @@
     const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase || !state.year;
     const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
     const supabaseMode = state.auth?.persistence?.mode === "supabase";
-    const noModelIndustryPath = Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level);
+    const noModelIndustryPath = !demoMode && (Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level));
     const modelTransferConfigured = Boolean(state.currentCase?.model_transfer_allowed);
     const modelLoginRequired = !noModelIndustryPath && supabaseMode && !state.auth?.authenticated;
     const modelConsentRequired = !noModelIndustryPath && supabaseMode && state.auth?.authenticated && !state.modelConsent?.active;
@@ -1512,10 +1528,16 @@
     byId("run-summary").hidden = false;
     byId("current-run-id").textContent = run.run_id;
     byId("screening-status").textContent = statusLabel(run.screening_status);
+    if (byId("ai-analysis-conclusion")) byId("ai-analysis-conclusion").textContent = statusLabel(run.ai_analysis_conclusion || run.model_check?.analysis_conclusion);
     byId("ai-recommendation-status").textContent = statusLabel(run.ai_recommendation);
     byId("review-summary-status").textContent = humanReview?.status || run.human_disposition || "未复核";
     byId("run-completeness-status").textContent = statusLabel(run.run_completeness);
-    byId("model-check-status").textContent = `${run.retrievals?.length || 0} 次检索 / ${statusLabel(run.model_check?.status)}`;
+     const routeLabels = { risk_candidate: "候选风险核查", negative_confirmation: "未触发结果复核", industry_review: "行业口径复核", evidence_gap_review: "数据缺口复核" };
+     const aiRoute = run.ai_analysis_route || run.context?.ai_analysis_route;
+     const aiConclusion = run.ai_analysis_conclusion || run.model_check?.analysis_conclusion;
+     byId("model-check-status").textContent = `${routeLabels[aiRoute] || "AI复核"} / ${statusLabel(aiConclusion)} / ${run.retrievals?.length || 0} 次检索 / ${statusLabel(run.model_check?.status)}`;
+     const conclusionNode = byId("ai-analysis-conclusion");
+     if (conclusionNode) conclusionNode.textContent = statusLabel(aiConclusion);
     byId("run-execution-mode").textContent = statusLabel(run.execution_mode || run.model_check?.execution_mode || "unavailable");
     byId("run-token-summary").textContent = `${run.input_tokens || run.model_check?.input_tokens || 0} 输入 / ${run.output_tokens || run.model_check?.output_tokens || 0} 输出 / ${run.duration_ms || run.model_check?.duration_ms || 0} ms`;
     setStatePill(byId("analysis-state"), statusLabel(run.run_completeness), statusKind(run.run_completeness));
@@ -1547,7 +1569,7 @@
       const metrics = Object.entries(result.metrics || {}).filter(([, value]) => value !== null && value !== undefined);
       const displayRuleId = result.risk_card?.rule_id || result.rule_id;
       const displayRuleName = result.risk_card?.rule_name || result.risk_card?.title || RULES.find((rule) => rule.id === result.rule_id)?.name || "规则";
-      return `<article class="result-record"><header class="result-head"><div><span class="folio">${escapeHtml(displayRuleId)} · ${escapeHtml(displayRuleName)}</span><h4>${escapeHtml(result.risk_card?.title || "程序筛查")}</h4><p>${escapeHtml(result.risk_card?.engineering_version || "工程规则")}</p></div><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></header><div class="metric-ledger">${metrics.map(([key, value]) => `<div class="metric"><span>${escapeHtml(METRIC_LABELS[key] || key)}</span><strong>${escapeHtml(metricValue(key, value))}</strong><small>${escapeHtml(metricFormula(key))}</small></div>`).join("")}</div>${riskCardButton(result, index)}${renderAiDraft(result)}${renderAgentSteps(result.agent_steps)}</article>`;
+       return `<article class="result-record"><header class="result-head"><div><span class="folio">${escapeHtml(displayRuleId)} · ${escapeHtml(displayRuleName)}</span><h4>${escapeHtml(result.risk_card?.title || "程序筛查")}</h4><p>${escapeHtml(result.risk_card?.engineering_version || "工程规则")} · AI路线：${escapeHtml(routeLabels[result.ai_analysis_route || run.ai_analysis_route] || "案例级复核")}</p></div><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></header><div class="metric-ledger">${metrics.map(([key, value]) => `<div class="metric"><span>${escapeHtml(METRIC_LABELS[key] || key)}</span><strong>${escapeHtml(metricValue(key, value))}</strong><small>${escapeHtml(metricFormula(key))}</small></div>`).join("")}</div>${riskCardButton(result, index)}${renderAiDraft(result)}${renderAgentSteps(result.agent_steps?.length ? result.agent_steps : (result === run.rule_results?.[0] ? run.agent_steps : []))}</article>`;
     }).join("") + '<section class="scene-followup"><h4>审计计划场景的后续动作</h4><p>人工结合认定候选，决定账龄分析、期后回款检查、合同条款核对和大额交易测试；系统不代签。</p></section>';
     byId("wb-run-results").querySelectorAll("[data-risk-index]").forEach((button) => button.addEventListener("click", () => openRiskDialog(Number(button.dataset.riskIndex))));
     renderEvidenceRail(run, humanReview);
@@ -1578,7 +1600,8 @@
       const normal = result.ai_draft?.normal_explanations || [];
       const gaps = [...new Set([...(result.ai_draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...prescreenMissingFields])];
       const support = result.ai_draft?.claims?.length ? `${result.ai_draft.claims.length} 条主张均绑定 evidence ID` : "无AI主张";
-      return `<tr><th><span class="mono">${escapeHtml(result.rule_id)}</span><br><small>${escapeHtml(statusLabel(result.screening_status || result.status))}</small></th><td><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></td><td>${ragCount ? `${ragCount} 个候选片段` : "未参与 / 无命中"}</td><td>${escapeHtml(statusLabel(result.ai_recommendation))}</td><td>${escapeHtml(support)}</td><td>${escapeHtml(normal.map((item) => `${item.text}（${item.support_status}）`).join("；") || "未形成")}</td><td>${escapeHtml(gaps.join("；") || "未返回")}</td></tr>`;
+      const ragSummary = ragCount ? `${ragCount} 个候选片段` : run.ai_execution_requested ? "已检索但无命中" : "未参与 / 无命中";
+      return `<tr><th><span class="mono">${escapeHtml(result.rule_id)}</span><br><small>${escapeHtml(statusLabel(result.screening_status || result.status))}</small></th><td><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></td><td>${escapeHtml(ragSummary)}</td><td>${escapeHtml(statusLabel(result.ai_recommendation))}</td><td>${escapeHtml(support)}</td><td>${escapeHtml(normal.map((item) => `${item.text}（${item.support_status}）`).join("；") || "未形成")}</td><td>${escapeHtml(gaps.join("；") || "未返回")}</td></tr>`;
     }).join("");
   }
   function openRiskDialog(index) {
@@ -1711,7 +1734,7 @@
         ? `后端状态：公开样例可直接分析；${modelLabel}，每次运行仍保存模型、Token、耗时和引用状态。`
         : configured
         ? "后端状态：模型配置存在，但完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。"
-        : "后端状态：确定性预检可用；模型未配置时，程序候选不会生成AI草稿。";
+        : "后端状态：确定性预检可用；模型未配置时，完整分析会明确显示模型配置缺失，不会伪造AI草稿。";
     } catch (error) {
       state.backendAvailable = false;
       setServiceStatus("本地后端不可用", "danger");

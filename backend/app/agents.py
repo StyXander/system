@@ -2,13 +2,13 @@
 
 本模块处理模型语义推理，但不负责确定财务字段是否正确。
 程序筛查先于模型调用，模型不能改变确定性计算的原始结果。
-质疑角色只能提出受证据支持的候选主张，不形成最终草稿。
+质疑角色只能提出受证据支持的候选主张或未触发复核问题，不形成最终草稿。
 反证角色必须寻找正常解释、口径限制和相反证据，不负责下结论。
 复核角色综合前两步，才允许提交非空的待核查草稿。
 三个角色依次执行，前一步失败时后续角色不会假装独立成功。
 角色顺序是状态机约束，不是给界面展示的装饰流程。
 质疑与反证的草稿字段固定为空字符串，避免旁路生成最终文字。
-质疑与反证的建议字段固定为不适用，避免越权给出处理意见。
+质疑与反证的建议字段固定为不适用，避免越权给出处理意见；路线结论单独记录。
 复核角色的建议只能是保留、降级或暂缓，并与角色状态一致。
 提示词不允许空值占位，因为工具参数模式不接受空值语义。
 每个角色使用专用工具模式，不能共用宽松的万能输出结构。
@@ -44,8 +44,8 @@
 供应商超时直接结束当前角色，后续状态如实显示未执行。
 没有密钥时返回未配置状态，不回退为预设的成功示例。
 案例禁止模型传输时不进入本模块，主流程应提前关闭模型链。
-规则未触发时三个角色均不适用，不为展示效果强行调用模型。
-只有候选事项需要语义质疑、反证和复核，减少无意义调用。
+完整分析模式下四条 AI 路线都执行三个角色；规则未触发只改变任务，不关闭模型链。
+calculation_only 才是明确不调用模型的模式；模型不改变确定性规则结论。
 复核成功后产生的是 AI 辅助草稿，不是人工处理决定。
 最终草稿仍需人工选择保留、降级或暂缓，并明确是否允许导出。
 模型建议与人工处理分别存储，任何一方都不能覆盖另一方字段。
@@ -84,7 +84,9 @@
 from __future__ import annotations
 
 import hashlib
+from http.client import HTTPException as HTTPClientException
 import json
+import re
 import time
 from copy import deepcopy
 from typing import Any, Callable
@@ -103,8 +105,85 @@ ROLE_ALLOWED_STATUSES: dict[AgentRole, list[str]] = {
     "counter": ["candidate", "defer"],
     "review": ["retain", "downgrade", "defer"],
 }
+ROUTE_ROLE_ALLOWED_STATUSES: dict[str, dict[AgentRole, list[str]]] = {
+    "risk_candidate": ROLE_ALLOWED_STATUSES,
+    "negative_confirmation": {
+        "challenge": ["defer"],
+        "counter": ["defer"],
+        "review": ["retain", "defer"],
+    },
+    "industry_review": {
+        "challenge": ["candidate", "defer"],
+        "counter": ["candidate", "defer"],
+        "review": ["retain", "downgrade", "defer"],
+    },
+    "evidence_gap_review": {
+        "challenge": ["candidate", "defer"],
+        "counter": ["candidate", "defer"],
+        "review": ["retain", "downgrade", "defer"],
+    },
+}
+ROUTE_CONCLUSIONS = {
+    "risk_candidate": "risk_candidate",
+    "negative_confirmation": "no_trigger_confirmed",
+    "industry_review": "industry_boundary",
+    "evidence_gap_review": "data_gap",
+}
+ROUTE_ALLOWED_CONCLUSIONS = {
+    "risk_candidate": ["risk_candidate", "additional_procedure_required"],
+    "negative_confirmation": ["no_trigger_confirmed", "additional_procedure_required"],
+    "industry_review": ["industry_boundary", "additional_procedure_required", "data_gap"],
+    "evidence_gap_review": ["data_gap", "additional_procedure_required"],
+}
 PROMPT_VERSION = "agent_prompt_v3"
 ROLE_MAX_OUTPUT_TOKENS: dict[AgentRole, int] = {"challenge": 1400, "counter": 1400, "review": 1600}
+
+
+class ProviderCallError(RuntimeError):
+    """A provider rejected a request; keep its stable public failure code."""
+
+    def __init__(self, failure_code: str, detail: str) -> None:
+        super().__init__(detail)
+        self.failure_code = failure_code
+        self.detail = detail
+
+
+def _provider_error_message(error: HTTPError) -> str:
+    """Read a short, non-sensitive provider error message for stable mapping."""
+
+    try:
+        raw = error.read(4096)
+    except Exception:
+        return ""
+    if not raw:
+        return ""
+    try:
+        payload = json.loads(raw.decode("utf-8", "replace"))
+    except (TypeError, ValueError, UnicodeDecodeError):
+        return raw.decode("utf-8", "replace")[:500]
+    if isinstance(payload, dict):
+        nested = payload.get("error")
+        if isinstance(nested, dict):
+            return str(nested.get("message") or nested.get("type") or "")[:500]
+        return str(payload.get("message") or payload.get("type") or "")[:500]
+    return ""
+
+
+def _region_opt_in_detail(message: str) -> str:
+    """Turn OpenCode's China-hosting gate into an actionable demo message."""
+
+    match = re.search(r"https://opencode\.ai/workspace/[A-Za-z0-9_-]+/go", message)
+    if match:
+        return f"OpenCode Go 当前 DeepSeek 版本需要先在工作区开启中国托管模型：{match.group(0)}"
+    return "OpenCode Go 当前 DeepSeek 版本需要先在工作区开启中国托管模型，再重新运行。"
+
+
+AI_ANALYSIS_ROUTES = {
+    "risk_candidate": "核查程序筛出的候选事项是否由证据支持，并提出下一步复核动作。",
+    "negative_confirmation": "复核规则未触发结果，主动检查阈值边缘、异常趋势、漏判可能和原文中的反向迹象；不得把未触发改写成已触发。",
+    "industry_review": "结合行业闸门和行业专用口径，检查当前程序选择是否合理、是否需要行业资料或替代程序；不得套用不适用的通用口径。",
+    "evidence_gap_review": "围绕数据缺口检查年报原文中的替代披露、缺口影响和可执行的补充程序；不得猜测缺失金额。",
+}
 # 这里要求模型直接返回受约束 JSON；关闭深度思考，避免只产生 reasoning_content 而没有可校验的 content。
 THINKING_CONFIG = {"type": "disabled"}
 AGENT_OUTPUT_TOOL_NAME = "submit_agent_output"
@@ -124,6 +203,7 @@ AGENT_OUTPUT_TOOL = {
                 "run_id": {"type": "string"},
                 "role": {"type": "string", "enum": ["challenge", "counter", "review"]},
                 "rule_id": {"type": "string", "enum": ["R1", "R2"]},
+                "analysis_conclusion": {"type": "string", "enum": ["risk_candidate", "no_trigger_confirmed", "additional_procedure_required", "data_gap", "industry_boundary"]},
                 "status": {"type": "string", "enum": ["candidate", "retain", "downgrade", "defer"]},
                 "claims": {
                     "type": "array",
@@ -166,6 +246,7 @@ AGENT_OUTPUT_TOOL = {
                 "run_id",
                 "role",
                 "rule_id",
+                "analysis_conclusion",
                 "status",
                 "claims",
                 "normal_explanations",
@@ -182,14 +263,29 @@ AGENT_OUTPUT_TOOL = {
 }
 
 
-def _agent_output_tool_for(role: AgentRole, rule_id: str, run_id: str) -> dict[str, Any]:
+def _agent_output_tool_for(
+    role: AgentRole,
+    rule_id: str,
+    run_id: str,
+    analysis_route: str = "risk_candidate",
+    allow_empty_claims: bool = False,
+) -> dict[str, Any]:
     """把角色、规则和本次运行号一并缩进严格Schema，避免跨角色状态或串单。"""
     tool = deepcopy(AGENT_OUTPUT_TOOL)
     properties = tool["function"]["parameters"]["properties"]
     properties["run_id"]["enum"] = [run_id]
     properties["role"]["enum"] = [role]
     properties["rule_id"]["enum"] = [rule_id]
-    properties["status"]["enum"] = ROLE_ALLOWED_STATUSES[role]
+    route_statuses = ROUTE_ROLE_ALLOWED_STATUSES.get(analysis_route, ROLE_ALLOWED_STATUSES)
+    properties["status"]["enum"] = route_statuses[role]
+    properties["analysis_conclusion"]["enum"] = ROUTE_ALLOWED_CONCLUSIONS.get(
+        analysis_route,
+        ROUTE_ALLOWED_CONCLUSIONS["risk_candidate"],
+    )
+    # 空证据路线仍需真实调用模型，但必须退化为缺口/边界草稿；
+    # 普通证据路线保持至少一条引用主张。
+    if allow_empty_claims and analysis_route in {"evidence_gap_review", "industry_review"}:
+        properties["claims"].pop("minItems", None)
     if role == "review":
         # 复核角色必须形成最终草稿；建议集合与其允许的处理状态保持一致。
         properties["draft_title"]["minLength"] = 1
@@ -218,7 +314,7 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 1. 只提出一条最重要的候选主张，说明需要核查的会计事项和原因；
 2. 每条 claims 主张至少引用一个 evidence_id 且必须是 supported；只能作为推测的内容放入 normal_explanations，并标记为 unverified_hypothesis；
 3. 把缺失的期后回款、账龄、合同或其他材料列入 data_gaps/requested_materials；
-4. status 固定返回 candidate，draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
+4. 除非路线合同另有规定，status 返回 candidate；draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
 5. 把输出交给 Counter Agent，不能提前给出最终处理建议。
 
 严禁：把程序候选写成舞弊、违法、重大错报或审计意见；重算、改写或猜测金额、比例、页码、趋势和阈值；使用证据包以外的信息。""",
@@ -230,7 +326,7 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 3. 找不到反证时要明确写“当前证据未发现相反材料”，不能编造反证；
 4. 如果解释没有 RAG-/SUP- evidence_id 直接支持，support_status 必须为 unverified_hypothesis，并在 text 中明确写“待验证假设”；字段数值本身不能证明季节性、口径差异或管理层原因；
 5. 列出仍需取得的资料和下一步核查动作；
-6. status 只能返回 candidate 或 defer，draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
+6. 除非路线合同另有规定，status 只能返回 candidate 或 defer；draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
 7. 不要声称达到强阈值，也不要写跨年度周转/回款趋势或变化；如果程序没有提供可比年度，只能列为资料缺口或待验证假设；
 8. 将结构化结果交给 Review Agent，不替 Review 作最终建议。
 
@@ -251,6 +347,23 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 }
 
 
+def _route_role_contract(analysis_route: str, role: AgentRole) -> str:
+    """Return the route-specific task and status contract appended to prompts."""
+
+    conclusion = ROUTE_CONCLUSIONS.get(analysis_route, "risk_candidate")
+    if analysis_route == "negative_confirmation":
+        if role == "challenge":
+            return "本路线不是候选风险确认：status 必须为 defer，专门检查未触发结果是否存在阈值边缘、漏判或反向迹象；不得把程序状态改成 candidate。analysis_conclusion 填 no_trigger_confirmed。"
+        if role == "counter":
+            return "本路线 status 必须为 defer，验证正常解释和反向证据；不得制造风险候选。analysis_conclusion 填 no_trigger_confirmed。"
+        return "本路线优先给出 no_trigger_confirmed；只有资料不足以确认时才给 additional_procedure_required，并保持 status=defer。"
+    if analysis_route == "industry_review":
+        return f"本路线围绕行业适配和专用口径工作；不得把通用规则套到不适用行业。analysis_conclusion 填 {conclusion} 或 additional_procedure_required。"
+    if analysis_route == "evidence_gap_review":
+        return f"本路线围绕字段缺口、替代披露和补充程序工作；不得猜测缺失金额。analysis_conclusion 填 {conclusion} 或 additional_procedure_required。"
+    return "本路线核查程序候选是否有证据支持；analysis_conclusion 填 risk_candidate。"
+
+
 def _json_hash(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
@@ -264,6 +377,7 @@ def _compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, An
             ("field", evidence_bundle.get("field_evidence", [])),
             ("rag", evidence_bundle.get("rag_evidence", [])),
             ("supplement", evidence_bundle.get("supplement_evidence", [])),
+            ("procedure", evidence_bundle.get("procedure_evidence", [])),
         ]
     compact: list[dict[str, Any]] = []
     for evidence_type, items in categories:
@@ -290,16 +404,24 @@ def _compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, An
     return compact
 
 
-def _system_prompt(role: AgentRole) -> str:
+def _system_prompt(role: AgentRole, analysis_route: str = "risk_candidate") -> str:
+    route_instruction = AI_ANALYSIS_ROUTES.get(analysis_route, AI_ANALYSIS_ROUTES["risk_candidate"])
     return f"""{ROLE_PROMPTS[role]}
+
+本次 AI 分析路线：{analysis_route}。路线目标：{route_instruction}
+路线角色合同：{_route_role_contract(analysis_route, role)}
 
 共同合同（所有角色必须遵守）：
 只使用用户消息中的规则计算结果和 evidence_bundle，不得搜索网页、使用公司记忆或补全未提供事实。
 deterministic_constraints 是程序真值：strong_threshold_met=false 时不得写已达到强阈值；
 turnover_trend_available=false 时不得写周转或回款周期较上年延长/缩短；review 必须保留给出的口径与趋势局限。
+当 strong_threshold_met=false 时，任何角色的 claims、normal_explanations、reason_for_status、draft_observation
+都不得出现“达到/超过/触发强阈值”等肯定表述，只能写“未达到、未证实或待核查”；行业闸门为 not_applicable/unknown 时也不得把通用规则写成适用结论。
 不得认定舞弊、重大错报、违法，不得出具审计意见或投资建议。
 每条 claim 必须绑定至少一个已有 evidence_id 且 support_status=supported。
 正常解释只有在证据支持时才能标 supported；否则必须标 unverified_hypothesis，并明确是“待验证假设”。
+如果 evidence_bundle 为空，仍必须调用 submit_agent_output 完成三角色链；此时 claims 和 normal_explanations 必须为空，
+只能填写 data_gaps/requested_materials、路线允许的 analysis_conclusion 以及 review 的缺口草稿，绝不编造事实或 evidence_id。
 不得改写程序计算的数字、公式、页码、原文定位或规则触发结论。
 为保证可复核和展示简洁：claims 只写1条；normal_explanations最多2条；data_gaps和requested_materials各最多3条；
 每条文字尽量不超过60个汉字，reason_for_status不超过100个汉字；不要整段复述证据。
@@ -313,11 +435,30 @@ def _user_payload(
     rule_result: RuleResult,
     evidence_bundle: list[dict[str, Any]],
     previous_outputs: dict[str, AgentOutput],
+    analysis_route: str = "risk_candidate",
+    analysis_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    route_statuses = ROUTE_ROLE_ALLOWED_STATUSES.get(analysis_route, ROLE_ALLOWED_STATUSES)
+    allowed_conclusions = ROUTE_ALLOWED_CONCLUSIONS.get(
+        analysis_route,
+        ROUTE_ALLOWED_CONCLUSIONS["risk_candidate"],
+    )
+    allowed_evidence_ids = [
+        str(item.get("evidence_id"))
+        for item in evidence_bundle
+        if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+    ]
     payload: dict[str, Any] = {
         "schema_version": "agent_output_v2",
         "run_id": run_id,
         "role": role,
+        "analysis_route": analysis_route,
+        "analysis_route_instruction": AI_ANALYSIS_ROUTES.get(analysis_route, AI_ANALYSIS_ROUTES["risk_candidate"]),
+        "allowed_analysis_conclusions": ROUTE_ALLOWED_CONCLUSIONS.get(
+            analysis_route,
+            ROUTE_ALLOWED_CONCLUSIONS["risk_candidate"],
+        ),
+        "analysis_context": analysis_context or {},
         "rule_result": {
             "rule_id": rule_result.rule_id,
             "status": rule_result.status,
@@ -342,11 +483,15 @@ def _user_payload(
             ),
         },
         "evidence_bundle": evidence_bundle,
+        "evidence_mode": "empty_gap_only" if not allowed_evidence_ids else "evidence_bound",
         "output_contract": {
             "schema_version": "agent_output_v2",
             "role": role,
             "rule_id": rule_result.rule_id,
-            "status": "challenge返回candidate；counter返回candidate或defer；review返回retain、downgrade或defer",
+            "analysis_conclusion": allowed_conclusions,
+            "status_values_for_this_role": route_statuses[role],
+            "allowed_evidence_ids": allowed_evidence_ids,
+            "status_values": route_statuses[role],
             "claims": [{"text": "待进一步了解的简短表述", "evidence_ids": ["本次证据ID"], "support_status": "supported"}],
             "normal_explanations": [],
             "data_gaps": [],
@@ -356,6 +501,12 @@ def _user_payload(
             "draft_observation": "review角色填写非空文本；其他角色必须为空字符串",
             "ai_recommendation": "review角色等于其status；其他角色为not_applicable",
         },
+        "hard_rules_for_this_call": [
+            "当 strong_threshold_met=false 时只能写未达到、未证实或待核查，不得写达到、超过、触发强阈值。",
+            "当 turnover_trend_available=false 时不得写跨年度周转或回款周期变化，只能写资料缺口或待验证假设。",
+            "claims 只能使用 allowed_evidence_ids 中的 evidence_id，并且每条 claim 至少绑定一个 evidence_id。",
+            "不得输出舞弊、违法、重大错报、审计意见或投资建议；不确定时使用 defer 和 additional_procedure_required。",
+        ],
     }
     if role in {"counter", "review"}:
         payload["challenge"] = previous_outputs["challenge"].model_dump(mode="json")
@@ -463,9 +614,21 @@ def _semantic_failure_code(message: str) -> str:
 
 
 def _strict_tool_base_url(base_url: str) -> str:
-    """DeepSeek strict Tool Call 需要 beta 路径；保留用户填写的自定义 beta 地址。"""
+    """Return the provider's tool-call base without inventing an endpoint suffix.
+
+    The native DeepSeek endpoint keeps strict tool calls under ``/beta``.  OpenCode
+    Zen and other OpenAI-compatible gateways already expose their contract under a
+    versioned ``/v1`` path, so appending ``/beta`` would turn a valid URL into a
+    404.  This helper intentionally uses only the public URL shape; credentials
+    never participate in endpoint selection.
+    """
     normalized = base_url.rstrip("/")
-    return normalized if normalized.endswith("/beta") else f"{normalized}/beta"
+    lowered = normalized.lower()
+    if normalized.endswith("/beta") or normalized.endswith("/v1") or "/v1/" in normalized:
+        return normalized
+    if "opencode.ai/" in lowered:
+        return normalized
+    return f"{normalized}/beta"
 
 
 def validate_agent_output(
@@ -476,18 +639,35 @@ def validate_agent_output(
     rule_id: str,
     allowed_evidence_ids: set[str],
     rule_result: RuleResult | None = None,
+    analysis_route: str = "risk_candidate",
 ) -> AgentOutput:
     """模型JSON必须与本次运行完全绑定；任何越界引用都属于硬失败。"""
     output = AgentOutput.model_validate(payload)
     if output.run_id != run_id or output.role != role or output.rule_id != rule_id:
         raise ValueError("模型输出的run_id、role或rule_id与本次运行不一致")
 
-    if role == "challenge" and output.status != "candidate":
-        raise ValueError("质疑角色只能返回candidate")
-    if role == "counter" and output.status not in {"candidate", "defer"}:
+    route_statuses = ROUTE_ROLE_ALLOWED_STATUSES.get(analysis_route, ROLE_ALLOWED_STATUSES)
+    if output.status not in route_statuses[role]:
+        raise ValueError(f"{analysis_route} 路线的 {role} 角色状态不允许")
+    allowed_conclusions = ROUTE_ALLOWED_CONCLUSIONS.get(
+        analysis_route,
+        ROUTE_ALLOWED_CONCLUSIONS["risk_candidate"],
+    )
+    expected_conclusion = ROUTE_CONCLUSIONS.get(analysis_route, "risk_candidate")
+    if output.analysis_conclusion is None:
+        output = output.model_copy(update={"analysis_conclusion": expected_conclusion})
+    elif output.analysis_conclusion not in set(allowed_conclusions):
+        raise ValueError(f"{analysis_route} 路线的模型分析结论不允许")
+
+    if role == "challenge" and analysis_route == "risk_candidate" and output.status != "candidate":
+        raise ValueError("候选风险路线的质疑角色只能返回candidate")
+    if role == "counter" and analysis_route == "risk_candidate" and output.status not in {"candidate", "defer"}:
         raise ValueError("反证角色状态不允许")
     if role == "review" and output.status not in {"retain", "downgrade", "defer"}:
         raise ValueError("语义复核角色状态不允许")
+    if not output.claims:
+        if allowed_evidence_ids or analysis_route not in {"evidence_gap_review", "industry_review"}:
+            raise ValueError("有证据或非缺口路线必须至少保留一条模型主张")
 
     if output.schema_version == "agent_output_v2" and role == "review":
         if not output.draft_title.strip() or not output.draft_observation.strip():
@@ -540,14 +720,10 @@ def _validate_deterministic_fact_language(output: AgentOutput, rule_result: Rule
 
     if rule_result.rule_id == "R1":
         strong_met = risk_card.get("screening_strength") == "strong"
-        false_strong_phrases = (
-            "超强阈值",
-            "超过强阈值",
-            "达到强阈值",
-            "高于强阈值",
-            "突破强阈值",
-        )
-        if not strong_met and any(phrase in joined for phrase in false_strong_phrases):
+        # Match positive assertions only.  A plain substring check would also
+        # reject the safe phrase “未达到强阈值”, because it contains “达到强阈值”.
+        strong_assertion = re.search(r"(?<!未)(?<!不)(?<!尚)(?:已)?(?:超|达到|超过|高于|突破|触发)\s*强阈值", joined)
+        if not strong_met and strong_assertion:
             raise ValueError("模型把未达到的R1强阈值写成已达到")
 
         trend_available = bool(rule_result.metrics.get("three_year_trend_available"))
@@ -594,12 +770,14 @@ def _validate_deterministic_fact_language(output: AgentOutput, rule_result: Rule
 
 
 def _call_model(
-    *, api_key: str, base_url: str, model_id: str, role: AgentRole, payload: dict[str, Any]
+    *, api_key: str, base_url: str, model_id: str, role: AgentRole, payload: dict[str, Any], analysis_route: str = "risk_candidate"
 ) -> tuple[dict[str, Any], int, str, str, int | None, int | None]:
     output_tool = _agent_output_tool_for(
         role,
         str(payload["rule_result"]["rule_id"]),
         str(payload["run_id"]),
+        str(payload.get("analysis_route") or analysis_route),
+        allow_empty_claims=payload.get("evidence_mode") == "empty_gap_only",
     )
     request_body = {
         "model": model_id,
@@ -610,14 +788,22 @@ def _call_model(
         "tools": [output_tool],
         "tool_choice": {"type": "function", "function": {"name": AGENT_OUTPUT_TOOL_NAME}},
         "messages": [
-            {"role": "system", "content": _system_prompt(role)},
+            {"role": "system", "content": _system_prompt(role, analysis_route)},
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ],
     }
     request = Request(
         f"{_strict_tool_base_url(base_url)}/chat/completions",
         data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        # OpenCode Go's edge protection rejects urllib's default
+        # ``Python-urllib`` user agent with a generic 403/1010 response.  Send
+        # an explicit application user agent while keeping the key server-side.
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "AuditTrace-Demo/1.0",
+        },
         method="POST",
     )
     started = time.perf_counter()
@@ -651,6 +837,47 @@ def _call_model(
     )
 
 
+def _call_model_with_transient_retry(
+    *, api_key: str, base_url: str, model_id: str, role: AgentRole, payload: dict[str, Any], analysis_route: str
+) -> tuple[dict[str, Any], int, str, str, int | None, int | None]:
+    """Retry one transient provider failure; classify permanent HTTP failures."""
+
+    for attempt in range(2):
+        try:
+            return _call_model(
+                api_key=api_key,
+                base_url=base_url,
+                model_id=model_id,
+                role=role,
+                payload=payload,
+                analysis_route=analysis_route,
+            )
+        except HTTPError as error:
+            code = int(getattr(error, "code", 0) or 0)
+            provider_message = _provider_error_message(error)
+            provider_message_lower = provider_message.lower()
+            if code == 403 and (
+                "regionerror" in provider_message_lower
+                or "requires explicit opt in" in provider_message_lower
+                or "hosted in china" in provider_message_lower
+            ):
+                raise ProviderCallError("MODEL_PROVIDER_REGION_OPT_IN_REQUIRED", _region_opt_in_detail(provider_message)) from error
+            if code == 402:
+                raise ProviderCallError("MODEL_PROVIDER_BALANCE_EXHAUSTED", "模型供应商余额不足，未完成本次角色调用。") from error
+            if code in {401, 403}:
+                raise ProviderCallError("MODEL_PROVIDER_AUTH_FAILED", "模型供应商鉴权失败，请检查服务端密钥配置。") from error
+            if code not in {408, 409, 425, 429, 500, 502, 503, 504}:
+                raise ProviderCallError("MODEL_PROVIDER_REJECTED", f"模型供应商拒绝请求（HTTP {code}）。") from error
+            if attempt == 1:
+                raise ProviderCallError("MODEL_PROVIDER_RATE_LIMITED", "模型供应商暂时限流或不可用，重试后仍未完成。") from error
+            time.sleep(1.5)
+        except (URLError, HTTPClientException, TimeoutError, OSError) as error:
+            if attempt == 1:
+                raise
+            time.sleep(1.5)
+    raise RuntimeError("unreachable model retry state")
+
+
 def run_agent_chain(
     *,
     run_id: str,
@@ -661,10 +888,10 @@ def run_agent_chain(
     base_url: str,
     model_id: str,
     before_role: Callable[[AgentRole], bool] | None = None,
+    analysis_route: str = "risk_candidate",
+    analysis_context: dict[str, Any] | None = None,
 ) -> list[AgentStep]:
     """串行执行三角色；任一步失败即关闭AI草稿链，不生成伪造的后续角色答案。"""
-    if rule_result.status != "candidate":
-        return [AgentStep(role="challenge", status="not_applicable", detail="规则未触发，未调用模型。")]
     if not enabled:
         return [AgentStep(role="challenge", status="not_requested", detail="本次未请求三Agent调用。")]
     if not api_key:
@@ -672,11 +899,23 @@ def run_agent_chain(
 
     compact_bundle = _compact_evidence_bundle(evidence_bundle)
     allowed_evidence_ids = {item["evidence_id"] for item in compact_bundle}
-    if not allowed_evidence_ids:
-        return [AgentStep(role="challenge", status="EVIDENCE_BUNDLE_EMPTY", model_id=model_id, prompt_version=PROMPT_VERSION, detail="统一证据包为空，已关闭AI草稿链。")]
     previous_outputs: dict[str, AgentOutput] = {}
     steps: list[AgentStep] = []
-    for role in ROLE_ORDER:
+
+    def append_skipped(role_index: int, reason: str) -> None:
+        for skipped_role in ROLE_ORDER[role_index + 1 :]:
+            steps.append(
+                AgentStep(
+                    role=skipped_role,
+                    status="skipped",
+                    detail=reason,
+                    failure_code="PREVIOUS_ROLE_FAILED",
+                    model_id=None,
+                    prompt_version=PROMPT_VERSION,
+                )
+            )
+
+    for role_index, role in enumerate(ROLE_ORDER):
         if before_role is not None:
             try:
                 authorized = before_role(role)
@@ -694,18 +933,50 @@ def run_agent_chain(
                         failure_code="MODEL_TRANSFER_REVOKED",
                     )
                 )
+                append_skipped(role_index, "前置模型传输授权未通过，后续角色未调用。")
                 break
-        payload = _user_payload(run_id, role, rule_result, compact_bundle, previous_outputs)
+        payload = _user_payload(
+            run_id,
+            role,
+            rule_result,
+            compact_bundle,
+            previous_outputs,
+            analysis_route=analysis_route,
+            analysis_context=analysis_context,
+        )
         input_sha256 = _json_hash(payload)
         try:
-            raw_output, duration_ms, response_sha256, _, input_tokens, output_tokens = _call_model(
+            raw_output, duration_ms, response_sha256, _, input_tokens, output_tokens = _call_model_with_transient_retry(
                 api_key=api_key,
                 base_url=base_url,
                 model_id=model_id,
                 role=role,
                 payload=payload,
+                analysis_route=analysis_route,
             )
-        except (HTTPError, URLError, TimeoutError, OSError) as error:
+        except ProviderCallError as error:
+            status = (
+                "provider_quota_exhausted"
+                if error.failure_code == "MODEL_PROVIDER_BALANCE_EXHAUSTED"
+                else "provider_region_opt_in_required"
+                if error.failure_code == "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED"
+                else "provider_unavailable"
+            )
+            steps.append(
+                AgentStep(
+                    role=role,
+                    status=status,
+                    failure_stage="provider",
+                    failure_code=error.failure_code,
+                    model_id=model_id,
+                    prompt_version=PROMPT_VERSION,
+                    detail=error.detail,
+                    input_sha256=input_sha256,
+                )
+            )
+            append_skipped(role_index, "前一角色的供应商调用未完成，后续角色未调用。")
+            break
+        except (HTTPError, URLError, HTTPClientException, TimeoutError, OSError) as error:
             steps.append(
                 AgentStep(
                     role=role,
@@ -718,6 +989,7 @@ def run_agent_chain(
                     input_sha256=input_sha256,
                 )
             )
+            append_skipped(role_index, "前一角色的模型请求失败，后续角色未调用。")
             break
         except json.JSONDecodeError:
             steps.append(
@@ -732,6 +1004,7 @@ def run_agent_chain(
                     input_sha256=input_sha256,
                 )
             )
+            append_skipped(role_index, "前一角色返回的工具参数无法解析，后续角色未调用。")
             break
         except (KeyError, IndexError, UnicodeDecodeError, TypeError, ValueError) as error:
             steps.append(
@@ -746,6 +1019,7 @@ def run_agent_chain(
                     input_sha256=input_sha256,
                 )
             )
+            append_skipped(role_index, "前一角色输出未通过结构校验，后续角色未调用。")
             break
         try:
             output = validate_agent_output(
@@ -755,6 +1029,7 @@ def run_agent_chain(
                 rule_id=rule_result.rule_id,
                 allowed_evidence_ids=allowed_evidence_ids,
                 rule_result=rule_result,
+                analysis_route=analysis_route,
             )
         except ValidationError:
             steps.append(
@@ -769,6 +1044,7 @@ def run_agent_chain(
                     input_sha256=input_sha256,
                 )
             )
+            append_skipped(role_index, "前一角色输出未通过服务端硬校验，后续角色未调用。")
             break
         except ValueError as error:
             message = str(error)
@@ -793,6 +1069,7 @@ def run_agent_chain(
                     input_sha256=input_sha256,
                 )
             )
+            append_skipped(role_index, "前一角色输出未通过服务端硬校验，后续角色未调用。")
             break
         previous_outputs[role] = output
         steps.append(

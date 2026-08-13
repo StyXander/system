@@ -16,11 +16,11 @@
 完整分析模式才允许依次执行检索、三角色和最终草稿生成。
 案例禁止模型传输时保留本地计算，同时关闭模型调用主链。
 模型密钥缺失时显示未配置，不使用前端假数据补成完整结果。
-RAG 失败时不调用模型，防止没有原文证据的旁路推理。
+正式模式的 RAG 失败时不调用模型；竞赛完整分析会把 RAG 缺口显式交给证据缺口路线。
 三角色任一步失败时最终草稿为空，完整性保持模型链失败。
 三个角色全部完成后才允许标记完整分析并保存最终草稿。
-没有程序候选时完整分析可完整结束，但三个角色均不适用。
-模型配额只限制公开演示中的候选调用，不影响本地测试计算。
+没有程序候选时完整分析仍进入三角色；AI复核路线改为未触发、行业或缺口任务。
+模型配额限制公开访客调用；服务端批量预热只绕过访客窗口，仍受每日预算和并发约束。
 配额按来源地址和全局窗口双重控制，避免意外消耗付费额度。
 运行编号在创建时生成，贯穿证据包、角色输出和人工复核。
 运行上下文保存规则版本、提示词版本、模式版本和参数快照。
@@ -39,7 +39,7 @@ R2 只是辅助规则，不能抢占 R1 主链或扩张正式产品范围。
 案例包公开账龄作为增强证据进入模型上下文和网页详情。
 增强证据可以关闭同名资料缺口，但不能自动降低风险状态。
 期后回款和合同条款仍缺失时继续出现在待索取资料清单中。
-RAG 固定问题只针对已经形成的候选事项，减少无目的检索。
+RAG 固定问题按 AI 复核路线覆盖候选、未触发、行业和数据缺口事项。
 检索结果保留问题编号、检索编号、页码、片段和来源哈希。
 没有检索命中时生成证据缺口记录，不用相似文本替代原文。
 Agent 证据包按规则筛选字段和检索结果，避免跨规则串用。
@@ -75,6 +75,7 @@ AI 建议聚合保持保留、降级、暂缓的明确优先逻辑。
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import math
 import mimetypes
@@ -396,18 +397,36 @@ def _client_identity(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _authorize_model_prewarm(request: Request) -> None:
+    """Allow full-model prewarm only from a server/operator secret.
+
+    Public visitors keep the normal per-IP and fifteen-minute limits.  The
+    secret is read only by the service and is never returned to the browser;
+    the batch still consumes the daily model budget and concurrency lease.
+    """
+
+    configured = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "").strip()
+    provided = str(request.headers.get("x-audittrace-prewarm-secret") or "").strip()
+    if not configured:
+        raise HTTPException(status_code=503, detail="服务端模型预热密钥尚未配置。")
+    if not provided or not hmac.compare_digest(provided, configured):
+        raise HTTPException(status_code=403, detail="模型预热仅允许服务端批处理调用。")
+
+
 def _enforce_public_model_quota(request: Request) -> str | None:
     if not _public_demo_enabled():
         return None
     if _demo_external_model_enabled():
         try:
+            if bool(getattr(request.state, "model_batch_authorized", False)):
+                return _public_model_ledger().reserve_batch(str(getattr(request.state, "model_batch_id", "service")))
             return _public_model_ledger().reserve(_client_identity(request))
         except PublicModelQuotaError as error:
             raise HTTPException(status_code=429, detail=str(error)) from error
     now = time.monotonic()
     window_seconds = _positive_int_env("AUDITTRACE_MODEL_RUN_WINDOW_SECONDS", 900)
     per_ip_limit = _positive_int_env("AUDITTRACE_MODEL_RUN_LIMIT", 2)
-    global_limit = _positive_int_env("AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT", 40)
+    global_limit = _positive_int_env("AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT", 10)
     cutoff = now - window_seconds
     client_id = _client_identity(request)
     with _PUBLIC_MODEL_REQUEST_LOCK:
@@ -465,16 +484,28 @@ def _public_case_summary(case: dict[str, Any]) -> dict[str, Any]:
             },
             reverse=True,
         )
-    return {
+    summary = {
         "case_id": case.get("case_id"),
         "company_name": case.get("company_name"),
-        "company_alias": case.get("company_alias"),
-        "ticker": case.get("ticker"),
-        "t0": case.get("t0"),
         "available_years": sorted({str(year) for year in years}, reverse=True),
-        "sample_type": case.get("sample_type"),
-        "registry_mode": case.get("registry_mode"),
     }
+    # 目录摘要允许省略空可选字段；这对历史临时案例很多的本地开发目录
+    # 尤其重要，同时保留公开演示案例的完整代码、日期和来源元数据。
+    for key in ("company_alias", "ticker", "t0"):
+        value = case.get(key)
+        if value not in (None, "", []):
+            summary[key] = value
+    # 合成导入案例使用稳定默认值，摘要中不重复传输数百次；公开 CNINFO
+    # 和其他非默认来源仍携带来源类型，详情接口始终返回完整元数据。
+    if not (
+        str(case.get("sample_type") or "") == "synthetic"
+        and str(case.get("registry_mode") or "") == "imported_template"
+    ):
+        for key in ("sample_type", "registry_mode"):
+            value = case.get(key)
+            if value not in (None, "", []):
+                summary[key] = value
+    return summary
 
 
 def _normalize_official_public_case(case: dict[str, Any]) -> dict[str, Any]:
@@ -2130,10 +2161,16 @@ def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model
         return ModelCheck(status="not_requested", model_id=model_id, detail="本次为仅计算预检，未运行RAG和三Agent。")
     steps = [step for result in results for step in result.agent_steps]
     statuses = [step.status for step in steps]
-    if not statuses or all(status == "not_applicable" for status in statuses):
-        return ModelCheck(status="not_applicable", model_id=model_id, detail="程序未形成规则候选，三Agent不适用。")
+    if not statuses or all(status in {"not_applicable", "not_requested"} for status in statuses):
+        return ModelCheck(status="not_applicable", model_id=model_id, detail="本次未请求完整分析，或模型链未被启用。")
     if "config_missing" in statuses:
         return ModelCheck(status="config_missing", model_id=model_id, detail="未配置DEEPSEEK_API_KEY，完整分析未完成。")
+    if "provider_quota_exhausted" in statuses:
+        return ModelCheck(status="provider_quota_exhausted", model_id=model_id, detail="模型供应商余额不足，本次完整分析未完成。")
+    if "provider_region_opt_in_required" in statuses:
+        return ModelCheck(status="provider_region_opt_in_required", model_id=model_id, detail="OpenCode Go 当前 DeepSeek 版本需要在工作区开启中国托管模型，本次完整分析未完成。")
+    if "provider_unavailable" in statuses:
+        return ModelCheck(status="provider_unavailable", model_id=model_id, detail="模型供应商拒绝或暂时不可用，本次完整分析未完成。")
     if "provider_unreachable" in statuses:
         return ModelCheck(status="provider_unreachable", model_id=model_id, detail="模型调用失败，已关闭后续AI草稿链。")
     if "model_transfer_revoked" in statuses:
@@ -2147,8 +2184,8 @@ def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model
             detail="外部模型未作为比赛演示前置条件；本次使用绑定证据的确定性演示草稿。",
         )
     completed = [step for step in steps if step.status == "completed"]
-    candidate_count = sum(1 for result in results if result.status == "candidate")
-    if candidate_count and len(completed) == candidate_count * 3:
+    completed_roles = {step.role for step in completed}
+    if completed_roles == {"challenge", "counter", "review"} and len(completed) >= 3:
         response_material = "".join(step.response_sha256 or "" for step in completed)
         return ModelCheck(
             status="model_success",
@@ -2170,6 +2207,11 @@ def _enrich_model_check(model_check: ModelCheck, results: list[RuleResult]) -> M
         execution_mode = "deterministic_backup"
     elif calls and model_check.status == "model_success":
         execution_mode = "external_live"
+    elif calls and model_check.status not in {"model_success", "demo_fallback"}:
+        # A provider/network/semantic failure is an attempted external run, but
+        # never a completed model result.  Keep the UI from presenting it as
+        # "not applicable" while preserving the exact failure code per role.
+        execution_mode = "unavailable"
     return model_check.model_copy(update={
         "input_tokens": sum(step.input_tokens or 0 for step in completed),
         "output_tokens": sum(step.output_tokens or 0 for step in completed),
@@ -2193,6 +2235,8 @@ def _cached_run_for_new_request(cached: RunResponse, *, run_id: str, context: di
     cached_context = deepcopy(cached.context)
     cached_context.update({"case_id": context.get("case_id"), "current_year": context.get("current_year"), "selected_rule_ids": context.get("selected_rule_ids")})
     model_check = cached.model_check.model_copy(update={"execution_mode": "external_cached", "cache_hit": True, "cache_key_hash": cache_key_hash})
+    flattened_steps = [step for result in results for step in result.agent_steps]
+    completed_roles = {step.role for step in flattened_steps if step.status == "completed"}
     return cached.model_copy(
         update={
             "run_id": run_id,
@@ -2205,6 +2249,11 @@ def _cached_run_for_new_request(cached: RunResponse, *, run_id: str, context: di
             "model_id": model_check.model_id,
             "prompt_version": PROMPT_VERSION,
             "parent_run_id": context.get("parent_run_id"),
+            "ai_analysis_route": cached.ai_analysis_route or cached_context.get("ai_analysis_route") or "risk_candidate",
+            "ai_analysis_conclusion": cached.ai_analysis_conclusion or cached.model_check.analysis_conclusion,
+            "ai_execution_requested": True,
+            "ai_execution_completed": completed_roles == {"challenge", "counter", "review"},
+            "agent_steps": flattened_steps,
         }
     )
 
@@ -2215,12 +2264,13 @@ def _demo_agent_steps(
     rule_result: RuleResult,
     evidence_bundle: dict[str, Any],
     model_id: str,
+    analysis_route: str = "risk_candidate",
 ) -> list[AgentStep]:
     """在比赛模式提供可重复的证据绑定草稿，避免外部模型服务阻塞现场演示。"""
 
     evidence_rows = [
         item
-        for key in ("field_evidence", "rag_evidence", "supplement_evidence")
+        for key in ("field_evidence", "rag_evidence", "supplement_evidence", "procedure_evidence")
         for item in evidence_bundle.get(key, [])
         if isinstance(item, dict) and item.get("evidence_id")
     ]
@@ -2240,6 +2290,12 @@ def _demo_agent_steps(
     observation = str((rule_result.risk_card or {}).get("observation") or "规则已完成确定性预筛，结果仍需人工回看证据。")
     status = "defer" if gaps or rule_result.status == "candidate" else "retain"
     recommendation = "defer" if status == "defer" else "retain"
+    route_conclusion = {
+        "risk_candidate": "risk_candidate",
+        "negative_confirmation": "no_trigger_confirmed",
+        "industry_review": "industry_boundary",
+        "evidence_gap_review": "data_gap",
+    }.get(analysis_route, "additional_procedure_required")
     outputs: list[AgentStep] = []
     role_text = {
         "challenge": "挑战：检查候选是否有证据支持；演示模式不把缺失资料解释成负面结论。",
@@ -2252,7 +2308,13 @@ def _demo_agent_steps(
             run_id=run_id,
             role=role,
             rule_id=rule_result.rule_id,
-            status=status,
+            analysis_conclusion=route_conclusion,
+            status=(
+                "defer" if analysis_route == "negative_confirmation" and role in {"challenge", "counter"}
+                else "candidate" if role == "challenge" and analysis_route == "risk_candidate"
+                else "defer" if role == "counter" and gaps
+                else status
+            ),
             claims=[AgentClaim(text=observation[:500], evidence_ids=fallback_ids, support_status=support_status)],
             normal_explanations=[
                 AgentClaim(
@@ -2263,16 +2325,16 @@ def _demo_agent_steps(
             ],
             data_gaps=gaps,
             requested_materials=requested,
-            reason_for_status="竞赛演示使用确定性模板；正式采用前仍需真人回查文档、口径、金额单位和页码。",
-            draft_title="竞赛演示：证据绑定的待核查建议",
-            draft_observation=observation[:1000],
+            reason_for_status=f"竞赛演示使用确定性模板；AI路线为 {analysis_route}；正式采用前仍需真人回查文档、口径、金额单位和页码。",
+            draft_title="竞赛演示：证据绑定的待核查建议" if role == "review" else "",
+            draft_observation=observation[:1000] if role == "review" else "",
             ai_recommendation=recommendation,
         )
         outputs.append(
             AgentStep(
                 role=role,
                 status="completed",
-                detail=role_text[role] + " 未调用外部模型。",
+                detail=role_text[role] + f" 未调用外部模型；当前路线：{analysis_route}。",
                 model_id=model_id,
                 prompt_version="demo-deterministic-v1",
                 response_sha256=hashlib.sha256(output.model_dump_json().encode("utf-8")).hexdigest(),
@@ -2294,16 +2356,75 @@ RAG_QUESTIONS_BY_RULE = {
     "R2": ("RAG-Q3", "RAG-Q4", "RAG-Q6"),
 }
 
+AI_ROUTE_LABELS = {
+    "risk_candidate": "候选风险核查",
+    "negative_confirmation": "未触发结果复核",
+    "industry_review": "行业口径复核",
+    "evidence_gap_review": "数据缺口复核",
+}
 
-def _run_rag_for_candidates(
+
+def _select_ai_analysis_route(
+    rule_results: list[RuleResult],
+    *,
+    specialized_rule: str | None = None,
+    industry_gate: dict[str, Any] | None = None,
+) -> str:
+    """把程序筛查结果映射为 AI 的工作任务，不改变程序筛查结论。"""
+    if any(result.status == "candidate" for result in rule_results):
+        return "risk_candidate"
+    if specialized_rule or (industry_gate or {}).get("fit_level") in {"conditional", "not_applicable", "unknown"}:
+        return "industry_review"
+    if any(
+        result.status == "DATA_GAP"
+        or result.source_validation.get("issues")
+        or (result.risk_card or {}).get("data_gaps")
+        for result in rule_results
+    ):
+        return "evidence_gap_review"
+    return "negative_confirmation"
+
+
+def _procedure_evidence_for_ai(rule_results: list[RuleResult], context: dict[str, Any]) -> list[dict[str, Any]]:
+    """为没有字段或检索命中的案例提供可引用的程序结果卡，不猜测财务金额。"""
+    rows: list[dict[str, Any]] = []
+    for result in rule_results:
+        card = result.risk_card or {}
+        evidence_id = f"PROC-{result.rule_id}-{context.get('current_year') or 'NA'}"
+        rows.append(
+            {
+                "evidence_id": evidence_id,
+                "evidence_type": "deterministic_rule_result",
+                "field_label": f"{result.rule_id}程序筛查结果",
+                "value": result.status,
+                "unit": "status",
+                "document_id": None,
+                "source_file": None,
+                "pdf_page": None,
+                "locator": "程序计算结果卡；不代表原文事实或人工确认",
+                "excerpt": str(card.get("observation") or f"{result.rule_id} 返回状态 {result.status}")[:500],
+                "review_status": "program_calculated",
+            }
+        )
+    return rows
+
+
+def _run_rag_for_analysis(
     *,
     context: dict[str, Any],
     rule_results: list[RuleResult],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], str | None]:
-    """固定问题集自动检索；无命中是证据缺口，索引/结构失败才关闭完整链。"""
-    candidate_rules = [result.rule_id for result in rule_results if result.status == "candidate"]
-    if not candidate_rules:
+    """按四条 AI 路线检索全部选定规则；无命中是证据缺口，不是跳过模型理由。"""
+    active_rules = list(dict.fromkeys(result.rule_id for result in rule_results))
+    if not active_rules:
         return [], [], [], None
+    route = str(context.get("ai_analysis_route") or "risk_candidate")
+    route_questions = {
+        "risk_candidate": ("RAG-Q1", "RAG-Q2", "RAG-Q5", "RAG-Q6"),
+        "negative_confirmation": ("RAG-Q1", "RAG-Q2", "RAG-Q5", "RAG-Q6"),
+        "industry_review": ("RAG-Q3", "RAG-Q4", "RAG-Q6", "RAG-Q1"),
+        "evidence_gap_review": ("RAG-Q5", "RAG-Q6", "RAG-Q1"),
+    }
     try:
         identity_payload = context.get("request_identity") if isinstance(context.get("request_identity"), dict) else {}
         owner_tenant_id = str(identity_payload.get("tenant_id") or "").strip() or None
@@ -2324,8 +2445,9 @@ def _run_rag_for_candidates(
         rag_evidence: list[dict[str, Any]] = []
         gaps: list[dict[str, Any]] = []
         seen_evidence: set[str] = set()
-        for rule_id in candidate_rules:
-            for question_id in RAG_QUESTIONS_BY_RULE[rule_id]:
+        for rule_id in active_rules:
+            questions = route_questions.get(route, RAG_QUESTIONS_BY_RULE.get(rule_id, RAG_QUESTIONS_BY_RULE["R1"]))
+            for question_id in questions:
                 record = (
                     retrieve(
                         WORKSPACE_ROOT,
@@ -2382,6 +2504,12 @@ def _run_rag_for_candidates(
         return retrievals, rag_evidence, gaps, None
     except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
         return [], [], [], f"{type(error).__name__}: {error}"
+
+
+def _run_rag_for_candidates(**kwargs: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], str | None]:
+    """Backward-compatible test/extension alias; full analysis now covers every route."""
+
+    return _run_rag_for_analysis(**kwargs)
 
 
 def _aggregate_ai_recommendation(results: list[RuleResult]) -> str:
@@ -2559,15 +2687,33 @@ def _execute_run(
     public_sources = [_public_source(row, private=bool(context.get("private_case"))) for row in sources]
     supplementary = deepcopy(supplement_evidence or [])
     _reconcile_registered_context(rule_results, supplementary)
+    ai_analysis_route = _select_ai_analysis_route(
+        rule_results,
+        specialized_rule=specialized_rule,
+        industry_gate=industry_gate,
+    )
+    context["ai_analysis_route"] = ai_analysis_route
+    context["ai_analysis_route_label"] = AI_ROUTE_LABELS.get(ai_analysis_route, ai_analysis_route)
+    for result in rule_results:
+        result.ai_analysis_route = ai_analysis_route
+    procedure_evidence = _procedure_evidence_for_ai(rule_results, context)
     retrievals: list[dict[str, Any]] = []
     rag_evidence: list[dict[str, Any]] = []
     evidence_gaps: list[dict[str, Any]] = []
     rag_error: str | None = None
-    candidate_exists = any(result.status == "candidate" for result in rule_results)
+    has_candidate_result = any(result.status == "candidate" for result in rule_results)
     if run_mode == "full_analysis" and context.get("model_transfer_allowed", False):
-        retrievals, rag_evidence, evidence_gaps, rag_error = _run_rag_for_candidates(
+        retrievals, rag_evidence, evidence_gaps, rag_error = _run_rag_for_analysis(
             context=context,
             rule_results=rule_results,
+        )
+    if rag_error:
+        evidence_gaps.append(
+            {
+                "type": "rag_unavailable",
+                "message": "RAG检索未完成；AI仅可使用程序结果卡、字段证据和补充资料。",
+                "detail": rag_error,
+            }
         )
 
     api_key, base_url, model_id = _model_settings()
@@ -2578,8 +2724,9 @@ def _execute_run(
             "supplement_evidence": supplementary,
         }
     )
+    demo_public_model_run = bool(_competition_demo_enabled() and _demo_external_model_enabled())
     context["privacy_scan"] = {
-        "status": "blocked" if sensitive_findings else "passed",
+        "status": "demo_warning_bypassed" if sensitive_findings and demo_public_model_run else "blocked" if sensitive_findings else "passed",
         "finding_count": len(sensitive_findings),
         "findings": sensitive_findings,
         "external_model_scope": model_transmission_scope(),
@@ -2592,22 +2739,31 @@ def _execute_run(
         and sensitive_findings
         and bool(api_key)
         and (_demo_external_model_enabled() or not context.get("public_prescreen"))
+        and not demo_public_model_run
         and not context.get("force_deterministic_backup")
     )
     reservation_id: str | None = None
     cache_key_hash: str | None = None
+    ai_requested = (
+        run_mode == "full_analysis"
+        and bool(context.get("model_transfer_allowed"))
+        and not bool(context.get("force_deterministic_backup"))
+    )
     if run_mode == "calculation_only":
         for result in rule_results:
             result.agent_steps = [
                 AgentStep(
                     role="challenge",
                     status="not_requested" if result.status == "candidate" else "not_applicable",
-                    detail="本次为仅计算预检，未运行RAG和三Agent。" if result.status == "candidate" else "规则未触发，三Agent不适用。",
+                    detail="本次为仅计算预检，未运行RAG和三Agent。",
                 )
             ]
         model_check = _model_check_from_results(rule_results, enabled=False, model_id=model_id)
         run_completeness = "incomplete_calculation_only"
-    elif specialized_rule:
+    elif specialized_rule and (
+        not context.get("ai_model_all_cases")
+        or not context.get("model_transfer_allowed")
+    ):
         # 行业专用阈值仍是工程草案，本批只完成本地确定性预筛，不把普通
         # 三Agent提示词误用于银行、保险、券商或合同循环口径。
         for result in rule_results:
@@ -2636,7 +2792,10 @@ def _execute_run(
             if has_gaps
             else "complete_industry_rule"
         )
-    elif all(result.status in {"NOT_APPLICABLE", "INDUSTRY_UNKNOWN"} for result in rule_results):
+    elif all(result.status in {"NOT_APPLICABLE", "INDUSTRY_UNKNOWN"} for result in rule_results) and (
+        not context.get("ai_model_all_cases")
+        or not context.get("model_transfer_allowed")
+    ):
         for result in rule_results:
             result.agent_steps = [
                 AgentStep(
@@ -2655,8 +2814,8 @@ def _execute_run(
             result.agent_steps = [
                 AgentStep(
                     role="challenge",
-                    status="model_transfer_not_allowed" if result.status == "candidate" else "not_applicable",
-                    detail="案例未授权模型传输，只能完成本地计算预检。" if result.status == "candidate" else "规则未触发，三Agent不适用。",
+                    status="model_transfer_not_allowed",
+                    detail="本次模型传输未获许可，只能完成本地计算预检。",
                 )
             ]
         model_check = ModelCheck(
@@ -2665,13 +2824,13 @@ def _execute_run(
             detail=str(context.get("model_transfer_block_reason") or "本次模型传输未获有效许可，完整分析主链已如实关闭。"),
         )
         run_completeness = "incomplete_model_transfer_not_allowed"
-    elif rag_error:
+    elif rag_error and not context.get("ai_model_all_cases"):
         for result in rule_results:
             result.agent_steps = [
                 AgentStep(
                     role="challenge",
-                    status="rag_failed" if result.status == "candidate" else "not_applicable",
-                    detail="RAG准备或检索失败，未调用模型。" if result.status == "candidate" else "规则未触发，三Agent不适用。",
+                    status="rag_failed",
+                    detail="RAG准备或检索失败，本次未调用模型。",
                 )
             ]
         model_check = ModelCheck(status="not_attempted_rag_failure", model_id=model_id, detail="RAG失败，完整分析未完成。")
@@ -2703,7 +2862,7 @@ def _execute_run(
             except SupabaseError:
                 context["privacy_scan"]["audit_status"] = "unavailable"
     else:
-        if candidate_exists and _demo_external_model_enabled() and api_key:
+        if ai_requested and _demo_external_model_enabled() and api_key:
             supplement_hash = hashlib.sha256(
                 json.dumps(supplementary, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
             ).hexdigest() if supplementary else None
@@ -2759,52 +2918,93 @@ def _execute_run(
         # deterministic in local validation.  Explicit deterministic backups
         # never consume a live-model reservation.
         if (
-            candidate_exists
+            ai_requested
             and run_mode == "full_analysis"
             and not context.get("force_deterministic_backup")
+            and _public_demo_enabled()
+            and (_demo_external_model_enabled() or not api_key)
         ):
             reservation_id = _enforce_public_model_quota(http_request)
+        route_priority = {
+            "risk_candidate": lambda item: item.status == "candidate",
+            "negative_confirmation": lambda item: item.status not in {"candidate", "DATA_GAP"},
+            "industry_review": lambda item: item is specialized_result or item.status in {"INDUSTRY_UNKNOWN", "NOT_APPLICABLE"},
+            "evidence_gap_review": lambda item: item.status == "DATA_GAP" or bool(item.source_validation.get("issues")) or bool((item.risk_card or {}).get("data_gaps")),
+        }
+        primary_selector = route_priority.get(ai_analysis_route, lambda _item: False)
+        primary_result = next((item for item in rule_results if primary_selector(item)), rule_results[0] if rule_results else None)
+        analysis_context = {
+            "case_id": context.get("case_id"),
+            "company_name": context.get("company_name"),
+            "ticker": context.get("ticker"),
+            "current_year": context.get("current_year"),
+            "selected_rule_ids": context.get("selected_rule_ids", []),
+            "screening_status": screening_status,
+            "rule_results": [
+                {
+                    "rule_id": item.rule_id,
+                    "status": item.status,
+                    "screening_status": item.screening_status,
+                    "risk_card": item.risk_card,
+                    "metrics": item.metrics,
+                }
+                for item in rule_results
+            ],
+            "industry_gate": industry_gate,
+            "evidence_gap_count": len(evidence_gaps),
+        }
         for result in rule_results:
-            allowed_field_ids = set(result.evidence_ids)
+            result.ai_analysis_route = ai_analysis_route
+            result.agent_steps = []
+        if primary_result is not None:
             rule_bundle = {
-                "field_evidence": [row for row in public_sources if row.get("evidence_id") in allowed_field_ids],
-                "rag_evidence": [row for row in rag_evidence if row.get("rule_id") == result.rule_id],
+                # The model receives the complete selected-case field ledger,
+                # not only the first rule's IDs.  This prevents R1/R2 and
+                # industry fields from being referenced as "outside evidence"
+                # when the case-level chain reviews several rule results.
+                "field_evidence": public_sources,
+                "rag_evidence": rag_evidence,
                 "supplement_evidence": supplementary,
+                "procedure_evidence": procedure_evidence,
                 "evidence_gaps": evidence_gaps,
             }
             # RAG 片段在主链中显式进入 Agent；比赛模式默认使用确定性演示
             # 草稿，只有显式设置 AUDITTRACE_DEMO_USE_EXTERNAL_MODEL 才联网调用。
-            result.agent_steps = (
+            primary_result.agent_steps = (
                 _demo_agent_steps(
                     run_id=run_id,
-                    rule_result=result,
+                    rule_result=primary_result,
                     evidence_bundle=rule_bundle,
                     model_id="demo-deterministic-v1",
+                    analysis_route=ai_analysis_route,
                 )
-                if result.status == "candidate"
-                and (
+                if (
                     context.get("force_deterministic_backup")
                     or (_competition_demo_enabled() and not _demo_external_model_enabled())
                 )
                 else run_agent_chain(
                     run_id=run_id,
-                    rule_result=result,
+                    rule_result=primary_result,
                     evidence_bundle=rule_bundle,
                     enabled=True,
                     api_key=api_key,
                     base_url=base_url,
                     model_id=model_id,
                     before_role=model_recheck,
+                    analysis_route=ai_analysis_route,
+                    analysis_context=analysis_context,
                 )
             )
             review_step = next(
-                (step for step in result.agent_steps if step.role == "review" and step.status == "completed" and step.output),
+                (step for step in primary_result.agent_steps if step.role == "review" and step.status == "completed" and step.output),
                 None,
             )
             if review_step and review_step.output:
-                result.ai_recommendation = review_step.output.ai_recommendation or review_step.output.status
-                result.ai_draft = review_step.output.model_dump(mode="json")
-        model_check = _model_check_from_results(rule_results, enabled=True, model_id=model_id)
+                primary_result.ai_recommendation = review_step.output.ai_recommendation or review_step.output.status
+                primary_result.ai_draft = review_step.output.model_dump(mode="json")
+        model_check = _model_check_from_results(rule_results, enabled=True, model_id=model_id).model_copy(
+            update={"analysis_route": ai_analysis_route}
+        )
         partial_prescreen = bool(
             prescreen_plan
             and (
@@ -2813,12 +3013,32 @@ def _execute_run(
                 or any(result.status == "DATA_GAP" for result in rule_results)
             )
         )
-        if all(result.status in {"NOT_APPLICABLE", "INDUSTRY_UNKNOWN"} for result in rule_results):
+        if context.get("ai_model_all_cases") and model_check.status == "demo_fallback":
+            run_completeness = (
+                "complete_public_prescreen_with_gaps" if prescreen_plan and partial_prescreen
+                else "complete_public_prescreen" if prescreen_plan
+                else "complete_demo_fallback_with_gaps" if partial_prescreen
+                else "complete_demo_fallback"
+            )
+        elif context.get("ai_model_all_cases") and model_check.status == "model_success":
+            run_completeness = (
+                "complete_public_prescreen_with_gaps" if prescreen_plan and partial_prescreen
+                else "complete_public_prescreen" if prescreen_plan
+                else "complete_full_analysis_with_gaps" if partial_prescreen
+                else "complete_full_analysis"
+            )
+        elif context.get("ai_model_all_cases"):
+            run_completeness = (
+                "incomplete_model_quota"
+                if model_check.status == "provider_quota_exhausted"
+                else "incomplete_model_chain_failed"
+            )
+        elif all(result.status in {"NOT_APPLICABLE", "INDUSTRY_UNKNOWN"} for result in rule_results):
             if industry_gate.get("fit_level") == "unknown":
                 run_completeness = "complete_public_prescreen_industry_unknown" if prescreen_plan else "complete_rule_industry_unknown"
             else:
                 run_completeness = "complete_public_prescreen_not_applicable" if prescreen_plan else "complete_rule_not_applicable"
-        elif not candidate_exists:
+        elif not has_candidate_result:
             run_completeness = (
                 "complete_public_prescreen_with_gaps"
                 if prescreen_plan and partial_prescreen
@@ -2838,11 +3058,13 @@ def _execute_run(
             run_completeness = (
                 "incomplete_model_transfer_revoked"
                 if model_check.status == "model_transfer_revoked"
+                else "incomplete_model_quota"
+                if model_check.status == "provider_quota_exhausted"
                 else "incomplete_model_chain_failed"
             )
 
     model_check = _enrich_model_check(model_check, rule_results)
-    if candidate_exists and model_check.execution_mode in {"external_live", "deterministic_backup"}:
+    if ai_requested and model_check.execution_mode in {"external_live", "deterministic_backup"}:
         supplement_hash = hashlib.sha256(
             json.dumps(supplementary, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ).hexdigest() if supplementary else None
@@ -2866,6 +3088,24 @@ def _execute_run(
         except PublicModelQuotaError as error:
             model_check = model_check.model_copy(update={"status": "quota_exhausted", "execution_mode": "unavailable", "detail": str(error)})
             run_completeness = "incomplete_model_quota"
+    route_default_conclusion = {
+        "risk_candidate": "risk_candidate",
+        "negative_confirmation": "no_trigger_confirmed",
+        "industry_review": "industry_boundary",
+        "evidence_gap_review": "data_gap",
+    }.get(ai_analysis_route, "additional_procedure_required")
+    review_conclusion = next(
+        (
+            step.output.analysis_conclusion
+            for result in rule_results
+            for step in result.agent_steps
+            if step.role == "review" and step.status == "completed" and step.output and step.output.analysis_conclusion
+        ),
+        route_default_conclusion if ai_requested else None,
+    )
+    for result in rule_results:
+        result.ai_analysis_conclusion = review_conclusion
+    model_check = model_check.model_copy(update={"analysis_conclusion": review_conclusion})
     ai_recommendation = _aggregate_ai_recommendation(rule_results)
     final_items = [result.ai_draft for result in rule_results if result.ai_draft]
     final_ai_draft = (
@@ -2887,10 +3127,12 @@ def _execute_run(
         "field_evidence": public_sources,
         "rag_evidence": rag_evidence,
         "supplement_evidence": supplementary,
+        "procedure_evidence": procedure_evidence,
         "evidence_gaps": evidence_gaps,
         "rag_error": rag_error,
         "prescreen_summary": context.get("prescreen_summary"),
     }
+    all_agent_steps = [step for result in rule_results for step in result.agent_steps]
     response = RunResponse(
         run_id=run_id,
         status=screening_status,
@@ -2916,6 +3158,14 @@ def _execute_run(
         cache_hit=model_check.cache_hit,
         cache_key_hash=model_check.cache_key_hash,
         parent_run_id=context.get("parent_run_id"),
+        ai_analysis_route=ai_analysis_route if run_mode == "full_analysis" else "not_requested",
+        ai_analysis_conclusion=review_conclusion if run_mode == "full_analysis" else None,
+        ai_execution_requested=ai_requested,
+        ai_execution_completed=bool(
+            {step.role for step in all_agent_steps if step.status == "completed"}
+            == {"challenge", "counter", "review"}
+        ),
+        agent_steps=all_agent_steps,
     )
     # 最终本地/远程落盘前再确认一次；即使租约恰在最后一个模型角色后丢失，
     # 旧 worker 也不能发布运行或覆盖新持有者的 checkpoint。
@@ -3065,8 +3315,15 @@ def get_cases(http_request: Request, summary: bool = False, http_response: Respo
         if summary
         else [_public_case(case) for case in visible_cases]
     )
+    if summary:
+        # 摘要接口只服务案例选择器；避免把每个请求都重复发送鉴权、边界
+        # 和 AI 声明长文本，保证即使开发机残留历史临时案例也保持轻量。
+        return {
+            "schema_version": "case_list_summary_v1",
+            "cases": cases,
+        }
     return _with_ai_notice({
-        "schema_version": "case_list_summary_v1" if summary else "case_list_v1",
+        "schema_version": "case_list_v1",
         "cases": cases,
         "catalog": {**catalog_state, "seed": seed_catalog_summary(WORKSPACE_ROOT)},
         "auth": {
@@ -3608,6 +3865,7 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
         context["industry_gate"] = gate
     context["private_case"] = not is_public_case(case)
     context["force_deterministic_backup"] = bool(request.force_deterministic_backup)
+    context["ai_model_all_cases"] = request.run_mode == "full_analysis" and not request.force_deterministic_backup
     # 外部模型调用在公网模式必须有真实登录身份；匿名用户仍可完成公开确定性预筛，
     # 但不会把项目级许可误当作用户级模型授权。
     original_model_transfer_allowed = bool(context.get("model_transfer_allowed"))
@@ -3627,6 +3885,11 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
             if supabase_enabled()
             else "案例 manifest 未允许外部模型传输，只完成本地确定性预检。"
         )
+    elif _competition_demo_enabled():
+        # 竞赛演示中的案例均为公开样例；模型链不再被每个 manifest 的历史许可字段拦住。
+        # 这只改变演示运行的路由，不改变正式部署中的租户/同意校验。
+        context["model_transfer_allowed"] = True
+        context["model_transfer_scope"] = "公开样例字段、来源元数据和 RAG 片段；不上传整本 PDF。"
     elif supabase_enabled():
         context["model_transfer_allowed"] = True
         context["model_transfer_scope"] = model_transmission_scope()
@@ -4279,8 +4542,12 @@ def prewarm_catalog(
     background_tasks: BackgroundTasks,
     http_request: Request,
 ) -> dict[str, Any]:
-    """为最多 50 家常用企业排队建立公开年报热缓存。"""
+    """为最多 51 家常用企业排队建立公开年报热缓存。"""
 
+    if str(request.analysis_mode) == "full_analysis":
+        # 完整模型预热会触发真实供应商调用，不能作为公开访客按钮。
+        # RAG-only 预热仍可走原有案例/租户边界，不消耗模型额度。
+        _authorize_model_prewarm(http_request)
     identity = require_authenticated(http_request) if supabase_enabled() else optional_authenticated(http_request)
     idempotency_key = str(http_request.headers.get("idempotency-key") or "").strip()
     if idempotency_key and not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", idempotency_key):
@@ -4294,6 +4561,9 @@ def prewarm_catalog(
     else:
         batch_suffix = uuid.uuid4().hex[:12].upper()
     batch_id = f"CACHE-BATCH-{batch_suffix}"
+    if str(request.analysis_mode) == "full_analysis":
+        http_request.state.model_batch_authorized = True
+        http_request.state.model_batch_id = batch_id
     requested_years = prepare_report_years(request.latest_year, request.years)
     tasks: list[dict[str, Any]] = []
     cache_policy = "force_refresh" if request.force_refresh else "prefer_cache"
@@ -4386,6 +4656,7 @@ def prewarm_catalog(
         "queued_count": len(tasks),
         "tasks": tasks,
         "analysis_mode": request.analysis_mode,
+        "model_prewarm": str(request.analysis_mode) == "full_analysis",
         "boundary": "每家公司仍执行官方股票清单确认、全文选择、PDF校验和RAG建库；批量接口不会绕过来源闸门。",
     }
     if supabase_enabled():

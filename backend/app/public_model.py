@@ -28,6 +28,7 @@ class QuotaConfig:
     per_ip: int = 2
     global_window: int = 10
     max_concurrent: int = 2
+    reservation_ttl_seconds: int = 180
     daily_runs: int = 60
     daily_input_tokens: int = 1_000_000
     daily_output_tokens: int = 300_000
@@ -46,6 +47,7 @@ class QuotaConfig:
             per_ip=integer("AUDITTRACE_MODEL_RUN_LIMIT", 2),
             global_window=integer("AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT", 10),
             max_concurrent=integer("AUDITTRACE_MODEL_MAX_CONCURRENT", 2),
+            reservation_ttl_seconds=integer("AUDITTRACE_MODEL_RESERVATION_TTL_SECONDS", 180),
             daily_runs=integer("AUDITTRACE_MODEL_DAILY_RUN_LIMIT", 60),
             daily_input_tokens=integer("AUDITTRACE_MODEL_DAILY_INPUT_TOKENS", 1_000_000),
             daily_output_tokens=integer("AUDITTRACE_MODEL_DAILY_OUTPUT_TOKENS", 300_000),
@@ -135,8 +137,13 @@ class PublicModelLedger:
                 "select count(*) from model_usage where reserved_at>=? and released=0",
                 (now - self.config.window_seconds,),
             ).fetchone()[0]
+            connection.execute(
+                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
+                (now - self.config.reservation_ttl_seconds,),
+            )
             active = connection.execute(
-                "select count(*) from model_usage where settled=0 and released=0",
+                "select count(*) from model_usage where settled=0 and released=0 and reserved_at >= ?",
+                (now - self.config.reservation_ttl_seconds,),
             ).fetchone()[0]
             day_runs = connection.execute(
                 "select count(*) from model_usage where reserved_at>=? and released=0",
@@ -146,6 +153,42 @@ class PublicModelLedger:
                 raise PublicModelQuotaError("当前访问来源的模型额度已达上限，请稍后再试。")
             if recent_global >= self.config.global_window:
                 raise PublicModelQuotaError("公开演示模型正在排队，请稍后再试。")
+            if active >= self.config.max_concurrent:
+                raise PublicModelQuotaError("当前模型并发已满，请等待上一条分析完成。")
+            if day_runs >= self.config.daily_runs:
+                raise PublicModelQuotaError("今日公开演示额度已用完。")
+            connection.execute(
+                "insert into model_usage(ip_hash,reserved_at,reservation_id) values(?,?,?)",
+                (ip_hash, now, reservation_id),
+            )
+        return reservation_id
+
+    def reserve_batch(self, batch_id: str) -> str:
+        """Reserve one server-side prewarm run without visitor window limits.
+
+        A prewarm batch is authenticated by the server-only endpoint before it
+        reaches this ledger.  It still consumes the daily run/token budget and
+        respects the process-wide concurrent limit; only per-IP and public
+        fifteen-minute limits are intentionally bypassed for the operator job.
+        """
+
+        now = time.time()
+        ip_hash = self.hash_client(f"server-prewarm:{batch_id}")
+        reservation_id = secrets.token_urlsafe(18)
+        with self._lock, self._connect() as connection:
+            self._prune(connection, now)
+            connection.execute(
+                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
+                (now - self.config.reservation_ttl_seconds,),
+            )
+            active = connection.execute(
+                "select count(*) from model_usage where settled=0 and released=0 and reserved_at >= ?",
+                (now - self.config.reservation_ttl_seconds,),
+            ).fetchone()[0]
+            day_runs = connection.execute(
+                "select count(*) from model_usage where reserved_at>=? and released=0",
+                (self._day_start(),),
+            ).fetchone()[0]
             if active >= self.config.max_concurrent:
                 raise PublicModelQuotaError("当前模型并发已满，请等待上一条分析完成。")
             if day_runs >= self.config.daily_runs:
@@ -193,6 +236,10 @@ class PublicModelLedger:
         now = time.time()
         with self._lock, self._connect() as connection:
             self._prune(connection, now)
+            connection.execute(
+                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
+                (now - self.config.reservation_ttl_seconds,),
+            )
             global_count = connection.execute(
                 "select count(*) from model_usage where reserved_at>=? and released=0",
                 (now - self.config.window_seconds,),
@@ -201,7 +248,10 @@ class PublicModelLedger:
                 "select count(*) from model_usage where reserved_at>=? and released=0",
                 (self._day_start(),),
             ).fetchone()[0]
-            active = connection.execute("select count(*) from model_usage where settled=0 and released=0").fetchone()[0]
+            active = connection.execute(
+                "select count(*) from model_usage where settled=0 and released=0 and reserved_at >= ?",
+                (now - self.config.reservation_ttl_seconds,),
+            ).fetchone()[0]
             return {
                 "global_remaining_15m": max(0, self.config.global_window - int(global_count)),
                 "daily_runs_remaining": max(0, self.config.daily_runs - int(daily_count)),

@@ -30,14 +30,14 @@ services:
       - key: AUDITTRACE_MODEL_DAILY_RUN_LIMIT
         value: "60"
       - key: AUDITTRACE_MODEL_DAILY_INPUT_TOKENS
-        value: "1000000"
+        value: "1400000"
       - key: AUDITTRACE_MODEL_DAILY_OUTPUT_TOKENS
-        value: "300000"
+        value: "150000"
       - key: AUDITTRACE_MODEL_CACHE_SECONDS
         value: "86400"
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: DEEPSEEK_BASE_URL
-        value: https://api.deepseek.com
+        value: https://opencode.ai/zen/go/v1
       - key: DEEPSEEK_MODEL
         value: deepseek-v4-flash

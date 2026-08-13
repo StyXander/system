@@ -113,6 +113,8 @@ class ModelCheck(BaseModel):
     cache_hit: bool = False
     cache_key_hash: str | None = None
     response_sha256: str | None = None
+    analysis_route: str = "not_requested"
+    analysis_conclusion: str | None = None
     detail: str
 
 
@@ -138,8 +140,17 @@ class AgentOutput(AiGeneratedContentNotice):
     run_id: str
     role: AgentRole
     rule_id: RuleId
+    analysis_conclusion: Literal[
+        "risk_candidate",
+        "no_trigger_confirmed",
+        "additional_procedure_required",
+        "data_gap",
+        "industry_boundary",
+    ] | None = None
     status: Literal["candidate", "retain", "downgrade", "defer"]
-    claims: list[AgentClaim] = Field(min_length=1, max_length=4)
+    # 证据包为空时允许空 claims；服务端语义校验会限制该例外只能用于
+    # 数据缺口/行业边界路线，正常有证据的路线仍必须至少有一条主张。
+    claims: list[AgentClaim] = Field(default_factory=list, max_length=4)
     normal_explanations: list[AgentClaim] = Field(default_factory=list, max_length=5)
     data_gaps: list[str] = Field(default_factory=list, max_length=8)
     requested_materials: list[str] = Field(default_factory=list, max_length=8)
@@ -176,6 +187,8 @@ class RuleResult(BaseModel):
     ai_recommendation: str = "not_generated"
     ai_draft: dict[str, Any] | None = None
     evidence_ids: list[str] = Field(default_factory=list)
+    ai_analysis_route: str | None = None
+    ai_analysis_conclusion: str | None = None
 
 
 class RunResponse(AiGeneratedContentNotice):
@@ -205,6 +218,11 @@ class RunResponse(AiGeneratedContentNotice):
     cache_hit: bool = False
     cache_key_hash: str | None = None
     parent_run_id: str | None = None
+    ai_analysis_route: str = "not_requested"
+    ai_analysis_conclusion: str | None = None
+    ai_execution_requested: bool = False
+    ai_execution_completed: bool = False
+    agent_steps: list[AgentStep] = Field(default_factory=list)
 
 
 class HumanReviewRequest(BaseModel):
@@ -313,7 +331,7 @@ class CacheResolveRequest(BaseModel):
 class CachePrewarmRequest(BaseModel):
     """批量建立常用企业热缓存；每个企业仍走同一条来源校验流程。"""
 
-    companies: list[str] = Field(min_length=1, max_length=50)
+    companies: list[str] = Field(min_length=1, max_length=51)
     years: int = Field(default=3, ge=2, le=5)
     latest_year: int | None = Field(default=None, ge=2000, le=2100)
     analysis_mode: PipelineAnalysisMode = "rag_only"

@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-10T16:20:00+08:00",
+  "updated_at": "2026-08-13T11:52:00+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -23,29 +23,49 @@
     "cninfo_pipeline": "cninfo_pipeline_v1"
   },
   "acceptance_snapshot": {
-    "date": "2026-08-12",
-    "source_repository_pytest": "184 passed, 1 warning, 53.42s",
+    "date": "2026-08-13",
+    "source_repository_pytest": "191 passed, 1 warning, 70.69s",
     "rag_specialized_pytest": "13 passed, 1 warning",
-    "frontend_contract": "193 unique ids, 326 refs, 8 views",
+    "frontend_contract": "210 unique ids, 369 refs, 9 views",
     "chinese_comments": "1596/15186 = 10.51%",
     "browser": "8 views, 1440x1000, 1024x768, 768x1024, 390x844, console 0, document overflow 0, company context 02-08 verified",
     "company_context": "02-08 page headings, topbar and sidebar update on case switch and reload; BYD 002594 verified",
     "controlled_cninfo": {
       "network_denied": "CNINFO_NETWORK_ERROR/network_permission_denied",
       "rag_only_task": "CNINFO-75E108E6F4A0 completed with CNINFO_600938_T0_20250328 and 623 chunks",
-      "full_analysis_task": "CNINFO-396B4BD22EF completed with DATA_GAP, no model call"
+      "full_analysis_task": "external_model_acceptance_51_cases; 51/51 HTTP 200, 48 first-pass successes, 3 transient/semantic failures succeeded on targeted retry; each final case completed Challenge/Counter/Review with 3 provider calls"
+    },
+    "external_model_batch": {
+      "run_date": "2026-08-13",
+      "model_id": "deepseek-v4-flash",
+      "prompt_version": "agent_prompt_v3",
+      "case_count": 51,
+      "http_success_count": 51,
+      "final_model_success_count": 51,
+      "final_three_role_count": 51,
+      "first_pass_success_count": 48,
+      "targeted_retry_success_count": 3,
+      "final_provider_calls_per_case": 3,
+      "route_distribution": {
+        "risk_candidate": 15,
+        "industry_review": 19,
+        "evidence_gap_review": 17,
+        "negative_confirmation": 0
+      },
+      "artifact": "tmp/external-opencode-go-51.json plus tmp/external-opencode-go-failures-retry.json",
+      "api_key_persistence": "not_written_to_source_or_repository"
     },
     "report": "审迹智链_全功能再次验收与Bug修复报告_2026-08-09.md",
-    "truth_boundary": "比赛 Demo 已完成本地验收；真实 Supabase 迁移/RLS、登录 consent、外部模型调用、专业签字和 B0-B3 正式评分仍不在比赛主链"
+    "truth_boundary": "比赛 Demo 已完成本地、合同回归和 51 案真实 DeepSeek 三Agent验收；51 案均完成真实模型链（失败案经定向重试后完成），专业签字和 B0-B3 正式评分仍待真人验收"
   },
   "competition_demo": {
     "enabled_by": ["AUDITTRACE_DEMO_MODE=true", "AUDITTRACE_PUBLIC_DEMO=true", "AUDITTRACE_PERSISTENCE=local"],
     "login_required": false,
-    "seed_company_count": 50,
+    "seed_company_count": 51,
     "seed_rag_checked": 50,
     "source_incomplete": 0,
     "run_status_distribution": {"RULE_NOT_TRIGGERED": 28, "candidate": 15, "DATA_GAP": 7},
-    "model_fallback": "demo_fallback",
+    "model_fallback": "仅在真实模型不可用且用户明确选择时使用；不得冒充真实模型成功",
     "supplement_rerun": "ready_for_rerun -> RUN-SUP-* with 2 independent evidence rows and recommendation_change",
     "report": "DOCX demo preview with 未登录/未经真人专业复核 watermark",
     "browser_local": "BYD 002594 context, RAG, supplement rerun, report download, 390x844 overflow gate passed"
@@ -75,7 +95,7 @@
     "second_public_case": "jack_603337_imported_rag_isolated_local_calculation_negative_control_project_owner_public_source_authorized_formal_freeze_pending",
     "supplement_full_rerun": "implemented_and_tested",
     "human_review_and_report_v2": "implemented_and_tested_pending_real_human_approval",
-    "live_model_full_run": "validated_external_live_v3_three_roles_run_RUN-V7-CBF3D7A07C37",
+    "live_model_full_run": "external_model_acceptance_51_cases_20260813; 51/51 final model_success, 3 provider calls per final chain with targeted retries, deepseek-v4-flash, agent_prompt_v3",
     "ai_notice_invariant": "implemented_for_new_and_api_json_web_drafts_and_report_v2_historical_raw_json_preserved_and_wrapped_on_read",
     "append_only_evaluation_records": "implemented_no_overwrite_json_with_hashes_human_scores_blank",
     "r3_to_r8": "roadmap_only"
@@ -83,8 +103,8 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp .pytest_tmp\\final-20260809-current",
-      "latest_result": "179 passed, 1 warning, 254.28s",
-      "executed_on": "2026-08-10",
+      "latest_result": "191 passed, 1 warning, 70.69s",
+      "executed_on": "2026-08-13",
       "status": "passed"
     },
     "clean_package": {
