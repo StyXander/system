@@ -1252,10 +1252,23 @@ def update_analysis_result(workspace_root: Path, task_id: str, analysis: dict[st
     if run_completeness.startswith("complete_"):
         status = "completed"
         detail = "完整分析 API 已返回真实运行记录；人工复核仍未替代。"
+        next_action = {
+            "type": "review_analysis_result",
+            "label": "去做结果人工复核",
+            "target": "delivery_review",
+            "requires_human_decision": True,
+        }
     else:
         status = "needs_human"
-        detail = "分析 API 已返回，但完整性未通过或模型传输仍关闭。"
+        detail = "分析 API 已返回，但完整性未通过或模型传输仍关闭；这是技术/许可状态，不要求填写人工专业结论。"
+        next_action = {
+            "type": "inspect_incomplete_analysis",
+            "label": "查看分析未完整原因",
+            "target": "analysis",
+            "requires_human_decision": False,
+        }
     result["status"] = status
+    result["next_action"] = next_action
     task["result"] = result
     _set_step(workspace_root, task, "analysis_run", "passed" if run_completeness.startswith("complete_") else "needs_human", detail, run_id=analysis.get("run_id"), run_completeness=run_completeness)
     _set_status(workspace_root, task, status, result=result)

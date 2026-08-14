@@ -154,6 +154,7 @@ def _normalize_supplement_evidence(data: Any) -> list[dict[str, Any]]:
                 "evidence_kind": key,
                 "field_label": label,
                 "details": value,
+                "excerpt": f"{label}：{json.dumps(value, ensure_ascii=False, sort_keys=True)}"[:500],
                 "support_status": "pending_human_confirmation",
             }
         )
@@ -271,6 +272,7 @@ def create_supplement(
     if Path(safe_name).suffix.lower() in {".json", ".csv", ".txt"}:
         scan_text += content.decode("utf-8-sig", errors="ignore")
     scan_text += structured_json or ""
+    scan_text += note or ""
     for label, pattern in HIGH_RISK_PATTERNS.items():
         if pattern.search(scan_text):
             issues.append(f"检出{label}，请脱敏后重传。")

@@ -3327,6 +3327,50 @@ mark {
   margin-top: var(--space-5);
 }
 
+.cninfo-next-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin: var(--space-4) 0 var(--space-5);
+  padding: 20px;
+  background: var(--warning-bg);
+  border: 1px solid color-mix(in srgb, var(--warning) 52%, var(--border-default));
+  border-left: 5px solid var(--warning);
+}
+
+.cninfo-next-action.success {
+  background: var(--success-bg);
+  border-left-color: var(--success);
+}
+
+.cninfo-next-action.danger {
+  background: var(--danger-bg);
+  border-left-color: var(--danger);
+}
+
+.cninfo-next-action h5 {
+  margin: 6px 0;
+  color: var(--text-primary);
+  font-size: 18px;
+}
+
+.cninfo-next-action p:last-child {
+  max-width: 58rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cninfo-next-action-controls {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .cninfo-field-review {
   margin-top: clamp(28px, 4vw, 54px);
   padding-top: clamp(24px, 3vw, 40px);
@@ -3338,6 +3382,28 @@ mark {
   gap: var(--space-4);
   margin-top: var(--space-5);
   grid-template-columns: minmax(220px, .7fr) minmax(280px, 1.3fr);
+}
+
+.cninfo-review-instruction {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: 14px 16px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--warning-bg);
+  border-left: 3px solid var(--warning);
+}
+
+.cninfo-review-instruction strong {
+  flex: 0 0 auto;
+  color: var(--text-primary);
+}
+
+.cninfo-review-instruction.unavailable {
+  background: var(--bg-secondary);
+  border-left-color: var(--info);
 }
 
 .cninfo-field-review-list {
@@ -3432,6 +3498,17 @@ mark {
   margin-top: 14px;
 }
 
+.cninfo-field-record-actions .button.recommended:not(:disabled) {
+  color: var(--bg-primary);
+  background: var(--emerald);
+  border-color: var(--emerald);
+}
+
+.cninfo-review-completion {
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+}
+
 @media (max-width: 768px) {
   .cninfo-review-controls,
   .cninfo-field-evidence {
@@ -3440,6 +3517,25 @@ mark {
 }
 
 @media (max-width: 520px) {
+  .cninfo-next-action,
+  .cninfo-review-instruction {
+    display: grid;
+  }
+
+  .cninfo-next-action-controls,
+  .cninfo-next-action-controls .button,
+  .cninfo-field-record-actions,
+  .cninfo-field-record-actions .button,
+  .cninfo-review-completion .button {
+    width: 100%;
+  }
+
+  .cninfo-next-action-controls .button,
+  .cninfo-field-record-actions .button,
+  .cninfo-review-completion .button {
+    min-height: 44px;
+  }
+
   .cninfo-review-controls,
   .cninfo-field-evidence {
     grid-template-columns: 1fr;

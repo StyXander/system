@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from backend.app.rag import RAG_QUESTIONS, _anchor_score, _keyword_score, _matched_excerpt, _tokens, export_chunks  # noqa: E402
+from backend.app.cases import annotate_financial_field_rows_quality  # noqa: E402
 
 
 LOCK_PATH = ROOT / "backend" / "cache_seed.lock.json"
@@ -169,7 +170,12 @@ def build() -> dict[str, Any]:
         documents = [_public_document(item) for item in case.get("documents", [])]
         if not documents:
             raise ValueError(f"案例没有年报文档：{case_id}")
-        fields = [_public_field(item) for item in local_fields.get(case_id, []) if isinstance(item, dict)]
+        fields = [
+            _public_field(item)
+            for item in annotate_financial_field_rows_quality(
+                row for row in local_fields.get(case_id, []) if isinstance(row, dict)
+            )
+        ]
         public_case = {
             key: case.get(key)
             for key in (
@@ -208,7 +214,7 @@ def build() -> dict[str, Any]:
         public_case["documents"] = documents
         public_case["financial_fields"] = fields
         public_case["structured_evidence"] = fields
-        public_case["seed_materialization"] = "verified_metadata_and_fields_no_pdf"
+        public_case["seed_materialization"] = "verified_metadata_with_unconfirmed_field_candidates_no_pdf"
         public_case["seed_snapshot_id"] = entry.get("snapshot_id")
         public_case["seed_source_fingerprint"] = entry.get("source_fingerprint")
         public_case["seed_rag"] = entry.get("rag") or {}
@@ -218,7 +224,7 @@ def build() -> dict[str, Any]:
     cases.sort(key=lambda item: (str(item.get("company_name") or ""), str(item.get("ticker") or "")))
     return {
         "schema_version": "cninfo_public_catalog_seed_v1",
-        "description": "已校验巨潮公开年报的可部署元数据、字段候选与少量可回页原文；不包含 PDF、FAISS 或本机路径。",
+        "description": "已校验巨潮公开年报的可部署元数据、待人工回页字段候选与少量原文片段；不包含 PDF、FAISS 或本机路径。",
         "source": "backend/cache_seed.lock.json + backend/runtime/cases",
         "company_count": len(cases),
         "ready_count": sum(1 for item in cases if item.get("documents") and item.get("financial_fields")),

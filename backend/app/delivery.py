@@ -143,14 +143,34 @@ def replay_cache(workspace_root: Path, cache_id: str) -> RunResponse | None:
     source_run_id = run_data["run_id"]
     replay_id = f"RUN-REPLAY-{uuid.uuid4().hex[:12].upper()}"
     run_data["run_id"] = replay_id
+    source_usage = {
+        "input_tokens": int(run_data.get("input_tokens") or 0),
+        "output_tokens": int(run_data.get("output_tokens") or 0),
+        "duration_ms": int(run_data.get("duration_ms") or 0),
+        "provider_call_count": int(run_data.get("provider_call_count") or 0),
+    }
     run_data["context"]["execution_mode"] = "cache_replay"
     run_data["context"]["replayed_from_cache_id"] = cache_id
     run_data["context"]["replayed_from_run_id"] = source_run_id
     run_data["context"]["replayed_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    run_data["context"]["cache_source_model_usage"] = source_usage
+    run_data["context"]["external_model_call_performed"] = False
     run_data["run_completeness"] = "cache_replay_not_fresh_analysis"
+    run_data["execution_mode"] = "cache_replay"
+    run_data["cache_hit"] = True
+    run_data["input_tokens"] = 0
+    run_data["output_tokens"] = 0
+    run_data["duration_ms"] = 0
+    run_data["provider_call_count"] = 0
     run_data["model_check"] = {
         "status": "cache_replay",
         "model_id": run_data.get("model_check", {}).get("model_id"),
+        "execution_mode": "cache_replay",
+        "cache_hit": True,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "duration_ms": 0,
+        "provider_call_count": 0,
         "detail": "本次回放保留原Agent轨迹，但没有重新运行RAG或模型。",
     }
     # Agent 轨迹属于原运行证据链，回放时保留并由 execution_mode 明确区分。

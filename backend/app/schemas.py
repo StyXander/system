@@ -173,6 +173,8 @@ class AgentStep(BaseModel):
     duration_ms: int | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    provider_call_performed: bool = False
+    provider_call_count: int = Field(default=0, ge=0)
     output: AgentOutput | None = None
 
 
@@ -365,8 +367,9 @@ class CNInfoCompanyConfirmation(BaseModel):
 class CNInfoFieldConfirmation(BaseModel):
     """巨潮自动字段候选的真人确认、修正或拒绝记录。"""
 
-    # 字段编号由案例内的字段种类和报告年度组成，不能由前端拼接任意路径。
-    field_id: str = Field(pattern=r"^(revenue|accounts_receivable|accounts_receivable_allowance|accounts_receivable_net|operating_cash_flow|net_profit)_\d{4}$")
+    # 字段编号先限制为安全的小写协议键与年度；服务层随后必须精确匹配案例内
+    # 已登记候选。这样行业专用字段可复核，同时未知字段和路径字符仍会被拒绝。
+    field_id: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}_\d{4}$")
     decision: Literal["confirm", "correct", "reject"]
     reviewer: str = Field(min_length=1, max_length=120)
     reason: str = Field(default="", max_length=500)

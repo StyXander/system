@@ -16,6 +16,8 @@ if str(ROOT) not in sys.path:
 os.environ["AUDITTRACE_DEMO_MODE"] = "true"
 os.environ["AUDITTRACE_PUBLIC_DEMO"] = "true"
 os.environ["AUDITTRACE_PERSISTENCE"] = "local"
+os.environ["AUDITTRACE_DEMO_USE_EXTERNAL_MODEL"] = "false"
+os.environ["DEEPSEEK_API_KEY"] = ""
 os.environ.setdefault("AUDITTRACE_RUNTIME_NAMESPACE", "competition-demo-contract")
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -109,25 +111,16 @@ def main() -> None:
     full.raise_for_status()
     full_body = full.json()
     assert full_body["model_check"]["status"] == "demo_fallback"
-    assert full_body["run_completeness"].startswith("complete_demo_fallback")
+    assert full_body["run_completeness"].startswith("complete_")
+    assert full_body["execution_mode"] == "deterministic_backup"
     assert full_body["final_ai_draft"] and len(full_body["final_ai_draft"]["items"]) >= 1
     registered = client.post(
-        "/api/supplements",
-        data={
+        "/api/supplements/from-sample",
+        json={
             "parent_run_id": parent_run["run_id"],
-            "material_type": "竞赛样例：账龄与期后回款",
-            "authorized": "false",
-            "desensitized": "false",
-            "bound_rule_ids": '["R1"]',
-            "as_of_date": "2026-04-30",
+            "sample_id": "aging",
+            "bound_rule_ids": ["R1"],
             "note": "仅用于比赛演示的公开样例补充资料。",
-            "structured_json": json.dumps(
-                {
-                    "aging_summary": {"over_180_days_ratio": 0.21},
-                    "subsequent_receipts_summary": {"receipt_ratio": 0.63},
-                },
-                ensure_ascii=False,
-            ),
         },
     )
     registered.raise_for_status()
@@ -141,7 +134,7 @@ def main() -> None:
     )
     rerun.raise_for_status()
     rerun_body = rerun.json()
-    assert len(rerun_body["evidence_bundle"]["supplement_evidence"]) == 2
+    assert len(rerun_body["evidence_bundle"]["supplement_evidence"]) == 1
     assert rerun_body["context"]["recommendation_change"]
 
     report = client.get(f"/api/runs/{rerun_body['run_id']}/report.docx")
@@ -162,7 +155,7 @@ def main() -> None:
                 "rag_checked": rag_checked,
                 "full_demo_case": full_demo_case["case_id"],
                 "full_model_status": full_body["model_check"]["status"],
-                "supplement_evidence": 2,
+                "supplement_evidence": 1,
                 "report_bytes": len(report.content),
             },
             ensure_ascii=False,

@@ -35,7 +35,14 @@ from typing import Any
 
 import fitz
 
-from .cases import get_case, get_case_documents, update_cninfo_financial_fields
+from .cases import (
+    annotate_financial_field_quality,
+    annotate_financial_field_rows_quality,
+    financial_field_candidate_quality_issues,
+    get_case,
+    get_case_documents,
+    update_cninfo_financial_fields,
+)
 from .industry_rules import SPECIALIZED_FIELD_CONFIG, get_specialized_spec
 
 
@@ -113,7 +120,7 @@ def _line_candidates(
     """读取关键词所在行之后的有限窗口，避免把整页其他表的数字串进来。"""
 
     # 限定窗口长度，减少把同页其他表格的金额误绑定到关键词。
-    window_lines = lines[start : min(len(lines), start + 14)]
+    window_lines = lines[start : min(len(lines), start + 8)]
     candidates: list[tuple[float, str]] = []
     for offset, original_line in enumerate(window_lines):
         line = original_line
@@ -125,8 +132,13 @@ def _line_candidates(
             continue
         for match in NUMBER_PATTERN.finditer(line):
             raw = match.group(0)
+            before = line[max(0, match.start() - 4) : match.start()]
             after = line[match.end() : match.end() + 2]
-            if "年" in after or (not allow_percent and ("%" in after or "％" in after)):
+            if (
+                "附注" in before
+                or any(marker in after for marker in ("年", "个月", "天", "页"))
+                or (not allow_percent and ("%" in after or "％" in after))
+            ):
                 continue
             value = _number(raw)
             if value is None or abs(value) > 1e16:
@@ -134,6 +146,12 @@ def _line_candidates(
             if 2000 <= abs(value) <= 2100 and len(raw.replace(",", "").replace(".", "")) == 4:
                 continue
             candidates.append((value, line.strip()))
+    # 表格抽取常先读到“4”“七5”“（3）”等附注号，再读到真正金额。
+    # 若同一受控窗口存在明显金额，优先把小整数留作待排除编号，不让其抢占首候选。
+    if not allow_percent and candidates and abs(candidates[0][0]) <= 100:
+        material = [item for item in candidates if abs(item[0]) > 100]
+        if material:
+            candidates = material + [item for item in candidates if abs(item[0]) <= 100]
     return candidates
 
 
@@ -280,7 +298,8 @@ def extract_cninfo_fields(
                     optional_missing.append(message)
                 continue
             rows.append(
-                {
+                annotate_financial_field_quality(
+                    {
                     "evidence_id": f"{case_id}_{kind.upper()}_{report_year}",
                     "field_kind": kind,
                     "year": report_year,
@@ -296,11 +315,24 @@ def extract_cninfo_fields(
                     "raw_excerpt": candidate["raw_excerpt"],
                     "extraction_method": "pdf_text_heuristic_candidate",
                     "source_review_status": "auto_extracted_pending_human_page_confirmation",
-                }
+                    }
+                )
             )
 
+    # 同字段跨年数量级异常要在写入任务结果前标出，不能等到规则运行才暴露。
+    rows = annotate_financial_field_rows_quality(rows)
     # 每个必需字段都应覆盖所有目标报告年度，避免只找到最新年就误判三年完整。
-    found_required = {(row["field_kind"], row["year"]) for row in rows if row["field_kind"] in required}
+    for row in rows:
+        for quality_issue in financial_field_candidate_quality_issues(row):
+            message = f"{row['year']}年{row['field_kind']}：{quality_issue}"
+            target = issues if row["field_kind"] in required else optional_missing
+            if message not in target:
+                target.append(message)
+    found_required = {
+        (row["field_kind"], row["year"])
+        for row in rows
+        if row["field_kind"] in required and not financial_field_candidate_quality_issues(row)
+    }
     for year in sorted(years):
         for kind in sorted(required):
             if (kind, year) not in found_required:

@@ -8,10 +8,10 @@
   <meta name="description" content="审迹智链 AuditTrace 审计计划阶段证据工作台">
   <title>审迹智链 · 证据地平线</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.2">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.4">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
   <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.2">
-  <script src="/assets/official-v4/app.js?v=0.7.3" defer></script>
+  <script src="/assets/official-v4/app.js?v=0.7.5" defer></script>
   <script src="/assets/official-v4/fusion.js?v=0.7.1" defer></script>
 </head>
 <body>
@@ -239,6 +239,10 @@
                 <div><p class="folio">LIVE PIPELINE TASK</p><h5 id="cninfo-task-heading">巨潮自动任务</h5><p class="mono" id="cninfo-task-id">—</p></div>
                 <span class="state pending" id="cninfo-task-state">等待提交</span>
               </div>
+              <section class="cninfo-next-action" id="cninfo-next-action" hidden aria-labelledby="cninfo-next-action-heading">
+                <div><p class="folio" id="cninfo-next-action-kicker">NOW / DO THIS</p><h5 id="cninfo-next-action-heading">现在只需要做这一步</h5><p id="cninfo-next-action-detail">系统会根据真实任务状态给出唯一的优先操作；其他入口按顺序列在后面。</p></div>
+                <div class="cninfo-next-action-controls" id="cninfo-next-action-controls"></div>
+              </section>
               <ol class="cninfo-step-list" id="cninfo-step-list" aria-label="巨潮自动流程步骤"></ol>
               <div class="cninfo-task-meta" id="cninfo-task-meta"></div>
               <div class="status-banner neutral" id="cninfo-task-message" role="status" aria-live="polite"><strong>尚未提交</strong><span>输入企业后，页面会轮询真实后端任务。</span></div>
@@ -309,15 +313,19 @@
           </div>
           <section class="cninfo-field-review" id="cninfo-field-review" hidden aria-labelledby="cninfo-field-review-heading">
             <header class="subheading">
-              <div><p class="kicker">HUMAN FIELD REVIEW / BEFORE ADOPTION</p><h3 id="cninfo-field-review-heading">字段证据复核（正式采用前）</h3><p>公开预筛不会被此处阻断。需要正式采用、证据冻结、缓存或导出时，再逐项回到年报原件确认金额、单位、合并范围、口径和 PDF 页码；自动候选原值不会被覆盖，修正与拒绝都会留下历史。</p></div>
+              <div><p class="kicker">HUMAN FIELD REVIEW / BEFORE ADOPTION</p><h3 id="cninfo-field-review-heading" tabindex="-1">这里进行人工字段判断</h3><p>逐项打开年报原页，核对金额、单位、合并范围、口径和 PDF 页码，然后选择“确认”“按修改值保存”或“拒绝”。公开预筛可以先看；正式采用、证据冻结、缓存或导出前必须完成。自动候选原值不会被覆盖。</p></div>
               <span class="state waiting" id="cninfo-field-review-state">等待确认</span>
             </header>
+            <div class="cninfo-review-instruction" id="cninfo-review-instruction" role="note"><strong>操作顺序</strong><span>1. 填写复核人；2. 打开每条原件页；3. 逐项确认、修正或拒绝。修正和拒绝需要填写原因。</span></div>
             <div class="cninfo-review-controls">
               <label for="cninfo-field-reviewer"><span>真实复核人 / 团队角色</span><input id="cninfo-field-reviewer" name="reviewer" autocomplete="name" placeholder="例如 A：会计专业复核"></label>
               <label for="cninfo-field-reason"><span>本次修正或拒绝原因（确认可留空）</span><textarea id="cninfo-field-reason" name="reason" rows="2" placeholder="请写明回查页码、单位或口径判断依据"></textarea></label>
             </div>
             <div class="cninfo-field-review-list" id="cninfo-field-review-list"></div>
             <p class="form-message" id="cninfo-field-review-message" role="status" aria-live="polite">未提交字段处理。</p>
+            <div class="action-row cninfo-review-completion" id="cninfo-review-completion" hidden>
+              <button class="button primary" id="cninfo-review-continue" type="button">字段复核完成，继续分析 <span aria-hidden="true">→</span></button>
+            </div>
           </section>
         </section>
       </section>
@@ -479,8 +487,9 @@
 
         <div class="delivery-layout">
           <section class="review-sheet" aria-labelledby="review-heading">
-            <header><p class="folio">HUMAN DECISION</p><h3 id="review-heading">人工复核</h3><p id="review-run-context">尚未绑定运行。</p></header>
-            <form id="review-form">
+            <header><p class="folio">HUMAN DECISION</p><h3 id="review-heading" tabindex="-1">这里进行结果人工复核</h3><p id="review-run-context">尚未绑定运行。</p></header>
+            <div class="cninfo-review-instruction" id="review-mode-note" role="note"><strong>操作顺序</strong><span>1. 查看分析结果与原件；2. 选择保留、降级或暂缓；3. 填写真实复核人和理由；4. 保存本次复核。</span></div>
+            <form id="review-form" aria-describedby="review-mode-note">
               <label for="wb-backend-review-status"><span>处理</span><select id="wb-backend-review-status" name="status"><option>未复核</option><option>保留为待核查候选</option><option>降级</option><option>暂缓</option></select></label>
               <label for="wb-backend-reviewer"><span>复核人</span><input id="wb-backend-reviewer" name="reviewer" autocomplete="name" placeholder="请填写真实姓名或团队角色"></label>
               <label for="wb-backend-review-note"><span>复核说明</span><textarea id="wb-backend-review-note" name="note" rows="6" autocomplete="off" placeholder="由审计项目组填写理由或下一步"></textarea></label>

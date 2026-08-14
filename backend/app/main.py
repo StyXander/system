@@ -76,6 +76,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import math
 import mimetypes
@@ -90,6 +91,7 @@ from contextlib import asynccontextmanager
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlsplit
 
 import httpx
 from dotenv import load_dotenv
@@ -103,7 +105,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .agents import PROMPT_VERSION, run_agent_chain
+from .agents import PROMPT_VERSION, compact_evidence_bundle, minimize_model_context, run_agent_chain
 from .auth import (
     ACCESS_COOKIE_NAME,
     REFRESH_COOKIE_NAME,
@@ -122,7 +124,9 @@ from .auth import (
 )
 from .cases import (
     _recompute_cninfo_human_status,
+    annotate_financial_field_rows_quality,
     build_case_template_zip,
+    calculation_ready_financial_rows,
     confirm_cninfo_field,
     get_case,
     get_cninfo_field_readiness,
@@ -226,8 +230,14 @@ def _public_model_ledger() -> PublicModelLedger:
 
 @asynccontextmanager
 async def app_lifespan(_app: FastAPI):
-    """Make interrupted prewarm work explicit instead of leaving stale progress forever."""
+    """启动时校验代理信任边界，并恢复中断的预热任务。
 
+    代理配置错误属于部署安全错误，必须阻止启动，不能静默忽略。
+    目录恢复失败则保留健康接口，具体缓存请求仍会返回可理解的 503。
+    恢复仅处理本地已有记录，不会在启动期间调用外部模型。
+    """
+
+    _validate_trusted_proxy_configuration()
     try:
         recover_orphaned_refresh_jobs(WORKSPACE_ROOT)
         bootstrap_runtime_catalog(WORKSPACE_ROOT)
@@ -238,13 +248,63 @@ async def app_lifespan(_app: FastAPI):
     yield
 
 
+def _configured_cors_origins() -> list[str]:
+    """
+    默认同源；只有显式登记的 HTTP(S) 源可以跨域调用 API。
+
+    Origin 只允许 scheme、host 和可选端口，拒绝用户信息、路径、查询、片段和通配符。
+    先用结构化 URL 解析器取得组件，再与规范化 Origin 比对，避免简单正则放过欺骗值。
+    去除唯一可选的末尾斜杠后去重，保证中间件收到稳定列表。
+    """
+
+    raw = os.getenv("AUDITTRACE_CORS_ORIGINS", "")
+    origins: list[str] = []
+    for item in (part.strip() for part in raw.split(",")):
+        if not item:
+            continue
+        parsed = urlsplit(item)
+        try:
+            parsed_port = parsed.port
+        except ValueError as error:
+            raise RuntimeError("AUDITTRACE_CORS_ORIGINS 包含无效端口。") from error
+        normalized_host = f"[{parsed.hostname}]" if parsed.hostname and ":" in parsed.hostname else parsed.hostname
+        expected_netloc = (
+            f"{normalized_host}:{parsed_port}"
+            if normalized_host and parsed_port is not None
+            else normalized_host
+        )
+        canonical_origin = f"{parsed.scheme}://{expected_netloc}"
+        supplied_origin = item[:-1] if item.endswith("/") else item
+        valid = (
+            item != "*"
+            and parsed.scheme in {"http", "https"}
+            and parsed.hostname is not None
+            and "*" not in parsed.netloc
+            and not any(character.isspace() or ord(character) < 32 for character in item)
+            and parsed.username is None
+            and parsed.password is None
+            and parsed.netloc.lower() == str(expected_netloc or "").lower()
+            and parsed.path in {"", "/"}
+            and not parsed.query
+            and not parsed.fragment
+            and supplied_origin.lower() == canonical_origin.lower()
+        )
+        if not valid:
+            raise RuntimeError("AUDITTRACE_CORS_ORIGINS 只能填写逗号分隔的明确 HTTP(S) Origin，不能使用通配符。")
+        normalized = supplied_origin
+        if normalized not in origins:
+            origins.append(normalized)
+    return origins
+
+
 app = FastAPI(title="审迹智链 AuditTrace API", version=ENGINE_VERSION, lifespan=app_lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_configured_cors_origins(),
+    allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "Idempotency-Key"],
 )
 
 
@@ -380,6 +440,45 @@ def _positive_int_env(name: str, default: int) -> int:
         return default
 
 
+def _nonnegative_int_env(name: str, default: int = 0, upper: int = 10) -> int:
+    """读取受信代理跳数等允许为零的安全整数配置。"""
+
+    try:
+        return max(0, min(upper, int(os.getenv(name, str(default)))))
+    except ValueError:
+        return default
+
+
+def _configured_trusted_proxy_networks() -> tuple[Any, ...]:
+    """解析可直连本服务的受信反向代理网段；空值表示不信任转发头。"""
+
+    raw = os.getenv("AUDITTRACE_TRUSTED_PROXY_CIDRS", "")
+    networks: list[Any] = []
+    for item in (part.strip() for part in raw.split(",")):
+        if not item:
+            continue
+        try:
+            network = ipaddress.ip_network(item, strict=False)
+        except ValueError as error:
+            raise RuntimeError("AUDITTRACE_TRUSTED_PROXY_CIDRS 包含无效的 IP 网段。") from error
+        if network.prefixlen == 0:
+            raise RuntimeError("AUDITTRACE_TRUSTED_PROXY_CIDRS 不能信任整个互联网地址空间。")
+        if network not in networks:
+            networks.append(network)
+    return tuple(networks)
+
+
+def _validate_trusted_proxy_configuration() -> None:
+    """转发跳数与受信网段必须成对配置，避免部署时静默退化。"""
+
+    trusted_hops = _nonnegative_int_env("AUDITTRACE_TRUSTED_PROXY_HOPS")
+    trusted_networks = _configured_trusted_proxy_networks()
+    if bool(trusted_hops) != bool(trusted_networks):
+        raise RuntimeError(
+            "AUDITTRACE_TRUSTED_PROXY_HOPS 与 AUDITTRACE_TRUSTED_PROXY_CIDRS 必须同时配置或同时留空。"
+        )
+
+
 def _public_demo_enabled() -> bool:
     return os.getenv("AUDITTRACE_PUBLIC_DEMO", "false").strip().lower() in {"1", "true", "yes"}
 
@@ -390,11 +489,50 @@ def _competition_demo_enabled() -> bool:
     return os.getenv("AUDITTRACE_DEMO_MODE", "false").strip().lower() in {"1", "true", "yes"}
 
 
+def _reject_shared_demo_mutation(action: str = "自定义案例或资料") -> None:
+    """匿名本地公网实例只允许可丢弃的内置样例操作，禁止权威或高成本写入。"""
+
+    if _public_demo_enabled() and _competition_demo_enabled() and not supabase_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail=f"公开演示实例不允许{action}；请在私有本地模式或已启用租户隔离的部署中操作。",
+        )
+
+
+def _reject_shared_demo_uploads() -> None:
+    """兼容旧调用名；上传属于共享 Demo 禁止的权威写入。"""
+
+    _reject_shared_demo_mutation("接收自定义案例或资料")
+
+
 def _client_identity(request: Request) -> str:
-    forwarded_for = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    if forwarded_for:
-        return forwarded_for
-    return request.client.host if request.client else "unknown"
+    """只从明确网段内的反向代理解析转发链；其他请求使用直连地址。"""
+
+    direct = str(request.client.host if request.client else "unknown").strip()
+    try:
+        direct_ip = ipaddress.ip_address(direct)
+    except ValueError:
+        direct_ip = None
+    trusted_hops = _nonnegative_int_env("AUDITTRACE_TRUSTED_PROXY_HOPS")
+    trusted_networks = _configured_trusted_proxy_networks()
+    direct_is_trusted = bool(
+        direct_ip is not None and any(direct_ip in network for network in trusted_networks)
+    )
+    if trusted_hops and direct_is_trusted:
+        chain = [item.strip() for item in request.headers.get("x-forwarded-for", "").split(",") if item.strip()]
+        candidate_index = len(chain) - trusted_hops
+        if candidate_index >= 0:
+            try:
+                parsed_chain = [ipaddress.ip_address(item) for item in chain]
+            except ValueError:
+                parsed_chain = []
+            trusted_relays = parsed_chain[candidate_index + 1 :]
+            if parsed_chain and all(
+                any(relay in network for network in trusted_networks)
+                for relay in trusted_relays
+            ):
+                return str(parsed_chain[candidate_index])
+    return str(direct_ip) if direct_ip is not None else direct or "unknown"
 
 
 def _authorize_model_prewarm(request: Request) -> None:
@@ -407,8 +545,8 @@ def _authorize_model_prewarm(request: Request) -> None:
 
     configured = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "").strip()
     provided = str(request.headers.get("x-audittrace-prewarm-secret") or "").strip()
-    if not configured:
-        raise HTTPException(status_code=503, detail="服务端模型预热密钥尚未配置。")
+    if len(configured) < 32:
+        raise HTTPException(status_code=503, detail="服务端模型预热密钥未安全配置。")
     if not provided or not hmac.compare_digest(provided, configured):
         raise HTTPException(status_code=403, detail="模型预热仅允许服务端批处理调用。")
 
@@ -417,6 +555,12 @@ def _enforce_public_model_quota(request: Request) -> str | None:
     if not _public_demo_enabled():
         return None
     if _demo_external_model_enabled():
+        quota_secret = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "").strip()
+        if len(quota_secret) < 32:
+            raise HTTPException(
+                status_code=503,
+                detail="公开真实模型额度摘要秘密未安全配置；请设置至少32位的 AUDITTRACE_PUBLIC_QUOTA_SECRET。",
+            )
         try:
             if bool(getattr(request.state, "model_batch_authorized", False)):
                 return _public_model_ledger().reserve_batch(str(getattr(request.state, "model_batch_id", "service")))
@@ -432,14 +576,20 @@ def _enforce_public_model_quota(request: Request) -> str | None:
     with _PUBLIC_MODEL_REQUEST_LOCK:
         while _PUBLIC_MODEL_REQUESTS_GLOBAL and _PUBLIC_MODEL_REQUESTS_GLOBAL[0] <= cutoff:
             _PUBLIC_MODEL_REQUESTS_GLOBAL.popleft()
-        recent_for_ip = _PUBLIC_MODEL_REQUESTS_BY_IP.setdefault(client_id, deque())
-        while recent_for_ip and recent_for_ip[0] <= cutoff:
-            recent_for_ip.popleft()
-        if len(recent_for_ip) >= per_ip_limit or len(_PUBLIC_MODEL_REQUESTS_GLOBAL) >= global_limit:
+        for existing_client_id, existing_requests in list(_PUBLIC_MODEL_REQUESTS_BY_IP.items()):
+            while existing_requests and existing_requests[0] <= cutoff:
+                existing_requests.popleft()
+            if not existing_requests:
+                _PUBLIC_MODEL_REQUESTS_BY_IP.pop(existing_client_id, None)
+        recent_for_ip = _PUBLIC_MODEL_REQUESTS_BY_IP.get(client_id)
+        if (recent_for_ip is not None and len(recent_for_ip) >= per_ip_limit) or len(_PUBLIC_MODEL_REQUESTS_GLOBAL) >= global_limit:
             raise HTTPException(
                 status_code=429,
                 detail="公开演示的AI调用次数已达到临时上限，请稍后再试；仅计算预检不受影响。",
             )
+        if recent_for_ip is None:
+            recent_for_ip = deque()
+            _PUBLIC_MODEL_REQUESTS_BY_IP[client_id] = recent_for_ip
         recent_for_ip.append(now)
         _PUBLIC_MODEL_REQUESTS_GLOBAL.append(now)
     return None
@@ -1070,7 +1220,8 @@ def _remote_period_sources(
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """从已发布 Postgres 字段构造与本地案例一致的计算上下文，不物化伪造 PDF。"""
 
-    raw_rows = [deepcopy(row) for row in (case.get("financial_fields") or [])]
+    candidate_rows = [deepcopy(row) for row in (case.get("financial_fields") or [])]
+    raw_rows = calculation_ready_financial_rows(candidate_rows)
     documents = {str(item.get("document_id") or ""): item for item in case.get("documents", [])}
 
     def select(kind: str, year: int) -> dict[str, Any] | None:
@@ -1132,7 +1283,16 @@ def _remote_period_sources(
             "skipped_rules": skipped,
             "missing_fields": list(dict.fromkeys(missing_fields)),
             "has_calculable_rule": bool(plans),
-            "source_candidate_count": len(raw_rows),
+            "source_candidate_count": len(candidate_rows),
+            "usable_source_candidate_count": len(raw_rows),
+            "blocked_candidate_count": len(candidate_rows) - len(raw_rows),
+            "candidate_quality_issues": list(
+                dict.fromkeys(
+                    issue
+                    for row in annotate_financial_field_rows_quality(candidate_rows)
+                    for issue in row.get("candidate_quality_issues", [])
+                )
+            ),
             "human_confirmation": "recommended_before_formal_adoption_or_export",
             "confidence": "technical_candidate_pending_optional_human_confirmation" if raw_rows else "insufficient_data",
         }
@@ -1211,7 +1371,12 @@ def _remote_period_sources(
         "public_prescreen": prescreen_plan is not None,
         "prescreen_plan": prescreen_plan,
         "case_evidence_count": len(case.get("structured_evidence", [])),
-        "case_material_gaps": deepcopy(case.get("material_gaps", [])),
+        "case_material_gaps": list(
+            dict.fromkeys(
+                list(deepcopy(case.get("material_gaps", [])))
+                + list((prescreen_plan or {}).get("candidate_quality_issues") or [])
+            )
+        ),
     }
     return context, sources
 
@@ -1355,6 +1520,12 @@ def _replay_remote_cache_payload(payload: Any, cache_id: str) -> RunResponse:
     source_run_id = str(run_data.get("run_id") or "")
     replay_id = f"RUN-REPLAY-{uuid.uuid4().hex[:12].upper()}"
     run_data["run_id"] = replay_id
+    source_usage = {
+        "input_tokens": int(run_data.get("input_tokens") or 0),
+        "output_tokens": int(run_data.get("output_tokens") or 0),
+        "duration_ms": int(run_data.get("duration_ms") or 0),
+        "provider_call_count": int(run_data.get("provider_call_count") or 0),
+    }
     context = run_data.get("context") if isinstance(run_data.get("context"), dict) else {}
     context.update(
         {
@@ -1362,14 +1533,28 @@ def _replay_remote_cache_payload(payload: Any, cache_id: str) -> RunResponse:
             "replayed_from_cache_id": cache_id,
             "replayed_from_run_id": source_run_id,
             "replayed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "cache_source_model_usage": source_usage,
+            "external_model_call_performed": False,
         }
     )
     run_data["context"] = context
     run_data["run_completeness"] = "cache_replay_not_fresh_analysis"
+    run_data["execution_mode"] = "cache_replay"
+    run_data["cache_hit"] = True
+    run_data["input_tokens"] = 0
+    run_data["output_tokens"] = 0
+    run_data["duration_ms"] = 0
+    run_data["provider_call_count"] = 0
     original_model = run_data.get("model_check") if isinstance(run_data.get("model_check"), dict) else {}
     run_data["model_check"] = {
         "status": "cache_replay",
         "model_id": original_model.get("model_id"),
+        "execution_mode": "cache_replay",
+        "cache_hit": True,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "duration_ms": 0,
+        "provider_call_count": 0,
         "detail": "本次回放保留原Agent轨迹，但没有重新运行RAG或模型。",
     }
     try:
@@ -1990,7 +2175,8 @@ def _industry_period_sources(
     """组装行业专用字段，不把通用 R1/R2 的字段名硬套到金融报表。"""
 
     local_rows = _materialized_financial_rows(case, tenant_id=tenant_id)
-    rows = local_rows if local_rows is not None else deepcopy(case.get("financial_fields") or [])
+    candidate_rows = local_rows if local_rows is not None else deepcopy(case.get("financial_fields") or [])
+    rows = calculation_ready_financial_rows(candidate_rows)
     documents = {str(item.get("document_id")): item for item in case.get("documents", [])}
     requested_year = int(current_year)
     eligible: list[dict[str, Any]] = []
@@ -2042,7 +2228,16 @@ def _industry_period_sources(
         "skipped_rules": [],
         "missing_fields": [],
         "has_calculable_rule": bool(effective_year and previous_year),
-        "source_candidate_count": len(sources),
+        "source_candidate_count": len(candidate_rows),
+        "usable_source_candidate_count": len(rows),
+        "blocked_candidate_count": len(candidate_rows) - len(rows),
+            "candidate_quality_issues": list(
+                dict.fromkeys(
+                    issue
+                    for row in annotate_financial_field_rows_quality(candidate_rows)
+                    for issue in row.get("candidate_quality_issues", [])
+                )
+            ),
         "human_confirmation": "recommended_before_formal_adoption_or_export",
         "confidence": "technical_candidate_pending_optional_human_confirmation" if sources else "insufficient_data",
     }
@@ -2069,7 +2264,12 @@ def _industry_period_sources(
         "prescreen_plan": plan,
         "industry_gate": deepcopy(gate),
         "case_evidence_count": len(case.get("structured_evidence", [])),
-        "case_material_gaps": deepcopy(case.get("material_gaps", [])),
+        "case_material_gaps": list(
+            dict.fromkeys(
+                list(deepcopy(case.get("material_gaps", [])))
+                + list(plan.get("candidate_quality_issues") or [])
+            )
+        ),
     }
     return context, sources
 
@@ -2200,8 +2400,8 @@ def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model
 def _enrich_model_check(model_check: ModelCheck, results: list[RuleResult]) -> ModelCheck:
     """把三 Agent 的实际 token、耗时和执行方式汇总到运行级状态。"""
     steps = [step for result in results for step in result.agent_steps]
-    completed = [step for step in steps if step.status == "completed"]
-    calls = sum(1 for step in steps if step.model_id and step.status not in {"not_applicable", "not_requested"})
+    provider_steps = [step for step in steps if step.provider_call_performed]
+    calls = sum(max(1, step.provider_call_count) for step in provider_steps)
     execution_mode = model_check.execution_mode
     if any(step.failure_code == "DEMO_FALLBACK" for step in steps):
         execution_mode = "deterministic_backup"
@@ -2213,16 +2413,37 @@ def _enrich_model_check(model_check: ModelCheck, results: list[RuleResult]) -> M
         # "not applicable" while preserving the exact failure code per role.
         execution_mode = "unavailable"
     return model_check.model_copy(update={
-        "input_tokens": sum(step.input_tokens or 0 for step in completed),
-        "output_tokens": sum(step.output_tokens or 0 for step in completed),
-        "duration_ms": sum(step.duration_ms or 0 for step in completed),
+        "input_tokens": sum(step.input_tokens or 0 for step in provider_steps),
+        "output_tokens": sum(step.output_tokens or 0 for step in provider_steps),
+        "duration_ms": sum(step.duration_ms or 0 for step in provider_steps),
         "provider_call_count": calls,
         "execution_mode": execution_mode,
     })
 
 
-def _cached_run_for_new_request(cached: RunResponse, *, run_id: str, context: dict[str, Any], cache_key_hash: str) -> RunResponse:
+def _cached_run_for_new_request(
+    cached: RunResponse,
+    *,
+    run_id: str,
+    context: dict[str, Any],
+    sources: list[dict[str, Any]],
+    source_validation: dict[str, Any],
+    evidence_bundle: dict[str, Any],
+    retrievals: list[dict[str, Any]],
+    cache_key_hash: str,
+) -> RunResponse:
     """复用已验证的模型结果，但为本次请求生成新的可追溯运行编号。"""
+
+    def rebind_run_ids(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: run_id if key == "run_id" else rebind_run_ids(child)
+                for key, child in value.items()
+            }
+        if isinstance(value, list):
+            return [rebind_run_ids(child) for child in value]
+        return deepcopy(value)
+
     results: list[RuleResult] = []
     for result in cached.rule_results:
         steps: list[AgentStep] = []
@@ -2230,24 +2451,65 @@ def _cached_run_for_new_request(cached: RunResponse, *, run_id: str, context: di
             output = step.output
             if output is not None:
                 output = output.model_copy(update={"run_id": run_id})
-            steps.append(step.model_copy(update={"output": output}))
-        results.append(result.model_copy(update={"agent_steps": steps}))
-    cached_context = deepcopy(cached.context)
-    cached_context.update({"case_id": context.get("case_id"), "current_year": context.get("current_year"), "selected_rule_ids": context.get("selected_rule_ids")})
-    model_check = cached.model_check.model_copy(update={"execution_mode": "external_cached", "cache_hit": True, "cache_key_hash": cache_key_hash})
+            steps.append(
+                step.model_copy(
+                    update={
+                        "output": output,
+                        "provider_call_performed": False,
+                        "provider_call_count": 0,
+                    }
+                )
+            )
+        results.append(
+            result.model_copy(
+                update={
+                    "agent_steps": steps,
+                    "ai_draft": rebind_run_ids(result.ai_draft) if result.ai_draft else None,
+                }
+            )
+        )
+    cached_context = deepcopy(context)
+    cached_context["cache_source_run_id"] = cached.run_id
+    cached_context["cache_source_model_usage"] = {
+        "input_tokens": cached.input_tokens,
+        "output_tokens": cached.output_tokens,
+        "duration_ms": cached.duration_ms,
+        "provider_call_count": cached.provider_call_count,
+    }
+    cached_context["external_model_call_performed"] = False
+    model_check = cached.model_check.model_copy(
+        update={
+            "execution_mode": "external_cached",
+            "cache_hit": True,
+            "cache_key_hash": cache_key_hash,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "duration_ms": 0,
+            "provider_call_count": 0,
+        }
+    )
     flattened_steps = [step for result in results for step in result.agent_steps]
     completed_roles = {step.role for step in flattened_steps if step.status == "completed"}
     return cached.model_copy(
         update={
             "run_id": run_id,
             "context": cached_context,
+            "source_validation": deepcopy(source_validation),
+            "sources": deepcopy(sources),
             "rule_results": results,
+            "evidence_bundle": deepcopy(evidence_bundle),
+            "retrievals": deepcopy(retrievals),
+            "final_ai_draft": rebind_run_ids(cached.final_ai_draft) if cached.final_ai_draft else None,
             "model_check": model_check,
             "execution_mode": "external_cached",
             "cache_hit": True,
             "cache_key_hash": cache_key_hash,
             "model_id": model_check.model_id,
             "prompt_version": PROMPT_VERSION,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "duration_ms": 0,
+            "provider_call_count": 0,
             "parent_run_id": context.get("parent_run_id"),
             "ai_analysis_route": cached.ai_analysis_route or cached_context.get("ai_analysis_route") or "risk_candidate",
             "ai_analysis_conclusion": cached.ai_analysis_conclusion or cached.model_check.analysis_conclusion,
@@ -2256,6 +2518,101 @@ def _cached_run_for_new_request(cached: RunResponse, *, run_id: str, context: di
             "agent_steps": flattened_steps,
         }
     )
+
+
+def _model_privacy_scan_payload(
+    evidence_bundle: dict[str, Any],
+    *,
+    context: dict[str, Any],
+    rule_results: list[RuleResult],
+) -> list[dict[str, Any]]:
+    """扫描模型会收到的证据与分析上下文，排除纯服务端技术标识。"""
+
+    payload = [
+        {key: value for key, value in row.items() if key != "evidence_id"}
+        for row in compact_evidence_bundle(evidence_bundle)
+    ]
+    # 补充资料的结构化详情和说明可能参与本地重算或后续提示词扩展，
+    # 同样执行失败关闭扫描；文件名、哈希和证据编号不进入该扫描载荷。
+    payload.extend(
+        {
+            "field_label": row.get("field_label"),
+            "details": row.get("details"),
+            "excerpt": row.get("excerpt"),
+            "note": row.get("note"),
+        }
+        for row in evidence_bundle.get("supplement_evidence", [])
+        if isinstance(row, dict)
+    )
+    payload.append(
+        minimize_model_context({
+            "company_name": context.get("company_name"),
+            "ticker": context.get("ticker"),
+            "current_year": context.get("current_year"),
+            "selected_rule_ids": context.get("selected_rule_ids", []),
+            "industry_gate": context.get("industry_gate"),
+            "rule_results": [
+                {
+                    "rule_id": result.rule_id,
+                    "status": result.status,
+                    "metrics": result.metrics,
+                    "risk_card": result.risk_card,
+                }
+                for result in rule_results
+            ],
+        })
+    )
+    return payload
+
+
+def _analysis_input_fingerprint(
+    *,
+    context: dict[str, Any],
+    rule_results: list[RuleResult],
+    evidence_bundle: dict[str, Any],
+) -> str:
+    """把规则参数、确定性结果与实际模型证据共同纳入缓存身份。"""
+
+    payload = {
+        "engine_version": context.get("engine_version"),
+        "r1_version": context.get("r1_version"),
+        "r2_version": context.get("r2_version"),
+        "configured_parameters": context.get("configured_parameters"),
+        "analysis_route": context.get("ai_analysis_route"),
+        "rule_results": [
+            result.model_dump(
+                mode="json",
+                exclude={"agent_steps", "ai_draft", "ai_recommendation", "ai_analysis_conclusion"},
+            )
+            for result in rule_results
+        ],
+        "model_evidence": compact_evidence_bundle(evidence_bundle),
+    }
+    return hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _current_evidence_bundle(
+    *,
+    context: dict[str, Any],
+    rule_bundle: dict[str, Any],
+    rag_error: str | None,
+) -> dict[str, Any]:
+    """把当前请求的完整证据元数据写入响应；缓存只复用模型结论。"""
+
+    return {
+        "schema_version": "evidence_bundle_v2",
+        "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE,
+        "case_id": context["case_id"],
+        "field_evidence": deepcopy(rule_bundle.get("field_evidence") or []),
+        "rag_evidence": deepcopy(rule_bundle.get("rag_evidence") or []),
+        "supplement_evidence": deepcopy(rule_bundle.get("supplement_evidence") or []),
+        "procedure_evidence": deepcopy(rule_bundle.get("procedure_evidence") or []),
+        "evidence_gaps": deepcopy(rule_bundle.get("evidence_gaps") or []),
+        "rag_error": rag_error,
+        "prescreen_summary": deepcopy(context.get("prescreen_summary")),
+    }
 
 
 def _demo_agent_steps(
@@ -2446,7 +2803,12 @@ def _run_rag_for_analysis(
         gaps: list[dict[str, Any]] = []
         seen_evidence: set[str] = set()
         for rule_id in active_rules:
-            questions = route_questions.get(route, RAG_QUESTIONS_BY_RULE.get(rule_id, RAG_QUESTIONS_BY_RULE["R1"]))
+            allowed_questions = RAG_QUESTIONS_BY_RULE.get(rule_id, RAG_QUESTIONS_BY_RULE["R1"])
+            questions = tuple(
+                question_id
+                for question_id in route_questions.get(route, allowed_questions)
+                if question_id in allowed_questions
+            ) or allowed_questions
             for question_id in questions:
                 record = (
                     retrieve(
@@ -2565,6 +2927,7 @@ def _execute_run(
     run_id = f"{run_prefix}-{run_suffix}"
     context = deepcopy(context)
     cache_fill_owner = False
+    cache_fill_event: threading.Event | None = None
     if pipeline_task_id:
         context["pipeline_task_id"] = pipeline_task_id
         _require_worker_lease(http_request)
@@ -2654,6 +3017,8 @@ def _execute_run(
             "analysis_cutoff_year": prescreen_plan.get("analysis_current_year"),
             "analysis_years": prescreen_plan.get("analysis_years", []),
             "missing_fields": prescreen_plan.get("missing_fields", []),
+            "blocked_candidate_count": prescreen_plan.get("blocked_candidate_count", 0),
+            "candidate_quality_issues": prescreen_plan.get("candidate_quality_issues", []),
             "skipped_rules": prescreen_plan.get("skipped_rules", []),
             "rule_plans": prescreen_plan.get("rule_plans", {}),
             "industry_prescreen": context.get("industry_prescreen"),
@@ -2711,37 +3076,50 @@ def _execute_run(
         evidence_gaps.append(
             {
                 "type": "rag_unavailable",
-                "message": "RAG检索未完成；AI仅可使用程序结果卡、字段证据和补充资料。",
+                "message": "RAG检索未完成；完整分析失败关闭，本次不调用外部模型。",
                 "detail": rag_error,
             }
         )
 
+    rule_bundle = {
+        "field_evidence": public_sources,
+        "rag_evidence": rag_evidence,
+        "supplement_evidence": supplementary,
+        "procedure_evidence": procedure_evidence,
+        "evidence_gaps": evidence_gaps,
+    }
     api_key, base_url, model_id = _model_settings()
     sensitive_findings = scan_sensitive_payload(
-        {
-            "field_evidence": public_sources,
-            "rag_evidence": rag_evidence,
-            "supplement_evidence": supplementary,
-        }
+        _model_privacy_scan_payload(
+            rule_bundle,
+            context=context,
+            rule_results=rule_results,
+        )
     )
-    demo_public_model_run = bool(_competition_demo_enabled() and _demo_external_model_enabled())
     context["privacy_scan"] = {
-        "status": "demo_warning_bypassed" if sensitive_findings and demo_public_model_run else "blocked" if sensitive_findings else "passed",
+        "status": "blocked" if sensitive_findings else "passed",
         "finding_count": len(sensitive_findings),
         "findings": sensitive_findings,
         "external_model_scope": model_transmission_scope(),
     }
     # 只有本次确实准备调用外部模型时，隐私扫描命中才会阻断运行。
-    # 外部模型关闭或用户明确选择确定性备用时，仍应返回可审计的本地结果，
-    # 不能把“没有发生模型传输”误报成模型传输被拒绝。
-    sensitive_data_blocked = bool(
-        context.get("model_transfer_allowed")
-        and sensitive_findings
-        and bool(api_key)
-        and (_demo_external_model_enabled() or not context.get("public_prescreen"))
-        and not demo_public_model_run
+    # 非比赛模式默认走真实供应商；比赛模式则必须显式启用外呼开关。
+    # 公开预筛与私有案例使用同一失败关闭判断，不能因路线类型绕过扫描。
+    external_model_call_planned = bool(
+        run_mode == "full_analysis"
+        and context.get("model_transfer_allowed")
         and not context.get("force_deterministic_backup")
+        and api_key
+        and (not _competition_demo_enabled() or _demo_external_model_enabled())
     )
+    context["external_model_call_planned"] = external_model_call_planned
+    sensitive_data_blocked = bool(sensitive_findings and external_model_call_planned)
+    model_input_fingerprint = _analysis_input_fingerprint(
+        context=context,
+        rule_results=rule_results,
+        evidence_bundle=rule_bundle,
+    )
+    context["model_input_fingerprint"] = model_input_fingerprint
     reservation_id: str | None = None
     cache_key_hash: str | None = None
     ai_requested = (
@@ -2824,7 +3202,7 @@ def _execute_run(
             detail=str(context.get("model_transfer_block_reason") or "本次模型传输未获有效许可，完整分析主链已如实关闭。"),
         )
         run_completeness = "incomplete_model_transfer_not_allowed"
-    elif rag_error and not context.get("ai_model_all_cases"):
+    elif rag_error:
         for result in rule_results:
             result.agent_steps = [
                 AgentStep(
@@ -2840,10 +3218,10 @@ def _execute_run(
             result.agent_steps = [
                 AgentStep(
                     role="challenge",
-                    status="sensitive_data_blocked" if result.status == "candidate" else "not_applicable",
+                    status="sensitive_data_blocked",
                     detail="模型传输前隐私扫描命中高风险信息，已阻断外部模型调用；本地确定性结果仍保留。",
-                    failure_stage="policy" if result.status == "candidate" else None,
-                    failure_code="SENSITIVE_DATA_BLOCKED" if result.status == "candidate" else None,
+                    failure_stage="policy",
+                    failure_code="SENSITIVE_DATA_BLOCKED",
                 )
             ]
         model_check = ModelCheck(status="sensitive_data_blocked", model_id=model_id, detail="外部模型调用因高风险个人信息扫描命中而阻断。")
@@ -2874,6 +3252,7 @@ def _execute_run(
                 prompt_version=PROMPT_VERSION,
                 model_id=model_id,
                 supplement_hash=supplement_hash,
+                input_fingerprint=model_input_fingerprint,
             )
             cached_payload = _public_model_ledger().get_cache(cache_key_hash)
             if cached_payload:
@@ -2882,6 +3261,16 @@ def _execute_run(
                         RunResponse.model_validate(cached_payload),
                         run_id=run_id,
                         context=context,
+                        sources=public_sources,
+                        source_validation=_base_source_validation(
+                            [issue for result in rule_results for issue in result.source_validation.get("issues", [])]
+                        ),
+                        evidence_bundle=_current_evidence_bundle(
+                            context=context,
+                            rule_bundle=rule_bundle,
+                            rag_error=rag_error,
+                        ),
+                        retrievals=retrievals,
                         cache_key_hash=cache_key_hash,
                     )
                 except Exception:
@@ -2902,6 +3291,16 @@ def _execute_run(
                             RunResponse.model_validate(cached_payload),
                             run_id=run_id,
                             context=context,
+                            sources=public_sources,
+                            source_validation=_base_source_validation(
+                                [issue for result in rule_results for issue in result.source_validation.get("issues", [])]
+                            ),
+                            evidence_bundle=_current_evidence_bundle(
+                                context=context,
+                                rule_bundle=rule_bundle,
+                                rag_error=rag_error,
+                            ),
+                            retrievals=retrievals,
                             cache_key_hash=cache_key_hash,
                         )
                     except Exception:
@@ -2910,7 +3309,9 @@ def _execute_run(
                         _require_worker_lease(http_request)
                         save_run(WORKSPACE_ROOT, cached_response)
                         return cached_response
-                cache_fill_owner = True
+                cache_fill_owner, cache_fill_event = _public_model_ledger().acquire_cache_fill(cache_key_hash)
+                if not cache_fill_owner:
+                    raise HTTPException(status_code=409, detail="相同输入的真实模型分析正在执行，请稍后重试。")
         # A full-analysis request is quota-controlled even when the provider is
         # currently unconfigured.  This preserves the public-demo safety
         # boundary for repeated attempts that would otherwise bypass the
@@ -2922,9 +3323,14 @@ def _execute_run(
             and run_mode == "full_analysis"
             and not context.get("force_deterministic_backup")
             and _public_demo_enabled()
-            and (_demo_external_model_enabled() or not api_key)
         ):
-            reservation_id = _enforce_public_model_quota(http_request)
+            try:
+                reservation_id = _enforce_public_model_quota(http_request)
+            except Exception:
+                if cache_fill_owner and cache_key_hash:
+                    _public_model_ledger().complete_cache_fill(cache_key_hash, cache_fill_event)
+                    cache_fill_owner = False
+                raise
         route_priority = {
             "risk_candidate": lambda item: item.status == "candidate",
             "negative_confirmation": lambda item: item.status not in {"candidate", "DATA_GAP"},
@@ -2957,17 +3363,6 @@ def _execute_run(
             result.ai_analysis_route = ai_analysis_route
             result.agent_steps = []
         if primary_result is not None:
-            rule_bundle = {
-                # The model receives the complete selected-case field ledger,
-                # not only the first rule's IDs.  This prevents R1/R2 and
-                # industry fields from being referenced as "outside evidence"
-                # when the case-level chain reviews several rule results.
-                "field_evidence": public_sources,
-                "rag_evidence": rag_evidence,
-                "supplement_evidence": supplementary,
-                "procedure_evidence": procedure_evidence,
-                "evidence_gaps": evidence_gaps,
-            }
             # RAG 片段在主链中显式进入 Agent；比赛模式默认使用确定性演示
             # 草稿，只有显式设置 AUDITTRACE_DEMO_USE_EXTERNAL_MODEL 才联网调用。
             primary_result.agent_steps = (
@@ -3064,6 +3459,7 @@ def _execute_run(
             )
 
     model_check = _enrich_model_check(model_check, rule_results)
+    context["external_model_call_performed"] = bool(model_check.provider_call_count)
     if ai_requested and model_check.execution_mode in {"external_live", "deterministic_backup"}:
         supplement_hash = hashlib.sha256(
             json.dumps(supplementary, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -3076,6 +3472,7 @@ def _execute_run(
             prompt_version=PROMPT_VERSION,
             model_id=model_id,
             supplement_hash=supplement_hash,
+            input_fingerprint=model_input_fingerprint,
         )
         model_check = model_check.model_copy(update={"cache_key_hash": cache_key_hash})
     if reservation_id:
@@ -3108,30 +3505,34 @@ def _execute_run(
     model_check = model_check.model_copy(update={"analysis_conclusion": review_conclusion})
     ai_recommendation = _aggregate_ai_recommendation(rule_results)
     final_items = [result.ai_draft for result in rule_results if result.ai_draft]
+    pending_evidence_review = any(
+        "pending" in str(row.get("review_status") or row.get("source_review_status") or "").lower()
+        for key in ("field_evidence", "rag_evidence", "supplement_evidence")
+        for row in rule_bundle.get(key, [])
+        if isinstance(row, dict)
+    )
+    context["pending_evidence_review"] = pending_evidence_review
     final_ai_draft = (
         {
             "schema_version": "final_ai_draft_v2",
             "ai_assisted": True,
             "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE,
             "items": final_items,
-            "boundary": "AI草稿只形成待核查建议；正式认定与发布由人工决定。",
+            "boundary": (
+                "AI草稿只形成待核查建议；本次字段或原文片段仍含待人工回页候选，正式认定与发布由人工决定。"
+                if pending_evidence_review
+                else "AI草稿只形成待核查建议；正式认定与发布由人工决定。"
+            ),
         }
         if final_items
         else None
     )
     all_issues = [issue for result in rule_results for issue in result.source_validation.get("issues", [])]
-    evidence_bundle = {
-        "schema_version": "evidence_bundle_v2",
-        "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE,
-        "case_id": context["case_id"],
-        "field_evidence": public_sources,
-        "rag_evidence": rag_evidence,
-        "supplement_evidence": supplementary,
-        "procedure_evidence": procedure_evidence,
-        "evidence_gaps": evidence_gaps,
-        "rag_error": rag_error,
-        "prescreen_summary": context.get("prescreen_summary"),
-    }
+    evidence_bundle = _current_evidence_bundle(
+        context=context,
+        rule_bundle=rule_bundle,
+        rag_error=rag_error,
+    )
     all_agent_steps = [step for result in rule_results for step in result.agent_steps]
     response = RunResponse(
         run_id=run_id,
@@ -3174,9 +3575,9 @@ def _execute_run(
     if cache_key_hash and model_check.status == "model_success" and _demo_external_model_enabled():
         _public_model_ledger().put_cache(cache_key_hash, response.model_dump(mode="json"))
         if cache_fill_owner:
-            _public_model_ledger().complete_cache_fill(cache_key_hash)
+            _public_model_ledger().complete_cache_fill(cache_key_hash, cache_fill_event)
     elif cache_fill_owner and cache_key_hash:
-        _public_model_ledger().complete_cache_fill(cache_key_hash)
+        _public_model_ledger().complete_cache_fill(cache_key_hash, cache_fill_event)
     # 公网模式的 Postgres 记录用于跨实例恢复；本地 JSON 仍作为竞赛模式和失败回放兜底。
     if supabase_enabled():
         identity = context.get("request_identity") if isinstance(context.get("request_identity"), dict) else {}
@@ -3288,6 +3689,7 @@ def project_status(http_request: Request) -> dict[str, Any]:
         },
         "demo_mode": {
             "enabled": _competition_demo_enabled(),
+            "shared_public": _public_demo_enabled(),
             "login_required": False if _competition_demo_enabled() else supabase_enabled(),
             "supplement_policy": "public_sample_material" if _competition_demo_enabled() else "authorized_private_material",
             "boundary": "竞赛演示仅展示产品思路；账号、多租户和生产保密流程未启用。" if _competition_demo_enabled() else "正式工程边界。",
@@ -3432,6 +3834,7 @@ async def import_case(
     authorized: bool = Form(...),
     desensitized: bool = Form(...),
 ) -> dict[str, Any]:
+    _reject_shared_demo_uploads()
     # 内部文件上传在两种模式都保留明确身份：本地是离线竞赛操作员，公网是 Supabase 成员。
     identity = require_authenticated(http_request)
     content = await file.read()
@@ -3471,7 +3874,9 @@ def get_case_detail(case_id: str, http_request: Request, http_response: Response
     local_rows = _materialized_financial_rows(case, tenant_id=tenant_id)
     rows = [
         _public_source(row, private=not is_public_case(case))
-        for row in (local_rows if local_rows is not None else case.get("financial_fields", []))
+        for row in annotate_financial_field_rows_quality(
+            local_rows if local_rows is not None else case.get("financial_fields", [])
+        )
     ]
     evidence_confirmed = case.get("evidence_owner_review_status") == "owner_confirmed"
     return _with_ai_notice({
@@ -3495,6 +3900,7 @@ def get_case_detail(case_id: str, http_request: Request, http_response: Response
 def confirm_case_field(case_id: str, confirmation: CNInfoFieldConfirmation, http_request: Request) -> dict[str, Any]:
     """保存巨潮字段候选的真人确认、修正或拒绝，并返回最新闸门状态。"""
 
+    _reject_shared_demo_mutation("保存字段真人确认或修正")
     normalized = case_id.upper()
     identity = require_authenticated(http_request) if supabase_enabled() else optional_authenticated(http_request)
     case_before = _case_record(
@@ -3871,7 +4277,7 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
     original_model_transfer_allowed = bool(context.get("model_transfer_allowed"))
     model_authorized = (
         True
-        if request.force_deterministic_backup or _competition_demo_enabled()
+        if request.force_deterministic_backup
         else authorize_model_transfer(http_request, case)
         if supabase_enabled()
         else original_model_transfer_allowed
@@ -3885,10 +4291,11 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
             if supabase_enabled()
             else "案例 manifest 未允许外部模型传输，只完成本地确定性预检。"
         )
-    elif _competition_demo_enabled():
-        # 竞赛演示中的案例均为公开样例；模型链不再被每个 manifest 的历史许可字段拦住。
-        # 这只改变演示运行的路由，不改变正式部署中的租户/同意校验。
+    elif request.force_deterministic_backup:
         context["model_transfer_allowed"] = True
+        context["model_transfer_scope"] = "仅在本地生成确定性备用草稿；不发生外部模型传输。"
+    elif _competition_demo_enabled() and original_model_transfer_allowed:
+        # 演示模式只使用案例已有的公开来源许可，不替案例清单补造授权。
         context["model_transfer_scope"] = "公开样例字段、来源元数据和 RAG 片段；不上传整本 PDF。"
     elif supabase_enabled():
         context["model_transfer_allowed"] = True
@@ -4189,7 +4596,11 @@ def create_cninfo_pipeline(
 ) -> dict[str, Any]:
     """输入企业后创建巨潮年报、校验、RAG和可选完整分析任务。"""
 
-    # 公网下载、解析和建库会消耗网络、CPU 与存储，必须绑定真实任务所有者；本地竞赛行为不变。
+    if _competition_demo_enabled() and _public_demo_enabled() and not supabase_enabled():
+        # 共享站只允许命中已冻结的公开种子；任意新企业会触发外网、PDF 解析和共享磁盘写入。
+        if _find_demo_seed_case(request.company_query) is None:
+            _reject_shared_demo_mutation("抓取或导入非内置企业")
+    # 公网下载、解析和建库会消耗网络、CPU 与存储，必须绑定真实任务所有者；私有本地行为不变。
     require_authenticated(http_request) if supabase_enabled() else optional_authenticated(http_request)
     # 比赛模式优先命中 50 家公开种子，现场不因网络、下载或 PDF 解析波动失去
     # 主链；不在种子中的新企业仍保留原有巨潮实时搜索路径。
@@ -4339,6 +4750,7 @@ def get_run(run_id: str, http_request: Request) -> StoredRunResponse:
 
 @app.post("/api/runs/{run_id}/review", response_model=StoredRunResponse)
 def review_run(run_id: str, review: HumanReviewRequest, http_request: Request) -> StoredRunResponse:
+    _reject_shared_demo_mutation("保存真人复核或导出批准")
     owner_tenant_id = _identity_tenant(http_request, required=supabase_enabled())
     record = _load_stored_run_record(run_id, owner_tenant_id=owner_tenant_id)
     if record is None:
@@ -4360,6 +4772,7 @@ def review_run(run_id: str, review: HumanReviewRequest, http_request: Request) -
 
 @app.post("/api/runs/{run_id}/cache")
 def create_run_cache(run_id: str, http_request: Request) -> dict[str, Any]:
+    _reject_shared_demo_mutation("创建正式运行缓存")
     owner_tenant_id = _identity_tenant(http_request, required=supabase_enabled())
     record = _load_stored_run_record(run_id, owner_tenant_id=owner_tenant_id)
     if record is None:
@@ -4544,6 +4957,7 @@ def prewarm_catalog(
 ) -> dict[str, Any]:
     """为最多 51 家常用企业排队建立公开年报热缓存。"""
 
+    _reject_shared_demo_mutation("创建批量预热任务")
     if str(request.analysis_mode) == "full_analysis":
         # 完整模型预热会触发真实供应商调用，不能作为公开访客按钮。
         # RAG-only 预热仍可走原有案例/租户边界，不消耗模型额度。
@@ -4728,6 +5142,7 @@ def refresh_cached_company(
 ) -> dict[str, Any]:
     """按证券代码强制刷新一家企业的公开年报缓存。"""
 
+    _reject_shared_demo_mutation("强制刷新公开年报缓存")
     require_authenticated(http_request) if supabase_enabled() else optional_authenticated(http_request)
     if years < 2 or years > 5:
         raise HTTPException(status_code=422, detail="years 必须在 2 到 5 之间。")
@@ -5140,7 +5555,7 @@ def supplement_from_sample(payload: SupplementSampleRequest, http_request: Reque
             as_of_date=as_of_date,
             note=payload.note or sample["description"],
             filename=f"{sample['sample_id']}_public_demo.json",
-            content=structured.encode("utf-8"),
+            content=b"",
             structured_json=structured,
             tenant_id=owner_tenant_id,
             owner_user_id=identity.user_id if identity and not identity.is_local else None,
@@ -5165,6 +5580,7 @@ async def register_supplement(
     structured_json: str = Form(""),
     file: UploadFile | None = File(None),
 ) -> dict[str, Any]:
+    _reject_shared_demo_uploads()
     identity = require_authenticated(http_request)
     parent = _load_stored_run(parent_run_id, owner_tenant_id=str(identity.tenant_id or "") or None)
     if parent is None:
@@ -5183,10 +5599,6 @@ async def register_supplement(
         rules = [item.strip() for item in bound_rule_ids.split(",") if item.strip()]
     content = await file.read() if file is not None else b""
     filename = file.filename if file is not None and file.filename else "structured.json"
-    # 竞赛站点只接收公开样例补充资料，不把授权与脱敏复选框做成展示阻塞项。
-    if _competition_demo_enabled():
-        authorized = True
-        desensitized = True
     record = create_supplement(
         WORKSPACE_ROOT,
         parent_run_id=parent_run_id,

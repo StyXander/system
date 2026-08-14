@@ -56,8 +56,13 @@ artifacts/
 !/scripts/
 /scripts/*
 !/scripts/freeze_evaluation_v3.py
+!/scripts/validate_external_acceptance.py
+!/scripts/check_human_review_entry.py
 !/outputs/
 /outputs/*
 !/outputs/evaluation_v3/
 /outputs/evaluation_v3/*
 !/outputs/evaluation_v3/current.json
+!/outputs/external_model_acceptance/
+/outputs/external_model_acceptance/*
+!/outputs/external_model_acceptance/current.json

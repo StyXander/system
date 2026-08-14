@@ -2,16 +2,45 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+import time
 from urllib.error import HTTPError
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from backend.app import agents as agents_module
-from backend.app.agents import ProviderCallError, ROLE_PROMPTS, _strict_tool_base_url, run_agent_chain
-from backend.app.main import app
+from backend.app.agents import (
+    ProviderCallError,
+    ROLE_PROMPTS,
+    _strict_tool_base_url,
+    compact_evidence_bundle,
+    minimize_model_context,
+    run_agent_chain,
+)
+from backend.app.cases import annotate_financial_field_rows_quality, financial_field_candidate_quality_issues
+from backend.app.field_extraction import _line_candidates
+from backend.app.delivery import cache_run, replay_cache
+from backend.app.main import (
+    _cached_run_for_new_request,
+    _client_identity,
+    _configured_cors_origins,
+    _enrich_model_check,
+    _replay_remote_cache_payload,
+    _validate_trusted_proxy_configuration,
+    app,
+)
 from backend.app.public_model import PublicModelLedger, PublicModelQuotaError, QuotaConfig, build_cache_key
-from backend.app.schemas import RuleResult
+from backend.app.schemas import (
+    AgentOutput,
+    AgentStep,
+    CNInfoFieldConfirmation,
+    HumanReviewRequest,
+    ModelCheck,
+    RuleResult,
+    RunResponse,
+    StoredRunResponse,
+)
 
 
 def test_public_model_ledger_enforces_ip_and_cache_key_scope(tmp_path: Path) -> None:
@@ -28,6 +57,255 @@ def test_public_model_ledger_enforces_ip_and_cache_key_scope(tmp_path: Path) -> 
     assert key_a != key_b
     ledger.put_cache(key_a, {"run_id": "RUN-1"})
     assert ledger.get_cache(key_a) == {"run_id": "RUN-1"}
+
+
+def test_cache_key_covers_actual_model_input_and_expired_reservations(tmp_path: Path) -> None:
+    key_a = build_cache_key(
+        case_id="CASE_A",
+        year=2026,
+        rule_ids=["R1"],
+        source_snapshot_id="S1",
+        prompt_version="P1",
+        model_id="M1",
+        supplement_hash=None,
+        input_fingerprint="threshold-and-evidence-a",
+    )
+    key_b = build_cache_key(
+        case_id="CASE_A",
+        year=2026,
+        rule_ids=["R1"],
+        source_snapshot_id="S1",
+        prompt_version="P1",
+        model_id="M1",
+        supplement_hash=None,
+        input_fingerprint="threshold-and-evidence-b",
+    )
+    assert key_a != key_b
+
+    ledger = PublicModelLedger(
+        tmp_path,
+        config=QuotaConfig(per_ip=1, global_window=1, max_concurrent=1, reservation_ttl_seconds=1),
+    )
+    reservation = ledger.reserve("198.51.100.9")
+    with ledger._connect() as connection:
+        connection.execute(
+            "update model_usage set reserved_at=? where reservation_id=?",
+            (time.time() - 2, reservation),
+        )
+    assert ledger.reserve("198.51.100.9")
+
+
+def test_cached_model_result_uses_current_request_evidence_metadata() -> None:
+    output = AgentOutput(
+        schema_version="agent_output_v2",
+        run_id="RUN-OLD",
+        role="review",
+        rule_id="R1",
+        analysis_conclusion="risk_candidate",
+        status="retain",
+        reason_for_status="证据约束草稿待人工复核。",
+    )
+    result = RuleResult(
+        rule_id="R1",
+        status="candidate",
+        source_validation={"status": "passed", "issues": []},
+        metrics={},
+        agent_steps=[AgentStep(role="review", status="completed", detail="完成", output=output)],
+        ai_draft=output.model_dump(mode="json"),
+    )
+    cached = RunResponse(
+        run_id="RUN-OLD",
+        status="candidate",
+        context={"case_id": "CASE-A", "old_marker": True},
+        source_validation={"status": "passed", "issues": []},
+        sources=[{"evidence_id": "E1", "document_id": "DOC-OLD"}],
+        rule_results=[result],
+        model_check=ModelCheck(status="model_success", detail="完成"),
+        evidence_bundle={"case_id": "CASE-A", "field_evidence": [{"document_id": "DOC-OLD"}]},
+        retrievals=[{"retrieval_id": "RET-OLD"}],
+        final_ai_draft={"items": [output.model_dump(mode="json")]},
+        input_tokens=120,
+        output_tokens=30,
+        duration_ms=900,
+        provider_call_count=3,
+    )
+    rebound = _cached_run_for_new_request(
+        cached,
+        run_id="RUN-NEW",
+        context={"case_id": "CASE-A", "current_marker": True},
+        sources=[{"evidence_id": "E1", "document_id": "DOC-NEW"}],
+        source_validation={"status": "passed", "issues": ["CURRENT"]},
+        evidence_bundle={"case_id": "CASE-A", "field_evidence": [{"document_id": "DOC-NEW"}]},
+        retrievals=[{"retrieval_id": "RET-NEW"}],
+        cache_key_hash="CACHE-1",
+    )
+    assert rebound.run_id == "RUN-NEW"
+    assert rebound.context["current_marker"] is True
+    assert rebound.context["cache_source_run_id"] == "RUN-OLD"
+    assert rebound.context["cache_source_model_usage"]["provider_call_count"] == 3
+    assert rebound.context["external_model_call_performed"] is False
+    assert rebound.sources[0]["document_id"] == "DOC-NEW"
+    assert rebound.evidence_bundle["field_evidence"][0]["document_id"] == "DOC-NEW"
+    assert rebound.retrievals[0]["retrieval_id"] == "RET-NEW"
+    assert rebound.rule_results[0].agent_steps[0].output.run_id == "RUN-NEW"
+    assert rebound.rule_results[0].ai_draft["run_id"] == "RUN-NEW"
+    assert rebound.input_tokens == 0
+    assert rebound.output_tokens == 0
+    assert rebound.duration_ms == 0
+    assert rebound.provider_call_count == 0
+    assert rebound.model_check.provider_call_count == 0
+    assert rebound.rule_results[0].agent_steps[0].provider_call_performed is False
+
+
+def test_cache_replay_reports_zero_fresh_model_usage(tmp_path: Path) -> None:
+    """已批准的原运行可保留轨迹，但回放运行本身必须明确为零调用。"""
+
+    source = RunResponse(
+        run_id="RUN-CACHE-SOURCE",
+        status="candidate",
+        context={"case_id": "STD_DEV_T0", "execution_mode": "external_live"},
+        source_validation={"status": "passed", "issues": []},
+        sources=[],
+        rule_results=[],
+        model_check=ModelCheck(
+            status="model_success",
+            model_id="model-a",
+            detail="completed",
+            execution_mode="external_live",
+            input_tokens=120,
+            output_tokens=30,
+            duration_ms=900,
+            provider_call_count=3,
+        ),
+        execution_mode="external_live",
+        input_tokens=120,
+        output_tokens=30,
+        duration_ms=900,
+        provider_call_count=3,
+    )
+    stored = StoredRunResponse(
+        run=source,
+        human_review=HumanReviewRequest(
+            status="保留为待核查候选",
+            reviewer="专业复核人",
+            export_approved=True,
+            reviewer_type="human",
+        ),
+    )
+    metadata = cache_run(tmp_path, stored)
+    replayed = replay_cache(tmp_path, metadata["cache_id"])
+    assert replayed is not None
+    assert replayed.execution_mode == "cache_replay"
+    assert replayed.cache_hit is True
+    assert replayed.provider_call_count == 0
+    assert replayed.model_check.provider_call_count == 0
+    assert replayed.context["external_model_call_performed"] is False
+    assert replayed.context["cache_source_model_usage"]["provider_call_count"] == 3
+
+    remote_payload = {
+        **metadata,
+        "stored": stored.model_dump(mode="json"),
+    }
+    remote_replay = _replay_remote_cache_payload(remote_payload, metadata["cache_id"])
+    assert remote_replay.execution_mode == "cache_replay"
+    assert remote_replay.provider_call_count == 0
+    assert remote_replay.context["external_model_call_performed"] is False
+    assert remote_replay.context["cache_source_model_usage"]["input_tokens"] == 120
+
+
+def test_auto_candidate_quality_gate_and_minimal_model_payload() -> None:
+    suspicious = {
+        "field_kind": "accounts_receivable",
+        "value": 4.0,
+        "unit": "元",
+        "source_unit": "元",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "raw_excerpt": "应收账款 | 4 | 8,110,758,258.05 | 7,293,628,386.69",
+    }
+    assert financial_field_candidate_quality_issues(suspicious)
+    assert not financial_field_candidate_quality_issues({**suspicious, "source_review_status": "human_corrected"})
+    cross_year = annotate_financial_field_rows_quality(
+        [
+            {
+                **suspicious,
+                "value": 594_000.0,
+                "year": 2024,
+                "source_unit": "千元",
+                "unit": "元",
+            },
+            {
+                **suspicious,
+                "value": 415_558_761_000.0,
+                "year": 2025,
+                "source_unit": "千元",
+                "unit": "元",
+            },
+        ]
+    )
+    assert all(any("连续年度金额相差" in issue for issue in row["candidate_quality_issues"]) for row in cross_year)
+    human_rows = annotate_financial_field_rows_quality(
+        [{**row, "source_review_status": "human_confirmed"} for row in cross_year]
+    )
+    assert all(not row["candidate_quality_issues"] for row in human_rows)
+    structured_rows = annotate_financial_field_rows_quality(
+        [
+            {
+                **suspicious,
+                "value": 1_000_000.0,
+                "year": 2023,
+                "extraction_method": "registered_structured_field",
+                "source_review_status": "technical_crosscheck_pending_human_confirmation",
+            },
+            {
+                **suspicious,
+                "value": 50_000_000.0,
+                "year": 2024,
+                "extraction_method": "registered_structured_field",
+                "source_review_status": "technical_crosscheck_pending_human_confirmation",
+            },
+        ]
+    )
+    assert all(
+        not any("连续年度金额相差" in issue for issue in row["candidate_quality_issues"])
+        for row in structured_rows
+    )
+    candidates = _line_candidates(
+        ["应收账款", "4", "8,110,758,258.05", "7,293,628,386.69"],
+        0,
+        term="应收账款",
+    )
+    assert candidates[0][0] == 8_110_758_258.05
+
+    compact = compact_evidence_bundle(
+        [{
+            "evidence_id": "E1",
+            "source_file": "private-path-13800138000.pdf",
+            "document_id": "DOC-621700198001010011",
+            "excerpt": "公开年报中的必要原文",
+        }]
+    )
+    assert "source_file" not in compact[0]
+    assert "document_id" not in compact[0]
+    minimized = minimize_model_context(
+        {
+            "risk_card": {
+                "field_evidence": [{"file_sha256": "1234567890123456", "value": 10, "pdf_page": 4}],
+                "observation": "保留程序观察",
+            },
+            "request_identity": {"user_id": "private"},
+        }
+    )
+    assert minimized == {
+        "risk_card": {"field_evidence": [{"value": 10, "pdf_page": 4}], "observation": "保留程序观察"}
+    }
+    assert CNInfoFieldConfirmation(
+        field_id="provision_coverage_ratio_2025",
+        decision="confirm",
+        reviewer="专业复核人",
+    ).field_id == "provision_coverage_ratio_2025"
+    with pytest.raises(ValueError):
+        CNInfoFieldConfirmation(field_id="../../secret_2025", decision="confirm", reviewer="专业复核人")
 
 
 def test_demo_readonly_contracts_are_available() -> None:
@@ -270,7 +548,7 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
                 "requested_materials": [],
                 "reason_for_status": "The result is limited to the supplied evidence packet.",
                 "draft_title": "External model review" if is_review else "",
-                "draft_observation": "External model review is retained for human confirmation." if is_review else "",
+                "draft_observation": "程序边界：趋势不可评价；External model review is retained for human confirmation." if is_review else "",
                 "ai_recommendation": status if is_review else "not_applicable",
             },
             1,
@@ -301,6 +579,122 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
         assert body["model_check"]["status"] == "model_success", item["case_id"]
         assert body["provider_call_count"] == 3, item["case_id"]
         assert {step["role"] for step in body["agent_steps"] if step["status"] == "completed"} == {"challenge", "counter", "review"}
+
+
+def test_rag_and_sensitive_data_fail_closed_in_all_case_demo(monkeypatch: pytest.MonkeyPatch) -> None:
+    import backend.app.main as main_module
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    provider_calls: list[str] = []
+    monkeypatch.setattr(agents_module, "_call_model", lambda **_kwargs: provider_calls.append("called"))
+    client = TestClient(app)
+
+    monkeypatch.setattr(
+        main_module,
+        "_run_rag_for_analysis",
+        lambda **_kwargs: ([], [], [], "forced-rag-failure"),
+    )
+    rag_failed = client.post(
+        "/api/runs",
+        json={"case_id": "STD_DEV_T0", "current_year": 2024, "rule_ids": ["R1"], "run_mode": "full_analysis"},
+    )
+    assert rag_failed.status_code == 200
+    assert rag_failed.json()["model_check"]["status"] == "not_attempted_rag_failure"
+    assert provider_calls == []
+
+    monkeypatch.setattr(
+        main_module,
+        "_run_rag_for_analysis",
+        lambda **_kwargs: (
+            [],
+            [{"evidence_id": "RAG-E1", "excerpt": "联系人手机号 13800138000", "review_status": "pending"}],
+            [],
+            None,
+        ),
+    )
+    sensitive = client.post(
+        "/api/runs",
+        json={"case_id": "STD_DEV_T0", "current_year": 2024, "rule_ids": ["R1"], "run_mode": "full_analysis"},
+    )
+    assert sensitive.status_code == 200
+    assert sensitive.json()["model_check"]["status"] == "sensitive_data_blocked"
+    assert sensitive.json()["context"]["privacy_scan"]["status"] == "blocked"
+    assert provider_calls == []
+
+
+def test_sensitive_data_fail_closed_for_non_demo_public_prescreen(monkeypatch: pytest.MonkeyPatch) -> None:
+    import backend.app.main as main_module
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "false")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "false")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    provider_calls: list[str] = []
+    monkeypatch.setattr(agents_module, "_call_model", lambda **_kwargs: provider_calls.append("called"))
+    monkeypatch.setattr(
+        main_module,
+        "_run_rag_for_analysis",
+        lambda **_kwargs: (
+            [],
+            [{"evidence_id": "RAG-E1", "excerpt": "联系人手机号 13800138000", "review_status": "pending"}],
+            [],
+            None,
+        ),
+    )
+    response = TestClient(app).post(
+        "/api/runs",
+        json={"case_id": "STD_DEV_T0", "current_year": 2024, "rule_ids": ["R1"], "run_mode": "full_analysis"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["context"]["external_model_call_planned"] is True
+    assert body["context"]["privacy_scan"]["status"] == "blocked"
+    assert body["model_check"]["status"] == "sensitive_data_blocked"
+    assert body["rule_results"][0]["agent_steps"][0]["failure_code"] == "SENSITIVE_DATA_BLOCKED"
+    assert provider_calls == []
+
+
+def test_shared_public_demo_rejects_arbitrary_uploads(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setenv("AUDITTRACE_PERSISTENCE", "local")
+    response = TestClient(app).post(
+        "/api/cases/import",
+        data={"authorized": "true", "desensitized": "true"},
+        files={"file": ("case.zip", b"not-a-zip", "application/zip")},
+    )
+    assert response.status_code == 403
+
+    client = TestClient(app)
+    forbidden_requests = [
+        client.post(
+            "/api/cases/STD_DEV_T0/fields/confirm",
+            json={"field_id": "revenue_2024", "decision": "confirm", "reviewer": "anonymous", "reason": "demo"},
+        ),
+        client.post(
+            "/api/runs/RUN-NOT-REAL/review",
+            json={
+                "status": "保留为待核查候选",
+                "note": "anonymous approval",
+                "reviewer": "anonymous",
+                "export_approved": True,
+                "reviewer_type": "human",
+            },
+        ),
+        client.post(
+            "/api/cache/prewarm",
+            json={"companies": ["002594"], "years": 3, "analysis_mode": "rag_only", "rule_ids": ["R1"]},
+        ),
+        client.post("/api/cache/refresh/002594"),
+        client.post(
+            "/api/pipelines/cninfo",
+            json={"company_query": "999999", "years": 3, "analysis_mode": "rag_only", "rule_ids": ["R1"]},
+        ),
+    ]
+    assert [item.status_code for item in forbidden_requests] == [403, 403, 403, 403, 403]
 
 
 def test_provider_balance_error_is_not_reported_as_network_failure(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -361,7 +755,155 @@ def test_provider_failure_records_remaining_roles_as_skipped(monkeypatch: pytest
     assert [step.role for step in steps] == ["challenge", "counter", "review"]
     assert steps[0].status == "provider_quota_exhausted"
     assert steps[0].failure_code == "MODEL_PROVIDER_BALANCE_EXHAUSTED"
+    assert steps[0].provider_call_performed is True
     assert [step.status for step in steps[1:]] == ["skipped", "skipped"]
+
+
+def test_model_generated_sensitive_data_stops_later_roles_and_keeps_usage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def sensitive_provider(**kwargs):
+        role = kwargs["payload"]["role"]
+        calls.append(role)
+        return (
+            {
+                "schema_version": "agent_output_v2",
+                "run_id": "RUN-SENSITIVE-OUTPUT",
+                "role": role,
+                "rule_id": "R1",
+                "analysis_conclusion": "risk_candidate",
+                "status": "candidate",
+                "claims": [
+                    {
+                        "text": "请联系 13800138000 进一步核实证据。",
+                        "evidence_ids": ["E1"],
+                        "support_status": "supported",
+                    }
+                ],
+                "normal_explanations": [],
+                "data_gaps": [],
+                "requested_materials": [],
+                "reason_for_status": "仅依据当前证据包。",
+                "draft_title": "",
+                "draft_observation": "",
+                "ai_recommendation": "not_applicable",
+            },
+            12,
+            "response-sensitive",
+            "input-sensitive",
+            23,
+            7,
+        )
+
+    monkeypatch.setattr(agents_module, "_call_model", sensitive_provider)
+    steps = run_agent_chain(
+        run_id="RUN-SENSITIVE-OUTPUT",
+        rule_result=RuleResult(
+            rule_id="R1",
+            status="candidate",
+            source_validation={},
+            metrics={},
+            risk_card={},
+        ),
+        evidence_bundle=[{"evidence_id": "E1", "excerpt": "已登记证据"}],
+        enabled=True,
+        api_key="test-key",
+        base_url="https://example.invalid",
+        model_id="deepseek-v4-flash",
+    )
+    assert calls == ["challenge"]
+    assert [step.status for step in steps] == ["MODEL_OUTPUT_INVALID", "skipped", "skipped"]
+    blocked = steps[0]
+    assert blocked.failure_stage == "policy"
+    assert blocked.failure_code == "MODEL_OUTPUT_SENSITIVE_DATA"
+    assert blocked.output is None
+    assert blocked.provider_call_performed is True
+    assert blocked.input_tokens == 23
+    assert blocked.output_tokens == 7
+    assert "13800138000" not in blocked.detail
+    assert "claims[0].text" in blocked.detail
+    check = _enrich_model_check(
+        ModelCheck(status="MODEL_OUTPUT_INVALID", model_id="deepseek-v4-flash", detail="blocked"),
+        [RuleResult(rule_id="R1", status="candidate", source_validation={}, metrics={}, agent_steps=steps)],
+    )
+    assert check.provider_call_count == 1
+    assert check.input_tokens == 23
+    assert check.output_tokens == 7
+    assert check.duration_ms == 12
+    assert check.execution_mode == "unavailable"
+
+
+def test_proxy_identity_and_cors_are_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    def request(client: str, forwarded: str) -> Request:
+        return Request(
+            {
+                "type": "http",
+                "method": "GET",
+                "path": "/",
+                "headers": [(b"x-forwarded-for", forwarded.encode("ascii"))],
+                "client": (client, 443),
+                "server": ("audittrace.local", 443),
+                "scheme": "https",
+                "query_string": b"",
+            }
+        )
+
+    monkeypatch.delenv("AUDITTRACE_TRUSTED_PROXY_HOPS", raising=False)
+    monkeypatch.delenv("AUDITTRACE_TRUSTED_PROXY_CIDRS", raising=False)
+    assert _client_identity(request("203.0.113.10", "198.51.100.7")) == "203.0.113.10"
+
+    monkeypatch.setenv("AUDITTRACE_TRUSTED_PROXY_HOPS", "1")
+    monkeypatch.setenv("AUDITTRACE_TRUSTED_PROXY_CIDRS", "203.0.113.0/24")
+    _validate_trusted_proxy_configuration()
+    assert _client_identity(request("203.0.113.10", "198.51.100.7")) == "198.51.100.7"
+    assert _client_identity(request("192.0.2.10", "198.51.100.8")) == "192.0.2.10"
+    assert _client_identity(request("203.0.113.10", "not-an-ip")) == "203.0.113.10"
+
+    monkeypatch.setenv("AUDITTRACE_TRUSTED_PROXY_CIDRS", "0.0.0.0/0")
+    with pytest.raises(RuntimeError):
+        _validate_trusted_proxy_configuration()
+    monkeypatch.setenv("AUDITTRACE_TRUSTED_PROXY_CIDRS", "")
+    with pytest.raises(RuntimeError):
+        _validate_trusted_proxy_configuration()
+
+    monkeypatch.setenv(
+        "AUDITTRACE_CORS_ORIGINS",
+        "https://audit.example/,http://127.0.0.1:5173,https://audit.example",
+    )
+    assert _configured_cors_origins() == ["https://audit.example", "http://127.0.0.1:5173"]
+    for invalid_origin in ("*", "https://*.example", "https://example.com/path", "https://example.com@evil.test"):
+        monkeypatch.setenv("AUDITTRACE_CORS_ORIGINS", invalid_origin)
+        with pytest.raises(RuntimeError):
+            _configured_cors_origins()
+
+
+def test_cache_fill_has_owner_identity_and_expiry(tmp_path: Path) -> None:
+    ledger = PublicModelLedger(
+        tmp_path,
+        config=QuotaConfig(cache_fill_ttl_seconds=1),
+    )
+    owner, first_event = ledger.acquire_cache_fill("same-input")
+    assert owner is True
+    waiter_owner, waiter_event = ledger.acquire_cache_fill("same-input")
+    assert waiter_owner is False
+    assert waiter_event is first_event
+
+    with ledger._inflight_lock:
+        ledger._inflight["same-input"] = (first_event, time.monotonic() - 2)
+    replacement_owner, replacement_event = ledger.acquire_cache_fill("same-input")
+    assert replacement_owner is True
+    assert replacement_event is not first_event
+    assert first_event.is_set()
+
+    ledger.complete_cache_fill("same-input", first_event)
+    still_waiting_owner, still_waiting_event = ledger.acquire_cache_fill("same-input")
+    assert still_waiting_owner is False
+    assert still_waiting_event is replacement_event
+    ledger.complete_cache_fill("same-input", replacement_event)
+    next_owner, _next_event = ledger.acquire_cache_fill("same-input")
+    assert next_owner is True
 
 
 def test_opencode_go_base_url_does_not_receive_native_deepseek_beta_suffix() -> None:

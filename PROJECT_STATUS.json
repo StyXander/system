@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-13T11:52:00+08:00",
+  "updated_at": "2026-08-13T19:04:10+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -24,16 +24,16 @@
   },
   "acceptance_snapshot": {
     "date": "2026-08-13",
-    "source_repository_pytest": "191 passed, 1 warning, 70.69s",
-    "rag_specialized_pytest": "13 passed, 1 warning",
+    "source_repository_pytest": "201 passed, 1 warning, 146.22s",
+    "review_focused_pytest": "21 passed",
     "frontend_contract": "210 unique ids, 369 refs, 9 views",
-    "chinese_comments": "1596/15186 = 10.51%",
-    "browser": "8 views, 1440x1000, 1024x768, 768x1024, 390x844, console 0, document overflow 0, company context 02-08 verified",
-    "company_context": "02-08 page headings, topbar and sidebar update on case switch and reload; BYD 002594 verified",
+    "chinese_comments": "1737/17325 = 10.03%",
+    "browser": "9 views; 1440x1000, 1024x768, 768x1024, 390x844; HTTP 200, console errors 0, failed requests 0, document overflow 0, axe violations 0",
+    "company_context": "standard sample field detail, RAG prepare/retrieve (1167 chunks, 5 hits) and calculation-only run with zero provider calls verified on desktop and mobile",
     "controlled_cninfo": {
       "network_denied": "CNINFO_NETWORK_ERROR/network_permission_denied",
       "rag_only_task": "CNINFO-75E108E6F4A0 completed with CNINFO_600938_T0_20250328 and 623 chunks",
-      "full_analysis_task": "external_model_acceptance_51_cases; 51/51 HTTP 200, 48 first-pass successes, 3 transient/semantic failures succeeded on targeted retry; each final case completed Challenge/Counter/Review with 3 provider calls"
+      "full_analysis_task": "historical agent_prompt_v3 external-model batch; 51/51 HTTP 200 and model_success; 45 first-attempt successes, 3 in-batch retry successes and 3 later targeted retry successes; each final case completed Challenge/Counter/Review with 3 provider calls"
     },
     "external_model_batch": {
       "run_date": "2026-08-13",
@@ -43,8 +43,9 @@
       "http_success_count": 51,
       "final_model_success_count": 51,
       "final_three_role_count": 51,
-      "first_pass_success_count": 48,
-      "targeted_retry_success_count": 3,
+      "first_attempt_success_count": 45,
+      "in_batch_retry_success_count": 3,
+      "later_targeted_retry_success_count": 3,
       "final_provider_calls_per_case": 3,
       "route_distribution": {
         "risk_candidate": 15,
@@ -52,11 +53,15 @@
         "evidence_gap_review": 17,
         "negative_confirmation": 0
       },
-      "artifact": "tmp/external-opencode-go-51.json plus tmp/external-opencode-go-failures-retry.json",
+      "input_tokens": 1524131,
+      "output_tokens": 90867,
+      "duration_ms_sum": 887919,
+      "artifact": "outputs/external_model_acceptance/current.json; source summaries remain in tmp and run JSON remains under backend/runtime/external-51-20260812/runs",
+      "validation_boundary": "historical agent_prompt_v3 technical transport/schema/trace acceptance only; automatic field candidates were generated before the 2026-08-13 quality gate, so this batch is not current-code professional content acceptance or a scored B3",
       "api_key_persistence": "not_written_to_source_or_repository"
     },
-    "report": "审迹智链_全功能再次验收与Bug修复报告_2026-08-09.md",
-    "truth_boundary": "比赛 Demo 已完成本地、合同回归和 51 案真实 DeepSeek 三Agent验收；51 案均完成真实模型链（失败案经定向重试后完成），专业签字和 B0-B3 正式评分仍待真人验收"
+    "report": "审迹智链_51案例AI全链复核与Bug修复报告_2026-08-13.md",
+    "truth_boundary": "当前代码已完成本地、合同和浏览器回归；历史 51 案证明真实 DeepSeek 三 Agent 技术链均完成，但不证明字段正确、风险识别准确率或有效 B3。128 条自动字段候选涉及 30 家公司（其中 72 条为启发式跨年数量级异常），已被当前质量闸门排除并等待真人回页复核。"
   },
   "competition_demo": {
     "enabled_by": ["AUDITTRACE_DEMO_MODE=true", "AUDITTRACE_PUBLIC_DEMO=true", "AUDITTRACE_PERSISTENCE=local"],
@@ -64,17 +69,25 @@
     "seed_company_count": 51,
     "seed_rag_checked": 50,
     "source_incomplete": 0,
-    "run_status_distribution": {"RULE_NOT_TRIGGERED": 28, "candidate": 15, "DATA_GAP": 7},
+    "run_status_distribution": {"RULE_NOT_TRIGGERED": 17, "candidate": 3, "DATA_GAP": 30},
+    "field_candidate_quality_audit": {
+      "materialized_cases": 50,
+      "candidate_rows": 394,
+      "blocked_pending_human_rows": 128,
+      "affected_companies": 30,
+      "heuristic_cross_year_outlier_rows": 72,
+      "policy": "conservative fail-closed; rows remain visible for review but are excluded from deterministic rules and model evidence until confirmed or corrected"
+    },
     "model_fallback": "仅在真实模型不可用且用户明确选择时使用；不得冒充真实模型成功",
-    "supplement_rerun": "ready_for_rerun -> RUN-SUP-* with 2 independent evidence rows and recommendation_change",
+    "supplement_rerun": "ready_for_rerun -> RUN-SUP-* with 1 structured independent evidence row and recommendation_change",
     "report": "DOCX demo preview with 未登录/未经真人专业复核 watermark",
-    "browser_local": "BYD 002594 context, RAG, supplement rerun, report download, 390x844 overflow gate passed"
+    "browser_local": "standard sample fields, RAG prepare/retrieve (1167 chunks, 5 hits) and calculation-only analysis with zero provider calls passed on desktop/mobile; four viewport overflow, console, network and axe gates passed"
   },
   "capabilities": {
     "standard_case_import": "implemented_and_tested",
     "cninfo_official_auto_search_download_validate": "implemented_offline_tested_and_live_smoked_with_603337_20260805",
     "cninfo_case_isolated_rag_pipeline": "implemented_and_tested_live_603337_3_years_1103_chunks",
-    "cninfo_field_candidate_extraction": "implemented_technical_validation_with_year_and_rule_graceful_degradation_optional_human_review",
+    "cninfo_field_candidate_extraction": "implemented_with_conservative candidate quality gate; 128 automatic rows across 30 cached companies, including 72 heuristic cross-year order-of-magnitude outliers, are excluded from calculations/model evidence pending human page confirmation",
     "cninfo_public_prescreen_degradation": "implemented_latest_complete_pair_rule_level_skip_missing_field_report_and_cutoff_year",
     "cninfo_pipeline_api": "implemented_task_progress_result_retry_company_confirmation_and_public_prescreen_summary_endpoints",
     "cninfo_formal_web_entry": "implemented_11_step_task_polling_document_hash_rag_public_prescreen_and_optional_review_status_ui",
@@ -90,20 +103,26 @@
     "case_isolated_sources": "implemented_and_tested",
     "r1_deterministic_calculation": "implemented_and_tested",
     "r2_auxiliary_calculation": "implemented_and_tested",
-    "rag_to_agent_evidence_bundle": "implemented_and_tested",
+    "rag_to_agent_evidence_bundle": "implemented_minimized_payload_and_tested; technical file IDs, document IDs, locators and hashes are excluded from provider payloads",
     "three_agent_hard_validation": "role_specific_schema_failure_codes_and_deterministic_fact_language_guard_implemented_and_tested",
     "second_public_case": "jack_603337_imported_rag_isolated_local_calculation_negative_control_project_owner_public_source_authorized_formal_freeze_pending",
-    "supplement_full_rerun": "implemented_and_tested",
+    "supplement_full_rerun": "implemented_and_tested_without_duplicate_file_and_structured_evidence",
+    "public_demo_upload_boundary": "anonymous local public demo accepts built-in sample only and rejects arbitrary case ZIP, supplement uploads, field confirmation, review/export approval, cache mutation and non-seed pipeline creation",
+    "model_cache_input_fingerprint": "implemented_for_engine_rule_versions_thresholds_routes_deterministic_results_and_model_evidence; cached nested run IDs are rebound, source run and source usage are recorded, and current replay usage/provider calls are zero",
+    "model_privacy_failure_close": "implemented_for_all model routes including competition demo; minimized outbound payload and model output are both privacy-scanned, and sensitive model output is rejected without persisting its text",
+    "provider_call_audit": "implemented_actual_http_attempt_counts_for_success_retry_schema_failure_and_policy_failure; pre-call rejection and skipped roles remain zero",
+    "public_deployment_security": "implemented_same_origin_cors_by_default_exact_origin_validation_trusted_proxy_hop_and_cidr_pairing_no_zero_networks_and_minimum_32_character_public_quota_secret",
+    "public_model_cache_fill": "implemented_owner_identity_ttl_atomic_reacquire_and_release_on_quota_failure_to_prevent_stale_owner_deletion_and indefinite waits",
     "human_review_and_report_v2": "implemented_and_tested_pending_real_human_approval",
-    "live_model_full_run": "external_model_acceptance_51_cases_20260813; 51/51 final model_success, 3 provider calls per final chain with targeted retries, deepseek-v4-flash, agent_prompt_v3",
+    "live_model_full_run": "historical external_model_acceptance_51_cases_20260813; 51/51 final model_success and 3 provider calls per final chain, deepseek-v4-flash, agent_prompt_v3; current-code professional acceptance remains pending",
     "ai_notice_invariant": "implemented_for_new_and_api_json_web_drafts_and_report_v2_historical_raw_json_preserved_and_wrapped_on_read",
     "append_only_evaluation_records": "implemented_no_overwrite_json_with_hashes_human_scores_blank",
     "r3_to_r8": "roadmap_only"
   },
   "tests": {
     "source_repository": {
-      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q --basetemp .pytest_tmp\\final-20260809-current",
-      "latest_result": "191 passed, 1 warning, 70.69s",
+      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
+      "latest_result": "201 passed, 1 warning, 146.22s",
       "executed_on": "2026-08-13",
       "status": "passed"
     },
@@ -119,8 +138,8 @@
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "1596/15186 = 10.51%",
-      "executed_on": "2026-08-10",
+      "latest_result": "1737/17325 = 10.03%",
+      "executed_on": "2026-08-13",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -173,16 +192,17 @@
     }
   },
   "quality_evidence": {
-    "compileall": "passed_backend_app_2026-08-09",
-    "ui_contrast": "passed_text_and_meaningful_boundaries_2026-08-09",
-    "browser_status": "passed_local_and_render_competition_demo_BYD_VANKE_RAG_supplement_report_390x844_no_overflow",
-    "browser_artifacts": "artifacts/review-2026-08-09-execution",
-    "browser_boundary": "本地与 Render 线上浏览器均覆盖免登录比赛 Demo；真实 Supabase、登录 consent 和外部模型不进入比赛主链，人工专业闸门仍保留",
-    "deployed_commit": "a4bed81c52df093bc3bf7d3fda5b5e926aea81bf",
-    "render_demo_status": "demo_enabled=true; login_required=false; 51 cases; BYD and Vanke full-analysis/supplement/report smoke passed",
+    "compileall": "passed_backend_app_2026-08-13",
+    "ui_contrast": "passed_text_and_meaningful_boundaries_2026-08-13",
+    "browser_status": "passed_local_real_fastapi_four_viewports_nine_views_rag_prepare_retrieve_calculation_only_console_network_overflow_axe_zero",
+    "browser_artifacts": "artifacts/review-2026-08-13-browser/current-audit and artifacts/review-2026-08-13-browser/current-interactions",
+    "browser_boundary": "本轮只复验本地真实 FastAPI；未重新验收 Render、Supabase/RLS、真实登录 consent 或当前修复后外部模型批量运行，人工专业闸门仍保留",
+    "deployed_commit": "a4bed81c52df093bc3bf7d3fda5b5e926aea81bf (historical; current review fixes are local and undeployed)",
+    "render_demo_status": "historical 2026-08-09 evidence only; current review fixes were not deployed or revalidated on Render",
     "github_release": "v1.2.0 historical tag; final code is on main",
-    "github_commit": "recorded by the final git commit; not embedded to avoid a self-referential hash",
+    "github_commit": "current review fixes remain in the local uncommitted worktree",
     "cache_manifest": "backend/cache_seed.lock.json validated 50/50 ready with 2025/2024/2023 metadata",
+    "materialized_candidate_gate": "backend/cache_seed.materialized.json regenerated; 128/394 automatic field rows across 30/50 companies blocked pending human review, including 72 heuristic cross-year order-of-magnitude outlier rows",
     "demo_script": "17_审迹智链_最终答辩演示脚本_2026-08-08.md",
     "proposal_pdf_status": "regenerated_12_pages_and_visually_verified",
     "proposal_pdf_path": "02_最终确定方案/05_审迹智链_项目方案书_V3.3_审计计划单场景与AI主链闭环版.pdf",
@@ -314,11 +334,12 @@
     },
     "result": "model_success",
     "posthoc_validation_error": null,
-    "formal_comparison_eligible": true,
-    "compliance_boundary": "历史调用只读保留；当前项目授权仅覆盖公开来源的最小必要字段和RAG片段，不覆盖全文再分发、内部客户资料或正式专业采用。",
+    "technical_chain_eligible": true,
+    "formal_comparison_eligible": false,
+    "compliance_boundary": "历史调用只读保留，只证明 agent_prompt_v3 的真实三角色技术链；当前项目授权仅覆盖公开来源的最小必要字段和RAG片段，不覆盖全文再分发、内部客户资料或正式专业采用。",
     "human_review": "pending_professional_review",
     "report_v2_export": "available_after_human_review",
-    "conclusion": "当前 agent_prompt_v3、deepseek-v4-flash 三角色真实运行已完成；仍需人工复核后采用或导出。"
+    "conclusion": "历史 agent_prompt_v3、deepseek-v4-flash 三角色真实运行已完成；字段页码复核、当前代码重跑和真人评分未完成，不得作为有效 B3。"
   },
   "innovation_evidence": [
     "程序筛查、AI建议、人工处理和完整性四层分离",

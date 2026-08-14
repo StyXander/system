@@ -3,6 +3,46 @@
 公开演示不依赖登录，但模型调用仍必须有可追溯的预算边界。
 本地开发使用 SQLite；部署到 Supabase 时，调用方可以把同样的记录
 迁移到服务端表，浏览器永远不会接触模型密钥或额度流水。
+额度判断在服务端完成，前端显示的剩余额度不能作为放行依据。
+访客标识只保存带服务端秘密的摘要，不保存原始网络地址。
+每次真实调用先建立租约，完成后再登记实际输入与输出令牌数。
+供应商失败会释放租约，不能把失败请求伪装成成功缓存。
+未结算租约设有短时限，工作进程异常退出后可以自动回收。
+回收过期租约必须发生在窗口计数之前，否则旧租约会继续误伤访客。
+十五分钟访客限额、全局限额和进程并发限额分别计算。
+服务端批量预热只绕过访客窗口，不绕过每日总量和并发上限。
+每日边界按北京时间计算，避免托管平台默认时区造成跨日错算。
+极简容器缺少时区数据库时使用固定 UTC+8 作为受控降级。
+输入和输出令牌预算分别登记，不能用调用次数替代成本控制。
+结算后的令牌数来自供应商响应，不从字符数推算虚假用量。
+缓存只保存已经通过结构、证据和事实语言硬校验的运行响应。
+缓存身份必须包含案例、年度、规则、来源快照、模型和提示词版本。
+规则阈值、确定性结果和实际模型证据通过输入指纹进入缓存身份。
+人工更正字段或改变阈值后输入指纹变化，旧草稿不得继续命中。
+补充资料使用独立哈希，新增资料不会覆盖无资料版本的缓存。
+规则编号排序后参与哈希，同一规则集合不因请求顺序重复消耗模型。
+缓存键只保存摘要，不把字段原文或补充资料内容写入索引列。
+缓存响应仍保留模型调用审计信息，但新请求必须生成新运行编号。
+复用时所有嵌套输出的运行编号同步更新，避免父子链引用旧运行。
+新运行上下文来自当前请求，旧上下文只作为缓存来源留痕。
+运行命名空间隔离测试、批量验收和正式演示的额度账本。
+测试批次不能消耗正式站点额度，也不能给正式站点预热缓存。
+命名空间只接受稳定字符并限制长度，不能借环境变量构造路径穿越。
+SQLite 写入在进程锁和事务内完成，避免并发访客超发同一额度。
+同一缓存键的并发请求使用进程内合并点，首个请求负责填充。
+等待者只读取已写入的完整缓存，超时后才重新争取填充资格。
+缓存内容损坏或无法通过当前响应模型校验时按未命中处理。
+过期缓存读取时立即删除，不能继续作为历史成功证据返回。
+额度账本与模型密钥完全分离，数据库不记录任何供应商密钥。
+默认额度是安全下限，环境变量解析失败时不能解释成无限额度。
+额度配置最小值为一，错误的零或负数不会关闭保护。
+达到每日预算后新调用失败关闭，本地确定性计算结果仍可保留。
+结算时发现超预算会把本次响应标成不可用，不能缓存为模型成功。
+当前账本不能预知单次请求的最终令牌数，仍需供应商侧硬预算配合。
+公开站点应使用不可预测的额度摘要秘密，并按部署环境单独配置。
+本模块只处理调用额度和缓存，不替代案例授权、隐私扫描或 RAG 闸门。
+调用方必须先通过来源、授权和敏感信息检查，再申请真实模型租约。
+任何演示便利开关都不得绕过这些上游失败关闭条件。
 """
 
 from __future__ import annotations
@@ -11,6 +51,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import sqlite3
 import threading
@@ -33,6 +74,7 @@ class QuotaConfig:
     daily_input_tokens: int = 1_000_000
     daily_output_tokens: int = 300_000
     cache_seconds: int = 86_400
+    cache_fill_ttl_seconds: int = 300
 
     @classmethod
     def from_env(cls) -> "QuotaConfig":
@@ -52,6 +94,7 @@ class QuotaConfig:
             daily_input_tokens=integer("AUDITTRACE_MODEL_DAILY_INPUT_TOKENS", 1_000_000),
             daily_output_tokens=integer("AUDITTRACE_MODEL_DAILY_OUTPUT_TOKENS", 300_000),
             cache_seconds=integer("AUDITTRACE_MODEL_CACHE_SECONDS", 86_400),
+            cache_fill_ttl_seconds=integer("AUDITTRACE_MODEL_CACHE_FILL_TTL_SECONDS", 300),
         )
 
 
@@ -67,11 +110,13 @@ class PublicModelLedger:
     def __init__(self, workspace_root: Path, *, config: QuotaConfig | None = None) -> None:
         self.root = Path(workspace_root)
         self.config = config or QuotaConfig.from_env()
-        self.path = self.root / "backend" / "runtime" / "public_model_ledger.sqlite3"
+        namespace = re.sub(r"[^A-Za-z0-9_-]", "", os.getenv("AUDITTRACE_RUNTIME_NAMESPACE", ""))[:80]
+        runtime_root = self.root / "backend" / "runtime"
+        self.path = (runtime_root / namespace if namespace else runtime_root) / "public_model_ledger.sqlite3"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self._inflight_lock = threading.Lock()
-        self._inflight: dict[str, threading.Event] = {}
+        self._inflight: dict[str, tuple[threading.Event, float]] = {}
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
@@ -129,6 +174,10 @@ class PublicModelLedger:
         reservation_id = secrets.token_urlsafe(18)
         with self._lock, self._connect() as connection:
             self._prune(connection, now)
+            connection.execute(
+                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
+                (now - self.config.reservation_ttl_seconds,),
+            )
             recent_ip = connection.execute(
                 "select count(*) from model_usage where ip_hash=? and reserved_at>=? and released=0",
                 (ip_hash, now - self.config.window_seconds),
@@ -137,10 +186,6 @@ class PublicModelLedger:
                 "select count(*) from model_usage where reserved_at>=? and released=0",
                 (now - self.config.window_seconds,),
             ).fetchone()[0]
-            connection.execute(
-                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
-                (now - self.config.reservation_ttl_seconds,),
-            )
             active = connection.execute(
                 "select count(*) from model_usage where settled=0 and released=0 and reserved_at >= ?",
                 (now - self.config.reservation_ttl_seconds,),
@@ -287,19 +332,40 @@ class PublicModelLedger:
         with self._inflight_lock:
             existing = self._inflight.get(cache_key)
             if existing is not None:
-                return False, existing
+                event, started_at = existing
+                if time.monotonic() - started_at <= self.config.cache_fill_ttl_seconds:
+                    return False, event
+                # 工作进程异常中断时允许超时接管；旧等待者同时被唤醒。
+                event.set()
             event = threading.Event()
-            self._inflight[cache_key] = event
+            self._inflight[cache_key] = (event, time.monotonic())
             return True, event
 
-    def complete_cache_fill(self, cache_key: str) -> None:
+    def complete_cache_fill(self, cache_key: str, owner_event: threading.Event | None = None) -> None:
+        """只允许当前所有者释放合并点，超时旧任务不能误删新任务。"""
+
         with self._inflight_lock:
-            event = self._inflight.pop(cache_key, None)
-            if event is not None:
-                event.set()
+            current = self._inflight.get(cache_key)
+            if current is None:
+                return
+            event, _started_at = current
+            if owner_event is not None and event is not owner_event:
+                return
+            self._inflight.pop(cache_key, None)
+            event.set()
 
 
-def build_cache_key(*, case_id: str, year: int, rule_ids: list[str], source_snapshot_id: str | None, prompt_version: str, model_id: str, supplement_hash: str | None) -> str:
+def build_cache_key(
+    *,
+    case_id: str,
+    year: int,
+    rule_ids: list[str],
+    source_snapshot_id: str | None,
+    prompt_version: str,
+    model_id: str,
+    supplement_hash: str | None,
+    input_fingerprint: str | None = None,
+) -> str:
     payload = {
         "case_id": case_id,
         "year": int(year),
@@ -308,5 +374,6 @@ def build_cache_key(*, case_id: str, year: int, rule_ids: list[str], source_snap
         "prompt_version": prompt_version,
         "model_id": model_id,
         "supplement_hash": supplement_hash or "",
+        "input_fingerprint": input_fingerprint or "",
     }
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()

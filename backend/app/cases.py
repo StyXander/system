@@ -1773,6 +1773,135 @@ def _select(rows: Iterable[dict[str, Any]], kind: str, year: int) -> dict[str, A
     return next((deepcopy(row) for row in rows if row["field_kind"] == kind and row["year"] == year), None)
 
 
+_SOURCE_UNIT_MULTIPLIERS = {
+    "元": 1.0,
+    "千元": 1_000.0,
+    "万元": 10_000.0,
+    "百万元": 1_000_000.0,
+    "亿元": 100_000_000.0,
+    "%": 1.0,
+}
+_RATIO_FIELD_KINDS = {
+    "nonperforming_loan_ratio",
+    "provision_coverage_ratio",
+}
+_HUMAN_ACCEPTED_REVIEW_STATUSES = {
+    "human_confirmed",
+    "human_corrected",
+    "owner_confirmed_registered_public_evidence",
+}
+
+
+def financial_field_candidate_quality_issues(row: dict[str, Any]) -> list[str]:
+    """识别不能直接进入计算的自动候选；真人确认或更正可显式解除闸门。"""
+
+    review_status = str(row.get("source_review_status") or "").strip()
+    if review_status in _HUMAN_ACCEPTED_REVIEW_STATUSES:
+        return []
+    existing = [str(item) for item in row.get("candidate_quality_issues") or [] if str(item).strip()]
+    extraction_method = str(row.get("extraction_method") or "")
+    is_automatic_candidate = "heuristic" in extraction_method or "pending" in review_status
+    if not is_automatic_candidate:
+        return list(dict.fromkeys(existing))
+
+    issues = list(existing)
+    field_kind = str(row.get("field_kind") or "")
+    source_unit = str(row.get("source_unit") or row.get("unit") or "")
+    try:
+        value = float(row.get("value"))
+        source_value = value / _SOURCE_UNIT_MULTIPLIERS[source_unit]
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        source_value = None
+    excerpt = re.sub(r"\s+", "", str(row.get("raw_excerpt") or row.get("excerpt") or ""))
+
+    is_ratio = field_kind in _RATIO_FIELD_KINDS or str(row.get("unit") or "") == "%"
+    if is_ratio:
+        if source_unit != "%":
+            issues.append("比例字段的来源单位不是百分比，自动候选不能进入计算。")
+        suspicious_ratio_context = bool(
+            re.search(r"(?:拨备覆盖率|不良贷款率)\s*[（(]\d{1,3}[）)]", excerpt)
+            or re.search(r"(?:拨备覆盖率|不良贷款率)\s*\d{1,2}(?=\D|$)", excerpt)
+            or re.search(r"(?:≥|>=)\s*\d+(?:\.\d+)?\s*[（(]?注", excerpt)
+            or re.search(r"\d+(?:\.\d+)?\s*(?:天|个月)", excerpt)
+        )
+        if suspicious_ratio_context:
+            issues.append("比例候选疑似取到附注编号、监管阈值或期限，须人工回页确认。")
+    elif source_value is not None and abs(source_value) <= 100:
+        issues.append(
+            f"自动提取金额的原始值仅为 {source_value:g}{source_unit or '（单位未知）'}，"
+            "疑似附注号、序号或叙述数字，须人工回页确认。"
+        )
+    return list(dict.fromkeys(issues))
+
+
+def annotate_financial_field_quality(row: dict[str, Any]) -> dict[str, Any]:
+    """返回带候选质量状态的副本，保留原始值供人工复核。"""
+
+    annotated = deepcopy(row)
+    issues = financial_field_candidate_quality_issues(annotated)
+    annotated["candidate_quality_issues"] = issues
+    annotated["candidate_quality_status"] = (
+        "blocked_pending_human_confirmation" if issues else "passed_technical_candidate"
+    )
+    return annotated
+
+
+def annotate_financial_field_rows_quality(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """在逐行闸门之上检查同字段连续年度的异常数量级变化。"""
+
+    annotated = [annotate_financial_field_quality(row) for row in rows]
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in annotated:
+        grouped.setdefault(str(row.get("field_kind") or ""), []).append(row)
+    for field_rows in grouped.values():
+        ordered = sorted(field_rows, key=lambda item: int(item.get("year") or 0))
+        for previous, current in zip(ordered, ordered[1:]):
+            if int(current.get("year") or 0) - int(previous.get("year") or 0) != 1:
+                continue
+            # 数量级闸门只用于 PDF 启发式自动候选。内置、导入或已结构化
+            # 字段即使尚待人工复核，也可能存在合法的现金流变号或并购跃升；
+            # 不能仅凭“pending”状态把它们改写成自动抽取错位。
+            if not all(
+                "heuristic" in str(row.get("extraction_method") or "")
+                for row in (previous, current)
+            ):
+                continue
+            try:
+                previous_value = abs(float(previous.get("value")))
+                current_value = abs(float(current.get("value")))
+            except (TypeError, ValueError):
+                continue
+            smaller = min(previous_value, current_value)
+            larger = max(previous_value, current_value)
+            if smaller <= 0 or larger / smaller < 10:
+                continue
+            issue = (
+                f"同字段连续年度金额相差 {larger / smaller:.1f} 倍，"
+                "可能存在错列、单位或表内子项误取，须人工回页确认。"
+            )
+            for row in (previous, current):
+                if str(row.get("source_review_status") or "") in _HUMAN_ACCEPTED_REVIEW_STATUSES:
+                    continue
+                row["candidate_quality_issues"] = list(
+                    dict.fromkeys(list(row.get("candidate_quality_issues") or []) + [issue])
+                )
+                row["candidate_quality_status"] = "blocked_pending_human_confirmation"
+    return annotated
+
+
+def calculation_ready_financial_rows(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """只返回未被拒绝且通过候选质量闸门的字段行。"""
+
+    ready: list[dict[str, Any]] = []
+    for row in annotate_financial_field_rows_quality(rows):
+        if str(row.get("source_review_status") or "") == "human_rejected":
+            continue
+        if row["candidate_quality_issues"]:
+            continue
+        ready.append(row)
+    return ready
+
+
 def _technical_complete_years(rows: list[dict[str, Any]], kinds: tuple[str, ...]) -> list[int]:
     """返回同时具备指定字段候选的年度；不要求真人确认，供公开预筛选年。"""
 
@@ -1798,7 +1927,10 @@ def get_cninfo_prescreen_plan(
     case = get_case(workspace_root, case_id)
     if case is None:
         raise KeyError(case_id)
-    rows = get_financial_rows(workspace_root, case_id)
+    candidate_rows = get_financial_rows(workspace_root, case_id)
+    rows = calculation_ready_financial_rows(candidate_rows)
+    annotated_rows = annotate_financial_field_rows_quality(candidate_rows)
+    blocked_rows = [row for row in annotated_rows if row.get("candidate_quality_issues")]
     report_years = sorted(
         {int(item.get("report_year")) for item in case.get("documents", []) if item.get("report_year") is not None},
         reverse=True,
@@ -1862,7 +1994,16 @@ def get_cninfo_prescreen_plan(
         "skipped_rules": skipped,
         "missing_fields": list(dict.fromkeys(missing_fields)),
         "has_calculable_rule": bool(plans),
-        "source_candidate_count": len(rows),
+        "source_candidate_count": len(candidate_rows),
+        "usable_source_candidate_count": len(rows),
+        "blocked_candidate_count": len(blocked_rows),
+        "candidate_quality_issues": list(
+            dict.fromkeys(
+                issue
+                for row in blocked_rows
+                for issue in row.get("candidate_quality_issues", [])
+            )
+        ),
         "human_confirmation": "recommended_before_formal_adoption_or_export",
         "confidence": "technical_candidate_pending_optional_human_confirmation" if rows else "insufficient_data",
     }
@@ -1877,7 +2018,8 @@ def get_period_sources(
     case = get_case(workspace_root, case_id)
     if case is None:
         raise KeyError(case_id)
-    rows = get_financial_rows(workspace_root, case_id)
+    candidate_rows = get_financial_rows(workspace_root, case_id)
+    rows = calculation_ready_financial_rows(candidate_rows)
     requested_current_year = current_year
     prescreen_plan = None
     no_calculable_public_period = False
@@ -1972,7 +2114,12 @@ def get_period_sources(
         "public_prescreen": prescreen_plan is not None,
         "prescreen_plan": prescreen_plan,
         "case_evidence_count": len(case.get("structured_evidence", [])),
-        "case_material_gaps": deepcopy(case.get("material_gaps", [])),
+        "case_material_gaps": list(
+            dict.fromkeys(
+                list(deepcopy(case.get("material_gaps", [])))
+                + list((prescreen_plan or {}).get("candidate_quality_issues") or [])
+            )
+        ),
     }
     return context, sources
 

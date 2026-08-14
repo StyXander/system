@@ -4,11 +4,11 @@
 
 统一 AI 声明：AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。
 
-## 2026-08-09 验收快照
+## 2026-08-13 验收快照
 
-本轮源码仓库全量回归 **177 passed、1 warning、35.05s**；前端契约 **193 unique ids、324 refs、8 views**，JavaScript、CSS、Python 编译、中文说明比例 **1569/14535=10.79%** 和差异卫生检查通过。真实 FastAPI 与浏览器完成八个视图及 1440×1000、1024×768、768×1024、390×844 四档视口操作，横向溢出和 console error/warning 均为 0。fresh-web RAG 快照一致性、staging 发布、租户隔离、worker fencing、模型同意合同、运行深链接以及 02—08 页面当前公司上下文均有回归覆盖。
+本轮源码仓库全量回归 **201 passed、1 warning、146.22s**；前端契约 **210 unique ids、369 refs、9 views**，JavaScript、CSS、Python 编译、中文说明比例 **1737/17325=10.03%** 和差异卫生检查通过。真实 FastAPI 与浏览器完成 1440×1000、1024×768、768×1024、390×844 四档视口及 9 个视图验收，console error、失败请求、文档横向溢出和 axe violation 均为 0；桌面和手机均实测 RAG prepare/retrieve 与仅计算运行。
 
-详细执行记录以 `PROJECT_STATUS.json` 为机器可读事实源；本地教师材料包另附《全功能再次验收与 Bug 修复报告》和《剩余任务执行计划》。真实 Supabase 迁移/RLS、真实登录 consent、真实外部模型调用、专业签字和 B0—B3 正式评分仍保持人工/部署环境边界。
+历史 `agent_prompt_v3` 批次已严格核对为 51/51 真实外部模型三角色链成功，但它使用本轮字段质量闸门上线前的候选，只能作为传输、Schema 与留痕的技术证据，不能证明 51 家字段正确、风险识别准确率或有效 B3。当前种子有 128 条自动候选（涉及 30 家，其中 72 条为启发式跨年数量级异常）被保守闸门排除并等待真人回页复核。本轮没有再次调用付费模型，也未重验真实 Supabase/RLS、登录 consent 或线上部署。详细边界见 `PROJECT_STATUS.json` 和《审迹智链_51案例AI全链复核与Bug修复报告_2026-08-13.md》。
 
 ## 项目边界
 
@@ -98,7 +98,7 @@ GET  /api/industry-gates/{case_id}
 
 ## 自动化验证
 
-源码仓库当前一次性复验结果（2026-08-09）：**177 passed、1 warning**；前端契约 **193 unique ids、324 refs、8 views**；`node --check assets/official-v4/app.js`、Python compileall、CSS 对比度和 `git diff --check` 均通过。中文说明性行检查：**1569/14535 = 10.79%**。
+源码仓库当前一次性复验结果（2026-08-13）：**201 passed、1 warning、146.22s**；前端契约 **210 unique ids、369 refs、9 views**；`node --check assets/official-v4/app.js`、Python compileall、CSS 对比度和 `git diff --check` 均通过。中文说明性行检查：**1737/17325 = 10.03%**。
 
 ```powershell
 backend\.venv\Scripts\python.exe -m pytest backend\tests -q

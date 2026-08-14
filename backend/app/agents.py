@@ -95,6 +95,7 @@ from urllib.request import Request, urlopen
 
 from pydantic import ValidationError
 
+from .privacy import scan_sensitive_payload
 from .schemas import AgentOutput, AgentRole, AgentStep, RuleResult
 
 
@@ -142,10 +143,11 @@ ROLE_MAX_OUTPUT_TOKENS: dict[AgentRole, int] = {"challenge": 1400, "counter": 14
 class ProviderCallError(RuntimeError):
     """A provider rejected a request; keep its stable public failure code."""
 
-    def __init__(self, failure_code: str, detail: str) -> None:
+    def __init__(self, failure_code: str, detail: str, *, provider_call_count: int = 1) -> None:
         super().__init__(detail)
         self.failure_code = failure_code
         self.detail = detail
+        self.provider_call_count = max(1, int(provider_call_count))
 
 
 def _provider_error_message(error: HTTPError) -> str:
@@ -368,7 +370,67 @@ def _json_hash(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
-def _compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, Any]]) -> list[dict[str, Any]]:
+_MODEL_CONTEXT_EXCLUDED_KEYS = {
+    "cache_key_hash",
+    "case_id",
+    "content_sha256",
+    "document_id",
+    "field_id",
+    "file_sha256",
+    "filename",
+    "human_review",
+    "human_review_history",
+    "input_sha256",
+    "locator",
+    "original_filename",
+    "owner_user_id",
+    "package_sha256",
+    "request_identity",
+    "response_sha256",
+    "retrieval_id",
+    "reviewed_by",
+    "reviewer",
+    "source_file",
+    "source_locator",
+    "source_snapshot_id",
+    "source_url",
+    "storage_path",
+    "storage_relpath",
+    "tenant_id",
+    "user_id",
+}
+
+
+def minimize_model_context(value: Any) -> Any:
+    """递归删除模型推理不需要的技术标识、路径、哈希和人工身份字段。
+
+    该函数位于模型请求的最后组装入口，作为上游最小化之外的第二道防线。
+    风险卡会嵌套字段证据，因此不能只清理顶层 evidence bundle。
+    哈希、缓存键、租户与用户编号用于服务端追踪，不帮助模型形成审计建议。
+    文件名、对象路径和来源 URL 由服务端回查接口保存，不进入供应商载荷。
+    文档号与检索号可留在本地完整运行中，但模型引用统一使用 evidence_id。
+    页码、披露日期、金额、单位和必要摘录仍会保留，避免破坏证据语义。
+    人工复核身份与历史不进入模型，防止模型把审批动作误当作事实支持。
+    未知的新字典层级也会递归处理，降低未来新增风险卡字段时的泄露风险。
+    该过程只改变发送给模型的副本，不改写本地原始证据或其哈希记录。
+    隐私扫描必须使用同一最小化视图，保证“已扫描内容”与“实际发送内容”一致。
+    最小化不等于脱敏批准；命中高风险个人信息时仍由调用链失败关闭。
+    """
+
+    if isinstance(value, dict):
+        return {
+            str(key): minimize_model_context(child)
+            for key, child in value.items()
+            if str(key) not in _MODEL_CONTEXT_EXCLUDED_KEYS
+        }
+    if isinstance(value, list):
+        return [minimize_model_context(child) for child in value]
+    if isinstance(value, tuple):
+        return [minimize_model_context(child) for child in value]
+    return value
+
+
+def compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, Any]]) -> list[dict[str, Any]]:
     """把字段、RAG 与补充资料压成同一证据列表，模型不能引用列表外事实。"""
     if isinstance(evidence_bundle, list):
         categories = [("field", evidence_bundle)]
@@ -391,17 +453,18 @@ def _compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, An
                     "field_label": row.get("field_label"),
                     "value": row.get("value"),
                     "unit": row.get("unit"),
-                    "source_file": row.get("source_file"),
-                    "document_id": row.get("document_id"),
                     "disclosure_date": row.get("disclosure_date"),
                     "pdf_page": row.get("pdf_page"),
                     "print_page": row.get("print_page"),
-                    "locator": row.get("locator") or row.get("source_locator"),
                     "excerpt": str(row.get("excerpt") or "")[:500],
                     "review_status": row.get("review_status") or row.get("source_review_status"),
                 }
             )
     return compact
+
+
+# 读取历史扩展和验收脚本时保留旧函数名；新代码统一使用公开名称。
+_compact_evidence_bundle = compact_evidence_bundle
 
 
 def _system_prompt(role: AgentRole, analysis_route: str = "risk_candidate") -> str:
@@ -458,12 +521,12 @@ def _user_payload(
             analysis_route,
             ROUTE_ALLOWED_CONCLUSIONS["risk_candidate"],
         ),
-        "analysis_context": analysis_context or {},
+        "analysis_context": minimize_model_context(analysis_context or {}),
         "rule_result": {
             "rule_id": rule_result.rule_id,
             "status": rule_result.status,
             "metrics": rule_result.metrics,
-            "risk_card": rule_result.risk_card,
+            "risk_card": minimize_model_context(rule_result.risk_card),
         },
         # 把程序已经确定的真假条件单列出来，避免模型把 26.84% 写成超过
         # 30% 强阈值，或在缺少可比期间时擅自声称周转天数“显著延长”。
@@ -839,12 +902,12 @@ def _call_model(
 
 def _call_model_with_transient_retry(
     *, api_key: str, base_url: str, model_id: str, role: AgentRole, payload: dict[str, Any], analysis_route: str
-) -> tuple[dict[str, Any], int, str, str, int | None, int | None]:
+) -> tuple[dict[str, Any], int, str, str, int | None, int | None, int]:
     """Retry one transient provider failure; classify permanent HTTP failures."""
 
     for attempt in range(2):
         try:
-            return _call_model(
+            result = _call_model(
                 api_key=api_key,
                 base_url=base_url,
                 model_id=model_id,
@@ -852,6 +915,7 @@ def _call_model_with_transient_retry(
                 payload=payload,
                 analysis_route=analysis_route,
             )
+            return (*result, attempt + 1)
         except HTTPError as error:
             code = int(getattr(error, "code", 0) or 0)
             provider_message = _provider_error_message(error)
@@ -861,20 +925,44 @@ def _call_model_with_transient_retry(
                 or "requires explicit opt in" in provider_message_lower
                 or "hosted in china" in provider_message_lower
             ):
-                raise ProviderCallError("MODEL_PROVIDER_REGION_OPT_IN_REQUIRED", _region_opt_in_detail(provider_message)) from error
+                raise ProviderCallError(
+                    "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED",
+                    _region_opt_in_detail(provider_message),
+                    provider_call_count=attempt + 1,
+                ) from error
             if code == 402:
-                raise ProviderCallError("MODEL_PROVIDER_BALANCE_EXHAUSTED", "模型供应商余额不足，未完成本次角色调用。") from error
+                raise ProviderCallError(
+                    "MODEL_PROVIDER_BALANCE_EXHAUSTED",
+                    "模型供应商余额不足，未完成本次角色调用。",
+                    provider_call_count=attempt + 1,
+                ) from error
             if code in {401, 403}:
-                raise ProviderCallError("MODEL_PROVIDER_AUTH_FAILED", "模型供应商鉴权失败，请检查服务端密钥配置。") from error
+                raise ProviderCallError(
+                    "MODEL_PROVIDER_AUTH_FAILED",
+                    "模型供应商鉴权失败，请检查服务端密钥配置。",
+                    provider_call_count=attempt + 1,
+                ) from error
             if code not in {408, 409, 425, 429, 500, 502, 503, 504}:
-                raise ProviderCallError("MODEL_PROVIDER_REJECTED", f"模型供应商拒绝请求（HTTP {code}）。") from error
+                raise ProviderCallError(
+                    "MODEL_PROVIDER_REJECTED",
+                    f"模型供应商拒绝请求（HTTP {code}）。",
+                    provider_call_count=attempt + 1,
+                ) from error
             if attempt == 1:
-                raise ProviderCallError("MODEL_PROVIDER_RATE_LIMITED", "模型供应商暂时限流或不可用，重试后仍未完成。") from error
+                raise ProviderCallError(
+                    "MODEL_PROVIDER_RATE_LIMITED",
+                    "模型供应商暂时限流或不可用，重试后仍未完成。",
+                    provider_call_count=attempt + 1,
+                ) from error
             time.sleep(1.5)
         except (URLError, HTTPClientException, TimeoutError, OSError) as error:
             if attempt == 1:
+                setattr(error, "provider_call_count", attempt + 1)
                 raise
             time.sleep(1.5)
+        except (json.JSONDecodeError, KeyError, IndexError, UnicodeDecodeError, TypeError, ValueError) as error:
+            setattr(error, "provider_call_count", attempt + 1)
+            raise
     raise RuntimeError("unreachable model retry state")
 
 
@@ -897,7 +985,7 @@ def run_agent_chain(
     if not api_key:
         return [AgentStep(role="challenge", status="config_missing", model_id=None, prompt_version=PROMPT_VERSION, detail="未配置DEEPSEEK_API_KEY；未调用模型。")]
 
-    compact_bundle = _compact_evidence_bundle(evidence_bundle)
+    compact_bundle = compact_evidence_bundle(evidence_bundle)
     allowed_evidence_ids = {item["evidence_id"] for item in compact_bundle}
     previous_outputs: dict[str, AgentOutput] = {}
     steps: list[AgentStep] = []
@@ -946,7 +1034,7 @@ def run_agent_chain(
         )
         input_sha256 = _json_hash(payload)
         try:
-            raw_output, duration_ms, response_sha256, _, input_tokens, output_tokens = _call_model_with_transient_retry(
+            raw_output, duration_ms, response_sha256, _, input_tokens, output_tokens, provider_call_count = _call_model_with_transient_retry(
                 api_key=api_key,
                 base_url=base_url,
                 model_id=model_id,
@@ -972,6 +1060,8 @@ def run_agent_chain(
                     prompt_version=PROMPT_VERSION,
                     detail=error.detail,
                     input_sha256=input_sha256,
+                    provider_call_performed=True,
+                    provider_call_count=error.provider_call_count,
                 )
             )
             append_skipped(role_index, "前一角色的供应商调用未完成，后续角色未调用。")
@@ -987,11 +1077,13 @@ def run_agent_chain(
                     prompt_version=PROMPT_VERSION,
                     detail=f"模型调用失败：{type(error).__name__}",
                     input_sha256=input_sha256,
+                    provider_call_performed=True,
+                    provider_call_count=max(1, int(getattr(error, "provider_call_count", 1))),
                 )
             )
             append_skipped(role_index, "前一角色的模型请求失败，后续角色未调用。")
             break
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as error:
             steps.append(
                 AgentStep(
                     role=role,
@@ -1002,6 +1094,8 @@ def run_agent_chain(
                     prompt_version=PROMPT_VERSION,
                     detail="模型工具参数不是完整JSON对象。",
                     input_sha256=input_sha256,
+                    provider_call_performed=True,
+                    provider_call_count=max(1, int(getattr(error, "provider_call_count", 1))),
                 )
             )
             append_skipped(role_index, "前一角色返回的工具参数无法解析，后续角色未调用。")
@@ -1017,6 +1111,8 @@ def run_agent_chain(
                     prompt_version=PROMPT_VERSION,
                     detail=f"模型工具参数未通过协议检查：{type(error).__name__}",
                     input_sha256=input_sha256,
+                    provider_call_performed=True,
+                    provider_call_count=max(1, int(getattr(error, "provider_call_count", 1))),
                 )
             )
             append_skipped(role_index, "前一角色输出未通过结构校验，后续角色未调用。")
@@ -1042,6 +1138,12 @@ def run_agent_chain(
                     prompt_version=PROMPT_VERSION,
                     detail="模型输出字段、类型或长度未通过Schema校验。",
                     input_sha256=input_sha256,
+                    response_sha256=response_sha256,
+                    duration_ms=duration_ms,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    provider_call_performed=True,
+                    provider_call_count=provider_call_count,
                 )
             )
             append_skipped(role_index, "前一角色输出未通过服务端硬校验，后续角色未调用。")
@@ -1067,9 +1169,40 @@ def run_agent_chain(
                     prompt_version=PROMPT_VERSION,
                     detail=f"模型输出未通过服务端硬校验：{failure_code}",
                     input_sha256=input_sha256,
+                    response_sha256=response_sha256,
+                    duration_ms=duration_ms,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    provider_call_performed=True,
+                    provider_call_count=provider_call_count,
                 )
             )
             append_skipped(role_index, "前一角色输出未通过服务端硬校验，后续角色未调用。")
+            break
+        sensitive_output_findings = scan_sensitive_payload(output.model_dump(mode="json"))
+        if sensitive_output_findings:
+            finding_summary = "、".join(
+                f"{item['kind']}@{item['path']}" for item in sensitive_output_findings[:5]
+            )
+            steps.append(
+                AgentStep(
+                    role=role,
+                    status="MODEL_OUTPUT_INVALID",
+                    failure_stage="policy",
+                    failure_code="MODEL_OUTPUT_SENSITIVE_DATA",
+                    model_id=model_id,
+                    prompt_version=PROMPT_VERSION,
+                    detail=f"模型输出命中高风险个人信息格式（{finding_summary}）；原文未保存，后续角色已停止。",
+                    input_sha256=input_sha256,
+                    response_sha256=response_sha256,
+                    duration_ms=duration_ms,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    provider_call_performed=True,
+                    provider_call_count=provider_call_count,
+                )
+            )
+            append_skipped(role_index, "前一角色输出命中高风险个人信息格式，后续角色未调用。")
             break
         previous_outputs[role] = output
         steps.append(
@@ -1084,6 +1217,8 @@ def run_agent_chain(
                 duration_ms=duration_ms,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
+                provider_call_performed=True,
+                provider_call_count=provider_call_count,
                 output=output,
             )
         )
