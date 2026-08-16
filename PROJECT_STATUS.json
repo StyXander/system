@@ -24,7 +24,7 @@
   },
   "acceptance_snapshot": {
     "date": "2026-08-16",
-    "source_repository_pytest": "213 passed, 1 warning, 97.11s (system temp basetemp; repository temp directory was Windows-permission locked)",
+    "source_repository_pytest": "213 passed, 1 warning, 200.11s (final post-release-fix run with system temp basetemp; repository temp directory was Windows-permission locked)",
     "review_focused_pytest": "专项边界已纳入全量结果",
     "frontend_contract": "240 unique ids, 436 refs, 9 views",
     "chinese_comments": "1758/17545 = 10.02%",
@@ -32,8 +32,8 @@
     "full_51_case_acceptance": {
       "script": "scripts/run_51_case_acceptance.py",
       "local": "51/51 detail + calculation_only R1 runs + RAG default-query hits passed; readonly boundaries 403; 0 failures",
-      "deployed": "51/51 detail + calculation_only R1 runs + RAG default-query hits passed; readonly boundaries 403; only expected failures are the undeployed readiness fields (see render_demo_status)",
-      "deployed_full_analysis": "POST /api/runs full_analysis returns 503 public_quota_secret_missing on the current deployed instance; fixed in the undeployed render.yaml generateValue change and readiness reporting"
+      "deployed": "51/51 historical detail + calculation_only R1 runs + RAG default-query hits passed; current release readonly boundaries 403 and targeted deterministic/RAG/supplement flows passed",
+      "deployed_full_analysis": "2026-08-16 SAIC single current-release run RUN-V7-75962367DF2A reached the provider once but failed closed with MODEL_PROVIDER_AUTH_FAILED; counter/review skipped and no AI draft formed"
     },
     "company_context": "standard sample field detail, RAG prepare/retrieve (1167 chunks, 5 hits) and calculation-only run with zero provider calls verified on desktop and mobile",
     "controlled_cninfo": {
@@ -67,7 +67,7 @@
       "api_key_persistence": "not_written_to_source_or_repository"
     },
     "report": "审迹智链_部署站51案例全量验收与修复记录_2026-08-15.md",
-    "truth_boundary": "当前代码已完成本地、合同、后端回归、真实浏览器四视口验收和本地/线上 51 案例全量验收（详情、仅计算、RAG、只读边界）；发布（push + Render 重部署）未执行。历史 51 案证明真实 DeepSeek 三 Agent 技术链均完成，但不证明字段正确、风险识别准确率或有效 B3。线上实例仍是旧提交：完整分析因额度秘密未配置返回 503，旧状态接口误报 external_live；本地真实 Key 冒烟遇供应商余额不足，系统失败关闭不卡住。128 条自动字段候选涉及 30 家公司（其中 72 条为启发式跨年数量级异常），已被当前质量闸门排除并等待真人回页复核。"
+    "truth_boundary": "当前修复已推送 GitHub main 并部署 Render；功能验收提交为 9cb953128c2125628c0b4b95ea62f8a4dfe1d956。后端 213 项、线上 9 页面 x 4 视口、只读边界、仅计算、显式备用、RAG 和内置补充样例已通过。Render 自动额度秘密已生效且就绪接口为 ready；但上汽集团单次真实链在首角色收到 MODEL_PROVIDER_AUTH_FAILED，后续角色 skipped，未形成 AI 草稿，因此当前供应商凭据仍需真人在 Render 更换后复验。历史 51 案只证明当时的真实 DeepSeek 三 Agent 技术链，不证明字段正确、风险识别准确率或有效 B3。128 条自动字段候选涉及 30 家公司（其中 72 条为启发式跨年数量级异常），继续等待真人回页复核。"
   },
   "competition_demo": {
     "enabled_by": [
@@ -157,7 +157,7 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
-      "latest_result": "213 passed, 1 warning, 97.11s",
+      "latest_result": "213 passed, 1 warning, 200.11s",
       "executed_on": "2026-08-16",
       "status": "passed"
     },
@@ -247,12 +247,12 @@
     "browser_status": "passed_2026-08-15_to_2026-08-16: local real FastAPI 9 views at 1440x1000, 1024x768, 768x1024 and 390x844; console errors 0 and horizontal overflow 0; public readonly controls, calculation-only zero-model path, explicit human field location, dynamic evaluation id and low-confidence RAG warning in list and reader verified",
     "browser_artifacts": "artifacts/browser-audit-local/audit-summary.json and artifacts/browser-audit-deployed/audit-summary.json",
     "ux_guidance_implementation": "2026-08-15 完成 .zcode/plans/plan-sess_5170c198-feb3-4acb-ae92-cd6f9a569599.md 全部 A-F 项：全局5步步骤条、Project下一步卡片、字段复核锁定提示、Analysis运行后强引导、Delivery无run引导、Evaluation降级到竞赛材料下拉、禁用控件中文提示；修改文件 index.html + assets/official-v4/app.js",
-    "browser_boundary": "真实浏览器验收覆盖本地新代码与线上旧代码各四个视口；线上仍为未部署旧版，/api/health 与 /api/status 缺少就绪字段且完整分析 503（额度秘密未配置）；Render 重部署、Supabase/RLS、真实登录 consent 与当前修复后外部模型批量仍须线上阶段验证",
-    "deployed_commit": "a4bed81c52df093bc3bf7d3fda5b5e926aea81bf (historical; current review fixes are local and undeployed)",
-    "render_demo_status": "2026-08-15 复验：线上 51 案例详情/仅计算/RAG/只读边界全部通过；线上 full_analysis 因未配置至少32位 AUDITTRACE_PUBLIC_QUOTA_SECRET 返回 503，且旧版 /api/status 仍误报 external_live；当前未提交的 render.yaml generateValue 改动与就绪状态上报修复了该问题，待部署生效",
-    "github_release": "pending_current_fix_commit_and_push",
-    "github_commit": "pending_current_fix_commit_and_push",
-    "live_model_note": "本地 .env 真实 Key 冒烟：供应商返回 MODEL_PROVIDER_BALANCE_EXHAUSTED，系统按失败关闭记录 provider_quota_exhausted 且不卡住；就绪判断按设计不做供应商探测，需团队确认 DeepSeek 余额后重试",
+    "browser_boundary": "2026-08-16 当前 Render 版本完成 9 views x 4 viewports = 36 browser checks; active view correct, console errors 0 and horizontal overflow 0. Public readonly UI, human field-review location, dynamic evaluation id, deterministic backup label, and low-confidence RAG list/reader warnings were interacted with live. Supabase/RLS and authenticated private-mode consent remain outside this public-demo acceptance.",
+    "deployed_commit": "9cb953128c2125628c0b4b95ea62f8a4dfe1d956 (application acceptance commit; /api/status.deployment.commit remains authoritative after documentation-only releases)",
+    "render_demo_status": "2026-08-16 current release online: generated AUDITTRACE_PUBLIC_QUOTA_SECRET is active; health/status readiness fields return ready and external_live; 51 summaries include ticker, t0, registry_mode and source_type; targeted calculation-only, deterministic backup, RAG, built-in supplement and readonly checks passed",
+    "github_release": "pushed_main_and_render_auto_deployed_2026-08-16",
+    "github_commit": "0342ccf4414c9b08e9eaa8d98cacba3ca2af0a15 plus source metadata contract follow-up 9cb953128c2125628c0b4b95ea62f8a4dfe1d956",
+    "live_model_note": "Current Render SAIC run RUN-V7-75962367DF2A made one provider attempt and failed closed with MODEL_PROVIDER_AUTH_FAILED; counter/review were skipped and no AI draft formed. Earlier local key returned MODEL_PROVIDER_BALANCE_EXHAUSTED. Readiness intentionally does not probe the paid provider, so the team must replace or repair the Render DeepSeek key before one new single-case acceptance.",
     "cache_manifest": "backend/cache_seed.lock.json validated 50/50 ready with 2025/2024/2023 metadata",
     "materialized_candidate_gate": "backend/cache_seed.materialized.json regenerated; 128/394 automatic field rows across 30/50 companies blocked pending human review, including 72 heuristic cross-year order-of-magnitude outlier rows",
     "demo_script": "17_审迹智链_最终答辩演示脚本_2026-08-08.md",

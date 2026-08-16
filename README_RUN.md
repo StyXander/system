@@ -85,7 +85,7 @@ backend\.venv\Scripts\python.exe scripts\check_chinese_comments.py
 backend\.venv\Scripts\python.exe -m pytest -q
 ```
 
-2026-08-16 源码仓库当前实际结果为 **213 passed、1 warning、97.11s**；中文说明行检查为 **1758/17545（10.02%）**；前端契约为 240 个唯一 ID、436 个引用、9 个视图。专项覆盖模型就绪组合、额度与账本失败、无 `run_id` 的显式备用、补充续分析备用标志、R2 数据缺口、资料缺口与 evidence ID 去重、RAG 低置信提示、匿名公开 Demo 前后端只读边界和状态中文化。仓库内旧 pytest 临时目录存在 Windows 权限锁，本次改用系统临时目录完成复验；唯一代码层 warning 是 Starlette TestClient / httpx 兼容性弃用提示。历史 2026-08-09 无密钥清洁运行包仍登记为 **171 passed、1 warning**，本轮未重建该交付包。
+2026-08-16 源码仓库当前实际结果为 **213 passed、1 warning、200.11s**；中文说明行检查为 **1758/17545（10.02%）**；前端契约为 240 个唯一 ID、436 个引用、9 个视图。专项覆盖模型就绪组合、额度与账本失败、无 `run_id` 的显式备用、补充续分析备用标志、R2 数据缺口、资料缺口与 evidence ID 去重、RAG 低置信提示、匿名公开 Demo 前后端只读边界和状态中文化。仓库内旧 pytest 临时目录存在 Windows 权限锁，本次改用系统临时目录完成复验；唯一代码层 warning 是 Starlette TestClient / httpx 兼容性弃用提示。历史 2026-08-09 无密钥清洁运行包仍登记为 **171 passed、1 warning**，本轮未重建该交付包。
 
 当前清洁运行包为了保留标准案例的 RAG 与来源复验能力，仍含四份公开年报全文；在真人确认全文再分发边界前，它仅供团队内部技术复验，**禁止外发**。队员 Word/Excel 包和老师方案材料包不含年报全文。
 
@@ -101,6 +101,8 @@ backend\.venv\Scripts\python.exe -m pytest -q
 - `POST /api/cases/{case_id}/fields/confirm`：逐项保存真人字段确认、修正或拒绝；未通过真人确认的巨潮字段不能进入 `/api/runs`。
 
 公开共享站只允许内置案例、RAG、仅计算和内置补充样例；自定义上传、非内置企业、强制刷新、字段确认、正式复核批准和案例 ZIP 在前端点击前禁用，后端继续返回 403。人工字段判断区仍会显示“此处是人工字段判断位置”；私有环境才开放完整写入能力。完整版本和人工门槛见根目录 `PROJECT_STATUS.md`。系统不得替代：R1专业签字、第二公开案例冻结、合法样例确认、真人复核和B0—B3评分。
+
+当前公开站已部署 `9cb9531` 功能版本并由 `/api/status.deployment.commit` 实时证明；Render 自动额度秘密已生效。上汽集团只执行过一次当前版本真实完整分析 `RUN-V7-75962367DF2A`，供应商返回 `MODEL_PROVIDER_AUTH_FAILED`，系统保留首角色失败码并跳过后续角色，没有形成或伪造 AI 草稿。请在 Render 更换有效的 DeepSeek Key 后只复验一个案例；不要因此重新运行 51 案付费批量。
 
 ## 六、B0—B3 与当前受控记录
 
