@@ -7,10 +7,12 @@ __pycache__/
 backend/**/__pycache__/
 .pytest_cache/
 .pytest_tmp/
+.pytest_tmp2/
 backend/runtime/
 tmp/
 交付包/
 ~$*.docx
+$null
 
 # 本地验收截图与明确禁止发送的隔离旧包不进入代码提交。
 artifacts/
@@ -53,11 +55,15 @@ artifacts/
 !/backend/tests/
 /backend/tests/*
 !/backend/tests/test_competition_demo_plan.py
+!/backend/tests/test_merged_bug_fixes.py
 !/scripts/
 /scripts/*
 !/scripts/freeze_evaluation_v3.py
+!/scripts/run_51_case_acceptance.py
 !/scripts/validate_external_acceptance.py
 !/scripts/check_human_review_entry.py
+!/PROJECT_STATUS.md
+!/README_RUN.md
 !/outputs/
 /outputs/*
 !/outputs/evaluation_v3/

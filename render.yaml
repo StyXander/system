@@ -14,7 +14,7 @@ services:
       - key: AUDITTRACE_DEMO_MODE
         value: "true"
       - key: AUDITTRACE_PUBLIC_QUOTA_SECRET
-        sync: false
+        generateValue: true
       - key: AUDITTRACE_PERSISTENCE
         value: local
       - key: AUDITTRACE_DEMO_USE_EXTERNAL_MODEL

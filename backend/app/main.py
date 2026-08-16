@@ -433,6 +433,94 @@ def _model_settings() -> tuple[str | None, str, str]:
     return api_key, base_url, model_id
 
 
+def _model_readiness(request: Request | None = None) -> dict[str, Any]:
+    """只读取配置和额度账本，给页面一个稳定的真实模型可用性结论。"""
+
+    # 就绪判断只读服务端状态，不向供应商发起试探请求。
+    # Key 存在只能证明配置完成，不能证明公开额度和账本可用。
+    # 公开页面必须同时看到后端可用、模型已配置和真实模型可运行三种状态。
+    # 缺少任一公开条件时，页面仍保留确定性备用入口。
+    # 原因码保持稳定，前端可以据此给出中文的下一步操作。
+    # 额度快照只在需要时读取，不把秘密值返回给浏览器。
+    # 供应商余额、模型健康度和专业结论都不由这里臆测。
+    # 账本异常按失败关闭处理，避免把未知状态误报为可运行。
+    # 并发额度为零时禁止继续排队，避免用户反复点击消耗资源。
+    # 私有模式仍允许已授权案例使用配置好的模型链。
+    # 公开模式只有所有条件同时满足才返回 external_live 所需的 ready。
+    # 这些判断与确定性备用完全分离，备用分析永远不调用外部模型。
+    api_key, _, model_id = _model_settings()
+    public_live = _public_demo_enabled() and _demo_external_model_enabled()
+    if not api_key:
+        return {
+            "full_analysis_ready": False,
+            "full_analysis_reason_code": "api_key_missing",
+            "full_analysis_message": "服务端尚未配置模型 API Key；可运行仅计算或确定性备用分析。",
+            "deterministic_backup_available": True,
+            "model_id": model_id,
+            "quota": None,
+        }
+    if not public_live:
+        return {
+            "full_analysis_ready": True,
+            "full_analysis_reason_code": "ready",
+            "full_analysis_message": "模型 API Key 已配置；真实完整分析仍以本次运行硬校验结果为准。",
+            "deterministic_backup_available": True,
+            "model_id": model_id,
+            "quota": None,
+        }
+    quota_secret = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "").strip()
+    if not quota_secret:
+        return {
+            "full_analysis_ready": False,
+            "full_analysis_reason_code": "public_quota_secret_missing",
+            "full_analysis_message": "公开模型额度密钥未配置；请在服务端生成密钥后再运行真实完整分析。",
+            "deterministic_backup_available": True,
+            "model_id": model_id,
+            "quota": None,
+        }
+    if len(quota_secret) < 32:
+        return {
+            "full_analysis_ready": False,
+            "full_analysis_reason_code": "public_quota_secret_invalid",
+            "full_analysis_message": "公开模型额度密钥长度不足 32 位；请在服务端重新生成安全密钥。",
+            "deterministic_backup_available": True,
+            "model_id": model_id,
+            "quota": None,
+        }
+    try:
+        quota = _public_model_ledger().quota_snapshot(_client_identity(request) if request else None)
+    except (OSError, RuntimeError, ValueError, TypeError) as error:
+        return {
+            "full_analysis_ready": False,
+            "full_analysis_reason_code": "quota_ledger_unavailable",
+            "full_analysis_message": f"公开额度账本暂不可用（{type(error).__name__}）；请稍后重试或使用备用分析。",
+            "deterministic_backup_available": True,
+            "model_id": model_id,
+            "quota": None,
+        }
+    quota_exhausted = any(
+        int(quota.get(key) or 0) <= 0
+        for key in ("global_remaining_15m", "daily_runs_remaining")
+    ) or int(quota.get("active") or 0) >= int(quota.get("max_concurrent") or 1)
+    if quota_exhausted:
+        return {
+            "full_analysis_ready": False,
+            "full_analysis_reason_code": "quota_exhausted",
+            "full_analysis_message": "当前公开模型额度或并发已用尽；请稍后重试，或选择确定性备用分析。",
+            "deterministic_backup_available": True,
+            "model_id": model_id,
+            "quota": quota,
+        }
+    return {
+        "full_analysis_ready": True,
+        "full_analysis_reason_code": "ready",
+        "full_analysis_message": "真实模型、公开额度密钥、额度账本和当前额度均可用。",
+        "deterministic_backup_available": True,
+        "model_id": model_id,
+        "quota": quota,
+    }
+
+
 def _positive_int_env(name: str, default: int) -> int:
     try:
         return max(1, int(os.getenv(name, str(default))))
@@ -634,10 +722,26 @@ def _public_case_summary(case: dict[str, Any]) -> dict[str, Any]:
             },
             reverse=True,
         )
+    case_id = str(case.get("case_id") or "")
+    registry_mode = str(case.get("registry_mode") or "")
+    sample_type = str(case.get("sample_type") or "")
+    # 案例来源分类标签：用于前端选择器直观展示案例类型与审计证据来源
+    # 区分开发基准案例、手工登记案例、巨潮官方自动抓取案例与合成样例
+    if case_id.startswith("STD_DEV"):
+        source_label = "标准股份开发案例"
+    elif case_id.startswith("JACK_"):
+        source_label = "手工登记案例"
+    elif registry_mode == "cninfo_official_auto" or case_id.startswith("CNINFO_"):
+        source_label = "巨潮年报抓取"
+    elif sample_type == "synthetic":
+        source_label = "合成样例"
+    else:
+        source_label = "公开案例快照"
     summary = {
         "case_id": case.get("case_id"),
         "company_name": case.get("company_name"),
         "available_years": sorted({str(year) for year in years}, reverse=True),
+        "source_label": source_label,
     }
     # 目录摘要允许省略空可选字段；这对历史临时案例很多的本地开发目录
     # 尤其重要，同时保留公开演示案例的完整代码、日期和来源元数据。
@@ -645,16 +749,8 @@ def _public_case_summary(case: dict[str, Any]) -> dict[str, Any]:
         value = case.get(key)
         if value not in (None, "", []):
             summary[key] = value
-    # 合成导入案例使用稳定默认值，摘要中不重复传输数百次；公开 CNINFO
-    # 和其他非默认来源仍携带来源类型，详情接口始终返回完整元数据。
-    if not (
-        str(case.get("sample_type") or "") == "synthetic"
-        and str(case.get("registry_mode") or "") == "imported_template"
-    ):
-        for key in ("sample_type", "registry_mode"):
-            value = case.get(key)
-            if value not in (None, "", []):
-                summary[key] = value
+    # sample_type / registry_mode / source_type 不再进入摘要：详情接口始终返回
+    # 完整元数据，选择器展示用 source_label 即可，避免历史案例堆积撑大目录负载。
     return summary
 
 
@@ -1449,6 +1545,8 @@ def _remote_rag_retrieve(
                 "chunk_id": row.get("chunk_id"),
                 "document_id": document_id,
                 "score": round(score, 6),
+                "low_confidence": score < 0.50,
+                "confidence_note": "低置信候选，必须回原页复核。" if score < 0.50 else "候选片段仍须回原页复核。",
                 "vector_score": 0.0,
                 "keyword_score": round(min(1.0, keyword_hits / max(2, len(query_terms))), 6),
                 "anchor_score": round(min(1.0, anchor_hits / max(1, min(3, len(anchors)))) if anchors else 0.0, 6),
@@ -2058,16 +2156,20 @@ def _r2_result(rows: list[dict[str, Any]], source_issues: list[str], min_gap: fl
     required = {"revenue_current", "revenue_previous", "operating_cash_flow_current", "operating_cash_flow_previous"}
     missing = sorted(required - set(by_field))
     if missing:
+        gap_message = "缺少R2字段：" + "、".join(missing)
         return RuleResult(
             rule_id="R2",
             status="DATA_GAP",
             screening_status="DATA_GAP",
-            source_validation=_base_source_validation(["缺少R2字段：" + "、".join(missing)]),
+            # 字段缺失属于资料缺口，不是来源文件、哈希或披露日期失败。
+            source_validation=_base_source_validation([]),
             metrics=metric_defaults,
             risk_card={
-                "card_type": "screening_only",
+                "card_type": "data_gap",
                 "rule_id": "R2",
                 "title": "R2辅助规则缺少可比字段",
+                "data_gaps": [gap_message],
+                "requested_materials": ["缺失年度的经营现金流或收入字段"],
                 "boundary": "R2不抢占R1主演示，也不伪装成完整能力。",
             },
             evidence_ids=evidence_ids,
@@ -2615,6 +2717,44 @@ def _current_evidence_bundle(
     }
 
 
+def _format_evidence_gap(item: Any) -> str:
+    """把资料缺口统一成可读短句，禁止 Python dict repr 泄漏到页面或报告。"""
+
+    if isinstance(item, dict):
+        question_id = str(item.get("question_id") or item.get("problem_id") or "").strip()
+        gap_type = str(item.get("type") or item.get("status") or item.get("label") or "资料缺口").strip()
+        message = str(item.get("message") or item.get("detail") or item.get("reason") or "待回查").strip()
+        prefix = f"{question_id} · " if question_id else ""
+        return f"{prefix}{gap_type}：{message}"
+    return str(item).strip()
+
+
+def _dedupe_gap_messages(items: list[Any], limit: int = 8) -> list[str]:
+    """按问题编号、类型和消息去重，保持第一次出现的证据顺序。"""
+
+    seen: set[tuple[str, str, str]] = set()
+    output: list[str] = []
+    for item in items:
+        text = _format_evidence_gap(item)
+        if not text:
+            continue
+        if isinstance(item, dict):
+            key = (
+                str(item.get("question_id") or item.get("problem_id") or ""),
+                str(item.get("type") or item.get("status") or item.get("label") or ""),
+                str(item.get("message") or item.get("detail") or item.get("reason") or text),
+            )
+        else:
+            key = ("", "", text)
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(text)
+        if len(output) >= limit:
+            break
+    return output
+
+
 def _demo_agent_steps(
     *,
     run_id: str,
@@ -2634,13 +2774,11 @@ def _demo_agent_steps(
     evidence_ids = list(dict.fromkeys(str(item["evidence_id"]) for item in evidence_rows))[:4]
     fallback_ids = evidence_ids
     support_status = "supported" if fallback_ids else "unverified_hypothesis"
-    gaps = list(dict.fromkeys(
-        str(item) for item in (
-            list((rule_result.risk_card or {}).get("data_gaps") or [])
-            + list(rule_result.source_validation.get("issues") or [])
-            + list(evidence_bundle.get("evidence_gaps") or [])
-        ) if str(item).strip()
-    ))[:8]
+    gaps = _dedupe_gap_messages(
+        list((rule_result.risk_card or {}).get("data_gaps") or [])
+        + list(rule_result.source_validation.get("issues") or [])
+        + list(evidence_bundle.get("evidence_gaps") or [])
+    )
     requested = list(dict.fromkeys(
         str(item) for item in ((rule_result.risk_card or {}).get("requested_materials") or []) if str(item).strip()
     ))[:8]
@@ -3050,7 +3188,18 @@ def _execute_run(
 
     screening_status = _screening_overall(rule_results)
     public_sources = [_public_source(row, private=bool(context.get("private_case"))) for row in sources]
-    supplementary = deepcopy(supplement_evidence or [])
+    field_evidence_ids = {
+        str(row.get("evidence_id"))
+        for row in public_sources
+        if isinstance(row, dict) and row.get("evidence_id")
+    }
+    supplementary = [
+        deepcopy(row)
+        for row in (supplement_evidence or [])
+        if not isinstance(row, dict)
+        or not row.get("evidence_id")
+        or str(row.get("evidence_id")) not in field_evidence_ids
+    ]
     _reconcile_registered_context(rule_results, supplementary)
     ai_analysis_route = _select_ai_analysis_route(
         rule_results,
@@ -3086,7 +3235,7 @@ def _execute_run(
         "rag_evidence": rag_evidence,
         "supplement_evidence": supplementary,
         "procedure_evidence": procedure_evidence,
-        "evidence_gaps": evidence_gaps,
+        "evidence_gaps": _dedupe_gap_messages(evidence_gaps, limit=16),
     }
     api_key, base_url, model_id = _model_settings()
     sensitive_findings = scan_sensitive_payload(
@@ -3408,7 +3557,12 @@ def _execute_run(
                 or any(result.status == "DATA_GAP" for result in rule_results)
             )
         )
-        if context.get("ai_model_all_cases") and model_check.status == "demo_fallback":
+        if context.get("force_deterministic_backup"):
+            run_completeness = (
+                "complete_demo_fallback_with_gaps" if partial_prescreen
+                else "complete_demo_fallback"
+            )
+        elif context.get("ai_model_all_cases") and model_check.status == "demo_fallback":
             run_completeness = (
                 "complete_public_prescreen_with_gaps" if prescreen_plan and partial_prescreen
                 else "complete_public_prescreen" if prescreen_plan
@@ -3615,12 +3769,18 @@ def serve_main_page() -> FileResponse:
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     api_key, _, model_id = _model_settings()
+    readiness = _model_readiness()
     return HealthResponse(
         service_status="ready",
         model_status="configured" if api_key else "config_missing",
         model_id=model_id,
+        full_analysis_ready=bool(readiness["full_analysis_ready"]),
+        full_analysis_reason_code=str(readiness["full_analysis_reason_code"]),
+        full_analysis_message=str(readiness["full_analysis_message"]),
+        deterministic_backup_available=bool(readiness["deterministic_backup_available"]),
         source_snapshot_id=SOURCE_SNAPSHOT_ID,
-        detail="服务可用；模型配置状态不等于已经完成真实三Agent运行。",
+        detail="服务可用；模型配置状态不等于已经完成真实三Agent运行。"
+        f" 当前就绪判断：{readiness['full_analysis_message']}",
     )
 
 
@@ -3643,16 +3803,16 @@ def project_status(http_request: Request) -> dict[str, Any]:
     ]
     api_key, _, model_id = _model_settings()
     live_acceptance = registered.get("live_model_acceptance") if isinstance(registered, dict) else None
+    readiness = _model_readiness(http_request)
+    demo_backup_mode = _competition_demo_enabled() and bool(readiness["deterministic_backup_available"])
     model_execution_mode = (
-        "external_live" if _demo_external_model_enabled() and api_key
-        else "deterministic_backup" if _competition_demo_enabled()
-        else "unavailable" if not api_key else "external_live"
+        "external_live"
+        if readiness["full_analysis_ready"]
+        else "deterministic_backup"
+        if demo_backup_mode
+        else "unavailable"
     )
-    quota_snapshot = (
-        _public_model_ledger().quota_snapshot(_client_identity(http_request))
-        if _public_demo_enabled() and _demo_external_model_enabled()
-        else None
-    )
+    quota_snapshot = readiness.get("quota")
     return _with_ai_notice({
         **registered,
         "engine_version": ENGINE_VERSION,
@@ -3677,6 +3837,10 @@ def project_status(http_request: Request) -> dict[str, Any]:
             "status": "configured" if api_key else "config_missing",
             "model_id": model_id,
             "execution_mode": model_execution_mode,
+            "full_analysis_ready": bool(readiness["full_analysis_ready"]),
+            "full_analysis_reason_code": str(readiness["full_analysis_reason_code"]),
+            "full_analysis_message": str(readiness["full_analysis_message"]),
+            "deterministic_backup_available": bool(readiness["deterministic_backup_available"]),
             "public_access": bool(_competition_demo_enabled()),
             "quota": quota_snapshot,
             "last_verified_live_run": {
@@ -3695,6 +3859,12 @@ def project_status(http_request: Request) -> dict[str, Any]:
             "boundary": "竞赛演示仅展示产品思路；账号、多租户和生产保密流程未启用。" if _competition_demo_enabled() else "正式工程边界。",
         },
         "persistence": configured_persistence(),
+        "deployment": {
+            "commit": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None,
+            "branch": os.getenv("RENDER_GIT_BRANCH") or os.getenv("GIT_BRANCH") or None,
+            "service": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or None,
+            "source": "render_runtime_environment" if os.getenv("RENDER_GIT_COMMIT") else "local_runtime_environment",
+        },
         "catalog": {**catalog_state, "seed": seed_catalog_summary(WORKSPACE_ROOT)},
         "auth": {
             "authenticated": bool(identity and not identity.is_local),
@@ -4271,6 +4441,8 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
         context["industry_gate"] = gate
     context["private_case"] = not is_public_case(case)
     context["force_deterministic_backup"] = bool(request.force_deterministic_backup)
+    if request.force_deterministic_backup:
+        context["continuation_mode"] = "explicit_deterministic_backup"
     context["ai_model_all_cases"] = request.run_mode == "full_analysis" and not request.force_deterministic_backup
     # 外部模型调用在公网模式必须有真实登录身份；匿名用户仍可完成公开确定性预筛，
     # 但不会把项目级许可误当作用户级模型授权。
@@ -4326,7 +4498,7 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
         r1_absolute_threshold=request.r1_absolute_threshold,
         http_request=http_request,
         run_prefix="RUN-V7",
-        supplement_evidence=case.get("structured_evidence", []),
+        supplement_evidence=[],
         model_recheck=model_recheck,
     )
 
@@ -4548,7 +4720,7 @@ def _execute_demo_seed_pipeline(task_id: str, payload: dict[str, Any], http_requ
                 if str(document.get("report_year") or "").isdigit()
             ]
         current_year = max(report_years)
-        analysis_mode = str(payload.get("analysis_mode") or "full_analysis")
+        analysis_mode = str(payload.get("analysis_mode") or "rag_only")
         run = run_rules(
             RunRequest(
                 case_id=str(case["case_id"]),
@@ -5734,12 +5906,17 @@ def rerun_with_supplement(
             "selected_rule_ids": rule_ids,
             "source_snapshot_id": f"{parent.run.context.get('source_snapshot_id')}+{supplement_id}",
             "private_case": not is_public_case(parent_case),
+            "force_deterministic_backup": bool(request.force_deterministic_backup),
+            "ai_model_all_cases": request.run_mode == "full_analysis" and not bool(request.force_deterministic_backup),
         }
     )
     if identity and not identity.is_local:
         context["request_identity"] = identity.as_public_dict()
     model_recheck: Callable[[str], bool] | None = None
-    if _competition_demo_enabled():
+    if request.force_deterministic_backup:
+        context["model_transfer_allowed"] = True
+        context["model_transfer_scope"] = "仅在本地生成确定性备用草稿；不发生外部模型传输。"
+    elif _competition_demo_enabled():
         context["model_transfer_allowed"] = True
         context["model_transfer_scope"] = "公开样例字段、来源元数据和 RAG 片段；不上传整本 PDF。"
     elif supabase_enabled():

@@ -122,6 +122,10 @@ class HealthResponse(AiGeneratedContentNotice):
     service_status: str
     model_status: str
     model_id: str | None = None
+    full_analysis_ready: bool = False
+    full_analysis_reason_code: str = "unknown"
+    full_analysis_message: str = "尚未读取真实模型运行条件。"
+    deterministic_backup_available: bool = True
     source_snapshot_id: str
     detail: str
     engine_version: str = "0.7.1"
@@ -282,14 +286,14 @@ class RagRetrieveRequest(BaseModel):
 
 
 class CNInfoPipelineRequest(BaseModel):
-    """从巨潮资讯网创建新企业公开预筛任务；默认继续规则、RAG 与可配置模型分析。"""
+    """从巨潮资讯网创建新企业任务；默认只下载并建立 RAG，避免意外消耗模型额度。"""
 
     # 企业字段支持股票代码或名称，最终必须回到官方股票清单确认。
     company_query: str = Field(min_length=1, max_length=120)
     years: int = Field(default=3, ge=2, le=5)
     latest_year: int | None = Field(default=None, ge=2000, le=2100)
-    # 默认路径完成公开财报预筛；调用者仍可显式选择 rag_only 只下载、校验和建库。
-    analysis_mode: PipelineAnalysisMode = "full_analysis"
+    # 新企业默认只下载、校验和建库；调用者必须显式选择 full_analysis。
+    analysis_mode: PipelineAnalysisMode = "rag_only"
     # R1 是当前项目最稳定的演示规则，其他规则仍沿用已有字段校验。
     rule_ids: list[RuleId] = Field(default_factory=lambda: ["R1"])
     force_refresh: bool = False
@@ -389,6 +393,10 @@ class CNInfoFieldConfirmation(BaseModel):
 class SupplementRerunRequest(BaseModel):
     run_mode: RunMode = "full_analysis"
     check_model: bool | None = None
+    force_deterministic_backup: bool = Field(
+        default=False,
+        description="仅在用户明确选择时沿用确定性备用链；普通续分析会清除父运行遗留标志。",
+    )
 
     @model_validator(mode="after")
     def map_legacy(self) -> "SupplementRerunRequest":

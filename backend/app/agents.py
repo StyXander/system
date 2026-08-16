@@ -442,13 +442,20 @@ def compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, Any
             ("procedure", evidence_bundle.get("procedure_evidence", [])),
         ]
     compact: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
     for evidence_type, items in categories:
         for row in items:
-            if not row.get("evidence_id"):
+            if not isinstance(row, dict) or not row.get("evidence_id"):
                 continue
+            evidence_id = str(row["evidence_id"])
+            # 同一 evidence ID 可能同时出现在字段、RAG 和补充列表中；
+            # 顺序决定优先级：字段 > RAG > 补充 > 程序证据。
+            if evidence_id in seen_ids:
+                continue
+            seen_ids.add(evidence_id)
             compact.append(
                 {
-                    "evidence_id": row["evidence_id"],
+                    "evidence_id": evidence_id,
                     "evidence_type": evidence_type,
                     "field_label": row.get("field_label"),
                     "value": row.get("value"),

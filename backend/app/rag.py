@@ -677,6 +677,8 @@ def _retrieve_candidates(
                 "chunk_id": row["chunk_id"],
                 "document_id": row["document_id"],
                 "score": round(hybrid_score, 6),
+                "low_confidence": hybrid_score < 0.50,
+                "confidence_note": "低置信候选，必须回原页复核。" if hybrid_score < 0.50 else "候选片段仍须回原页复核。",
                 "vector_score": round(float(vector_score), 6),
                 "keyword_score": round(keyword_score, 6),
                 "anchor_score": round(anchor_score, 6),

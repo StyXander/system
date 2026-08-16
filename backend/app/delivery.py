@@ -90,6 +90,18 @@ from .schemas import AI_GENERATED_CONTENT_NOTICE, HumanReviewRequest, RunRespons
 REPORT_VERSION = "report_v2"
 
 
+def _display_gap(value: Any) -> str:
+    """报告中把结构化资料缺口写成稳定中文，不直接输出 Python 字典。"""
+
+    if isinstance(value, dict):
+        question_id = str(value.get("question_id") or value.get("problem_id") or "").strip()
+        gap_type = str(value.get("type") or value.get("status") or value.get("label") or "资料缺口").strip()
+        message = str(value.get("message") or value.get("detail") or value.get("reason") or "待回查").strip()
+        prefix = f"{question_id} · " if question_id else ""
+        return f"{prefix}{gap_type}：{message}"
+    return str(value).strip()
+
+
 def _safe_id(value: str, prefix: str) -> bool:
     return bool(re.fullmatch(fr"{prefix}-[A-Z0-9-]+", value))
 
@@ -358,7 +370,15 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
                 )
             gaps = result.ai_draft.get("data_gaps") or []
             if gaps:
-                document.add_paragraph("资料缺口：" + "；".join(map(str, gaps)))
+                formatted_gaps: list[str] = []
+                seen_gaps: set[str] = set()
+                for item in gaps:
+                    disp = _display_gap(item)
+                    if disp and disp not in seen_gaps:
+                        seen_gaps.add(disp)
+                        formatted_gaps.append(disp)
+                if formatted_gaps:
+                    document.add_paragraph("资料缺口：" + "；".join(formatted_gaps))
             requested = result.ai_draft.get("requested_materials") or []
             if requested:
                 document.add_paragraph("待索取资料：" + "；".join(map(str, requested)))

@@ -131,6 +131,10 @@ def retrieve_seed_rag(
         for item in rows:
             item["score"] = round(_keyword_score(query_tokens, f"{item.get('title', '')} {item.get('excerpt', '')}"), 6)
         rows = [item for item in rows if float(item.get("score") or 0) > 0]
+    for item in rows:
+        score = float(item.get("score") or 0)
+        item["low_confidence"] = score < 0.50
+        item["confidence_note"] = "低置信候选，必须回原页复核。" if score < 0.50 else "候选片段仍须回原页复核。"
     rows.sort(key=lambda item: (float(item.get("score") or 0), str(item.get("chunk_id") or "")), reverse=True)
     results = rows[:top_k]
     retrieval_id = f"RET-DEMO-{uuid.uuid4().hex[:12].upper()}"

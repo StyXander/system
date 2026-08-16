@@ -11,8 +11,192 @@
   <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.4">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
   <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.2">
-  <script src="/assets/official-v4/app.js?v=0.7.5" defer></script>
+  <script src="/assets/official-v4/app.js?v=0.7.6" defer></script>
   <script src="/assets/official-v4/fusion.js?v=0.7.1" defer></script>
+  <style>
+    :root { --stepper-height: 56px; }
+    .process-stepper {
+      position: sticky;
+      top: var(--topbar-height);
+      z-index: 40;
+      background: var(--surface-topbar);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+    .process-stepper-list {
+      display: flex;
+      max-width: var(--content-max);
+      min-height: var(--stepper-height);
+      align-items: center;
+      margin: 0 auto;
+      padding: var(--space-2) max(var(--space-5), env(safe-area-inset-right)) var(--space-2) max(var(--space-5), env(safe-area-inset-left));
+      list-style: none;
+      gap: var(--space-1);
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .process-stepper-list::-webkit-scrollbar { height: 4px; }
+    .process-stepper-list::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
+    .process-step {
+      position: relative;
+      display: flex;
+      flex: 1 0 auto;
+      min-width: 120px;
+      max-width: 220px;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      color: var(--text-tertiary);
+      border: 1px solid transparent;
+      border-radius: var(--radius-2);
+      font-size: 12px;
+      line-height: 1.35;
+      cursor: default;
+      transition: color 150ms var(--ease), background-color 150ms var(--ease), border-color 150ms var(--ease);
+    }
+    .process-step::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      width: 8px;
+      height: 8px;
+      border-top: 1px solid var(--border-default);
+      border-right: 1px solid var(--border-default);
+      transform: rotate(45deg);
+      opacity: .5;
+    }
+    .process-step:last-child::after { display: none; }
+    .process-step .step-marker {
+      display: grid;
+      flex: 0 0 22px;
+      width: 22px;
+      height: 22px;
+      place-items: center;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .process-step .step-label { font-weight: 500; }
+    .process-step .step-label small {
+      display: block;
+      color: var(--text-tertiary);
+      font-size: 10px;
+      font-weight: 400;
+    }
+    .process-step.current {
+      color: var(--text-primary);
+      background: var(--accent-muted);
+      border-color: var(--accent-border);
+    }
+    .process-step.current .step-marker { background: var(--accent-primary); color: var(--text-on-accent); border-color: var(--accent-primary); }
+    .process-step.completed {
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .process-step.completed .step-marker { border-color: var(--success); color: var(--success); }
+    .process-step.completed:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .process-step.pending { opacity: .7; }
+    .process-step.clickable {
+      cursor: pointer;
+    }
+    .process-step.clickable:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    @media (max-width: 768px) {
+      .process-step { min-width: 0; max-width: none; flex: 1 1 0; }
+      .process-step .step-label { font-size: 11px; }
+      .process-step .step-label small { display: none; }
+      .process-step:not(.current):not(.completed) .step-label { display: none; }
+      .process-step.current .step-label, .process-step.completed .step-label { display: block; }
+    }
+    @media (max-width: 480px) {
+      .process-step { padding: var(--space-2); }
+      .process-step .step-label { display: none; }
+      .process-step.current .step-label { display: block; font-size: 11px; }
+    }
+    .sidebar { top: calc(var(--topbar-height) + var(--stepper-height)); height: calc(100vh - var(--topbar-height) - var(--stepper-height)); }
+    #wb-data-status { cursor: pointer; }
+    #wb-data-status:hover { background: var(--bg-hover); }
+    .next-action-card {
+      display: grid;
+      gap: var(--space-4);
+      margin-top: var(--space-5);
+      padding: var(--space-5);
+      background: var(--accent-muted);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-2);
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+    .next-action-card h4 { font-family: var(--font-sans); font-size: 18px; }
+    .next-action-card p { color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
+    .cninfo-locked-notice {
+      margin-bottom: var(--space-4);
+      padding: var(--space-4);
+      color: var(--muted);
+      background: var(--info-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-2);
+      font-size: 13px;
+    }
+    .cninfo-locked-notice strong { display: block; color: var(--text-primary); margin-bottom: var(--space-1); }
+    .next-action-banner {
+      display: flex;
+      gap: var(--space-4);
+      margin-top: var(--space-5);
+      padding: var(--space-4) var(--space-5);
+      align-items: center;
+      justify-content: space-between;
+      background: var(--success-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-2);
+    }
+    .next-action-banner strong { display: block; color: var(--text-primary); font-size: 15px; }
+    .next-action-banner span { display: block; color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
+    .next-action-banner.incomplete { background: var(--warning-bg); border-color: var(--warning-border); }
+    @media (max-width: 768px) {
+      .next-action-banner { flex-direction: column; align-items: flex-start; }
+      .next-action-banner .button { width: 100%; }
+    }
+    .delivery-empty-state {
+      margin-top: var(--space-5);
+      padding: var(--space-5);
+      background: var(--info-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-2);
+    }
+    .delivery-empty-state strong { display: block; color: var(--text-primary); font-size: 16px; }
+    .delivery-empty-state p { color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
+    .topbar-menu { position: relative; }
+    .topbar-menu ul {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      z-index: 60;
+      min-width: 180px;
+      margin: 0;
+      padding: var(--space-2);
+      list-style: none;
+      background: var(--surface-dialog);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-2);
+      box-shadow: var(--shadow-drawer);
+    }
+    .topbar-menu a {
+      display: block;
+      padding: var(--space-2) var(--space-3);
+      color: var(--text-secondary);
+      border-radius: var(--radius-1);
+      font-size: 12px;
+      text-decoration: none;
+    }
+    .topbar-menu a:hover { background: var(--bg-hover); color: var(--text-primary); }
+    @media (max-width: 1024px) {
+      .sidebar { top: var(--topbar-height); height: calc(100vh - var(--topbar-height)); }
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#main-content">跳到主要内容</a>
@@ -78,18 +262,51 @@
     <div class="topbar-context">
       <span class="context-label">审计计划 / 销售与收款循环</span>
       <span class="context-label active-company-context" id="active-company-context">当前公司：未选择</span>
-      <span class="context-label" id="auth-status">竞赛演示模式 · 无需登录</span>
+      <span class="context-label" id="auth-status">正在读取运行模式 / T0</span>
       <button class="button quiet auth-action" id="auth-action" type="button" hidden>登录</button>
       <span class="service-pill pending" id="service-pill">
         <i aria-hidden="true"></i>
         <span id="service-status">正在检查本地后端</span>
       </span>
+      <div class="topbar-menu" id="competition-menu">
+        <button class="button quiet" type="button" id="competition-menu-toggle" aria-expanded="false" aria-controls="competition-menu-list">竞赛材料 <span aria-hidden="true">⌄</span></button>
+        <ul id="competition-menu-list" role="menu" hidden>
+          <li role="none"><a href="?view=evaluation" data-view="evaluation" role="menuitem">B0–B3 效果评估</a></li>
+          <li role="none"><a href="#evaluation-freeze-note" role="menuitem">评估冻结快照</a></li>
+          <li role="none"><a href="#run-history-detail" role="menuitem">模型运行历史</a></li>
+        </ul>
+      </div>
       <button class="icon-button mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-label="打开主导航" aria-expanded="false" aria-controls="primary-navigation">
         <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#menu"></use></svg>
         <span class="sr-only">打开主导航</span>
       </button>
     </div>
   </header>
+
+  <div class="process-stepper" id="process-stepper" aria-label="审计计划主流程">
+    <ol class="process-stepper-list">
+      <li class="process-step" data-step="1" data-step-view="project" tabindex="0" role="button" aria-label="第 1 步：选择审计对象">
+        <span class="step-marker" aria-hidden="true">1</span>
+        <span class="step-label">选择审计对象<small id="step-1-sub">未选择</small></span>
+      </li>
+      <li class="process-step" data-step="2" data-step-view="project" data-step-section="cninfo-field-review" tabindex="0" role="button" aria-label="第 2 步：确认字段与来源">
+        <span class="step-marker" aria-hidden="true">2</span>
+        <span class="step-label">确认字段与来源<small id="step-2-sub">无需复核</small></span>
+      </li>
+      <li class="process-step" data-step="3" data-step-view="analysis" tabindex="0" role="button" aria-label="第 3 步：执行风险分析">
+        <span class="step-marker" aria-hidden="true">3</span>
+        <span class="step-label">执行风险分析<small id="step-3-sub">等待运行</small></span>
+      </li>
+      <li class="process-step" data-step="4" data-step-view="delivery" tabindex="0" role="button" aria-label="第 4 步：人工复核判断">
+        <span class="step-marker" aria-hidden="true">4</span>
+        <span class="step-label">人工复核判断<small id="step-4-sub">未复核</small></span>
+      </li>
+      <li class="process-step" data-step="5" data-step-view="delivery" data-step-section="export-heading" tabindex="0" role="button" aria-label="第 5 步：导出审计备忘录">
+        <span class="step-marker" aria-hidden="true">5</span>
+        <span class="step-label">导出审计备忘录<small id="step-5-sub">待批准</small></span>
+      </li>
+    </ol>
+  </div>
 
   <div class="app-shell">
     <aside class="sidebar" id="primary-navigation">
@@ -134,11 +351,6 @@
           <span class="nav-index">08</span>
           <span>方法与边界</span>
           <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#shield"></use></svg>
-        </a>
-        <a href="?view=evaluation" data-view="evaluation">
-          <span class="nav-index">09</span>
-          <span>效果评估</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#review"></use></svg>
         </a>
       </nav>
 
@@ -228,8 +440,8 @@
               <label for="cninfo-company-query"><span>企业名称或股票代码</span><input id="cninfo-company-query" name="company_query" required autocomplete="organization" spellcheck="false" placeholder="例如 603337 或 标准股份"></label>
               <label for="cninfo-years"><span>下载年报数量</span><select id="cninfo-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
               <label for="cninfo-latest-year"><span>最新报告年度（可留空）</span><input id="cninfo-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
-              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only">只下载 + RAG（不执行字段提取与风险分析）</option><option id="cninfo-full-analysis-option" value="full_analysis" selected>继续完整分析（项目所有者已许可）</option></select></label>
-              <label class="check-control cninfo-refresh-control"><input id="cninfo-force-refresh" name="force_refresh" type="checkbox"><span>忽略热缓存，重新搜索巨潮最新公告</span></label>
+              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only" selected>只下载 + RAG（默认，不消耗模型额度）</option><option id="cninfo-full-analysis-option" value="full_analysis">继续完整分析（私有环境 / 已确认许可）</option></select></label>
+              <label class="check-control cninfo-refresh-control"><input id="cninfo-force-refresh" name="force_refresh" type="checkbox"><span>忽略热缓存，重新搜索巨潮最新公告（私有环境）</span></label>
               <button class="button primary" id="cninfo-pipeline-submit" type="submit">开始巨潮自动流程 <span aria-hidden="true">→</span></button>
             </form>
             <p class="form-message" id="cninfo-cache-preview" role="status" aria-live="polite">输入企业后会先检查是否存在已校验的热缓存。</p>
@@ -244,7 +456,7 @@
                 <div class="cninfo-next-action-controls" id="cninfo-next-action-controls"></div>
               </section>
               <ol class="cninfo-step-list" id="cninfo-step-list" aria-label="巨潮自动流程步骤"></ol>
-              <div class="cninfo-task-meta" id="cninfo-task-meta"></div>
+              <dl class="cninfo-task-meta" id="cninfo-task-meta"></dl>
               <div class="status-banner neutral" id="cninfo-task-message" role="status" aria-live="polite"><strong>尚未提交</strong><span>输入企业后，页面会轮询真实后端任务。</span></div>
               <div class="cninfo-candidates" id="cninfo-candidates" hidden></div>
               <div class="cninfo-result" id="cninfo-result" hidden></div>
@@ -264,7 +476,7 @@
                   <label class="check-control"><input id="case-import-authorized" type="checkbox" checked><span>项目所有者已确认：合法公开或已获授权</span></label>
                   <label class="check-control"><input id="case-import-desensitized" type="checkbox" checked><span>项目所有者已确认：完成个人信息与脱敏检查</span></label>
                 </div>
-                <p class="form-help">竞赛演示模式：导入内容仅作为公开样例资料，不设置账号或保密审批步骤。</p>
+                <p class="form-help">案例 ZIP 导入属于私有环境写入；公开演示请直接选择已登记的内置案例。</p>
                 <button class="button primary" id="case-import-submit" type="submit">导入并校验</button>
               </form>
               <div class="form-message" id="case-import-message" role="status" aria-live="polite">尚未上传新案例；可直接使用已登记标准案例。</div>
@@ -283,6 +495,17 @@
             <div class="locked-mode"><span>案例与模型许可</span><strong id="wb-case-mode">正在读取</strong><small id="wb-case-permission">完整分析以 manifest 的模型传输许可为硬边界。</small></div>
             <div class="locked-mode model-consent-box"><span>竞赛演示模型链</span><strong id="wb-model-consent-status">无需登录</strong><small id="wb-model-consent-note">样例字段、来源元数据和 RAG 片段可直接进入演示分析；默认使用证据绑定的确定性演示草稿，配置真实模型后可切换。</small><div class="action-row"><button class="button quiet" type="button" id="wb-model-consent-button" hidden>演示模式无需确认</button><button class="button quiet" type="button" id="wb-model-consent-revoke" hidden>撤销</button></div></div>
           </div>
+          <section class="next-action-card" id="project-next-action" hidden aria-labelledby="project-next-action-heading">
+            <div>
+              <p class="folio">NEXT ACTION</p>
+              <h4 id="project-next-action-heading">当前案例已就绪</h4>
+              <p id="project-next-action-detail">选择下一步操作，继续审计计划流程。</p>
+            </div>
+            <div class="action-row">
+              <button class="button quiet" type="button" id="project-review-fields" data-project-action="review-fields">确认字段来源</button>
+              <button class="button primary" type="button" id="project-run-analysis" data-project-action="run-analysis">直接运行分析</button>
+            </div>
+          </section>
           <div class="project-time-note">
             <strong>项目与分析时点</strong>
             <span>换案例或年份后，字段、文档编号、披露日期、页码与哈希会一起切换，不跨案例复用。</span>
@@ -313,10 +536,11 @@
           </div>
           <section class="cninfo-field-review" id="cninfo-field-review" hidden aria-labelledby="cninfo-field-review-heading">
             <header class="subheading">
-              <div><p class="kicker">HUMAN FIELD REVIEW / BEFORE ADOPTION</p><h3 id="cninfo-field-review-heading" tabindex="-1">这里进行人工字段判断</h3><p>逐项打开年报原页，核对金额、单位、合并范围、口径和 PDF 页码，然后选择“确认”“按修改值保存”或“拒绝”。公开预筛可以先看；正式采用、证据冻结、缓存或导出前必须完成。自动候选原值不会被覆盖。</p></div>
+              <div><p class="kicker">HUMAN FIELD REVIEW / BEFORE ADOPTION</p><h3 id="cninfo-field-review-heading" tabindex="-1">此处是人工字段判断位置</h3><p>逐项打开年报原页，核对金额、单位、合并范围、口径和 PDF 页码，然后选择“确认”“按修改值保存”或“拒绝”。公开演示只读，私有环境可在这里完成确认、更正或拒绝；正式采用、证据冻结、缓存或导出前必须完成。自动候选原值不会被覆盖。</p></div>
               <span class="state waiting" id="cninfo-field-review-state">等待确认</span>
             </header>
             <div class="cninfo-review-instruction" id="cninfo-review-instruction" role="note"><strong>操作顺序</strong><span>1. 填写复核人；2. 打开每条原件页；3. 逐项确认、修正或拒绝。修正和拒绝需要填写原因。</span></div>
+            <div class="cninfo-locked-notice" id="cninfo-locked-notice" hidden><strong>公开演示只读</strong><span>这里明确展示正式人工判断的位置和每条候选，但共享演示站不保存匿名签字。请在团队私有本地模式或登录后的租户环境完成确认。</span></div>
             <div class="cninfo-review-controls">
               <label for="cninfo-field-reviewer"><span>真实复核人 / 团队角色</span><input id="cninfo-field-reviewer" name="reviewer" autocomplete="name" placeholder="例如 A：会计专业复核"></label>
               <label for="cninfo-field-reason"><span>本次修正或拒绝原因（确认可留空）</span><textarea id="cninfo-field-reason" name="reason" rows="2" placeholder="请写明回查页码、单位或口径判断依据"></textarea></label>
@@ -364,6 +588,13 @@
           </div>
         </section>
         <div class="status-banner neutral" id="wb-gate" role="status" aria-live="polite"><strong>尚未运行</strong><span>完整分析是主路径；仅计算预检会明确标记为不完整运行。</span></div>
+        <div class="next-action-banner" id="analysis-next-action" hidden>
+          <div>
+            <strong>分析已完成</strong>
+            <span>下一步：人工复核判断（第 4 步）。请先回查 evidence ID 与来源，再选择处理方式。</span>
+          </div>
+          <button class="button primary" type="button" id="analysis-go-delivery" data-view="delivery">进入人工复核</button>
+        </div>
         <p class="boundary-strip" id="ai-generated-content-notice">AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</p>
         <section class="run-summary" id="run-summary" hidden>
           <div class="summary-meta"><span>run_id</span><strong class="mono" id="current-run-id">—</strong></div>
@@ -414,7 +645,7 @@
         </header>
         <form class="rag-query-bar" id="rag-form">
           <label for="wb-rag-rule"><span>绑定规则</span><select id="wb-rag-rule" name="rule_id" autocomplete="off"><option>R1</option><option>R2</option></select></label>
-          <label><span>分析时点 T0</span><output id="wb-rag-t0">2026-04-30</output></label>
+          <label><span>分析时点 T0</span><output id="wb-rag-t0">正在读取 T0</output></label>
           <label class="grow" for="wb-rag-query"><span>检索问题</span><input id="wb-rag-query" name="query" autocomplete="off" value="应收账款、回款与收入变化是否存在需要回查的披露？"></label>
           <button class="button quiet" type="button" id="wb-rag-prepare">构建 / 校验本地索引</button>
           <button class="button primary" type="submit" id="wb-rag-search">检索已锁定 T0 的原文</button>
@@ -460,7 +691,7 @@
             <label class="check-control"><input id="wb-sup-authorized" name="authorized" type="checkbox" checked><span>项目所有者已确认资料合法公开或已获授权</span></label>
             <label class="check-control"><input id="wb-sup-desensitized" name="desensitized" type="checkbox" checked><span>项目所有者已确认完成个人信息与脱敏检查</span></label>
           </div>
-          <p class="form-help"><strong>竞赛演示模式：</strong>这里上传的内容一律视为无保密要求的样例补充资料。系统仍会记录资料日期、文件哈希和父子运行关系，并据此生成追加分析。</p>
+          <p class="form-help"><strong>资料边界：</strong>自定义资料只应在私有环境中登记，并需先完成授权、脱敏与来源核验；系统会记录资料日期、文件哈希和父子运行关系。</p>
           <p class="form-help">独立证据字段：aging_summary、subsequent_receipts_summary、credit_policy_change、contract_terms。旧版报表字段更正仅作兼容并醒目标注，不作为主要补充资料路径。</p>
           <div class="action-row">
             <button class="button primary" type="submit" id="wb-sup-register">预检并登记</button>
@@ -489,6 +720,14 @@
           <section class="review-sheet" aria-labelledby="review-heading">
             <header><p class="folio">HUMAN DECISION</p><h3 id="review-heading" tabindex="-1">这里进行结果人工复核</h3><p id="review-run-context">尚未绑定运行。</p></header>
             <div class="cninfo-review-instruction" id="review-mode-note" role="note"><strong>操作顺序</strong><span>1. 查看分析结果与原件；2. 选择保留、降级或暂缓；3. 填写真实复核人和理由；4. 保存本次复核。</span></div>
+            <div class="delivery-empty-state" id="delivery-empty-state" hidden>
+              <strong>尚未加载需要复核的运行</strong>
+              <p>请先执行一次分析，或输入运行编号回看已有结果。</p>
+              <div class="action-row">
+                <button class="button primary" type="button" id="delivery-go-analysis" data-view="analysis">去运行分析</button>
+                <button class="button quiet" type="button" id="delivery-focus-lookup">读取运行</button>
+              </div>
+            </div>
             <form id="review-form" aria-describedby="review-mode-note">
               <label for="wb-backend-review-status"><span>处理</span><select id="wb-backend-review-status" name="status"><option>未复核</option><option>保留为待核查候选</option><option>降级</option><option>暂缓</option></select></label>
               <label for="wb-backend-reviewer"><span>复核人</span><input id="wb-backend-reviewer" name="reviewer" autocomplete="name" placeholder="请填写真实姓名或团队角色"></label>
@@ -496,6 +735,7 @@
               <label class="check-control approval"><input type="checkbox" id="wb-backend-export-approved" name="export_approved"><span>我已回查来源并允许生成缓存与 Word 备忘录</span></label>
               <button class="button quiet" id="wb-save-local-review" type="button">保存本机复核</button>
               <button class="button primary" id="wb-save-backend-review" type="submit" disabled>保存本次复核</button>
+              <div class="cninfo-locked-notice" id="delivery-locked-prompt" hidden><strong>公开演示不保存正式复核</strong><span>可点击“下载竞赛演示报告”预览格式，或在私有环境登录后保存真实人工处理。</span></div>
               <div class="form-message" id="wb-backend-toast" role="status" aria-live="polite"></div>
             </form>
           </section>
@@ -533,7 +773,7 @@
           <span class="state pending" id="evaluation-state">正在读取评估</span>
         </header>
         <section class="evaluation-sheet" aria-labelledby="evaluation-summary-heading">
-          <div class="sheet-title"><div><p class="folio">FROZEN EVALUATION SNAPSHOT</p><h3 id="evaluation-summary-heading">EVAL-20260811-COMPETITION-8CASE-V1</h3><p id="evaluation-freeze-note">尚未发布真实评分。</p></div></div>
+          <div class="sheet-title"><div><p class="folio">FROZEN EVALUATION SNAPSHOT</p><h3 id="evaluation-summary-heading">正在读取评估编号</h3><p id="evaluation-freeze-note">尚未发布真实评分。</p></div></div>
           <div class="evaluation-summary" id="evaluation-summary"></div>
           <div class="matrix-scroll" tabindex="0" role="region" aria-label="B0到B3评估对照表">
             <table class="evidence-matrix" id="evaluation-group-table"><thead><tr><th>组别</th><th>定义</th><th>状态</th><th>完成数</th><th>备注</th></tr></thead><tbody><tr><th colspan="5">等待评估数据</th></tr></tbody></table>

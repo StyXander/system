@@ -25,7 +25,10 @@ from backend.app.main import (
     _cached_run_for_new_request,
     _client_identity,
     _configured_cors_origins,
+    _dedupe_gap_messages,
     _enrich_model_check,
+    _model_readiness,
+    _r2_result,
     _replay_remote_cache_payload,
     _validate_trusted_proxy_configuration,
     app,
@@ -40,6 +43,7 @@ from backend.app.schemas import (
     RuleResult,
     RunResponse,
     StoredRunResponse,
+    SupplementRerunRequest,
 )
 
 
@@ -278,13 +282,18 @@ def test_auto_candidate_quality_gate_and_minimal_model_payload() -> None:
     assert candidates[0][0] == 8_110_758_258.05
 
     compact = compact_evidence_bundle(
-        [{
-            "evidence_id": "E1",
-            "source_file": "private-path-13800138000.pdf",
-            "document_id": "DOC-621700198001010011",
-            "excerpt": "公开年报中的必要原文",
-        }]
+        {
+            "field_evidence": [{
+                "evidence_id": "E1",
+                "source_file": "private-path-13800138000.pdf",
+                "document_id": "DOC-621700198001010011",
+                "excerpt": "公开年报中的必要原文",
+            }],
+            "rag_evidence": [{"evidence_id": "E1", "excerpt": "重复的RAG片段"}],
+            "supplement_evidence": [{"evidence_id": "E2", "excerpt": "独立补充证据"}],
+        }
     )
+    assert [item["evidence_id"] for item in compact] == ["E1", "E2"]
     assert "source_file" not in compact[0]
     assert "document_id" not in compact[0]
     minimized = minimize_model_context(
@@ -322,8 +331,68 @@ def test_summary_case_directory_is_compact() -> None:
     client = TestClient(app)
     response = client.get("/api/cases?summary=true")
     assert response.status_code == 200
-    assert len(response.content) < 100_000
-    assert all(set(item) >= {"case_id", "company_name", "available_years"} for item in response.json()["cases"])
+    cases = response.json()["cases"]
+    assert all(set(item) >= {"case_id", "company_name", "available_years"} for item in cases)
+    # 开发机目录会长期积累历史合成案例（当前 pytest 命名空间已有数百个），
+    # 因此合同以“单案例摘要足够轻量”为准：每个案例只携带选择器所需元数据，
+    # 完整元数据始终由详情接口返回；总量只设宽松上限防止意外膨胀。
+    import json
+
+    for item in cases:
+        assert len(json.dumps(item, ensure_ascii=False)) <= 400
+    assert len(response.content) < 400_000
+
+
+def test_model_readiness_keeps_configuration_separate_from_public_execution(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true")
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", raising=False)
+    assert _model_readiness()["full_analysis_reason_code"] == "api_key_missing"
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    assert _model_readiness()["full_analysis_reason_code"] == "public_quota_secret_missing"
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "x" * 32)
+
+    class ReadyLedger:
+        def quota_snapshot(self, _client_id=None):
+            return {"global_remaining_15m": 2, "daily_runs_remaining": 4, "active": 0, "max_concurrent": 2}
+
+    monkeypatch.setattr("backend.app.main._public_model_ledger", lambda: ReadyLedger())
+    assert _model_readiness()["full_analysis_reason_code"] == "ready"
+
+    class EmptyLedger:
+        def quota_snapshot(self, _client_id=None):
+            return {"global_remaining_15m": 0, "daily_runs_remaining": 4, "active": 0, "max_concurrent": 2}
+
+    monkeypatch.setattr("backend.app.main._public_model_ledger", lambda: EmptyLedger())
+    exhausted = _model_readiness()
+    assert exhausted["full_analysis_reason_code"] == "quota_exhausted"
+    assert exhausted["deterministic_backup_available"] is True
+
+
+def test_r2_missing_fields_are_data_gaps_not_source_failures() -> None:
+    result = _r2_result(
+        [{"field_id": "revenue_current", "value": 100.0, "evidence_id": "E-R2-1"}],
+        [],
+        0.0,
+    )
+    assert result.status == "DATA_GAP"
+    assert result.source_validation["issues"] == []
+    assert result.risk_card["data_gaps"] == ["缺少R2字段：operating_cash_flow_current、operating_cash_flow_previous、revenue_previous"]
+
+
+def test_gap_messages_and_evidence_ids_are_stable_and_deduplicated() -> None:
+    gaps = _dedupe_gap_messages(
+        [
+            {"question_id": "RAG-Q1", "type": "retrieval_no_hit", "message": "请回查原文"},
+            {"question_id": "RAG-Q1", "type": "retrieval_no_hit", "message": "请回查原文"},
+        ]
+    )
+    assert gaps == ["RAG-Q1 · retrieval_no_hit：请回查原文"]
+    request = SupplementRerunRequest(run_mode="full_analysis")
+    assert request.force_deterministic_backup is False
 
 
 def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -542,7 +611,11 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
                 "rule_id": payload["rule_result"]["rule_id"],
                 "analysis_conclusion": route_conclusions[route],
                 "status": status,
-                "claims": [{"text": "Evidence-bound model review.", "evidence_ids": [evidence_ids[0]], "support_status": "supported"}],
+                "claims": (
+                    [{"text": "Evidence-bound model review.", "evidence_ids": [evidence_ids[0]], "support_status": "supported"}]
+                    if evidence_ids
+                    else []
+                ),
                 "normal_explanations": [],
                 "data_gaps": [],
                 "requested_materials": [],

@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-13T19:04:10+08:00",
+  "updated_at": "2026-08-16T11:01:56+08:00",
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "versions": {
@@ -23,12 +23,18 @@
     "cninfo_pipeline": "cninfo_pipeline_v1"
   },
   "acceptance_snapshot": {
-    "date": "2026-08-13",
-    "source_repository_pytest": "201 passed, 1 warning, 146.22s",
-    "review_focused_pytest": "21 passed",
-    "frontend_contract": "210 unique ids, 369 refs, 9 views",
-    "chinese_comments": "1737/17325 = 10.03%",
-    "browser": "9 views; 1440x1000, 1024x768, 768x1024, 390x844; HTTP 200, console errors 0, failed requests 0, document overflow 0, axe violations 0",
+    "date": "2026-08-16",
+    "source_repository_pytest": "213 passed, 1 warning, 97.11s (system temp basetemp; repository temp directory was Windows-permission locked)",
+    "review_focused_pytest": "专项边界已纳入全量结果",
+    "frontend_contract": "240 unique ids, 436 refs, 9 views",
+    "chinese_comments": "1758/17545 = 10.02%",
+    "browser": "local and deployed; 1440x1000, 1024x768, 768x1024, 390x844 each; HTTP 200, console errors 0, failed requests 0, document overflow 0, axe violations 0",
+    "full_51_case_acceptance": {
+      "script": "scripts/run_51_case_acceptance.py",
+      "local": "51/51 detail + calculation_only R1 runs + RAG default-query hits passed; readonly boundaries 403; 0 failures",
+      "deployed": "51/51 detail + calculation_only R1 runs + RAG default-query hits passed; readonly boundaries 403; only expected failures are the undeployed readiness fields (see render_demo_status)",
+      "deployed_full_analysis": "POST /api/runs full_analysis returns 503 public_quota_secret_missing on the current deployed instance; fixed in the undeployed render.yaml generateValue change and readiness reporting"
+    },
     "company_context": "standard sample field detail, RAG prepare/retrieve (1167 chunks, 5 hits) and calculation-only run with zero provider calls verified on desktop and mobile",
     "controlled_cninfo": {
       "network_denied": "CNINFO_NETWORK_ERROR/network_permission_denied",
@@ -60,16 +66,24 @@
       "validation_boundary": "historical agent_prompt_v3 technical transport/schema/trace acceptance only; automatic field candidates were generated before the 2026-08-13 quality gate, so this batch is not current-code professional content acceptance or a scored B3",
       "api_key_persistence": "not_written_to_source_or_repository"
     },
-    "report": "审迹智链_51案例AI全链复核与Bug修复报告_2026-08-13.md",
-    "truth_boundary": "当前代码已完成本地、合同和浏览器回归；历史 51 案证明真实 DeepSeek 三 Agent 技术链均完成，但不证明字段正确、风险识别准确率或有效 B3。128 条自动字段候选涉及 30 家公司（其中 72 条为启发式跨年数量级异常），已被当前质量闸门排除并等待真人回页复核。"
+    "report": "审迹智链_部署站51案例全量验收与修复记录_2026-08-15.md",
+    "truth_boundary": "当前代码已完成本地、合同、后端回归、真实浏览器四视口验收和本地/线上 51 案例全量验收（详情、仅计算、RAG、只读边界）；发布（push + Render 重部署）未执行。历史 51 案证明真实 DeepSeek 三 Agent 技术链均完成，但不证明字段正确、风险识别准确率或有效 B3。线上实例仍是旧提交：完整分析因额度秘密未配置返回 503，旧状态接口误报 external_live；本地真实 Key 冒烟遇供应商余额不足，系统失败关闭不卡住。128 条自动字段候选涉及 30 家公司（其中 72 条为启发式跨年数量级异常），已被当前质量闸门排除并等待真人回页复核。"
   },
   "competition_demo": {
-    "enabled_by": ["AUDITTRACE_DEMO_MODE=true", "AUDITTRACE_PUBLIC_DEMO=true", "AUDITTRACE_PERSISTENCE=local"],
+    "enabled_by": [
+      "AUDITTRACE_DEMO_MODE=true",
+      "AUDITTRACE_PUBLIC_DEMO=true",
+      "AUDITTRACE_PERSISTENCE=local"
+    ],
     "login_required": false,
     "seed_company_count": 51,
     "seed_rag_checked": 50,
     "source_incomplete": 0,
-    "run_status_distribution": {"RULE_NOT_TRIGGERED": 17, "candidate": 3, "DATA_GAP": 30},
+    "run_status_distribution": {
+      "RULE_NOT_TRIGGERED": 17,
+      "candidate": 3,
+      "DATA_GAP": 30
+    },
     "field_candidate_quality_audit": {
       "materialized_cases": 50,
       "candidate_rows": 394,
@@ -78,10 +92,28 @@
       "heuristic_cross_year_outlier_rows": 72,
       "policy": "conservative fail-closed; rows remain visible for review but are excluded from deterministic rules and model evidence until confirmed or corrected"
     },
-    "model_fallback": "仅在真实模型不可用且用户明确选择时使用；不得冒充真实模型成功",
-    "supplement_rerun": "ready_for_rerun -> RUN-SUP-* with 1 structured independent evidence row and recommendation_change",
+    "model_fallback": "仅在真实模型不可用且用户明确选择时使用；不得冒充真实模型成功；结果固定标注确定性备用、未调用模型",
+    "model_readiness": {
+      "fields": [
+        "full_analysis_ready",
+        "full_analysis_reason_code",
+        "full_analysis_message",
+        "deterministic_backup_available"
+      ],
+      "reason_codes": [
+        "ready",
+        "api_key_missing",
+        "public_quota_secret_missing",
+        "public_quota_secret_invalid",
+        "quota_ledger_unavailable",
+        "quota_exhausted"
+      ],
+      "public_external_live_requires": "API Key、至少32位 AUDITTRACE_PUBLIC_QUOTA_SECRET、可用额度账本和当前额度同时满足；不做供应商探测"
+    },
+    "supplement_rerun": "ready_for_rerun -> RUN-SUP-* with 1 structured independent evidence row and recommendation_change; ordinary rerun clears inherited backup flag, explicit backup sets force_deterministic_backup=true",
+    "public_readonly_boundary": "shared public demo keeps built-in cases, RAG, calculation-only and built-in supplement samples; disables custom uploads, non-seed enterprise fetch, force refresh, field confirmation and formal approval before click; backend rejects mutations with 403",
     "report": "DOCX demo preview with 未登录/未经真人专业复核 watermark",
-    "browser_local": "standard sample fields, RAG prepare/retrieve (1167 chunks, 5 hits) and calculation-only analysis with zero provider calls passed on desktop/mobile; four viewport overflow, console, network and axe gates passed"
+    "browser_local": "current-fix local real FastAPI passed 9 views at 1440x1000, 1024x768, 768x1024 and 390x844; console errors 0, horizontal overflow 0; public readonly, calculation-only, human field location, evaluation id and low-confidence RAG paths verified"
   },
   "capabilities": {
     "standard_case_import": "implemented_and_tested",
@@ -92,7 +124,7 @@
     "cninfo_pipeline_api": "implemented_task_progress_result_retry_company_confirmation_and_public_prescreen_summary_endpoints",
     "cninfo_formal_web_entry": "implemented_11_step_task_polling_document_hash_rag_public_prescreen_and_optional_review_status_ui",
     "cninfo_field_human_confirmation": "implemented_confirm_correct_reject_append_only_history_for_formal_adoption_freeze_cache_and_export_gate",
-    "cninfo_full_analysis_orchestration": "implemented_reuses_api_runs_public_cases_with_project_owner_authorization_and_gap_tolerant_prescreen",
+    "cninfo_full_analysis_orchestration": "implemented_reuses_api_runs_public_cases_with_project_owner_authorization_and_gap_tolerant_prescreen; new company defaults to rag_only",
     "industry_gate_v1": "implemented_direct_conditional_not_applicable_unknown_with_traceable_metadata_evidence",
     "sqlite_catalog_v1": "implemented_existing_cninfo_case_bootstrap_cache_resolve_preheat_refresh_stale_policy_content_addressed_pdf_and_source_fingerprint",
     "cninfo_hot_cache_path": "implemented_cache_hit_skips_company_search_download_pdf_validation_and_rag_rebuild_with_incremental_year_reuse",
@@ -106,8 +138,11 @@
     "rag_to_agent_evidence_bundle": "implemented_minimized_payload_and_tested; technical file IDs, document IDs, locators and hashes are excluded from provider payloads",
     "three_agent_hard_validation": "role_specific_schema_failure_codes_and_deterministic_fact_language_guard_implemented_and_tested",
     "second_public_case": "jack_603337_imported_rag_isolated_local_calculation_negative_control_project_owner_public_source_authorized_formal_freeze_pending",
-    "supplement_full_rerun": "implemented_and_tested_without_duplicate_file_and_structured_evidence",
-    "public_demo_upload_boundary": "anonymous local public demo accepts built-in sample only and rejects arbitrary case ZIP, supplement uploads, field confirmation, review/export approval, cache mutation and non-seed pipeline creation",
+    "supplement_full_rerun": "implemented_and_tested_without_duplicate_file_and_structured_evidence; explicit deterministic backup supported with or without parent run",
+    "public_demo_upload_boundary": "anonymous local public demo accepts built-in sample only and rejects arbitrary case ZIP, supplement uploads, field confirmation, review/export approval, cache mutation, force refresh and non-seed pipeline creation; UI and API boundaries both enforced",
+    "model_readiness_status": "implemented_health_and_status_reason_codes_without_provider_probe; external_live requires key, generated public quota secret, ledger and current quota",
+    "rag_low_confidence": "implemented_low_confidence_and_confidence_note_below_0.50_without_hard_filtering",
+    "evidence_gap_and_id_deduplication": "implemented_r2_data_gap_separation_chinese_gap_formatting_and_field_rag_supplement_procedure_evidence_id_priority_deduplication",
     "model_cache_input_fingerprint": "implemented_for_engine_rule_versions_thresholds_routes_deterministic_results_and_model_evidence; cached nested run IDs are rebound, source run and source usage are recorded, and current replay usage/provider calls are zero",
     "model_privacy_failure_close": "implemented_for_all model routes including competition demo; minimized outbound payload and model output are both privacy-scanned, and sensitive model output is rejected without persisting its text",
     "provider_call_audit": "implemented_actual_http_attempt_counts_for_success_retry_schema_failure_and_policy_failure; pre-call rejection and skipped roles remain zero",
@@ -122,8 +157,8 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
-      "latest_result": "201 passed, 1 warning, 146.22s",
-      "executed_on": "2026-08-13",
+      "latest_result": "213 passed, 1 warning, 97.11s",
+      "executed_on": "2026-08-16",
       "status": "passed"
     },
     "clean_package": {
@@ -138,8 +173,8 @@
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "1737/17325 = 10.03%",
-      "executed_on": "2026-08-13",
+      "latest_result": "1758/17545 = 10.02%",
+      "executed_on": "2026-08-16",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -148,7 +183,11 @@
       "company": "杰克科技",
       "task_id": "CNINFO-A589332993D7",
       "runtime_namespace": "cninfo-live-corrected-20260805",
-      "report_years": [2024, 2023, 2022],
+      "report_years": [
+        2024,
+        2023,
+        2022
+      ],
       "case_id": "CNINFO_603337_T0_20250414",
       "source_mode": "cninfo_official",
       "download_and_pdf_validation": "passed",
@@ -184,23 +223,36 @@
       "analysis_run_id": "RUN-V7-84CBDF21F6B7",
       "analysis_run_completeness": "complete_public_prescreen_no_candidate",
       "field_evidence": {
-        "accounts_receivable_pages": [120, 124, 148],
-        "available_years": [2025, 2024, 2023]
+        "accounts_receivable_pages": [
+          120,
+          124,
+          148
+        ],
+        "available_years": [
+          2025,
+          2024,
+          2023
+        ]
       },
       "browser_page": "passed_single_click_rag_only_full_analysis_result_summary_and_analysis_context_restore",
       "boundary": "热缓存复用已校验公开快照，不代表最新公告已自动确认；需要最新数据时使用 force_refresh。"
     }
   },
   "quality_evidence": {
-    "compileall": "passed_backend_app_2026-08-13",
+    "compileall": "passed_backend_app_2026-08-15",
+    "frontend_contract": "passed_240_unique_ids_436_refs_9_views_2026-08-15",
+    "javascript_syntax": "passed_node_check_assets_official_v4_app_js_2026-08-15",
+    "git_diff_check": "passed_2026-08-15",
     "ui_contrast": "passed_text_and_meaningful_boundaries_2026-08-13",
-    "browser_status": "passed_local_real_fastapi_four_viewports_nine_views_rag_prepare_retrieve_calculation_only_console_network_overflow_axe_zero",
-    "browser_artifacts": "artifacts/review-2026-08-13-browser/current-audit and artifacts/review-2026-08-13-browser/current-interactions",
-    "browser_boundary": "本轮只复验本地真实 FastAPI；未重新验收 Render、Supabase/RLS、真实登录 consent 或当前修复后外部模型批量运行，人工专业闸门仍保留",
+    "browser_status": "passed_2026-08-15_to_2026-08-16: local real FastAPI 9 views at 1440x1000, 1024x768, 768x1024 and 390x844; console errors 0 and horizontal overflow 0; public readonly controls, calculation-only zero-model path, explicit human field location, dynamic evaluation id and low-confidence RAG warning in list and reader verified",
+    "browser_artifacts": "artifacts/browser-audit-local/audit-summary.json and artifacts/browser-audit-deployed/audit-summary.json",
+    "ux_guidance_implementation": "2026-08-15 完成 .zcode/plans/plan-sess_5170c198-feb3-4acb-ae92-cd6f9a569599.md 全部 A-F 项：全局5步步骤条、Project下一步卡片、字段复核锁定提示、Analysis运行后强引导、Delivery无run引导、Evaluation降级到竞赛材料下拉、禁用控件中文提示；修改文件 index.html + assets/official-v4/app.js",
+    "browser_boundary": "真实浏览器验收覆盖本地新代码与线上旧代码各四个视口；线上仍为未部署旧版，/api/health 与 /api/status 缺少就绪字段且完整分析 503（额度秘密未配置）；Render 重部署、Supabase/RLS、真实登录 consent 与当前修复后外部模型批量仍须线上阶段验证",
     "deployed_commit": "a4bed81c52df093bc3bf7d3fda5b5e926aea81bf (historical; current review fixes are local and undeployed)",
-    "render_demo_status": "historical 2026-08-09 evidence only; current review fixes were not deployed or revalidated on Render",
-    "github_release": "v1.2.0 historical tag; final code is on main",
-    "github_commit": "current review fixes remain in the local uncommitted worktree",
+    "render_demo_status": "2026-08-15 复验：线上 51 案例详情/仅计算/RAG/只读边界全部通过；线上 full_analysis 因未配置至少32位 AUDITTRACE_PUBLIC_QUOTA_SECRET 返回 503，且旧版 /api/status 仍误报 external_live；当前未提交的 render.yaml generateValue 改动与就绪状态上报修复了该问题，待部署生效",
+    "github_release": "pending_current_fix_commit_and_push",
+    "github_commit": "pending_current_fix_commit_and_push",
+    "live_model_note": "本地 .env 真实 Key 冒烟：供应商返回 MODEL_PROVIDER_BALANCE_EXHAUSTED，系统按失败关闭记录 provider_quota_exhausted 且不卡住；就绪判断按设计不做供应商探测，需团队确认 DeepSeek 余额后重试",
     "cache_manifest": "backend/cache_seed.lock.json validated 50/50 ready with 2025/2024/2023 metadata",
     "materialized_candidate_gate": "backend/cache_seed.materialized.json regenerated; 128/394 automatic field rows across 30/50 companies blocked pending human review, including 72 heuristic cross-year order-of-magnitude outlier rows",
     "demo_script": "17_审迹智链_最终答辩演示脚本_2026-08-08.md",

@@ -557,7 +557,7 @@ def _cached_result(
         retrieval_status=smoke["status"],
         result_count=len(smoke["results"]),
     )
-    if str(request.get("analysis_mode") or "full_analysis") == "rag_only":
+    if str(request.get("analysis_mode") or "rag_only") == "rag_only":
         result = {
             "task_id": task["task_id"],
             "status": "rag_ready",
@@ -1070,7 +1070,7 @@ def run_ingestion(
             result_count=len(smoke["results"]),
         )
 
-        analysis_mode = str(request.get("analysis_mode") or "full_analysis")
+        analysis_mode = str(request.get("analysis_mode") or "rag_only")
         if analysis_mode == "rag_only":
             # rag_only 是公开数据演示的安全默认路径，不涉及模型传输和财务字段猜测。
             result = {

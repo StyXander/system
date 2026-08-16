@@ -143,6 +143,18 @@
     not_started: "评估尚未开始",
     in_progress: "评估进行中",
     published: "评估已发布",
+    passed_import_or_registry_validation: "已通过导入 / 案例登记校验",
+    passed_technical_pending_human: "技术校验通过，待人工确认",
+    passed_technical_with_gaps: "技术校验通过，但存在资料缺口",
+    passed_with_gaps: "已通过，但存在资料缺口",
+    ready_for_analysis: "资料已就绪，可进入分析",
+    ready_for_rerun: "补充证据已就绪，可续分析",
+    needs_human: "需要人工处理",
+    failed: "运行失败",
+    rag_ready: "RAG 已就绪",
+    rag_failed: "RAG 失败",
+    not_ready: "尚未就绪",
+    cached_ready: "已命中可用缓存",
   };
   const CNINFO_STEP_LABELS = {
     company_resolve: "确认企业",
@@ -186,6 +198,7 @@
     unit: "yuan",
     selectedRules: ["R1"],
     projectStatus: null,
+    health: null,
     auth: null,
     modelConsent: null,
     industryGate: null,
@@ -196,6 +209,7 @@
     ragResults: [],
     evaluation: null,
     supplementId: null,
+    pendingBackupRequest: null,
     cninfoTask: null,
     cninfoPollTimer: null,
     cninfoPollToken: 0,
@@ -208,6 +222,16 @@
     return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
   function statusLabel(value) { return STATUS_LABELS[value] || value || "—"; }
+  function displayGap(value) {
+    if (!value) return "";
+    if (typeof value === "object") {
+      const question = value.question_id || value.problem_id;
+      const type = value.type || value.status || value.label || "资料缺口";
+      const message = value.message || value.detail || value.reason || "待回查";
+      return `${question ? `${question} · ` : ""}${type}：${message}`;
+    }
+    return String(value);
+  }
   function aiNotice(value) { return value?.ai_generated_content_notice || AI_GENERATED_CONTENT_NOTICE; }
   STATUS_LABELS.provider_region_opt_in_required = "OpenCode Go 需要开启中国托管模型";
   function statusKind(value) {
@@ -439,6 +463,79 @@
     if (step === "data") window.requestAnimationFrame(() => byId("source-ledger")?.scrollIntoView({ block: "start" }));
   }
 
+  function deriveProcessStep() {
+    const current = state.currentCase;
+    if (!current) return { current: 1, completed: 0, label: "选择审计对象" };
+    const { rows, accepted } = cninfoFieldReviewCounts(current);
+    const hasFieldCandidates = rows.length > 0;
+    const fieldConfirmed = current.field_validation?.status === "human_confirmed";
+    const step2Complete = !hasFieldCandidates || fieldConfirmed;
+    if (!step2Complete) return { current: 2, completed: 1, label: "确认字段与来源" };
+    const run = state.run;
+    if (!run) return { current: 3, completed: 2, label: "执行风险分析" };
+    const review = state.humanReview;
+    const reviewSaved = review && review.status !== "未复核";
+    if (!reviewSaved) return { current: 4, completed: 3, label: "人工复核判断" };
+    const exportApproved = Boolean(review.export_approved);
+    if (!exportApproved) return { current: 4, completed: 4, label: "人工复核判断" };
+    return { current: 5, completed: 5, label: "导出审计备忘录" };
+  }
+  function renderStepper() {
+    const stepInfo = deriveProcessStep();
+    const stepper = byId("process-stepper");
+    if (!stepper) return;
+    stepper.querySelectorAll("[data-step]").forEach((stepEl) => {
+      const stepNum = Number(stepEl.dataset.step);
+      const marker = stepEl.querySelector(".step-marker");
+      stepEl.classList.remove("current", "completed", "pending", "clickable");
+      if (stepNum < stepInfo.current) {
+        stepEl.classList.add("completed", "clickable");
+        marker.textContent = "✓";
+        marker.setAttribute("aria-label", "已完成");
+      } else if (stepNum === stepInfo.current) {
+        stepEl.classList.add("current", "clickable");
+        marker.textContent = String(stepNum);
+        marker.setAttribute("aria-label", "当前步骤");
+      } else {
+        stepEl.classList.add("pending");
+        marker.textContent = String(stepNum);
+        marker.setAttribute("aria-label", "待完成");
+      }
+    });
+    const current = state.currentCase;
+    const sub1 = byId("step-1-sub");
+    if (sub1) sub1.textContent = current ? `${current.company_name || current.company_alias || current.case_id} · 已载入` : "未选择";
+    const sub2 = byId("step-2-sub");
+    const { rows, accepted, pending } = cninfoFieldReviewCounts(current);
+    if (sub2) {
+      if (!current) sub2.textContent = "—";
+      else if (!rows.length) sub2.textContent = "无可判断候选";
+      else if (current.field_validation?.status === "human_confirmed") sub2.textContent = `${accepted}/${rows.length} 已确认`;
+      else sub2.textContent = `${pending} 待确认`;
+    }
+    const sub3 = byId("step-3-sub");
+    if (sub3) sub3.textContent = state.run ? `${state.run.run_id.slice(0, 12)}…` : "等待运行";
+    const sub4 = byId("step-4-sub");
+    const review = state.humanReview;
+    if (sub4) sub4.textContent = review?.status && review.status !== "未复核" ? review.status : "未复核";
+    const sub5 = byId("step-5-sub");
+    if (sub5) sub5.textContent = review?.export_approved ? "已批准导出" : "待批准";
+  }
+  function handleStepperClick(stepEl) {
+    const stepNum = Number(stepEl.dataset.step);
+    const stepInfo = deriveProcessStep();
+    if (stepNum > stepInfo.current && stepNum > stepInfo.completed + 1) return;
+    const view = stepEl.dataset.stepView;
+    const section = stepEl.dataset.stepSection;
+    if (view) showView(view);
+    if (section) {
+      window.requestAnimationFrame(() => {
+        const target = byId(section);
+        if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
+      });
+    }
+  }
+
   function unitKeyForLabel(label) {
     return Object.keys(UNIT_MAP).find((key) => UNIT_MAP[key].label === label) || "yuan";
   }
@@ -515,20 +612,24 @@
     const livePassed = status.live_model_acceptance?.result === "model_success"
       && status.live_model_acceptance?.run_completeness === "complete_full_analysis";
     byId("hero-version").textContent = `${status.engine_version || "0.7.1"} · 正式 DEV`;
-    byId("hero-case").textContent = current?.case_id || state.loadingCaseId || "NO CASE";
+    byId("hero-case").textContent = current
+      ? `${current.company_name || current.company_alias || "未命名公司"}${current.ticker ? ` · ${current.ticker}` : ""}`
+      : state.loadingCaseId || "NO CASE";
     byId("hero-source-count").textContent = `${current?.documents?.length || 0} REGISTERED SOURCES`;
     byId("hero-chunk-count").textContent = `${status.rag?.chunk_count || 0} SOURCE CHUNKS`;
     byId("fact-case-count").textContent = status.case_count ?? state.cases.length ?? "—";
     byId("fact-chunk-count").textContent = status.rag?.chunk_count ?? "—";
     byId("fact-engine-version").textContent = status.engine_version || "0.7.1";
+    const fullReady = Boolean(status.model?.full_analysis_ready ?? state.health?.full_analysis_ready);
+    const readinessLabel = fullReady ? "真实模型可运行" : "真实模型暂不可用 · 备用分析可用";
     byId("fact-model-status").textContent = demoMode
-      ? executionMode === "external_live" ? "真实模型已启用" : "确定性备用分析可用"
+      ? readinessLabel
       : status.model?.status === "configured"
-        ? (livePassed ? "真实三Agent技术通过" : "真实模型已配置 · 按次验收")
-        : "模型未配置";
+        ? (fullReady ? (livePassed ? "真实模型可运行 · 技术通过" : "真实模型可运行") : readinessLabel)
+        : "模型未配置 · 备用分析可用";
     byId("fact-test-counts").textContent = `${sourceCount} / ${cleanCount}`;
-    byId("fact-test-note").textContent = demoMode ? (executionMode === "external_live" ? "公开样例 · 真实三Agent" : "公开样例 · 确定性备用") : livePassed ? "passed · 三Agent技术通过" : "passed · 模型链按次验收";
-    byId("sidebar-model").textContent = demoMode ? (executionMode === "external_live" ? "真实模型已启用" : "确定性备用分析可用") : status.model?.status === "configured" ? "真实模型已配置 / 按次验收" : "未配置";
+    byId("fact-test-note").textContent = demoMode ? (fullReady ? "公开样例 · 真实三Agent可运行" : "公开样例 · 确定性备用") : livePassed ? "passed · 三Agent技术通过" : fullReady ? "passed · 模型可运行" : "passed · 备用分析可用";
+    byId("sidebar-model").textContent = fullReady ? "真实模型可运行" : "真实模型暂不可用 · 备用分析可用";
   }
 
   function caseRowLabel(row) {
@@ -587,7 +688,10 @@
     const supabase = auth.persistence?.mode === "supabase";
     const authenticated = Boolean(auth.authenticated);
     const tenant = auth.user?.tenant_id || auth.user?.email || "当前租户";
-    const statusText = demoMode ? "竞赛演示模式 · 无需登录" : !supabase ? "本地竞赛模式" : authenticated ? `已登录 · ${tenant}` : "公开匿名 · 外部模型需登录";
+    const fullReady = Boolean(state.projectStatus?.model?.full_analysis_ready);
+    const statusText = demoMode
+      ? fullReady ? "竞赛演示 · 真实模型可运行" : "竞赛演示 · 真实模型暂不可用 · 备用分析可用"
+      : !supabase ? "本地竞赛模式" : authenticated ? `已登录 · ${tenant}` : "公开匿名 · 外部模型需登录";
     byId("auth-status").textContent = statusText;
     byId("sidebar-auth-status").textContent = statusText;
     [byId("auth-action"), byId("sidebar-auth-action")].forEach((button) => {
@@ -597,10 +701,11 @@
     });
     const option = byId("cninfo-full-analysis-option");
     if (option) option.textContent = demoMode
-      ? "继续完整演示分析（无需登录）"
+      ? "继续完整分析（按当前就绪状态）"
       : supabase && !authenticated
       ? "继续公开预筛（外部模型需登录并逐案同意）"
       : "继续完整分析（按当前案例许可）";
+    applyPublicDemoControls();
   }
   function openAuthDialog() {
     const dialog = byId("auth-dialog");
@@ -692,9 +797,30 @@
       && state.auth?.persistence?.mode !== "supabase",
     );
   }
+  function applyPublicDemoControls() {
+    const locked = sharedPublicDemoReviewLocked();
+    const importForm = byId("case-import-form");
+    importForm?.querySelectorAll("input,button,select,textarea").forEach((control) => { control.disabled = locked; });
+    const pipelineForm = byId("cninfo-pipeline-form");
+    pipelineForm?.querySelectorAll("input,button,select,textarea").forEach((control) => { control.disabled = locked; });
+    if (locked) {
+      const preview = byId("cninfo-cache-preview");
+      if (preview) preview.textContent = "公开演示只读：请选择下方内置案例；新企业抓取、强制刷新和案例写入请切换到私有环境。";
+    }
+    const supplementForm = byId("supplement-form");
+    if (supplementForm) {
+      ["wb-sup-parent", "wb-sup-type", "wb-sup-date", "wb-sup-file", "wb-sup-json", "wb-sup-note", "wb-sup-authorized", "wb-sup-desensitized", "wb-sup-register"].forEach((id) => {
+        const control = byId(id);
+        if (control) control.disabled = locked;
+      });
+      supplementForm.querySelectorAll('input[name="bound_rule"]').forEach((control) => { control.disabled = locked; });
+      const help = supplementForm.querySelector(".form-help");
+      if (locked && help) help.innerHTML = "<strong>公开演示只读：</strong>自定义文件、JSON 和字段写入已禁用；仍可先运行内置案例，再使用下方内置账龄或期后回款样例。私有环境可登记授权资料。";
+    }
+  }
   function renderCninfoFieldReview() {
     const panel = byId("cninfo-field-review");
-    if (!panel || state.currentCase?.registry_mode !== "cninfo_official_auto") {
+    if (!panel || !state.currentCase) {
       if (panel) panel.hidden = true;
       return;
     }
@@ -704,9 +830,9 @@
     setStatePill(byId("cninfo-field-review-state"), `${accepted}/${rows.length} 已处理 · ${pending} 待确认`, accepted && !pending && !rejected ? "success" : "waiting");
     const instruction = byId("cninfo-review-instruction");
     instruction.classList.toggle("unavailable", locked);
-    instruction.innerHTML = locked
-      ? "<strong>公开演示只读</strong><span>这里明确展示正式人工判断的位置和每条候选，但共享演示站不保存匿名签字。请在团队私有本地模式或登录后的租户环境完成确认。</span>"
-      : "<strong>操作顺序</strong><span>1. 填写复核人；2. 打开每条原件页；3. 逐项确认、修正或拒绝。修正和拒绝需要填写原因。</span>";
+    instruction.hidden = locked;
+    const lockedNotice = byId("cninfo-locked-notice");
+    if (lockedNotice) lockedNotice.hidden = !locked;
     ["cninfo-field-reviewer", "cninfo-field-reason"].forEach((id) => { byId(id).disabled = locked; });
     byId("cninfo-field-review-list").innerHTML = rows.length ? rows.map((row) => {
       const fieldId = row.field_id || `${row.field_kind}_${row.year}`;
@@ -715,17 +841,38 @@
       const ratio = isRatioField(row);
       const valueLabel = ratio ? "比例（%）" : "金额（元）";
       const candidateRow = { ...row, value: row.candidate?.value ?? row.value };
-      const disabled = locked ? " disabled" : "";
-      return `<article class="cninfo-field-record ${status === "rejected" ? "rejected" : status !== "pending" ? "reviewed" : "pending"}" data-cninfo-field-record="${escapeHtml(fieldId)}"><div class="cninfo-field-record-head"><div><span class="folio">${escapeHtml(fieldId)}</span><h4>${escapeHtml(FIELD_KIND_LABELS[row.field_kind] || row.field_kind)} · ${escapeHtml(row.year)}</h4><p>${escapeHtml(row.statement_scope || "合并")} · ${escapeHtml(row.field_basis || "口径待核验")} · ${escapeHtml(row.unit || "单位待核验")}</p></div><span class="state ${status === "rejected" ? "danger" : status === "pending" ? "waiting" : "success"}">${escapeHtml(cninfoHumanReviewLabel(row))}</span></div><div class="cninfo-field-evidence"><div><span>自动候选${valueLabel}</span><strong class="mono">${escapeHtml(formatFieldValue(candidateRow))}</strong></div><div><span>核对后的规则输入${valueLabel}</span><input class="cninfo-field-value-input" type="number" step="any" value="${escapeHtml(row.value ?? "")}" aria-label="${escapeHtml(fieldId)} 核对后的${ratio ? "比例" : "金额"}"${disabled}></div><div><span>核对后的 PDF 页码</span><input class="cninfo-field-page-input" type="number" min="1" step="1" value="${escapeHtml(row.pdf_page ?? "")}" aria-label="${escapeHtml(fieldId)} PDF页码"${disabled}></div><div><span>定位</span><p>${escapeHtml(row.locator || row.candidate?.locator || "—")}</p>${source}</div></div><div class="cninfo-field-record-actions"><button class="button quiet recommended" type="button" data-cninfo-field-action="confirm" data-field-id="${escapeHtml(fieldId)}" aria-label="确认 ${escapeHtml(fieldId)} 与原件一致"${disabled}>与原件一致，确认</button><button class="button quiet" type="button" data-cninfo-field-action="correct" data-field-id="${escapeHtml(fieldId)}" aria-label="保存 ${escapeHtml(fieldId)} 修正值"${disabled}>按修改值保存</button><button class="button quiet" type="button" data-cninfo-field-action="reject" data-field-id="${escapeHtml(fieldId)}" aria-label="拒绝 ${escapeHtml(fieldId)} 候选"${disabled}>原件不支持，拒绝</button></div></article>`;
-    }).join("") : '<div class="empty-state compact"><strong>尚未形成字段候选</strong><p>请先执行 full_analysis 模式的巨潮流程；rag_only 只建立 RAG，不猜测财务金额。</p></div>';
+      const inputDisabled = locked ? " disabled" : "";
+      const actions = locked
+        ? ""
+        : `<div class="cninfo-field-record-actions"><button class="button quiet recommended" type="button" data-cninfo-field-action="confirm" data-field-id="${escapeHtml(fieldId)}" aria-label="确认 ${escapeHtml(fieldId)} 与原件一致">与原件一致，确认</button><button class="button quiet" type="button" data-cninfo-field-action="correct" data-field-id="${escapeHtml(fieldId)}" aria-label="保存 ${escapeHtml(fieldId)} 修正值">按修改值保存</button><button class="button quiet" type="button" data-cninfo-field-action="reject" data-field-id="${escapeHtml(fieldId)}" aria-label="拒绝 ${escapeHtml(fieldId)} 候选">原件不支持，拒绝</button></div>`;
+      return `<article class="cninfo-field-record ${status === "rejected" ? "rejected" : status !== "pending" ? "reviewed" : "pending"}" data-cninfo-field-record="${escapeHtml(fieldId)}"><div class="cninfo-field-record-head"><div><span class="folio">${escapeHtml(fieldId)}</span><h4>${escapeHtml(FIELD_KIND_LABELS[row.field_kind] || row.field_kind)} · ${escapeHtml(row.year)}</h4><p>${escapeHtml(row.statement_scope || "合并")} · ${escapeHtml(row.field_basis || "口径待核验")} · ${escapeHtml(row.unit || "单位待核验")}</p></div><span class="state ${status === "rejected" ? "danger" : status === "pending" ? "waiting" : "success"}">${escapeHtml(cninfoHumanReviewLabel(row))}</span></div><div class="cninfo-field-evidence"><div><span>自动候选${valueLabel}</span><strong class="mono">${escapeHtml(formatFieldValue(candidateRow))}</strong></div><div><span>核对后的规则输入${valueLabel}</span><input class="cninfo-field-value-input" type="number" step="any" value="${escapeHtml(row.value ?? "")}" aria-label="${escapeHtml(fieldId)} 核对后的${ratio ? "比例" : "金额"}"${inputDisabled}></div><div><span>核对后的 PDF 页码</span><input class="cninfo-field-page-input" type="number" min="1" step="1" value="${escapeHtml(row.pdf_page ?? "")}" aria-label="${escapeHtml(fieldId)} PDF页码"${inputDisabled}></div><div><span>定位</span><p>${escapeHtml(row.locator || row.candidate?.locator || "—")}</p>${source}</div></div>${actions}</article>`;
+    }).join("") : `<div class="empty-state compact"><strong>当前没有待判断的字段候选</strong><p>${emptyFieldReviewMessage()}</p></div>`;
     const completion = byId("cninfo-review-completion");
     completion.hidden = locked || !rows.length || pending > 0;
-    byId("cninfo-review-continue").disabled = rejected > 0;
+    const continueBtn = byId("cninfo-review-continue");
+    continueBtn.disabled = rejected > 0;
+    continueBtn.title = rejected > 0 ? "请先处理被拒绝的字段，或修正后重新确认" : "字段复核完成，继续执行分析";
+  }
+  function emptyFieldReviewMessage() {
+    const current = state.currentCase;
+    if (!current) return "请选择案例后查看字段复核。";
+    if (current.registry_mode === "cninfo_official_auto") {
+      return current.field_extraction_mode === "rag_only"
+        ? "rag_only 仅建立 RAG 未提取字段，请在私有环境切换 full_analysis 形成候选后再复核。"
+        : "请先在私有环境运行 full_analysis 形成字段候选；rag_only 只建立 RAG，不猜测财务金额。";
+    }
+    return "当前内置案例无可判断字段候选，可直接进入分析。正式采用或导出前仍需人工复核。";
   }
   function renderProject() {
     const current = state.currentCase;
     renderCaseContext();
-    byId("wb-case").innerHTML = state.cases.map((item) => `<option value="${escapeHtml(item.case_id)}">${escapeHtml(item.company_alias || item.company_name)} · ${escapeHtml(item.case_id)}</option>`).join("");
+    byId("wb-case").innerHTML = state.cases.map((item) => {
+      const company = item.company_alias || item.company_name || "未命名公司";
+      const ticker = item.ticker ? `（${item.ticker}）` : "";
+      const t0 = item.t0 ? ` · T0 ${item.t0}` : " · T0 待核验";
+      const source = item.source_label || item.source_type || item.source_mode || item.registry_mode || "来源待核验";
+      return `<option value="${escapeHtml(item.case_id)}">${escapeHtml(company)}${escapeHtml(ticker)}${escapeHtml(t0)} · ${escapeHtml(source)}</option>`;
+    }).join("");
     if (!current) {
       const loading = Boolean(state.loadingCaseId);
       byId("wb-data-body").innerHTML = loading
@@ -757,7 +904,9 @@
     // 比赛演示中行业闸门只决定 AI 分析路线，不再把完整模型链按钮改成预筛入口。
     const noModelIndustryPath = !demoMode && (Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level));
     byId("wb-case-permission").textContent = demoMode
-      ? "竞赛演示模式：当前案例将进入确定性规则、RAG 与三 Agent 分析链；结果仅供现场展示和人工复核。"
+      ? state.projectStatus?.model?.full_analysis_ready
+        ? "公开演示：真实模型可运行；结果仍只形成待核查草稿，人工判断和正式批准不会由系统代替。"
+        : "公开演示：真实模型暂不可用 · 备用分析可用；请选择确定性备用或仅计算预检。"
       : noModelIndustryPath
       ? "当前行业走确定性专用预筛或行业闸门，不调用外部模型；结果仍需专业人员复核。"
       : state.modelConsent?.active
@@ -793,8 +942,42 @@
         <td><strong>${escapeHtml(row.source_file)}</strong><div class="source-detail">披露 ${escapeHtml(row.disclosure_date)} · PDF ${escapeHtml(row.pdf_page)} 页 · ${escapeHtml(row.locator)}</div><a class="source-link" href="${sourceUrl(row.document_id, row.pdf_page)}" target="_blank" rel="noopener">回到登记 PDF 第 ${escapeHtml(row.pdf_page)} 页</a></td>
       </tr>`).join("") || '<tr><td colspan="5">该期间没有可预览字段。</td></tr>';
     renderCninfoFieldReview();
+    renderProjectNextAction();
     setStatePill(byId("project-state"), `${current.case_id} 已载入`, "info");
     renderHeroStatus();
+    renderStepper();
+  }
+
+  function renderProjectNextAction() {
+    const card = byId("project-next-action");
+    if (!card) return;
+    const current = state.currentCase;
+    if (!current) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+    const { rows, accepted, pending } = cninfoFieldReviewCounts(current);
+    const hasCandidates = rows.length > 0;
+    const confirmed = current.field_validation?.status === "human_confirmed";
+    const detail = byId("project-next-action-detail");
+    const reviewBtn = byId("project-review-fields");
+    const runBtn = byId("project-run-analysis");
+    if (!hasCandidates) {
+      detail.textContent = "当前内置案例无可判断字段候选，可直接进入分析。";
+      reviewBtn.hidden = true;
+      runBtn.className = "button primary";
+    } else if (!confirmed) {
+      detail.textContent = `有 ${pending} 条字段候选待人工确认；确认后再运行分析更符合审计计划流程。`;
+      reviewBtn.hidden = false;
+      reviewBtn.className = "button primary";
+      runBtn.className = "button quiet";
+    } else {
+      detail.textContent = "字段复核已完成，可进入分析工作台执行规则。";
+      reviewBtn.hidden = false;
+      reviewBtn.className = "button quiet";
+      runBtn.className = "button primary";
+    }
   }
 
   function renderModelConsent() {
@@ -1398,6 +1581,10 @@
   }
   async function startCninfoPipeline(event) {
     event.preventDefault();
+    if (sharedPublicDemoReviewLocked()) {
+      showMessage(byId("cninfo-cache-preview"), "公开演示只读：新企业抓取和强制刷新已禁用，请选择内置案例或切换到私有环境。", "warning");
+      return;
+    }
     if (state.cninfoSubmitting) return;
     const form = event.currentTarget;
     const query = form.elements.company_query.value.trim();
@@ -1609,7 +1796,10 @@
       validationMessage.className = `form-message${hadNoRunnableRule ? " warning" : ""}`;
     }
     const preflightButton = byId("wb-rule-preflight");
-    if (preflightButton) preflightButton.disabled = !runnable.length || !state.currentCase || !state.year;
+    if (preflightButton) {
+      preflightButton.disabled = !runnable.length || !state.currentCase || !state.year;
+      preflightButton.title = preflightButton.disabled ? "请先选择案例、分析年度和可运行规则" : "仅执行确定性计算预检，不调用外部模型";
+    }
     const fullButton = byId("wb-run-full");
     const calculationButton = byId("wb-run-calculation");
     const unavailable = !state.backendAvailable || !runnable.length || !state.currentCase || !state.year;
@@ -1619,7 +1809,8 @@
     const modelTransferConfigured = Boolean(state.currentCase?.model_transfer_allowed);
     const modelLoginRequired = !noModelIndustryPath && supabaseMode && !state.auth?.authenticated;
     const modelConsentRequired = !noModelIndustryPath && supabaseMode && state.auth?.authenticated && !state.modelConsent?.active;
-    const modelTransferAvailable = demoMode || noModelIndustryPath || (supabaseMode ? Boolean(state.auth?.authenticated && state.modelConsent?.active) : modelTransferConfigured);
+    const fullAnalysisReady = Boolean(state.projectStatus?.model?.full_analysis_ready ?? state.health?.full_analysis_ready);
+    const modelTransferAvailable = noModelIndustryPath || (demoMode ? fullAnalysisReady : (supabaseMode ? Boolean(state.auth?.authenticated && state.modelConsent?.active) : modelTransferConfigured));
     fullButton.disabled = unavailable || !modelTransferAvailable;
     calculationButton.disabled = unavailable;
     fullButton.classList.toggle("primary", modelTransferAvailable);
@@ -1630,11 +1821,12 @@
       ? `${state.industryGate?.specialized_rule ? "运行行业专用预筛" : "查看行业适配结果"} <span aria-hidden="true">→</span>`
       : modelLoginRequired ? "完整分析需登录"
       : modelConsentRequired ? "完整分析需先同意"
-      : modelTransferAvailable ? '开始完整分析 <span aria-hidden="true">→</span>' : "完整分析需许可";
+      : modelTransferAvailable ? '开始完整分析 <span aria-hidden="true">→</span>' : demoMode ? "真实完整分析暂不可用" : "完整分析需许可";
     fullButton.setAttribute("aria-describedby", "wb-case-permission");
-    fullButton.title = noModelIndustryPath ? "该路径只执行确定性行业规则或适配闸门，不调用外部模型" : modelLoginRequired ? "公网模式的外部模型调用必须登录" : modelConsentRequired ? "请先在当前案例保存模型传输同意" : modelTransferAvailable ? "执行RAG、三Agent与硬校验" : "当前案例未获模型传输许可，只能运行仅计算预检";
+    fullButton.title = noModelIndustryPath ? "该路径只执行确定性行业规则或适配闸门，不调用外部模型" : modelLoginRequired ? "公网模式的外部模型调用必须登录" : modelConsentRequired ? "请先在当前案例保存模型传输同意" : modelTransferAvailable ? "执行RAG、三Agent与硬校验" : demoMode ? (state.projectStatus?.model?.full_analysis_message || "真实模型暂不可用，请选择确定性备用分析") : "当前案例未获模型传输许可，只能运行仅计算预检";
+    calculationButton.title = unavailable ? "请先选择案例、分析年度和可运行规则" : "仅执行确定性计算预检，不调用外部模型";
      byId("run-scope").textContent = runnable.length
-       ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${noModelIndustryPath ? " 当前行业路径不调用外部模型。" : modelLoginRequired ? " 外部模型调用需登录；匿名模式可运行仅计算预筛。" : modelConsentRequired ? " 请先保存当前案例的模型传输同意。" : modelTransferAvailable ? "" : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && state.currentCase?.field_validation?.status !== "human_confirmed" ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
+       ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${noModelIndustryPath ? " 当前行业路径不调用外部模型。" : modelLoginRequired ? " 外部模型调用需登录；匿名模式可运行仅计算预筛。" : modelConsentRequired ? " 请先保存当前案例的模型传输同意。" : modelTransferAvailable ? "" : demoMode ? ` ${state.projectStatus?.model?.full_analysis_message || "真实模型暂不可用，请选择确定性备用分析。"}` : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && state.currentCase?.field_validation?.status !== "human_confirmed" ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
       : "当前没有可运行规则。";
     if (!state.run && state.currentCase && !modelTransferAvailable && !noModelIndustryPath && !demoMode) {
       byId("wb-gate").className = "status-banner warning";
@@ -1673,6 +1865,8 @@
     hydrateReview(null);
     updateDeliveryControls();
     updateBackupControl();
+    renderAnalysisNextAction(null);
+    renderStepper();
   }
   function renderRun(run, humanReview = null) {
     state.run = run;
@@ -1730,7 +1924,34 @@
     renderHistory(run, humanReview);
     updateDeliveryControls();
     updateBackupControl();
+    renderAnalysisNextAction(run);
     updateUrl("replace");
+    renderStepper();
+  }
+  function renderAnalysisNextAction(run) {
+    const banner = byId("analysis-next-action");
+    if (!banner) return;
+    if (!run) {
+      banner.hidden = true;
+      return;
+    }
+    banner.hidden = false;
+    const isIncomplete = String(run.run_completeness).startsWith("incomplete");
+    const title = banner.querySelector("strong");
+    const detail = banner.querySelector("span");
+    const button = byId("analysis-go-delivery");
+    banner.classList.toggle("incomplete", isIncomplete);
+    if (isIncomplete) {
+      title.textContent = statusLabel(run.run_completeness);
+      detail.textContent = "程序筛查已完成，但完整分析未结束。可查看资料缺口，或使用确定性备用分析继续。";
+      button.textContent = "查看资料缺口";
+      button.dataset.view = "matrix";
+    } else {
+      title.textContent = "分析已完成";
+      detail.textContent = `下一步：人工复核判断（第 4 步）。${aiNotice(run)}仍须人工回查 evidence ID 与来源，再选择处理方式。`;
+      button.textContent = "进入人工复核";
+      button.dataset.view = "delivery";
+    }
   }
   function renderEvidenceRail(run, humanReview) {
     const gaps = [...new Set([
@@ -1738,7 +1959,7 @@
       ...(run.context?.prescreen_summary?.missing_fields || []),
       ...(run.context?.industry_prescreen?.data_gaps || []),
       ...(run.rule_results || []).flatMap((result) => [...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || [])]),
-    ])];
+    ].map(displayGap).filter(Boolean))];
     const registered = run.evidence_bundle?.supplement_evidence?.length || 0;
     byId("evidence-rail").innerHTML = `<li><span>01</span><div><strong>程序筛查</strong><small>${escapeHtml(statusLabel(run.screening_status))}</small></div></li><li class="${run.ai_recommendation === "not_generated" ? "pending" : ""}"><span>02</span><div><strong>RAG 与 AI</strong><small>${escapeHtml(`${run.retrievals?.length || 0} 次检索；${statusLabel(run.ai_recommendation)}`)}</small></div></li><li class="${gaps.length ? "pending" : ""}"><span>03</span><div><strong>证据支持 / 缺口</strong><small>${escapeHtml(`${run.evidence_bundle?.field_evidence?.length || 0} 字段；${run.evidence_bundle?.rag_evidence?.length || 0} 片段；${registered} 条案例/补充证据；${gaps.length} 检索缺口`)}</small></div></li><li class="${(humanReview?.status || run.human_disposition) === "未复核" ? "pending" : ""}"><span>04</span><div><strong>人工处理</strong><small>${escapeHtml(humanReview?.status || run.human_disposition || "未复核")}</small></div></li>`;
   }
@@ -1750,7 +1971,7 @@
     byId("live-evidence-matrix").querySelector("tbody").innerHTML = run.rule_results.map((result) => {
       const ragCount = (run.evidence_bundle?.rag_evidence || []).filter((item) => item.rule_id === result.rule_id).length;
       const normal = result.ai_draft?.normal_explanations || [];
-      const gaps = [...new Set([...(result.ai_draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...prescreenMissingFields])];
+      const gaps = [...new Set([...(result.ai_draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...prescreenMissingFields].map(displayGap).filter(Boolean))];
       const support = result.ai_draft?.claims?.length ? `${result.ai_draft.claims.length} 条主张均绑定 evidence ID` : "无AI主张";
       const ragSummary = ragCount ? `${ragCount} 个候选片段` : run.ai_execution_requested ? "已检索但无命中" : "未参与 / 无命中";
       return `<tr><th><span class="mono">${escapeHtml(result.rule_id)}</span><br><small>${escapeHtml(statusLabel(result.screening_status || result.status))}</small></th><td><span class="state ${statusKind(result.screening_status || result.status)}">${escapeHtml(statusLabel(result.screening_status || result.status))}</span></td><td>${escapeHtml(ragSummary)}</td><td>${escapeHtml(statusLabel(result.ai_recommendation))}</td><td>${escapeHtml(support)}</td><td>${escapeHtml(normal.map((item) => `${item.text}（${item.support_status}）`).join("；") || "未形成")}</td><td>${escapeHtml(gaps.join("；") || "未返回")}</td></tr>`;
@@ -1761,14 +1982,14 @@
     if (!result) return;
     state.riskDialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const draft = result.ai_draft;
-    const list = (items, format = (item) => item) => items?.length ? `<ul>${items.map((item) => `<li>${escapeHtml(format(item))}</li>`).join("")}</ul>` : "<p>未返回。</p>";
+    const list = (items, format = (item) => displayGap(item)) => items?.length ? `<ul>${items.map((item) => `<li>${escapeHtml(format(item))}</li>`).join("")}</ul>` : "<p>未返回。</p>";
     byId("risk-dialog-kicker").textContent = `${result.rule_id} / ${statusLabel(result.screening_status || result.status)} / ${statusLabel(result.ai_recommendation)}`;
     byId("risk-dialog-title").textContent = draft?.draft_title || result.risk_card?.title || "待核查详情";
     const sources = (state.run.evidence_bundle?.field_evidence || []).filter((item) => result.evidence_ids?.includes(item.evidence_id));
     const rag = (state.run.evidence_bundle?.rag_evidence || []).filter((item) => item.rule_id === result.rule_id);
     const registered = state.run.evidence_bundle?.supplement_evidence || [];
     const missingFields = runPrescreenMissingFields(state.run);
-    const detailGaps = [...new Set([...(draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...missingFields])];
+    const detailGaps = [...new Set([...(draft?.data_gaps || []), ...(result.risk_card?.data_gaps || []), ...(result.risk_card?.prescreen_missing_fields || []), ...missingFields].map(displayGap).filter(Boolean))];
     byId("risk-dialog-body").innerHTML = `<section class="risk-detail-section"><h3>四层状态</h3><p>程序：${escapeHtml(statusLabel(result.screening_status || result.status))}；AI：${escapeHtml(statusLabel(result.ai_recommendation))}；人工：${escapeHtml(state.humanReview?.status || state.run.human_disposition)}；完整性：${escapeHtml(statusLabel(state.run.run_completeness))}。</p></section><section class="risk-detail-section"><h3>AI生成内容待核查草稿</h3><p><strong>${escapeHtml(aiNotice(draft || state.run))}</strong></p><p>${escapeHtml(draft?.draft_observation || "未形成通过硬校验的AI草稿。")}</p>${list(draft?.claims, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/")}`)}</section><section class="risk-detail-section"><h3>正常解释 / 待验证假设</h3>${list(draft?.normal_explanations, (item) => `${item.text}｜${item.support_status}｜${(item.evidence_ids || []).join("/") || "无证据"}`)}</section><section class="risk-detail-section"><h3>资料缺口与待索取资料</h3>${list(detailGaps)}${list(draft?.requested_materials || result.risk_card?.requested_materials)}</section><section class="risk-detail-section"><h3>计算字段证据</h3>${list(sources, (item) => `${item.evidence_id}｜${item.document_id}｜PDF ${item.pdf_page}｜${item.locator}`)}</section><section class="risk-detail-section"><h3>案例包 / 补充证据</h3>${list(registered, (item) => `${item.evidence_id}｜${item.field_label}｜${item.document_id || item.source_file || "结构化资料"}｜PDF ${item.pdf_page || "—"}｜${item.support_status}`)}</section><section class="risk-detail-section"><h3>RAG候选原文</h3>${list(rag, (item) => `${item.evidence_id}｜${item.retrieval_id}｜PDF ${item.pdf_page}｜${item.excerpt}`)}</section>`;
     byId("risk-dialog").showModal();
   }
@@ -1791,6 +2012,10 @@
     const approved = Boolean(state.humanReview && state.humanReview.status !== "未复核" && state.humanReview.export_approved);
     const demoPreview = Boolean(state.projectStatus?.demo_mode?.enabled && hasRun);
     const locked = sharedPublicDemoReviewLocked();
+    const reviewForm = byId("review-form");
+    const emptyState = byId("delivery-empty-state");
+    if (reviewForm) reviewForm.hidden = !hasRun;
+    if (emptyState) emptyState.hidden = hasRun;
     ["wb-backend-review-status", "wb-backend-reviewer", "wb-backend-review-note"].forEach((id) => {
       const control = byId(id);
       if (control) control.disabled = !hasRun;
@@ -1798,17 +2023,27 @@
     byId("wb-backend-export-approved").disabled = !hasRun || locked;
     if (locked) byId("wb-backend-export-approved").checked = false;
     byId("wb-save-local-review").disabled = !hasRun;
-    byId("wb-save-local-review").textContent = locked ? "保存本机演示草稿" : "保存本机复核";
-    byId("wb-save-backend-review").disabled = !hasRun || locked;
-    byId("wb-save-backend-review").textContent = locked ? "公开演示不保存正式复核" : "保存本次复核";
-    byId("wb-cache-run").disabled = !approved || locked;
-    byId("wb-export-report").disabled = !(approved || demoPreview);
+    byId("wb-save-local-review").textContent = locked ? "保存本机复核备注（非正式记录）" : "保存本机复核";
+    const backendSave = byId("wb-save-backend-review");
+    if (backendSave) {
+      backendSave.hidden = locked;
+      backendSave.disabled = !hasRun || locked;
+      backendSave.textContent = "保存本次复核";
+    }
+    const lockedPrompt = byId("delivery-locked-prompt");
+    if (lockedPrompt) lockedPrompt.hidden = !locked || !hasRun;
+    const cacheBtn = byId("wb-cache-run");
+    const exportBtn = byId("wb-export-report");
+    cacheBtn.disabled = !approved || locked;
+    cacheBtn.title = !hasRun ? "请先运行分析" : locked ? "公开演示不开放正式批准缓存" : !approved ? "请先保存人工复核并勾选批准导出" : "将本次复核写入批准缓存";
+    exportBtn.disabled = !(approved || demoPreview);
+    exportBtn.title = !hasRun ? "请先运行分析" : demoPreview && !approved ? "下载带水印的竞赛演示报告" : !approved ? "请先保存人工复核并勾选批准导出" : "导出 Word 预审风险备忘录";
     const runLookupInput = byId("run-lookup-input");
     const runLookupButton = document.querySelector("#run-lookup-form button[type=submit]");
     if (runLookupButton) runLookupButton.disabled = !runLookupInput?.value.trim();
     const cacheIdInput = byId("cache-id-input");
     byId("cache-replay-button").disabled = !cacheIdInput?.value.trim();
-    byId("wb-export-report").textContent = demoPreview && !approved ? "下载竞赛演示报告" : "导出 Word 备忘录";
+    exportBtn.textContent = demoPreview && !approved ? "下载竞赛演示报告" : "导出 Word 备忘录";
     const reviewNote = byId("review-mode-note");
     reviewNote.classList.toggle("unavailable", locked);
     reviewNote.innerHTML = locked
@@ -1822,6 +2057,11 @@
     setStatePill(byId("delivery-state"), stateLabel, approved && !locked ? "success" : "waiting");
   }
   function renderHistory(run, review) {
+    const executionMode = run.execution_mode || run.model_check?.execution_mode || "unavailable";
+    const modeLabel = statusLabel(executionMode);
+    const contextLabel = run.context?.continuation_mode === "supplement_evidence_rerun"
+      ? "补充证据续分析"
+      : run.context?.execution_mode === "cache_replay" ? "缓存回放" : "";
     const values = [
       ["run_id", run.run_id],
       ["版本链", `${run.engine_version} / ${run.context?.r1_version} / ${run.context?.agent_prompt_version}`],
@@ -1829,7 +2069,7 @@
       ["模型状态", statusLabel(run.model_check?.status)],
       ["证据范围", `${run.evidence_bundle?.field_evidence?.length || 0} 字段 / ${run.evidence_bundle?.rag_evidence?.length || 0} RAG / ${run.evidence_bundle?.supplement_evidence?.length || 0} 补充`],
       ["人工处理", review?.status || run.human_disposition || "未复核"],
-      ["运行方式", run.execution_mode === "external_cached" || run.context?.execution_mode === "cache_replay" ? "真实模型缓存命中" : run.context?.continuation_mode ? "补充证据续分析" : statusLabel(run.execution_mode || run.run_completeness)],
+      ["运行方式", `${modeLabel}${contextLabel ? ` · ${contextLabel}` : ""}`],
     ];
     byId("run-history-detail").innerHTML = values.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd class="${label === "run_id" ? "mono" : ""}">${escapeHtml(value)}</dd></div>`).join("");
   }
@@ -1837,11 +2077,14 @@
   function renderEvaluation(dashboard) {
     state.evaluation = dashboard || null;
     const status = dashboard?.status || "not_started";
+    const evaluationId = dashboard?.evaluation_id || dashboard?.id || "评估编号待读取";
+    byId("evaluation-summary-heading").textContent = evaluationId;
     setStatePill(byId("evaluation-state"), statusLabel(status), statusKind(status));
     const freezeNote = byId("evaluation-freeze-note");
     if (freezeNote) {
       const freeze = dashboard?.frozen_at ? `冻结时间：${dashboard.frozen_at}` : "尚未发布真实评分";
-      freezeNote.textContent = `${freeze}；${dashboard?.model_id || "模型版本待冻结"}；${dashboard?.prompt_version || "prompt 版本待冻结"}`;
+      const boundary = dashboard?.frozen_at ? "案例集快照已冻结，评估尚未完成" : "案例集快照尚未冻结";
+      freezeNote.textContent = `${boundary}；${freeze}；${dashboard?.model_id || "模型版本待冻结"}；${dashboard?.prompt_version || "prompt 版本待冻结"}`;
     }
     const summary = byId("evaluation-summary");
     const metrics = dashboard?.metrics || {};
@@ -1884,24 +2127,29 @@
     const button = byId("wb-run-backup");
     if (!button) return;
     const incomplete = Boolean(state.run?.run_completeness && String(state.run.run_completeness).startsWith("incomplete_"));
-    button.disabled = !incomplete || state.run?.execution_mode === "deterministic_backup";
+    const preRunAvailable = Boolean(state.pendingBackupRequest && !state.run);
+    button.disabled = (!incomplete && !preRunAvailable) || state.run?.execution_mode === "deterministic_backup";
+    button.textContent = preRunAvailable ? "改用确定性备用分析（不调用模型）" : "生成确定性备用分析（不调用模型）";
   }
 
   async function checkHealth() {
     try {
       const health = await api("/api/health");
+      state.health = health;
       state.backendAvailable = health.service_status === "ready";
       const configured = health.model_status === "configured";
       const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
-      const executionMode = state.projectStatus?.model?.execution_mode;
-      const modelLabel = executionMode === "external_live" ? "真实模型已启用" : executionMode === "deterministic_backup" ? "确定性备用分析可用" : configured ? "模型已配置，待本次验收" : "确定性备用分析可用";
-      setServiceStatus(demoMode ? `后端可用 · ${modelLabel}` : configured ? "后端可用 · 模型已配置" : "后端可用 · 模型未配置", configured ? "success" : "pending");
-      setStatePill(byId("project-health-state"), demoMode ? `无需登录 · ${modelLabel}` : configured ? "后端可用 · 模型按本次运行验收" : "后端可用 · 模型未配置", configured ? "success" : "waiting");
+      const ready = Boolean(health.full_analysis_ready ?? state.projectStatus?.model?.full_analysis_ready);
+      const modelLabel = ready ? "真实模型可运行" : "真实模型暂不可用 · 备用分析可用";
+      setServiceStatus(demoMode ? `后端可用 · ${modelLabel}` : configured ? `后端可用 · ${modelLabel}` : "后端可用 · 模型未配置 · 备用分析可用", ready ? "success" : "pending");
+      setStatePill(byId("project-health-state"), demoMode ? `只读演示 · ${modelLabel}` : configured ? `后端可用 · ${modelLabel}` : "后端可用 · 模型未配置 · 备用分析可用", ready ? "success" : "waiting");
       byId("backend-status-note").textContent = demoMode
-        ? `后端状态：公开样例可直接分析；${modelLabel}，每次运行仍保存模型、Token、耗时和引用状态。`
+        ? `后端状态：公开样例可直接分析；${modelLabel}。${health.full_analysis_message || ""}`
         : configured
-        ? "后端状态：模型配置存在，但完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。"
+        ? `后端状态：${modelLabel}；完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。${health.full_analysis_message || ""}`
         : "后端状态：确定性预检可用；模型未配置时，完整分析会明确显示模型配置缺失，不会伪造AI草稿。";
+      renderHeroStatus();
+      renderRuleLibrary();
     } catch (error) {
       state.backendAvailable = false;
       setServiceStatus("本地后端不可用", "danger");
@@ -1928,6 +2176,9 @@
     byId("wb-gate").className = "status-banner neutral";
     byId("wb-gate").innerHTML = `<strong>${runMode === "full_analysis" ? "正在执行完整分析" : "正在执行仅计算预检"}</strong><span>案例 ${escapeHtml(state.caseId)}；${escapeHtml(rules.join("、"))}。</span>`;
     const materialityText = byId("planned-materiality").value.trim();
+    state.run = null;
+    state.humanReview = null;
+    state.pendingBackupRequest = null;
     try {
       const run = await api("/api/runs", {
         method: "POST",
@@ -1936,8 +2187,20 @@
       });
       renderRun(run, null);
     } catch (error) {
+      if (runMode === "full_analysis" && !state.run?.run_id) {
+        state.pendingBackupRequest = {
+          case_id: state.caseId,
+          current_year: Number(state.year),
+          scene: "审计计划",
+          rule_ids: rules,
+          run_mode: "full_analysis",
+          planned_materiality: materialityText ? Number(materialityText) : null,
+        };
+        byId("wb-run-backup").disabled = false;
+        byId("wb-run-backup").textContent = "改用确定性备用分析（不调用模型）";
+      }
       byId("wb-gate").className = "status-banner danger";
-      byId("wb-gate").innerHTML = `<strong>运行失败</strong><span>${escapeHtml(error.message)}</span>`;
+      byId("wb-gate").innerHTML = `<strong>运行失败，可选择备用分析</strong><span>${escapeHtml(error.message)}${state.pendingBackupRequest ? "；点击“改用确定性备用分析”可重新运行，明确不会调用模型。" : ""}</span>`;
       setStatePill(byId("analysis-state"), "调用失败", "danger");
     } finally {
       endBusy();
@@ -1945,14 +2208,20 @@
     }
   }
   async function createDeterministicBackup() {
-    if (!state.run?.run_id) return;
     const button = byId("wb-run-backup");
     const endBusy = beginButtonBusy(button, "正在生成备用分析…");
     try {
-      const run = await api(`/api/runs/${encodeURIComponent(state.run.run_id)}/deterministic-backup`, { method: "POST" });
+      const run = state.pendingBackupRequest
+        ? await api("/api/runs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...state.pendingBackupRequest, force_deterministic_backup: true }),
+        })
+        : await api(`/api/runs/${encodeURIComponent(state.run.run_id)}/deterministic-backup`, { method: "POST" });
+      state.pendingBackupRequest = null;
       renderRun(run, null);
       byId("wb-gate").className = "status-banner success";
-      byId("wb-gate").innerHTML = `<strong>已创建确定性备用运行</strong><span>${escapeHtml(run.run_id)}；原失败记录已保留。</span>`;
+      byId("wb-gate").innerHTML = `<strong>已创建确定性备用运行</strong><span>${escapeHtml(run.run_id)}；明确未调用模型，原失败记录已保留。</span>`;
     } catch (error) {
       byId("wb-gate").className = "status-banner danger";
       byId("wb-gate").innerHTML = `<strong>备用分析失败</strong><span>${escapeHtml(error.message)}</span>`;
@@ -2019,7 +2288,8 @@
     const item = state.ragResults[index];
     if (!item) return;
     document.querySelectorAll(".rag-result").forEach((button, position) => button.setAttribute("aria-pressed", position === index ? "true" : "false"));
-    byId("source-reader").innerHTML = `<span class="folio">${escapeHtml(item.chunk_id)} / SCORE ${escapeHtml(item.score)}</span><h3>${escapeHtml(item.title || "年报原文")}</h3><dl class="source-meta"><div><dt>文档编号</dt><dd>${escapeHtml(item.document_id)}</dd></div><div><dt>披露日期</dt><dd>${escapeHtml(item.disclosure_date)}</dd></div><div><dt>PDF页码</dt><dd>${escapeHtml(item.pdf_page)}</dd></div><div><dt>evidence ID</dt><dd>${escapeHtml(item.evidence_id)}</dd></div><div><dt>T0状态</dt><dd>${escapeHtml(item.disclosure_date)} ≤ ${escapeHtml(state.currentCase.t0)}</dd></div><div><dt>文件哈希</dt><dd>${escapeHtml(item.source_sha256)}</dd></div></dl><p class="source-excerpt">${highlightExcerpt(item.excerpt, byId("wb-rag-query").value)}</p><a class="button quiet source-link-button" href="${sourceUrl(item.document_id, item.pdf_page)}" target="_blank" rel="noopener">打开原 PDF 第 ${escapeHtml(item.pdf_page)} 页</a>`;
+    const confidenceNote = item.low_confidence ? `<p class="status-banner warning"><strong>低置信候选</strong><span>${escapeHtml(item.confidence_note || "低置信候选，必须回原页复核。")}</span></p>` : "";
+    byId("source-reader").innerHTML = `${confidenceNote}<span class="folio">${escapeHtml(item.chunk_id)} / SCORE ${escapeHtml(item.score)}</span><h3>${escapeHtml(item.title || "年报原文")}</h3><dl class="source-meta"><div><dt>文档编号</dt><dd>${escapeHtml(item.document_id)}</dd></div><div><dt>披露日期</dt><dd>${escapeHtml(item.disclosure_date)}</dd></div><div><dt>PDF页码</dt><dd>${escapeHtml(item.pdf_page)}</dd></div><div><dt>evidence ID</dt><dd>${escapeHtml(item.evidence_id)}</dd></div><div><dt>T0状态</dt><dd>${escapeHtml(item.disclosure_date)} ≤ ${escapeHtml(state.currentCase.t0)}</dd></div><div><dt>文件哈希</dt><dd>${escapeHtml(item.source_sha256)}</dd></div></dl><p class="source-excerpt">${highlightExcerpt(item.excerpt, byId("wb-rag-query").value)}</p><a class="button quiet source-link-button" href="${sourceUrl(item.document_id, item.pdf_page)}" target="_blank" rel="noopener">打开原 PDF 第 ${escapeHtml(item.pdf_page)} 页</a>`;
   }
   async function retrieveRag(event) {
     event.preventDefault();
@@ -2034,7 +2304,7 @@
         byId("wb-rag-results").innerHTML = `<div class="empty-state compact"><strong>本次未命中可回查片段</strong><p>${escapeHtml(body.evidence_gap?.message || "不能据此认定年报未披露。")}</p></div>`;
         return;
       }
-      byId("wb-rag-results").innerHTML = state.ragResults.map((item, index) => `<button class="rag-result" type="button" data-rag-index="${index}" aria-pressed="false"><span class="folio">${escapeHtml(item.chunk_id)} · PDF ${escapeHtml(item.pdf_page)}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.document_id)} · score ${escapeHtml(item.score)}</small></button>`).join("");
+      byId("wb-rag-results").innerHTML = state.ragResults.map((item, index) => `<button class="rag-result${item.low_confidence ? " low-confidence" : ""}" type="button" data-rag-index="${index}" aria-pressed="false"><span class="folio">${escapeHtml(item.chunk_id)} · PDF ${escapeHtml(item.pdf_page)}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.document_id)} · score ${escapeHtml(item.score)}${item.low_confidence ? " · 低置信，必须回原页复核" : ""}</small></button>`).join("");
       byId("wb-rag-results").querySelectorAll("[data-rag-index]").forEach((button) => button.addEventListener("click", () => selectRagResult(Number(button.dataset.ragIndex))));
       selectRagResult(0);
     } catch (error) { byId("wb-rag-results").innerHTML = `<div class="empty-state compact"><strong>检索失败</strong><p>${escapeHtml(error.message)}</p></div>`; } finally { endBusy(); }
@@ -2042,6 +2312,10 @@
 
   async function importCase(event) {
     event.preventDefault();
+    if (sharedPublicDemoReviewLocked()) {
+      showMessage(byId("case-import-message"), "公开演示只读：案例 ZIP 导入已禁用，请选择已登记的内置案例。", "warning");
+      return;
+    }
     const file = byId("case-import-file").files[0];
     if (!file) { showMessage(byId("case-import-message"), "请选择标准案例 ZIP。", "error"); return; }
     const formData = new FormData();
@@ -2062,7 +2336,9 @@
   function renderSupplementRecord(body) {
     state.supplementId = body.supplement_id;
     setStatePill(byId("wb-sup-state"), body.status === "ready_for_rerun" ? "补充证据可续分析" : body.status, body.status === "ready_for_rerun" ? "success" : body.status === "rejected" ? "danger" : "waiting");
-    byId("wb-sup-rerun").disabled = body.status !== "ready_for_rerun";
+    const rerunBtn = byId("wb-sup-rerun");
+    rerunBtn.disabled = body.status !== "ready_for_rerun";
+    rerunBtn.title = rerunBtn.disabled ? "补充资料尚未就绪，请等待登记完成或处理返回的问题" : "使用补充证据重新运行分析";
     byId("supplement-result").hidden = false;
     byId("parent-run-label").textContent = body.parent_run_id || "—";
     byId("supplement-id-label").textContent = body.supplement_id || "—";
@@ -2098,6 +2374,10 @@
 
   async function registerSupplement(event) {
     event.preventDefault();
+    if (sharedPublicDemoReviewLocked()) {
+      showMessage(byId("supplement-message"), "公开演示只读：自定义补充资料登记已禁用，请使用内置样例。", "warning");
+      return;
+    }
     const form = event.currentTarget;
     if (!byId("wb-sup-parent").value.trim()) { showMessage(byId("supplement-message"), "请先运行一次分析取得父运行编号。", "error"); byId("wb-sup-parent").focus(); return; }
     const rules = Array.from(form.querySelectorAll('input[name="bound_rule"]:checked')).map((input) => input.value);
@@ -2117,11 +2397,11 @@
     if (!state.supplementId) return;
     const endBusy = beginButtonBusy(byId("wb-sup-rerun"), "正在完整续分析…");
     try {
-      const run = await api(`/api/supplements/${encodeURIComponent(state.supplementId)}/rerun`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_mode: "full_analysis" }) });
+      const run = await api(`/api/supplements/${encodeURIComponent(state.supplementId)}/rerun`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_mode: "full_analysis", force_deterministic_backup: false }) });
       renderRun(run, null);
       const change = run.context?.recommendation_change;
       byId("rerun-scope-label").textContent = change ? `${statusLabel(change.before)} → ${statusLabel(change.after)} · ${change.label}` : "续分析完成";
-      showMessage(byId("supplement-message"), `续分析完成：${run.run_id}；${statusLabel(run.run_completeness)}。`, "success");
+      showMessage(byId("supplement-message"), `续分析完成：${run.run_id}；${statusLabel(run.run_completeness)}；运行方式：${statusLabel(run.execution_mode)}。`, "success");
       showView("analysis");
     } catch (error) { showMessage(byId("supplement-message"), `续分析失败：${error.message}`, "error"); } finally { endBusy(); }
   }
@@ -2167,6 +2447,10 @@
   function bindEvents() {
     document.addEventListener("click", (event) => { void openProtectedSource(event); });
     document.querySelectorAll("[data-view]").forEach((link) => link.addEventListener("click", (event) => { event.preventDefault(); showView(link.dataset.view); }));
+    document.querySelectorAll("[data-step]").forEach((step) => {
+      step.addEventListener("click", () => handleStepperClick(step));
+      step.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleStepperClick(step); } });
+    });
     document.querySelectorAll("[data-wb-step]").forEach((button) => {
       button.addEventListener("click", () => handleLegacyStep(button.dataset.wbStep));
       button.addEventListener("keydown", (event) => {
@@ -2176,9 +2460,47 @@
     });
     document.querySelectorAll("[data-wb-go]").forEach((button) => button.addEventListener("click", () => handleLegacyStep(button.dataset.wbGo)));
     byId("mobile-nav-toggle").addEventListener("click", () => { const open = byId("primary-navigation").classList.toggle("open"); byId("mobile-nav-toggle").setAttribute("aria-expanded", String(open)); syncMobileNavigationAccessibility(open); if (open) byId("primary-navigation").querySelector("a")?.focus(); });
+    byId("competition-menu-toggle")?.addEventListener("click", () => {
+      const list = byId("competition-menu-list");
+      const open = list.hidden;
+      list.hidden = !open;
+      byId("competition-menu-toggle").setAttribute("aria-expanded", String(open));
+    });
+    document.addEventListener("click", (event) => {
+      const menu = byId("competition-menu");
+      if (menu && !menu.contains(event.target)) {
+        byId("competition-menu-list").hidden = true;
+        byId("competition-menu-toggle")?.setAttribute("aria-expanded", "false");
+      }
+    });
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && byId("primary-navigation").classList.contains("open")) { closeMobileNavigation(); byId("mobile-nav-toggle").focus(); } });
     window.addEventListener("resize", () => syncMobileNavigationAccessibility(byId("primary-navigation").classList.contains("open")));
     byId("wb-case").addEventListener("change", (event) => loadCaseDetail(event.target.value));
+    byId("wb-data-status")?.addEventListener("click", () => {
+      const target = byId("cninfo-field-review");
+      if (target && !target.hidden) target.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    byId("project-review-fields")?.addEventListener("click", () => {
+      showView("project");
+      window.requestAnimationFrame(() => byId("cninfo-field-review")?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    });
+    byId("project-run-analysis")?.addEventListener("click", () => {
+      showView("analysis");
+      window.requestAnimationFrame(() => byId("wb-run-full")?.focus({ preventScroll: true }));
+    });
+    byId("analysis-go-delivery")?.addEventListener("click", () => {
+      const view = byId("analysis-go-delivery")?.dataset.view;
+      if (view === "delivery") showView("delivery");
+      else byId("live-evidence-matrix")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    byId("delivery-go-analysis")?.addEventListener("click", () => { showView("analysis"); window.requestAnimationFrame(() => byId("wb-run-full")?.focus({ preventScroll: true })); });
+    byId("delivery-focus-lookup")?.addEventListener("click", () => { byId("run-lookup-input")?.focus(); });
+    byId("evidence-rail")?.addEventListener("click", (event) => {
+      const item = event.target.closest("#evidence-rail li");
+      if (!item) return;
+      const index = Array.from(byId("evidence-rail").children).indexOf(item);
+      if (index === 3) showView("delivery");
+    });
     byId("wb-retry-cases").addEventListener("click", async (event) => {
       const endBusy = beginButtonBusy(event.currentTarget, "正在重新读取…");
       try { await loadSystemAndCases({ keepCase: true }); }
@@ -2253,11 +2575,12 @@
     updateDeliveryControls();
     updateBackupControl();
     showView(state.view, { history: false, focus: false });
-    try { await loadSystemAndCases(); } catch (error) { setServiceStatus("状态接口不可用", "danger"); showMessage(byId("case-import-message"), `无法读取案例：${error.message}`, "error"); }
+    try { await loadSystemAndCases(); renderStepper(); } catch (error) { setServiceStatus("状态接口不可用", "danger"); showMessage(byId("case-import-message"), `无法读取案例：${error.message}`, "error"); }
     await checkHealth();
     await loadEvaluation();
     await restoreCninfoTask();
     if (requestedRun) await loadRun(requestedRun, { openAnalysis: state.view === "analysis" });
+    renderStepper();
     // 先恢复 URL 中的 run，再同步地址；否则 updateUrl 会在 loadRun 之前
     // 看到空 state.run 并删除深链参数，刷新后补充资料/交付页无法恢复父运行。
     updateUrl("replace");
