@@ -332,7 +332,16 @@ def test_summary_case_directory_is_compact() -> None:
     response = client.get("/api/cases?summary=true")
     assert response.status_code == 200
     cases = response.json()["cases"]
-    assert all(set(item) >= {"case_id", "company_name", "available_years"} for item in cases)
+    assert all(
+        set(item) >= {
+            "case_id",
+            "company_name",
+            "available_years",
+            "registry_mode",
+            "source_type",
+        }
+        for item in cases
+    )
     # 开发机目录会长期积累历史合成案例（当前 pytest 命名空间已有数百个），
     # 因此合同以“单案例摘要足够轻量”为准：每个案例只携带选择器所需元数据，
     # 完整元数据始终由详情接口返回；总量只设宽松上限防止意外膨胀。

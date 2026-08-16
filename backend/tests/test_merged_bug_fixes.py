@@ -154,7 +154,7 @@ def test_normal_run_evidence_bundle_has_zero_supplement(client: TestClient) -> N
 
 
 def test_public_case_summary_source_labels() -> None:
-    """AT-008: 案例目录摘要正确输出 source_label。"""
+    """AT-008: 案例目录摘要正确输出中文标签与机器可读来源。"""
     std_case = {"case_id": "STD_DEV_T0", "company_name": "标准股份", "available_years": [2024, 2023]}
     jack_case = {"case_id": "JACK_TECH_2024", "company_name": "杰克科技", "available_years": [2024]}
     cninfo_case = {"case_id": "CNINFO_600938_T0_20260326", "company_name": "中海油", "available_years": [2024], "registry_mode": "cninfo_official_auto"}
@@ -164,6 +164,10 @@ def test_public_case_summary_source_labels() -> None:
     assert _public_case_summary(jack_case)["source_label"] == "手工登记案例"
     assert _public_case_summary(cninfo_case)["source_label"] == "巨潮年报抓取"
     assert _public_case_summary(synthetic_case)["source_label"] == "合成样例"
+    assert _public_case_summary(std_case)["registry_mode"] == "built_in"
+    assert _public_case_summary(jack_case)["source_type"] == "manual_registered"
+    assert _public_case_summary(cninfo_case)["registry_mode"] == "cninfo_official_auto"
+    assert _public_case_summary(cninfo_case)["source_type"] == "official_annual_report"
 
 
 def test_delivery_display_gap_deduplication() -> None:

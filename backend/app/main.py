@@ -729,19 +729,31 @@ def _public_case_summary(case: dict[str, Any]) -> dict[str, Any]:
     # 区分开发基准案例、手工登记案例、巨潮官方自动抓取案例与合成样例
     if case_id.startswith("STD_DEV"):
         source_label = "标准股份开发案例"
+        registry_mode = registry_mode or "built_in"
+        source_type = str(case.get("source_type") or "development_standard")
     elif case_id.startswith("JACK_"):
         source_label = "手工登记案例"
+        registry_mode = registry_mode or "imported_template"
+        source_type = str(case.get("source_type") or "manual_registered")
     elif registry_mode == "cninfo_official_auto" or case_id.startswith("CNINFO_"):
         source_label = "巨潮年报抓取"
+        registry_mode = registry_mode or "cninfo_official_auto"
+        source_type = str(case.get("source_type") or "official_annual_report")
     elif sample_type == "synthetic":
         source_label = "合成样例"
+        registry_mode = registry_mode or "synthetic"
+        source_type = str(case.get("source_type") or "synthetic")
     else:
         source_label = "公开案例快照"
+        registry_mode = registry_mode or "registered_case"
+        source_type = str(case.get("source_type") or "public_snapshot")
     summary = {
         "case_id": case.get("case_id"),
         "company_name": case.get("company_name"),
         "available_years": sorted({str(year) for year in years}, reverse=True),
         "source_label": source_label,
+        "registry_mode": registry_mode,
+        "source_type": source_type,
     }
     # 目录摘要允许省略空可选字段；这对历史临时案例很多的本地开发目录
     # 尤其重要，同时保留公开演示案例的完整代码、日期和来源元数据。
@@ -749,8 +761,8 @@ def _public_case_summary(case: dict[str, Any]) -> dict[str, Any]:
         value = case.get(key)
         if value not in (None, "", []):
             summary[key] = value
-    # sample_type / registry_mode / source_type 不再进入摘要：详情接口始终返回
-    # 完整元数据，选择器展示用 source_label 即可，避免历史案例堆积撑大目录负载。
+    # sample_type 仍只在详情返回；registry_mode / source_type 留在轻量摘要中，
+    # 供前端区分同公司、同代码的历史案例来源，不需要再请求完整案例。
     return summary
 
 
