@@ -176,3 +176,75 @@ def test_delivery_display_gap_deduplication() -> None:
     disp2 = _display_gap("待索取主要销售合同")
     assert disp1 == "Q-R1 · 资料缺口：待回查期后回款"
     assert disp2 == "待索取主要销售合同"
+
+
+def test_unified_readiness_contract_between_health_and_status(client: TestClient) -> None:
+    """AT-017: /api/health 与 /api/status 在相同请求下输出一致的真实模型就绪判定。"""
+    health_resp = client.get("/api/health")
+    assert health_resp.status_code == 200
+    health_data = health_resp.json()
+
+    status_resp = client.get("/api/status")
+    assert status_resp.status_code == 200
+    status_data = status_resp.json()
+
+    # 验证 AT-017 根级别名与 model 对象严格一致
+    assert status_data.get("readiness_contract_version") == "model_readiness_v1"
+    assert status_data["full_analysis_ready"] == status_data["model"]["full_analysis_ready"]
+    assert status_data["full_analysis_reason_code"] == status_data["model"]["full_analysis_reason_code"]
+    assert status_data["full_analysis_message"] == status_data["model"]["full_analysis_message"]
+    assert status_data["deterministic_backup_available"] == status_data["model"]["deterministic_backup_available"]
+
+    # 验证 health 与 status 一致
+    assert health_data["full_analysis_ready"] == status_data["model"]["full_analysis_ready"]
+    assert health_data["full_analysis_reason_code"] == status_data["model"]["full_analysis_reason_code"]
+    assert health_data["deterministic_backup_available"] == status_data["model"]["deterministic_backup_available"]
+
+
+def test_model_readiness_incorporates_provider_snapshot(monkeypatch) -> None:
+    """AT-015: _model_readiness 在公开模式下会融合供应商就绪快照与熔断状态。"""
+    from backend.app.provider_readiness import (
+        ProviderSnapshot,
+        reset_provider_readiness,
+    )
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-valid-key")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "x" * 32)
+    monkeypatch.setenv("AUDITTRACE_PROVIDER_PROBE_ENABLED", "true")
+    reset_provider_readiness()
+
+    # 模拟供应商余额耗尽
+    exhausted_snap = ProviderSnapshot(
+        status="unavailable",
+        reason_code="provider_balance_exhausted",
+        message="供应商账户余额不足",
+        checked_at="2026-08-17T00:00:00Z",
+        expires_at="2026-08-17T00:05:00Z",
+        source="probe",
+        stale=False,
+    )
+    with patch("backend.app.main.get_provider_snapshot", return_value=exhausted_snap):
+        readiness = _model_readiness()
+        assert readiness["full_analysis_ready"] is False
+        assert readiness["full_analysis_reason_code"] == "provider_balance_exhausted"
+        assert readiness["deterministic_backup_available"] is True
+        assert readiness["provider"]["status"] == "unavailable"
+
+    # 模拟供应商就绪
+    ready_snap = ProviderSnapshot(
+        status="ready",
+        reason_code="ready",
+        message="供应商鉴权与余额均就绪",
+        checked_at="2026-08-17T00:00:00Z",
+        expires_at="2026-08-17T00:05:00Z",
+        source="probe",
+        stale=False,
+    )
+    with patch("backend.app.main.get_provider_snapshot", return_value=ready_snap):
+        readiness_ok = _model_readiness()
+        assert readiness_ok["full_analysis_ready"] is True
+        assert readiness_ok["full_analysis_reason_code"] == "ready"
+        assert readiness_ok["provider"]["status"] == "ready"
+

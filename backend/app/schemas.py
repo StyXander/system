@@ -129,6 +129,10 @@ class HealthResponse(AiGeneratedContentNotice):
     source_snapshot_id: str
     detail: str
     engine_version: str = "0.7.1"
+    provider_status: str | None = None
+    provider_reason_code: str | None = None
+    provider_checked_at: str | None = None
+    provider_source: str | None = None
 
 
 class AgentClaim(BaseModel):

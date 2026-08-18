@@ -1,6 +1,6 @@
 {
   "schema_version": "external_model_acceptance_manifest_v2",
-  "generated_at": "2026-08-13T11:14:32+00:00",
+  "generated_at": "2026-08-17T12:16:03+00:00",
   "acceptance_scope": "既有 agent_prompt_v3 外部模型技术链；不构成字段专业确认、风险识别准确率或 B3 专业评分。",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
   "strict_result": {

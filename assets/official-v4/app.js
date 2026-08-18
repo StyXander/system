@@ -463,68 +463,167 @@
     if (step === "data") window.requestAnimationFrame(() => byId("source-ledger")?.scrollIntoView({ block: "start" }));
   }
 
+  function effectiveModelReadiness() {
+    const health = state.health || {};
+    const model = state.projectStatus?.model || {};
+    const hasHealth = typeof health.full_analysis_ready === "boolean";
+    return {
+      full_analysis_ready: hasHealth ? health.full_analysis_ready : Boolean(model.full_analysis_ready),
+      full_analysis_reason_code: (hasHealth ? health.full_analysis_reason_code : model.full_analysis_reason_code) || "unknown",
+      full_analysis_message: (hasHealth ? health.full_analysis_message : model.full_analysis_message) || "正在读取模型运行条件",
+      deterministic_backup_available: hasHealth
+        ? health.deterministic_backup_available
+        : (model.deterministic_backup_available !== false),
+      model_id: health.model_id || model.model_id || "deepseek-v4-flash",
+    };
+  }
+
   function deriveProcessStep() {
     const current = state.currentCase;
-    if (!current) return { current: 1, completed: 0, label: "选择审计对象" };
-    const { rows, accepted } = cninfoFieldReviewCounts(current);
-    const hasFieldCandidates = rows.length > 0;
-    const fieldConfirmed = current.field_validation?.status === "human_confirmed";
-    const step2Complete = !hasFieldCandidates || fieldConfirmed;
-    if (!step2Complete) return { current: 2, completed: 1, label: "确认字段与来源" };
     const run = state.run;
-    if (!run) return { current: 3, completed: 2, label: "执行风险分析" };
     const review = state.humanReview;
-    const reviewSaved = review && review.status !== "未复核";
-    if (!reviewSaved) return { current: 4, completed: 3, label: "人工复核判断" };
-    const exportApproved = Boolean(review.export_approved);
-    if (!exportApproved) return { current: 4, completed: 4, label: "人工复核判断" };
-    return { current: 5, completed: 5, label: "导出审计备忘录" };
+
+    // 步骤 1：选择审计对象
+    const step1 = {
+      state: current ? "completed" : "current",
+      label: "选择审计对象",
+      sub: current ? `${current.company_name || current.company_alias || current.case_id} · 已载入` : "未选择",
+    };
+
+    // 步骤 2：确认字段与来源
+    let step2State = "pending";
+    let step2Sub = "无需复核";
+    if (!current) {
+      step2State = "pending";
+      step2Sub = "—";
+    } else {
+      const { rows, accepted, rejected, pending } = cninfoFieldReviewCounts(current);
+      const processed = accepted + rejected;
+      if (!rows.length) {
+        step2State = "not_applicable";
+        step2Sub = "无可判断候选";
+      } else if (pending === 0) {
+        step2State = "completed";
+        step2Sub = `已处理 ${rows.length}/${rows.length} · 确认${accepted} 拒绝${rejected}`;
+      } else if (!run) {
+        step2State = "current";
+        step2Sub = `${pending} 条待确认`;
+      } else {
+        // AT-016: 已有分析运行但字段候选仍未确认，标为 attention（需人工处理），绝不标为 completed
+        step2State = "attention";
+        step2Sub = `注册来源已就绪 · 已处理 ${processed}/${rows.length} · ${pending} 待正式复核`;
+      }
+    }
+    const step2 = { state: step2State, label: "确认字段与来源", sub: step2Sub };
+
+    // 步骤 3：执行风险分析
+    let step3State = "pending";
+    let step3Sub = "等待运行";
+    if (!current) {
+      step3State = "pending";
+      step3Sub = "等待运行";
+    } else if (!run) {
+      step3State = step2State === "current" ? "pending" : "current";
+      step3Sub = "等待运行";
+    } else {
+      step3State = "completed";
+      step3Sub = `${run.run_id.slice(0, 12)}…`;
+    }
+    const step3 = { state: step3State, label: "执行风险分析", sub: step3Sub };
+
+    // 步骤 4：人工复核判断
+    let step4State = "pending";
+    let step4Sub = "未复核";
+    if (!run) {
+      step4State = "pending";
+      step4Sub = "未复核";
+    } else {
+      const reviewSaved = review && review.status && review.status !== "未复核";
+      if (!reviewSaved) {
+        step4State = "current";
+        step4Sub = "未复核";
+      } else {
+        step4State = "completed";
+        step4Sub = review.status;
+      }
+    }
+    const step4 = { state: step4State, label: "人工复核判断", sub: step4Sub };
+
+    // 步骤 5：导出审计备忘录
+    let step5State = "pending";
+    let step5Sub = "待批准";
+    if (!run) {
+      step5State = "pending";
+      step5Sub = "待批准";
+    } else if (review?.export_approved) {
+      step5State = "completed";
+      step5Sub = "已批准导出";
+    } else {
+      step5State = step4State === "completed" ? "current" : "pending";
+      step5Sub = "待批准";
+    }
+    const step5 = { state: step5State, label: "导出审计备忘录", sub: step5Sub };
+
+    let currentStepNum = 1;
+    if (!current) currentStepNum = 1;
+    else if (!run) currentStepNum = (step2State === "current") ? 2 : 3;
+    else if (!review || review.status === "未复核") currentStepNum = 4;
+    else if (!review.export_approved) currentStepNum = 5;
+    else currentStepNum = 5;
+
+    return {
+      current: currentStepNum,
+      steps: { 1: step1, 2: step2, 3: step3, 4: step4, 5: step5 },
+    };
   }
+
   function renderStepper() {
     const stepInfo = deriveProcessStep();
     const stepper = byId("process-stepper");
     if (!stepper) return;
-    stepper.querySelectorAll("[data-step]").forEach((stepEl) => {
-      const stepNum = Number(stepEl.dataset.step);
-      const marker = stepEl.querySelector(".step-marker");
-      stepEl.classList.remove("current", "completed", "pending", "clickable");
-      if (stepNum < stepInfo.current) {
-        stepEl.classList.add("completed", "clickable");
+    stepper.querySelectorAll(".step-button").forEach((button) => {
+      const stepNum = Number(button.dataset.step);
+      const stepItem = button.closest("li");
+      const marker = button.querySelector(".step-marker");
+      const info = stepInfo.steps[stepNum] || { state: "pending", sub: "" };
+
+      stepItem.classList.remove("current", "completed", "attention", "pending", "not-applicable");
+      stepItem.classList.add(info.state.replace("_", "-"));
+
+      if (info.state === "completed") {
         marker.textContent = "✓";
         marker.setAttribute("aria-label", "已完成");
-      } else if (stepNum === stepInfo.current) {
-        stepEl.classList.add("current", "clickable");
+      } else if (info.state === "attention") {
+        marker.textContent = "!";
+        marker.setAttribute("aria-label", "需人工处理");
+      } else if (info.state === "current") {
         marker.textContent = String(stepNum);
         marker.setAttribute("aria-label", "当前步骤");
+      } else if (info.state === "not_applicable") {
+        marker.textContent = "—";
+        marker.setAttribute("aria-label", "不适用");
       } else {
-        stepEl.classList.add("pending");
         marker.textContent = String(stepNum);
         marker.setAttribute("aria-label", "待完成");
       }
+
+      // 可点击性：根据实际业务前置对象判断，而不是机械比较序号
+      let isAllowed = false;
+      if (stepNum === 1) isAllowed = true;
+      else if (stepNum === 2) isAllowed = Boolean(state.currentCase);
+      else if (stepNum === 3) isAllowed = Boolean(state.currentCase);
+      else if (stepNum === 4) isAllowed = Boolean(state.run);
+      else if (stepNum === 5) isAllowed = Boolean(state.run);
+      button.disabled = !isAllowed;
+
+      const subEl = byId(`step-${stepNum}-sub`);
+      if (subEl) subEl.textContent = info.sub;
     });
-    const current = state.currentCase;
-    const sub1 = byId("step-1-sub");
-    if (sub1) sub1.textContent = current ? `${current.company_name || current.company_alias || current.case_id} · 已载入` : "未选择";
-    const sub2 = byId("step-2-sub");
-    const { rows, accepted, pending } = cninfoFieldReviewCounts(current);
-    if (sub2) {
-      if (!current) sub2.textContent = "—";
-      else if (!rows.length) sub2.textContent = "无可判断候选";
-      else if (current.field_validation?.status === "human_confirmed") sub2.textContent = `${accepted}/${rows.length} 已确认`;
-      else sub2.textContent = `${pending} 待确认`;
-    }
-    const sub3 = byId("step-3-sub");
-    if (sub3) sub3.textContent = state.run ? `${state.run.run_id.slice(0, 12)}…` : "等待运行";
-    const sub4 = byId("step-4-sub");
-    const review = state.humanReview;
-    if (sub4) sub4.textContent = review?.status && review.status !== "未复核" ? review.status : "未复核";
-    const sub5 = byId("step-5-sub");
-    if (sub5) sub5.textContent = review?.export_approved ? "已批准导出" : "待批准";
   }
+
   function handleStepperClick(stepEl) {
     const stepNum = Number(stepEl.dataset.step);
-    const stepInfo = deriveProcessStep();
-    if (stepNum > stepInfo.current && stepNum > stepInfo.completed + 1) return;
+    if (stepEl.disabled) return;
     const view = stepEl.dataset.stepView;
     const section = stepEl.dataset.stepSection;
     if (view) showView(view);
@@ -620,7 +719,8 @@
     byId("fact-case-count").textContent = status.case_count ?? state.cases.length ?? "—";
     byId("fact-chunk-count").textContent = status.rag?.chunk_count ?? "—";
     byId("fact-engine-version").textContent = status.engine_version || "0.7.1";
-    const fullReady = Boolean(status.model?.full_analysis_ready ?? state.health?.full_analysis_ready);
+    const modelReadiness = effectiveModelReadiness();
+    const fullReady = modelReadiness.full_analysis_ready;
     const readinessLabel = fullReady ? "真实模型可运行" : "真实模型暂不可用 · 备用分析可用";
     byId("fact-model-status").textContent = demoMode
       ? readinessLabel
@@ -688,7 +788,8 @@
     const supabase = auth.persistence?.mode === "supabase";
     const authenticated = Boolean(auth.authenticated);
     const tenant = auth.user?.tenant_id || auth.user?.email || "当前租户";
-    const fullReady = Boolean(state.projectStatus?.model?.full_analysis_ready);
+    const modelReadiness = effectiveModelReadiness();
+    const fullReady = modelReadiness.full_analysis_ready;
     const statusText = demoMode
       ? fullReady ? "竞赛演示 · 真实模型可运行" : "竞赛演示 · 真实模型暂不可用 · 备用分析可用"
       : !supabase ? "本地竞赛模式" : authenticated ? `已登录 · ${tenant}` : "公开匿名 · 外部模型需登录";
@@ -903,8 +1004,9 @@
     const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
     // 比赛演示中行业闸门只决定 AI 分析路线，不再把完整模型链按钮改成预筛入口。
     const noModelIndustryPath = !demoMode && (Boolean(state.industryGate?.specialized_rule) || ["not_applicable", "unknown"].includes(state.industryGate?.fit_level));
+    const modelReadiness = effectiveModelReadiness();
     byId("wb-case-permission").textContent = demoMode
-      ? state.projectStatus?.model?.full_analysis_ready
+      ? modelReadiness.full_analysis_ready
         ? "公开演示：真实模型可运行；结果仍只形成待核查草稿，人工判断和正式批准不会由系统代替。"
         : "公开演示：真实模型暂不可用 · 备用分析可用；请选择确定性备用或仅计算预检。"
       : noModelIndustryPath
@@ -1809,7 +1911,8 @@
     const modelTransferConfigured = Boolean(state.currentCase?.model_transfer_allowed);
     const modelLoginRequired = !noModelIndustryPath && supabaseMode && !state.auth?.authenticated;
     const modelConsentRequired = !noModelIndustryPath && supabaseMode && state.auth?.authenticated && !state.modelConsent?.active;
-    const fullAnalysisReady = Boolean(state.projectStatus?.model?.full_analysis_ready ?? state.health?.full_analysis_ready);
+    const modelReadiness = effectiveModelReadiness();
+    const fullAnalysisReady = modelReadiness.full_analysis_ready;
     const modelTransferAvailable = noModelIndustryPath || (demoMode ? fullAnalysisReady : (supabaseMode ? Boolean(state.auth?.authenticated && state.modelConsent?.active) : modelTransferConfigured));
     fullButton.disabled = unavailable || !modelTransferAvailable;
     calculationButton.disabled = unavailable;
@@ -1823,10 +1926,10 @@
       : modelConsentRequired ? "完整分析需先同意"
       : modelTransferAvailable ? '开始完整分析 <span aria-hidden="true">→</span>' : demoMode ? "真实完整分析暂不可用" : "完整分析需许可";
     fullButton.setAttribute("aria-describedby", "wb-case-permission");
-    fullButton.title = noModelIndustryPath ? "该路径只执行确定性行业规则或适配闸门，不调用外部模型" : modelLoginRequired ? "公网模式的外部模型调用必须登录" : modelConsentRequired ? "请先在当前案例保存模型传输同意" : modelTransferAvailable ? "执行RAG、三Agent与硬校验" : demoMode ? (state.projectStatus?.model?.full_analysis_message || "真实模型暂不可用，请选择确定性备用分析") : "当前案例未获模型传输许可，只能运行仅计算预检";
+    fullButton.title = noModelIndustryPath ? "该路径只执行确定性行业规则或适配闸门，不调用外部模型" : modelLoginRequired ? "公网模式的外部模型调用必须登录" : modelConsentRequired ? "请先在当前案例保存模型传输同意" : modelTransferAvailable ? "执行RAG、三Agent与硬校验" : demoMode ? (modelReadiness.full_analysis_message || "真实模型暂不可用，请选择确定性备用分析") : "当前案例未获模型传输许可，只能运行仅计算预检";
     calculationButton.title = unavailable ? "请先选择案例、分析年度和可运行规则" : "仅执行确定性计算预检，不调用外部模型";
      byId("run-scope").textContent = runnable.length
-       ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${noModelIndustryPath ? " 当前行业路径不调用外部模型。" : modelLoginRequired ? " 外部模型调用需登录；匿名模式可运行仅计算预筛。" : modelConsentRequired ? " 请先保存当前案例的模型传输同意。" : modelTransferAvailable ? "" : demoMode ? ` ${state.projectStatus?.model?.full_analysis_message || "真实模型暂不可用，请选择确定性备用分析。"}` : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && state.currentCase?.field_validation?.status !== "human_confirmed" ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
+       ? `当前将运行 ${runnable.join("、")}；案例 ${state.caseId || "—"}，场景固定为审计计划。${noModelIndustryPath ? " 当前行业路径不调用外部模型。" : modelLoginRequired ? " 外部模型调用需登录；匿名模式可运行仅计算预筛。" : modelConsentRequired ? " 请先保存当前案例的模型传输同意。" : modelTransferAvailable ? "" : demoMode ? ` ${modelReadiness.full_analysis_message || "真实模型暂不可用，请选择确定性备用分析。"}` : " 当前案例尚未取得模型传输许可，请使用仅计算预检。"}${state.currentCase?.registry_mode === "cninfo_official_auto" && state.currentCase?.field_validation?.status !== "human_confirmed" ? " 公开预筛可先运行；正式采用或导出前再完成字段复核。" : ""}`
       : "当前没有可运行规则。";
     if (!state.run && state.currentCase && !modelTransferAvailable && !noModelIndustryPath && !demoMode) {
       byId("wb-gate").className = "status-banner warning";
@@ -1836,8 +1939,49 @@
 
   function renderAgentSteps(steps) {
     if (!steps?.length) return "";
-    const roles = { challenge: "质疑", counter: "反证", review: "复核" };
-    return `<ul class="agent-list" aria-label="三Agent运行轨迹">${steps.map((step) => `<li><strong>${escapeHtml(roles[step.role] || step.role)}</strong><span class="state ${statusKind(step.status)}">${escapeHtml(statusLabel(step.status))}</span><small>${escapeHtml(step.detail)}</small></li>`).join("")}</ul>`;
+    const roleMeta = {
+      challenge: { name: "质疑 Agent (Challenge)", badge: "步骤 1 · 发现风险与缺口", icon: "🔍", class: "challenge" },
+      counter: { name: "反证 Agent (Counter)", badge: "步骤 2 · 对立检验与正常解释", icon: "⚖️", class: "counter" },
+      review: { name: "复核 Agent (Review)", badge: "步骤 3 · 综合评估与备忘录草稿", icon: "📝", class: "review" },
+    };
+    return `<section class="agent-chain-section" aria-label="三Agent协同运行轨迹">
+      <div class="agent-chain-head">
+        <span class="folio">MULTI-AGENT COLLABORATION · TRI-AGENT CHAIN</span>
+        <h5>三 Agent 协同推演轨迹 (Challenge → Counter → Review)</h5>
+        <p class="agent-chain-sub">审计计划阶段专业对立校验链：质疑角色提出候选问题，反证角色寻找合理业务解释与相反证据，复核角色综合证据链生成待核查建议草稿。</p>
+      </div>
+      <div class="agent-chain-cards">
+        ${steps.map((step, idx) => {
+          const meta = roleMeta[step.role] || { name: step.role, badge: `步骤 ${idx + 1}`, icon: "🤖", class: "generic" };
+          const output = step.output;
+          const claims = output?.claims || [];
+          const normals = output?.normal_explanations || [];
+          const gaps = output?.data_gaps || [];
+          const reqs = output?.requested_materials || [];
+          return `<article class="agent-step-card ${escapeHtml(meta.class)}">
+            <header class="agent-step-head">
+              <div>
+                <span class="agent-step-badge">${escapeHtml(meta.badge)}</span>
+                <h6><span aria-hidden="true">${meta.icon}</span> ${escapeHtml(meta.name)}</h6>
+              </div>
+              <span class="state ${statusKind(step.status)}">${escapeHtml(statusLabel(step.status))}</span>
+            </header>
+            <div class="agent-step-body">
+              <p class="agent-step-detail">${escapeHtml(step.detail || "已完成受控角色执行")}</p>
+              ${claims.length ? `<div class="agent-step-block"><strong>事实主张与证据引用：</strong><ul>${claims.map(c => `<li>${escapeHtml(c.text)} <small class="cite">(${escapeHtml(c.support_status)} · ${(c.evidence_ids || []).join(" / ") || "无引用"})</small></li>`).join("")}</ul></div>` : ""}
+              ${normals.length && step.role === "counter" ? `<div class="agent-step-block"><strong>正常业务解释与对立视角：</strong><ul>${normals.map(n => `<li>${escapeHtml(n.text)} <small class="cite">(${escapeHtml(n.support_status)} · ${(n.evidence_ids || []).join(" / ") || "待验证"})</small></li>`).join("")}</ul></div>` : ""}
+              ${gaps.length ? `<div class="agent-step-block"><strong>识别的数据与证据缺口：</strong><ul>${gaps.map(g => `<li>${escapeHtml(g)}</li>`).join("")}</ul></div>` : ""}
+              ${reqs.length && step.role === "review" ? `<div class="agent-step-block"><strong>建议索取资料清单：</strong><ul>${reqs.map(r => `<li>${escapeHtml(r)}</li>`).join("")}</ul></div>` : ""}
+              ${output?.reason_for_status ? `<div class="agent-step-reason"><strong>角色判定理由：</strong><span>${escapeHtml(output.reason_for_status)}</span></div>` : ""}
+            </div>
+            <footer class="agent-step-foot">
+              <span>${step.duration_ms ? `耗时: ${step.duration_ms}ms · ` : ""}${escapeHtml(step.model_id || "demo-deterministic-v1")}</span>
+              ${output?.analysis_conclusion ? `<span class="agent-step-conclusion">路线结论: ${escapeHtml(statusLabel(output.analysis_conclusion))}</span>` : ""}
+            </footer>
+          </article>`;
+        }).join("")}
+      </div>
+    </section>`;
   }
   function renderAiDraft(result) {
     const draft = result.ai_draft;
@@ -1894,22 +2038,12 @@
     if (issues.length) {
       gate.className = "status-banner danger";
       gate.innerHTML = `<strong>来源闸门未通过</strong><span>${escapeHtml(issues.join("；"))}</span>`;
-    } else if (run.context?.industry_prescreen?.industry_rule_id) {
-      const specialized = run.context.industry_prescreen;
-      gate.className = `status-banner ${specialized.status === "SOURCE_INCOMPLETE" ? "danger" : specialized.status === "DATA_GAP" || specialized.data_gaps?.length ? "warning" : "success"}`;
-      gate.innerHTML = `<strong>行业专用预筛：${escapeHtml(specialized.industry_rule_name || "已完成")}</strong><span>程序状态：${escapeHtml(statusLabel(run.screening_status))}；${escapeHtml(specialized.professional_signoff_status || "draft_pending_professional_signoff")}。${escapeHtml(specialized.data_gaps?.length ? "资料缺口已保留，来源技术校验仍可独立通过。" : "仍需专业人员确认行业口径和工程阈值。")}</span>`;
-    } else if (run.context?.industry_gate?.fit_level === "not_applicable") {
-      gate.className = "status-banner neutral";
-      gate.innerHTML = `<strong>行业适配闸门：当前规则不适用</strong><span>${escapeHtml(run.context.industry_gate.rationale || "请使用行业专用规则；公开年报 RAG 仍可继续使用。")}</span>`;
-    } else if (run.context?.industry_gate?.fit_level === "unknown") {
-      gate.className = "status-banner warning";
-      gate.innerHTML = `<strong>行业适配闸门：待确认</strong><span>系统没有猜测行业，也没有执行当前数值规则；请确认报表体系或选择行业专用规则。</span>`;
     } else if (String(run.run_completeness).startsWith("incomplete")) {
       gate.className = "status-banner warning";
       gate.innerHTML = `<strong>${escapeHtml(statusLabel(run.run_completeness))}</strong><span>程序筛查：${escapeHtml(statusLabel(run.screening_status))}；AI建议：${escapeHtml(statusLabel(run.ai_recommendation))}。不得把不完整运行当作完整风险卡。</span>`;
     } else {
       gate.className = "status-banner success";
-      gate.innerHTML = `<strong>${escapeHtml(statusLabel(run.run_completeness))}</strong><span>${escapeHtml(aiNotice(run))}仍须人工回查 evidence ID 后处理。</span>`;
+      gate.innerHTML = `<strong>${escapeHtml(statusLabel(run.run_completeness))}</strong><span>AI分析路线：${escapeHtml(routeLabels[aiRoute] || "三Agent协同复核")}；${escapeHtml(aiNotice(run))} 预审备忘录与待核查事项已就绪，请在下方复核确认。</span>`;
     }
     byId("wb-run-results").innerHTML = run.rule_results.map((result, index) => {
       const metrics = Object.entries(result.metrics || {}).filter(([, value]) => value !== null && value !== undefined);
@@ -2139,14 +2273,15 @@
       state.backendAvailable = health.service_status === "ready";
       const configured = health.model_status === "configured";
       const demoMode = Boolean(state.projectStatus?.demo_mode?.enabled);
-      const ready = Boolean(health.full_analysis_ready ?? state.projectStatus?.model?.full_analysis_ready);
+      const modelReadiness = effectiveModelReadiness();
+      const ready = modelReadiness.full_analysis_ready;
       const modelLabel = ready ? "真实模型可运行" : "真实模型暂不可用 · 备用分析可用";
       setServiceStatus(demoMode ? `后端可用 · ${modelLabel}` : configured ? `后端可用 · ${modelLabel}` : "后端可用 · 模型未配置 · 备用分析可用", ready ? "success" : "pending");
       setStatePill(byId("project-health-state"), demoMode ? `只读演示 · ${modelLabel}` : configured ? `后端可用 · ${modelLabel}` : "后端可用 · 模型未配置 · 备用分析可用", ready ? "success" : "waiting");
       byId("backend-status-note").textContent = demoMode
-        ? `后端状态：公开样例可直接分析；${modelLabel}。${health.full_analysis_message || ""}`
+        ? `后端状态：公开样例可直接分析；${modelLabel}。${modelReadiness.full_analysis_message || ""}`
         : configured
-        ? `后端状态：${modelLabel}；完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。${health.full_analysis_message || ""}`
+        ? `后端状态：${modelLabel}；完整分析是否成功只看本次 run_completeness 与 Agent 硬校验。${modelReadiness.full_analysis_message || ""}`
         : "后端状态：确定性预检可用；模型未配置时，完整分析会明确显示模型配置缺失，不会伪造AI草稿。";
       renderHeroStatus();
       renderRuleLibrary();
@@ -2447,9 +2582,8 @@
   function bindEvents() {
     document.addEventListener("click", (event) => { void openProtectedSource(event); });
     document.querySelectorAll("[data-view]").forEach((link) => link.addEventListener("click", (event) => { event.preventDefault(); showView(link.dataset.view); }));
-    document.querySelectorAll("[data-step]").forEach((step) => {
-      step.addEventListener("click", () => handleStepperClick(step));
-      step.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleStepperClick(step); } });
+    document.querySelectorAll("#process-stepper .step-button").forEach((button) => {
+      button.addEventListener("click", () => handleStepperClick(button));
     });
     document.querySelectorAll("[data-wb-step]").forEach((button) => {
       button.addEventListener("click", () => handleLegacyStep(button.dataset.wbStep));

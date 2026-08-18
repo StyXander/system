@@ -13,6 +13,7 @@ tmp/
 交付包/
 ~$*.docx
 $null
+.zcode/
 
 # 本地验收截图与明确禁止发送的隔离旧包不进入代码提交。
 artifacts/
@@ -35,6 +36,8 @@ artifacts/
 /AGENTS.md
 /PROJECT_STATUS.md
 /README_*.md
+/答辩PPT/
+/审迹智链_*.md
 /backend/tests/
 /backend/requirements-lock.txt
 /docs/
@@ -56,6 +59,7 @@ artifacts/
 /backend/tests/*
 !/backend/tests/test_competition_demo_plan.py
 !/backend/tests/test_merged_bug_fixes.py
+!/backend/tests/test_provider_readiness.py
 !/scripts/
 /scripts/*
 !/scripts/freeze_evaluation_v3.py

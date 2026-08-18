@@ -43,16 +43,6 @@
       flex: 1 0 auto;
       min-width: 120px;
       max-width: 220px;
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-3);
-      color: var(--text-tertiary);
-      border: 1px solid transparent;
-      border-radius: var(--radius-2);
-      font-size: 12px;
-      line-height: 1.35;
-      cursor: default;
-      transition: color 150ms var(--ease), background-color 150ms var(--ease), border-color 150ms var(--ease);
     }
     .process-step::after {
       content: "";
@@ -66,7 +56,28 @@
       opacity: .5;
     }
     .process-step:last-child::after { display: none; }
-    .process-step .step-marker {
+    .step-button {
+      display: flex;
+      flex: 1 1 auto;
+      align-items: center;
+      gap: var(--space-2);
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      color: var(--text-tertiary);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--radius-2);
+      font-family: inherit;
+      font-size: 12px;
+      line-height: 1.35;
+      text-align: left;
+      cursor: default;
+      transition: color 150ms var(--ease), background-color 150ms var(--ease), border-color 150ms var(--ease);
+    }
+    .step-button:not(:disabled) { cursor: pointer; }
+    .step-button:not(:disabled):hover { background: var(--bg-hover); color: var(--text-primary); }
+    .step-button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
+    .step-button .step-marker {
       display: grid;
       flex: 0 0 22px;
       width: 22px;
@@ -77,44 +88,45 @@
       font-size: 10px;
       font-weight: 700;
     }
-    .process-step .step-label { font-weight: 500; }
-    .process-step .step-label small {
+    .step-button .step-label { font-weight: 500; }
+    .step-button .step-label small {
       display: block;
       color: var(--text-tertiary);
       font-size: 10px;
       font-weight: 400;
     }
-    .process-step.current {
+    .process-step.current .step-button {
       color: var(--text-primary);
       background: var(--accent-muted);
       border-color: var(--accent-border);
     }
     .process-step.current .step-marker { background: var(--accent-primary); color: var(--text-on-accent); border-color: var(--accent-primary); }
-    .process-step.completed {
-      color: var(--text-secondary);
-      cursor: pointer;
-    }
+    .process-step.completed .step-button { color: var(--text-secondary); }
     .process-step.completed .step-marker { border-color: var(--success); color: var(--success); }
-    .process-step.completed:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .process-step.attention .step-button {
+      color: var(--warning, #b45309);
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+    .process-step.attention .step-marker {
+      background: var(--warning, #d97706);
+      color: #ffffff;
+      border-color: var(--warning, #d97706);
+      font-weight: 800;
+    }
+    .process-step.not-applicable { opacity: .5; }
     .process-step.pending { opacity: .7; }
-    .process-step.clickable {
-      cursor: pointer;
-    }
-    .process-step.clickable:hover {
-      background: var(--bg-hover);
-      color: var(--text-primary);
-    }
     @media (max-width: 768px) {
       .process-step { min-width: 0; max-width: none; flex: 1 1 0; }
-      .process-step .step-label { font-size: 11px; }
-      .process-step .step-label small { display: none; }
-      .process-step:not(.current):not(.completed) .step-label { display: none; }
-      .process-step.current .step-label, .process-step.completed .step-label { display: block; }
+      .step-button .step-label { font-size: 11px; }
+      .step-button .step-label small { display: none; }
+      .process-step:not(.current):not(.completed):not(.attention) .step-label { display: none; }
+      .process-step.current .step-label, .process-step.completed .step-label, .process-step.attention .step-label { display: block; }
     }
     @media (max-width: 480px) {
-      .process-step { padding: var(--space-2); }
-      .process-step .step-label { display: none; }
-      .process-step.current .step-label { display: block; font-size: 11px; }
+      .step-button { padding: var(--space-2); }
+      .step-button .step-label { display: none; }
+      .process-step.current .step-label, .process-step.attention .step-label { display: block; font-size: 11px; }
     }
     .sidebar { top: calc(var(--topbar-height) + var(--stepper-height)); height: calc(100vh - var(--topbar-height) - var(--stepper-height)); }
     #wb-data-status { cursor: pointer; }
@@ -169,6 +181,139 @@
     }
     .delivery-empty-state strong { display: block; color: var(--text-primary); font-size: 16px; }
     .delivery-empty-state p { color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
+    /* Multi-Agent Collaboration Chain Styling */
+    .agent-chain-section {
+      margin-top: var(--space-5);
+      padding: var(--space-4);
+      background: var(--surface-muted, #f8fafc);
+      border: 1px solid var(--accent-border, #e2e8f0);
+      border-radius: var(--radius-2, 6px);
+    }
+    .agent-chain-head {
+      margin-bottom: var(--space-3);
+    }
+    .agent-chain-head h5 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: var(--space-1) 0;
+    }
+    .agent-chain-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .agent-chain-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+    }
+    @media (max-width: 960px) {
+      .agent-chain-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+    .agent-step-card {
+      background: var(--surface, #ffffff);
+      border: 1px solid var(--accent-border, #e2e8f0);
+      border-radius: var(--radius-2, 6px);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .agent-step-card:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+    }
+    .agent-step-card.challenge { border-top: 4px solid #2563eb; }
+    .agent-step-card.counter { border-top: 4px solid #7c3aed; }
+    .agent-step-card.review { border-top: 4px solid #059669; }
+    .agent-step-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-3);
+      gap: var(--space-2);
+    }
+    .agent-step-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .agent-step-head h6 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .agent-step-detail {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: var(--space-3);
+      padding-bottom: var(--space-2);
+      border-bottom: 1px dashed var(--line, #e2e8f0);
+    }
+    .agent-step-block {
+      font-size: 12px;
+      margin-top: var(--space-2);
+      color: var(--text-secondary);
+    }
+    .agent-step-block strong {
+      display: block;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+      font-size: 12px;
+    }
+    .agent-step-block ul {
+      padding-left: 16px;
+      margin: 3px 0 var(--space-2) 0;
+    }
+    .agent-step-block li {
+      margin-bottom: 4px;
+      line-height: 1.45;
+    }
+    .agent-step-block small.cite {
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .agent-step-reason {
+      font-size: 11.5px;
+      background: var(--accent-muted, #f1f5f9);
+      padding: var(--space-2);
+      border-radius: var(--radius-1, 4px);
+      margin-top: var(--space-3);
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+    .agent-step-reason strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .agent-step-foot {
+      margin-top: var(--space-4);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--line, #e2e8f0);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-1);
+    }
+    .agent-step-conclusion {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
     .topbar-menu { position: relative; }
     .topbar-menu ul {
       position: absolute;
@@ -283,30 +428,40 @@
     </div>
   </header>
 
-  <div class="process-stepper" id="process-stepper" aria-label="审计计划主流程">
+  <nav class="process-stepper" id="process-stepper" aria-label="审计计划主流程">
     <ol class="process-stepper-list">
-      <li class="process-step" data-step="1" data-step-view="project" tabindex="0" role="button" aria-label="第 1 步：选择审计对象">
-        <span class="step-marker" aria-hidden="true">1</span>
-        <span class="step-label">选择审计对象<small id="step-1-sub">未选择</small></span>
+      <li class="process-step">
+        <button type="button" class="step-button" data-step="1" data-step-view="project" aria-label="第 1 步：选择审计对象">
+          <span class="step-marker" aria-hidden="true">1</span>
+          <span class="step-label">选择审计对象<small id="step-1-sub">未选择</small></span>
+        </button>
       </li>
-      <li class="process-step" data-step="2" data-step-view="project" data-step-section="cninfo-field-review" tabindex="0" role="button" aria-label="第 2 步：确认字段与来源">
-        <span class="step-marker" aria-hidden="true">2</span>
-        <span class="step-label">确认字段与来源<small id="step-2-sub">无需复核</small></span>
+      <li class="process-step">
+        <button type="button" class="step-button" data-step="2" data-step-view="project" data-step-section="cninfo-field-review" aria-label="第 2 步：确认字段与来源">
+          <span class="step-marker" aria-hidden="true">2</span>
+          <span class="step-label">确认字段与来源<small id="step-2-sub">无需复核</small></span>
+        </button>
       </li>
-      <li class="process-step" data-step="3" data-step-view="analysis" tabindex="0" role="button" aria-label="第 3 步：执行风险分析">
-        <span class="step-marker" aria-hidden="true">3</span>
-        <span class="step-label">执行风险分析<small id="step-3-sub">等待运行</small></span>
+      <li class="process-step">
+        <button type="button" class="step-button" data-step="3" data-step-view="analysis" aria-label="第 3 步：执行风险分析">
+          <span class="step-marker" aria-hidden="true">3</span>
+          <span class="step-label">执行风险分析<small id="step-3-sub">等待运行</small></span>
+        </button>
       </li>
-      <li class="process-step" data-step="4" data-step-view="delivery" tabindex="0" role="button" aria-label="第 4 步：人工复核判断">
-        <span class="step-marker" aria-hidden="true">4</span>
-        <span class="step-label">人工复核判断<small id="step-4-sub">未复核</small></span>
+      <li class="process-step">
+        <button type="button" class="step-button" data-step="4" data-step-view="delivery" aria-label="第 4 步：人工复核判断">
+          <span class="step-marker" aria-hidden="true">4</span>
+          <span class="step-label">人工复核判断<small id="step-4-sub">未复核</small></span>
+        </button>
       </li>
-      <li class="process-step" data-step="5" data-step-view="delivery" data-step-section="export-heading" tabindex="0" role="button" aria-label="第 5 步：导出审计备忘录">
-        <span class="step-marker" aria-hidden="true">5</span>
-        <span class="step-label">导出审计备忘录<small id="step-5-sub">待批准</small></span>
+      <li class="process-step">
+        <button type="button" class="step-button" data-step="5" data-step-view="delivery" data-step-section="export-heading" aria-label="第 5 步：导出审计备忘录">
+          <span class="step-marker" aria-hidden="true">5</span>
+          <span class="step-label">导出审计备忘录<small id="step-5-sub">待批准</small></span>
+        </button>
       </li>
     </ol>
-  </div>
+  </nav>
 
   <div class="app-shell">
     <aside class="sidebar" id="primary-navigation">

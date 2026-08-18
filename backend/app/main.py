@@ -139,6 +139,12 @@ from .cases import (
 from .industry_gate import build_not_applicable_context, evaluate_industry_gate
 from .industry_rules import build_industry_prescreen
 from .privacy import model_transmission_scope, scan_sensitive_payload
+from .provider_readiness import (
+    get_provider_snapshot,
+    is_provider_probe_enabled,
+    record_provider_failure,
+    record_provider_success,
+)
 from .public_model import PublicModelLedger, PublicModelQuotaError, build_cache_key
 from .evaluation import load_evaluation_dashboard
 from .catalog import (
@@ -434,21 +440,21 @@ def _model_settings() -> tuple[str | None, str, str]:
 
 
 def _model_readiness(request: Request | None = None) -> dict[str, Any]:
-    """只读取配置和额度账本，给页面一个稳定的真实模型可用性结论。"""
+    """结合配置、额度账本与供应商可用性快照，给出真实模型可用性结论。"""
 
-    # 就绪判断只读服务端状态，不向供应商发起试探请求。
-    # Key 存在只能证明配置完成，不能证明公开额度和账本可用。
+    # 就绪判断读取服务端状态与受控探测快照，不产生用户 Token 消耗。
+    # Key 存在只能证明配置完成，不能证明供应商鉴权、余额与公开账本可用。
     # 公开页面必须同时看到后端可用、模型已配置和真实模型可运行三种状态。
-    # 缺少任一公开条件时，页面仍保留确定性备用入口。
+    # 缺少任一公开条件或供应商处于熔断时，页面仍保留确定性备用入口。
     # 原因码保持稳定，前端可以据此给出中文的下一步操作。
     # 额度快照只在需要时读取，不把秘密值返回给浏览器。
-    # 供应商余额、模型健康度和专业结论都不由这里臆测。
+    # 真实运行的鉴权与余额失败会立即反馈给熔断状态机。
     # 账本异常按失败关闭处理，避免把未知状态误报为可运行。
     # 并发额度为零时禁止继续排队，避免用户反复点击消耗资源。
     # 私有模式仍允许已授权案例使用配置好的模型链。
     # 公开模式只有所有条件同时满足才返回 external_live 所需的 ready。
     # 这些判断与确定性备用完全分离，备用分析永远不调用外部模型。
-    api_key, _, model_id = _model_settings()
+    api_key, base_url, model_id = _model_settings()
     public_live = _public_demo_enabled() and _demo_external_model_enabled()
     if not api_key:
         return {
@@ -458,6 +464,7 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "deterministic_backup_available": True,
             "model_id": model_id,
             "quota": None,
+            "provider": None,
         }
     if not public_live:
         return {
@@ -467,6 +474,7 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "deterministic_backup_available": True,
             "model_id": model_id,
             "quota": None,
+            "provider": None,
         }
     quota_secret = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "").strip()
     if not quota_secret:
@@ -477,6 +485,7 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "deterministic_backup_available": True,
             "model_id": model_id,
             "quota": None,
+            "provider": None,
         }
     if len(quota_secret) < 32:
         return {
@@ -486,6 +495,7 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "deterministic_backup_available": True,
             "model_id": model_id,
             "quota": None,
+            "provider": None,
         }
     try:
         quota = _public_model_ledger().quota_snapshot(_client_identity(request) if request else None)
@@ -497,6 +507,7 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "deterministic_backup_available": True,
             "model_id": model_id,
             "quota": None,
+            "provider": None,
         }
     quota_exhausted = any(
         int(quota.get(key) or 0) <= 0
@@ -510,6 +521,18 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "deterministic_backup_available": True,
             "model_id": model_id,
             "quota": quota,
+            "provider": None,
+        }
+    provider_snapshot = get_provider_snapshot()
+    if provider_snapshot.status != "ready":
+        return {
+            "full_analysis_ready": False,
+            "full_analysis_reason_code": provider_snapshot.reason_code,
+            "full_analysis_message": provider_snapshot.message,
+            "deterministic_backup_available": True,
+            "model_id": model_id,
+            "quota": quota,
+            "provider": provider_snapshot.to_dict(),
         }
     return {
         "full_analysis_ready": True,
@@ -518,6 +541,7 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
         "deterministic_backup_available": True,
         "model_id": model_id,
         "quota": quota,
+        "provider": provider_snapshot.to_dict(),
     }
 
 
@@ -3551,6 +3575,18 @@ def _execute_run(
                     analysis_context=analysis_context,
                 )
             )
+            # 真实运行反向反馈：记录供应商成功或失败熔断
+            if not context.get("force_deterministic_backup") and not (_competition_demo_enabled() and not _demo_external_model_enabled()):
+                for step in primary_result.agent_steps:
+                    if step.status == "completed" and step.duration_ms and step.duration_ms > 0:
+                        record_provider_success(model_id=model_id)
+                    elif step.status == "failed" and step.error_code in {
+                        "MODEL_PROVIDER_AUTH_FAILED",
+                        "MODEL_PROVIDER_BALANCE_EXHAUSTED",
+                        "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED",
+                        "MODEL_PROVIDER_RATE_LIMITED",
+                    }:
+                        record_provider_failure(step.error_code, step.detail or "")
             review_step = next(
                 (step for step in primary_result.agent_steps if step.role == "review" and step.status == "completed" and step.output),
                 None,
@@ -3779,9 +3815,10 @@ def serve_main_page() -> FileResponse:
 
 
 @app.get("/api/health", response_model=HealthResponse)
-def health() -> HealthResponse:
+def health(http_request: Request) -> HealthResponse:
     api_key, _, model_id = _model_settings()
-    readiness = _model_readiness()
+    readiness = _model_readiness(http_request)
+    provider_info = readiness.get("provider") or {}
     return HealthResponse(
         service_status="ready",
         model_status="configured" if api_key else "config_missing",
@@ -3793,6 +3830,10 @@ def health() -> HealthResponse:
         source_snapshot_id=SOURCE_SNAPSHOT_ID,
         detail="服务可用；模型配置状态不等于已经完成真实三Agent运行。"
         f" 当前就绪判断：{readiness['full_analysis_message']}",
+        provider_status=provider_info.get("status"),
+        provider_reason_code=provider_info.get("reason_code"),
+        provider_checked_at=provider_info.get("checked_at"),
+        provider_source=provider_info.get("source"),
     )
 
 
@@ -3827,6 +3868,11 @@ def project_status(http_request: Request) -> dict[str, Any]:
     quota_snapshot = readiness.get("quota")
     return _with_ai_notice({
         **registered,
+        "readiness_contract_version": "model_readiness_v1",
+        "full_analysis_ready": bool(readiness["full_analysis_ready"]),
+        "full_analysis_reason_code": str(readiness["full_analysis_reason_code"]),
+        "full_analysis_message": str(readiness["full_analysis_message"]),
+        "deterministic_backup_available": bool(readiness["deterministic_backup_available"]),
         "engine_version": ENGINE_VERSION,
         "run_schema_version": RUN_SCHEMA_VERSION,
         "case_count": len(cases),
@@ -4455,7 +4501,7 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
     context["force_deterministic_backup"] = bool(request.force_deterministic_backup)
     if request.force_deterministic_backup:
         context["continuation_mode"] = "explicit_deterministic_backup"
-    context["ai_model_all_cases"] = request.run_mode == "full_analysis" and not request.force_deterministic_backup
+    context["ai_model_all_cases"] = request.run_mode == "full_analysis"
     # 外部模型调用在公网模式必须有真实登录身份；匿名用户仍可完成公开确定性预筛，
     # 但不会把项目级许可误当作用户级模型授权。
     original_model_transfer_allowed = bool(context.get("model_transfer_allowed"))
@@ -5919,7 +5965,7 @@ def rerun_with_supplement(
             "source_snapshot_id": f"{parent.run.context.get('source_snapshot_id')}+{supplement_id}",
             "private_case": not is_public_case(parent_case),
             "force_deterministic_backup": bool(request.force_deterministic_backup),
-            "ai_model_all_cases": request.run_mode == "full_analysis" and not bool(request.force_deterministic_backup),
+            "ai_model_all_cases": request.run_mode == "full_analysis",
         }
     )
     if identity and not identity.is_local:
