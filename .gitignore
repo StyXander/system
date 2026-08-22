@@ -10,6 +10,9 @@ backend/**/__pycache__/
 .pytest_tmp2/
 backend/runtime/
 tmp/
+# 本地浏览器验收产物与前端回滚备份只留在本机，不进入发布提交。
+runtime/
+backups/
 交付包/
 ~$*.docx
 $null

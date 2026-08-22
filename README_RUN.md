@@ -3,7 +3,7 @@
 > 正式入口：根目录 `index.html`，必须由 FastAPI 提供；不要双击静态文件。  
 > 正式范围：审计计划阶段—销售与收款循环。  
 > 统一 AI 声明：AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。  
-> 当前事实：`PROJECT_AUTHORIZATION.json` 已记录项目所有者对标准股份和杰克科技当前公开来源快照的最小必要模型传输许可；来源哈希变化仍需重新核验，正式案例冻结、全文再分发和专业采用未获自动批准。2026-08-16 合并整改后的源码仓库回归为 **213 passed、1 warning**；前端契约为 **240 unique ids、436 refs、9 views**。历史 51 案 `agent_prompt_v3` 外部模型链为技术证据，不是当前修复代码或有效 B3 的专业验收。
+> 当前事实：`PROJECT_AUTHORIZATION.json` 已记录项目所有者对标准股份和杰克科技当前公开来源快照的最小必要模型传输许可；来源哈希变化仍需重新核验，正式案例冻结、全文再分发和专业采用未获自动批准。2026-08-22 OpenCode 通道化就绪状态收尾后的源码仓库回归为 **241 passed、1 warning**；前端契约为 **246 unique ids、441 refs、9 views**。历史 51 案 `agent_prompt_v3` 外部模型链为技术证据，不是当前修复代码或有效 B3 的专业验收。
 
 ## 一、最省事的启动方法
 
@@ -85,7 +85,7 @@ backend\.venv\Scripts\python.exe scripts\check_chinese_comments.py
 backend\.venv\Scripts\python.exe -m pytest -q
 ```
 
-2026-08-16 源码仓库当前实际结果为 **213 passed、1 warning、200.11s**；中文说明行检查为 **1758/17545（10.02%）**；前端契约为 240 个唯一 ID、436 个引用、9 个视图。专项覆盖模型就绪组合、额度与账本失败、无 `run_id` 的显式备用、补充续分析备用标志、R2 数据缺口、资料缺口与 evidence ID 去重、RAG 低置信提示、匿名公开 Demo 前后端只读边界和状态中文化。仓库内旧 pytest 临时目录存在 Windows 权限锁，本次改用系统临时目录完成复验；唯一代码层 warning 是 Starlette TestClient / httpx 兼容性弃用提示。历史 2026-08-09 无密钥清洁运行包仍登记为 **171 passed、1 warning**，本轮未重建该交付包。
+2026-08-22 源码仓库当前实际结果为 **241 passed、1 warning、149.94s**；中文说明行检查为 **1861/18393（10.12%）**；前端契约为 246 个唯一 ID、441 个引用、9 个视图。专项覆盖供应商通道化就绪（DeepSeek 直连 / OpenCode Go / Zen）、探测关闭不冒充 ready、真实运行反馈按 `failure_stage=provider` 与 `base_url` 登记、工具参数协议错误结构化、模型就绪组合、额度与账本失败、无 `run_id` 的显式备用、补充续分析备用标志、R2 数据缺口、资料缺口与 evidence ID 去重、RAG 低置信提示、匿名公开 Demo 前后端只读边界和状态中文化。唯一代码层 warning 是 Starlette TestClient / httpx 兼容性弃用提示。历史 2026-08-09 无密钥清洁运行包仍登记为 **171 passed、1 warning**，本轮未重建该交付包。
 
 当前清洁运行包为了保留标准案例的 RAG 与来源复验能力，仍含四份公开年报全文；在真人确认全文再分发边界前，它仅供团队内部技术复验，**禁止外发**。队员 Word/Excel 包和老师方案材料包不含年报全文。
 

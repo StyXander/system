@@ -157,8 +157,8 @@ class AgentOutput(AiGeneratedContentNotice):
     ] | None = None
     status: Literal["candidate", "retain", "downgrade", "defer"]
     # 证据包为空时允许空 claims；服务端语义校验会限制该例外只能用于
-    # 数据缺口/行业边界路线，正常有证据的路线仍必须至少有一条主张。
-    claims: list[AgentClaim] = Field(default_factory=list, max_length=4)
+    # 数据缺口/行业边界路线，正常有证据的路线最多形成 Top 5 条核心待核查事项。
+    claims: list[AgentClaim] = Field(default_factory=list, max_length=5)
     normal_explanations: list[AgentClaim] = Field(default_factory=list, max_length=5)
     data_gaps: list[str] = Field(default_factory=list, max_length=8)
     requested_materials: list[str] = Field(default_factory=list, max_length=8)

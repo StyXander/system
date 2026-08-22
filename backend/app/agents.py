@@ -96,6 +96,7 @@ from urllib.request import Request, urlopen
 from pydantic import ValidationError
 
 from .privacy import scan_sensitive_payload
+from .provider_readiness import get_provider_error_guidance
 from .schemas import AgentOutput, AgentRole, AgentStep, RuleResult
 
 
@@ -148,6 +149,31 @@ class ProviderCallError(RuntimeError):
         self.failure_code = failure_code
         self.detail = detail
         self.provider_call_count = max(1, int(provider_call_count))
+
+
+class ToolArgumentsError(ValueError):
+    """工具调用协议失败的稳定诊断，不回显供应商原始响应。"""
+
+    def __init__(self, failure_code: str, detail: str) -> None:
+        super().__init__(detail)
+        self.failure_code = failure_code
+        self.detail = detail
+
+
+def _tool_arguments_failure(error: ValueError) -> tuple[str, str]:
+    """把工具参数协议失败归类为稳定码，避免所有 ValueError 被压成同一错误。"""
+    if isinstance(error, ToolArgumentsError):
+        return error.failure_code, error.detail
+    message = str(error)
+    if "输出上限" in message or "finish_reason=length" in message:
+        return "MODEL_TOOL_OUTPUT_TRUNCATED", "模型在完成工具参数前达到本角色输出上限。"
+    if "未声明的输出工具" in message or "受约束的工具参数" in message:
+        return "MODEL_TOOL_CALL_CONTRACT_ERROR", "模型未按声明的输出工具合同返回调用。"
+    if "可解析的工具参数" in message:
+        return "MODEL_TOOL_ARGUMENTS_MISSING", "模型未返回可读取的工具参数。"
+    if "JSON对象后" in message or "不是JSON对象" in message:
+        return "MODEL_TOOL_ARGUMENTS_SHAPE_INVALID", "模型工具参数不是单个可校验的 JSON 对象。"
+    return "MODEL_TOOL_ARGUMENTS_INVALID", "模型工具参数未通过服务端协议检查。"
 
 
 def _provider_error_message(error: HTTPError) -> str:
@@ -210,7 +236,7 @@ AGENT_OUTPUT_TOOL = {
                 "claims": {
                     "type": "array",
                     "minItems": 1,
-                    "maxItems": 4,
+                    "maxItems": 5,
                     "items": {
                         "type": "object",
                         "properties": {
@@ -884,16 +910,16 @@ def _call_model(
     choice = response_data["choices"][0]
     finish_reason = choice.get("finish_reason") or "unknown"
     if finish_reason == "length":
-        raise ValueError("模型工具参数超过本角色输出上限")
+        raise ToolArgumentsError("MODEL_TOOL_OUTPUT_TRUNCATED", "模型在完成工具参数前达到本角色输出上限。")
     tool_calls = choice["message"].get("tool_calls")
     if not isinstance(tool_calls, list) or len(tool_calls) != 1:
-        raise ValueError(f"模型未返回受约束的工具参数（finish_reason={finish_reason}）")
+        raise ToolArgumentsError("MODEL_TOOL_CALL_CONTRACT_ERROR", "模型未按声明的输出工具合同返回调用。")
     function = tool_calls[0].get("function") if isinstance(tool_calls[0], dict) else None
     if not isinstance(function, dict) or function.get("name") != AGENT_OUTPUT_TOOL_NAME:
-        raise ValueError("模型调用了未声明的输出工具")
+        raise ToolArgumentsError("MODEL_TOOL_CALL_CONTRACT_ERROR", "模型未按声明的输出工具合同返回调用。")
     arguments = function.get("arguments")
     if not isinstance(arguments, str) or not arguments.strip():
-        raise ValueError("模型未返回可解析的工具参数")
+        raise ToolArgumentsError("MODEL_TOOL_ARGUMENTS_MISSING", "模型未返回可读取的工具参数。")
     usage = response_data.get("usage") or {}
     input_tokens = usage.get("prompt_tokens")
     output_tokens = usage.get("completion_tokens")
@@ -938,27 +964,31 @@ def _call_model_with_transient_retry(
                     provider_call_count=attempt + 1,
                 ) from error
             if code == 402:
+                guidance = get_provider_error_guidance("MODEL_PROVIDER_BALANCE_EXHAUSTED", base_url=base_url, http_code=402)
                 raise ProviderCallError(
                     "MODEL_PROVIDER_BALANCE_EXHAUSTED",
-                    "模型供应商余额不足，未完成本次角色调用。",
+                    guidance["message"],
                     provider_call_count=attempt + 1,
                 ) from error
             if code in {401, 403}:
+                guidance = get_provider_error_guidance("MODEL_PROVIDER_AUTH_FAILED", base_url=base_url, http_code=code, detail=provider_message)
                 raise ProviderCallError(
                     "MODEL_PROVIDER_AUTH_FAILED",
-                    "模型供应商鉴权失败，请检查服务端密钥配置。",
+                    guidance["message"],
                     provider_call_count=attempt + 1,
                 ) from error
             if code not in {408, 409, 425, 429, 500, 502, 503, 504}:
+                guidance = get_provider_error_guidance("MODEL_PROVIDER_REJECTED", base_url=base_url, http_code=code)
                 raise ProviderCallError(
                     "MODEL_PROVIDER_REJECTED",
-                    f"模型供应商拒绝请求（HTTP {code}）。",
+                    guidance["message"],
                     provider_call_count=attempt + 1,
                 ) from error
             if attempt == 1:
+                guidance = get_provider_error_guidance("MODEL_PROVIDER_RATE_LIMITED", base_url=base_url, http_code=code)
                 raise ProviderCallError(
                     "MODEL_PROVIDER_RATE_LIMITED",
-                    "模型供应商暂时限流或不可用，重试后仍未完成。",
+                    guidance["message"],
                     provider_call_count=attempt + 1,
                 ) from error
             time.sleep(1.5)
@@ -1108,15 +1138,19 @@ def run_agent_chain(
             append_skipped(role_index, "前一角色返回的工具参数无法解析，后续角色未调用。")
             break
         except (KeyError, IndexError, UnicodeDecodeError, TypeError, ValueError) as error:
+            failure_code, detail = _tool_arguments_failure(error) if isinstance(error, ValueError) else (
+                "MODEL_TOOL_RESPONSE_STRUCTURE_INVALID",
+                "模型工具调用响应缺少服务端所需的结构字段。",
+            )
             steps.append(
                 AgentStep(
                     role=role,
                     status="MODEL_OUTPUT_INVALID",
                     failure_stage="tool_arguments",
-                    failure_code="MODEL_TOOL_ARGUMENTS_INVALID",
+                    failure_code=failure_code,
                     model_id=model_id,
                     prompt_version=PROMPT_VERSION,
-                    detail=f"模型工具参数未通过协议检查：{type(error).__name__}",
+                    detail=detail,
                     input_sha256=input_sha256,
                     provider_call_performed=True,
                     provider_call_count=max(1, int(getattr(error, "provider_call_count", 1))),

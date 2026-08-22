@@ -227,6 +227,8 @@
         } else {
           target.scrollIntoView({ block: "start", behavior });
         }
+        if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+        try { target.focus({ preventScroll: true }); } catch (_e) { target.focus(); }
       });
     });
   }

@@ -140,6 +140,7 @@ from .industry_gate import build_not_applicable_context, evaluate_industry_gate
 from .industry_rules import build_industry_prescreen
 from .privacy import model_transmission_scope, scan_sensitive_payload
 from .provider_readiness import (
+    classify_provider_channel,
     get_provider_snapshot,
     is_provider_probe_enabled,
     record_provider_failure,
@@ -407,6 +408,18 @@ async def json_validation_error(_request: Request, error: RequestValidationError
     )
 
 
+@app.exception_handler(Exception)
+async def generic_exception_handler(_request: Request, error: Exception) -> JSONResponse:
+    """全局兜底异常处理器：未捕获异常返回脱敏 500 错误，并强制附加 AI 免责声明。"""
+    # 记录原始异常类型便于定位问题，同时保证所有未预期 500 响应均包含合规 AI 声明
+    return JSONResponse(
+        status_code=500,
+        content=_with_ai_notice({
+            "detail": f"服务器内部处理异常（{type(error).__name__}），请稍后重试或查看系统状态日志。"
+        }),
+    )
+
+
 def _openapi_with_ai_notice() -> dict[str, Any]:
     if app.openapi_schema:
         return app.openapi_schema
@@ -455,26 +468,44 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
     # 公开模式只有所有条件同时满足才返回 external_live 所需的 ready。
     # 这些判断与确定性备用完全分离，备用分析永远不调用外部模型。
     api_key, base_url, model_id = _model_settings()
+    channel_info = classify_provider_channel(base_url)
+    p_kind = channel_info["provider_kind"]
+    p_label = channel_info["provider_label"]
+    p_host = channel_info["provider_host"]
     public_live = _public_demo_enabled() and _demo_external_model_enabled()
+
     if not api_key:
         return {
             "full_analysis_ready": False,
             "full_analysis_reason_code": "api_key_missing",
-            "full_analysis_message": "服务端尚未配置模型 API Key；可运行仅计算或确定性备用分析。",
+            "full_analysis_message": f"服务端尚未配置 {p_label} API Key；可运行仅计算或确定性备用分析。",
             "deterministic_backup_available": True,
             "model_id": model_id,
+            "provider_kind": p_kind,
+            "provider_label": p_label,
+            "provider_host": p_host,
+            "paid_probe_performed": False,
+            "last_runtime_failure_code": None,
+            "next_action_code": "configure_api_key",
             "quota": None,
             "provider": None,
         }
     if not public_live:
+        provider_snapshot = get_provider_snapshot()
         return {
-            "full_analysis_ready": True,
-            "full_analysis_reason_code": "ready",
-            "full_analysis_message": "模型 API Key 已配置；真实完整分析仍以本次运行硬校验结果为准。",
+            "full_analysis_ready": provider_snapshot.status == "ready",
+            "full_analysis_reason_code": provider_snapshot.reason_code,
+            "full_analysis_message": provider_snapshot.message,
             "deterministic_backup_available": True,
             "model_id": model_id,
+            "provider_kind": p_kind,
+            "provider_label": p_label,
+            "provider_host": p_host,
+            "paid_probe_performed": bool(provider_snapshot.paid_probe_performed),
+            "last_runtime_failure_code": provider_snapshot.last_runtime_failure_code,
+            "next_action_code": provider_snapshot.next_action_code,
             "quota": None,
-            "provider": None,
+            "provider": provider_snapshot.to_dict(),
         }
     quota_secret = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "").strip()
     if not quota_secret:
@@ -484,6 +515,12 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "full_analysis_message": "公开模型额度密钥未配置；请在服务端生成密钥后再运行真实完整分析。",
             "deterministic_backup_available": True,
             "model_id": model_id,
+            "provider_kind": p_kind,
+            "provider_label": p_label,
+            "provider_host": p_host,
+            "paid_probe_performed": False,
+            "last_runtime_failure_code": None,
+            "next_action_code": "configure_quota_secret",
             "quota": None,
             "provider": None,
         }
@@ -494,6 +531,12 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "full_analysis_message": "公开模型额度密钥长度不足 32 位；请在服务端重新生成安全密钥。",
             "deterministic_backup_available": True,
             "model_id": model_id,
+            "provider_kind": p_kind,
+            "provider_label": p_label,
+            "provider_host": p_host,
+            "paid_probe_performed": False,
+            "last_runtime_failure_code": None,
+            "next_action_code": "configure_quota_secret",
             "quota": None,
             "provider": None,
         }
@@ -506,6 +549,12 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "full_analysis_message": f"公开额度账本暂不可用（{type(error).__name__}）；请稍后重试或使用备用分析。",
             "deterministic_backup_available": True,
             "model_id": model_id,
+            "provider_kind": p_kind,
+            "provider_label": p_label,
+            "provider_host": p_host,
+            "paid_probe_performed": False,
+            "last_runtime_failure_code": None,
+            "next_action_code": "retry_later",
             "quota": None,
             "provider": None,
         }
@@ -520,6 +569,12 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "full_analysis_message": "当前公开模型额度或并发已用尽；请稍后重试，或选择确定性备用分析。",
             "deterministic_backup_available": True,
             "model_id": model_id,
+            "provider_kind": p_kind,
+            "provider_label": p_label,
+            "provider_host": p_host,
+            "paid_probe_performed": False,
+            "last_runtime_failure_code": None,
+            "next_action_code": "use_deterministic_backup",
             "quota": quota,
             "provider": None,
         }
@@ -531,15 +586,27 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
             "full_analysis_message": provider_snapshot.message,
             "deterministic_backup_available": True,
             "model_id": model_id,
+            "provider_kind": p_kind,
+            "provider_label": p_label,
+            "provider_host": p_host,
+            "paid_probe_performed": bool(provider_snapshot.paid_probe_performed),
+            "last_runtime_failure_code": provider_snapshot.last_runtime_failure_code,
+            "next_action_code": provider_snapshot.next_action_code,
             "quota": quota,
             "provider": provider_snapshot.to_dict(),
         }
     return {
         "full_analysis_ready": True,
         "full_analysis_reason_code": "ready",
-        "full_analysis_message": "真实模型、公开额度密钥、额度账本和当前额度均可用。",
+        "full_analysis_message": f"真实模型（{p_label}）、公开额度密钥、额度账本和当前额度均可用。",
         "deterministic_backup_available": True,
         "model_id": model_id,
+        "provider_kind": p_kind,
+        "provider_label": p_label,
+        "provider_host": p_host,
+        "paid_probe_performed": bool(provider_snapshot.paid_probe_performed),
+        "last_runtime_failure_code": provider_snapshot.last_runtime_failure_code,
+        "next_action_code": "ready",
         "quota": quota,
         "provider": provider_snapshot.to_dict(),
     }
@@ -2535,6 +2602,43 @@ def _model_check_from_results(results: list[RuleResult], *, enabled: bool, model
     return ModelCheck(status="MODEL_OUTPUT_INVALID", model_id=model_id, detail="AI草稿链没有形成完整可验证结果。")
 
 
+_PROVIDER_RUNTIME_FAILURE_STATUSES = frozenset({
+    "provider_quota_exhausted",
+    "provider_region_opt_in_required",
+    "provider_unavailable",
+    "provider_unreachable",
+})
+_PROVIDER_RUNTIME_FAILURE_CODES = frozenset({
+    "MODEL_PROVIDER_AUTH_FAILED",
+    "MODEL_PROVIDER_BALANCE_EXHAUSTED",
+    "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED",
+    "MODEL_PROVIDER_RATE_LIMITED",
+    "MODEL_PROVIDER_REJECTED",
+    "MODEL_PROVIDER_UNREACHABLE",
+})
+
+
+def _record_provider_run_feedback(steps: list[AgentStep], *, model_id: str, base_url: str) -> None:
+    """将本次链路的真实 provider 结果反馈给就绪熔断，保留 schema 的 failure_code。"""
+    # AgentStep 没有 error_code 字段，且实际失败状态不是笼统的 failed；先记录
+    # 失败再考虑成功，避免 challenge 成功但 counter/review 失败时误报当前可用。
+    failed_step = next(
+        (
+            step
+            for step in steps
+            if step.failure_stage == "provider"
+            and step.status in _PROVIDER_RUNTIME_FAILURE_STATUSES
+            and step.failure_code in _PROVIDER_RUNTIME_FAILURE_CODES
+        ),
+        None,
+    )
+    if failed_step is not None:
+        record_provider_failure(failed_step.failure_code or "MODEL_PROVIDER_REJECTED", failed_step.detail or "", base_url=base_url)
+        return
+    if any(step.status == "completed" and step.provider_call_performed for step in steps):
+        record_provider_success(model_id=model_id, base_url=base_url)
+
+
 def _enrich_model_check(model_check: ModelCheck, results: list[RuleResult]) -> ModelCheck:
     """把三 Agent 的实际 token、耗时和执行方式汇总到运行级状态。"""
     steps = [step for result in results for step in result.agent_steps]
@@ -2807,7 +2911,7 @@ def _demo_agent_steps(
         for item in evidence_bundle.get(key, [])
         if isinstance(item, dict) and item.get("evidence_id")
     ]
-    evidence_ids = list(dict.fromkeys(str(item["evidence_id"]) for item in evidence_rows))[:4]
+    evidence_ids = list(dict.fromkeys(str(item["evidence_id"]) for item in evidence_rows))[:5]
     fallback_ids = evidence_ids
     support_status = "supported" if fallback_ids else "unverified_hypothesis"
     gaps = _dedupe_gap_messages(
@@ -2819,7 +2923,7 @@ def _demo_agent_steps(
         str(item) for item in ((rule_result.risk_card or {}).get("requested_materials") or []) if str(item).strip()
     ))[:8]
     observation = str((rule_result.risk_card or {}).get("observation") or "规则已完成确定性预筛，结果仍需人工回看证据。")
-    status = "defer" if gaps or rule_result.status == "candidate" else "retain"
+    status = "defer" if gaps else "retain"
     recommendation = "defer" if status == "defer" else "retain"
     route_conclusion = {
         "risk_candidate": "risk_candidate",
@@ -3387,17 +3491,6 @@ def _execute_run(
             detail=str(context.get("model_transfer_block_reason") or "本次模型传输未获有效许可，完整分析主链已如实关闭。"),
         )
         run_completeness = "incomplete_model_transfer_not_allowed"
-    elif rag_error:
-        for result in rule_results:
-            result.agent_steps = [
-                AgentStep(
-                    role="challenge",
-                    status="rag_failed",
-                    detail="RAG准备或检索失败，本次未调用模型。",
-                )
-            ]
-        model_check = ModelCheck(status="not_attempted_rag_failure", model_id=model_id, detail="RAG失败，完整分析未完成。")
-        run_completeness = "incomplete_rag_failure"
     elif sensitive_data_blocked:
         for result in rule_results:
             result.agent_steps = [
@@ -3424,6 +3517,17 @@ def _execute_run(
                 )
             except SupabaseError:
                 context["privacy_scan"]["audit_status"] = "unavailable"
+    elif rag_error:
+        for result in rule_results:
+            result.agent_steps = [
+                AgentStep(
+                    role="challenge",
+                    status="rag_failed",
+                    detail="RAG准备或检索失败，本次未调用模型。",
+                )
+            ]
+        model_check = ModelCheck(status="not_attempted_rag_failure", model_id=model_id, detail="RAG失败，完整分析未完成。")
+        run_completeness = "incomplete_rag_failure"
     else:
         if ai_requested and _demo_external_model_enabled() and api_key:
             supplement_hash = hashlib.sha256(
@@ -3577,16 +3681,11 @@ def _execute_run(
             )
             # 真实运行反向反馈：记录供应商成功或失败熔断
             if not context.get("force_deterministic_backup") and not (_competition_demo_enabled() and not _demo_external_model_enabled()):
-                for step in primary_result.agent_steps:
-                    if step.status == "completed" and step.duration_ms and step.duration_ms > 0:
-                        record_provider_success(model_id=model_id)
-                    elif step.status == "failed" and step.error_code in {
-                        "MODEL_PROVIDER_AUTH_FAILED",
-                        "MODEL_PROVIDER_BALANCE_EXHAUSTED",
-                        "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED",
-                        "MODEL_PROVIDER_RATE_LIMITED",
-                    }:
-                        record_provider_failure(step.error_code, step.detail or "")
+                _record_provider_run_feedback(
+                    primary_result.agent_steps,
+                    model_id=model_id,
+                    base_url=base_url,
+                )
             review_step = next(
                 (step for step in primary_result.agent_steps if step.role == "review" and step.status == "completed" and step.output),
                 None,
@@ -3894,10 +3993,16 @@ def project_status(http_request: Request) -> dict[str, Any]:
         "model": {
             "status": "configured" if api_key else "config_missing",
             "model_id": model_id,
+            "provider_kind": readiness.get("provider_kind") or "deepseek_direct",
+            "provider_label": readiness.get("provider_label") or "DeepSeek 官方直连",
+            "provider_host": readiness.get("provider_host") or "api.deepseek.com",
             "execution_mode": model_execution_mode,
             "full_analysis_ready": bool(readiness["full_analysis_ready"]),
             "full_analysis_reason_code": str(readiness["full_analysis_reason_code"]),
             "full_analysis_message": str(readiness["full_analysis_message"]),
+            "next_action_code": str(readiness.get("next_action_code") or "ready"),
+            "paid_probe_performed": bool(readiness.get("paid_probe_performed", False)),
+            "last_runtime_failure_code": readiness.get("last_runtime_failure_code"),
             "deterministic_backup_available": bool(readiness["deterministic_backup_available"]),
             "public_access": bool(_competition_demo_enabled()),
             "quota": quota_snapshot,
@@ -5492,8 +5597,8 @@ def export_run_report(run_id: str, http_request: Request) -> FileResponse:
     authorize_case_write(http_request, case)
     try:
         path = build_report(WORKSPACE_ROOT, stored, demo_preview=_competition_demo_enabled())
-    except ValueError as error:
-        raise HTTPException(status_code=409, detail=str(error)) from error
+    except (ValueError, OSError, IOError) as error:
+        raise HTTPException(status_code=409, detail=f"报告文档生成或读取异常：{error}") from error
     return FileResponse(
         path,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

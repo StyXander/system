@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+import json
 import time
 from urllib.error import HTTPError
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -353,6 +355,8 @@ def test_summary_case_directory_is_compact() -> None:
 
 
 def test_model_readiness_keeps_configuration_separate_from_public_execution(monkeypatch: pytest.MonkeyPatch) -> None:
+    from backend.app.provider_readiness import ProviderSnapshot
+
     monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
     monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
     monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true")
@@ -369,7 +373,24 @@ def test_model_readiness_keeps_configuration_separate_from_public_execution(monk
             return {"global_remaining_15m": 2, "daily_runs_remaining": 4, "active": 0, "max_concurrent": 2}
 
     monkeypatch.setattr("backend.app.main._public_model_ledger", lambda: ReadyLedger())
-    assert _model_readiness()["full_analysis_reason_code"] == "ready"
+    # 已配置的 Key、额度账本和历史状态都不能代替当前 provider 探测或真实运行。
+    monkeypatch.setattr(
+        "backend.app.main.get_provider_snapshot",
+        lambda: ProviderSnapshot(
+            status="unavailable",
+            reason_code="provider_probe_disabled",
+            message="主动探测未开启，当前真实模型可运行性尚未验证。",
+            checked_at="2026-08-20T00:00:00Z",
+            expires_at="2026-08-20T00:05:00Z",
+            source="default",
+            stale=False,
+            paid_probe_performed=False,
+            next_action_code="enable_provider_probe_or_run_live",
+        ),
+    )
+    unverified = _model_readiness()
+    assert unverified["full_analysis_ready"] is False
+    assert unverified["full_analysis_reason_code"] == "provider_probe_disabled"
 
     class EmptyLedger:
         def quota_snapshot(self, _client_id=None):
@@ -379,6 +400,53 @@ def test_model_readiness_keeps_configuration_separate_from_public_execution(monk
     exhausted = _model_readiness()
     assert exhausted["full_analysis_reason_code"] == "quota_exhausted"
     assert exhausted["deterministic_backup_available"] is True
+
+
+def _mock_opencode_response(payload: dict) -> MagicMock:
+    """构造仅在内存返回的 OpenAI 兼容响应，确保合同测试绝不触网。"""
+    response = MagicMock()
+    response.read.return_value = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    response.__enter__.return_value = response
+    return response
+
+
+@pytest.mark.parametrize(
+    ("response_payload", "failure_code"),
+    [
+        (
+            {"choices": [{"finish_reason": "length", "message": {"tool_calls": []}}]},
+            "MODEL_TOOL_OUTPUT_TRUNCATED",
+        ),
+        (
+            {
+                "choices": [{
+                    "finish_reason": "tool_calls",
+                    "message": {"tool_calls": [{"function": {"name": "unexpected_tool", "arguments": "{}"}}]},
+                }],
+            },
+            "MODEL_TOOL_CALL_CONTRACT_ERROR",
+        ),
+    ],
+)
+def test_opencode_tool_contract_uses_distinct_safe_error_codes(
+    monkeypatch: pytest.MonkeyPatch,
+    response_payload: dict,
+    failure_code: str,
+) -> None:
+    """REQ-BACKEND: 截断与错误工具名必须给出不同、且不泄露凭据的失败码。"""
+    monkeypatch.setattr(agents_module, "urlopen", lambda *_args, **_kwargs: _mock_opencode_response(response_payload))
+
+    with pytest.raises(agents_module.ToolArgumentsError) as caught:
+        agents_module._call_model(
+            api_key="test-key-never-sent",
+            base_url="https://opencode.ai/zen/go/v1",
+            model_id="deepseek-v4-flash",
+            role="challenge",
+            payload={"run_id": "RUN-OPENCODE-CONTRACT", "rule_result": {"rule_id": "R1"}},
+        )
+
+    assert caught.value.failure_code == failure_code
+    assert "test-key-never-sent" not in caught.value.detail
 
 
 def test_r2_missing_fields_are_data_gaps_not_source_failures() -> None:

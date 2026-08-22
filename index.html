@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.4">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
   <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.2">
-  <script src="/assets/official-v4/app.js?v=0.7.6" defer></script>
+  <script src="/assets/official-v4/app.js?v=0.7.9" defer></script>
   <script src="/assets/official-v4/fusion.js?v=0.7.1" defer></script>
   <style>
     :root { --stepper-height: 56px; }
@@ -181,13 +181,13 @@
     }
     .delivery-empty-state strong { display: block; color: var(--text-primary); font-size: 16px; }
     .delivery-empty-state p { color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
-    /* Multi-Agent Collaboration Chain Styling */
+    /* Multi-Agent Collaboration Chain Styling (Dark Theme Native) */
     .agent-chain-section {
       margin-top: var(--space-5);
       padding: var(--space-4);
-      background: var(--surface-muted, #f8fafc);
-      border: 1px solid var(--accent-border, #e2e8f0);
-      border-radius: var(--radius-2, 6px);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-2);
     }
     .agent-chain-head {
       margin-bottom: var(--space-3);
@@ -210,34 +210,42 @@
       gap: var(--space-3);
       margin-top: var(--space-4);
     }
-    @media (max-width: 960px) {
+    @media (max-width: 1024px) {
+      .agent-chain-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
       .agent-chain-cards {
         grid-template-columns: 1fr;
       }
     }
     .agent-step-card {
-      background: var(--surface, #ffffff);
-      border: 1px solid var(--accent-border, #e2e8f0);
-      border-radius: var(--radius-2, 6px);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-2);
       padding: var(--space-4);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      min-width: 0;
     }
     .agent-step-card:hover {
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+      border-color: var(--border-default);
+      box-shadow: 0 4px 12px rgb(0 0 0 / 36%);
     }
-    .agent-step-card.challenge { border-top: 4px solid #2563eb; }
-    .agent-step-card.counter { border-top: 4px solid #7c3aed; }
-    .agent-step-card.review { border-top: 4px solid #059669; }
+    .agent-step-card.challenge { border-top: 3px solid var(--info); }
+    .agent-step-card.counter { border-top: 3px solid var(--warning); }
+    .agent-step-card.review { border-top: 3px solid var(--accent-primary); }
     .agent-step-head {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: var(--space-3);
       gap: var(--space-2);
+      min-height: 64px;
     }
     .agent-step-badge {
       font-size: 11px;
@@ -252,13 +260,17 @@
       color: var(--text-primary);
       margin: 0;
     }
+    .agent-step-head > div { min-width: 0; }
+    .agent-step-head .state { flex: 0 0 auto; white-space: nowrap; }
+    .agent-step-body { display: flex; flex: 1 1 auto; flex-direction: column; }
     .agent-step-detail {
       font-size: 12.5px;
       color: var(--text-secondary);
       line-height: 1.5;
       margin-bottom: var(--space-3);
       padding-bottom: var(--space-2);
-      border-bottom: 1px dashed var(--line, #e2e8f0);
+      border-bottom: 1px dashed var(--border-subtle);
+      min-height: 3.1em;
     }
     .agent-step-block {
       font-size: 12px;
@@ -286,12 +298,13 @@
     }
     .agent-step-reason {
       font-size: 11.5px;
-      background: var(--accent-muted, #f1f5f9);
+      background: var(--bg-hover);
       padding: var(--space-2);
-      border-radius: var(--radius-1, 4px);
+      border-radius: var(--radius-1);
       margin-top: var(--space-3);
       line-height: 1.45;
       color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
     }
     .agent-step-reason strong {
       color: var(--text-primary);
@@ -299,9 +312,9 @@
       margin-bottom: 2px;
     }
     .agent-step-foot {
-      margin-top: var(--space-4);
+      margin-top: auto;
       padding-top: var(--space-2);
-      border-top: 1px solid var(--line, #e2e8f0);
+      border-top: 1px solid var(--border-subtle);
       font-size: 11px;
       color: var(--text-tertiary);
       display: flex;
@@ -338,8 +351,266 @@
       text-decoration: none;
     }
     .topbar-menu a:hover { background: var(--bg-hover); color: var(--text-primary); }
+    /* 交互收口：全局提示 toast、折叠区块与一键确认（复用既有设计系统变量） */
+    .global-toast {
+      position: fixed;
+      right: max(var(--space-5), env(safe-area-inset-right));
+      bottom: max(var(--space-5), env(safe-area-inset-bottom));
+      z-index: 90;
+      max-width: min(420px, calc(100vw - 2 * var(--space-5)));
+      padding: var(--space-3) var(--space-4);
+      color: var(--text-primary);
+      background: var(--surface-dialog);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent-primary);
+      border-radius: var(--radius-2);
+      box-shadow: var(--shadow-drawer);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .global-toast.error { border-left-color: var(--danger); }
+    .global-toast.warning { border-left-color: var(--warning); }
+    .global-toast.success { border-left-color: var(--success); }
+    .run-deeplink-error {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin: var(--space-4) 0;
+      padding: var(--space-4);
+      color: var(--text-primary);
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      border-left: 3px solid var(--danger);
+      border-radius: var(--radius-2);
+    }
+    .run-deeplink-error strong,
+    .run-deeplink-error span { display: block; }
+    .run-deeplink-error span { margin-top: 2px; color: var(--text-secondary); font-size: 13px; }
+    .run-deeplink-error .button { flex: 0 0 auto; }
+    details.case-intake-details { border: 1px solid var(--border-default); border-radius: var(--radius-2); background: var(--bg-elevated); }
+    details.case-intake-details > summary {
+      display: grid;
+      gap: var(--space-1);
+      padding: var(--space-4) var(--space-5);
+      cursor: pointer;
+      list-style: none;
+    }
+    details.case-intake-details > summary::-webkit-details-marker { display: none; }
+    details.case-intake-details > summary:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
+    details.case-intake-details > summary .details-toggle-hint {
+      margin-top: var(--space-2);
+      color: var(--accent-primary);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    details.case-intake-details[open] > summary .details-toggle-hint::after { content: ""; }
+    details.case-intake-details > summary .details-toggle-hint::before { content: "⌄ "; }
+    details.case-intake-details[open] > summary .details-toggle-hint::before { content: "⌃ "; }
+    details.case-intake-details .case-intake-actions {
+      padding: 0 var(--space-5) var(--space-5);
+      margin-top: calc(-1 * var(--space-2));
+    }
+    .cninfo-batch-confirm-row {
+      display: grid;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      background: var(--accent-muted);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-2);
+    }
+    .cninfo-batch-confirm-row .form-help { margin: 0; font-size: 12px; }
+    .cninfo-field-record-head-side {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .cninfo-field-record:not(.expanded) { padding: 10px 18px; }
+    .cninfo-field-record:not(.expanded) .cninfo-field-record-body { display: none; }
+    .cninfo-field-record .cninfo-field-expand { min-height: 32px; }
+    @media (max-width: 520px) {
+      .cninfo-field-record .cninfo-field-expand { min-height: 44px; min-width: 44px; }
+      .cninfo-field-record-head-side { flex-direction: column; align-items: flex-end; }
+      :root { --stepper-height: 48px; }
+      .topbar { padding-inline: var(--space-3); gap: var(--space-2); }
+      .brand { gap: var(--space-2); min-width: 0; }
+      .brand-mark { flex: 0 0 30px; width: 30px; height: 30px; }
+      .brand strong { font-size: 14px; letter-spacing: .04em; }
+      .brand small, .topbar-context > .context-label, .topbar-context .service-pill { display: none; }
+      .topbar-context { gap: 0; }
+      .process-stepper-list { padding-inline: var(--space-2); gap: 2px; }
+      .process-step::after { display: none; }
+      .step-button { justify-content: center; min-height: 36px; padding: var(--space-1); }
+      .step-button .step-marker { flex-basis: 20px; width: 20px; height: 20px; }
+      .run-deeplink-error { align-items: stretch; flex-direction: column; }
+      .run-deeplink-error .button { width: 100%; min-height: 44px; }
+      .agent-step-head { min-height: 0; }
+      .agent-step-detail { min-height: 0; }
+    }
+    @media (max-width: 480px) {
+      body[data-current-view]:not([data-current-view="overview"]) .process-stepper-list {
+        justify-content: flex-start;
+        overflow-x: auto;
+      }
+      body[data-current-view]:not([data-current-view="overview"]) .process-step {
+        flex: 0 0 92px;
+        min-width: 92px;
+      }
+    }
     @media (max-width: 1024px) {
       .sidebar { top: var(--topbar-height); height: calc(100vh - var(--topbar-height)); }
+    }
+
+    /* 工作台采用可判定的实色底稿层；电影级证据地平线仅保留在总览。
+       这不是 axe 例外：生产页面本身移除了会遮蔽文字背景的图像、纸纹与装饰伪层。 */
+    body[data-current-view]:not([data-current-view="overview"])::after,
+    body[data-current-view]:not([data-current-view="overview"]) .paper-grain,
+    body[data-current-view]:not([data-current-view="overview"]) .fusion-landing {
+      display: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) #workspace-root,
+    body[data-current-view]:not([data-current-view="overview"]) .sidebar,
+    body[data-current-view]:not([data-current-view="overview"]) .sidebar-ledger,
+    body[data-current-view]:not([data-current-view="overview"]) .app-shell > main,
+    body[data-current-view]:not([data-current-view="overview"]) .view.active,
+    body[data-current-view]:not([data-current-view="overview"]) .global-toast {
+      background-color: #061116;
+      background-image: none;
+      backdrop-filter: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .view.active::before,
+    body[data-current-view]:not([data-current-view="overview"]) .view.active::after,
+    body[data-current-view]:not([data-current-view="overview"]) .page-heading::after,
+    body[data-current-view]:not([data-current-view="overview"]) .button::after,
+    body[data-current-view]:not([data-current-view="overview"]) .evidence-rail li::after,
+    body[data-current-view]:not([data-current-view="overview"]) .ai-draft::after,
+    body[data-current-view]:not([data-current-view="overview"]) .sidebar nav a::after {
+      content: none;
+      background: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .process-step::after {
+      content: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .evidence-rail::before {
+      content: none;
+    }
+    /* Stepper destinations are programmatically focused after scrollIntoView().
+       Reserve both sticky rows so headings never land underneath either row. */
+    body[data-current-view]:not([data-current-view="overview"]) [data-view-panel] [id] {
+      scroll-margin-top: calc(var(--topbar-height) + var(--stepper-height) + 16px);
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .sidebar nav a[aria-current="page"] {
+      background: #123440;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .brand-mark,
+    body[data-current-view]:not([data-current-view="overview"]) .process-stepper,
+    body[data-current-view]:not([data-current-view="overview"]) .step-button,
+    body[data-current-view]:not([data-current-view="overview"]) .run-console,
+    body[data-current-view]:not([data-current-view="overview"]) .analysis-main,
+    body[data-current-view]:not([data-current-view="overview"]) .analysis-context,
+    body[data-current-view]:not([data-current-view="overview"]) .result-record,
+    body[data-current-view]:not([data-current-view="overview"]) .risk-summary,
+    body[data-current-view]:not([data-current-view="overview"]) .agent-chain-section,
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-card,
+    body[data-current-view]:not([data-current-view="overview"]) .scene-followup,
+    body[data-current-view]:not([data-current-view="overview"]) #ai-generated-content-notice {
+      background-color: #0a1b22;
+      background-image: none;
+      backdrop-filter: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .step-button {
+      color: #dce8eb;
+      border-color: #2d5360;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .brand-mark {
+      color: #f7feff;
+      background: #176b7d;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .step-button .step-marker {
+      color: #e6f5f8;
+      background: #0a1b22;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .step-marker[aria-hidden="true"] {
+      display: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .step-button .step-label small {
+      display: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .button.primary,
+    body[data-current-view]:not([data-current-view="overview"]) .button.primary span[aria-hidden="true"] {
+      color: #061116;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-badge {
+      color: #b8d0d6;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head h6 {
+      color: #f3fbfc;
+      overflow-wrap: anywhere;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head,
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head > div,
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head h6,
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-badge {
+      background: #0a1b22;
+      text-shadow: none;
+      filter: none;
+      opacity: 1;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head .state {
+      justify-self: start;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head h6 > span[aria-hidden="true"] {
+      display: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .process-step.current .step-button,
+    body[data-current-view]:not([data-current-view="overview"]) .process-step.attention .step-button {
+      background: #123440;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .state.waiting,
+    body[data-current-view]:not([data-current-view="overview"]) .service-pill.pending {
+      color: #ffd58d;
+      background: #493400;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .state.danger,
+    body[data-current-view]:not([data-current-view="overview"]) .service-pill.danger {
+      color: #ffd0d0;
+      background: #4a1719;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .state.success,
+    body[data-current-view]:not([data-current-view="overview"]) .service-pill.success {
+      color: #c6f6dc;
+      background: #123f32;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) #workspace-root .button.quiet {
+      background: #0a1b22;
+      color: #e7f3f5;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) #competition-menu-toggle > span[aria-hidden="true"],
+    body[data-current-view]:not([data-current-view="overview"]) #wb-run-full > span[aria-hidden="true"] {
+      display: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .button.primary {
+      background: #8ccbd7;
+      border-color: #8ccbd7;
+      box-shadow: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .button.quiet {
+      background: #0a1b22;
+      backdrop-filter: none;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) .ai-draft,
+    body[data-current-view]:not([data-current-view="overview"]) .ai-draft.missing {
+      background: #0a1b22;
+    }
+    body[data-current-view]:not([data-current-view="overview"]) #live-evidence-matrix td {
+      position: relative;
+      z-index: 1;
+      background: #0a1b22;
     }
   </style>
 </head>
@@ -526,7 +797,8 @@
       </section>
     </aside>
 
-    <main id="main-content" tabindex="-1">
+  <main id="main-content" tabindex="-1">
+    <h1 class="sr-only">审迹智链审计计划工作台</h1>
       <p class="sr-only">审迹智链</p>
 
       <section class="view active" data-view-panel="overview" aria-label="总览页面">
@@ -571,15 +843,6 @@
           <span class="state pending" id="project-state">正在读取案例注册表</span>
         </header>
 
-        <div class="legacy-steps" role="tablist" aria-label="原工作台步骤">
-          <button type="button" role="tab" aria-selected="true" data-wb-step="project">01导入案例</button>
-          <button type="button" role="tab" aria-selected="false" data-wb-step="data">02字段与来源</button>
-          <button type="button" role="tab" aria-selected="false" data-wb-step="risk">03规则结果</button>
-          <button type="button" role="tab" aria-selected="false" data-wb-step="library">04候选指标</button>
-          <button type="button" role="tab" aria-selected="false" data-wb-step="rag">05原文检索</button>
-          <button type="button" role="tab" aria-selected="false" data-wb-step="supplement">06补充资料</button>
-        </div>
-
         <section class="project-sheet" aria-labelledby="project-sheet-heading">
              <div class="sheet-title">
               <div><p class="folio">AUDITTRACE / CASE CONTRACT / EVIDENCE-BOUND</p><h3 id="project-sheet-heading">审迹智链工作台</h3><p>每个参与计算的数字必须绑定案例、文档编号、披露日期、页码、哈希和 evidence_id。资料不全时只跳过受影响指标，RAG 与其他可运行规则继续；不猜测、不补造。</p></div>
@@ -621,8 +884,13 @@
               </div>
             </section>
           </section>
-          <section class="case-intake" aria-labelledby="case-intake-heading">
-            <div class="case-intake-copy"><span class="folio">DOWNLOAD → IMPORT → VALIDATE → PREVIEW</span><h4 id="case-intake-heading">标准案例包入口</h4><p>模板内含 manifest、财务字段、账龄、期后回款、合同条款、脱敏日志和合成 PDF；公开案例的项目所有者许可已启用。</p></div>
+          <details class="case-intake case-intake-details" id="case-intake-details">
+            <summary class="case-intake-copy">
+              <span class="folio">DOWNLOAD -> IMPORT -> VALIDATE -> PREVIEW</span>
+              <h4 id="case-intake-heading">标准案例包入口（离线 / 合成验收，默认折叠）</h4>
+              <p>模板内含 manifest、财务字段、账龄、期后回款、合同条款、脱敏日志和合成 PDF；公开案例的项目所有者许可已启用。公开演示或竞赛评审请直接使用上方已登记案例。</p>
+              <span class="details-toggle-hint" aria-hidden="true">展开此区块 ⌄</span>
+            </summary>
             <div class="case-intake-actions">
               <a class="button quiet" id="case-template-download" href="/api/cases/template" download>下载标准案例 ZIP</a>
               <form id="case-import-form" enctype="multipart/form-data">
@@ -637,7 +905,7 @@
               <div class="form-message" id="case-import-message" role="status" aria-live="polite">尚未上传新案例；可直接使用已登记标准案例。</div>
               <button class="button quiet compact-action" id="wb-retry-cases" type="button" hidden>重新读取案例目录</button>
             </div>
-          </section>
+          </details>
           <div class="form-grid project-fields">
             <label for="wb-case"><span>已登记案例</span><select id="wb-case" name="case_id" autocomplete="off"></select></label>
             <label><span>公司</span><output id="wb-company">正在读取</output></label>
@@ -699,6 +967,10 @@
             <div class="cninfo-review-controls">
               <label for="cninfo-field-reviewer"><span>真实复核人 / 团队角色</span><input id="cninfo-field-reviewer" name="reviewer" autocomplete="name" placeholder="例如 A：会计专业复核"></label>
               <label for="cninfo-field-reason"><span>本次修正或拒绝原因（确认可留空）</span><textarea id="cninfo-field-reason" name="reason" rows="2" placeholder="请写明回查页码、单位或口径判断依据"></textarea></label>
+              <div class="cninfo-batch-confirm-row">
+                <button class="button primary" id="cninfo-confirm-all-fields" type="button" hidden>一键确认全部待确认字段 <span aria-hidden="true">-></span></button>
+                <p class="form-help" id="cninfo-batch-confirm-hint">一键确认只批量执行“与原件一致”的确认，仍逐条写入复核历史；需要修正或拒绝的字段请逐条处理并填写原因。</p>
+              </div>
             </div>
             <div class="cninfo-field-review-list" id="cninfo-field-review-list"></div>
             <p class="form-message" id="cninfo-field-review-message" role="status" aria-live="polite">未提交字段处理。</p>
@@ -737,12 +1009,14 @@
           </div>
           <div class="run-controls">
             <label for="planned-materiality"><span>计划重要性（案例金额单位，可留空）</span><input id="planned-materiality" name="planned_materiality" type="number" min="0" step="0.01" inputmode="decimal" placeholder="未输入则不评价金额重要性"></label>
-            <button class="button primary" type="button" id="wb-run-full">开始完整分析 <span aria-hidden="true">→</span></button>
+            <button class="button primary" type="button" id="wb-run-full">开始完整分析 <span aria-hidden="true">-></span></button>
             <button class="button quiet" type="button" id="wb-run-calculation">仅计算预检</button>
             <button class="button quiet" type="button" id="wb-run-backup" disabled>生成确定性备用分析</button>
           </div>
+          <p class="form-message" id="wb-run-hint" role="status" aria-live="polite" hidden></p>
         </section>
         <div class="status-banner neutral" id="wb-gate" role="status" aria-live="polite"><strong>尚未运行</strong><span>完整分析是主路径；仅计算预检会明确标记为不完整运行。</span></div>
+        <section class="run-deeplink-error" id="run-deeplink-error" role="alert" aria-live="assertive" hidden></section>
         <div class="next-action-banner" id="analysis-next-action" hidden>
           <div>
             <strong>分析已完成</strong>
@@ -1003,5 +1277,7 @@
     </div>
     <div id="risk-dialog-body"></div>
   </dialog>
+
+  <div class="global-toast" id="global-toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

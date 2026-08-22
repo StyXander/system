@@ -28,11 +28,12 @@ def clean_readiness_state():
 
 
 def test_probe_provider_missing_key():
-    snapshot = probe_provider(api_key="")
+    snapshot = probe_provider(api_key="", base_url="https://api.deepseek.com")
     assert snapshot.status == "unavailable"
     assert snapshot.reason_code == "api_key_missing"
-    assert "尚未配置模型 API Key" in snapshot.message
+    assert "尚未配置" in snapshot.message and "API Key" in snapshot.message
     assert snapshot.source == "probe"
+    assert snapshot.provider_kind == "deepseek_direct"
 
 
 def test_probe_provider_deepseek_balance_success():
@@ -206,6 +207,19 @@ def test_get_provider_snapshot_caching(monkeypatch):
         assert mock_url.call_count == 2
 
 
+def test_probe_disabled_is_unverified_and_never_ready(monkeypatch):
+    """REQ-BACKEND: 关闭主动探测只能表示未验证，不能伪装成模型就绪。"""
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-disabled-probe")
+    monkeypatch.delenv("AUDITTRACE_PROVIDER_PROBE_ENABLED", raising=False)
+
+    snapshot = get_provider_snapshot()
+
+    assert snapshot.status == "unavailable"
+    assert snapshot.reason_code == "provider_probe_disabled"
+    assert snapshot.paid_probe_performed is False
+    assert snapshot.next_action_code == "enable_provider_probe_or_run_live"
+
+
 def test_circuit_breaker_record_failure_and_success(monkeypatch):
     monkeypatch.setenv("AUDITTRACE_PROVIDER_PROBE_ENABLED", "true")
     
@@ -223,3 +237,102 @@ def test_circuit_breaker_record_failure_and_success(monkeypatch):
     assert snap_after.status == "ready"
     assert snap_after.reason_code == "ready"
     assert snap_after.source == "live_run"
+
+
+def test_background_probe_deduplication_under_concurrency(monkeypatch):
+    """测试软过期窗口期多线程并发访问时只触发一次后台探测，避免雷群效应。"""
+    monkeypatch.setenv("AUDITTRACE_PROVIDER_PROBE_ENABLED", "true")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-mock-key")
+
+    mock_response = MagicMock()
+    mock_response.read.return_value = json.dumps({
+        "is_available": True,
+        "balance_infos": [{"currency": "CNY", "total_balance": "100.00"}],
+    }).encode("utf-8")
+    mock_response.__enter__.return_value = mock_response
+
+    import time
+    with patch("backend.app.provider_readiness.urlopen", return_value=mock_response) as mock_url:
+        # 先获取一次新鲜快照
+        snap1 = get_provider_snapshot()
+        assert snap1.status == "ready"
+        assert mock_url.call_count == 1
+
+        # 手动将上次探测时间调整为 400 秒前（进入 300~600 秒的软过期 stale 窗口）
+        import backend.app.provider_readiness as pr
+        with pr._lock:
+            pr._last_probe_timestamp = time.time() - 400
+
+        # 多线程并发调用 get_provider_snapshot
+        import threading
+        threads = [threading.Thread(target=get_provider_snapshot) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # 等待后台线程执行结束
+        time.sleep(0.2)
+        # 验证 urlopen 仅在初始一次 + 后台异步一次 = 2 次，而不是 1 + 10 = 11 次
+        assert mock_url.call_count == 2
+
+
+def test_classify_provider_channel():
+    """测试供应商通道分类解析。"""
+    from backend.app.provider_readiness import classify_provider_channel
+
+    # 1. DeepSeek 直连
+    ds = classify_provider_channel("https://api.deepseek.com")
+    assert ds["provider_kind"] == "deepseek_direct"
+    assert ds["provider_label"] == "DeepSeek 官方直连"
+    assert ds["provider_host"] == "api.deepseek.com"
+
+    # 2. OpenCode Go
+    go = classify_provider_channel("https://opencode.ai/zen/go/v1")
+    assert go["provider_kind"] == "opencode_go"
+    assert go["provider_label"] == "OpenCode Go"
+    assert go["provider_host"] == "opencode.ai"
+
+    # 3. OpenCode Zen
+    zen = classify_provider_channel("https://opencode.ai/zen/v1")
+    assert zen["provider_kind"] == "opencode_zen"
+    assert zen["provider_label"] == "OpenCode Zen"
+    assert zen["provider_host"] == "opencode.ai"
+
+    # 4. 其他 OpenAI 兼容通道
+    other = classify_provider_channel("https://custom-gateway.corp.com/v1")
+    assert other["provider_kind"] == "openai_compatible_other"
+    assert "custom-gateway.corp.com" in other["provider_label"]
+    assert other["provider_host"] == "custom-gateway.corp.com"
+
+
+def test_get_provider_error_guidance():
+    """测试不同通道下的 402/401/403/429 错误引导文案。"""
+    from backend.app.provider_readiness import get_provider_error_guidance
+
+    # DeepSeek 直连 402
+    ds_402 = get_provider_error_guidance("MODEL_PROVIDER_BALANCE_EXHAUSTED", base_url="https://api.deepseek.com", http_code=402)
+    assert "api.deepseek.com" in ds_402["message"]
+    assert "未消耗 OpenCode 余额" in ds_402["message"]
+    assert ds_402["next_action_code"] == "check_deepseek_balance_or_switch_opencode"
+
+    # OpenCode Go 402
+    go_402 = get_provider_error_guidance("MODEL_PROVIDER_BALANCE_EXHAUSTED", base_url="https://opencode.ai/zen/go/v1", http_code=402)
+    assert "OpenCode Go" in go_402["message"]
+    assert "工作区" in go_402["message"]
+    assert go_402["next_action_code"] == "check_opencode_go_workspace_quota"
+
+    # OpenCode Zen 402
+    zen_402 = get_provider_error_guidance("MODEL_PROVIDER_BALANCE_EXHAUSTED", base_url="https://opencode.ai/zen/v1", http_code=402)
+    assert "OpenCode Zen" in zen_402["message"]
+    assert zen_402["next_action_code"] == "check_opencode_zen_balance"
+
+    # 401 鉴权
+    auth_err = get_provider_error_guidance("MODEL_PROVIDER_AUTH_FAILED", base_url="https://opencode.ai/zen/go/v1", http_code=401)
+    assert "OpenCode Go" in auth_err["message"]
+    assert auth_err["next_action_code"] == "check_opencode_api_key"
+
+    # 403 区域协议
+    reg_err = get_provider_error_guidance("MODEL_PROVIDER_REGION_OPT_IN_REQUIRED", base_url="https://opencode.ai/zen/go/v1", http_code=403, detail="hosted in china requires explicit opt in")
+    assert "中国托管模型" in reg_err["message"]
+    assert reg_err["next_action_code"] == "enable_china_hosted_model_in_workspace"

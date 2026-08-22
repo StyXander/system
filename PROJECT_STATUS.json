@@ -157,8 +157,8 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
-      "latest_result": "213 passed, 1 warning, 200.11s",
-      "executed_on": "2026-08-16",
+      "latest_result": "241 passed, 1 warning, 149.94s",
+      "executed_on": "2026-08-22",
       "status": "passed"
     },
     "clean_package": {
@@ -173,8 +173,8 @@
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "1758/17545 = 10.02%",
-      "executed_on": "2026-08-16",
+      "latest_result": "1861/18393 = 10.12%",
+      "executed_on": "2026-08-22",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",

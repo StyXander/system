@@ -15,17 +15,19 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import main as app_module
+from backend.app import agents as agents_module
 from backend.app.delivery import _display_gap, build_report
 from backend.app.main import (
     _current_evidence_bundle,
     _dedupe_gap_messages,
     _format_evidence_gap,
     _model_readiness,
+    _record_provider_run_feedback,
     _public_case_summary,
     _r2_result,
     app,
 )
-from backend.app.schemas import RunRequest, SupplementRerunRequest
+from backend.app.schemas import AgentStep, RuleResult, RunRequest, SupplementRerunRequest
 
 
 @pytest.fixture
@@ -248,3 +250,192 @@ def test_model_readiness_incorporates_provider_snapshot(monkeypatch) -> None:
         assert readiness_ok["full_analysis_reason_code"] == "ready"
         assert readiness_ok["provider"]["status"] == "ready"
 
+
+def test_probe_disabled_snapshot_closes_status_readiness(monkeypatch: pytest.MonkeyPatch) -> None:
+    """REQ-BACKEND: provider_probe_disabled 不能由 /api/status 传播成 ready。"""
+    from backend.app.provider_readiness import ProviderSnapshot
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-unverified-provider")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "false")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
+    unverified = ProviderSnapshot(
+        status="unavailable",
+        reason_code="provider_probe_disabled",
+        message="未开启主动探测，尚未验证真实模型可运行性。",
+        checked_at="2026-08-20T00:00:00Z",
+        expires_at="2026-08-20T00:05:00Z",
+        source="default",
+        stale=False,
+        paid_probe_performed=False,
+        next_action_code="enable_provider_probe_or_run_live",
+    )
+
+    with patch("backend.app.main.get_provider_snapshot", return_value=unverified):
+        readiness = _model_readiness()
+        assert readiness["full_analysis_ready"] is False
+        assert readiness["full_analysis_reason_code"] == "provider_probe_disabled"
+        assert readiness["provider"]["status"] == "unavailable"
+
+
+@pytest.mark.parametrize(
+    ("provider_error", "expected_code"),
+    [
+        (ValueError("模型工具参数超过本角色输出上限"), "MODEL_TOOL_OUTPUT_TRUNCATED"),
+        (ValueError("模型调用了未声明的输出工具"), "MODEL_TOOL_CALL_CONTRACT_ERROR"),
+    ],
+)
+def test_tool_argument_failures_keep_distinct_diagnostic_codes(
+    monkeypatch: pytest.MonkeyPatch,
+    provider_error: ValueError,
+    expected_code: str,
+) -> None:
+    """REQ-BACKEND: OpenCode 工具参数失败保留稳定子类，而非统一不可诊断码。"""
+    def raise_provider_error(**_kwargs):
+        raise provider_error
+
+    monkeypatch.setattr(agents_module, "_call_model", raise_provider_error)
+    steps = agents_module.run_agent_chain(
+        run_id="RUN-TOOL-DIAGNOSTIC",
+        rule_result=RuleResult(rule_id="R1", status="candidate", source_validation={}, metrics={}, risk_card={}),
+        evidence_bundle=[{"evidence_id": "E1", "excerpt": "已登记证据"}],
+        enabled=True,
+        api_key="test-key",
+        base_url="https://opencode.ai/zen/go/v1",
+        model_id="deepseek-v4-flash",
+    )
+
+    assert steps[0].failure_stage == "tool_arguments"
+    assert steps[0].failure_code == expected_code
+    assert [step.status for step in steps[1:]] == ["skipped", "skipped"]
+
+
+def test_provider_feedback_uses_schema_failure_code_and_actual_failure_status(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """REQ-BACKEND: 运行反馈必须读取 AgentStep.failure_code，而非不存在的 error_code。"""
+    recorded: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(
+        app_module,
+        "record_provider_failure",
+        lambda code, detail, base_url=None: recorded.append((code, detail, str(base_url))),
+    )
+    monkeypatch.setattr(app_module, "record_provider_success", lambda **_kwargs: pytest.fail("失败运行不得记为成功"))
+
+    _record_provider_run_feedback(
+        [
+            AgentStep(
+                role="challenge",
+                status="provider_unavailable",
+                detail="供应商鉴权失败，已关闭本次调用。",
+                failure_stage="provider",
+                failure_code="MODEL_PROVIDER_AUTH_FAILED",
+                provider_call_performed=True,
+            ),
+            AgentStep(role="counter", status="skipped", detail="前一角色失败，未调用。", failure_code="PREVIOUS_ROLE_FAILED"),
+        ],
+        model_id="deepseek-v4-flash",
+        base_url="https://opencode.ai/zen/go/v1",
+    )
+
+    assert recorded == [(
+        "MODEL_PROVIDER_AUTH_FAILED",
+        "供应商鉴权失败，已关闭本次调用。",
+        "https://opencode.ai/zen/go/v1",
+    )]
+
+
+def test_demo_agent_steps_candidate_retention_logic() -> None:
+    """BUG-2: 演示模式下无缺口的 candidate 规则结果正确推荐 retain（保留为待核查候选）。"""
+    from backend.app.schemas import RuleResult
+    from backend.app.main import _demo_agent_steps
+
+    candidate_rule_result = RuleResult(
+        rule_id="R1",
+        status="candidate",
+        screening_status="candidate",
+        risk_card={
+            "rule_id": "R1",
+            "title": "应收账款增幅显著高于营业收入",
+            "observation": "应收增速 25.5%，收入增速 2.1%，差异超过强阈值。",
+            "data_gaps": [],
+            "requested_materials": ["大额销售合同", "期后回款凭证"],
+        },
+        source_validation={"issues": []},
+        metrics={"ar_growth": 0.255, "rev_growth": 0.021},
+    )
+
+    steps = _demo_agent_steps(
+        run_id="RUN-TEST-CANDIDATE",
+        rule_result=candidate_rule_result,
+        evidence_bundle={"field_evidence": [{"evidence_id": "EV-001"}], "evidence_gaps": []},
+        model_id="demo-deterministic-v1",
+        analysis_route="risk_candidate",
+    )
+    assert len(steps) == 3
+    review_step = next(s for s in steps if s.role == "review")
+    assert review_step.output.status == "retain"
+    assert review_step.output.ai_recommendation == "retain"
+
+
+def test_agent_output_schema_supports_top_5_claims() -> None:
+    """BUG-5: AgentOutput Schema 与 Top 5 待核查事项对齐，支持至多 5 条主张。"""
+    from backend.app.schemas import AgentOutput, AgentClaim
+
+    claims = [
+        AgentClaim(text=f"待核查事项 {i+1}：关键事实描述", evidence_ids=["EV-001"], support_status="supported")
+        for i in range(5)
+    ]
+    output = AgentOutput(
+        schema_version="agent_output_v2",
+        run_id="RUN-TEST-TOP5",
+        role="review",
+        rule_id="R1",
+        analysis_conclusion="risk_candidate",
+        status="retain",
+        claims=claims,
+        normal_explanations=[],
+        data_gaps=[],
+        requested_materials=["销售明细账"],
+        reason_for_status="5条主张均有证据编号支持，建议保留为待核查候选。",
+        draft_title="Top 5 待核查事项建议草稿",
+        draft_observation="应收增速与收入增速背离显著。",
+        ai_recommendation="retain",
+    )
+    assert len(output.claims) == 5
+
+
+def test_global_exception_handler_returns_ai_notice() -> None:
+    """BUG-4: 全局未捕获异常返回 500 时必须强制携带 AI 免责声明。"""
+    test_client = TestClient(app, raise_server_exceptions=False)
+    with patch("backend.app.main._visible_case_records", side_effect=RuntimeError("Simulated unhandled system error")):
+        response = test_client.get("/api/status")
+        assert response.status_code == 500
+        data = response.json()
+        assert "ai_generated_content_notice" in data
+        assert data["ai_generated_content_notice"] == "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+        assert "RuntimeError" in data.get("detail", "")
+
+
+def test_cases_endpoint_defaults_to_standard_case_first() -> None:
+    """默认首选案例必须始终为标准股份内置开发案例 STD_DEV_T0。"""
+    test_client = TestClient(app)
+    response = test_client.get("/api/cases?summary=true")
+    assert response.status_code == 200
+    cases = response.json().get("cases", [])
+    assert len(cases) > 0
+    assert cases[0]["case_id"] == "STD_DEV_T0"
+    assert "标准股份" in (cases[0].get("company_alias") or cases[0].get("company_name") or "")
+
+
+def test_status_endpoint_returns_provider_channel_metadata() -> None:
+    """测试 /api/status 接口返回安全的供应商通道元数据。"""
+    test_client = TestClient(app)
+    response = test_client.get("/api/status")
+    assert response.status_code == 200
+    data = response.json()
+    model_meta = data.get("model", {})
+    assert "provider_kind" in model_meta
+    assert "provider_label" in model_meta
+    assert "provider_host" in model_meta
+    assert "next_action_code" in model_meta
+    assert "DEEPSEEK_API_KEY" not in str(data)

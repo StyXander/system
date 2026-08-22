@@ -34,6 +34,137 @@ DEFAULT_HARD_EXPIRY_SECONDS = 600
 DEFAULT_PROBE_TIMEOUT_SECONDS = 4.0
 
 
+def classify_provider_channel(base_url: str | None = None) -> dict[str, str]:
+    """根据 Base URL 解析模型供应商通道类型、标准中文标签与主机名。
+
+    支持通道：
+    - deepseek_direct: DeepSeek 官方直连接口 (api.deepseek.com)
+    - opencode_go: OpenCode Go 接口 (opencode.ai/zen/go/v1)
+    - opencode_zen: OpenCode Zen 充值额度接口 (opencode.ai/zen/v1)
+    - openai_compatible_other: 其他通用 OpenAI 兼容代理网关
+    """
+    raw_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).strip()
+    url_lower = raw_url.lower()
+
+    if "api.deepseek.com" in url_lower:
+        return {
+            "provider_kind": "deepseek_direct",
+            "provider_label": "DeepSeek 官方直连",
+            "provider_host": "api.deepseek.com",
+            "base_url": raw_url,
+        }
+    if "opencode.ai/zen/go" in url_lower or "zen/go" in url_lower:
+        return {
+            "provider_kind": "opencode_go",
+            "provider_label": "OpenCode Go",
+            "provider_host": "opencode.ai",
+            "base_url": raw_url,
+        }
+    if "opencode.ai/zen" in url_lower or "opencode.ai" in url_lower:
+        return {
+            "provider_kind": "opencode_zen",
+            "provider_label": "OpenCode Zen",
+            "provider_host": "opencode.ai",
+            "base_url": raw_url,
+        }
+
+    # 解析其他通用网关的主机名
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(raw_url)
+        host = parsed.netloc or "custom-gateway"
+    except Exception:
+        host = "custom-gateway"
+    return {
+        "provider_kind": "openai_compatible_other",
+        "provider_label": f"OpenAI 兼容网关 ({host})",
+        "provider_host": host,
+        "base_url": raw_url,
+    }
+
+
+def get_provider_error_guidance(
+    failure_code: str,
+    base_url: str | None = None,
+    http_code: int = 0,
+    detail: str = "",
+) -> dict[str, str]:
+    """根据失败原因与供应商通道生成针对性、可操作的中文字符串与下一步动作码。
+
+    安全与合规要求：
+    - 严禁在返回文案或动作码中回显真实 API Key 或敏感凭据；
+    - 明确指出是哪个接口返回错误，避免把直连欠费误判为代销额度问题；
+    - 区分 401 密钥无效、402 余额不足、403 区域协议与 429 限流。
+    """
+    channel_info = classify_provider_channel(base_url)
+    kind = channel_info["provider_kind"]
+    label = channel_info["provider_label"]
+
+    if failure_code == "MODEL_PROVIDER_BALANCE_EXHAUSTED" or http_code == 402:
+        if kind == "deepseek_direct":
+            msg = (
+                "DeepSeek 官方直连接口返回余额不足（HTTP 402）。当前应用直连 api.deepseek.com，"
+                "并未消耗 OpenCode 余额。若要使用 OpenCode，请将 Base URL 切换为 https://opencode.ai/zen/go/v1 并配置 OpenCode Key；"
+                "若继续使用 DeepSeek 直连，请前往 DeepSeek 开放平台充值。"
+            )
+            next_action = "check_deepseek_balance_or_switch_opencode"
+        elif kind == "opencode_go":
+            msg = (
+                "OpenCode Go 接口返回额度不足或付费限制（HTTP 402）。"
+                "请确认 API Key 属于当前有额度的工作区，并确认 DeepSeek V4 Flash 已在该工作区启用。"
+            )
+            next_action = "check_opencode_go_workspace_quota"
+        elif kind == "opencode_zen":
+            msg = (
+                "OpenCode Zen 接口返回余额不足（HTTP 402）。"
+                "请前往 OpenCode 控制台检查 Zen 充值余额并充值。"
+            )
+            next_action = "check_opencode_zen_balance"
+        else:
+            msg = f"{label} 返回余额不足（HTTP 402），请检查账户额度或切换通道。"
+            next_action = "check_provider_balance"
+        return {"message": msg, "next_action_code": next_action, "reason_code": "provider_balance_exhausted"}
+
+    if failure_code == "MODEL_PROVIDER_AUTH_FAILED" or http_code == 401:
+        if kind == "deepseek_direct":
+            msg = "DeepSeek 官方直连接口鉴权失败（HTTP 401）。请检查 API Key 是否为有效的 DeepSeek 官方密钥。"
+            next_action = "check_deepseek_api_key"
+        elif kind in ("opencode_go", "opencode_zen"):
+            msg = f"{label} 接口鉴权失败（HTTP 401）。请检查 API Key 是否为有效的 OpenCode Key，并确认与当前 Base URL 通道配对。"
+            next_action = "check_opencode_api_key"
+        else:
+            msg = f"{label} 鉴权失败（HTTP 401），请检查 API Key 配置。"
+            next_action = "check_api_key"
+        return {"message": msg, "next_action_code": next_action, "reason_code": "provider_auth_failed"}
+
+    if failure_code == "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED" or (http_code == 403 and ("region" in detail.lower() or "hosted in china" in detail.lower())):
+        msg = (
+            f"{label} 提示中国托管模型需要工作区显式同意协议（HTTP 403）。"
+            "请前往 OpenCode 工作区设置页面启用中国托管模型后重试。"
+        )
+        next_action = "enable_china_hosted_model_in_workspace"
+        return {"message": msg, "next_action_code": next_action, "reason_code": "provider_auth_failed"}
+
+    if http_code == 403:
+        msg = f"{label} 请求被拒绝（HTTP 403），请检查工作区权限或安全策略。"
+        next_action = "check_workspace_permissions"
+        return {"message": msg, "next_action_code": next_action, "reason_code": "provider_auth_failed"}
+
+    if failure_code == "MODEL_PROVIDER_RATE_LIMITED" or http_code == 429:
+        msg = f"{label} 暂时限流（HTTP 429），请稍后重试。"
+        next_action = "retry_later"
+        return {"message": msg, "next_action_code": next_action, "reason_code": "provider_temporarily_unavailable"}
+
+    if http_code in (500, 502, 503, 504):
+        msg = f"{label} 服务端临时故障（HTTP {http_code}），请稍后重试。"
+        next_action = "retry_later"
+        return {"message": msg, "next_action_code": next_action, "reason_code": "provider_temporarily_unavailable"}
+
+    msg = f"{label} 调用异常（{failure_code or f'HTTP {http_code}'}）。"
+    next_action = "inspect_runtime_error"
+    return {"message": msg, "next_action_code": next_action, "reason_code": "provider_temporarily_unavailable"}
+
+
 @dataclass
 class ProviderSnapshot:
     """供应商就绪快照，只包含公开状态与脱敏原因码，不包含密钥或余额数字。
@@ -46,7 +177,14 @@ class ProviderSnapshot:
     - expires_at: 本次快照的过期时间戳（ISO 8601 格式）；
     - source: 快照来源，包括 "probe"（主动探测）、"live_run"（真实调用成功反馈）、
       "circuit_breaker"（真实调用失败熔断）、"cached"（缓存复用）或 "default"（默认配置）；
-    - stale: 布尔值，当快照超过 TTL 但在硬过期窗口内时为 True，提示上游当前正在后台刷新。
+    - stale: 布尔值，当快照超过 TTL 但在硬过期窗口内时为 True，提示上游当前正在后台刷新；
+    - provider_kind: 通道类别代码（deepseek_direct / opencode_go / opencode_zen / openai_compatible_other）；
+    - provider_label: 通道中文标签名称；
+    - provider_host: 供应商域名或主机名（只读公开）；
+    - model_id: 配置的模型标识；
+    - paid_probe_performed: 是否发生过消耗业务 Token 的真实三 Agent 调用；
+    - last_runtime_failure_code: 最近一次真实运行记录的错误码；
+    - next_action_code: 引导前端或用户执行的标准下一步动作代码。
     """
 
     status: str  # "ready" | "unavailable"
@@ -56,6 +194,13 @@ class ProviderSnapshot:
     expires_at: str  # ISO 格式时间戳
     source: str  # "probe" | "live_run" | "circuit_breaker" | "cached" | "default"
     stale: bool = False
+    provider_kind: str = "deepseek_direct"
+    provider_label: str = "DeepSeek 官方直连"
+    provider_host: str = "api.deepseek.com"
+    model_id: str = "deepseek-v4-flash"
+    paid_probe_performed: bool = False
+    last_runtime_failure_code: str | None = None
+    next_action_code: str = "ready"
 
     def to_dict(self) -> dict[str, Any]:
         """序列化为可对外公开的字典结构。"""
@@ -63,12 +208,14 @@ class ProviderSnapshot:
         return asdict(self)
 
 
-# 线程锁与全局单例快照对象
-_lock = threading.Lock()
+# 线程锁与全局单例快照对象（使用可重入锁 RLock 避免内部调用死锁）
+_lock = threading.RLock()
 # 当前持有的最新供应商就绪快照
 _current_snapshot: ProviderSnapshot | None = None
 # 上次成功执行探测并记录的时间戳（秒）
 _last_probe_timestamp: float = 0.0
+# 后台探测进行中防并发标记，防止软过期窗口期并发请求产生雷群效应
+_probe_in_flight: bool = False
 
 
 def _iso_now(offset_seconds: float = 0.0) -> str:
@@ -96,29 +243,41 @@ def probe_provider(
 
     核心探测流程：
     1. 校验 API Key 基础配置是否存在；
-    2. 若目标为官方 DeepSeek 接口，向 `/user/balance` 发送只读请求检验可用额度；
-    3. 若目标为标准 OpenAI 兼容网关或自建服务，向 `/models` 发送只读请求检验模型列表与鉴权；
-    4. 根据 HTTP 状态码（401/402/429/5xx）与返回结构分类映射为稳定的就绪原因码；
-    5. 捕获并妥善处理所有网络异常（超时、连接拒绝、DNS 解析失败），绝不向上抛出未捕获异常。
+    2. 解析目标 Base URL 供应商通道（DeepSeek 直连、OpenCode Go、OpenCode Zen）；
+    3. 若目标为官方 DeepSeek 接口，向 `/user/balance` 发送只读请求检验可用额度；
+    4. 若目标为标准 OpenAI 兼容网关或自建服务，向 `/models` 发送只读请求检验模型列表与鉴权；
+    5. 根据 HTTP 状态码（401/402/429/5xx）与返回结构分类映射为稳定的就绪原因码；
+    6. 捕获并妥善处理所有网络异常（超时、连接拒绝、DNS 解析失败），绝不向上抛出未捕获异常。
     """
 
     # 提取 API Key：优先使用传入参数，其次读取环境变量
     key = (api_key if api_key is not None else os.getenv("DEEPSEEK_API_KEY", "")).strip()
+    target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
+    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")).strip()
+    channel_info = classify_provider_channel(target_base_url)
+    p_kind = channel_info["provider_kind"]
+    p_label = channel_info["provider_label"]
+    p_host = channel_info["provider_host"]
+
     if not key:
         # 未配置 API Key 时返回明确的不可用原因码
         return ProviderSnapshot(
             status="unavailable",
             reason_code="api_key_missing",
-            message="服务端尚未配置模型 API Key；可运行仅计算或确定性备用分析。",
+            message=f"服务端尚未配置 {p_label} API Key；可运行仅计算或确定性备用分析。",
             checked_at=_iso_now(),
             expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
             source="probe",
             stale=False,
+            provider_kind=p_kind,
+            provider_label=p_label,
+            provider_host=p_host,
+            model_id=target_model,
+            paid_probe_performed=False,
+            last_runtime_failure_code=None,
+            next_action_code="configure_api_key",
         )
 
-    # 规范化 Base URL 与目标模型标识
-    target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
-    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")).strip()
     is_official_deepseek = "api.deepseek.com" in target_base_url.lower()
 
     # 步骤 1：如果是 DeepSeek 官方接口，优先请求 /user/balance 验证余额
@@ -143,14 +302,22 @@ def probe_provider(
                     balance_data = {}
                 # is_available 明确为 False 时表示账户欠费或无可用充值余额
                 if balance_data.get("is_available") is False:
+                    guidance = get_provider_error_guidance("MODEL_PROVIDER_BALANCE_EXHAUSTED", base_url=target_base_url, http_code=402)
                     return ProviderSnapshot(
                         status="unavailable",
                         reason_code="provider_balance_exhausted",
-                        message="模型供应商账户余额不足或不可用，请充值后重试。",
+                        message=guidance["message"],
                         checked_at=_iso_now(),
                         expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                         source="probe",
                         stale=False,
+                        provider_kind=p_kind,
+                        provider_label=p_label,
+                        provider_host=p_host,
+                        model_id=target_model,
+                        paid_probe_performed=False,
+                        last_runtime_failure_code="MODEL_PROVIDER_BALANCE_EXHAUSTED",
+                        next_action_code=guidance["next_action_code"],
                     )
                 # 官方 DeepSeek 余额接口返回 200 且可用，说明鉴权与额度均就绪
                 return ProviderSnapshot(
@@ -161,63 +328,87 @@ def probe_provider(
                     expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                     source="probe",
                     stale=False,
+                    provider_kind=p_kind,
+                    provider_label=p_label,
+                    provider_host=p_host,
+                    model_id=target_model,
+                    paid_probe_performed=False,
+                    last_runtime_failure_code=None,
+                    next_action_code="ready",
                 )
         except HTTPError as error:
-            # 捕获 HTTP 状态码异常
+            # 捕获 HTTP 状态码异常并转换为通道化中文引导
             code = int(getattr(error, "code", 0) or 0)
             if code in (401, 403):
-                # 401/403 表示鉴权未通过，API Key 无效或已被撤销
+                guidance = get_provider_error_guidance("MODEL_PROVIDER_AUTH_FAILED", base_url=target_base_url, http_code=code)
                 return ProviderSnapshot(
                     status="unavailable",
                     reason_code="provider_auth_failed",
-                    message="模型供应商鉴权失败，请检查 API Key 配置。",
+                    message=guidance["message"],
                     checked_at=_iso_now(),
                     expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                     source="probe",
                     stale=False,
+                    provider_kind=p_kind,
+                    provider_label=p_label,
+                    provider_host=p_host,
+                    model_id=target_model,
+                    paid_probe_performed=False,
+                    last_runtime_failure_code="MODEL_PROVIDER_AUTH_FAILED",
+                    next_action_code=guidance["next_action_code"],
                 )
             if code == 402:
-                # 402 Payment Required 表示欠费或余额不足
+                guidance = get_provider_error_guidance("MODEL_PROVIDER_BALANCE_EXHAUSTED", base_url=target_base_url, http_code=402)
                 return ProviderSnapshot(
                     status="unavailable",
                     reason_code="provider_balance_exhausted",
-                    message="模型供应商账户余额不足，请充值后重试。",
+                    message=guidance["message"],
                     checked_at=_iso_now(),
                     expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                     source="probe",
                     stale=False,
+                    provider_kind=p_kind,
+                    provider_label=p_label,
+                    provider_host=p_host,
+                    model_id=target_model,
+                    paid_probe_performed=False,
+                    last_runtime_failure_code="MODEL_PROVIDER_BALANCE_EXHAUSTED",
+                    next_action_code=guidance["next_action_code"],
                 )
-            if code in (429, 500, 502, 503, 504):
-                # 429 或 5xx 表示供应商服务端限流或临时不可用，缩短缓存时间
-                return ProviderSnapshot(
-                    status="unavailable",
-                    reason_code="provider_temporarily_unavailable",
-                    message=f"模型供应商服务暂不可用（HTTP {code}），请稍后重试。",
-                    checked_at=_iso_now(),
-                    expires_at=_iso_now(60),  # 暂态失败缩短缓存重试周期
-                    source="probe",
-                    stale=False,
-                )
-            # 兜底未知 HTTP 状态码
+            guidance = get_provider_error_guidance("MODEL_PROVIDER_TEMPORARILY_UNAVAILABLE", base_url=target_base_url, http_code=code)
             return ProviderSnapshot(
                 status="unavailable",
                 reason_code="provider_temporarily_unavailable",
-                message=f"模型供应商返回异常响应（HTTP {code}）。",
+                message=guidance["message"],
                 checked_at=_iso_now(),
                 expires_at=_iso_now(60),
                 source="probe",
                 stale=False,
+                provider_kind=p_kind,
+                provider_label=p_label,
+                provider_host=p_host,
+                model_id=target_model,
+                paid_probe_performed=False,
+                last_runtime_failure_code="MODEL_PROVIDER_TEMPORARILY_UNAVAILABLE",
+                next_action_code=guidance["next_action_code"],
             )
         except (URLError, TimeoutError, OSError) as error:
             # 网络不通或超时
             return ProviderSnapshot(
                 status="unavailable",
                 reason_code="provider_temporarily_unavailable",
-                message=f"模型供应商网络连接超时或不可达（{type(error).__name__}）。",
+                message=f"{p_label} 网络连接超时或不可达（{type(error).__name__}）。",
                 checked_at=_iso_now(),
                 expires_at=_iso_now(60),
                 source="probe",
                 stale=False,
+                provider_kind=p_kind,
+                provider_label=p_label,
+                provider_host=p_host,
+                model_id=target_model,
+                paid_probe_performed=False,
+                last_runtime_failure_code="MODEL_PROVIDER_UNREACHABLE",
+                next_action_code="retry_later",
             )
 
     # 步骤 2：请求 /models 验证密钥对模型列表的读取权限与模型就绪性
@@ -250,64 +441,109 @@ def probe_provider(
                     return ProviderSnapshot(
                         status="unavailable",
                         reason_code="provider_model_unavailable",
-                        message=f"模型供应商当前可用列表中未找到配置的模型 {target_model}。",
+                        message=f"{p_label} 当前可用列表中未找到配置的模型 {target_model}。",
                         checked_at=_iso_now(),
                         expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                         source="probe",
                         stale=False,
+                        provider_kind=p_kind,
+                        provider_label=p_label,
+                        provider_host=p_host,
+                        model_id=target_model,
+                        paid_probe_performed=False,
+                        last_runtime_failure_code="MODEL_UNAVAILABLE",
+                        next_action_code="check_model_id",
                     )
             # 鉴权与模型列表探测均通过
             return ProviderSnapshot(
                 status="ready",
                 reason_code="ready",
-                message="模型供应商鉴权、余额与可用模型均探测通过。",
+                message=f"{p_label} 鉴权、余额与可用模型均探测通过。",
                 checked_at=_iso_now(),
                 expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                 source="probe",
                 stale=False,
+                provider_kind=p_kind,
+                provider_label=p_label,
+                provider_host=p_host,
+                model_id=target_model,
+                paid_probe_performed=False,
+                last_runtime_failure_code=None,
+                next_action_code="ready",
             )
     except HTTPError as error:
         # 处理模型列表探测过程中的 HTTP 状态码异常
         code = int(getattr(error, "code", 0) or 0)
         if code in (401, 403):
+            guidance = get_provider_error_guidance("MODEL_PROVIDER_AUTH_FAILED", base_url=target_base_url, http_code=code)
             return ProviderSnapshot(
                 status="unavailable",
                 reason_code="provider_auth_failed",
-                message="模型供应商鉴权失败，请检查 API Key 配置。",
+                message=guidance["message"],
                 checked_at=_iso_now(),
                 expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                 source="probe",
                 stale=False,
+                provider_kind=p_kind,
+                provider_label=p_label,
+                provider_host=p_host,
+                model_id=target_model,
+                paid_probe_performed=False,
+                last_runtime_failure_code="MODEL_PROVIDER_AUTH_FAILED",
+                next_action_code=guidance["next_action_code"],
             )
         if code == 402:
+            guidance = get_provider_error_guidance("MODEL_PROVIDER_BALANCE_EXHAUSTED", base_url=target_base_url, http_code=402)
             return ProviderSnapshot(
                 status="unavailable",
                 reason_code="provider_balance_exhausted",
-                message="模型供应商账户余额不足，请充值后重试。",
+                message=guidance["message"],
                 checked_at=_iso_now(),
                 expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
                 source="probe",
                 stale=False,
+                provider_kind=p_kind,
+                provider_label=p_label,
+                provider_host=p_host,
+                model_id=target_model,
+                paid_probe_performed=False,
+                last_runtime_failure_code="MODEL_PROVIDER_BALANCE_EXHAUSTED",
+                next_action_code=guidance["next_action_code"],
             )
+        guidance = get_provider_error_guidance("MODEL_PROVIDER_TEMPORARILY_UNAVAILABLE", base_url=target_base_url, http_code=code)
         return ProviderSnapshot(
             status="unavailable",
             reason_code="provider_temporarily_unavailable",
-            message=f"模型供应商模型列表检查异常（HTTP {code}）。",
+            message=guidance["message"],
             checked_at=_iso_now(),
             expires_at=_iso_now(60),
             source="probe",
             stale=False,
+            provider_kind=p_kind,
+            provider_label=p_label,
+            provider_host=p_host,
+            model_id=target_model,
+            paid_probe_performed=False,
+            last_runtime_failure_code="MODEL_PROVIDER_TEMPORARILY_UNAVAILABLE",
+            next_action_code=guidance["next_action_code"],
         )
     except (URLError, TimeoutError, OSError) as error:
         # 网络连接异常或探测超时
         return ProviderSnapshot(
             status="unavailable",
             reason_code="provider_temporarily_unavailable",
-            message=f"模型供应商模型列表连接超时（{type(error).__name__}）。",
+            message=f"{p_label} 模型列表连接超时（{type(error).__name__}）。",
             checked_at=_iso_now(),
             expires_at=_iso_now(60),
             source="probe",
             stale=False,
+            provider_kind=p_kind,
+            provider_label=p_label,
+            provider_host=p_host,
+            model_id=target_model,
+            paid_probe_performed=False,
+            last_runtime_failure_code="MODEL_PROVIDER_UNREACHABLE",
+            next_action_code="retry_later",
         )
 
 
@@ -315,22 +551,37 @@ def get_provider_snapshot(*, force_refresh: bool = False) -> ProviderSnapshot:
     """获取当前供应商就绪快照；带线程安全 TTL 缓存，避免请求打满供应商。"""
 
     global _current_snapshot, _last_probe_timestamp
-    with _lock:
-        # 若已有真实运行（live_run 或 circuit_breaker）记录的最新快照，优先返回
-        if _current_snapshot is not None and _current_snapshot.source in ("live_run", "circuit_breaker"):
-            return _current_snapshot
+    target_base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
+    target_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
+    channel_info = classify_provider_channel(target_base_url)
 
     if not is_provider_probe_enabled():
-        # 未开启主动探测时返回中性默认快照，不阻塞系统的正常运行
+        # 未开启主动探测不能被配置或历史成功记录提升为当前可运行状态；
+        # 仅保留最近一次真实失败，避免掩盖已知的鉴权或额度问题。
+        with _lock:
+            if _current_snapshot is not None and _current_snapshot.source == "circuit_breaker":
+                return _current_snapshot
         return ProviderSnapshot(
-            status="ready",
+            status="unavailable",
             reason_code="provider_probe_disabled",
-            message="服务端未开启供应商主动探测；以本地配置和实际运行硬校验为准。",
+            message=f"服务端未开启 {channel_info['provider_label']} 主动探测；当前真实模型可运行性尚未验证。",
             checked_at=_iso_now(),
             expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
             source="default",
             stale=False,
+            provider_kind=channel_info["provider_kind"],
+            provider_label=channel_info["provider_label"],
+            provider_host=channel_info["provider_host"],
+            model_id=target_model,
+            paid_probe_performed=False,
+            last_runtime_failure_code=None,
+            next_action_code="enable_provider_probe_or_run_live",
         )
+
+    with _lock:
+        # 已启用探测时，最近一次真实运行反馈仍优先于普通 TTL 缓存。
+        if _current_snapshot is not None and _current_snapshot.source in ("live_run", "circuit_breaker"):
+            return _current_snapshot
 
     now = time.time()
     with _lock:
@@ -349,6 +600,13 @@ def get_provider_snapshot(*, force_refresh: bool = False) -> ProviderSnapshot:
                     expires_at=_current_snapshot.expires_at,
                     source=_current_snapshot.source,
                     stale=True,
+                    provider_kind=_current_snapshot.provider_kind,
+                    provider_label=_current_snapshot.provider_label,
+                    provider_host=_current_snapshot.provider_host,
+                    model_id=_current_snapshot.model_id,
+                    paid_probe_performed=_current_snapshot.paid_probe_performed,
+                    last_runtime_failure_code=_current_snapshot.last_runtime_failure_code,
+                    next_action_code=_current_snapshot.next_action_code,
                 )
                 # 启动后台线程异步刷新，不阻塞当前前端用户的界面加载
                 _trigger_background_probe()
@@ -363,9 +621,16 @@ def get_provider_snapshot(*, force_refresh: bool = False) -> ProviderSnapshot:
 
 
 def _trigger_background_probe() -> None:
-    """在后台独立线程中异步执行探测，不阻塞当前请求。"""
+    """在后台独立线程中异步执行探测，不阻塞当前请求。使用原子标志防范雷群效应。"""
+    global _probe_in_flight
+    with _lock:
+        # 如果已经有后台探测线程正在进行中，直接返回，避免并发重复请求打满供应商
+        if _probe_in_flight:
+            return
+        _probe_in_flight = True
+
     def _worker() -> None:
-        global _current_snapshot, _last_probe_timestamp
+        global _current_snapshot, _last_probe_timestamp, _probe_in_flight
         try:
             snapshot = probe_provider()
             with _lock:
@@ -374,55 +639,71 @@ def _trigger_background_probe() -> None:
         except Exception:
             # 后台线程内异常静默处理，避免崩溃主进程
             pass
+        finally:
+            with _lock:
+                # 探测结束后释放后台运行标志
+                _probe_in_flight = False
 
     # 启动后台 Daemon 线程
     thread = threading.Thread(target=_worker, daemon=True, name="ProviderProbeWorker")
     thread.start()
 
 
-def record_provider_success(model_id: str = "") -> None:
+def record_provider_success(model_id: str = "", base_url: str | None = None) -> None:
     """真实 Agent 角色调用成功后调用，清除鉴权/余额熔断状态。"""
 
     global _current_snapshot, _last_probe_timestamp
+    target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
+    channel_info = classify_provider_channel(target_base_url)
+    used_model = model_id or os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
     with _lock:
         # 当真实 Agent 运行成功返回有效输出时，重置快照为就绪状态
         _current_snapshot = ProviderSnapshot(
             status="ready",
             reason_code="ready",
-            message=f"真实三Agent角色调用成功（{model_id or 'deepseek'}）。",
+            message=f"真实三Agent角色调用成功（{channel_info['provider_label']} · {used_model}）。",
             checked_at=_iso_now(),
             expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
             source="live_run",
             stale=False,
+            provider_kind=channel_info["provider_kind"],
+            provider_label=channel_info["provider_label"],
+            provider_host=channel_info["provider_host"],
+            model_id=used_model,
+            paid_probe_performed=True,
+            last_runtime_failure_code=None,
+            next_action_code="ready",
         )
         _last_probe_timestamp = time.time()
 
 
-def record_provider_failure(failure_code: str, message: str = "") -> None:
+def record_provider_failure(failure_code: str, message: str = "", base_url: str | None = None) -> None:
     """真实运行出现永久性或严重 provider 错误时调用，立即触发熔断。"""
 
     global _current_snapshot, _last_probe_timestamp
-    # 映射运行时错误码至标准化的供应商就绪原因码与中文提示
-    code_map = {
-        "MODEL_PROVIDER_AUTH_FAILED": ("provider_auth_failed", "真实运行收到供应商鉴权失败（401/403），请检查 API Key 配置。"),
-        "MODEL_PROVIDER_BALANCE_EXHAUSTED": ("provider_balance_exhausted", "真实运行收到供应商余额不足（402），请充值后重试。"),
-        "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED": ("provider_auth_failed", "真实运行收到区域合规或协议要求，请检查供应商配置。"),
-        "MODEL_PROVIDER_RATE_LIMITED": ("provider_temporarily_unavailable", "真实运行收到供应商限流，请稍后重试。"),
-    }
-    mapped_reason, default_msg = code_map.get(
-        failure_code,
-        ("provider_temporarily_unavailable", f"真实运行供应商调用异常（{failure_code}）。"),
-    )
+    target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
+    channel_info = classify_provider_channel(target_base_url)
+    guidance = get_provider_error_guidance(failure_code, base_url=target_base_url)
+    used_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
     with _lock:
         # 立即写入熔断快照，使后续前端轮询能够及时感知到供应商不可用
         _current_snapshot = ProviderSnapshot(
             status="unavailable",
-            reason_code=mapped_reason,
-            message=message or default_msg,
+            reason_code=guidance["reason_code"],
+            message=message or guidance["message"],
             checked_at=_iso_now(),
             expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
             source="circuit_breaker",
             stale=False,
+            provider_kind=channel_info["provider_kind"],
+            provider_label=channel_info["provider_label"],
+            provider_host=channel_info["provider_host"],
+            model_id=used_model,
+            paid_probe_performed=True,
+            last_runtime_failure_code=failure_code,
+            next_action_code=guidance["next_action_code"],
         )
         _last_probe_timestamp = time.time()
 
@@ -430,8 +711,9 @@ def record_provider_failure(failure_code: str, message: str = "") -> None:
 def reset_provider_readiness() -> None:
     """重置供应商快照状态，主要供自动化测试隔离使用。"""
 
-    global _current_snapshot, _last_probe_timestamp
+    global _current_snapshot, _last_probe_timestamp, _probe_in_flight
     with _lock:
         # 清空全局缓存与时间戳，确保各单元测试之间互不干扰
         _current_snapshot = None
         _last_probe_timestamp = 0.0
+        _probe_in_flight = False

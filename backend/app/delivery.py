@@ -358,11 +358,14 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             document.add_paragraph(AI_GENERATED_CONTENT_NOTICE)
             document.add_paragraph(str(result.ai_draft.get("draft_title") or "AI待核查草稿"))
             document.add_paragraph(str(result.ai_draft.get("draft_observation") or ""))
-            for claim in result.ai_draft.get("claims", []):
-                _add_bullet(
-                    document,
-                    f"{claim.get('text')}｜证据 {', '.join(claim.get('evidence_ids', []))}｜{claim.get('support_status')}",
-                )
+            claims = result.ai_draft.get("claims", [])
+            if claims:
+                document.add_paragraph("Top 5 待核查事项与事实依据：")
+                for claim in claims:
+                    _add_bullet(
+                        document,
+                        f"{claim.get('text')}｜证据 {', '.join(claim.get('evidence_ids', []))}｜{claim.get('support_status')}",
+                    )
             for explanation in result.ai_draft.get("normal_explanations", []):
                 _add_bullet(
                     document,
