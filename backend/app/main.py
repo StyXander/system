@@ -159,6 +159,16 @@ from .catalog import (
 )
 from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
 from .delivery import build_report, cache_run, replay_cache
+from .demo_bootstrap import blocked_bootstrap_payload, build_bootstrap_payload, load_demo_manifest
+from .demo_run_tasks import AGENT_ROLE_ORDER, STAGE_ORDER, DemoRunTaskStore
+from .knowledge_rag import build_retrieval_request, retrieve_knowledge
+from .knowledge_sources import active_source_entries, coverage_group_summary, knowledge_cutoff_date, knowledge_snapshot_id
+from .knowledge_sources import load_source_manifest as load_knowledge_manifest
+from .model_quality import quality_snapshot, record_external_run
+from .anti_confirmation import build_anti_confirmation_record
+from .coverage_matrix import build_assertion_evidence_procedure_matrix
+from .evidence_fitness import annotate_evidence_bundle, enforce_claim_boundaries, fitness_map_for_evidence
+from .numeric_gate import validate_numeric_claims
 from .rag import get_retrieval, prepare_index, question_set, retrieve, status as rag_status
 from .run_store import load_run, save_human_review, save_run
 from .seed_catalog import (
@@ -169,6 +179,7 @@ from .seed_catalog import (
     seed_catalog_summary,
     seed_rag_status,
 )
+from .signoff import SIGNOFF_BOUNDARY, load_signoff_status
 from .schemas import (
     AI_GENERATED_CONTENT_NOTICE,
     AgentClaim,
@@ -180,6 +191,7 @@ from .schemas import (
     CNInfoCompanyConfirmation,
     CNInfoFieldConfirmation,
     CNInfoPipelineRequest,
+    DemoRunCreateRequest,
     HealthResponse,
     HumanReviewRequest,
     ModelCheck,
@@ -245,6 +257,20 @@ async def app_lifespan(_app: FastAPI):
     """
 
     _validate_trusted_proxy_configuration()
+    # 启动时打印模型通道、模型 ID 与调用开关，用于人工核对配置；绝不打印 API Key。
+    try:
+        _startup_key, startup_base_url, startup_model = _model_settings()
+        startup_channel = classify_provider_channel(startup_base_url)
+        print(
+            f"[AuditTrace startup] provider={startup_channel['provider_kind']} "
+            f"({startup_channel['provider_host']}) model={startup_model} "
+            f"probe_enabled={str(is_provider_probe_enabled()).lower()} "
+            f"external_model_enabled={str(_demo_external_model_enabled()).lower()} "
+            f"demo_mode={str(_competition_demo_enabled()).lower()} "
+            f"api_key_present={bool(_startup_key)}"
+        )
+    except Exception:  # noqa: BLE001 - 启动打印失败不能阻止服务启动
+        pass
     try:
         recover_orphaned_refresh_jobs(WORKSPACE_ROOT)
         bootstrap_runtime_catalog(WORKSPACE_ROOT)
@@ -448,7 +474,7 @@ if forensic_editorial_dir.exists():
 def _model_settings() -> tuple[str | None, str, str]:
     api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
     base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    model_id = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
+    model_id = os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus").strip()
     return api_key, base_url, model_id
 
 
@@ -668,6 +694,12 @@ def _competition_demo_enabled() -> bool:
     return os.getenv("AUDITTRACE_DEMO_MODE", "false").strip().lower() in {"1", "true", "yes"}
 
 
+def _onsite_live_sample_enabled() -> bool:
+    """团队本机现场模式可接入新公开样例；共享部署默认关闭高成本写入。"""
+
+    return os.getenv("AUDITTRACE_ONSITE_LIVE_SAMPLE", "false").strip().lower() in {"1", "true", "yes"}
+
+
 def _reject_shared_demo_mutation(action: str = "自定义案例或资料") -> None:
     """匿名本地公网实例只允许可丢弃的内置样例操作，禁止权威或高成本写入。"""
 
@@ -733,7 +765,10 @@ def _authorize_model_prewarm(request: Request) -> None:
 def _enforce_public_model_quota(request: Request) -> str | None:
     if not _public_demo_enabled():
         return None
-    if _demo_external_model_enabled():
+    # 只有具备供应商密钥、确实可能发生外部调用时才占用真实模型额度账本。
+    # 开关开启但密钥缺失仍要让请求进入运行链并返回 config_missing；此类匿名
+    # 尝试继续使用下方内存窗口限流，不能被额度摘要密钥的 503 提前遮蔽。
+    if _demo_external_model_enabled() and os.getenv("DEEPSEEK_API_KEY", "").strip():
         quota_secret = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "").strip()
         if len(quota_secret) < 32:
             raise HTTPException(
@@ -2614,6 +2649,7 @@ _PROVIDER_RUNTIME_FAILURE_CODES = frozenset({
     "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED",
     "MODEL_PROVIDER_RATE_LIMITED",
     "MODEL_PROVIDER_REJECTED",
+    "MODEL_PROVIDER_TIMEOUT",
     "MODEL_PROVIDER_UNREACHABLE",
 })
 
@@ -2851,7 +2887,13 @@ def _current_evidence_bundle(
         "rag_evidence": deepcopy(rule_bundle.get("rag_evidence") or []),
         "supplement_evidence": deepcopy(rule_bundle.get("supplement_evidence") or []),
         "procedure_evidence": deepcopy(rule_bundle.get("procedure_evidence") or []),
+        "knowledge_evidence": deepcopy(rule_bundle.get("knowledge_evidence") or []),
         "evidence_gaps": deepcopy(rule_bundle.get("evidence_gaps") or []),
+        "assertion_evidence_procedure_matrix": deepcopy(context.get("assertion_evidence_procedure_matrix") or []),
+        "evidence_fitness_boundary": context.get("evidence_fitness_boundary"),
+        "evidence_fitness_violations": deepcopy(context.get("evidence_fitness_violations") or []),
+        "numeric_claim_trace": deepcopy(context.get("numeric_claim_trace") or {}),
+        "anti_confirmation": deepcopy(context.get("anti_confirmation") or {}),
         "rag_error": rag_error,
         "prescreen_summary": deepcopy(context.get("prescreen_summary")),
     }
@@ -2981,9 +3023,9 @@ def _demo_agent_steps(
 
 
 def _demo_external_model_enabled() -> bool:
-    """比赛模式默认关闭外部模型网络调用，需显式开关才使用真实供应商。"""
+    """竞赛演示默认尝试真实外部模型；显式关闭时才使用确定性备用。"""
 
-    return os.getenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false").strip().lower() in {"1", "true", "yes", "on"}
+    return os.getenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true").strip().lower() in {"1", "true", "yes", "on"}
 
 
 RAG_QUESTIONS_BY_RULE = {
@@ -3152,6 +3194,51 @@ def _run_rag_for_candidates(**kwargs: Any) -> tuple[list[dict[str, Any]], list[d
     return _run_rag_for_analysis(**kwargs)
 
 
+def _run_knowledge_retrieval(
+    *,
+    context: dict[str, Any],
+    rule_results: list[RuleResult],
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None, str | None]:
+    """检索登记的规范、监管和行业最小语料，并把可用边界写入运行上下文。
+
+    与案例年报 RAG 不同，本函数返回的是来源台账的可复验命中；其资料用途由
+    claim_scope 限定，不能借由监管处罚或新闻片段生成当前企业的已证实事实。
+    """
+    try:
+        entries, failure = load_knowledge_manifest(
+            WORKSPACE_ROOT / "backend" / "knowledge_sources.manifest.json"
+        )
+        if failure is not None:
+            return [], None, failure
+        cutoff = knowledge_cutoff_date()
+        summary = coverage_group_summary(entries, cutoff)
+        if cutoff is None:
+            return [], summary, "knowledge_cutoff_unconfirmed"
+        active_rules = list(dict.fromkeys(result.rule_id for result in rule_results)) or ["R1"]
+        categories = [
+            "annual_report", "csrc_penalty", "exchange_inquiry",
+            "accounting_standard", "auditing_standard", "tax_regulation",
+            "industry_report", "news", "macro_indicator",
+        ]
+        request = build_retrieval_request(
+            case_id=str(context.get("case_id") or ""),
+            question_id=f"KB-{'-'.join(active_rules)}",
+            source_categories=categories,
+            as_of_date=str(context.get("t0") or cutoff),
+            cutoff_date=cutoff,
+            snapshot_id=knowledge_snapshot_id(),
+            ticker=str(context.get("ticker") or "") or None,
+            industry=str((context.get("industry_gate") or {}).get("industry") or "") or None,
+        )
+        request["company_name"] = str(context.get("company_name") or "")
+        trace = retrieve_knowledge(entries, request, limit=8)
+        if not trace:
+            return [], summary, "knowledge_retrieval_empty"
+        return trace, summary, None
+    except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+        return [], None, f"knowledge_retrieval_error:{type(error).__name__}"
+
+
 def _aggregate_ai_recommendation(results: list[RuleResult]) -> str:
     recommendations = [result.ai_recommendation for result in results if result.ai_recommendation in {"retain", "downgrade", "defer"}]
     if "retain" in recommendations:
@@ -3193,7 +3280,41 @@ def _execute_run(
     run_prefix: str,
     supplement_evidence: list[dict[str, Any]] | None = None,
     model_recheck: Callable[[str], bool] | None = None,
+    progress_callback: Callable[[str, str, str], None] | None = None,
+    agent_step_callback: Callable[[str, str, str], None] | None = None,
 ) -> RunResponse:
+    def _progress(stage: str, status: str, detail: str) -> None:
+        if progress_callback is not None:
+            try:
+                progress_callback(stage, status, detail)
+            except Exception:
+                # 进度回调是旁路观察；它的异常不得阻断真实运行。
+                pass
+
+    def _forward_agent_steps(steps: list[AgentStep], live: bool) -> None:
+        # live=True 时 run_agent_chain 已在每步结算时回调过，这里只补演示确定性
+        # 草稿与未请求/未授权路径的状态，避免重复写阶段。
+        if agent_step_callback is None:
+            return
+        for step in steps:
+            if live:
+                return
+            suffix = f"（{step.failure_code}）" if step.failure_code else ""
+            try:
+                agent_step_callback(step.role, step.status, f"{step.detail}{suffix}")
+            except Exception:
+                pass
+
+    def _notify_live_agent_step(role: str, step: AgentStep) -> bool:
+        if agent_step_callback is None:
+            return True
+        suffix = f"（{step.failure_code}）" if step.failure_code else ""
+        try:
+            agent_step_callback(role, step.status, f"{step.detail}{suffix}")
+        except Exception:
+            pass
+        return True
+
     pipeline_task_id = str(getattr(http_request.state, "audittrace_pipeline_task_id", None) or "").strip()
     # worker 重试必须命中同一运行编号；随机 run_id 会让“已落库但未 complete”
     # 的恢复再次执行模型，并绕过 analysis_runs 的 task_id 唯一约束。
@@ -3226,12 +3347,18 @@ def _execute_run(
                 "r1_absolute_threshold": r1_absolute_threshold,
                 "r2_min_gap": r2_min_gap,
                 "professional_review_status": "draft_pending_professional_signoff",
+                "r1_signoff_status": _r1_signoff_snapshot()["signoff_status"],
             },
         }
     )
     rule_results: list[RuleResult] = []
     sources_by_rule: dict[str, list[dict[str, Any]]] = {}
     industry_gate = context.get("industry_gate") or {}
+    _progress("evidence_load", "running", "正在读取案例、字段证据与来源信息，并执行来源校验。")
+    # context 与 sources 已由受控案例接口建立；此处完成的是可用于规则计算的
+    # 已登记证据包载入，而不是把后续 RAG 检索提前标成已完成。
+    _progress("evidence_load", "completed", f"案例证据载入完成：{len(sources)} 条已登记字段来源。")
+    _progress("rule_calculation", "running", "行业闸门与 R1/R2 确定性计算执行中。")
     industry_gate_blocked = industry_gate.get("fit_level") in {"not_applicable", "unknown"}
     specialized_rule = industry_gate.get("specialized_rule")
     specialized_prescreen: dict[str, Any] | None = None
@@ -3283,6 +3410,7 @@ def _execute_run(
                     f"条件适用行业：{industry_gate.get('rationale', '')} 当前结果只能作为公开预筛，不能替代专用口径复核。"
                 )
         rule_results.append(result)
+    _progress("rule_calculation", "completed", f"行业闸门与确定性计算完成，共 {len(rule_results)} 条规则结果。")
 
     prescreen_plan = context.get("prescreen_plan") if context.get("public_prescreen") else None
     if prescreen_plan:
@@ -3354,13 +3482,60 @@ def _execute_run(
     retrievals: list[dict[str, Any]] = []
     rag_evidence: list[dict[str, Any]] = []
     evidence_gaps: list[dict[str, Any]] = []
+    knowledge_trace: list[dict[str, Any]] = []
+    knowledge_summary: dict[str, Any] | None = None
     rag_error: str | None = None
     has_candidate_result = any(result.status == "candidate" for result in rule_results)
     if run_mode == "full_analysis" and context.get("model_transfer_allowed", False):
+        _progress("knowledge_retrieval", "running", "正在检索案例原文与已登记知识来源。")
         retrievals, rag_evidence, evidence_gaps, rag_error = _run_rag_for_analysis(
             context=context,
             rule_results=rule_results,
         )
+        if rag_error is None:
+            _progress("knowledge_retrieval", "running", "正在检索已登记的准则、监管与行业知识来源。")
+            knowledge_trace, knowledge_summary, knowledge_error = _run_knowledge_retrieval(
+                context=context,
+                rule_results=rule_results,
+            )
+            context["knowledge_retrieval_trace"] = knowledge_trace
+            context["knowledge_source_ledger"] = [
+                {
+                    key: hit.get(key)
+                    for key in (
+                        "retrieval_id", "source_id", "document_id", "source_category",
+                        "publisher", "published_at", "official_url", "locator",
+                        "content_sha256", "claim_scope", "boundary", "snapshot_id",
+                    )
+                }
+                for hit in knowledge_trace
+            ]
+            context["source_coverage_summary"] = knowledge_summary
+            context["knowledge_snapshot_id"] = knowledge_snapshot_id()
+            if knowledge_error is not None:
+                rag_error = knowledge_error
+                evidence_gaps.append(
+                    {
+                        "type": "knowledge_retrieval_unavailable",
+                        "message": "知识库检索未完成；完整分析失败关闭，本次不调用外部模型。",
+                        "detail": knowledge_error,
+                    }
+                )
+                _progress("knowledge_retrieval", "failed", f"知识检索失败（{knowledge_error}）。")
+            else:
+                _progress("knowledge_retrieval", "completed", f"知识检索完成：{len(knowledge_trace)} 条可回查命中。")
+        else:
+            _progress("knowledge_retrieval", "failed", f"案例原文 RAG 检索失败（{rag_error}）。")
+    else:
+        context["knowledge_retrieval_trace"] = []
+        context["knowledge_source_ledger"] = []
+        try:
+            _entries, _failure = load_knowledge_manifest(WORKSPACE_ROOT / "backend" / "knowledge_sources.manifest.json")
+            context["source_coverage_summary"] = coverage_group_summary(_entries, knowledge_cutoff_date())
+        except (OSError, TypeError, ValueError):
+            context["source_coverage_summary"] = None
+        context["knowledge_snapshot_id"] = knowledge_snapshot_id()
+        _progress("knowledge_retrieval", "skipped", "本次未请求完整分析或未获模型传输许可，未运行知识检索。")
     if rag_error:
         evidence_gaps.append(
             {
@@ -3375,8 +3550,29 @@ def _execute_run(
         "rag_evidence": rag_evidence,
         "supplement_evidence": supplementary,
         "procedure_evidence": procedure_evidence,
+        "knowledge_evidence": knowledge_trace,
         "evidence_gaps": _dedupe_gap_messages(evidence_gaps, limit=16),
     }
+    # 创新二：先把证据适配度和允许主张边界编译进 Agent 输入，
+    # 后续 Agent 只能在这份带 fitness_class 的证据包上生成草稿。
+    rule_bundle = annotate_evidence_bundle(rule_bundle)
+    rule_result_dicts = [result.model_dump(mode="json") for result in rule_results]
+    context["evidence_fitness_map"] = fitness_map_for_evidence(rule_bundle)
+    context["evidence_fitness_boundary"] = (
+        "current_entity_primary_evidence 可支持受边界限制的当前企业事实；"
+        "authoritative_normative_basis 仅支持规范/程序依据；"
+        "analogous_regulatory_or_industry_background 仅支持类比或待验证背景；"
+        "unverified_background 不得进入最终事实主张。"
+    )
+    context["assertion_evidence_procedure_matrix"] = build_assertion_evidence_procedure_matrix(
+        case_id=str(context.get("case_id") or ""),
+        current_year=int(context.get("current_year") or 0),
+        t0=str(context.get("t0") or "") or None,
+        rule_ids=list(rule_ids),
+        rule_results=rule_result_dicts,
+        evidence_bundle=rule_bundle,
+        knowledge_trace=knowledge_trace,
+    )
     api_key, base_url, model_id = _model_settings()
     sensitive_findings = scan_sensitive_payload(
         _model_privacy_scan_payload(
@@ -3647,13 +3843,31 @@ def _execute_run(
             ],
             "industry_gate": industry_gate,
             "evidence_gap_count": len(evidence_gaps),
+            # 命中仅为程序/背景指引；Agent 仍不能把 KB-* 作为当前企业事实证据。
+            "knowledge_retrieval_trace": [
+                {
+                    key: hit.get(key)
+                    for key in (
+                        "retrieval_id", "source_id", "source_category", "publisher",
+                        "published_at", "locator", "excerpt", "claim_scope", "boundary",
+                    )
+                }
+                for hit in context.get("knowledge_retrieval_trace", [])
+            ],
+            "assertion_evidence_procedure_matrix": context.get("assertion_evidence_procedure_matrix", []),
+            "evidence_fitness_boundary": context.get("evidence_fitness_boundary"),
         }
         for result in rule_results:
             result.ai_analysis_route = ai_analysis_route
             result.agent_steps = []
         if primary_result is not None:
-            # RAG 片段在主链中显式进入 Agent；比赛模式默认使用确定性演示
-            # 草稿，只有显式设置 AUDITTRACE_DEMO_USE_EXTERNAL_MODEL 才联网调用。
+            # RAG 片段在主链中显式进入 Agent；比赛模式默认尝试真实模型，
+            # 但可由 AUDITTRACE_DEMO_USE_EXTERNAL_MODEL=false 明确切回确定性备用。
+            demo_fallback_chain = bool(
+                context.get("force_deterministic_backup")
+                or (_competition_demo_enabled() and not _demo_external_model_enabled())
+            )
+            _progress("agent_collaboration", "running", f"三角色协作链执行中（{'演示确定性草稿' if demo_fallback_chain else '真实外部模型'}）。")
             primary_result.agent_steps = (
                 _demo_agent_steps(
                     run_id=run_id,
@@ -3662,10 +3876,7 @@ def _execute_run(
                     model_id="demo-deterministic-v1",
                     analysis_route=ai_analysis_route,
                 )
-                if (
-                    context.get("force_deterministic_backup")
-                    or (_competition_demo_enabled() and not _demo_external_model_enabled())
-                )
+                if demo_fallback_chain
                 else run_agent_chain(
                     run_id=run_id,
                     rule_result=primary_result,
@@ -3677,8 +3888,10 @@ def _execute_run(
                     before_role=model_recheck,
                     analysis_route=ai_analysis_route,
                     analysis_context=analysis_context,
+                    on_step=_notify_live_agent_step,
                 )
             )
+            _forward_agent_steps(primary_result.agent_steps, live=not demo_fallback_chain)
             # 真实运行反向反馈：记录供应商成功或失败熔断
             if not context.get("force_deterministic_backup") and not (_competition_demo_enabled() and not _demo_external_model_enabled()):
                 _record_provider_run_feedback(
@@ -3806,6 +4019,18 @@ def _execute_run(
     model_check = model_check.model_copy(update={"analysis_conclusion": review_conclusion})
     ai_recommendation = _aggregate_ai_recommendation(rule_results)
     final_items = [result.ai_draft for result in rule_results if result.ai_draft]
+    context["model_attempt_history"] = [
+        {
+            "rule_id": result.rule_id,
+            "role": step.role,
+            "status": step.status,
+            "failure_code": step.failure_code,
+            "attempts": step.model_attempt_history,
+        }
+        for result in rule_results
+        for step in result.agent_steps
+        if step.model_attempt_history
+    ]
     pending_evidence_review = any(
         "pending" in str(row.get("review_status") or row.get("source_review_status") or "").lower()
         for key in ("field_evidence", "rag_evidence", "supplement_evidence")
@@ -3813,6 +4038,148 @@ def _execute_run(
         if isinstance(row, dict)
     )
     context["pending_evidence_review"] = pending_evidence_review
+    # G7：运行上下文扩充结构化成因说明（向后兼容，新字段只增不改）。
+    # 这里重载台账仅用于最终导出展示；真实检索已在 Agent 之前完成。
+    knowledge_entries: list[dict[str, Any]] = []
+    try:
+        knowledge_entries, _knowledge_failure = load_knowledge_manifest(
+            WORKSPACE_ROOT / "backend" / "knowledge_sources.manifest.json"
+        )
+        if context.get("source_coverage_summary") is None:
+            context["source_coverage_summary"] = coverage_group_summary(knowledge_entries, knowledge_cutoff_date())
+    except (OSError, ValueError, TypeError):
+        context["source_coverage_summary"] = None
+    context["knowledge_snapshot_id"] = knowledge_snapshot_id()
+    try:
+        _procedure_map = json.loads(
+            (WORKSPACE_ROOT / "backend" / "audit_procedure_map.json").read_text(encoding="utf-8")
+        )
+        context["audit_procedure_map_version"] = _procedure_map.get("schema_version")
+        context["audit_procedures"] = _procedure_map.get("procedures") or []
+    except (OSError, json.JSONDecodeError, ValueError):
+        context["audit_procedure_map_version"] = None
+        context["audit_procedures"] = []
+    try:
+        context["provider_readiness_snapshot"] = get_provider_snapshot().to_dict()
+    except Exception:  # noqa: BLE001 - 冗余快照失败不影响运行
+        context["provider_readiness_snapshot"] = None
+    # 监管/准则证据：展示来源台账中的官方登记条目（登记级，不代表本案例已逐条回查）。
+    active_knowledge_entries = active_source_entries(knowledge_entries, knowledge_cutoff_date())
+    if active_knowledge_entries:
+        context["regulatory_evidence"] = [
+            {
+                key: entry.get(key)
+                for key in (
+                    "source_id", "source_category", "publisher", "title",
+                    "document_id", "sha256", "official_url", "published_at",
+                )
+            }
+            for entry in active_knowledge_entries
+            if entry.get("source_category")
+            in {"accounting_standard", "auditing_standard", "tax_regulation", "csrc_penalty", "exchange_inquiry"}
+        ]
+        context["regulatory_evidence_boundary"] = (
+            "活跃来源台账登记级条目；本次知识检索的用途边界见 knowledge_retrieval_trace，仍须人工回查官方原文与页码。"
+        )
+    else:
+        context["regulatory_evidence"] = []
+        context["regulatory_evidence_boundary"] = "知识库台账尚未接入监管与准则来源。"
+    # 补充证据差异：只有在补充/续分析路径才非空；不覆盖原年报字段。
+    context["supplement_delta"] = (
+        {
+            "supplement_evidence_count": len(supplementary),
+            "parent_run_id": context.get("parent_run_id"),
+            "recommendation_change": context.get("recommendation_change"),
+            "boundary": "补充资料仅进入当前案例证据空间，不覆盖原年报字段；变化仍须真人复核。",
+        }
+        if supplementary
+        else None
+    )
+    # 创新二：对每个 Agent 输出再次执行证据适配度边界校验。
+    # 违规主张降级为待验证假设，并保留违规清单；不删除原始模型响应或哈希。
+    fitness_map = fitness_map_for_evidence(rule_bundle)
+    fitness_violations: list[dict[str, Any]] = []
+    for result in rule_results:
+        for step in result.agent_steps:
+            if step.output is None:
+                continue
+            output_payload = step.output.model_dump(mode="json")
+            violations = enforce_claim_boundaries(output_payload.get("claims") or [], fitness_map)
+            output_payload["evidence_fitness_violations"] = violations
+            if violations:
+                fitness_violations.extend(
+                    [{"rule_id": result.rule_id, "role": step.role, **item} for item in violations]
+                )
+            step.output = AgentOutput.model_validate(output_payload)
+        if result.ai_draft:
+            violations = enforce_claim_boundaries(result.ai_draft.get("claims") or [], fitness_map)
+            result.ai_draft["evidence_fitness_violations"] = violations
+            if violations:
+                fitness_violations.extend(
+                    [{"rule_id": result.rule_id, "role": "final_draft", **item} for item in violations]
+                )
+    context["evidence_fitness_violations"] = fitness_violations
+
+    # 创新四：记录是否执行了反确认偏差搜索；不强迫模型凑出正常解释。
+    counter_explanations: list[dict[str, Any]] = []
+    for result in rule_results:
+        for step in result.agent_steps:
+            if step.role == "counter" and step.output is not None:
+                counter_explanations.extend(
+                    [item.model_dump(mode="json") for item in step.output.normal_explanations]
+                )
+    context["anti_confirmation"] = build_anti_confirmation_record(
+        route=ai_analysis_route if ai_requested else None,
+        rag_evidence=rag_evidence,
+        counter_explanations=counter_explanations,
+        review_recommendation=ai_recommendation,
+    )
+
+    # 创新三：仅对 Agent 的自然语言字段做数字主张回查，不把 run_id、哈希和元数据
+    # 误当成财务数字。年份使用当前案例已知报告年度作为上下文来源。
+    numeric_text_parts: list[str] = []
+    for result in rule_results:
+        draft = result.ai_draft or {}
+        numeric_text_parts.extend(
+            [
+                str(draft.get("draft_title") or ""),
+                str(draft.get("draft_observation") or ""),
+                str(draft.get("reason_for_status") or ""),
+            ]
+        )
+        numeric_text_parts.extend(
+            str(item.get("text") or "")
+            for key in ("claims", "normal_explanations")
+            for item in (draft.get(key) or [])
+            if isinstance(item, dict)
+        )
+    configured = context.get("configured_parameters") or {}
+    numeric_additional_sources = [
+        {
+            "source_type": "configured_parameter",
+            "source_ref": f"R1.{key}",
+            "value": configured.get(key),
+            "label": key,
+        }
+        for key in ("r1_gap_threshold", "r1_strong_gap_threshold", "r1_absolute_threshold")
+        if isinstance(configured.get(key), (int, float))
+    ]
+    numeric_gate = validate_numeric_claims(
+        "\n".join(text for text in numeric_text_parts if text),
+        rule_results=rule_result_dicts,
+        evidence_bundle=rule_bundle,
+        knowledge_trace=knowledge_trace,
+        allowed_years={
+            int(context.get("current_year") or 0) - offset
+            for offset in range(0, 4)
+            if int(context.get("current_year") or 0) - offset > 0
+        },
+        additional_sources=numeric_additional_sources,
+    )
+    context["numeric_claim_trace"] = numeric_gate
+    if numeric_gate.get("key_unverified_count") and model_check.status == "model_success":
+        # 生成模型成功不等于数字主张可发布；保持真实模型状态，但禁止完整性伪装。
+        run_completeness = "incomplete_numeric_claims"
     final_ai_draft = (
         {
             "schema_version": "final_ai_draft_v2",
@@ -3829,11 +4196,11 @@ def _execute_run(
         else None
     )
     all_issues = [issue for result in rule_results for issue in result.source_validation.get("issues", [])]
-    evidence_bundle = _current_evidence_bundle(
+    evidence_bundle = annotate_evidence_bundle(_current_evidence_bundle(
         context=context,
         rule_bundle=rule_bundle,
         rag_error=rag_error,
-    )
+    ))
     all_agent_steps = [step for result in rule_results for step in result.agent_steps]
     response = RunResponse(
         run_id=run_id,
@@ -3869,6 +4236,13 @@ def _execute_run(
         ),
         agent_steps=all_agent_steps,
     )
+    try:
+        response.context["model_quality_snapshot"] = record_external_run(WORKSPACE_ROOT, response) or quality_snapshot(WORKSPACE_ROOT, model_id=_model_settings()[2])
+    except (OSError, TypeError, ValueError):
+        response.context["model_quality_snapshot"] = {
+            "status": "unavailable",
+            "boundary": "真实模型成功率台账暂不可读取；未改变本次运行结论。",
+        }
     # 最终本地/远程落盘前再确认一次；即使租约恰在最后一个模型角色后丢失，
     # 旧 worker 也不能发布运行或覆盖新持有者的 checkpoint。
     _require_worker_lease(http_request)
@@ -3934,6 +4308,11 @@ def health(http_request: Request) -> HealthResponse:
         provider_checked_at=provider_info.get("checked_at"),
         provider_source=provider_info.get("source"),
     )
+
+
+def _r1_signoff_snapshot() -> dict[str, Any]:
+    """返回 R1 专业口径签字的统一只读快照，供状态、导出与页面共用。"""
+    return load_signoff_status()
 
 
 @app.get("/api/status")
@@ -4033,7 +4412,87 @@ def project_status(http_request: Request) -> dict[str, Any]:
             "authenticated": bool(identity and not identity.is_local),
             "tenant_id": identity.tenant_id if identity and not identity.is_local else None,
         },
+        "signoff": _r1_signoff_snapshot(),
     })
+
+
+def _local_rag_status_for(case: dict[str, Any], *, tenant_id: str | None) -> dict[str, Any]:
+    """本地持久化下的 RAG 状态统一解析：先看本机材料，再看演示种子证据。"""
+
+    local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
+    if local_case is not None:
+        return rag_status(WORKSPACE_ROOT, str(case["case_id"]).upper())
+    if _competition_demo_enabled() and case.get("demo_rag_evidence"):
+        return seed_rag_status(case)
+    return {"status": "not_built"}
+
+
+def _demo_bootstrap_rag_status(case_id: str) -> dict[str, Any]:
+    """演示启动快照的逐案 RAG 就绪解析；复用正式状态逻辑且不抛出异常。
+
+    Supabase 持久化部署不逐案访问远端，避免一次启动快照放大成
+    15 次跨实例读取；该场景返回 unknown 由前端按“需团队处理”显示。
+    """
+
+    case = _case_record(str(case_id).upper(), tenant_id=None)
+    if case is None:
+        return {"status": "unavailable", "reason_code": "case_not_registered"}
+    if supabase_enabled():
+        return {"status": "unknown", "reason_code": "supabase_persistence_active"}
+    try:
+        return _local_rag_status_for(case, tenant_id=None)
+    except Exception:  # noqa: BLE001 - 启动快照不允许因单案异常整体失败
+        return {"status": "unknown", "reason_code": "rag_status_read_failed"}
+
+
+@app.get("/api/demo/bootstrap")
+def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
+    """竞赛演示启动快照：15 案白名单、精选顺序、就绪状态一次返回。
+
+    只读聚合既有登记事实；manifest 缺失或不一致时返回发布阻断
+    原因码，前端据此停留在“演示资源未就绪”，不进入 ready。
+    """
+
+    manifest, failure = load_demo_manifest()
+    if manifest is None:
+        return _with_ai_notice(blocked_bootstrap_payload(failure))
+    status_path = WORKSPACE_ROOT / "PROJECT_STATUS.json"
+    try:
+        registered = json.loads(status_path.read_text(encoding="utf-8")) if status_path.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        registered = {}
+    versions = registered.get("versions") if isinstance(registered.get("versions"), dict) else {}
+    payload = build_bootstrap_payload(
+        manifest,
+        model_readiness=_model_readiness(http_request),
+        versions=versions,
+        rag_status_resolver=_demo_bootstrap_rag_status,
+    )
+    payload["capabilities"]["onsite_live_sample"] = bool(
+        _onsite_live_sample_enabled() and not _public_demo_enabled() and not supabase_enabled()
+    )
+    payload["capabilities"]["structured_exports"] = ["json", "table", "print_pdf"]
+    # 多源审计知识底座：只汇总来源台账的登记事实，不返回正文。
+    knowledge_entries, _knowledge_failure = load_knowledge_manifest(
+        WORKSPACE_ROOT / "backend" / "knowledge_sources.manifest.json"
+    )
+    payload["knowledge_base"] = coverage_group_summary(knowledge_entries, knowledge_cutoff_date())
+    try:
+        payload["model_quality"] = quality_snapshot(WORKSPACE_ROOT, model_id=_model_settings()[2])
+    except (OSError, TypeError, ValueError):
+        payload["model_quality"] = {
+            "status": "unavailable",
+            "boundary": "真实模型成功率台账暂不可读取。",
+        }
+    # 审计程序映射：静态合同，版本与边界随快照返回。
+    try:
+        procedure_map = json.loads(
+            (WORKSPACE_ROOT / "backend" / "audit_procedure_map.json").read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError):
+        procedure_map = {"schema_version": None, "procedures": []}
+    payload["audit_procedure_map"] = procedure_map
+    return _with_ai_notice(payload)
 
 
 @app.get("/api/cases")
@@ -4540,6 +4999,11 @@ def revoke_model_consent(consent_id: str, http_request: Request) -> dict[str, An
 
 @app.post("/api/runs", response_model=RunResponse)
 def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
+    """正式运行入口：固定案例与现场任务统一走这里，保持单套主链。"""
+    return _run_rules_impl(request, http_request)
+
+
+def _run_rules_impl(request: RunRequest, http_request: Request, *, progress_callback: Callable[[str, str, str], None] | None = None, agent_step_callback: Callable[[str, str, str], None] | None = None) -> RunResponse:
     _ensure_public_standard_sources(request.case_id)
     tenant_id = _identity_tenant(http_request)
     case = _case_record(request.case_id, tenant_id=tenant_id)
@@ -4663,6 +5127,8 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
         run_prefix="RUN-V7",
         supplement_evidence=[],
         model_recheck=model_recheck,
+        progress_callback=progress_callback,
+        agent_step_callback=agent_step_callback,
     )
 
 
@@ -5614,15 +6080,8 @@ def get_rag_status(http_request: Request, case_id: str = CASE_ID) -> dict[str, A
         raise HTTPException(status_code=404, detail="案例未登记。")
     authorize_case_access(http_request, case)
     if not supabase_enabled():
-        local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
-        local_status = (
-            rag_status(WORKSPACE_ROOT, case_id.upper())
-            if local_case is not None
-            else seed_rag_status(case)
-            if _competition_demo_enabled() and case.get("demo_rag_evidence")
-            else {"status": "not_built"}
-        )
-        return _with_ai_notice(local_status)
+        # 本地持久化下的状态解析与演示启动快照共用同一逻辑，避免两处口径漂移。
+        return _with_ai_notice(_local_rag_status_for(case, tenant_id=tenant_id))
     # 公网部署的 web 与 worker 不共享 SQLite；Supabase active snapshot 才是
     # 可恢复状态。即便本机有 ready 索引，也必须先读取远端，避免旧索引遮蔽新发布。
     try:
@@ -5994,11 +6453,13 @@ def get_supplement(supplement_id: str, http_request: Request) -> dict[str, Any]:
     return _with_ai_notice(record)
 
 
-@app.post("/api/supplements/{supplement_id}/rerun", response_model=RunResponse)
-def rerun_with_supplement(
+def _rerun_with_supplement_impl(
     supplement_id: str,
     request: SupplementRerunRequest,
     http_request: Request,
+    *,
+    progress_callback: Callable[[str, str, str], None] | None = None,
+    agent_step_callback: Callable[[str, str, str], None] | None = None,
 ) -> RunResponse:
     identity = require_authenticated(http_request)
     supplement = _load_supplement_record(supplement_id, identity)
@@ -6116,6 +6577,8 @@ def rerun_with_supplement(
         run_prefix="RUN-SUP",
         supplement_evidence=supplement.get("structured_evidence", []),
         model_recheck=model_recheck,
+        progress_callback=progress_callback,
+        agent_step_callback=agent_step_callback,
     )
     response.context["recommendation_change"] = {
         "before": parent.run.ai_recommendation,
@@ -6127,5 +6590,298 @@ def rerun_with_supplement(
         ),
         "boundary": "变化由新增证据参与本次链路后产生，仍须真人复核。",
     }
+    if isinstance(response.context.get("supplement_delta"), dict):
+        response.context["supplement_delta"]["recommendation_change"] = response.context["recommendation_change"]
     save_run(WORKSPACE_ROOT, response)
     return response
+
+
+@app.post("/api/supplements/{supplement_id}/rerun", response_model=RunResponse)
+def rerun_with_supplement(
+    supplement_id: str,
+    request: SupplementRerunRequest,
+    http_request: Request,
+) -> RunResponse:
+    """兼容旧同步接口；演示前端使用下方 rerun-task 异步接口。"""
+    return _rerun_with_supplement_impl(supplement_id, request, http_request)
+
+
+# —— 固定案例分阶段演示运行（G2）——
+# 诊断：固定案例页面原先只在 POST /api/runs 完整返回后一次性渲染阶段，
+# 现场无法看到真实过程。这里复用现场新企业的任务轮询模式：POST 返回 202，
+# 后台执行仍走同一套 run_rules 主链（规则、RAG、模型开关只有一份实现），
+# 六阶段与三角色状态全部由后端业务节点写入，前端定时器只读取状态。
+
+
+_demo_run_store: DemoRunTaskStore | None = None
+_demo_run_store_lock = threading.Lock()
+
+
+def _get_demo_run_store() -> DemoRunTaskStore:
+    global _demo_run_store
+    with _demo_run_store_lock:
+        if _demo_run_store is None:
+            _demo_run_store = DemoRunTaskStore(WORKSPACE_ROOT / "runtime" / "demo-run-tasks")
+        return _demo_run_store
+
+
+def _demo_task_outcome_from_run(response: RunResponse) -> str:
+    """把运行结果映射为任务终态：completed / degraded / failed。"""
+    if not response.rule_results or response.run_completeness.startswith("incomplete_rag_failure"):
+        return "failed"
+    if response.model_check.status == "model_success":
+        return "completed"
+    return "degraded"
+
+
+def _finalize_demo_run_stages(store: DemoRunTaskStore, task_id: str, response: RunResponse) -> None:
+    """运行结束后按真实结果补齐阶段 3—5；阶段 1—2 已由业务节点写入。"""
+    steps = list(response.agent_steps or [])
+    completed = [step for step in steps if step.status == "completed"]
+    attempted = [step for step in steps if step.status not in {
+        "not_requested", "not_applicable", "skipped", "not_attempted_rag_failure",
+        "model_transfer_not_allowed", "config_missing", "sensitive_data_blocked",
+    }]
+    chain_ran = bool(attempted) or bool(completed)
+    if response.run_completeness.startswith("incomplete_rag_failure"):
+        store.update_stage(task_id, "agent_collaboration", "skipped", "证据加载失败，协作链未执行。")
+        store.update_stage(task_id, "evidence_validation", "skipped", "未执行验证。")
+    elif not chain_ran:
+        store.update_stage(task_id, "agent_collaboration", "skipped", "本次未执行模型协作链（未请求或未授权）。")
+        store.update_stage(task_id, "evidence_validation", "skipped", "未执行验证。")
+    elif len(completed) == 3:
+        model_note = ""
+        if any(str(step.model_id or "") == "demo-deterministic-v1" for step in completed):
+            model_note = "（演示确定性草稿，未调用外部模型）"
+        store.update_stage(task_id, "agent_collaboration", "completed", f"三角色协作完成{model_note}。")
+        store.update_stage(task_id, "evidence_validation", "completed", "证据白名单、Schema、事实语言与禁用词校验结束。")
+    else:
+        store.update_stage(task_id, "agent_collaboration", "degraded", f"{len(completed)}/3 角色完成，协作链未全部通过。")
+        store.update_stage(
+            task_id,
+            "evidence_validation",
+            "degraded" if attempted else "skipped",
+            "硬校验未全部通过，失败码已保留，未放宽任何校验。",
+        )
+    if _demo_task_outcome_from_run(response) == "failed":
+        store.update_stage(
+            task_id,
+            "structured_output",
+            "failed",
+            "前置证据或规则链未完成，未生成可导出的结构化结果。",
+        )
+    else:
+        store.update_stage(
+            task_id,
+            "structured_output",
+            "completed",
+            f"运行 {response.run_id} 已保存，可导出 JSON / 表格 / CSV / PDF。",
+        )
+
+
+def _execute_demo_run(task: dict[str, Any], store: DemoRunTaskStore, http_request: Request) -> None:
+    """后台执行固定案例分阶段运行；所有状态写入走 store，不让前端模拟。"""
+    task_id = str(task["task_id"])
+    body = task.get("run_body") or {}
+    try:
+        request = RunRequest(
+            case_id=str(body.get("case_id") or task.get("case_id") or ""),
+            current_year=int(body.get("current_year") or 0),
+            scene="审计计划",
+            rule_ids=list(body.get("rule_ids") or ["R1"]),
+            run_mode=str(body.get("run_mode") or "full_analysis"),
+            planned_materiality=body.get("planned_materiality"),
+        )
+    except (TypeError, ValueError) as error:
+        store.update_task(task_id, status="failed", failure_code="TASK_INVALID_REQUEST", error=f"{type(error).__name__}: {str(error)[:400]}")
+        return
+
+    def _progress(stage: str, status: str, detail: str) -> None:
+        store.update_stage(task_id, stage, status, detail)
+
+    def _role_step(role: str, status: str, detail: str) -> None:
+        store.update_agent_step(task_id, role, status, detail)
+
+    try:
+        response = _run_rules_impl(request, http_request, progress_callback=_progress, agent_step_callback=_role_step)
+    except HTTPException as error:
+        detail = str(getattr(error, "detail", "") or "")
+        store.update_task(task_id, status="failed", failure_code=f"HTTP_{error.status_code}", error=detail[:400])
+        store.update_stage(task_id, "evidence_load", "failed", f"运行被拒绝：{detail[:200]}")
+        for stage in STAGE_ORDER[1:]:
+            store.update_stage(task_id, stage, "skipped", "前置阶段未完成，后续阶段未执行。")
+        for role in AGENT_ROLE_ORDER:
+            store.update_agent_step(task_id, role, "skipped", "前置阶段未完成。")
+        return
+    except Exception as error:  # noqa: BLE001 - worker 边界负责失败关闭
+        store.update_task(task_id, status="failed", failure_code="TASK_EXECUTION_ERROR", error=f"{type(error).__name__}: {str(error)[:400]}")
+        store.update_stage(task_id, "evidence_load", "failed", f"运行异常：{type(error).__name__}。")
+        for stage in STAGE_ORDER[1:]:
+            store.update_stage(task_id, stage, "skipped", "异常关闭后未执行。")
+        for role in AGENT_ROLE_ORDER:
+            store.update_agent_step(task_id, role, "skipped", "异常关闭后未执行。")
+        return
+    store.update_task(
+        task_id,
+        run_id=response.run_id,
+        result=response.model_dump(mode="json"),
+    )
+    if store.is_cancelled(task_id):
+        return
+    _finalize_demo_run_stages(store, task_id, response)
+    store.update_task(task_id, status=_demo_task_outcome_from_run(response))
+
+
+def _execute_demo_supplement_run(task: dict[str, Any], store: DemoRunTaskStore, http_request: Request) -> None:
+    """补充材料续分析复用同一六阶段任务台账；父运行只读，子运行单独落盘。"""
+    task_id = str(task["task_id"])
+    body = task.get("run_body") or {}
+
+    def _progress(stage: str, status: str, detail: str) -> None:
+        store.update_stage(task_id, stage, status, detail)
+
+    def _role_step(role: str, status: str, detail: str) -> None:
+        store.update_agent_step(task_id, role, status, detail)
+
+    try:
+        supplement_id = str(body.get("supplement_id") or "")
+        request = SupplementRerunRequest(
+            run_mode=str(body.get("run_mode") or "full_analysis"),
+            force_deterministic_backup=bool(body.get("force_deterministic_backup", False)),
+        )
+        response = _rerun_with_supplement_impl(
+            supplement_id,
+            request,
+            http_request,
+            progress_callback=_progress,
+            agent_step_callback=_role_step,
+        )
+    except HTTPException as error:
+        detail = str(getattr(error, "detail", "") or "")
+        store.update_task(task_id, status="failed", failure_code=f"HTTP_{error.status_code}", error=detail[:400])
+        store.update_stage(task_id, "evidence_load", "failed", f"补充运行被拒绝：{detail[:200]}")
+        for stage in STAGE_ORDER[1:]:
+            store.update_stage(task_id, stage, "skipped", "前置阶段未完成，后续阶段未执行。")
+        for role in AGENT_ROLE_ORDER:
+            store.update_agent_step(task_id, role, "skipped", "前置阶段未完成。")
+        return
+    except Exception as error:  # noqa: BLE001 - worker boundary fail-closed
+        store.update_task(task_id, status="failed", failure_code="SUPPLEMENT_TASK_EXECUTION_ERROR", error=f"{type(error).__name__}: {str(error)[:400]}")
+        store.update_stage(task_id, "evidence_load", "failed", f"补充运行异常：{type(error).__name__}。")
+        for stage in STAGE_ORDER[1:]:
+            store.update_stage(task_id, stage, "skipped", "异常关闭后未执行。")
+        for role in AGENT_ROLE_ORDER:
+            store.update_agent_step(task_id, role, "skipped", "异常关闭后未执行。")
+        return
+    store.update_task(task_id, run_id=response.run_id, result=response.model_dump(mode="json"))
+    if store.is_cancelled(task_id):
+        return
+    _finalize_demo_run_stages(store, task_id, response)
+    store.update_task(task_id, status=_demo_task_outcome_from_run(response))
+
+
+@app.post("/api/supplements/{supplement_id}/rerun-task", status_code=202)
+def create_supplement_rerun_task(
+    supplement_id: str,
+    request: SupplementRerunRequest,
+    http_request: Request,
+) -> dict[str, Any]:
+    """创建补充材料异步续分析；前端沿用固定案例六阶段轮询协议。"""
+    identity = require_authenticated(http_request)
+    supplement = _load_supplement_record(supplement_id, identity)
+    if supplement is None:
+        raise HTTPException(status_code=404, detail="未找到该补充资料记录。")
+    if supplement.get("status") != "ready_for_rerun":
+        raise HTTPException(status_code=409, detail="补充资料没有可验证的结构化证据，不能续分析。")
+    parent = _load_stored_run(
+        str(supplement.get("parent_run_id") or ""),
+        owner_tenant_id=str(identity.tenant_id or "") or None if identity else None,
+    )
+    if parent is None:
+        raise HTTPException(status_code=404, detail="父运行记录已不存在。")
+    case_id = str(parent.run.context.get("case_id") or "")
+    store = _get_demo_run_store()
+    task = store.create(
+        f"SUPPLEMENT:{supplement_id}",
+        {
+            "kind": "supplement_rerun",
+            "supplement_id": supplement_id,
+            "run_mode": request.run_mode,
+            "force_deterministic_backup": request.force_deterministic_backup,
+        },
+        lambda current: _execute_demo_supplement_run(current, store, http_request),
+    )
+    return {
+        "task_id": task["task_id"],
+        "status": task["status"],
+        "case_id": case_id,
+        "parent_run_id": str(supplement.get("parent_run_id") or ""),
+        "supplement_id": supplement_id,
+        "stage_schema_version": task.get("stage_schema_version", "demo_task_v2"),
+        "steps": task.get("steps", {}),
+        "agent_steps": task.get("agent_steps", {}),
+    }
+
+
+@app.post("/api/demo/runs", status_code=202)
+def create_demo_run(request: DemoRunCreateRequest, http_request: Request) -> dict[str, Any]:
+    """创建固定案例分阶段演示运行；返回 202 与 task_id，立即可以轮询。"""
+    if not _competition_demo_enabled():
+        raise HTTPException(status_code=403, detail="演示运行接口只在竞赛演示模式启用。")
+    if request.run_mode not in {"full_analysis", "calculation_only"}:
+        raise HTTPException(status_code=422, detail="run_mode 只能是 full_analysis 或 calculation_only。")
+    if _public_demo_enabled() and not supabase_enabled():
+        seed_ids = {str(case.get("case_id") or "") for case in load_seed_cases(WORKSPACE_ROOT)}
+        seed_ids.add("STD_DEV_T0")
+        if request.case_id not in seed_ids:
+            _reject_shared_demo_mutation("对非内置企业创建演示运行")
+    store = _get_demo_run_store()
+    case = get_case(WORKSPACE_ROOT, request.case_id)
+    if case is None and request.case_id != "STD_DEV_T0":
+        raise HTTPException(status_code=404, detail="案例未登记。")
+    task = store.create(
+        request.case_id,
+        request.model_dump(mode="json"),
+        lambda current: _execute_demo_run(current, store, http_request),
+    )
+    return {
+        "task_id": task["task_id"],
+        "status": task["status"],
+        "case_id": request.case_id,
+        "stage_schema_version": task.get("stage_schema_version", "demo_task_v2"),
+        "steps": task.get("steps", {}),
+        "agent_steps": task.get("agent_steps", {}),
+    }
+
+
+@app.get("/api/demo/runs/{task_id}")
+def get_demo_run_task(task_id: str) -> dict[str, Any]:
+    """读取真实任务进度；不存在时返回 404。"""
+    task = _get_demo_run_store().snapshot(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="演示运行任务不存在。")
+    return task
+
+
+@app.get("/api/demo/runs/{task_id}/result")
+def get_demo_run_result(task_id: str) -> dict[str, Any]:
+    """任务结束后读取现有 RunResponse；未结束返回 409。"""
+    task = _get_demo_run_store().snapshot(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="演示运行任务不存在。")
+    if task["status"] in {"cancelled", "interrupted", "failed"}:
+        raise HTTPException(status_code=409, detail="任务未生成可读取的结构化结果。")
+    if task["status"] in {"queued", "running"} or task.get("result") is None:
+        raise HTTPException(status_code=409, detail="演示运行尚未结束。")
+    return task["result"]
+
+
+@app.post("/api/demo/runs/{task_id}/cancel")
+def cancel_demo_run_task(task_id: str) -> dict[str, Any]:
+    """取消尚未进入不可中断外部调用的任务；已终态返回 409。"""
+    cancelled = _get_demo_run_store().cancel(task_id)
+    if cancelled is None:
+        raise HTTPException(status_code=409, detail="任务不存在或已结束，无法取消。")
+    if cancelled.get("cancel_rejected"):
+        raise HTTPException(status_code=409, detail="任务已进入不可中断的协作阶段；将如实等待当前调用结算。")
+    return {"task_id": cancelled["task_id"], "status": cancelled["status"], "failure_code": cancelled["failure_code"]}

@@ -1,0 +1,172 @@
+{
+  "schema_version": "captain_human_score_v1",
+  "evaluation_id": "EVAL-20260826-B1B3-CURRENT-R3",
+  "evaluation_contract_sha256": "d484e51cae4acc83f94ccc855af6c50936ae615c671a54c4012627bff7cceba9",
+  "recorded_at": "2026-08-26T15:23:01+08:00",
+  "scorer_role": "项目队长（用户本人）",
+  "scorer_name": null,
+  "source": "conversation_user_submission",
+  "status": "captain_total_score_recorded_with_scope_caveat",
+  "scope_notes": {
+    "b0_scope": "公司层面综合审计风险判断",
+    "b1_b3_scope": "销售与收款循环 R1 风险预筛",
+    "strict_blind_b0": false,
+    "strict_blind_reason": "评分人在提交 B0 前已经看到 B1—B3 输出",
+    "same_question_comparison": false,
+    "same_question_limitation": "B0 包含合同负债、长期资产减值、内控意见等公司级风险，B1—B3 聚焦应收账款与营业收入变动关系。",
+    "dimension_scores_provided": false,
+    "per_score_comments_provided": false,
+    "b2_score_interpretation": "对被拒绝的单模型原始草稿内容评分；正式运行终态仍为 failed"
+  },
+  "b0_judgments": [
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "ticker": "000858.SZ",
+      "industry": "白酒酿造与销售",
+      "focus": "合同负债大幅缩水、关联财务公司巨额存款沉淀与收益率公允性",
+      "judgment": "暂缓并补资料"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "ticker": "600938.SH",
+      "industry": "上游油气勘探开采",
+      "focus": "长期油气资产减值测算、大宗商品价格波动敏感性及未来现金流折现假设",
+      "judgment": "不触发"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "标准股份",
+      "ticker": "600302.SH",
+      "industry": "专用设备制造及贸易",
+      "focus": "供应链业务巨额应收坏账爆雷、主业持续亏损、内控否定意见与ST警示",
+      "judgment": "降级",
+      "semantic_confirmation_pending": true,
+      "semantic_note": "关注事项呈现高风险，但当前系统中的降级通常表示降低候选优先级；按队长原文保留。"
+    }
+  ],
+  "scores": [
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "group": "B1",
+      "run_id": "RUN-V7-115788BA5CA9",
+      "run_record_sha256": "3e3c89ab2d1abf5e8670403817fc5161641f95d7301f832f052ee53c9fe4d244",
+      "score_total": 95,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "candidate"
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "group": "B2",
+      "run_id": "EVAL-B2-9B72E7C6193D",
+      "run_record_sha256": "0b3013d661814be9a61ae188ee5049cfd0d4678cb899a1fed28593c9a83cb0f0",
+      "score_total": 57,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "failed",
+      "scored_artifact": "rejected_raw_model_draft"
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "group": "B3",
+      "run_id": "RUN-V7-82B87785290D",
+      "run_record_sha256": "672a372b9d974f7294f68d198b53062023297bd16dcbb52220150de5d6478c3e",
+      "score_total": 99,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "candidate"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "group": "B1",
+      "run_id": "RUN-V7-A5C5C10E0B9B",
+      "run_record_sha256": "939fb1bcaa33a978d672ab4b9ddd27a1f7515f64e552b998a315986c294f7c36",
+      "score_total": 91,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "RULE_NOT_TRIGGERED"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "group": "B2",
+      "run_id": "EVAL-B2-0F2F79DD5BCF",
+      "run_record_sha256": "02546ebf7eb7e56495e7306a5a7406742d35ba4ea8af790687a28e6b392e98e7",
+      "score_total": 59,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "failed",
+      "scored_artifact": "rejected_raw_model_draft"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "group": "B3",
+      "run_id": "RUN-V7-BFD20C01B365",
+      "run_record_sha256": "40ea7f933c45cba51b441ee00821828bba462b29cb8073ad8a1775c1f0102cac",
+      "score_total": 95,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "RULE_NOT_TRIGGERED"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "标准股份",
+      "group": "B1",
+      "run_id": "RUN-V7-1FE1F9DE5E07",
+      "run_record_sha256": "6cd519b92e543c4ce9db278963ac385bcd586a9a2ad17ef9d853245b11203375",
+      "score_total": 95,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "RULE_NOT_TRIGGERED"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "标准股份",
+      "group": "B2",
+      "run_id": "EVAL-B2-0DF9640E6871",
+      "run_record_sha256": "9c542561d9fee39ae108429f3e2a59964a09bf76d1ccce0f93ab2243734a03e1",
+      "score_total": 59,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "failed",
+      "scored_artifact": "rejected_raw_model_draft"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "标准股份",
+      "group": "B3",
+      "run_id": "RUN-V7-4F96B43A0F5F",
+      "run_record_sha256": "559b11228cc3adfbac00c4485f6228447ad9a04ca2f54ddf5eaf44a8a36640cf",
+      "score_total": 99,
+      "dimension_scores": null,
+      "comment": null,
+      "formal_run_status": "RULE_NOT_TRIGGERED"
+    }
+  ],
+  "group_summary": {
+    "B1": {
+      "mean": 93.6667,
+      "scores": [95, 91, 95]
+    },
+    "B2": {
+      "mean": 58.3333,
+      "scores": [57, 59, 59],
+      "formal_pass_count": 0,
+      "formal_total_count": 3
+    },
+    "B3": {
+      "mean": 97.6667,
+      "scores": [99, 95, 99]
+    },
+    "mean_delta_b3_minus_b1": 4.0,
+    "mean_delta_b3_minus_b2": 39.3334
+  },
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

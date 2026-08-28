@@ -1,7 +1,51 @@
 # 审迹智链单一事实源
 
-更新时间：2026-08-22
+更新时间：2026-08-25
 统一 AI 声明：**AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。**
+
+## 2026-08-26 R3 缺口修复与真实验收（当前最高优先级事实）
+
+- B1—B3 已在当前代码建立新的追加式合同目录：`outputs/evaluation_v5/EVAL-20260826-B1B3-CURRENT-R3/`。五粮液、中国海油、标准股份各执行一次，共 9 条原始 JSON；旧 R2 目录和历史目录均未覆盖。
+- R3 结果：B1 为 3/3 确定性完成且外部调用 0；B2 为 0/3 完成，每案仅一次真实单模型调用，原始失败码均为 `MODEL_OUTPUT_VALIDATION_FAILED`、校验阶段为 `validation`，且每条均绑定字段证据与 `PROC-R1-2025` 程序证据卡；B3 为 3/3 `model_success`，三角色均完成。`B2_FAILURE_CLASSIFICATION.json/.md` 在不改写原始记录的前提下，将错误文本进一步映射为 `MODEL_FACT_LANGUAGE_VALIDATION_ERROR` / `fact_language`。B2 与 B3 口径不同，不合并为官方成功率。AI 辅助预评分均值分别为 B1 97.7、B2 59.0、B3 98.3；项目队长正式评分栏仍为空。
+- 当前 qwen3.5-plus 质量窗口仍为 **7/10=70.0%**，阈值 80%，状态 `below_threshold`、`alert=true`；继续告警，不自动换模型。真实失败码、响应哈希、token、耗时和受控修正次数均保留。
+- 12 条活跃知识来源已完成独立可访问性抽查，结果为 12/12 HTTP 200；活跃来源仍是 13 条登记中的 12 条，另 1 条归档。资料范围继续写“代表性接入”，近五年窗口为 2021-08-24 至 2026-08-24，不宣称全量。
+- 补充材料父子任务合同测试通过；现场 `600436`（片仔癀）入口已在 8000 当前实例完成一次真实任务，企业解析、公告/文档校验、案例登记、RAG、字段提取和结构化导出均有记录。浏览器现场样例终态为“需要人工确认/模型链不完整”，未写成模型成功；证据与 JSON/CSV/打印 PDF/DOCX 位于 `outputs/browser-r3-export-8000/`。
+- 浏览器静态验收 `outputs/browser-r3-static11/static-audit.json` 覆盖 1440×900、1440×1000、1024×768、768×1024、390×844：axe violations/incomplete、console/page/网络错误和横向溢出均为 0。前端契约为 131 unique ids、129 refs、1 script；JavaScript、Python compile、`git diff --check` 均通过。
+- 从项目根目录与 `backend` 目录分别运行全量回归，均为 **329 passed、1 warning**；唯一 warning 仍为 Starlette TestClient/httpx 兼容性弃用提示。
+- R3 事实快照已冻结：`outputs/final-audit-20260826-r3/`；JSON SHA-256 为 `49739505744686c2510222ae49ae1f531d334f257356fd537e8fd13727c7f5a7`，Markdown SHA-256 为 `7ca8861f2334e3f74704f24c2864e6664abb5cde543fa3732389edd945b08e79`。快照主链哈希范围排除 PROJECT_STATUS、README、快照和浏览器输出；回填状态文档不会改变该主链哈希。当前状态仍不能写成“模型稳定成功率超过 80%”或“任意新企业均自动完成”；现场样例人工确认、B2 失败和质量告警必须保留。
+
+## 2026-08-25 R2 追加验收（当前代码事实）
+
+- 队长追加签字已完成：`outputs/professional-signoff/R1-v0.4-captain-signoff-20260825-r2.json/.md`；状态为 `captain_approved_for_competition_demo`，姓名字段空白，旧签字记录保持可追溯。签字后事实快照位于 `outputs/final-audit-20260825-r2/`。
+- 当前代码 B1—B3 合同目录为 `outputs/evaluation_v5/EVAL-20260825-B1B3-CURRENT-R2-NETWORK/`：五粮液、中国海油、标准股份各执行 B1/B2/B3 一次，共 9 条原始记录；B1 3/3、B2 0/3（均为 `MODEL_OUTPUT_VALIDATION_FAILED`）、B3 3/3 三角色 `model_success`。旧 `EVAL-20260825-B1B3-AI-PRESCORE-V1` 目录不被覆盖，仅作历史证据。
+- 当前 `qwen3.5-plus` 真实外部三 Agent 质量窗口为 **7/10=70.0%**，阈值 80%，`below_threshold`、`alert=true`；这已构成对队长的低于 80% 告警。不得宣称稳定成功，不自动切换模型。
+- 真实 B3 结果均写入知识检索轨迹、来源台账、认定—证据—程序矩阵、证据适配度、数字回查和反确认记录；失败/降级运行保留真实失败码，不冒充成功。
+- 四视口静态/动态浏览器链、键盘抽屉、重置、JSON/CSV/打印入口均已验收；真实 B3 `RUN-V7-DB751326FFAC` 的 API JSON 与 Word/PDF 报告也已核对并记录在 `outputs/final-audit-20260825-r2/real-export-audit.json`。自动阻断项、console/page/网络错误和横向溢出为 0。axe `color-contrast` 因渐变/伪元素无法自动判定，保留人工复核项。
+- 最新回归：后端 **321 passed、1 warning**；前端契约 **131 unique ids、129 refs、1 script**；JavaScript、Python compile、`git diff --check` 和中文说明比例 **2198/21676=10.14%** 均通过。快照 JSON/Markdown 哈希分别为 `fa352bf3fbe15f2c92c3f2136e4fc8a6ec9cb4491a36abb65446f806466eeda8`、`d82df2122b0e7c33a7f1f4481780e34aaecafcc3c1ec3e115ac7bd39f652299f`。
+
+## 2026-08-25 当前主方案、创新增强与 B1—B3 评估状态
+
+- 当前主文档已切换为 `02_最终确定方案/15_审迹智链_项目方案书_V4_竞赛提交版_2026-08-25.md` 与 `02_最终确定方案/16_审迹智链_详细项目计划书_V3_提交冲刺版_2026-08-25.md`；V3.3/V2.4.6 仅保留为历史版本链。
+- 四项审计专属增强已接入运行上下文、前端结果区和结构化导出：确定性路由、认定—证据—程序覆盖矩阵、证据适配度主张边界、数字主张回查与反确认偏差记录。
+- 历史评估目录中的 9 条记录仍原样保留；当前代码结果以 R2 网络合同和上方追加验收为准。AI 辅助预评分均值 85.2/100，正式人工评分仍为空。
+- 历史 5/7=71.4% 只作为旧窗口记录；当前质量窗口已更新为 7/10=70.0%，不得混用。
+- 当前汇总与逐条评分入口：`outputs/evaluation_v5/EVAL-20260825-B1B3-CURRENT-R2-NETWORK/B1_B2_B3_SUMMARY.md`、`B1_B2_B3_RUN_LEDGER.md`。视频本周期暂缓，不关机。
+
+## 2026-08-24 可信修复计划实施状态
+
+- 已落地：以 `2026-08-24` 为冻结截止日的 13 条代表性来源台账与本地可检索最小片段；覆盖年报、证监会处罚、上/深交所问询、会计准则、审计准则、税收法规、行业报告、新闻、宏观指标。处罚与问询按 `2021-08-24`—`2026-08-24` 精确窗口过滤，未来及过期条目不进入检索或导出。
+- 已落地：知识检索在 Agent 调用前执行，运行上下文记录命中、来源类别、定位、内容哈希、快照和“可支持何种主张”的边界；规范只支持程序依据，处罚/问询/行业/新闻/宏观只作待验证背景。
+- 已落地：固定案例和补充材料续分析共用 `demo_task_v2` 六阶段台账（证据载入→规则计算→知识检索→三 Agent 协作→证据验证→结构化输出），支持刷新恢复、重启中断、阶段边界取消和失败/取消结果拒绝导出。
+- 已实测（2026-08-24 历史快照，R2 已更新当前口径）：真实模型尝试保留原响应哈希、修正调用、token、失败码；成功率窗口按当前模型最近 10 次真实外部三 Agent 完整运行统计，低于 80% 时页面 toast、事实栏和运行记录同时告警。`deepseek-v4-flash` 于 `RUN-V7-5666A45FCAA7` 完成真实 `external_live` 三 Agent 链；R2 当前 `qwen3.5-plus` 窗口为 7/10=70.0%，以追加验收段为准。
+
+## 2026-08-24 竞赛终版增强与完整验收快照
+
+- 实施《审迹智链_竞赛终版增强与完整验收_分步执行计划_2026-08-24.md》全部批次（G0—G9）：固定案例运行改为后端异步任务真实六阶段（证据载入→规则计算→知识检索→三 Agent 协作→证据验证→结构化输出；`backend/app/demo_run_tasks.py` + `/api/demo/runs` 系列端点 + 前端轮询与 sessionStorage 刷新恢复，六阶段与三角色状态由业务节点写入并带时间戳）；新增多源审计知识底座（`knowledge_sources.py / knowledge_ingest.py / knowledge_rag.py` 与 `backend/knowledge_sources.manifest.json`，13 条真实官方/公开案源覆盖年报、证监会处罚、深交所/上交所问询、会计准则、审计准则、税收法规、行业报告、新闻、宏观指标；按 2026-08-24 截止日和 2021-08-24—2026-08-24 近五年窗口过滤，页面标注 representative）；新增审计程序映射（`backend/audit_procedure_map.json` 6 项，页面“系统替你完成什么”三列）；补充材料重跑使用同一异步六阶段任务（父子运行差异可回查，原字段不被覆盖）；扩展 JSON/CSV/打印 PDF 与 docx 报告字段（knowledge_snapshot_id、source_coverage_summary、knowledge_retrieval_trace、model_attempt_history、audit_procedures、regulatory_evidence、supplement_delta、provider_readiness_snapshot、progress_task_id）。
+- 供应商通道（2026-08-24 历史快照）：基础地址形状校验（`provider_base_url_error`，失败码 `MODEL_PROVIDER_BASE_URL_INVALID` 提示填写基础地址而非完整请求地址）；`/models` 探测增加一次网络层重试与 8 秒超时；启动打印通道/模型/开关但绝不打印 Key；新增离线备用启动器 `启动审迹智链_离线备用.bat`。R2 当前模型 ID 与质量窗口以追加验收段和 `PROJECT_STATUS.json.latest_r2_20260825` 为准。
+- 真实模型单案例：最小工具合同烟测曾验证 vision-exp 与 v4-flash 均 HTTP 200、参数合法；vision-exp 的历史三次实时尝试在确定性事实语言闸门失败关闭。切换为 `deepseek-v4-flash`、修正基础地址并允许本机服务网络访问后，`RUN-V7-5666A45FCAA7` 已完成新代码真实三 Agent `model_success`；模型成功率台账只统计当前质量口径（`demo_model_quality_v2`）的真实外部运行，旧记录不再被换模型后误显示为新代码实时成功率。
+- 全量回归：**289 passed、1 warning、163.21s**（基线 259 passed；新增知识、任务状态、模型质量及接口契约测试）；前端契约 **119 unique ids、113 refs、1 script**；JavaScript 语法、compileall、`git diff --check` 通过；最终扫描未发现 20 位以上 token 格式密钥。
+- 真实浏览器四视口（1440×1000、1024×768、768×1024、390×844，Chrome + Playwright）：四档均完成选择→运行→结果→证据抽屉→Agent 抽屉→重置，console/page error/failed request/HTTP error=0，横向溢出=0，重复 ID=0；axe violations=0，只有渐变背景触发的 `color-contrast` incomplete，保留为人工复核项；静态与交互证据目录 `outputs/browser-final-20260824/`。
+- 本轮未完成且不得宣称的事项：旧 OpenCode Key 撤销确认（人工）；插图文字与 B0—B3 专业评分、人工复核/报告批准等既有门槛不变；未执行系统关机。
 
 ## 2026-08-22 OpenCode 通道化就绪状态与提交收尾快照
 
@@ -50,7 +94,7 @@
 
 - 正式业务范围：审计计划阶段的销售与收款循环风险预筛。
 - 正式入口：根目录 `index.html`，采用 V4“证据地平线”设计；`09_官网V4_融合增强实验版` 仅作整改前基线。
-- 工程版本：0.7.1；运行结构：`run_output_v2`；R1：`r1_v0.4-draft`；R2：辅助工程草案；R3—R8：路线图。
+- 工程版本：0.7.1；运行结构：`run_output_v2`；R1：v0.4，当前状态 `captain_approved_for_competition_demo`；R2：辅助工程草案；R3—R8：路线图。
 - 完整分析：确定性计算 → 固定问题集 RAG → 质疑 / 反证 / 复核 Agent → Schema、引用与确定性事实语言一致性硬校验 → 人工处理。
 - 仅计算预检允许使用，但必须标为不完整运行。JSON、网页草稿和 Word 报告必须逐字保留统一 AI 声明。
 - 运行方式优先显示实际 `execution_mode`；真实模型、模型已配置、后端可用和确定性备用彼此分开。真实模型不可用时，页面显示原因码对应的中文操作说明，并只允许用户明确选择确定性备用。

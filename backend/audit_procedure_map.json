@@ -1,0 +1,55 @@
+{
+  "schema_version": "audit_procedure_map_v1",
+  "scope": "审计计划阶段—销售与收款循环",
+  "boundary": "本表只描述系统在审计计划阶段对公开资料的系统执行/辅助判断/人工保留边界；系统不认定舞弊、不出具审计意见、不代替注册会计师执业。",
+  "procedures": [
+    {
+      "procedure_id": "AP-01",
+      "procedure": "初步分析程序",
+      "system_execution": "跨期复算、增速差与周转天数筛查、异常筛查（R1/R2 确定性规则）",
+      "automation_level": "替代重复计算",
+      "human_retained": "判断风险意义、决定是否追加程序、对候选事项作专业评估",
+      "assertions": ["收入发生、截止、准确性", "应收账款存在、计价分摊"]
+    },
+    {
+      "procedure_id": "AP-02",
+      "procedure": "检查公开资料",
+      "system_execution": "巨潮正式年报搜索、下载、PDF 硬校验、页码回查；官方来源登记与哈希记录",
+      "automation_level": "替代资料整理",
+      "human_retained": "核对披露口径、确认公司识别与页面定位、判断资料充分性",
+      "assertions": ["全部认定候选的基础资料"]
+    },
+    {
+      "procedure_id": "AP-03",
+      "procedure": "风险评估辅助",
+      "system_execution": "行业闸门判定、认定候选形成、资料缺口清单、进一步程序建议",
+      "automation_level": "辅助",
+      "human_retained": "正式识别和评估重大错报风险、职业怀疑的运用",
+      "assertions": ["收入发生、应收账款存在"]
+    },
+    {
+      "procedure_id": "AP-04",
+      "procedure": "审计证据整理",
+      "system_execution": "evidence ID、来源台账、支持状态、RAG 候选原文引用与回查链接",
+      "automation_level": "替代机械整理",
+      "human_retained": "判断证据的充分性与适当性、确认支持状态与口径一致性",
+      "assertions": ["全部认定候选"]
+    },
+    {
+      "procedure_id": "AP-05",
+      "procedure": "底稿草拟",
+      "system_execution": "结构化风险卡、预审备忘录与待核查事项草稿（AI 草稿明确标注）",
+      "automation_level": "辅助",
+      "human_retained": "修改、复核、签字；专业认定与报告发布由人工完成",
+      "assertions": ["全部认定候选"]
+    },
+    {
+      "procedure_id": "AP-06",
+      "procedure": "补充证据再评估",
+      "system_execution": "补充资料登记、父子运行、建议变化与证据差异快照",
+      "automation_level": "辅助",
+      "human_retained": "决定是否追加审计程序、是否认可补充资料口径",
+      "assertions": ["收入截止、应收账款存在与计价"]
+    }
+  ]
+}

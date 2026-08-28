@@ -1,0 +1,102 @@
+{
+  "schema_version": "illustration_manifest_v1",
+  "purpose": "审迹智链竞赛演示版插图：黑金审计证据语义，与网页深色审计编辑风格一致。",
+  "note": "AI 图片内嵌文字不作为可访问页面内容或架构事实；有信息含义的图使用页面内文字替代。",
+  "illustrations": [
+    {
+      "asset_name": "agents-nodes",
+      "usage": "original",
+      "source_file": "ChatGPT Image 2026年8月24日 11_18_52 (1).png",
+      "source_sha256": "ff741349a78a21b38b5bb7ec3861f554c67547cb65568fcdf0f80bbd827ef496",
+      "source_dimensions": [
+        1672,
+        941
+      ],
+      "source_bytes": 1467405,
+      "outputs": [
+        {
+          "file": "agents-nodes.webp",
+          "width": 1672,
+          "bytes": 32824
+        }
+      ]
+    },
+    {
+      "asset_name": "knowledge-portal",
+      "usage": "original",
+      "source_file": "ChatGPT Image 2026年8月24日 11_18_53 (2).png",
+      "source_sha256": "b73f47895375c660849e96566275ea4fab934beeb2d94116ca82cd686c06ce20",
+      "source_dimensions": [
+        1672,
+        941
+      ],
+      "source_bytes": 1768492,
+      "outputs": [
+        {
+          "file": "knowledge-portal.webp",
+          "width": 1672,
+          "bytes": 41028
+        }
+      ]
+    },
+    {
+      "asset_name": "evidence-chain",
+      "usage": "original",
+      "source_file": "ChatGPT Image 2026年8月24日 11_18_55 (3).png",
+      "source_sha256": "fbf69f4d5809c609b55533b72d11e76b8f1a1effa07a3db98924627648831b62",
+      "source_dimensions": [
+        1672,
+        941
+      ],
+      "source_bytes": 1446663,
+      "outputs": [
+        {
+          "file": "evidence-chain.webp",
+          "width": 1672,
+          "bytes": 29710
+        }
+      ]
+    },
+    {
+      "asset_name": "data-horizon",
+      "usage": "background",
+      "source_file": "ChatGPT Image 2026年8月24日 11_18_56 (4).png",
+      "source_sha256": "6272fd430a2f7ef908fc58c9ae177c565815758ada39526e58f4b6727018f396",
+      "source_dimensions": [
+        1672,
+        941
+      ],
+      "source_bytes": 1450473,
+      "outputs": [
+        {
+          "file": "data-horizon-1440.webp",
+          "width": 1440,
+          "bytes": 25460
+        },
+        {
+          "file": "data-horizon-768.webp",
+          "width": 768,
+          "bytes": 10440
+        }
+      ]
+    },
+    {
+      "asset_name": "system-overview-blue",
+      "usage": "original",
+      "source_file": "ChatGPT Image 2026年8月24日 11_04_12 (1).png",
+      "source_sha256": "d213ebeed11d942e53c918c21d6002acab88dddd4e4ed62d542a614449440a70",
+      "source_dimensions": [
+        1672,
+        941
+      ],
+      "source_bytes": 1927050,
+      "outputs": [
+        {
+          "file": "system-overview-blue.webp",
+          "width": 1672,
+          "bytes": 105506
+        }
+      ]
+    }
+  ]
+}

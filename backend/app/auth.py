@@ -37,7 +37,7 @@ def model_consent_contract() -> dict[str, str]:
     provider = (urlparse(base_url).hostname or "api.deepseek.com").lower()
     return {
         "provider": provider,
-        "model_id": os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip(),
+        "model_id": os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus").strip(),
         "transmission_scope": model_transmission_scope(),
     }
 

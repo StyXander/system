@@ -1,0 +1,54 @@
+{
+  "schema_version": "captain_human_score_clarification_v1",
+  "evaluation_id": "EVAL-20260826-B1B3-CURRENT-R3",
+  "recorded_at": "2026-08-26T15:29:25+08:00",
+  "scorer_role": "项目队长（用户本人）",
+  "scorer_name": null,
+  "parent_record": {
+    "json_file": "CAPTAIN_HUMAN_SCORE_20260826_R1.json",
+    "json_sha256": "54378813B9D26EB887CCB53473A5E7035FA456A5FFB772FD77DCC1C2541CEC41",
+    "markdown_file": "CAPTAIN_HUMAN_SCORE_20260826_R1.md",
+    "markdown_sha256": "517204C1D53D269CDE315A44C0E7C60BB799026295158B7EEDF59B55477BFBB8"
+  },
+  "case_id": "STD_DEV_T0",
+  "company_name": "标准股份",
+  "captain_label": "降级",
+  "captain_definition": "下调至综合风险评级体系的最低类别，同时将审计应对强度提升至最高级",
+  "candidate_priority_meaning": "提高核查优先级",
+  "audit_response_intensity": "critical_high_risk",
+  "system_status_mapping": "retain_and_escalate",
+  "must_not_map_to": "downgrade_as_lower_priority",
+  "semantic_confirmation_status": "resolved",
+  "captain_original_assessment": {
+    "basis": [
+      "内部控制否定意见",
+      "强制性 ST 风险警示",
+      "资产质量恶化",
+      "持续经营重大疑虑",
+      "供应链业务涉诉及应收账款风险"
+    ],
+    "requested_responses": [
+      "穿透供应链涉案对手方及实质关联关系",
+      "复核诉讼预计负债计提充分性",
+      "对应收账款减值准备实施压力测试",
+      "评价覆盖未来十二个月的持续经营改善方案",
+      "评价持续经营披露及审计报告影响",
+      "全面启动高风险审计预警程序"
+    ]
+  },
+  "professional_boundary": {
+    "captain_text_preserved_verbatim_in_markdown": true,
+    "fact_verification_performed": false,
+    "preferred_risk_wording": "存在资产质量显著恶化迹象及可能导致对持续经营能力产生重大疑虑的事项或情况，需获取充分、适当的审计证据后判断",
+    "management_responsibility": "管理层负责财务报表及持续经营相关披露和应对计划",
+    "auditor_responsibility": "注册会计师基于充分、适当的审计证据评价持续经营假设、重大不确定性、披露充分性及审计报告影响",
+    "opinion_boundary": "持续经营重大不确定性不自动等于非无保留意见；意见类型取决于假设适当性、披露、错报、审计证据和影响广泛性",
+    "accounting_term_separation": {
+      "litigation": "预计负债的确认、计量和披露",
+      "accounts_receivable": "预期信用损失及坏账准备计提"
+    },
+    "system_boundary": "审计计划阶段风险预筛，不形成持续经营结论或审计意见"
+  },
+  "evaluation_contract_sha256": "d484e51cae4acc83f94ccc855af6c50936ae615c671a54c4012627bff7cceba9",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

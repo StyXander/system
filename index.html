@@ -5,353 +5,435 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#05080B">
-  <meta name="description" content="审迹智链 AuditTrace 审计计划阶段证据工作台">
-  <title>审迹智链 · 证据地平线</title>
+  <meta name="description" content="审迹智链 AuditTrace 竞赛演示版：上市公司年报风险预筛工作台（审计计划阶段·销售与收款循环）">
+  <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.7.4">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
-  <link rel="stylesheet" href="/assets/official-v4/fusion.css?v=0.7.2">
-  <script src="/assets/official-v4/app.js?v=0.7.9" defer></script>
-  <script src="/assets/official-v4/fusion.js?v=0.7.1" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.10.1">
+  <script src="/assets/official-v4/demo-app.js?v=0.10.1" defer></script>
   <style>
-    :root { --stepper-height: 56px; }
-    .process-stepper {
-      position: sticky;
-      top: var(--topbar-height);
-      z-index: 40;
-      background: var(--surface-topbar);
-      border-bottom: 1px solid var(--line);
-      backdrop-filter: blur(14px);
-    }
-    .process-stepper-list {
-      display: flex;
-      max-width: var(--content-max);
-      min-height: var(--stepper-height);
-      align-items: center;
-      margin: 0 auto;
-      padding: var(--space-2) max(var(--space-5), env(safe-area-inset-right)) var(--space-2) max(var(--space-5), env(safe-area-inset-left));
-      list-style: none;
-      gap: var(--space-1);
-      overflow-x: auto;
-      scrollbar-width: thin;
-    }
-    .process-stepper-list::-webkit-scrollbar { height: 4px; }
-    .process-stepper-list::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
-    .process-step {
+    /* 竞赛演示版增量样式：全部复用 styles.css 的语义变量与组件语言。
+       平滑滚动会让自动化点击与键盘定位无法稳定落点，演示页改回即时滚动。 */
+    html { scroll-behavior: auto; }
+    body { background: #05080b; }
+    body::after { display: none; }
+    .cinematic-landing {
       position: relative;
-      display: flex;
-      flex: 1 0 auto;
-      min-width: 120px;
-      max-width: 220px;
+      isolation: isolate;
+      min-height: 100svh;
+      overflow: hidden;
+      color: #f3f7f8;
+      background-color: #020509;
+      background-image: none;
     }
-    .process-step::after {
-      content: "";
+    .cinematic-landing-art {
       position: absolute;
-      right: -6px;
-      width: 8px;
-      height: 8px;
-      border-top: 1px solid var(--border-default);
-      border-right: 1px solid var(--border-default);
-      transform: rotate(45deg);
-      opacity: .5;
+      z-index: -1;
+      inset: 0;
+      background: #020509 url("/assets/official-v4/cinematic/evidence-horizon.webp") 58% 50% / cover no-repeat;
+      pointer-events: none;
     }
-    .process-step:last-child::after { display: none; }
-    .step-button {
+    .cinematic-landing-art::before {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgb(1 4 7 / 94%) 0, rgb(1 5 8 / 72%) 36%, rgb(1 5 8 / 12%) 76%),
+        linear-gradient(180deg, rgb(1 4 7 / 48%) 0, transparent 32%, rgb(1 4 7 / 14%) 68%, rgb(1 4 7 / 82%) 100%);
+      content: "";
+    }
+    .cinematic-landing-art::after {
+      position: absolute;
+      inset: 0;
+      opacity: .28;
+      background:
+        linear-gradient(90deg, transparent calc(50% - .5px), rgb(141 205 219 / 11%) 50%, transparent calc(50% + .5px)),
+        linear-gradient(rgb(255 255 255 / 3%) 1px, transparent 1px) 0 0 / 100% 16.66%,
+        linear-gradient(90deg, rgb(255 255 255 / 2%) 1px, transparent 1px) 0 0 / 16.66% 100%;
+      content: "";
+      mask-image: linear-gradient(90deg, transparent, #000 38%, #000 100%);
+    }
+    .cinematic-nav {
+      position: absolute;
+      z-index: 2;
+      top: 0;
+      right: 0;
+      left: 0;
+      min-height: 72px;
+      padding: 0 clamp(22px, 4.8vw, 82px);
       display: flex;
-      flex: 1 1 auto;
-      align-items: center;
-      gap: var(--space-2);
-      width: 100%;
-      padding: var(--space-2) var(--space-3);
-      color: var(--text-tertiary);
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: var(--radius-2);
-      font-family: inherit;
-      font-size: 12px;
-      line-height: 1.35;
-      text-align: left;
-      cursor: default;
-      transition: color 150ms var(--ease), background-color 150ms var(--ease), border-color 150ms var(--ease);
-    }
-    .step-button:not(:disabled) { cursor: pointer; }
-    .step-button:not(:disabled):hover { background: var(--bg-hover); color: var(--text-primary); }
-    .step-button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
-    .step-button .step-marker {
-      display: grid;
-      flex: 0 0 22px;
-      width: 22px;
-      height: 22px;
-      place-items: center;
-      border: 1px solid currentColor;
-      border-radius: 50%;
-      font-size: 10px;
-      font-weight: 700;
-    }
-    .step-button .step-label { font-weight: 500; }
-    .step-button .step-label small {
-      display: block;
-      color: var(--text-tertiary);
-      font-size: 10px;
-      font-weight: 400;
-    }
-    .process-step.current .step-button {
-      color: var(--text-primary);
-      background: var(--accent-muted);
-      border-color: var(--accent-border);
-    }
-    .process-step.current .step-marker { background: var(--accent-primary); color: var(--text-on-accent); border-color: var(--accent-primary); }
-    .process-step.completed .step-button { color: var(--text-secondary); }
-    .process-step.completed .step-marker { border-color: var(--success); color: var(--success); }
-    .process-step.attention .step-button {
-      color: var(--warning, #b45309);
-      background: rgba(245, 158, 11, 0.08);
-      border-color: rgba(245, 158, 11, 0.35);
-    }
-    .process-step.attention .step-marker {
-      background: var(--warning, #d97706);
-      color: #ffffff;
-      border-color: var(--warning, #d97706);
-      font-weight: 800;
-    }
-    .process-step.not-applicable { opacity: .5; }
-    .process-step.pending { opacity: .7; }
-    @media (max-width: 768px) {
-      .process-step { min-width: 0; max-width: none; flex: 1 1 0; }
-      .step-button .step-label { font-size: 11px; }
-      .step-button .step-label small { display: none; }
-      .process-step:not(.current):not(.completed):not(.attention) .step-label { display: none; }
-      .process-step.current .step-label, .process-step.completed .step-label, .process-step.attention .step-label { display: block; }
-    }
-    @media (max-width: 480px) {
-      .step-button { padding: var(--space-2); }
-      .step-button .step-label { display: none; }
-      .process-step.current .step-label, .process-step.attention .step-label { display: block; font-size: 11px; }
-    }
-    .sidebar { top: calc(var(--topbar-height) + var(--stepper-height)); height: calc(100vh - var(--topbar-height) - var(--stepper-height)); }
-    #wb-data-status { cursor: pointer; }
-    #wb-data-status:hover { background: var(--bg-hover); }
-    .next-action-card {
-      display: grid;
-      gap: var(--space-4);
-      margin-top: var(--space-5);
-      padding: var(--space-5);
-      background: var(--accent-muted);
-      border: 1px solid var(--accent-border);
-      border-radius: var(--radius-2);
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-    }
-    .next-action-card h4 { font-family: var(--font-sans); font-size: 18px; }
-    .next-action-card p { color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
-    .cninfo-locked-notice {
-      margin-bottom: var(--space-4);
-      padding: var(--space-4);
-      color: var(--muted);
-      background: var(--info-bg);
-      border: 1px solid var(--accent-border);
-      border-radius: var(--radius-2);
-      font-size: 13px;
-    }
-    .cninfo-locked-notice strong { display: block; color: var(--text-primary); margin-bottom: var(--space-1); }
-    .next-action-banner {
-      display: flex;
-      gap: var(--space-4);
-      margin-top: var(--space-5);
-      padding: var(--space-4) var(--space-5);
       align-items: center;
       justify-content: space-between;
-      background: var(--success-bg);
-      border: 1px solid var(--accent-border);
-      border-radius: var(--radius-2);
+      gap: var(--space-5);
+      border-bottom: 1px solid rgb(190 226 232 / 11%);
+      background: #02060a;
+      backdrop-filter: blur(10px) saturate(120%);
     }
-    .next-action-banner strong { display: block; color: var(--text-primary); font-size: 15px; }
-    .next-action-banner span { display: block; color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
-    .next-action-banner.incomplete { background: var(--warning-bg); border-color: var(--warning-border); }
-    @media (max-width: 768px) {
-      .next-action-banner { flex-direction: column; align-items: flex-start; }
-      .next-action-banner .button { width: 100%; }
+    .cinematic-brand {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 12px;
+      color: inherit;
+      text-decoration: none;
     }
-    .delivery-empty-state {
-      margin-top: var(--space-5);
-      padding: var(--space-5);
-      background: var(--info-bg);
-      border: 1px solid var(--accent-border);
-      border-radius: var(--radius-2);
+    .cinematic-brand strong { font-size: 17px; letter-spacing: .08em; }
+    .cinematic-brand span { color: rgb(224 238 241 / 72%); font-family: var(--font-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; }
+    .cinematic-nav-meta {
+      display: flex;
+      align-items: center;
+      gap: clamp(18px, 3vw, 38px);
+      color: rgb(224 238 241 / 70%);
+      font-size: 12px;
+      letter-spacing: .08em;
     }
-    .delivery-empty-state strong { display: block; color: var(--text-primary); font-size: 16px; }
-    .delivery-empty-state p { color: var(--muted); font-size: 13px; margin-top: var(--space-1); }
-    /* Multi-Agent Collaboration Chain Styling (Dark Theme Native) */
-    .agent-chain-section {
-      margin-top: var(--space-5);
+    .cinematic-nav-meta a { color: #f3f7f8; text-decoration: none; }
+    .cinematic-nav-meta a:focus-visible,
+    .cinematic-nav-meta a:hover { color: #9fd9e4; }
+    .cinematic-version {
+      padding: 7px 10px;
+      border: 1px solid rgb(164 226 238 / 28%);
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+    .cinematic-hero {
+      width: min(100%, 1720px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 128px clamp(28px, 7vw, 118px) 104px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .cinematic-chip {
+      position: relative;
+      max-width: min(760px, 78vw);
+      margin-bottom: clamp(30px, 4vh, 56px);
+      padding-left: 46px;
+      color: rgb(231 240 242 / 78%);
+      font-size: 11px;
+      letter-spacing: .18em;
+      line-height: 1.7;
+    }
+    .cinematic-chip::before {
+      position: absolute;
+      top: .8em;
+      left: 0;
+      width: 30px;
+      height: 1px;
+      background: linear-gradient(90deg, #82c6d4, transparent);
+      content: "";
+    }
+    .cinematic-hero h1 {
+      max-width: 7em;
+      margin: 0;
+      color: #f3f7f8;
+      font-family: var(--font-sans);
+      font-size: clamp(84px, 11.4vw, 172px);
+      font-weight: 560;
+      letter-spacing: -.055em;
+      line-height: .88;
+      text-shadow: 0 1px 0 rgb(255 255 255 / 18%), 0 0 80px rgb(138 214 230 / 11%);
+    }
+    .cinematic-en-name {
+      margin-top: 24px;
+      color: rgb(212 233 237 / 68%);
+      font-family: var(--font-mono);
+      font-size: clamp(12px, 1.25vw, 17px);
+      letter-spacing: .72em;
+      text-transform: uppercase;
+    }
+    .cinematic-tagline {
+      max-width: 700px;
+      margin: clamp(32px, 5vh, 62px) 0 0;
+      padding-left: 22px;
+      color: rgb(228 238 240 / 78%);
+      border-left: 1px solid rgb(130 198 212 / 62%);
+      font-size: clamp(15px, 1.35vw, 19px);
+      line-height: 1.95;
+    }
+    .cinematic-tagline strong { color: #fff; }
+    .cinematic-actions {
+      margin-top: clamp(28px, 4vh, 46px);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+    .cinematic-enter {
+      min-height: 48px;
+      padding: 0 22px;
+      display: inline-flex;
+      align-items: center;
+      color: #061118;
+      background: #9fd9e4;
+      border: 1px solid #bceaf2;
+      border-radius: 2px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .cinematic-enter:hover { background: #b7e9f1; }
+    .cinematic-enter:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .cinematic-proof {
+      color: rgb(224 238 241 / 68%);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+    }
+    .cinematic-telemetry {
+      position: absolute;
+      top: 50%;
+      color: #a9c0c5;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: .14em;
+      writing-mode: vertical-rl;
+    }
+    .cinematic-telemetry.left { left: 18px; transform: translateY(-50%) rotate(180deg); }
+    .cinematic-telemetry.right { right: 18px; transform: translateY(-50%); }
+    .cinematic-corner {
+      position: absolute;
+      width: 96px;
+      height: 96px;
+      opacity: .34;
+      pointer-events: none;
+    }
+    .cinematic-corner.top { top: 84px; left: clamp(22px, 4.8vw, 82px); border-top: 1px solid #82c6d4; border-left: 1px solid #82c6d4; }
+    .cinematic-corner.bottom { right: clamp(22px, 4.8vw, 82px); bottom: 38px; border-right: 1px solid #82c6d4; border-bottom: 1px solid #82c6d4; }
+    .demo-shell {
+      width: min(100%, var(--content-max));
+      margin: 0 auto;
+      padding: var(--space-6) max(var(--space-5), env(safe-area-inset-right)) var(--space-8) max(var(--space-5), env(safe-area-inset-left));
+      display: grid;
+      gap: var(--space-7);
+    }
+    .demo-hero { display: grid; gap: var(--space-3); }
+    .demo-hero h2 {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(30px, 4.6vw, 46px);
+      line-height: 1.14;
+      letter-spacing: .01em;
+    }
+    .demo-hero h2 span { display: inline; }
+    .demo-hero .demo-tagline { max-width: 62ch; color: var(--text-secondary); margin: 0; }
+    .demo-facts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2) var(--space-5);
+      color: var(--text-tertiary);
+      font-size: 13px;
+    }
+    .demo-facts strong { color: var(--text-primary); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .demo-facts .demo-quality-alert { color: #f2c77b; }
+    .demo-section-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+    .demo-section-heading h3 { margin: 0; font-size: 19px; }
+    .demo-case-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-4);
+    }
+    .demo-case-card {
+      display: grid;
+      gap: var(--space-2);
+      min-height: 44px;
       padding: var(--space-4);
+      text-align: left;
+      color: var(--text-primary);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-2);
+      cursor: pointer;
+      transition: border-color 150ms var(--ease), background-color 150ms var(--ease), transform 150ms var(--ease);
+      font: inherit;
+    }
+    .demo-case-card:hover { border-color: var(--accent-border); background: var(--bg-hover); }
+    .demo-case-card:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+    .demo-case-card[aria-pressed="true"] { border-color: var(--accent-primary); box-shadow: inset 0 0 0 1px var(--accent-primary); }
+    .demo-case-card:disabled { opacity: .55; cursor: not-allowed; }
+    .demo-case-card .demo-case-index {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: .08em;
+    }
+    .demo-case-card h4 { margin: 0; font-size: 17px; }
+    .demo-case-card .demo-case-meta { color: var(--text-tertiary); font-size: 12.5px; font-family: var(--font-mono); }
+    .demo-case-card .demo-case-focus { color: var(--text-secondary); font-size: 13px; }
+    .demo-console {
+      padding: var(--space-5);
       background: var(--bg-elevated);
       border: 1px solid var(--border-default);
       border-radius: var(--radius-2);
-    }
-    .agent-chain-head {
-      margin-bottom: var(--space-3);
-    }
-    .agent-chain-head h5 {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: var(--space-1) 0;
-    }
-    .agent-chain-sub {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin: 0;
-      line-height: 1.5;
-    }
-    .agent-chain-cards {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: var(--space-3);
-      margin-top: var(--space-4);
+      gap: var(--space-4);
     }
-    @media (max-width: 1024px) {
-      .agent-chain-cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+    .demo-console-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
     }
-    @media (max-width: 640px) {
-      .agent-chain-cards {
-        grid-template-columns: 1fr;
-      }
+    .demo-console-head .demo-current-case { display: grid; gap: 2px; }
+    .demo-console-head .demo-current-case strong { font-size: 17px; }
+    .demo-console-head .demo-current-case small { color: var(--text-tertiary); font-family: var(--font-mono); }
+    .demo-console-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+    .demo-stage-rail {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-2);
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
-    .agent-step-card {
+    .demo-stage {
+      display: grid;
+      gap: var(--space-1);
+      padding: var(--space-3);
       background: var(--surface-primary);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-2);
-      padding: var(--space-4);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
-      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-      min-width: 0;
-    }
-    .agent-step-card:hover {
-      border-color: var(--border-default);
-      box-shadow: 0 4px 12px rgb(0 0 0 / 36%);
-    }
-    .agent-step-card.challenge { border-top: 3px solid var(--info); }
-    .agent-step-card.counter { border-top: 3px solid var(--warning); }
-    .agent-step-card.review { border-top: 3px solid var(--accent-primary); }
-    .agent-step-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: var(--space-3);
-      gap: var(--space-2);
-      min-height: 64px;
-    }
-    .agent-step-badge {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-tertiary);
-      display: block;
-      margin-bottom: 2px;
-    }
-    .agent-step-head h6 {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0;
-    }
-    .agent-step-head > div { min-width: 0; }
-    .agent-step-head .state { flex: 0 0 auto; white-space: nowrap; }
-    .agent-step-body { display: flex; flex: 1 1 auto; flex-direction: column; }
-    .agent-step-detail {
       font-size: 12.5px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      margin-bottom: var(--space-3);
-      padding-bottom: var(--space-2);
-      border-bottom: 1px dashed var(--border-subtle);
-      min-height: 3.1em;
-    }
-    .agent-step-block {
-      font-size: 12px;
-      margin-top: var(--space-2);
-      color: var(--text-secondary);
-    }
-    .agent-step-block strong {
-      display: block;
-      color: var(--text-primary);
-      margin-bottom: 3px;
-      font-size: 12px;
-    }
-    .agent-step-block ul {
-      padding-left: 16px;
-      margin: 3px 0 var(--space-2) 0;
-    }
-    .agent-step-block li {
-      margin-bottom: 4px;
-      line-height: 1.45;
-    }
-    .agent-step-block small.cite {
       color: var(--text-tertiary);
-      font-family: var(--font-mono);
-      font-size: 11px;
     }
-    .agent-step-reason {
-      font-size: 11.5px;
-      background: var(--bg-hover);
-      padding: var(--space-2);
-      border-radius: var(--radius-1);
-      margin-top: var(--space-3);
-      line-height: 1.45;
-      color: var(--text-secondary);
-      border: 1px solid var(--border-subtle);
+    .demo-stage .demo-stage-name { color: var(--text-secondary); font-weight: 600; }
+    .demo-stage .demo-stage-note { font-size: 11.5px; }
+    .demo-stage.current { border-color: var(--accent-border); background: var(--accent-muted); }
+    .demo-stage.current .demo-stage-name { color: var(--text-primary); }
+    .demo-stage.completed { border-color: var(--success-border, var(--border-default)); }
+    .demo-stage.completed .demo-stage-name { color: var(--success); }
+    .demo-stage.failed { border-color: var(--danger-border); }
+    .demo-stage.failed .demo-stage-name { color: var(--danger); }
+    .demo-stage.degraded { border-color: var(--warning-border); }
+    .demo-stage.degraded .demo-stage-name { color: var(--warning); }
+    .demo-stage.skipped { border-color: var(--warning-border); }
+    .demo-stage.skipped .demo-stage-name { color: var(--warning); }
+    .demo-result { display: grid; gap: var(--space-4); }
+    .demo-result-summary {
+      display: grid;
+      grid-template-columns: minmax(240px, 1.35fr) minmax(170px, .85fr) minmax(170px, .8fr) minmax(160px, .75fr) minmax(260px, 1.35fr);
+      gap: var(--space-3);
     }
-    .agent-step-reason strong {
-      color: var(--text-primary);
-      display: block;
-      margin-bottom: 2px;
-    }
-    .agent-step-foot {
-      margin-top: auto;
-      padding-top: var(--space-2);
-      border-top: 1px solid var(--border-subtle);
-      font-size: 11px;
-      color: var(--text-tertiary);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: var(--space-1);
-    }
-    .agent-step-conclusion {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .topbar-menu { position: relative; }
-    .topbar-menu ul {
-      position: absolute;
-      top: calc(100% + 6px);
-      right: 0;
-      z-index: 60;
-      min-width: 180px;
-      margin: 0;
-      padding: var(--space-2);
-      list-style: none;
-      background: var(--surface-dialog);
-      border: 1px solid var(--line);
+    .demo-summary-cell {
+      min-width: 0;
+      min-height: 108px;
+      padding: var(--space-4);
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      background: linear-gradient(145deg, var(--surface-secondary), var(--surface-primary));
+      border: 1px solid var(--border-default);
+      border-top: 2px solid var(--border-strong);
       border-radius: var(--radius-2);
-      box-shadow: var(--shadow-drawer);
     }
-    .topbar-menu a {
-      display: block;
-      padding: var(--space-2) var(--space-3);
-      color: var(--text-secondary);
+    .demo-summary-cell.is-primary,
+    .demo-summary-cell.is-success { border-top-color: var(--accent-primary); }
+    .demo-summary-label {
+      color: var(--text-tertiary);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .demo-summary-value {
+      color: var(--text-primary);
+      font-size: 15px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+    .demo-summary-cell.is-primary .demo-summary-value { font-size: 17px; }
+    .demo-summary-cell.is-run .demo-summary-value { color: var(--accent-hover); font-family: var(--font-mono); font-size: 13px; }
+    .demo-summary-detail { color: var(--text-tertiary); font-size: 11.5px; line-height: 1.45; }
+    .demo-summary-detail strong { color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; }
+    .demo-item-card {
+      padding: var(--space-4) var(--space-5);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-left: 3px solid var(--accent-primary);
+      border-radius: var(--radius-2);
+      display: grid;
+      gap: var(--space-2);
+    }
+    .demo-item-card .demo-item-eyebrow { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); letter-spacing: .06em; }
+    .demo-item-card h4 { margin: 0; font-size: 16px; }
+    .demo-item-card p { margin: 0; color: var(--text-secondary); font-size: 13px; }
+    .demo-item-card .demo-item-facts { color: var(--text-secondary); font-size: 12.5px; }
+    .demo-item-card .demo-item-facts li { margin-bottom: 3px; }
+    .demo-item-card .demo-item-facts small { color: var(--text-tertiary); font-family: var(--font-mono); }
+    .demo-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-2);
+      margin: var(--space-1) 0;
+    }
+    .demo-metric {
+      min-width: 0;
+      padding: var(--space-3);
+      display: grid;
+      gap: 7px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-2);
+    }
+    .demo-metric span { color: var(--text-tertiary); font-size: 11px; line-height: 1.35; }
+    .demo-metric strong {
+      color: var(--accent-hover);
+      font-family: var(--font-mono);
+      font-size: clamp(15px, 1.35vw, 19px);
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .demo-footer {
+      width: min(100%, var(--content-max));
+      margin: 0 auto;
+      padding: 0 max(var(--space-5), env(safe-area-inset-right)) var(--space-8) max(var(--space-5), env(safe-area-inset-left));
+      color: var(--text-tertiary);
+      font-size: 12.5px;
+    }
+    .demo-footer strong { color: var(--text-secondary); }
+    .demo-drawer-body { padding: var(--space-5) var(--space-6) var(--space-8); overflow-y: auto; display: grid; gap: var(--space-5); }
+    .demo-drawer-group { display: grid; gap: var(--space-3); }
+    .demo-drawer-group > h4 { margin: 0; font-size: 14px; color: var(--text-secondary); }
+    .demo-drawer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+    .demo-evidence-item {
+      padding: var(--space-3);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-1);
-      font-size: 12px;
-      text-decoration: none;
+      display: grid;
+      gap: var(--space-1);
+      font-size: 12.5px;
     }
-    .topbar-menu a:hover { background: var(--bg-hover); color: var(--text-primary); }
-    /* 交互收口：全局提示 toast、折叠区块与一键确认（复用既有设计系统变量） */
+    .demo-evidence-item .demo-evidence-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
+    .demo-evidence-item a { color: var(--accent-primary); word-break: break-all; }
+    .demo-tech-section { display: grid; gap: var(--space-2); }
+    .demo-tech-section h4 { margin: 0; font-size: 15px; }
+    .demo-tech-section p, .demo-tech-section li { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+    .demo-tech-section ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+    .demo-stack-intro { max-width: 68ch; }
+    .demo-stack-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+    .demo-stack-card {
+      padding: var(--space-3);
+      display: grid;
+      gap: 6px;
+      background: var(--surface-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-2);
+    }
+    .demo-stack-card strong { color: var(--text-primary); font-size: 12px; letter-spacing: .05em; }
+    .demo-stack-card span { color: var(--accent-hover); font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; }
+    .demo-stack-card small { color: var(--text-tertiary); font-size: 11.5px; line-height: 1.5; }
     .global-toast {
       position: fixed;
       right: max(var(--space-5), env(safe-area-inset-right));
@@ -370,914 +452,892 @@
     }
     .global-toast.error { border-left-color: var(--danger); }
     .global-toast.warning { border-left-color: var(--warning); }
-    .global-toast.success { border-left-color: var(--success); }
-    .run-deeplink-error {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-4);
-      margin: var(--space-4) 0;
-      padding: var(--space-4);
-      color: var(--text-primary);
-      background: var(--danger-bg);
-      border: 1px solid var(--danger-border);
-      border-left: 3px solid var(--danger);
-      border-radius: var(--radius-2);
-    }
-    .run-deeplink-error strong,
-    .run-deeplink-error span { display: block; }
-    .run-deeplink-error span { margin-top: 2px; color: var(--text-secondary); font-size: 13px; }
-    .run-deeplink-error .button { flex: 0 0 auto; }
-    details.case-intake-details { border: 1px solid var(--border-default); border-radius: var(--radius-2); background: var(--bg-elevated); }
-    details.case-intake-details > summary {
-      display: grid;
-      gap: var(--space-1);
-      padding: var(--space-4) var(--space-5);
-      cursor: pointer;
-      list-style: none;
-    }
-    details.case-intake-details > summary::-webkit-details-marker { display: none; }
-    details.case-intake-details > summary:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
-    details.case-intake-details > summary .details-toggle-hint {
-      margin-top: var(--space-2);
-      color: var(--accent-primary);
-      font-size: 12px;
-      font-weight: 600;
-    }
-    details.case-intake-details[open] > summary .details-toggle-hint::after { content: ""; }
-    details.case-intake-details > summary .details-toggle-hint::before { content: "⌄ "; }
-    details.case-intake-details[open] > summary .details-toggle-hint::before { content: "⌃ "; }
-    details.case-intake-details .case-intake-actions {
-      padding: 0 var(--space-5) var(--space-5);
-      margin-top: calc(-1 * var(--space-2));
-    }
-    .cninfo-batch-confirm-row {
-      display: grid;
-      gap: var(--space-2);
-      padding: var(--space-3);
-      background: var(--accent-muted);
-      border: 1px solid var(--accent-border);
-      border-radius: var(--radius-2);
-    }
-    .cninfo-batch-confirm-row .form-help { margin: 0; font-size: 12px; }
-    .cninfo-field-record-head-side {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-    .cninfo-field-record:not(.expanded) { padding: 10px 18px; }
-    .cninfo-field-record:not(.expanded) .cninfo-field-record-body { display: none; }
-    .cninfo-field-record .cninfo-field-expand { min-height: 32px; }
-    @media (max-width: 520px) {
-      .cninfo-field-record .cninfo-field-expand { min-height: 44px; min-width: 44px; }
-      .cninfo-field-record-head-side { flex-direction: column; align-items: flex-end; }
-      :root { --stepper-height: 48px; }
-      .topbar { padding-inline: var(--space-3); gap: var(--space-2); }
-      .brand { gap: var(--space-2); min-width: 0; }
-      .brand-mark { flex: 0 0 30px; width: 30px; height: 30px; }
-      .brand strong { font-size: 14px; letter-spacing: .04em; }
-      .brand small, .topbar-context > .context-label, .topbar-context .service-pill { display: none; }
-      .topbar-context { gap: 0; }
-      .process-stepper-list { padding-inline: var(--space-2); gap: 2px; }
-      .process-step::after { display: none; }
-      .step-button { justify-content: center; min-height: 36px; padding: var(--space-1); }
-      .step-button .step-marker { flex-basis: 20px; width: 20px; height: 20px; }
-      .run-deeplink-error { align-items: stretch; flex-direction: column; }
-      .run-deeplink-error .button { width: 100%; min-height: 44px; }
-      .agent-step-head { min-height: 0; }
-      .agent-step-detail { min-height: 0; }
-    }
-    @media (max-width: 480px) {
-      body[data-current-view]:not([data-current-view="overview"]) .process-stepper-list {
-        justify-content: flex-start;
-        overflow-x: auto;
-      }
-      body[data-current-view]:not([data-current-view="overview"]) .process-step {
-        flex: 0 0 92px;
-        min-width: 92px;
-      }
-    }
-    @media (max-width: 1024px) {
-      .sidebar { top: var(--topbar-height); height: calc(100vh - var(--topbar-height)); }
-    }
 
-    /* 工作台采用可判定的实色底稿层；电影级证据地平线仅保留在总览。
-       这不是 axe 例外：生产页面本身移除了会遮蔽文字背景的图像、纸纹与装饰伪层。 */
-    body[data-current-view]:not([data-current-view="overview"])::after,
-    body[data-current-view]:not([data-current-view="overview"]) .paper-grain,
-    body[data-current-view]:not([data-current-view="overview"]) .fusion-landing {
-      display: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) #workspace-root,
-    body[data-current-view]:not([data-current-view="overview"]) .sidebar,
-    body[data-current-view]:not([data-current-view="overview"]) .sidebar-ledger,
-    body[data-current-view]:not([data-current-view="overview"]) .app-shell > main,
-    body[data-current-view]:not([data-current-view="overview"]) .view.active,
-    body[data-current-view]:not([data-current-view="overview"]) .global-toast {
-      background-color: #061116;
-      background-image: none;
-      backdrop-filter: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .view.active::before,
-    body[data-current-view]:not([data-current-view="overview"]) .view.active::after,
-    body[data-current-view]:not([data-current-view="overview"]) .page-heading::after,
-    body[data-current-view]:not([data-current-view="overview"]) .button::after,
-    body[data-current-view]:not([data-current-view="overview"]) .evidence-rail li::after,
-    body[data-current-view]:not([data-current-view="overview"]) .ai-draft::after,
-    body[data-current-view]:not([data-current-view="overview"]) .sidebar nav a::after {
-      content: none;
-      background: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .process-step::after {
-      content: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .evidence-rail::before {
-      content: none;
-    }
-    /* Stepper destinations are programmatically focused after scrollIntoView().
-       Reserve both sticky rows so headings never land underneath either row. */
-    body[data-current-view]:not([data-current-view="overview"]) [data-view-panel] [id] {
-      scroll-margin-top: calc(var(--topbar-height) + var(--stepper-height) + 16px);
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .sidebar nav a[aria-current="page"] {
-      background: #123440;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .brand-mark,
-    body[data-current-view]:not([data-current-view="overview"]) .process-stepper,
-    body[data-current-view]:not([data-current-view="overview"]) .step-button,
-    body[data-current-view]:not([data-current-view="overview"]) .run-console,
-    body[data-current-view]:not([data-current-view="overview"]) .analysis-main,
-    body[data-current-view]:not([data-current-view="overview"]) .analysis-context,
-    body[data-current-view]:not([data-current-view="overview"]) .result-record,
-    body[data-current-view]:not([data-current-view="overview"]) .risk-summary,
-    body[data-current-view]:not([data-current-view="overview"]) .agent-chain-section,
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-card,
-    body[data-current-view]:not([data-current-view="overview"]) .scene-followup,
-    body[data-current-view]:not([data-current-view="overview"]) #ai-generated-content-notice {
-      background-color: #0a1b22;
-      background-image: none;
-      backdrop-filter: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .step-button {
-      color: #dce8eb;
-      border-color: #2d5360;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .brand-mark {
-      color: #f7feff;
-      background: #176b7d;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .step-button .step-marker {
-      color: #e6f5f8;
-      background: #0a1b22;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .step-marker[aria-hidden="true"] {
-      display: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .step-button .step-label small {
-      display: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .button.primary,
-    body[data-current-view]:not([data-current-view="overview"]) .button.primary span[aria-hidden="true"] {
-      color: #061116;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-badge {
-      color: #b8d0d6;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head h6 {
-      color: #f3fbfc;
-      overflow-wrap: anywhere;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head,
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head > div,
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head h6,
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-badge {
-      background: #0a1b22;
-      text-shadow: none;
-      filter: none;
-      opacity: 1;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head .state {
-      justify-self: start;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .agent-step-head h6 > span[aria-hidden="true"] {
-      display: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .process-step.current .step-button,
-    body[data-current-view]:not([data-current-view="overview"]) .process-step.attention .step-button {
-      background: #123440;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .state.waiting,
-    body[data-current-view]:not([data-current-view="overview"]) .service-pill.pending {
-      color: #ffd58d;
-      background: #493400;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .state.danger,
-    body[data-current-view]:not([data-current-view="overview"]) .service-pill.danger {
-      color: #ffd0d0;
-      background: #4a1719;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .state.success,
-    body[data-current-view]:not([data-current-view="overview"]) .service-pill.success {
-      color: #c6f6dc;
-      background: #123f32;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) #workspace-root .button.quiet {
-      background: #0a1b22;
-      color: #e7f3f5;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) #competition-menu-toggle > span[aria-hidden="true"],
-    body[data-current-view]:not([data-current-view="overview"]) #wb-run-full > span[aria-hidden="true"] {
-      display: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .button.primary {
-      background: #8ccbd7;
-      border-color: #8ccbd7;
-      box-shadow: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .button.quiet {
-      background: #0a1b22;
-      backdrop-filter: none;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) .ai-draft,
-    body[data-current-view]:not([data-current-view="overview"]) .ai-draft.missing {
-      background: #0a1b22;
-    }
-    body[data-current-view]:not([data-current-view="overview"]) #live-evidence-matrix td {
+    /* 旧版“证据先行”视觉的命名空间化复刻：保留当前单状态机与安全路由。 */
+    .demo-positioning {
       position: relative;
-      z-index: 1;
-      background: #0a1b22;
+      isolation: isolate;
+      min-height: 100svh;
+      padding: clamp(84px, 9vw, 140px) clamp(28px, 6vw, 106px) 0;
+      overflow: hidden;
+      color: #eaf3f5;
+      background: #02070b;
+    }
+    .demo-positioning-art {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      background: #061118 url("/assets/official-v4/illustrations/data-horizon-1440.webp") center / cover no-repeat;
+      pointer-events: none;
+    }
+    .demo-positioning-grid {
+      width: min(100%, 1660px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(420px, .85fr) minmax(560px, 1.35fr);
+      align-items: center;
+      gap: clamp(36px, 5vw, 92px);
+    }
+    .demo-positioning-copy { position: relative; z-index: 2; }
+    .demo-positioning-eyebrow {
+      position: relative;
+      margin: 0 0 42px;
+      padding-left: 54px;
+      color: #9fc7d0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: .18em;
+    }
+    .demo-positioning-eyebrow::before {
+      position: absolute;
+      top: .65em;
+      left: 0;
+      width: 38px;
+      height: 2px;
+      background: #8bcddd;
+      content: "";
+    }
+    .demo-positioning-copy h2 { margin: 0; display: grid; line-height: .88; }
+    .demo-positioning-sans,
+    .demo-positioning-outline {
+      font-family: var(--font-sans);
+      font-size: clamp(54px, 5.7vw, 102px);
+      font-weight: 700;
+      letter-spacing: -.06em;
+    }
+    .demo-positioning-outline {
+      color: #a6d0d8;
+      -webkit-text-stroke: 1px #82aeb8;
+      text-shadow: 0 0 38px rgb(130 198 212 / 8%);
+    }
+    .demo-positioning-serif {
+      margin-top: clamp(42px, 6vh, 74px);
+      color: #dce8ea;
+      font-family: var(--font-serif);
+      font-size: clamp(38px, 4vw, 68px);
+      font-weight: 420;
+      letter-spacing: .22em;
+    }
+    .demo-positioning-summary {
+      max-width: 31em;
+      margin: clamp(38px, 5vh, 62px) 0 0;
+      padding-left: 22px;
+      color: #aebfc3;
+      border-left: 1px solid #68a8b7;
+      font-family: var(--font-serif);
+      font-size: clamp(15px, 1.25vw, 19px);
+      line-height: 1.95;
+    }
+    .demo-positioning-actions { margin-top: 42px; display: flex; flex-wrap: wrap; gap: 14px; }
+    .demo-positioning-enter,
+    .demo-positioning-boundary {
+      min-height: 48px;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #6697a2;
+      border-radius: 1px;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .demo-positioning-enter { color: #061015; background: #a5dce7; border-color: #b9eaf1; }
+    .demo-positioning-enter:hover { background: #bceaf1; }
+    .demo-positioning-boundary { color: #e7f0f2; background: rgb(4 15 20 / 78%); }
+    .demo-positioning-boundary:hover { background: rgb(17 45 52 / 82%); }
+    .demo-positioning-enter:focus-visible,
+    .demo-positioning-boundary:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .demo-positioning-visual { position: relative; margin: 0; min-width: 0; }
+    .demo-positioning-frame {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgb(140 198 210 / 30%);
+      box-shadow: 0 38px 100px rgb(0 0 0 / 64%);
+      transform: perspective(1600px) rotateY(-2deg);
+    }
+    .demo-positioning-frame-art { position: absolute; z-index: 1; inset: 0; background: rgb(2 7 11 / 55%); pointer-events: none; }
+    .demo-positioning-frame img { width: 100%; height: auto; display: block; filter: brightness(.82) saturate(.84) contrast(1.04); }
+    .demo-positioning-visual figcaption { margin-top: 12px; color: #81979c; font-family: var(--font-mono); font-size: 10px; letter-spacing: .05em; text-align: right; }
+    .demo-positioning-facts {
+      width: min(100%, 1660px);
+      margin: clamp(74px, 9vh, 122px) auto 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid rgb(130 198 212 / 22%);
+      border-right: 1px solid rgb(130 198 212 / 15%);
+    }
+    .demo-positioning-facts > div { min-height: 122px; padding: 25px 34px; border-left: 1px solid rgb(130 198 212 / 18%); }
+    .demo-positioning-facts dt { color: #788e93; font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; }
+    .demo-positioning-facts dd { margin: 18px 0 0; display: flex; align-items: baseline; gap: 12px; }
+    .demo-positioning-facts dd span { color: #f1f7f8; font-family: var(--font-mono); font-size: clamp(22px, 2.2vw, 37px); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .demo-positioning-facts dd small { color: #8fa8ad; font-size: 11px; line-height: 1.5; }
+    .demo-knowledge-base { margin-top: 26px; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: stretch; border: 1px solid rgb(130 198 212 / 20%); background: #060f14; }
+    .demo-knowledge-visual { position: relative; margin: 0; min-width: 0; border-right: 1px solid rgb(130 198 212 / 20%); }
+    .demo-knowledge-visual img { width: 100%; height: 100%; display: block; object-fit: cover; filter: brightness(.86) saturate(.88) contrast(1.03); }
+    .demo-knowledge-visual figcaption { position: absolute; right: 14px; bottom: 12px; left: 14px; color: #93a8ad; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .05em; text-align: right; }
+    .demo-knowledge-copy { padding: 30px 34px; }
+    .demo-knowledge-copy h3 { margin: 8px 0 0; color: #eef6f7; font-size: clamp(22px, 2.4vw, 34px); font-weight: 650; letter-spacing: .02em; }
+    .demo-knowledge-lead { margin: 14px 0 0; max-width: 66ch; color: #9db3b8; font-size: 13px; line-height: 1.75; }
+    .demo-knowledge-grid { margin-top: 22px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: rgb(130 198 212 / 16%); border: 1px solid rgb(130 198 212 / 16%); }
+    .demo-knowledge-cell { min-width: 0; padding: 14px 12px; background: #041014; }
+    .demo-knowledge-cell dt { color: #778d92; font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; }
+    .demo-knowledge-cell dd { margin: 10px 0 0; display: grid; gap: 3px; color: #e9f1f2; font-family: var(--font-mono); font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .demo-knowledge-cell dd small { color: #82989d; font-size: 9.5px; line-height: 1.5; font-family: var(--font-sans); font-weight: 400; }
+    .demo-knowledge-note { margin: 16px 0 0; color: #8ba0a5; font-size: 11px; line-height: 1.7; }
+    .demo-procedure-map { margin-top: 22px; padding: 26px 28px 0; border-top: 1px solid rgb(130 198 212 / 20%); }
+    .demo-procedure-map header { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+    .demo-procedure-map header h3 { margin: 0; color: #edf5f6; font-size: 20px; font-weight: 650; }
+    .demo-procedure-map header .demo-procedure-note { color: #8ba0a5; font-size: 11.5px; line-height: 1.6; }
+    .demo-procedure-columns { margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: rgb(130 198 212 / 16%); border: 1px solid rgb(130 198 212 / 16%); }
+    .demo-procedure-column { padding: 18px 20px; background: #041014; }
+    .demo-procedure-column h4 { margin: 0; color: #9fcbd4; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; font-weight: 650; }
+    .demo-procedure-column ul { margin: 12px 0 0; padding: 0; list-style: none; }
+    .demo-procedure-column li { margin: 0 0 10px; color: #c3d4d8; font-size: 12px; line-height: 1.6; }
+    .demo-procedure-column li::before { content: "–"; margin-right: 8px; color: #55777e; }
+    .demo-procedure-version { margin-top: 14px; color: #6e858a; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .05em; }
+    .demo-source-ledger { margin-top: 22px; padding: 24px 28px; border-top: 1px solid rgb(130 198 212 / 20%); }
+    .demo-source-ledger-note { margin: 12px 0 0; color: #8ba0a5; font-size: 11.5px; line-height: 1.7; }
+    .demo-source-ledger-list { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+    .demo-source-ledger-list li { color: #c3d4d8; font-size: 11.5px; line-height: 1.7; }
+    .demo-source-ledger-list strong { color: #e3edef; font-weight: 650; }
+    .demo-source-ledger-list small { display: block; color: #6e858a; font-family: var(--font-mono); font-size: 9.5px; word-break: break-all; }
+    .demo-run-trace { margin-top: 22px; padding: 24px 28px; border-top: 1px solid rgb(130 198 212 / 20%); }
+    .demo-run-trace-list { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+    .demo-run-trace-list li { color: #c3d4d8; font-size: 11.5px; line-height: 1.7; }
+    .demo-run-trace-list strong { color: #e3edef; font-weight: 650; }
+    .demo-run-trace-list small { display: block; color: #6e858a; font-family: var(--font-mono); font-size: 9.5px; word-break: break-word; }
+    .demo-enhancement-grid { margin-top: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1px solid rgb(130 198 212 / 18%); background: rgb(130 198 212 / 18%); }
+    .demo-enhancement-card { min-width: 0; padding: 18px 20px; background: #041014; }
+    .demo-enhancement-card h4 { margin: 0; color: #e7f1f2; font-size: 14px; font-weight: 650; }
+    .demo-enhancement-card p { margin: 9px 0 0; color: #8ea7ac; font-size: 11px; line-height: 1.7; }
+    .demo-enhancement-card ul { margin: 11px 0 0; padding-left: 18px; color: #c5d6da; font-size: 11px; line-height: 1.7; }
+    .demo-enhancement-card li + li { margin-top: 5px; }
+    .demo-enhancement-card code { color: #a9dce5; font-family: var(--font-mono); font-size: 10px; word-break: break-word; }
+    .demo-enhancement-card .demo-enhancement-state { display: inline-block; margin-top: 11px; color: #8fc9a7; font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; }
+    .demo-supplement-lead { margin: 0 0 16px; color: #9db3b8; font-size: 12.5px; line-height: 1.7; }
+    .demo-supplement-samples { display: grid; gap: 10px; }
+    .demo-supplement-sample { display: block; width: 100%; padding: 14px 16px; text-align: left; color: #d7e4e7; background: #061218; border: 1px solid rgb(130 198 212 / 22%); border-radius: 0; cursor: pointer; }
+    .demo-supplement-sample[aria-pressed="true"] { background: #0d2a33; border-color: #7fc4d4; box-shadow: inset 3px 0 0 #88cada; }
+    .demo-supplement-sample strong { display: block; color: #eef6f7; font-size: 13px; font-weight: 650; }
+    .demo-supplement-sample small { display: block; margin-top: 6px; color: #8fa8ad; font-size: 11px; line-height: 1.6; }
+    .demo-supplement-actions { margin-top: 18px; display: flex; justify-content: flex-end; }
+    .demo-supplement-diff { margin-top: 18px; padding: 16px 18px; color: #c3d4d8; background: #041014; border: 1px solid rgb(130 198 212 / 24%); }
+    .demo-supplement-diff h4 { margin: 0 0 10px; color: #9fcbd4; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; }
+    .demo-supplement-diff dl { margin: 0; display: grid; gap: 8px; }
+    .demo-supplement-diff dt { color: #6e858a; font-size: 10.5px; }
+    .demo-supplement-diff dd { margin: 2px 0 0; color: #dce8ea; font-size: 12.5px; line-height: 1.6; }
+    .demo-supplement-summary { margin-top: 20px; padding: 20px 22px; border: 1px solid rgb(130 198 212 / 24%); border-left: 3px solid #c9a86a; background: #0d2130; }
+    .demo-supplement-summary[hidden] { display: none; }
+    .demo-supplement-summary h4 { margin: 0 0 12px; color: #dce9ec; font-size: 14px; font-weight: 650; }
+    .demo-supplement-summary dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; }
+    .demo-supplement-summary dt { color: #7e959b; font-size: 11px; }
+    .demo-supplement-summary dd { margin: 0; color: #e2ecee; font-size: 12.5px; line-height: 1.7; }
+    .demo-agent-hero, .demo-tech-hero { margin: 0 0 18px; padding: 0; }
+    .demo-agent-hero img, .demo-tech-hero img { width: 100%; height: auto; display: block; border: 1px solid rgb(130 198 212 / 22%); filter: brightness(.92); }
+    .demo-agent-hero figcaption, .demo-tech-hero figcaption { margin-top: 8px; color: #82989d; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .05em; }
+
+    /* 工作台恢复旧版青黑、细线、账本式信息层级。 */
+    #main-content {
+      position: relative;
+      isolation: isolate;
+      background: #041318;
+    }
+    .main-content-art {
+      position: absolute;
+      z-index: 0;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: min(920px, 100svh);
+      opacity: .4;
+      background: #07161b;
+      contain: strict;
+      pointer-events: none;
+    }
+    #main-content > * { position: relative; z-index: 1; }
+    #main-content > .main-content-art { position: absolute; z-index: 0; }
+    .topbar { background: #020b0f; border-bottom-color: rgb(130 198 212 / 28%); backdrop-filter: none; }
+    .demo-shell { width: min(100%, 1660px); gap: 34px; padding-top: 48px; }
+    .demo-hero {
+      max-width: none;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr);
+      grid-template-areas:
+        "kicker visual"
+        "title visual"
+        "tagline visual"
+        "facts visual";
+      column-gap: clamp(34px, 5vw, 86px);
+      align-items: end;
+    }
+    .demo-hero > .kicker { grid-area: kicker; }
+    .demo-hero > h2 { grid-area: title; }
+    .demo-hero > .demo-tagline { grid-area: tagline; }
+    .demo-hero > .demo-facts { grid-area: facts; }
+    .demo-hero h2 { color: #edf5f6; font-size: clamp(34px, 4vw, 58px); }
+    .demo-facts { padding-top: 16px; border-top: 1px solid rgb(130 198 212 / 18%); }
+    .demo-workbench-visual {
+      position: relative;
+      grid-area: visual;
+      min-height: 330px;
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid rgb(130 198 212 / 24%);
+      background: #050b0e;
+      contain: layout paint;
+    }
+    .demo-workbench-visual-art { position: absolute; inset: 0; background: rgb(2 8 12 / 72%); pointer-events: none; }
+    .demo-workbench-visual img { width: 100%; height: 100%; min-height: 330px; display: block; object-fit: cover; filter: brightness(.72) saturate(.72) contrast(1.08); }
+    .demo-workbench-visual figcaption { position: absolute; z-index: 1; right: 22px; bottom: 20px; left: 22px; display: grid; gap: 6px; color: #9cb1b6; font-size: 11px; line-height: 1.55; }
+    .demo-workbench-visual figcaption span { color: #d1b982; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .12em; }
+    .demo-workbench-visual figcaption strong { color: #eef5f6; font-size: 15px; font-weight: 650; }
+    .demo-section-heading h3 { color: #e8f0f2; }
+    .demo-case-grid { gap: 1px; background: rgb(130 198 212 / 18%); border: 1px solid rgb(130 198 212 / 20%); }
+    .demo-case-card { border: 0; border-radius: 0; background: #061218; min-height: 158px; }
+    .demo-case-card:hover { background: #0a2028; }
+    .demo-case-card[aria-pressed="true"] { background: #0e2932; box-shadow: inset 3px 0 0 #88cada; }
+    .demo-case-card[aria-pressed="true"] .demo-case-index,
+    .demo-case-card[aria-pressed="true"] .demo-case-meta { color: #a9c1c6; }
+    .demo-console { padding: 0 0 22px; gap: 0; border: 1px solid rgb(130 198 212 / 24%); border-radius: 0; background: #06171d; }
+    .demo-console-head { padding: 22px 24px; border-bottom: 1px solid rgb(130 198 212 / 22%); }
+    .demo-stage-rail { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; background: rgb(130 198 212 / 18%); border-bottom: 1px solid rgb(130 198 212 / 18%); }
+    .demo-stage { position: relative; min-height: 70px; padding: 14px 16px 13px 48px; border: 0; border-radius: 0; background: #041116; }
+    .demo-stage::before { position: absolute; top: 17px; left: 16px; width: 23px; height: 23px; display: grid; place-items: center; color: #9ab0b5; border: 1px solid #4d747d; border-radius: 50%; content: attr(data-stage); font-family: var(--font-mono); font-size: 9px; }
+    .demo-stage.current { background: #0d3039; box-shadow: inset 0 2px 0 #8bd0df; }
+    .demo-stage.current::before { color: #031015; background: #91d1df; border-color: #91d1df; }
+    .demo-stage.completed { background: #09231f; }
+    .demo-stage.completed::before { color: #c9f1df; border-color: #5c9b82; content: "✓"; }
+    .demo-stage.degraded { background: #27200c; }
+    .demo-stage.skipped { background: #27200c; }
+    .demo-stage.failed { background: #251014; }
+    #demo-gate { margin: 18px 22px 0; }
+    #demo-gate > strong { display: block; }
+    #demo-gate > .demo-gate-detail { position: relative; z-index: 1; display: block; margin: 4px 0 0; background: #090b0f; }
+    .demo-analysis-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(290px, .95fr); align-items: start; border: 1px solid rgb(130 198 212 / 20%); background: #041116; }
+    .demo-analysis-main { min-width: 0; padding: 30px; border-right: 1px solid rgb(130 198 212 / 18%); }
+    .demo-result-heading { padding-bottom: 20px; border-bottom: 1px solid rgb(130 198 212 / 20%); }
+    .demo-result-visual { position: relative; height: 220px; margin: 20px 0 0; overflow: hidden; border: 1px solid rgb(130 198 212 / 20%); background: #05090b; contain: layout paint; }
+    .demo-result-visual-art { position: absolute; inset: 0; background: rgb(3 11 15 / 66%); pointer-events: none; }
+    .demo-result-visual img { width: 100%; height: 100%; display: block; object-fit: cover; filter: brightness(.68) saturate(.7) contrast(1.08); }
+    .demo-result-visual figcaption { position: absolute; z-index: 1; top: 50%; right: 24px; width: min(40%, 360px); color: #aebfc3; font-size: 11.5px; line-height: 1.65; transform: translateY(-50%); }
+    .demo-result-visual figcaption strong { display: block; margin-bottom: 7px; color: #eff6f7; font-size: 16px; font-weight: 650; }
+    .demo-result-summary { margin-top: 20px; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border: 1px solid rgb(130 198 212 / 22%); }
+    .demo-summary-cell { min-height: 126px; padding: 18px; border: 0; border-right: 1px solid rgb(130 198 212 / 20%); border-top: 0; border-radius: 0; background: #031015; }
+    .demo-summary-cell:last-child { border-right: 0; }
+    .demo-summary-cell.is-primary,
+    .demo-summary-cell.is-success { box-shadow: inset 0 2px 0 #81c7d6; }
+    .demo-summary-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums lining-nums; }
+    .demo-result-items { margin-top: 20px; display: grid; gap: 18px; }
+    .demo-item-card { padding: 24px 22px; border: 1px solid rgb(130 198 212 / 22%); border-left: 3px solid #82c6d4; border-radius: 0; background: #06151b; }
+    .demo-item-card h4 { color: #f0f5f6; font-size: 20px; }
+    .demo-metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid rgb(130 198 212 / 24%); border-left: 1px solid rgb(130 198 212 / 24%); }
+    .demo-metric { min-height: 112px; padding: 18px; align-content: start; border: 0; border-right: 1px solid rgb(130 198 212 / 24%); border-bottom: 1px solid rgb(130 198 212 / 24%); border-radius: 0; background: #020c10; }
+    .demo-metric strong { color: #f0f7f8; font-size: clamp(21px, 2vw, 32px); font-weight: 700; letter-spacing: .015em; }
+    .demo-evidence-axis { position: sticky; top: 82px; padding: 32px 30px; color: #dce8ea; }
+    .demo-evidence-axis h3 { margin: 8px 0 28px; font-size: 24px; }
+    .demo-evidence-axis ol { margin: 0; padding: 0; display: grid; gap: 0; list-style: none; }
+    .demo-evidence-axis li { position: relative; min-height: 94px; padding: 0 0 24px 58px; display: flex; }
+    .demo-evidence-axis li:not(:last-child)::after { position: absolute; top: 38px; bottom: 0; left: 18px; width: 1px; background: rgb(130 198 212 / 25%); content: ""; }
+    .demo-evidence-axis li > span { position: absolute; top: 0; left: 0; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #426873; border-radius: 50%; background: #020b0f; color: #b0c2c7; font-family: var(--font-mono); font-size: 10px; }
+    .demo-evidence-axis li.complete > span { color: #031015; background: #8acbd9; border-color: #8acbd9; }
+    .demo-evidence-axis li.warning > span { color: #f1d693; border-color: #9b7d35; }
+    .demo-evidence-axis li strong { display: block; color: #edf4f5; font-size: 16px; }
+    .demo-evidence-axis li small { margin-top: 7px; display: block; color: #9fb2b7; line-height: 1.55; }
+    .demo-axis-boundary { margin: 8px 0 0; padding-top: 20px; color: #8fa4a9; border-top: 1px solid rgb(130 198 212 / 18%); font-size: 12px; line-height: 1.7; }
+    .demo-structured-output { margin-top: 26px; padding-top: 24px; border-top: 1px solid rgb(130 198 212 / 22%); }
+    .demo-table-wrap { overflow-x: auto; border: 1px solid rgb(130 198 212 / 22%); }
+    .demo-structured-table { width: 100%; border-collapse: collapse; color: #dce8ea; font-size: 12px; }
+    .demo-structured-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .demo-structured-table th,
+    .demo-structured-table td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid rgb(130 198 212 / 16%); }
+    .demo-structured-table th { color: #9eb4b9; background: #07181e; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .demo-structured-table td:nth-child(1),
+    .demo-structured-table td:nth-child(3),
+    .demo-structured-table td:nth-child(4) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .demo-structured-table tbody tr:last-child td { border-bottom: 0; }
+    .demo-result-actions { margin-top: 24px; padding-top: 22px; border-top: 1px solid rgb(130 198 212 / 20%); }
+    .demo-console,
+    .demo-result {
+      content-visibility: auto;
+      contain-intrinsic-width: auto none;
+      contain-intrinsic-height: auto 760px;
+    }
+    .demo-live-form { display: grid; grid-template-columns: 1fr 180px; gap: 14px; }
+    .demo-live-form label { display: grid; gap: 7px; color: var(--text-secondary); font-size: 12px; }
+    .demo-live-form label:first-child { grid-column: span 2; }
+    .demo-live-form input,
+    .demo-live-form select { min-height: 44px; padding: 0 12px; color: var(--text-primary); background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 2px; font: inherit; }
+    .demo-live-form button { min-height: 44px; align-self: end; }
+    .demo-live-task { display: grid; gap: 16px; padding-top: 18px; border-top: 1px solid var(--border-default); }
+    .demo-live-steps { margin: 0; padding: 0; display: grid; gap: 1px; list-style: none; background: var(--border-subtle); border: 1px solid var(--border-subtle); }
+    .demo-live-steps li { padding: 12px 14px; display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; background: var(--surface-primary); font-size: 12px; }
+    .demo-live-steps li span:first-child { color: var(--accent-hover); font-family: var(--font-mono); }
+    .demo-live-steps li small { color: var(--text-tertiary); }
+    .demo-live-result { padding: 16px; display: grid; gap: 10px; background: var(--surface-primary); border: 1px solid var(--border-default); }
+    .demo-live-result dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--border-subtle); }
+    .demo-live-result dl div { padding: 12px; background: var(--bg-primary); }
+    .demo-live-result dt { color: var(--text-tertiary); font-size: 11px; }
+    .demo-live-result dd { margin: 5px 0 0; color: var(--text-primary); font-family: var(--font-mono); overflow-wrap: anywhere; }
+
+    @media (max-width: 1024px) {
+      .demo-positioning { padding-inline: 42px; }
+      .demo-positioning-grid { grid-template-columns: 1fr; }
+      .demo-positioning-visual { width: min(100%, 900px); }
+      .demo-positioning-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .demo-knowledge-base { grid-template-columns: 1fr; }
+      .demo-knowledge-visual { border-right: 0; border-bottom: 1px solid rgb(130 198 212 / 20%); }
+      .demo-knowledge-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .demo-procedure-columns { grid-template-columns: 1fr; }
+      .demo-enhancement-grid { grid-template-columns: 1fr; }
+      .demo-case-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .demo-hero { grid-template-columns: 1fr; grid-template-areas: "kicker" "title" "tagline" "facts" "visual"; }
+      .demo-workbench-visual { min-height: 290px; margin-top: 12px; }
+      .demo-workbench-visual img { min-height: 290px; }
+      .demo-case-grid > :nth-child(3) { grid-column: 1 / -1; }
+      .demo-result-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .demo-summary-cell:first-child, .demo-summary-cell:last-child { grid-column: span 2; }
+      .demo-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .demo-analysis-layout { grid-template-columns: 1fr; }
+      .demo-analysis-main { border-right: 0; border-bottom: 1px solid rgb(130 198 212 / 18%); }
+      .demo-evidence-axis { position: static; }
+      .demo-result-visual figcaption { width: min(48%, 360px); }
+    }
+    @media (max-width: 768px) {
+      .demo-stage-rail { grid-template-columns: 1fr; }
+      .demo-stage { min-height: 58px; }
+      .demo-drawer-grid { grid-template-columns: 1fr; }
+      .demo-stack-grid { grid-template-columns: 1fr; }
+      .detail-drawer { width: 100vw; height: 100dvh; margin: 0; }
+    }
+    @media (max-width: 640px) {
+      .cinematic-nav { min-height: 64px; }
+      .cinematic-nav-meta span:not(.cinematic-version) { display: none; }
+      .cinematic-version { padding: 6px 8px; }
+      .cinematic-brand span { display: none; }
+      .cinematic-landing { min-height: 820px; background-position: 63% 50%; }
+      .cinematic-landing-art::before { background: linear-gradient(90deg, rgb(1 4 7 / 94%), rgb(1 5 8 / 72%) 66%, rgb(1 5 8 / 30%)); }
+      .cinematic-hero { min-height: 820px; padding: 106px 38px 72px; justify-content: center; }
+      .cinematic-chip { max-width: 100%; margin-bottom: 34px; padding-left: 34px; font-size: 9px; letter-spacing: .13em; }
+      .cinematic-chip::before { width: 22px; }
+      .cinematic-hero h1 { font-size: clamp(62px, 21vw, 90px); line-height: .94; }
+      .cinematic-en-name { margin-top: 18px; font-size: 11px; letter-spacing: .52em; }
+      .cinematic-tagline { margin-top: 34px; padding-left: 16px; font-size: 15px; line-height: 1.85; }
+      .cinematic-actions { align-items: stretch; flex-direction: column; width: 100%; }
+      .cinematic-enter { justify-content: center; width: 100%; }
+      .cinematic-proof { text-align: center; }
+      .cinematic-telemetry, .cinematic-corner { display: none; }
+      .demo-positioning { padding: 80px 24px 0; }
+      .demo-positioning-art { background: #061118 url("/assets/official-v4/illustrations/data-horizon-768.webp") center / cover no-repeat; }
+      .demo-positioning-sans, .demo-positioning-outline { font-size: clamp(46px, 15vw, 72px); }
+      .demo-positioning-serif { font-size: clamp(34px, 11vw, 52px); letter-spacing: .12em; }
+      .demo-positioning-actions { flex-direction: column; }
+      .demo-positioning-facts { grid-template-columns: 1fr; }
+      .demo-positioning-facts > div { min-height: 96px; }
+      .demo-knowledge-base { grid-template-columns: 1fr; }
+      .demo-knowledge-copy { padding: 24px 20px; }
+      .demo-knowledge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .demo-procedure-map { padding: 22px 20px 0; }
+      .demo-procedure-column { padding: 14px 16px; }
+      .demo-case-grid { grid-template-columns: 1fr; }
+      /* The console is the live progress surface.  Do not let content-visibility's
+         intrinsic placeholder height clip the final gate on narrow screens. */
+      .demo-console { display: block; content-visibility: visible; contain-intrinsic-size: auto; }
+      .demo-case-grid > :nth-child(3) { grid-column: auto; }
+      .demo-case-card h4, .demo-current-case strong { text-wrap: balance; }
+      .demo-hero h2 { font-size: clamp(32px, 10.5vw, 44px); text-wrap: balance; }
+      .demo-hero h2 span { display: block; }
+      .demo-workbench-visual { min-height: 230px; }
+      .demo-workbench-visual img { min-height: 230px; }
+      .demo-result-visual { height: 190px; }
+      .demo-result-visual figcaption { right: 16px; left: 16px; width: auto; padding: 12px; background: rgb(2 9 12 / 76%); }
+      #demo-open-live-sample { padding-inline: 9px; white-space: nowrap; }
+      .demo-console-head { align-items: stretch; flex-direction: column; }
+      .demo-console-actions .button { width: 100%; }
+      .demo-result-summary { grid-template-columns: 1fr; }
+      .demo-summary-cell:first-child, .demo-summary-cell:last-child { grid-column: auto; }
+      .demo-summary-cell { min-height: 0; }
+      .demo-metric-grid { grid-template-columns: 1fr 1fr; }
+      .demo-analysis-main { padding: 20px 16px; }
+      .demo-live-form { grid-template-columns: 1fr; }
+      .demo-live-form label:first-child { grid-column: auto; }
+    }
+    @media print {
+      @page { size: A4; margin: 14mm; }
+      body { color: #111; background: #fff; }
+      .cinematic-landing, .demo-positioning, .topbar, .demo-hero, .demo-case-grid, #demo-cases-heading, #demo-open-all-cases, .demo-console, .demo-evidence-axis, .demo-result-actions, .demo-footer, dialog, .global-toast { display: none !important; }
+      #main-content, .demo-shell, .demo-result, .demo-analysis-layout, .demo-analysis-main { display: block !important; width: auto; max-width: none; margin: 0; padding: 0; color: #111; background: #fff; border: 0; }
+      .demo-result-summary { grid-template-columns: repeat(2, 1fr); border-color: #777; }
+      .demo-summary-cell, .demo-item-card, .demo-metric, .demo-table-wrap { color: #111; background: #fff; border-color: #999; box-shadow: none; break-inside: avoid; }
+      .demo-supplement-summary { color: #111; background: #fff; border-color: #999; box-shadow: none; }
+      .demo-supplement-summary h4 { color: #111; }
+      .demo-supplement-summary dt { color: #333; }
+      .demo-supplement-summary dd { color: #222; }
+      .demo-procedure-map, .demo-procedure-column { color: #111; background: #fff; border-color: #999; box-shadow: none; }
+      .demo-procedure-column h4 { color: #0d3039; }
+      .demo-procedure-column li { color: #222; }
+      .demo-procedure-version, .demo-procedure-note { color: #333; }
+      .demo-source-ledger { color: #111; background: #fff; }
+      .demo-source-ledger-note { color: #333; }
+       .demo-source-ledger-list li { color: #222; }
+       .demo-source-ledger-list strong { color: #111; }
+       .demo-source-ledger-list small { color: #555; }
+       .demo-enhancement-grid { grid-template-columns: repeat(2, 1fr); border-color: #999; background: #999; break-inside: avoid; }
+       .demo-enhancement-card { color: #111; background: #fff; border-color: #999; }
+       .demo-enhancement-card h4 { color: #0d3039; }
+       .demo-enhancement-card p, .demo-enhancement-card ul { color: #333; }
+       .demo-enhancement-card code { color: #0d5666; }
+       .demo-enhancement-card .demo-enhancement-state { color: #176b43; }
+       .demo-summary-value, .demo-item-card h4, .demo-metric strong, .demo-structured-table { color: #111; }
+      .demo-item-card p, .demo-item-facts, .demo-summary-detail, .demo-metric span { color: #333; }
+      .demo-structured-table th { color: #111; background: #eee; }
+      .demo-structured-table th, .demo-structured-table td { border-color: #999; }
+      .demo-result::after { display: block; margin-top: 18px; padding-top: 10px; border-top: 1px solid #777; color: #222; content: "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"; font-size: 10pt; }
+      body.print-live-sample > :not(#demo-live-sample-drawer) { display: none !important; }
+      body.print-live-sample #demo-live-sample-drawer { position: static; inset: auto; width: auto; max-width: none; height: auto; max-height: none; margin: 0; display: block !important; color: #111; background: #fff; border: 0; box-shadow: none; }
+      body.print-live-sample #demo-live-sample-drawer .dialog-head { position: static; color: #111; background: #fff; border-bottom: 1px solid #777; }
+      body.print-live-sample #demo-live-sample-drawer .icon-button,
+      body.print-live-sample #demo-live-sample-drawer .demo-tech-section,
+      body.print-live-sample #demo-live-sample-drawer .demo-live-form,
+      body.print-live-sample #demo-live-sample-drawer #demo-live-capability,
+      body.print-live-sample #demo-live-sample-drawer .demo-live-steps,
+      body.print-live-sample #demo-live-sample-drawer .demo-live-output-actions { display: none !important; }
+      body.print-live-sample #demo-live-sample-drawer .demo-drawer-body { display: block; padding: 12mm 0 0; overflow: visible; }
+      body.print-live-sample #demo-live-sample-drawer .demo-live-task,
+      body.print-live-sample #demo-live-sample-drawer .demo-live-result,
+      body.print-live-sample #demo-live-sample-drawer .demo-table-wrap { display: block !important; color: #111; background: #fff; border-color: #777; }
+      body.print-live-sample #demo-live-sample-drawer .demo-live-result dl div { color: #111; background: #fff; }
+      body.print-live-sample #demo-live-sample-drawer .demo-live-result dd,
+      body.print-live-sample #demo-live-sample-drawer .demo-structured-table { color: #111; }
+      body.print-live-sample #demo-live-sample-drawer #demo-live-message { color: #111; background: #fff; border-color: #777; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .demo-case-card, .button { transition: none; }
     }
   </style>
 </head>
 <body>
   <a class="skip-link" href="#main-content">跳到主要内容</a>
-  <div class="paper-grain" aria-hidden="true"></div>
 
-  <section class="fusion-landing" id="fusion-landing" role="region" aria-label="沉浸式项目首页">
-    <canvas id="fusion-fx" aria-hidden="true"></canvas>
-    <div class="fusion-grid" aria-hidden="true"></div>
-    <div class="fusion-grain" aria-hidden="true"></div>
-
-    <nav class="fusion-nav" aria-label="首页导航">
-      <a class="fusion-brand" href="#fusion-landing" aria-label="审迹智链 首页">
-        <span class="zh">审迹智链</span><span class="en">AuditTrace</span>
+  <section class="cinematic-landing" id="demo-landing" aria-labelledby="demo-landing-title">
+    <div class="cinematic-landing-art" aria-hidden="true"></div>
+    <nav class="cinematic-nav" aria-label="项目首页导航">
+      <a class="cinematic-brand" href="#demo-landing" aria-label="审迹智链项目首页">
+        <strong>审迹智链</strong><span>AuditTrace</span>
       </a>
-      <div class="fusion-nav-links">
-        <a href="#positioning" data-fusion-view="overview">定位</a>
-        <a href="#innovations" data-fusion-view="overview">创新</a>
-        <a href="#workflow" data-fusion-view="overview">流程</a>
-        <a href="#workspace-root" data-fusion-view="project">工作台</a>
-        <a href="#roles-heading" data-fusion-view="methods">角色</a>
-        <a href="#boundary-heading" data-fusion-view="methods">边界</a>
-        <span class="fusion-nav-status" id="hero-version">0.7.1 · 正式 DEV</span>
+      <div class="cinematic-nav-meta">
+        <span>审计计划 · 销售与收款循环</span>
+        <a href="#demo-positioning">产品定位</a>
+        <span class="cinematic-version">0.10.1 · DEMO</span>
       </div>
     </nav>
-
-    <div class="fusion-telemetry fusion-telemetry-left" aria-hidden="true">
-      <span>AT / FORENSIC EDITORIAL</span>
-      <i></i>
-      <span id="hero-case">正在读取案例</span>
-    </div>
-    <div class="fusion-telemetry fusion-telemetry-right" aria-hidden="true">
-      <span id="hero-source-count">REGISTERED SOURCES —</span>
-      <i></i>
-      <span id="hero-chunk-count">SOURCE CHUNKS —</span>
-    </div>
-
-    <div class="fusion-hero">
-      <span class="fusion-chip fusion-rise"><span class="dot" aria-hidden="true"></span>北京市大学生数智会计创新应用竞赛 · 财会 Multi-Agent 应用</span>
-      <h1 class="fusion-rise" id="fusion-title">审迹智链</h1>
-      <div class="fusion-en-name fusion-rise" lang="en">AuditTrace</div>
-      <p class="fusion-tagline fusion-rise">
+    <span class="cinematic-telemetry left" aria-hidden="true">AT / EVIDENCE-BOUND / MULTI-AGENT</span>
+    <span class="cinematic-telemetry right" aria-hidden="true">15 REGISTERED CASES / 45 REPORTS</span>
+    <div class="cinematic-hero">
+      <p class="cinematic-chip">北京市大学生数智会计创新应用竞赛 · 财会 Multi-Agent 应用</p>
+      <h1 id="demo-landing-title">审迹智链</h1>
+      <div class="cinematic-en-name" lang="en">AuditTrace</div>
+      <p class="cinematic-tagline">
         面向会计师事务所<strong>审计计划阶段</strong>，围绕销售与收款循环，
         把<strong>确定性计算、原文检索与三 Agent 草稿</strong>绑定到可回查证据，再交由人作最终处理。
       </p>
-      <a class="fusion-scroll-cue fusion-rise" href="#workspace-root" data-fusion-view="overview">
-        <span>向下探索</span>
-        <span class="line" aria-hidden="true"></span>
-      </a>
+      <div class="cinematic-actions">
+        <a class="cinematic-enter" id="demo-enter-workspace" href="#demo-positioning">查看产品定位</a>
+        <span class="cinematic-proof">15 案冻结准入 · 证据可回查 · 失败如实降级</span>
+      </div>
     </div>
+    <span class="cinematic-corner top" aria-hidden="true"></span>
+    <span class="cinematic-corner bottom" aria-hidden="true"></span>
+  </section>
 
-    <div class="fusion-corner fusion-corner-a" aria-hidden="true"></div>
-    <div class="fusion-corner fusion-corner-b" aria-hidden="true"></div>
+  <section class="demo-positioning" id="demo-positioning" aria-labelledby="demo-positioning-title">
+    <div class="demo-positioning-art" aria-hidden="true"></div>
+    <div class="demo-positioning-grid">
+      <div class="demo-positioning-copy">
+        <p class="demo-positioning-eyebrow">产品定位 · AUDIT PLANNING · EVIDENCE FIRST</p>
+        <h2 id="demo-positioning-title">
+          <span class="demo-positioning-sans">证据先行的</span>
+          <span class="demo-positioning-outline">销售收款预审</span>
+          <span class="demo-positioning-serif">审迹智链</span>
+        </h2>
+        <p class="demo-positioning-summary">从公开年报样例或评审现场样例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿；结构化结果、证据缺口与人工处理边界始终单独显示。</p>
+        <div class="demo-positioning-actions">
+          <a class="demo-positioning-enter" href="#workspace-root">进入证据工作台</a>
+          <button class="demo-positioning-boundary" type="button" id="demo-positioning-boundary">查看方法与边界</button>
+        </div>
+      </div>
+      <figure class="demo-positioning-visual">
+        <div class="demo-positioning-frame">
+          <span class="demo-positioning-frame-art" aria-hidden="true"></span>
+          <img src="/assets/official-v4/overview-workbench.png" width="1440" height="900" alt="审迹智链旧版证据工作台视觉示意">
+        </div>
+        <figcaption>界面视觉示意 · 实际运行状态与结构化结果以下方工作台为准</figcaption>
+      </figure>
+    </div>
+    <dl class="demo-positioning-facts" aria-label="演示能力摘要">
+      <div><dt>已登记案例</dt><dd><span id="demo-positioning-case-count">15</span><small>个冻结样例</small></dd></div>
+      <div><dt>本地原文索引</dt><dd><span id="demo-positioning-report-count">45</span><small>份公开年报</small></dd></div>
+      <div><dt>工程与模型</dt><dd><span>R1/R2 + 3A</span><small>确定性规则 · 三 Agent</small></dd></div>
+      <div><dt>结构化交付</dt><dd><span>JSON / 表 / PDF</span><small>同源输出 · 证据可追溯</small></dd></div>
+    </dl>
+    <section class="demo-knowledge-base" aria-labelledby="demo-knowledge-title">
+      <figure class="demo-knowledge-visual">
+        <img src="/assets/official-v4/illustrations/knowledge-portal.webp" width="1672" height="940" alt="" loading="lazy" decoding="async">
+        <figcaption>多源官方资料经过来源校验后进入审计证据空间</figcaption>
+      </figure>
+      <div class="demo-knowledge-copy">
+        <p class="demo-positioning-eyebrow">AUDIT KNOWLEDGE BASE · MULTISOURCE</p>
+        <h3 id="demo-knowledge-title">审计知识底座</h3>
+        <p class="demo-knowledge-lead" id="demo-knowledge-summary">年报、监管处罚、交易所问询、会计/审计准则、税收法规及行业、新闻、宏观资料均登记来源、哈希、日期与覆盖状态；未经官方列表核对的部分只标注“代表性接入”，不冒充完整覆盖。</p>
+        <dl class="demo-knowledge-grid" id="demo-knowledge-grid" aria-label="知识底座来源类别计数"></dl>
+        <p class="demo-knowledge-note" id="demo-knowledge-note"></p>
+      </div>
+    </section>
   </section>
 
   <header class="topbar" id="workspace-root">
-    <a class="brand" href="?view=overview" data-view="overview" aria-label="审迹智链总览">
+    <a class="brand" href="/" aria-label="审迹智链竞赛演示首页">
       <span class="brand-mark" aria-hidden="true">审</span>
       <span>
         <strong>审迹智链</strong>
-        <small>AUDITTRACE</small>
+        <small>AUDITTRACE · 竞赛演示版</small>
       </span>
     </a>
     <div class="topbar-context">
-      <span class="context-label">审计计划 / 销售与收款循环</span>
-      <span class="context-label active-company-context" id="active-company-context">当前公司：未选择</span>
-      <span class="context-label" id="auth-status">正在读取运行模式 / T0</span>
-      <button class="button quiet auth-action" id="auth-action" type="button" hidden>登录</button>
-      <span class="service-pill pending" id="service-pill">
+      <span class="context-label">审计计划阶段 / 销售与收款循环</span>
+      <span class="service-pill pending" id="demo-service-pill">
         <i aria-hidden="true"></i>
-        <span id="service-status">正在检查本地后端</span>
+        <span id="demo-service-status">正在检查本地后端</span>
       </span>
-      <div class="topbar-menu" id="competition-menu">
-        <button class="button quiet" type="button" id="competition-menu-toggle" aria-expanded="false" aria-controls="competition-menu-list">竞赛材料 <span aria-hidden="true">⌄</span></button>
-        <ul id="competition-menu-list" role="menu" hidden>
-          <li role="none"><a href="?view=evaluation" data-view="evaluation" role="menuitem">B0–B3 效果评估</a></li>
-          <li role="none"><a href="#evaluation-freeze-note" role="menuitem">评估冻结快照</a></li>
-          <li role="none"><a href="#run-history-detail" role="menuitem">模型运行历史</a></li>
-        </ul>
-      </div>
-      <button class="icon-button mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-label="打开主导航" aria-expanded="false" aria-controls="primary-navigation">
-        <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#menu"></use></svg>
-        <span class="sr-only">打开主导航</span>
-      </button>
+      <button class="button quiet" type="button" id="demo-open-tech-drawer">技术说明</button>
+      <button class="button quiet" type="button" id="demo-open-live-sample">现场样例</button>
     </div>
   </header>
 
-  <nav class="process-stepper" id="process-stepper" aria-label="审计计划主流程">
-    <ol class="process-stepper-list">
-      <li class="process-step">
-        <button type="button" class="step-button" data-step="1" data-step-view="project" aria-label="第 1 步：选择审计对象">
-          <span class="step-marker" aria-hidden="true">1</span>
-          <span class="step-label">选择审计对象<small id="step-1-sub">未选择</small></span>
-        </button>
-      </li>
-      <li class="process-step">
-        <button type="button" class="step-button" data-step="2" data-step-view="project" data-step-section="cninfo-field-review" aria-label="第 2 步：确认字段与来源">
-          <span class="step-marker" aria-hidden="true">2</span>
-          <span class="step-label">确认字段与来源<small id="step-2-sub">无需复核</small></span>
-        </button>
-      </li>
-      <li class="process-step">
-        <button type="button" class="step-button" data-step="3" data-step-view="analysis" aria-label="第 3 步：执行风险分析">
-          <span class="step-marker" aria-hidden="true">3</span>
-          <span class="step-label">执行风险分析<small id="step-3-sub">等待运行</small></span>
-        </button>
-      </li>
-      <li class="process-step">
-        <button type="button" class="step-button" data-step="4" data-step-view="delivery" aria-label="第 4 步：人工复核判断">
-          <span class="step-marker" aria-hidden="true">4</span>
-          <span class="step-label">人工复核判断<small id="step-4-sub">未复核</small></span>
-        </button>
-      </li>
-      <li class="process-step">
-        <button type="button" class="step-button" data-step="5" data-step-view="delivery" data-step-section="export-heading" aria-label="第 5 步：导出审计备忘录">
-          <span class="step-marker" aria-hidden="true">5</span>
-          <span class="step-label">导出审计备忘录<small id="step-5-sub">待批准</small></span>
-        </button>
-      </li>
-    </ol>
-  </nav>
-
-  <div class="app-shell">
-    <aside class="sidebar" id="primary-navigation">
-      <nav aria-label="主工作区">
-        <p class="nav-group-label">项目工作流</p>
-        <a href="?view=overview" data-view="overview">
-          <span class="nav-index">01</span>
-          <span>总览</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#overview"></use></svg>
-        </a>
-        <a href="?view=project" data-view="project">
-          <span class="nav-index">02</span>
-          <span>项目与资料</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#folder"></use></svg>
-        </a>
-        <a href="?view=rules" data-view="rules">
-          <span class="nav-index">03</span>
-          <span>候选指标</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#rules"></use></svg>
-        </a>
-        <a href="?view=analysis" data-view="analysis">
-          <span class="nav-index">04</span>
-          <span>分析工作台</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#analysis"></use></svg>
-        </a>
-        <a href="?view=rag" data-view="rag">
-          <span class="nav-index">05</span>
-          <span>原文检索</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#search"></use></svg>
-        </a>
-        <a href="?view=supplement" data-view="supplement">
-          <span class="nav-index">06</span>
-          <span>补充资料</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#paperclip"></use></svg>
-        </a>
-        <a href="?view=delivery" data-view="delivery">
-          <span class="nav-index">07</span>
-          <span>复核与交付</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#review"></use></svg>
-        </a>
-        <a href="?view=methods" data-view="methods">
-          <span class="nav-index">08</span>
-          <span>方法与边界</span>
-          <svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#shield"></use></svg>
-        </a>
-      </nav>
-
-      <section class="sidebar-ledger" aria-labelledby="scope-heading">
-        <p class="nav-group-label" id="scope-heading">当前资料范围</p>
-        <dl>
-          <div><dt>公司</dt><dd id="sidebar-company">正在读取</dd></div>
-          <div><dt>案例</dt><dd id="sidebar-case">正在读取</dd></div>
-          <div><dt>场景</dt><dd>审计计划</dd></div>
-          <div><dt>主规则</dt><dd>R1 v0.4 草案</dd></div>
-          <div><dt>模型主链</dt><dd class="muted" id="sidebar-model">正在读取</dd></div>
-        </dl>
-      </section>
-      <section class="sidebar-ledger auth-ledger" aria-labelledby="auth-heading">
-        <p class="nav-group-label" id="auth-heading">演示状态</p>
-        <p id="sidebar-auth-status">无需登录 · 样例资料</p>
-        <button class="button quiet" id="sidebar-auth-action" type="button" hidden>登录</button>
-      </section>
-    </aside>
-
   <main id="main-content" tabindex="-1">
-    <h1 class="sr-only">审迹智链审计计划工作台</h1>
-      <p class="sr-only">审迹智链</p>
+    <div class="main-content-art" aria-hidden="true"></div>
+    <h2 class="sr-only">审迹智链竞赛演示：上市公司年报风险预筛工作台</h2>
 
-      <section class="view active" data-view-panel="overview" aria-label="总览页面">
-        <section class="overview-showcase" id="positioning" aria-labelledby="overview-heading">
-          <div class="overview-copy">
-            <p class="overview-eyebrow">产品定位 · AUDIT PLANNING · EVIDENCE FIRST</p>
-            <h2 id="overview-heading">
-              <span class="overview-title-sans">证据先行的</span>
-              <span class="overview-title-outline">销售收款预审</span>
-              <span class="overview-title-serif">审迹智链</span>
-            </h2>
-            <p class="overview-summary">从模板化案例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿；完整性与人工处理始终单独显示。</p>
-            <div class="overview-actions">
-              <a class="button primary" href="?view=project" data-view="project">进入证据工作台</a>
-              <a class="button quiet" href="?view=methods" data-view="methods">查看边界</a>
-            </div>
-          </div>
-
-          <figure class="overview-visual" id="innovations">
-            <div class="overview-visual-frame">
-              <div class="overview-visual-meta" aria-hidden="true">
-                <span>DETERMINISTIC ANALYSIS</span>
-                <span>R1 v0.4 / RAG / 3-AGENT</span>
-              </div>
-              <img id="overview-workbench-image" src="/assets/official-v4/overview-workbench.png" width="1440" height="900" alt="审迹智链正式工作台的真实运行截图">
-            </div>
-            <figcaption>证据工作台 · 单场景 · 四层状态 · 真实后端</figcaption>
-          </figure>
-
-          <dl class="overview-facts" id="workflow" aria-label="当前资料与能力摘要">
-            <div><dt>已登记案例</dt><dd><strong id="fact-case-count">—</strong><span>个</span></dd></div>
-            <div><dt>本地原文索引</dt><dd><strong id="fact-chunk-count">—</strong><span>个原文块</span></dd></div>
-            <div><dt>工程与模型</dt><dd><strong id="fact-engine-version">0.7.1</strong><span id="fact-model-status">正在读取</span></dd></div>
-            <div><dt>源码 / 清洁包复验</dt><dd><strong id="fact-test-counts">— / —</strong><span id="fact-test-note">正在读取</span></dd></div>
-          </dl>
-        </section>
+    <div class="demo-shell">
+      <section class="demo-hero" aria-labelledby="demo-hero-heading">
+        <p class="kicker">PUBLIC ANNUAL REPORT PRESCREEN · EVIDENCE-BOUND</p>
+        <h2 id="demo-hero-heading"><span>上市公司年报</span><span>风险预筛</span></h2>
+        <p class="demo-tagline">
+          选择一个已登记案例并开始审计预筛：系统读取冻结的公开年报证据，执行固定专业规则，
+          调用案例隔离 RAG 与三 Agent（质疑 / 反证 / 复核）生成可回查的结构化待核查事项。
+          结果仅供审计计划阶段进一步核查。
+        </p>
+        <div class="demo-facts" id="demo-facts">
+          <span>已登记案例 <strong id="demo-fact-cases">—</strong> 个</span>
+          <span>冻结年报 <strong id="demo-fact-reports">—</strong> 份</span>
+          <span>RAG 就绪案例 <strong id="demo-fact-rag">—</strong> 个</span>
+          <span>模型通道 <strong id="demo-fact-model">正在读取</strong></span>
+          <span>真实成功率 <strong id="demo-fact-model-quality">待测</strong></span>
+        </div>
+        <figure class="demo-workbench-visual">
+          <span class="demo-workbench-visual-art" aria-hidden="true"></span>
+          <img src="/assets/official-v4/illustrations/agents-nodes.webp" width="1672" height="941" alt="" loading="lazy" decoding="async">
+          <figcaption><span>THREE AGENTS · ONE EVIDENCE BUNDLE</span><strong>质疑、反证、复核围绕同一证据包协作</strong>模型只生成受约束的待核查草稿，确定性事实和最终判断仍由程序与人控制。</figcaption>
+        </figure>
       </section>
 
-      <section class="view" data-view-panel="project" aria-labelledby="project-heading" hidden>
-        <header class="page-heading">
-           <div><p class="kicker">02 / CASE INTAKE & SOURCE LEDGER</p><h2 id="project-heading">案例与资料</h2><p class="legacy-workbench-label">巨潮官方年报 · RAG 来源锁定 · 字段先行</p><p class="legacy-workbench-title"><span>先把资料边界锁定，</span><span>再让系统分析。</span></p><p>本页支持从巨潮资讯网输入新企业并自动搜索、下载、校验、建立案例隔离 RAG 和公开财报预筛。字段缺口会按可用年度与规则降级，不会猜测金额；正式采用或导出前再做人工复核。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-          <span class="state pending" id="project-state">正在读取案例注册表</span>
-        </header>
+      <section aria-labelledby="demo-cases-heading">
+        <div class="demo-section-heading">
+          <h3 id="demo-cases-heading">精选案例</h3>
+          <button class="button quiet" type="button" id="demo-open-all-cases">查看全部 15 个案例</button>
+        </div>
+        <div class="demo-case-grid" id="demo-featured-cases" role="group" aria-label="首页精选案例，可选择一个开始演示">
+          <div class="empty-state"><strong>正在读取案例清单</strong><p>案例来自冻结 manifest，读取失败时不会显示模拟案例。</p></div>
+        </div>
+      </section>
 
-        <section class="project-sheet" aria-labelledby="project-sheet-heading">
-             <div class="sheet-title">
-              <div><p class="folio">AUDITTRACE / CASE CONTRACT / EVIDENCE-BOUND</p><h3 id="project-sheet-heading">审迹智链工作台</h3><p>每个参与计算的数字必须绑定案例、文档编号、披露日期、页码、哈希和 evidence_id。资料不全时只跳过受影响指标，RAG 与其他可运行规则继续；不猜测、不补造。</p></div>
-            <span class="state pending" id="project-health-state">正在检查后端</span>
+      <section class="demo-console" aria-labelledby="demo-console-heading">
+        <div class="demo-console-head">
+          <div class="demo-current-case">
+            <p class="folio" style="margin:0">CURRENT CASE / 开始演示</p>
+            <strong id="demo-console-heading"><span id="demo-current-case-name">正在读取默认案例</span></strong>
+            <small id="demo-current-case-meta">—</small>
           </div>
-          <section class="cninfo-pipeline" aria-labelledby="cninfo-pipeline-heading">
-            <div class="cninfo-pipeline-intro">
-              <span class="folio">CNINFO OFFICIAL SOURCE → VALIDATE → RAG</span>
-              <h4 id="cninfo-pipeline-heading">输入新企业，自动建立年报证据包</h4>
-              <p>只访问巨潮官方公开来源。系统会保存公告标题、报告年度、来源 URL、PDF 页数、SHA-256、案例编号和 RAG 检索编号；网络失败、同名企业和字段不确定都会停在明确状态。</p>
+          <div class="demo-console-actions">
+            <button class="button primary" type="button" id="demo-start" disabled>开始审计预筛</button>
+            <button class="button quiet" type="button" id="demo-cancel" hidden>请求取消</button>
+            <button class="button quiet" type="button" id="demo-reset" hidden>一键重置演示</button>
+          </div>
+        </div>
+        <ol class="demo-stage-rail" id="demo-stage-rail" aria-label="演示流程六阶段">
+          <li class="demo-stage" data-stage="1"><span class="demo-stage-name">读取证据</span><span class="demo-stage-note" id="demo-stage-1-note">等待开始</span></li>
+          <li class="demo-stage" data-stage="2"><span class="demo-stage-name">规则计算</span><span class="demo-stage-note" id="demo-stage-2-note">等待开始</span></li>
+          <li class="demo-stage" data-stage="3"><span class="demo-stage-name">知识检索</span><span class="demo-stage-note" id="demo-stage-3-note">等待开始</span></li>
+          <li class="demo-stage" data-stage="4"><span class="demo-stage-name">Agent 协作</span><span class="demo-stage-note" id="demo-stage-4-note">等待开始</span></li>
+          <li class="demo-stage" data-stage="5"><span class="demo-stage-name">证据验证</span><span class="demo-stage-note" id="demo-stage-5-note">等待开始</span></li>
+          <li class="demo-stage" data-stage="6"><span class="demo-stage-name">结构化输出</span><span class="demo-stage-note" id="demo-stage-6-note">等待开始</span></li>
+        </ol>
+        <div class="status-banner neutral" id="demo-gate" role="status" aria-live="polite">
+          <strong>正在准备演示环境</strong>
+          <div class="demo-gate-detail">正在读取案例 manifest 与服务状态。</div>
+        </div>
+      </section>
+
+      <section class="demo-result" id="demo-result" hidden aria-labelledby="demo-result-heading">
+        <div class="demo-analysis-layout">
+          <div class="demo-analysis-main">
+            <div class="demo-section-heading demo-result-heading">
+              <div><span class="folio">STRUCTURED PRESCREEN OUTPUT</span><h3 id="demo-result-heading">结果摘要</h3></div>
+              <span class="state pending" id="demo-result-state">—</span>
             </div>
-            <form id="cninfo-pipeline-form" class="cninfo-pipeline-form">
-              <label for="cninfo-company-query"><span>企业名称或股票代码</span><input id="cninfo-company-query" name="company_query" required autocomplete="organization" spellcheck="false" placeholder="例如 603337 或 标准股份"></label>
-              <label for="cninfo-years"><span>下载年报数量</span><select id="cninfo-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
-              <label for="cninfo-latest-year"><span>最新报告年度（可留空）</span><input id="cninfo-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
-              <label for="cninfo-analysis-mode"><span>执行模式</span><select id="cninfo-analysis-mode" name="analysis_mode"><option value="rag_only" selected>只下载 + RAG（默认，不消耗模型额度）</option><option id="cninfo-full-analysis-option" value="full_analysis">继续完整分析（私有环境 / 已确认许可）</option></select></label>
-              <label class="check-control cninfo-refresh-control"><input id="cninfo-force-refresh" name="force_refresh" type="checkbox"><span>忽略热缓存，重新搜索巨潮最新公告（私有环境）</span></label>
-              <button class="button primary" id="cninfo-pipeline-submit" type="submit">开始巨潮自动流程 <span aria-hidden="true">→</span></button>
-            </form>
-            <p class="form-message" id="cninfo-cache-preview" role="status" aria-live="polite">输入企业后会先检查是否存在已校验的热缓存。</p>
-             <p class="boundary-strip">运行方式：公开年报预筛自动执行；系统只传输规则所需字段和 RAG 命中片段。逐字段复核不再阻断首次预筛，但正式采用、证据冻结、缓存或导出前仍需人工复核；新来源快照仍按哈希重新校验。</p>
-            <section class="cninfo-pipeline-panel" id="cninfo-pipeline-panel" hidden aria-labelledby="cninfo-task-heading">
-              <div class="cninfo-task-head">
-                <div><p class="folio">LIVE PIPELINE TASK</p><h5 id="cninfo-task-heading">巨潮自动任务</h5><p class="mono" id="cninfo-task-id">—</p></div>
-                <span class="state pending" id="cninfo-task-state">等待提交</span>
+            <figure class="demo-result-visual" aria-label="从原文资料到可追溯结论的证据链视觉示意">
+              <span class="demo-result-visual-art" aria-hidden="true"></span>
+              <img src="/assets/official-v4/illustrations/evidence-chain.webp" width="1672" height="941" alt="" loading="lazy" decoding="async">
+              <figcaption><strong>原文 → 证据编号 → 结构化结果</strong>页面中的每项主张都必须回到当前运行的证据编号；插图仅作视觉示意，不替代真实来源定位。</figcaption>
+            </figure>
+            <div class="demo-result-summary" id="demo-result-summary"></div>
+            <div id="demo-result-items" class="demo-result-items"></div>
+            <section class="demo-supplement-summary" id="demo-supplement-summary" hidden aria-labelledby="demo-supplement-summary-title"></section>
+            <section class="demo-structured-output" aria-labelledby="demo-structured-heading">
+              <div class="demo-section-heading">
+                <div><span class="folio">JSON / TABLE / PRINT PDF</span><h3 id="demo-structured-heading">结构化结果明细</h3></div>
+                <span class="state success">同源生成</span>
               </div>
-              <section class="cninfo-next-action" id="cninfo-next-action" hidden aria-labelledby="cninfo-next-action-heading">
-                <div><p class="folio" id="cninfo-next-action-kicker">NOW / DO THIS</p><h5 id="cninfo-next-action-heading">现在只需要做这一步</h5><p id="cninfo-next-action-detail">系统会根据真实任务状态给出唯一的优先操作；其他入口按顺序列在后面。</p></div>
-                <div class="cninfo-next-action-controls" id="cninfo-next-action-controls"></div>
-              </section>
-              <ol class="cninfo-step-list" id="cninfo-step-list" aria-label="巨潮自动流程步骤"></ol>
-              <dl class="cninfo-task-meta" id="cninfo-task-meta"></dl>
-              <div class="status-banner neutral" id="cninfo-task-message" role="status" aria-live="polite"><strong>尚未提交</strong><span>输入企业后，页面会轮询真实后端任务。</span></div>
-              <div class="cninfo-candidates" id="cninfo-candidates" hidden></div>
-              <div class="cninfo-result" id="cninfo-result" hidden></div>
-              <div class="action-row cninfo-task-actions">
-                <button class="button quiet" id="cninfo-retry" type="button" hidden>保留历史并重试</button>
-                <button class="button primary" id="cninfo-open-case" type="button" hidden>打开已登记案例</button>
+              <div class="demo-table-wrap" role="region" aria-label="本次运行结构化指标表格（可横向滚动）" tabindex="0">
+                <table class="demo-structured-table" id="demo-structured-table">
+                  <caption>本次运行规则指标结构化明细</caption>
+                  <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th></tr></thead>
+                  <tbody id="demo-structured-table-body"></tbody>
+                </table>
               </div>
             </section>
-          </section>
-          <details class="case-intake case-intake-details" id="case-intake-details">
-            <summary class="case-intake-copy">
-              <span class="folio">DOWNLOAD -> IMPORT -> VALIDATE -> PREVIEW</span>
-              <h4 id="case-intake-heading">标准案例包入口（离线 / 合成验收，默认折叠）</h4>
-              <p>模板内含 manifest、财务字段、账龄、期后回款、合同条款、脱敏日志和合成 PDF；公开案例的项目所有者许可已启用。公开演示或竞赛评审请直接使用上方已登记案例。</p>
-              <span class="details-toggle-hint" aria-hidden="true">展开此区块 ⌄</span>
-            </summary>
-            <div class="case-intake-actions">
-              <a class="button quiet" id="case-template-download" href="/api/cases/template" download>下载标准案例 ZIP</a>
-              <form id="case-import-form" enctype="multipart/form-data">
-                <label for="case-import-file"><span>选择案例 ZIP</span><input id="case-import-file" name="file" type="file" accept=".zip" required></label>
-                <div class="authorization-block compact-auth" hidden>
-                  <label class="check-control"><input id="case-import-authorized" type="checkbox" checked><span>项目所有者已确认：合法公开或已获授权</span></label>
-                  <label class="check-control"><input id="case-import-desensitized" type="checkbox" checked><span>项目所有者已确认：完成个人信息与脱敏检查</span></label>
-                </div>
-                <p class="form-help">案例 ZIP 导入属于私有环境写入；公开演示请直接选择已登记的内置案例。</p>
-                <button class="button primary" id="case-import-submit" type="submit">导入并校验</button>
-              </form>
-              <div class="form-message" id="case-import-message" role="status" aria-live="polite">尚未上传新案例；可直接使用已登记标准案例。</div>
-              <button class="button quiet compact-action" id="wb-retry-cases" type="button" hidden>重新读取案例目录</button>
+            <section class="demo-enhancement-grid" aria-label="审计专属可信增强">
+              <article class="demo-enhancement-card">
+                <h4>认定—证据—程序覆盖矩阵</h4>
+                <p id="demo-coverage-note">把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。</p>
+                <ul id="demo-coverage-list"></ul>
+                <span class="demo-enhancement-state" id="demo-coverage-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>证据适配度与主张边界</h4>
+                <p id="demo-fitness-note">不同来源只能支持不同类型的主张；监管和行业资料不证明当前企业事实。</p>
+                <ul id="demo-fitness-list"></ul>
+                <span class="demo-enhancement-state" id="demo-fitness-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>数字主张可回查</h4>
+                <p id="demo-numeric-note">模型文本中的关键数字必须回到规则、字段证据或当前案例上下文。</p>
+                <ul id="demo-numeric-list"></ul>
+                <span class="demo-enhancement-state" id="demo-numeric-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>反确认偏差搜索</h4>
+                <p id="demo-anti-note">系统记录反向检索问题、命中证据和正常解释，不诱导模型凑结论。</p>
+                <ul id="demo-anti-list"></ul>
+                <span class="demo-enhancement-state" id="demo-anti-state">运行后生成</span>
+              </article>
+            </section>
+            <div class="action-row demo-result-actions">
+              <button class="button quiet" type="button" id="demo-open-evidence">查看原文证据</button>
+              <button class="button quiet" type="button" id="demo-open-agents">查看 Agent 协作</button>
+              <button class="button quiet" type="button" id="demo-supplement-rerun">补充证据并重新评估</button>
+              <button class="button quiet" type="button" id="demo-download-json">下载 JSON</button>
+              <button class="button quiet" type="button" id="demo-download-csv">下载表格 CSV</button>
+              <button class="button quiet" type="button" id="demo-print-report">打印 / 保存 PDF</button>
+              <button class="button primary" type="button" id="demo-rerun">重新演示</button>
             </div>
-          </details>
-          <div class="form-grid project-fields">
-            <label for="wb-case"><span>已登记案例</span><select id="wb-case" name="case_id" autocomplete="off"></select></label>
-            <label><span>公司</span><output id="wb-company">正在读取</output></label>
-            <label><span>证券代码</span><output id="wb-ticker">—</output></label>
-            <label><span>分析截止日 T0</span><output id="wb-t0">—</output></label>
-            <label><span>分析场景</span><output id="wb-scene">审计计划</output></label>
-            <label for="wb-current-year"><span>本年年度</span><select id="wb-current-year" name="current_year" autocomplete="off"></select></label>
-            <label><span>上年年度</span><output id="wb-previous-year">2024</output></label>
-            <label for="wb-amount-unit"><span>金额显示单位</span><select id="wb-amount-unit" name="amount_unit" autocomplete="off"><option value="yuan">元</option><option value="thousand">千元</option><option value="ten-thousand">万元</option><option value="million">百万元</option><option value="hundred-million">亿元</option></select></label>
-            <div class="locked-mode"><span>案例与模型许可</span><strong id="wb-case-mode">正在读取</strong><small id="wb-case-permission">完整分析以 manifest 的模型传输许可为硬边界。</small></div>
-            <div class="locked-mode model-consent-box"><span>竞赛演示模型链</span><strong id="wb-model-consent-status">无需登录</strong><small id="wb-model-consent-note">样例字段、来源元数据和 RAG 片段可直接进入演示分析；默认使用证据绑定的确定性演示草稿，配置真实模型后可切换。</small><div class="action-row"><button class="button quiet" type="button" id="wb-model-consent-button" hidden>演示模式无需确认</button><button class="button quiet" type="button" id="wb-model-consent-revoke" hidden>撤销</button></div></div>
-          </div>
-          <section class="next-action-card" id="project-next-action" hidden aria-labelledby="project-next-action-heading">
-            <div>
-              <p class="folio">NEXT ACTION</p>
-              <h4 id="project-next-action-heading">当前案例已就绪</h4>
-              <p id="project-next-action-detail">选择下一步操作，继续审计计划流程。</p>
-            </div>
-            <div class="action-row">
-              <button class="button quiet" type="button" id="project-review-fields" data-project-action="review-fields">确认字段来源</button>
-              <button class="button primary" type="button" id="project-run-analysis" data-project-action="run-analysis">直接运行分析</button>
-            </div>
-          </section>
-          <div class="project-time-note">
-            <strong>项目与分析时点</strong>
-            <span>换案例或年份后，字段、文档编号、披露日期、页码与哈希会一起切换，不跨案例复用。</span>
-          </div>
-          <div class="action-row">
-            <button class="button quiet" type="button" id="wb-refresh-case">重新读取案例字段</button>
-            <button class="button primary" type="button" data-wb-go="data">查看年报资料 <span aria-hidden="true">→</span></button>
-          </div>
-          <p class="boundary-strip">当前做到的：R1 v0.4 草案为主链规则，R2 只作辅助工程规则；R3—R8 仅保留在路线图。导入通过不等于第二正式案例已冻结，也不等于字段口径已获专业签字。</p>
-          <p class="boundary-strip" id="backend-status-note">后端状态：正在检查本地后端。</p>
-        </section>
-
-        <section class="ledger-section" id="source-ledger" aria-labelledby="source-heading">
-          <header class="subheading">
-            <div><p class="kicker">VALIDATED FIELD & SOURCE LEDGER</p><h3 id="source-heading">字段校验与来源预览</h3><p id="wb-data-unit-note">字段将从案例注册表读取；页面不从 PDF 猜数字。</p></div>
-            <span class="state pending" id="wb-data-status">等待案例字段</span>
-          </header>
-          <p class="mobile-scroll-hint">手机端可横向滑动并聚焦此表格查看全部列。</p>
-          <div class="table-scroll" tabindex="0" role="region" aria-label="年报字段与来源台账表格">
-            <table class="data-table">
-              <thead><tr><th>字段 / 口径</th><th>年度</th><th class="numeric" id="wb-amount-head">数值（元）</th><th>证据 / 文档编号</th><th>来源文件与定位</th></tr></thead>
-              <tbody id="wb-data-body"></tbody>
-            </table>
-          </div>
-          <div class="action-row">
-            <button class="button quiet" type="button" data-wb-go="project">← 返回项目</button>
-            <button class="button primary" type="button" data-wb-go="library">查看候选指标 <span aria-hidden="true">→</span></button>
-          </div>
-          <section class="cninfo-field-review" id="cninfo-field-review" hidden aria-labelledby="cninfo-field-review-heading">
-            <header class="subheading">
-              <div><p class="kicker">HUMAN FIELD REVIEW / BEFORE ADOPTION</p><h3 id="cninfo-field-review-heading" tabindex="-1">此处是人工字段判断位置</h3><p>逐项打开年报原页，核对金额、单位、合并范围、口径和 PDF 页码，然后选择“确认”“按修改值保存”或“拒绝”。公开演示只读，私有环境可在这里完成确认、更正或拒绝；正式采用、证据冻结、缓存或导出前必须完成。自动候选原值不会被覆盖。</p></div>
-              <span class="state waiting" id="cninfo-field-review-state">等待确认</span>
-            </header>
-            <div class="cninfo-review-instruction" id="cninfo-review-instruction" role="note"><strong>操作顺序</strong><span>1. 填写复核人；2. 打开每条原件页；3. 逐项确认、修正或拒绝。修正和拒绝需要填写原因。</span></div>
-            <div class="cninfo-locked-notice" id="cninfo-locked-notice" hidden><strong>公开演示只读</strong><span>这里明确展示正式人工判断的位置和每条候选，但共享演示站不保存匿名签字。请在团队私有本地模式或登录后的租户环境完成确认。</span></div>
-            <div class="cninfo-review-controls">
-              <label for="cninfo-field-reviewer"><span>真实复核人 / 团队角色</span><input id="cninfo-field-reviewer" name="reviewer" autocomplete="name" placeholder="例如 A：会计专业复核"></label>
-              <label for="cninfo-field-reason"><span>本次修正或拒绝原因（确认可留空）</span><textarea id="cninfo-field-reason" name="reason" rows="2" placeholder="请写明回查页码、单位或口径判断依据"></textarea></label>
-              <div class="cninfo-batch-confirm-row">
-                <button class="button primary" id="cninfo-confirm-all-fields" type="button" hidden>一键确认全部待确认字段 <span aria-hidden="true">-></span></button>
-                <p class="form-help" id="cninfo-batch-confirm-hint">一键确认只批量执行“与原件一致”的确认，仍逐条写入复核历史；需要修正或拒绝的字段请逐条处理并填写原因。</p>
+            <section class="demo-procedure-map" aria-labelledby="demo-procedure-title">
+              <header>
+                <h3 id="demo-procedure-title">系统替你完成什么</h3>
+                <p class="demo-procedure-note" id="demo-procedure-note"></p>
+              </header>
+              <div class="demo-procedure-columns">
+                <section class="demo-procedure-column" aria-labelledby="demo-procedure-auto-title">
+                  <h4 id="demo-procedure-auto-title">自动执行</h4>
+                  <ul id="demo-procedure-auto"></ul>
+                </section>
+                <section class="demo-procedure-column" aria-labelledby="demo-procedure-aux-title">
+                  <h4 id="demo-procedure-aux-title">辅助判断</h4>
+                  <ul id="demo-procedure-aux"></ul>
+                </section>
+                <section class="demo-procedure-column" aria-labelledby="demo-procedure-human-title">
+                  <h4 id="demo-procedure-human-title">人工保留</h4>
+                  <ul id="demo-procedure-human"></ul>
+                </section>
               </div>
-            </div>
-            <div class="cninfo-field-review-list" id="cninfo-field-review-list"></div>
-            <p class="form-message" id="cninfo-field-review-message" role="status" aria-live="polite">未提交字段处理。</p>
-            <div class="action-row cninfo-review-completion" id="cninfo-review-completion" hidden>
-              <button class="button primary" id="cninfo-review-continue" type="button">字段复核完成，继续分析 <span aria-hidden="true">→</span></button>
-            </div>
-          </section>
-        </section>
-      </section>
-
-      <section class="view" data-view-panel="rules" aria-labelledby="rules-heading" hidden>
-        <header class="page-heading">
-          <div><p class="kicker">03 / RULE CONTRACT & ROADMAP</p><h2 id="rules-heading">规则合同与路线图</h2><p>R1 v0.4 草案是当前主链；R2 为辅助工程规则。R3—R8 只展示未来方向，不能勾选、不能生成运行结果。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-          <span class="state info" id="wb-library-status">R1 主规则</span>
-        </header>
-        <div class="scope-note" id="wb-scope-note">本次默认运行 R1；R2 可作为辅助项加入。</div>
-        <p class="form-message" id="wb-rule-validation-message" role="status" aria-live="polite" hidden></p>
-        <div class="rule-library" id="wb-rule-library"></div>
-        <div class="action-row">
-          <button class="button quiet" type="button" data-wb-go="project">← 返回项目</button>
-          <button class="button primary" type="button" id="wb-rule-preflight" data-wb-go="risk">运行前检查 <span aria-hidden="true">→</span></button>
-        </div>
-      </section>
-
-      <section class="view" data-view-panel="analysis" aria-labelledby="analysis-heading" hidden>
-        <header class="page-heading">
-          <div><p class="kicker">04 / FULL ANALYSIS CHAIN</p><h2 id="analysis-heading">程序筛查、RAG 与 AI 草稿</h2><p>完整分析按“确定性计算→RAG→质疑→反证→复核→硬校验”执行；任一关键环节失败都显示为不完整，不回退成貌似完成的风险卡。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-          <span class="state pending" id="analysis-state">等待运行</span>
-        </header>
-
-        <section class="run-console" aria-labelledby="run-console-heading">
-          <div>
-            <p class="folio">CURRENT EXECUTION</p>
-            <h3 id="run-console-heading">本次运行</h3>
-             <p id="run-scope">当前将运行 R1；数据来自所选案例注册表。</p>
+              <p class="demo-procedure-version" id="demo-procedure-version"></p>
+            </section>
+            <section class="demo-source-ledger" aria-labelledby="demo-source-ledger-title">
+              <div class="demo-section-heading">
+                <div><span class="folio">SOURCE LEDGER · OFFICIAL ORIGINALS</span><h3 id="demo-source-ledger-title">来源说明与监管证据</h3></div>
+                <span class="state success">台账级</span>
+              </div>
+              <p class="demo-source-ledger-note" id="demo-source-ledger-note"></p>
+              <ul class="demo-source-ledger-list" id="demo-source-ledger-list"></ul>
+            </section>
+            <section class="demo-run-trace" aria-labelledby="demo-run-trace-title">
+              <div class="demo-section-heading">
+                <div><span class="folio">RUN TIMELINE · MODEL ATTEMPTS</span><h3 id="demo-run-trace-title">运行时间线与模型留痕</h3></div>
+                <span class="state success">可审计</span>
+              </div>
+              <ul class="demo-run-trace-list" id="demo-run-trace-list"></ul>
+            </section>
           </div>
-          <div class="run-controls">
-            <label for="planned-materiality"><span>计划重要性（案例金额单位，可留空）</span><input id="planned-materiality" name="planned_materiality" type="number" min="0" step="0.01" inputmode="decimal" placeholder="未输入则不评价金额重要性"></label>
-            <button class="button primary" type="button" id="wb-run-full">开始完整分析 <span aria-hidden="true">-></span></button>
-            <button class="button quiet" type="button" id="wb-run-calculation">仅计算预检</button>
-            <button class="button quiet" type="button" id="wb-run-backup" disabled>生成确定性备用分析</button>
-          </div>
-          <p class="form-message" id="wb-run-hint" role="status" aria-live="polite" hidden></p>
-        </section>
-        <div class="status-banner neutral" id="wb-gate" role="status" aria-live="polite"><strong>尚未运行</strong><span>完整分析是主路径；仅计算预检会明确标记为不完整运行。</span></div>
-        <section class="run-deeplink-error" id="run-deeplink-error" role="alert" aria-live="assertive" hidden></section>
-        <div class="next-action-banner" id="analysis-next-action" hidden>
-          <div>
-            <strong>分析已完成</strong>
-            <span>下一步：人工复核判断（第 4 步）。请先回查 evidence ID 与来源，再选择处理方式。</span>
-          </div>
-          <button class="button primary" type="button" id="analysis-go-delivery" data-view="delivery">进入人工复核</button>
-        </div>
-        <p class="boundary-strip" id="ai-generated-content-notice">AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</p>
-        <section class="run-summary" id="run-summary" hidden>
-          <div class="summary-meta"><span>run_id</span><strong class="mono" id="current-run-id">—</strong></div>
-          <div class="summary-meta"><span>程序筛查</span><strong id="screening-status">—</strong></div>
-          <div class="summary-meta"><span>AI复核结论</span><strong id="ai-analysis-conclusion">—</strong></div>
-          <div class="summary-meta"><span>AI建议</span><strong id="ai-recommendation-status">—</strong></div>
-          <div class="summary-meta"><span>人工处理</span><strong id="review-summary-status">未复核</strong></div>
-          <div class="summary-meta"><span>运行完整性</span><strong id="run-completeness-status">—</strong></div>
-          <div class="summary-meta"><span>RAG / 模型</span><strong id="model-check-status">—</strong></div>
-          <div class="summary-meta"><span>执行模式</span><strong id="run-execution-mode">—</strong></div>
-          <div class="summary-meta"><span>Token / 耗时</span><strong id="run-token-summary">—</strong></div>
-        </section>
-        <div class="analysis-layout">
-          <section class="analysis-main" aria-labelledby="result-heading">
-            <h3 id="result-heading">确定性计算</h3>
-            <div id="wb-run-results" class="run-results">
-              <div class="empty-state"><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#analysis"></use></svg><strong>暂无运行结果</strong><p>后端返回前不展示模拟成功、AI建议或装饰性指标。</p></div>
-            </div>
-          </section>
-          <section class="analysis-context" aria-labelledby="context-heading">
-            <h3 id="context-heading">证据追踪轴</h3>
-            <ol class="evidence-rail" id="evidence-rail">
-              <li class="pending"><span>01</span><div><strong>程序筛查</strong><small>等待运行</small></div></li>
-              <li class="pending"><span>02</span><div><strong>RAG 与 AI</strong><small>等待完整分析</small></div></li>
-              <li class="pending"><span>03</span><div><strong>证据支持 / 缺口</strong><small>等待证据包</small></div></li>
-              <li class="pending"><span>04</span><div><strong>人工处理</strong><small>未复核</small></div></li>
+          <aside class="demo-evidence-axis" aria-labelledby="demo-evidence-axis-title">
+            <p class="folio">TRACEABILITY AXIS</p>
+            <h3 id="demo-evidence-axis-title">证据追踪轴</h3>
+            <ol id="demo-evidence-axis-list">
+              <li data-axis="screening"><span>01</span><div><strong>程序筛查</strong><small>等待运行</small></div></li>
+              <li data-axis="rag"><span>02</span><div><strong>RAG 与 AI</strong><small>等待运行</small></div></li>
+              <li data-axis="evidence"><span>03</span><div><strong>证据支持 / 缺口</strong><small>等待运行</small></div></li>
+              <li data-axis="output"><span>04</span><div><strong>结构化成果</strong><small>等待运行</small></div></li>
             </ol>
-          </section>
-        </div>
-
-        <section class="ledger-section" aria-labelledby="live-matrix-heading">
-          <header class="subheading"><div><p class="kicker">EVIDENCE SUPPORT MATRIX</p><h3 id="live-matrix-heading">计算—RAG—Agent—人工状态矩阵</h3></div></header>
-          <p class="mobile-scroll-hint">手机端可横向滑动查看全部验证维度。</p>
-          <div class="matrix-scroll" tabindex="0" role="region" aria-label="本次运行交叉验证矩阵">
-            <table class="evidence-matrix" id="live-evidence-matrix">
-              <thead><tr><th>规则</th><th>程序筛查</th><th>RAG参与</th><th>AI建议</th><th>支持状态</th><th>正常解释 / 假设</th><th>资料缺口</th></tr></thead>
-              <tbody><tr><th>等待运行</th><td colspan="6">没有真实后端结果时，不生成证据支持结论。</td></tr></tbody>
-            </table>
-          </div>
-        </section>
-        <div class="action-row"><button class="button quiet" type="button" data-wb-go="data">← 返回资料页</button><button class="button quiet" type="button" data-wb-go="rag">回查年报原文</button><button class="button primary" type="button" data-wb-go="delivery">进入人工复核</button></div>
-      </section>
-
-      <section class="view" data-view-panel="rag" aria-labelledby="rag-heading" hidden>
-        <header class="page-heading">
-          <div><p class="kicker">05 / CASE-ISOLATED SOURCE READER</p><h2 id="rag-heading">案例隔离的年报原文检索</h2><p>每个案例独立建立 SQLite / FAISS 索引；公司、case_id 与 T0 在服务端硬过滤。完整分析会自动运行固定问题集，这里保留人工回页入口。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-          <span class="state pending" id="wb-rag-status">正在读取索引</span>
-        </header>
-        <form class="rag-query-bar" id="rag-form">
-          <label for="wb-rag-rule"><span>绑定规则</span><select id="wb-rag-rule" name="rule_id" autocomplete="off"><option>R1</option><option>R2</option></select></label>
-          <label><span>分析时点 T0</span><output id="wb-rag-t0">正在读取 T0</output></label>
-          <label class="grow" for="wb-rag-query"><span>检索问题</span><input id="wb-rag-query" name="query" autocomplete="off" value="应收账款、回款与收入变化是否存在需要回查的披露？"></label>
-          <button class="button quiet" type="button" id="wb-rag-prepare">构建 / 校验本地索引</button>
-          <button class="button primary" type="submit" id="wb-rag-search">检索已锁定 T0 的原文</button>
-        </form>
-        <p class="boundary-strip">检索结果只作为候选原文；请根据来源文件和 PDF 页码回到原件复核。</p>
-        <div class="reader-layout">
-          <section class="reader-results" aria-labelledby="rag-results-heading">
-            <div class="reader-heading"><h3 id="rag-results-heading">检索结果</h3><span class="mono" id="retrieval-id">—</span></div>
-            <div id="wb-rag-results"><div class="empty-state compact"><strong>等待检索</strong><p>不会以聊天回答替代原文片段。</p></div></div>
-          </section>
-          <article class="source-reader" id="source-reader" aria-labelledby="source-reader-heading">
-            <div class="source-reader-empty">
-              <span class="folio">SOURCE / PDF / CHUNK</span>
-              <h3 id="source-reader-heading">选择一条命中原文</h3>
-              <p>文件名、披露日期、PDF 页码、chunk ID 和哈希将在这里并列展示。</p>
-            </div>
-          </article>
+            <p class="demo-axis-boundary">风险候选不等于审计结论。关键专业判断、人工复核与正式发布始终由人完成。</p>
+          </aside>
         </div>
       </section>
-
-      <section class="view" data-view-panel="supplement" aria-labelledby="supplement-heading" hidden>
-        <header class="page-heading">
-          <div><p class="kicker">06 / CONTROLLED CONTINUATION</p><h2 id="supplement-heading">补充证据与续分析</h2><p>账龄、期后回款、信用政策和合同结算条款独立保存，资料日期与原 T0 分开；续分析默认重新执行 RAG 与三 Agent，并显示建议变化。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-          <span class="state pending" id="wb-sup-state">等待本次运行</span>
-        </header>
-        <form id="supplement-form" class="supplement-sheet" enctype="multipart/form-data">
-          <div class="form-grid">
-            <label for="wb-sup-parent"><span>父运行编号</span><input id="wb-sup-parent" name="parent_run_id" required autocomplete="off" spellcheck="false" placeholder="RUN-W6-…"></label>
-            <label for="wb-sup-type"><span>资料类型</span><select id="wb-sup-type" name="material_type" autocomplete="off"><option>账龄明细</option><option>期后回款</option><option>主要合同摘要</option><option>现金流补充明细</option><option>其他补充资料</option></select></label>
-            <label for="wb-sup-date"><span>资料日期</span><input id="wb-sup-date" name="as_of_date" type="date" required autocomplete="off" value="2026-04-30"></label>
-            <fieldset class="rule-bind"><legend>绑定规则</legend><label><input type="checkbox" name="bound_rule" value="R1" checked>R1</label><label><input type="checkbox" name="bound_rule" value="R2">R2</label></fieldset>
-            <label class="wide" for="wb-sup-file"><span>上传文件（PDF / XLSX / CSV / JSON / DOCX / TXT，≤15MB）</span><input id="wb-sup-file" name="file" type="file" accept=".pdf,.xlsx,.csv,.json,.docx,.txt"></label>
-             <label class="wide" for="wb-sup-json"><span>结构化补充证据 JSON（可选）</span><textarea id="wb-sup-json" name="structured_json" rows="7" autocomplete="off" spellcheck="false" placeholder='{"aging_summary":{"over_180_days_ratio":0.21},"subsequent_receipts_summary":{"receipt_ratio":0.63}}'></textarea></label>
-            <label class="wide" for="wb-sup-note"><span>资料说明</span><textarea id="wb-sup-note" name="note" rows="3" autocomplete="off"></textarea></label>
-          </div>
-          <div class="sample-actions" aria-label="公开演示补充资料样例">
-            <span class="folio">PUBLIC DEMO SAMPLES</span>
-            <button class="button quiet" type="button" id="wb-sup-sample-aging">一键加载账龄样例</button>
-            <button class="button quiet" type="button" id="wb-sup-sample-receipts">一键加载期后回款样例</button>
-            <small id="wb-sup-sample-note">样例会绑定当前父运行，生成独立补充证据，不覆盖原报告。</small>
-          </div>
-          <div class="authorization-block" hidden>
-            <label class="check-control"><input id="wb-sup-authorized" name="authorized" type="checkbox" checked><span>项目所有者已确认资料合法公开或已获授权</span></label>
-            <label class="check-control"><input id="wb-sup-desensitized" name="desensitized" type="checkbox" checked><span>项目所有者已确认完成个人信息与脱敏检查</span></label>
-          </div>
-          <p class="form-help"><strong>资料边界：</strong>自定义资料只应在私有环境中登记，并需先完成授权、脱敏与来源核验；系统会记录资料日期、文件哈希和父子运行关系。</p>
-          <p class="form-help">独立证据字段：aging_summary、subsequent_receipts_summary、credit_policy_change、contract_terms。旧版报表字段更正仅作兼容并醒目标注，不作为主要补充资料路径。</p>
-          <div class="action-row">
-            <button class="button primary" type="submit" id="wb-sup-register">预检并登记</button>
-             <button class="button quiet" type="button" id="wb-sup-rerun" disabled>用新增证据完整续分析</button>
-          </div>
-          <div class="form-message" id="supplement-message" role="status" aria-live="polite">尚未登记补充资料。</div>
-        </form>
-        <section class="version-compare" id="supplement-result" hidden aria-labelledby="version-heading">
-          <h3 id="version-heading">新旧证据与建议差异</h3>
-          <div class="compare-grid"><div><span>父运行</span><strong class="mono" id="parent-run-label">—</strong></div><div><span>补充资料</span><strong class="mono" id="supplement-id-label">—</strong></div><div><span>续分析 / 建议变化</span><strong id="rerun-scope-label">等待预检</strong></div></div>
-        </section>
-      </section>
-
-      <section class="view" data-view-panel="delivery" aria-labelledby="delivery-heading" hidden>
-        <header class="page-heading">
-          <div><p class="kicker">07 / DEMO REVIEW & DELIVERY</p><h2 id="delivery-heading">演示复核与报告</h2><p><strong>AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</strong>竞赛模式可直接下载带“未经真人复核”水印的演示报告；如需作为正式材料，仍应补做真人复核。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-          <span class="state waiting" id="delivery-state">未复核</span>
-        </header>
-
-        <section class="lookup-bar" aria-labelledby="lookup-heading">
-          <div><p class="folio">RUN LOOKUP</p><h3 id="lookup-heading">按真实运行编号回看</h3><p>这里只读取指定 run_id，不伪装成全局运行历史列表。</p></div>
-          <form id="run-lookup-form"><label for="run-lookup-input"><span>run_id</span><input id="run-lookup-input" name="run_id" required autocomplete="off" spellcheck="false" placeholder="RUN-W6-…"></label><button class="button quiet" type="submit">读取运行</button></form>
-        </section>
-
-        <div class="delivery-layout">
-          <section class="review-sheet" aria-labelledby="review-heading">
-            <header><p class="folio">HUMAN DECISION</p><h3 id="review-heading" tabindex="-1">这里进行结果人工复核</h3><p id="review-run-context">尚未绑定运行。</p></header>
-            <div class="cninfo-review-instruction" id="review-mode-note" role="note"><strong>操作顺序</strong><span>1. 查看分析结果与原件；2. 选择保留、降级或暂缓；3. 填写真实复核人和理由；4. 保存本次复核。</span></div>
-            <div class="delivery-empty-state" id="delivery-empty-state" hidden>
-              <strong>尚未加载需要复核的运行</strong>
-              <p>请先执行一次分析，或输入运行编号回看已有结果。</p>
-              <div class="action-row">
-                <button class="button primary" type="button" id="delivery-go-analysis" data-view="analysis">去运行分析</button>
-                <button class="button quiet" type="button" id="delivery-focus-lookup">读取运行</button>
-              </div>
-            </div>
-            <form id="review-form" aria-describedby="review-mode-note">
-              <label for="wb-backend-review-status"><span>处理</span><select id="wb-backend-review-status" name="status"><option>未复核</option><option>保留为待核查候选</option><option>降级</option><option>暂缓</option></select></label>
-              <label for="wb-backend-reviewer"><span>复核人</span><input id="wb-backend-reviewer" name="reviewer" autocomplete="name" placeholder="请填写真实姓名或团队角色"></label>
-              <label for="wb-backend-review-note"><span>复核说明</span><textarea id="wb-backend-review-note" name="note" rows="6" autocomplete="off" placeholder="由审计项目组填写理由或下一步"></textarea></label>
-              <label class="check-control approval"><input type="checkbox" id="wb-backend-export-approved" name="export_approved"><span>我已回查来源并允许生成缓存与 Word 备忘录</span></label>
-              <button class="button quiet" id="wb-save-local-review" type="button">保存本机复核</button>
-              <button class="button primary" id="wb-save-backend-review" type="submit" disabled>保存本次复核</button>
-              <div class="cninfo-locked-notice" id="delivery-locked-prompt" hidden><strong>公开演示不保存正式复核</strong><span>可点击“下载竞赛演示报告”预览格式，或在私有环境登录后保存真实人工处理。</span></div>
-              <div class="form-message" id="wb-backend-toast" role="status" aria-live="polite"></div>
-            </form>
-          </section>
-          <section class="delivery-actions" aria-labelledby="export-heading">
-            <p class="folio">CONTROLLED OUTPUT</p>
-            <h3 id="export-heading">缓存与导出</h3>
-            <p>未完成人工批准时，操作保持禁用，不以视觉样式暗示可直接使用。</p>
-            <button class="button quiet" id="wb-cache-run" type="button" disabled>写入批准缓存</button>
-            <button class="button primary" id="wb-export-report" type="button" disabled>导出 Word 备忘录</button>
-            <div class="cache-replay">
-              <label for="cache-id-input"><span>已批准缓存编号</span><input id="cache-id-input" name="cache_id" autocomplete="off" spellcheck="false" placeholder="CACHE-…"></label>
-              <button class="button quiet" id="cache-replay-button" type="button">回放缓存</button>
-            </div>
-            <div class="form-message" id="delivery-message" role="status" aria-live="polite">缓存回放会明确标记，不冒充实时模型调用。</div>
-          </section>
-        </div>
-
-        <section class="run-timeline" aria-labelledby="history-heading">
-          <header class="subheading"><div><p class="kicker">CURRENT RUN VERSION</p><h3 id="history-heading">本次运行与版本</h3></div></header>
-          <dl id="run-history-detail">
-            <div><dt>run_id</dt><dd>—</dd></div>
-            <div><dt>规则版本</dt><dd>—</dd></div>
-            <div><dt>数据快照</dt><dd>—</dd></div>
-            <div><dt>模型状态</dt><dd>—</dd></div>
-            <div><dt>资料范围</dt><dd>—</dd></div>
-            <div><dt>人工确认状态</dt><dd>—</dd></div>
-            <div><dt>运行方式</dt><dd>—</dd></div>
-          </dl>
-        </section>
-      </section>
-
-      <section class="view" data-view-panel="evaluation" aria-labelledby="evaluation-heading" hidden>
-        <header class="page-heading">
-          <div><p class="kicker">09 / EFFECT EVALUATION</p><h2 id="evaluation-heading">效果评估</h2><p>只读展示冻结评估版本的 B0—B3 对照结果、证据引用质量与人工复核效率。评估数据不回写规则或模型。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-          <span class="state pending" id="evaluation-state">正在读取评估</span>
-        </header>
-        <section class="evaluation-sheet" aria-labelledby="evaluation-summary-heading">
-          <div class="sheet-title"><div><p class="folio">FROZEN EVALUATION SNAPSHOT</p><h3 id="evaluation-summary-heading">正在读取评估编号</h3><p id="evaluation-freeze-note">尚未发布真实评分。</p></div></div>
-          <div class="evaluation-summary" id="evaluation-summary"></div>
-          <div class="matrix-scroll" tabindex="0" role="region" aria-label="B0到B3评估对照表">
-            <table class="evidence-matrix" id="evaluation-group-table"><thead><tr><th>组别</th><th>定义</th><th>状态</th><th>完成数</th><th>备注</th></tr></thead><tbody><tr><th colspan="5">等待评估数据</th></tr></tbody></table>
-          </div>
-          <div class="matrix-scroll" tabindex="0" role="region" aria-label="逐案例评估状态矩阵">
-            <table class="evidence-matrix" id="evaluation-case-matrix"><thead><tr><th>案例</th><th>公司</th><th>类型</th><th>B0</th><th>B1</th><th>B2</th><th>B3</th></tr></thead><tbody><tr><th colspan="7">等待冻结案例</th></tr></tbody></table>
-          </div>
-          <p class="boundary-strip">评分未用于训练模型；未完成的评估只显示真实进度，不填充虚假分数。争议项目单独记录，不计入准确率分母。</p>
-        </section>
-      </section>
-
-      <section class="view" data-view-panel="methods" aria-labelledby="methods-heading" hidden>
-        <header class="page-heading">
-          <div><p class="kicker">08 / METHOD & BOUNDARIES</p><h2 id="methods-heading">角色、方法与边界</h2><p>三个角色按固定分工配合，程序和审计师负责最后的校验。</p><p class="case-context-line" data-current-case-context>当前公司：未选择</p></div>
-        </header>
-        <section class="editorial-section roles-section" aria-labelledby="roles-heading">
-          <header class="section-heading"><span class="section-number">01</span><div><p>智能体角色 · AGENTS</p><h3 id="roles-heading">三个角色，各做各的事</h3></div></header>
-          <div class="role-ledger">
-            <article><span class="folio">质疑角色</span><h4>提出风险假设</h4><dl><div><dt>负责什么</dt><dd>按专业规则提出需要进一步了解的情况，并标明资料依据。</dd></div><div><dt>不做什么</dt><dd>不猜测主体动机，也不下舞弊结论。</dd></div></dl></article>
-            <article><span class="folio">反证角色</span><h4>寻找正常解释</h4><dl><div><dt>负责什么</dt><dd>找可能的正常解释、相反资料和还缺的资料；找不到也会写明。</dd></div><div><dt>不做什么</dt><dd>不为了凑答案而补造事实。</dd></div></dl></article>
-            <article><span class="folio">语义复核角色</span><h4>把关措辞与证据</h4><dl><div><dt>负责什么</dt><dd>检查文字表述能不能被资料支持，必要时保留、降级或暂缓。</dd></div><div><dt>不做什么</dt><dd>不跳过程序校验，也不直接批准导出。</dd></div></dl></article>
-          </div>
-           <p class="reading-note">怎么配合：数字计算、日期筛选、字段完整性、禁用词和来源定位由程序处理；AI 负责阅读与推理；公开预筛先给出可用结果，正式采用与发布最后由人确认。</p>
-        </section>
-
-        <section class="editorial-section" aria-labelledby="boundary-heading">
-          <header class="section-heading"><span class="section-number">02</span><div><p>边界与承诺 · BOUNDARIES</p><h3 id="boundary-heading">把边界说清楚</h3></div></header>
-          <p class="section-intro">这套工具只帮审计师做风险预筛。审计结论仍需要审计师按程序作出，页面也会把边界写清楚。</p>
-          <div class="boundary-ledger">
-            <article><span>01</span><h4>不做舞弊认定</h4><p>只输出待核查风险线索，不对交易是否舞弊下结论。</p></article>
-            <article><span>02</span><h4>不出审计意见</h4><p>不替代函证、检查、访谈等程序，不形成审计结论。</p></article>
-            <article><span>03</span><h4>不给投资建议</h4><p>不做公司估值、投资判断或全市场实时扫描。</p></article>
-            <article><span>04</span><h4>不替代人工判断</h4><p>关键专业判断、案例选定与最终发布，始终由人决定。</p></article>
-          </div>
-           <ul class="commitment-list"><li>资料不全 · 缺口降级，不猜金额</li><li>案例脱敏 · 禁用词校验</li><li>已登记来源 · 文件与页码可回查</li><li>人工复核 · 正式采用与导出前把关</li></ul>
-        </section>
-
-        <section class="editorial-section current-status" aria-labelledby="current-status-heading">
-          <header class="section-heading"><span class="section-number">03</span><div><p>CURRENT STATUS</p><h3 id="current-status-heading">当前状态</h3></div></header>
-           <p>当前工程版本 0.7.1：正式入口已采用“证据地平线”V4 设计；案例模板、安全导入、案例隔离来源与 RAG、R1 v0.4 草案、公开财报规则级/年度级降级预筛、完整分析 / 仅计算双模式、四层状态、补充证据续分析、缓存和 report_v2 已接入。字段缺口不再阻断首次公开预筛，但正式采用、证据冻结、导出、R1 专业签字、合法样例确认和 B0—B3 评分仍由真人完成。R2 仅作辅助规则，R3—R8 只保留路线图；真实模型结果以接口状态和验收记录为准。</p>
-        </section>
-
-        <footer class="project-footer">
-          <div><strong>审迹智链</strong><span>AUDITTRACE</span></div>
-          <div><b>北京市大学生数智会计创新应用竞赛</b> · 财会专业领域 Multi-Agent 应用<br>方案书 V3.3 · 详细计划书 V2.4.6 · 工程 0.7.1</div>
-          <p>本系统只服务审计计划阶段销售与收款循环的风险预筛，不构成舞弊认定、重大错报认定、审计意见、鉴证结论或投资建议。合成案例只用于系统验收，第二正式公开案例与 B0—B3 结果不得由页面或代码伪造。</p>
-        </footer>
-      </section>
-    </main>
-  </div>
-
-  <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-dialog-title" aria-describedby="auth-dialog-note" hidden>
-    <form id="auth-login-form" method="dialog">
-      <div class="dialog-head">
-        <div><span class="folio">SECURE TENANT ACCESS</span><h2 id="auth-dialog-title">登录公网工作区</h2></div>
-        <button class="icon-button" type="button" aria-label="关闭登录窗口" data-close-auth-dialog><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭登录窗口</span></button>
-      </div>
-      <div class="auth-dialog-body">
-        <p id="auth-dialog-note">凭据仅提交到同源后端换取 HttpOnly 会话 Cookie，不会写入本机存储或运行日志。</p>
-        <label for="auth-email"><span>邮箱</span><input id="auth-email" name="email" type="email" required autocomplete="username" inputmode="email"></label>
-        <label for="auth-password"><span>密码</span><input id="auth-password" name="password" type="password" required autocomplete="current-password"></label>
-        <p class="form-message" id="auth-message" role="alert" aria-live="assertive"></p>
-        <div class="action-row"><button class="button primary" id="auth-login-submit" type="submit">安全登录</button><button class="button quiet" type="button" data-close-auth-dialog>取消</button></div>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog class="detail-drawer" id="risk-dialog" aria-labelledby="risk-dialog-title">
-    <div class="dialog-head">
-      <div><span class="folio" id="risk-dialog-kicker">EVIDENCE-BOUND DRAFT</span><h2 id="risk-dialog-title">待核查草稿详情</h2></div>
-      <button class="icon-button" type="button" aria-label="关闭待核查草稿详情" data-close-dialog><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭待核查草稿详情</span></button>
     </div>
-    <div id="risk-dialog-body"></div>
+
+    <footer class="demo-footer">
+      <p><strong>AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</strong></p>
+      <p>审迹智链只服务销售与收款循环的风险预筛：不做舞弊认定、不出审计意见、不给投资建议；关键专业判断与正式发布始终由人决定。</p>
+    </footer>
+  </main>
+
+  <dialog class="detail-drawer" id="demo-cases-drawer" aria-labelledby="demo-cases-drawer-title">
+    <div class="dialog-head">
+      <div><span class="folio">FROZEN DEMO CASES · 15</span><h2 id="demo-cases-drawer-title">全部案例</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭全部案例" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭全部案例</span></button>
+    </div>
+    <div class="demo-drawer-body" id="demo-cases-drawer-body">
+      <div class="empty-state"><strong>正在读取案例</strong><p>案例清单来自冻结 manifest。</p></div>
+    </div>
   </dialog>
 
-  <div class="global-toast" id="global-toast" role="status" aria-live="polite" hidden></div>
+  <dialog class="detail-drawer" id="demo-evidence-drawer" aria-labelledby="demo-evidence-drawer-title">
+    <div class="dialog-head">
+      <div><span class="folio">EVIDENCE / SOURCE / PAGE</span><h2 id="demo-evidence-drawer-title">原文证据</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭原文证据" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭原文证据</span></button>
+    </div>
+    <div class="demo-drawer-body" id="demo-evidence-drawer-body">
+      <div class="empty-state"><strong>尚无运行结果</strong><p>开始一次审计预筛后，这里会显示本次运行的字段证据与 RAG 片段。</p></div>
+    </div>
+  </dialog>
+
+  <dialog class="detail-drawer" id="demo-agent-drawer" aria-labelledby="demo-agent-drawer-title">
+    <div class="dialog-head">
+      <div><span class="folio">MULTI-AGENT · CHALLENGE / COUNTER / REVIEW</span><h2 id="demo-agent-drawer-title">Agent 协作</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭Agent协作" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭Agent协作</span></button>
+    </div>
+    <div class="demo-drawer-body" id="demo-agent-drawer-body">
+      <div class="empty-state"><strong>尚无运行结果</strong><p>开始一次审计预筛后，这里会显示三个角色的真实执行状态。</p></div>
+    </div>
+  </dialog>
+
+  <dialog class="detail-drawer" id="demo-supplement-drawer" aria-labelledby="demo-supplement-title">
+    <div class="dialog-head">
+      <div><span class="folio">SUPPLEMENT · PARENT / CHILD · TRACEABLE DIFF</span><h2 id="demo-supplement-title">补充证据并重新评估</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭补充证据" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭补充证据</span></button>
+    </div>
+    <div class="demo-drawer-body" id="demo-supplement-body">
+      <p class="demo-supplement-lead">选择一份内置公开样例资料，系统会把新证据绑定到本次父运行并生成子运行；补充资料只进入当前案例，不覆盖原年报字段。</p>
+      <div class="demo-supplement-samples" id="demo-supplement-samples"></div>
+      <div class="status-banner neutral" id="demo-supplement-status" hidden></div>
+      <div class="demo-supplement-diff" id="demo-supplement-diff" hidden></div>
+      <div class="demo-supplement-actions">
+        <button class="button quiet" type="button" id="demo-supplement-apply">按所选样例补充并重新评估</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="detail-drawer" id="demo-tech-drawer" aria-labelledby="demo-tech-drawer-title">
+    <div class="dialog-head">
+      <div><span class="folio">METHOD · BOUNDARIES · EVALUATION</span><h2 id="demo-tech-drawer-title">技术说明</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭技术说明" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭技术说明</span></button>
+    </div>
+    <div class="demo-drawer-body">
+      <figure class="demo-tech-hero">
+        <img src="/assets/official-v4/illustrations/system-overview-blue.webp" alt="审迹智链系统总览概念图：年报与结构化数据进入解析、风控、证据三个智能体，证据链与人工复核收口" width="1672" height="940" loading="lazy" decoding="async">
+        <figcaption>系统总览示意（AI 生成概念图）· 图中名称仅为制图标注，功能与边界以本页文字为准</figcaption>
+      </figure>
+      <section class="demo-tech-section">
+        <h4>三 Agent 固定分工</h4>
+        <ul>
+          <li><strong>质疑角色</strong>：按专业规则提出需要进一步了解的情况，并标明资料依据；不猜测动机、不下舞弊结论。</li>
+          <li><strong>反证角色</strong>：寻找正常解释、相反资料和缺失资料；找不到也会写明，不为凑答案补造事实。</li>
+          <li><strong>语义复核角色</strong>：检查措辞能否被资料支持，必要时保留、降级或暂缓；不跳过程序校验。</li>
+        </ul>
+      </section>
+      <section class="demo-tech-section">
+        <h4>案例隔离 RAG</h4>
+        <p id="demo-tech-rag">每个案例独立建立索引，公司、case_id 与 T0 在服务端硬过滤；检索只作为候选原文，须回到原件复核。</p>
+      </section>
+      <section class="demo-tech-section" aria-labelledby="demo-stack-title">
+        <h4 id="demo-stack-title">推荐技术栈对应（实际实现）</h4>
+        <p class="demo-stack-intro">竞赛附件列出的是可选技术方案。系统按所需能力选型并保留可复验边界，不为凑框架名称虚报未使用组件。</p>
+        <div class="demo-stack-grid">
+          <div class="demo-stack-card"><strong>LLM</strong><span id="demo-tech-llm">正在读取模型通道。</span><small>中文审计语境的结构化工具调用；失败码与 Token 用量随运行留痕。</small></div>
+          <div class="demo-stack-card"><strong>Agent 编排</strong><span>自研有界状态机 · Challenge → Counter → Review</span><small>支持协作、反证和逐角色硬校验，不声称使用 Anthropic SDK 或 AutoGen。</small></div>
+          <div class="demo-stack-card"><strong>RAG / 向量</strong><span>案例隔离 RAG · FAISS + SQLite + NumPy</span><small>确定性字元 n-gram 向量，来源指纹、固定问题集与证据 ID 绑定；未使用 LangChain、LlamaIndex、ChromaDB 或 Milvus。</small></div>
+          <div class="demo-stack-card"><strong>Web / 前端</strong><span>FastAPI + Uvicorn · 原生 HTML / CSS / JavaScript</span><small>API 路由与自动 OpenAPI 文档；前端采用单一演示状态机和响应式交互。</small></div>
+          <div class="demo-stack-card"><strong>PDF / 数据处理</strong><span>PyMuPDF · NumPy</span><small>完成公开年报文本提取、页码定位、确定性计算与向量处理；未使用的 pandas / pdfplumber 不列入。</small></div>
+        </div>
+      </section>
+      <section class="demo-tech-section">
+        <h4>AI 边界</h4>
+        <ul>
+          <li>不做舞弊认定，只输出待核查风险线索。</li>
+          <li>不出审计意见，不替代函证、检查、访谈等程序。</li>
+          <li>不给投资建议，不做估值判断。</li>
+          <li>关键专业判断、案例选定与最终发布由人决定。</li>
+        </ul>
+      </section>
+      <section class="demo-tech-section">
+        <h4>效果评估（冻结摘要）</h4>
+        <p id="demo-tech-evaluation">正在读取冻结评估摘要。</p>
+      </section>
+      <section class="demo-tech-section">
+        <h4>版本</h4>
+        <p id="demo-tech-versions">正在读取版本登记。</p>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog class="detail-drawer" id="demo-live-sample-drawer" aria-labelledby="demo-live-sample-title">
+    <div class="dialog-head">
+      <div><span class="folio">ONSITE SAMPLE · CNINFO OFFICIAL</span><h2 id="demo-live-sample-title">评审现场样例接入</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭现场样例接入" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭现场样例接入</span></button>
+    </div>
+    <div class="demo-drawer-body">
+      <section class="demo-tech-section">
+        <h4>这不是手册强制的“企业搜索”，而是现场处理真实新样例的证明入口</h4>
+        <p>输入上市公司名称或股票代码，系统从巨潮官方来源确认企业、检索并校验年报、提取字段并建立案例隔离 RAG。共享站保持只读；团队本机现场模式才允许接入非内置企业。</p>
+      </section>
+      <form class="demo-live-form" id="demo-live-sample-form">
+        <label for="demo-live-company"><span>企业名称或股票代码</span><input id="demo-live-company" name="company_query" required maxlength="120" autocomplete="organization" placeholder="例如 000333 或 美的集团"></label>
+        <label for="demo-live-years"><span>年报数量</span><select id="demo-live-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
+        <label for="demo-live-latest-year"><span>最新报告年度（可留空）</span><input id="demo-live-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
+        <button class="button quiet" id="demo-live-submit" type="submit">开始现场样例分析</button>
+      </form>
+      <p class="form-message" id="demo-live-capability" role="status" aria-live="polite">正在读取现场模式能力。</p>
+      <section class="demo-live-task" id="demo-live-task" hidden aria-labelledby="demo-live-task-title">
+        <div class="demo-section-heading"><div><span class="folio">LIVE PIPELINE TASK</span><h3 id="demo-live-task-title">实时处理进度</h3></div><span class="state pending" id="demo-live-task-state">等待提交</span></div>
+        <p class="mono" id="demo-live-task-id">—</p>
+        <ol class="demo-live-steps" id="demo-live-steps"></ol>
+        <div class="status-banner neutral" id="demo-live-message" role="status" aria-live="polite"><strong>尚未提交</strong><span>任务将显示真实进度、失败或人工确认状态。</span></div>
+        <div class="demo-live-result" id="demo-live-result" hidden></div>
+        <div class="demo-table-wrap" id="demo-live-table-wrap" hidden>
+          <table class="demo-structured-table">
+            <caption>现场样例规则指标结构化明细</caption>
+            <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th></tr></thead>
+            <tbody id="demo-live-structured-table-body"></tbody>
+          </table>
+        </div>
+        <div class="action-row demo-live-output-actions" id="demo-live-output-actions" hidden>
+          <button class="button quiet" id="demo-live-download-json" type="button">下载现场样例 JSON</button>
+          <button class="button quiet" id="demo-live-download-csv" type="button">下载现场样例 CSV</button>
+          <button class="button quiet" id="demo-live-print-report" type="button">打印 / 保存 PDF</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
+  <div class="global-toast" id="demo-toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

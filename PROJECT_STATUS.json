@@ -2,12 +2,176 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-17T22:45:00+08:00",
+  "updated_at": "2026-08-26T02:28:00+08:00",
+  "latest_r3_20260826": {
+    "status": "real_acceptance_recorded_with_open_gates",
+    "evaluation": {
+      "evaluation_id": "EVAL-20260826-B1B3-CURRENT-R3",
+      "records": 9,
+      "cases": ["五粮液", "中国海油", "标准股份"],
+      "b1": "3/3 deterministic; provider_calls=0",
+      "b2": "0/3 completed; three real single calls failed with MODEL_OUTPUT_VALIDATION_FAILED; PROC-R1-2025 bound",
+      "b3": "3/3 model_success; three roles complete",
+      "summary": "outputs/evaluation_v5/EVAL-20260826-B1B3-CURRENT-R3/B1_B2_B3_SUMMARY.md",
+      "ledger": "outputs/evaluation_v5/EVAL-20260826-B1B3-CURRENT-R3/B1_B2_B3_RUN_LEDGER.md",
+      "formal_human_score_status": "pending"
+    },
+    "model_quality_alert": {
+      "model_id": "qwen3.5-plus",
+      "success_count": 7,
+      "sample_count": 10,
+      "success_rate": 0.7,
+      "threshold": 0.8,
+      "status": "below_threshold",
+      "alert": true,
+      "boundary": "仅统计真实外部三 Agent 完整运行；不含 B1、B2、缓存回放、确定性备用或探测调用。"
+    },
+    "knowledge_live_check": {
+      "file": "outputs/knowledge-live-check-20260826.json",
+      "active_sources": 12,
+      "verified": 12,
+      "failed": 0,
+      "coverage": "representative",
+      "cutoff_date": "2026-08-24",
+      "five_year_window": "2021-08-24/2026-08-24"
+    },
+    "onsite_600436": {
+      "browser_audit": "outputs/browser-r3-export-8000/structured-output-audit.json",
+      "task_state": "需要人工确认",
+      "task_id": "CNINFO-38FF6302B49D",
+      "run_id": "RUN-V7-950E54F69317",
+      "structured_exports": ["json", "csv", "print_pdf", "docx"],
+      "model_success": false,
+      "boundary": "现场可实时处理并如实降级；未将模型链不完整写成成功。"
+    },
+    "browser": {
+      "static_audit": "outputs/browser-r3-static11/static-audit.json",
+      "viewports": ["1440x900", "1440x1000", "1024x768", "768x1024", "390x844"],
+      "axe_violations": 0,
+      "axe_incomplete": 0,
+      "errors": 0,
+      "horizontal_overflow": false,
+      "frontend_contract": "131 unique ids, 129 refs, 1 script"
+    },
+    "tests": {
+      "root": "329 passed, 1 warning",
+      "backend_cwd": "329 passed, 1 warning",
+      "warning": "Starlette TestClient/httpx compatibility deprecation"
+    },
+    "truth_snapshot": {
+      "directory": "outputs/final-audit-20260826-r3/",
+      "status": "frozen",
+      "json_sha256": "49739505744686c2510222ae49ae1f531d334f257356fd537e8fd13727c7f5a7",
+      "md_sha256": "7ca8861f2334e3f74704f24c2864e6664abb5cde543fa3732389edd945b08e79",
+      "hash_scope": "主链代码、配置、启动器和验收脚本；排除 PROJECT_STATUS、README、快照和浏览器生成物"
+    },
+    "video": "deferred",
+    "shutdown": "not_requested"
+  },
   "formal_scope": "审计计划阶段—销售与收款循环",
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "latest_r2_20260825": {
+    "signoff": {
+      "file": "outputs/professional-signoff/R1-v0.4-captain-signoff-20260825-r2.json",
+      "markdown": "outputs/professional-signoff/R1-v0.4-captain-signoff-20260825-r2.md",
+      "status": "captain_approved_for_competition_demo",
+      "role": "项目队长（用户本人）",
+      "signer_name": null,
+      "legacy_record_preserved": true
+    },
+    "truth_snapshot": {
+      "directory": "outputs/final-audit-20260825-r2/",
+      "json_sha256": "fa352bf3fbe15f2c92c3f2136e4fc8a6ec9cb4491a36abb65446f806466eeda8",
+      "md_sha256": "d82df2122b0e7c33a7f1f4481780e34aaecafcc3c1ec3e115ac7bd39f652299f"
+    },
+    "current_code_evaluation": {
+      "evaluation_id": "EVAL-20260825-B1B3-CURRENT-R2-NETWORK",
+      "records": 9,
+      "cases": ["五粮液", "中国海油", "标准股份"],
+      "b1": "3/3 deterministic; provider_calls=0",
+      "b2": "0/3 completed; 3 failed with MODEL_OUTPUT_VALIDATION_FAILED",
+      "b3": "3/3 model_success; each has 3 completed roles",
+      "ai_prescore_mean": 85.2,
+      "formal_human_score_status": "pending",
+      "summary": "outputs/evaluation_v5/EVAL-20260825-B1B3-CURRENT-R2-NETWORK/B1_B2_B3_SUMMARY.md",
+      "ledger": "outputs/evaluation_v5/EVAL-20260825-B1B3-CURRENT-R2-NETWORK/B1_B2_B3_RUN_LEDGER.md"
+    },
+    "model_quality_alert": {
+      "model_id": "qwen3.5-plus",
+      "success_count": 7,
+      "sample_count": 10,
+      "success_rate": 0.7,
+      "threshold": 0.8,
+      "status": "below_threshold",
+      "alert": true,
+      "boundary": "仅统计真实外部三 Agent 完整运行；不含 B1、缓存回放、确定性备用或探测调用。"
+    },
+    "knowledge": {
+      "manifest": "backend/knowledge_sources.manifest.json",
+      "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+      "cutoff_date": "2026-08-24",
+      "five_year_window": "2021-08-24/2026-08-24",
+      "total_sources": 13,
+      "active_sources": 12,
+      "archived_sources": 1,
+      "coverage": "representative"
+    },
+    "browser": {
+      "static_audit": "outputs/browser-r2-static/static-audit.json",
+      "run_audit": "outputs/browser-r2-run/run-audit-summary.json",
+      "run_audit_1440x900": "outputs/browser-r2-run-1440x900/run-audit-summary.json",
+      "export_audit": "outputs/browser-r2-export/export-audit.json",
+      "viewports": ["1440x900", "1440x1000 (extra baseline)", "1024x768", "768x1024", "390x844"],
+      "automated_blocking_findings": 0,
+      "console_page_network_errors": 0,
+      "horizontal_overflow": false,
+      "axe_incomplete_manual_review": "color-contrast caused by gradients/pseudo-elements"
+    },
+    "tests": {
+      "backend": "321 passed, 1 warning",
+      "frontend_contract": "131 unique ids, 129 id references, 1 script",
+      "javascript_syntax": "passed",
+      "python_compile": "passed",
+      "git_diff_check": "passed",
+      "chinese_comments": "2198/21676=10.14%"
+    },
+    "video": "deferred",
+    "shutdown": "not_requested"
+  },
+  "latest_continuation_20260825": {
+    "record_status": "historical_pre_r2",
+    "superseded_by": "latest_r2_20260825",
+    "current_proposal": "02_最终确定方案/15_审迹智链_项目方案书_V4_竞赛提交版_2026-08-25.md",
+    "current_plan": "02_最终确定方案/16_审迹智链_详细项目计划书_V3_提交冲刺版_2026-08-25.md",
+    "historical_documents": ["05_审迹智链_项目方案书_V3_全面复盘修订版.md", "05_审迹智链_详细项目计划书_V2.4_资料入口指标库与快速MVP补充版.md"],
+    "innovation_controls": ["deterministic_route_controller", "assertion_evidence_procedure_matrix", "evidence_fitness_claim_boundary", "numeric_claim_trace_and_anti_confirmation"],
+    "b1_b2_b3_evaluation": {
+      "evaluation_id": "EVAL-20260825-B1B3-AI-PRESCORE-V1",
+      "records": 9,
+      "b1": "3/3 deterministic; provider_calls=0",
+      "b2": "2/3 completed; 1 failed with preserved failure code",
+      "b3": "3/3 model_success; each has 3 completed roles",
+      "ai_prescore_mean": 90.4,
+      "formal_human_score_status": "pending",
+      "summary": "outputs/evaluation_v5/EVAL-20260825-B1B3-AI-PRESCORE-V1/B1_B2_B3_SUMMARY.md",
+      "ledger": "outputs/evaluation_v5/EVAL-20260825-B1B3-AI-PRESCORE-V1/B1_B2_B3_RUN_LEDGER.md"
+    },
+    "model_quality_alert": {
+      "model_id": "qwen3.5-plus",
+      "success_count": 5,
+      "sample_count": 7,
+      "success_rate": 0.7142857143,
+      "threshold": 0.8,
+      "status": "below_threshold",
+      "alert": true,
+      "boundary": "仅统计真实外部三 Agent 完整运行；不含 B1、缓存回放、确定性备用或探测调用。"
+    },
+    "video": "deferred",
+    "shutdown": "not_requested"
+  },
   "versions": {
-    "proposal": "V3.3",
-    "implementation_plan": "V2.4.6",
+    "proposal": "V4_竞赛提交版_2026-08-25",
+    "implementation_plan": "V3_提交冲刺版_2026-08-25",
     "team_division": "V3.5",
     "engine": "0.7.1",
     "run_schema": "run_output_v2",
@@ -20,7 +184,9 @@
     "agent_prompt": "agent_prompt_v3",
     "agent_output": "agent_output_v2",
     "report": "report_v2",
-    "cninfo_pipeline": "cninfo_pipeline_v1"
+    "cninfo_pipeline": "cninfo_pipeline_v1",
+    "r1_signoff_status": "captain_approved_for_competition_demo",
+    "r1_signoff_record": "outputs/professional-signoff/R1-v0.4-captain-signoff-20260825-r2.json"
   },
   "acceptance_snapshot": {
     "date": "2026-08-17",
@@ -157,9 +323,10 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
-      "latest_result": "241 passed, 1 warning, 149.94s",
-      "executed_on": "2026-08-22",
-      "status": "passed"
+      "latest_result": "281 passed, 1 warning, 174.71s",
+      "executed_on": "2026-08-24",
+      "status": "passed",
+      "note": "2026-08-24 终版增强验收：新增 demo_run_tasks（9）、knowledge_sources（9）、provider base URL 校验（2）、demo run API 端点（1）、同步修复 privacy consent 测试环境依赖与 OpenAPI Callable 回归，共 22 项新增；唯一 warning 为 Starlette TestClient / httpx 兼容弃用提示。"
     },
     "clean_package": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
@@ -173,8 +340,8 @@
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "1861/18393 = 10.12%",
-      "executed_on": "2026-08-22",
+      "latest_result": "1886/18438 = 10.23%",
+      "executed_on": "2026-08-23",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -403,5 +570,38 @@
     "追加式原始评估记录与哈希",
     "完整版本链"
   ],
+  "final_enhancement_20260824": {
+    "plan_file": "审迹智链_竞赛终版增强与完整验收_分步执行计划_2026-08-24.md",
+    "summary_artifact": "artifacts/competition-final-enhancement-20260824/final-summary.json",
+    "head_verified": "be9839947bbeb2acc9596d349afbabc53b91f922",
+    "implemented": {
+      "g1_provider_channel": "BASE URL 校验（provider_base_url_error/MODEL_PROVIDER_BASE_URL_INVALID）、/models 探测带单次网络重试与 8 秒超时、启动打印通道/模型/开关（不打印 Key）、离线备用启动器、scripts/smoke_opencode_tool_contract.py",
+      "g2_staged_progress": "backend/app/demo_run_tasks.py + POST/GET/result/cancel /api/demo/runs 端点；_execute_run 进度与逐角色回调；前端轮询、sessionStorage 恢复、后端五阶段与三角色真实进度（含每阶段 updated_at 时间戳）",
+      "g3_knowledge_base": "knowledge_sources/knowledge_ingest/knowledge_rag 模块 + knowledge_sources.manifest.json（8 条真实官方案源、7 条双次下载哈希一致）+ bootstrap knowledge_base 区块（真实文档数与核验数、草案语义）",
+      "g4_procedure_map": "backend/audit_procedure_map.json（6 项程序）+ 页面“系统替你完成什么”三列与映射版本",
+      "g5_supplement_rerun": "结果区次级按钮 + 内置样例抽屉 + 父子运行差异（父/子运行 ID、新增证据数、建议变化、原字段未覆盖）+ 打印可含差异",
+      "g6_visual": "5 张精选插图（WebP 10—105KB，原 PNG 保留、SHA-256/尺寸台账）、定位页地平线背景、知识底座/Agent/技术抽屉插画、数字层级沿用 tabular-nums",
+      "g7_structured_output": "run context 扩展 knowledge_snapshot_id/source_coverage_summary/audit_procedure_map_version/audit_procedures/regulatory_evidence/supplement_delta/provider_readiness_snapshot；JSON 导出含全部新字段；docx 报告新增程序映射与补充差异两章；打印样式覆盖 10 项 PDF 清单",
+      "g8_acceptance": "281 passed；前端契约 111 IDs；中文注释 10.40%；四视口（1440x1000/1024x768/768x1024/390x844）axe serious/critical=0、无横向溢出、console/page error/failed request=0；键盘 Enter/Esc、reduced-motion、真实下载 JSON/CSV（107,967/2,039 字节）与打印样式截图"
+    },
+    "model_acceptance_truth": {
+      "smoke_contract": "deepseek-v4-flash-vision-exp 与 deepseek-v4-flash 最小工具合同均 HTTP 200 且参数合法",
+      "single_case_real_chain": "STD_DEV_T0 2025 三次真实尝试（两种模型）全部在确定性事实语言闸门失败关闭（RUN-V7-219AB86B1EBA / RUN-V7-739085B463E7 / RUN-V7-84D745EFCA74），下游角色如实 skipped；未放宽任何校验",
+      "user_decision_gate": "是否在同通道更换模型 ID 由用户决定；model_success 状态未写入"
+    },
+    "human_gates": [
+      "旧 OpenCode Key 撤销与新 Key 确认（用户操作）",
+      "COMPETITION_DATA_CUTOFF_DATE 确认（比赛公告日；确认前知识库保持草案）",
+      "G1-5 真实三 Agent model_success 复验（用户选模型后）",
+      "B0—B3 专业评分与人工复核/报告批准（沿用既有门槛）"
+    ],
+    "known_boundaries": [
+      "知识库为代表性接入（代表 7 类各 ≥1 条），未做官方列表数量核对",
+      "csrc 处罚决定 published_at 取自公开报道，validation_status=pending",
+      "演示运行任务台账在本机 backend/runtime/demo-run-tasks（未入 Git）",
+      "插图 AI 概念图；图内文字不作为页面事实",
+      "未执行系统关机"
+    ]
+  },
   "truth_boundary": "已实现与已测试不等于专业定稿、合法样例确认或竞赛效果结论；AI不得代签双人复核、B0基线和B0—B3专业评分。"
 }

@@ -325,6 +325,8 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
         "边界：本报告不构成舞弊认定、重大错报认定、审计意见或投资建议；来源真实性、专业口径、正式认定和发布均由人负责。"
     )
     context = stored.run.context
+    configured_parameters = context.get("configured_parameters") or {}
+    r1_signoff_status = str(configured_parameters.get("r1_signoff_status") or "no_signoff_record")
     _add_heading(document, "一、运行身份与三层状态", 1)
     _table_rows(
         document,
@@ -340,6 +342,7 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             ("复核人 / 时间", f"{review.reviewer or '未填写'} / {review.reviewed_at or '未填写'}"),
             ("资料快照", context.get("source_snapshot_id", "")),
             ("版本链", f"工程 {stored.run.engine_version}｜R1 {context.get('r1_version')}｜提示词 {context.get('agent_prompt_version')}｜{REPORT_VERSION}"),
+            ("R1 口径状态", r1_signoff_status),
         ],
     )
 
@@ -427,6 +430,87 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
                 document,
                 f"{item.get('evidence_id')}｜{item.get('field_label')}｜as_of {item.get('as_of_date')}｜{item.get('support_status')}",
             )
+
+    _add_heading(document, "六、可信控制、知识检索与创新留痕", 1)
+    knowledge_trace = context.get("knowledge_retrieval_trace") or []
+    document.add_paragraph(
+        f"知识库快照：{context.get('knowledge_snapshot_id') or '未配置'}；本次命中 {len(knowledge_trace)} 条。"
+        "知识来源只按登记的主张边界使用：准则/法规支持规范依据，处罚/问询/行业/新闻/宏观资料只作类比或待验证背景。"
+    )
+    for item in knowledge_trace[:24]:
+        _add_bullet(
+            document,
+            f"{item.get('retrieval_id')}｜{item.get('source_id')}｜{item.get('source_category')}｜"
+            f"{item.get('locator') or '未提供定位'}｜可支持：{item.get('claim_scope') or '—'}｜边界：{item.get('boundary') or '—'}",
+        )
+    matrix = context.get("assertion_evidence_procedure_matrix") or stored.run.evidence_bundle.get("assertion_evidence_procedure_matrix") or []
+    if matrix:
+        document.add_paragraph("认定—证据—程序覆盖矩阵：")
+        for row in matrix:
+            _add_bullet(
+                document,
+                f"{row.get('assertion')}｜{row.get('status')}｜证据 {', '.join(row.get('current_entity_direct_evidence') or []) or '无'}｜程序 {', '.join(row.get('procedure_ids') or []) or '无'}｜缺口 {', '.join(map(str, row.get('uncovered_gaps') or [])) or '无'}",
+            )
+    else:
+        document.add_paragraph("本次运行未形成认定—证据—程序覆盖矩阵。")
+    fitness_violations = context.get("evidence_fitness_violations") or []
+    document.add_paragraph(
+        f"证据适配度边界：{context.get('evidence_fitness_boundary') or '未写入'}；越界主张 {len(fitness_violations)} 条。"
+    )
+    numeric = context.get("numeric_claim_trace") or {}
+    document.add_paragraph(
+        f"数字主张回查：共 {len(numeric.get('trace') or [])} 个 token，未验证 {numeric.get('unverified_count', 0)} 个，关键未验证 {numeric.get('key_unverified_count', 0)} 个；状态 {numeric.get('passed', False)}。"
+    )
+    for item in (numeric.get("trace") or [])[:24]:
+        _add_bullet(
+            document,
+            f"{item.get('raw')}｜{item.get('verification_status')}｜来源 {item.get('source') or '无'}｜{item.get('calculation') or ''}",
+        )
+    anti = context.get("anti_confirmation") or {}
+    document.add_paragraph(
+        f"反确认偏差搜索：{'已执行' if anti.get('reverse_evidence_search_performed') else '未执行'}；"
+        f"问题 {len(anti.get('search_questions') or [])} 个；命中 {anti.get('hit_count', 0)} 条；"
+        f"正常解释 {len(anti.get('alternative_explanations') or [])} 条；"
+        f"当前证据不支持正常解释：{bool(anti.get('none_supported_by_current_evidence'))}。"
+    )
+    for entry in (context.get("model_attempt_history") or [])[:12]:
+        attempts = entry.get("attempts") or []
+        _add_bullet(
+            document,
+            f"模型留痕｜{entry.get('role')}｜{entry.get('status')}｜失败码 {entry.get('failure_code') or '无'}｜"
+            f"尝试 {len(attempts)} 次｜响应哈希 {', '.join(str(a.get('response_sha256') or '无') for a in attempts) or '无'}",
+        )
+
+    _add_heading(document, "七、审计程序映射", 1)
+    procedures = context.get("audit_procedures") or []
+    if procedures:
+        document.add_paragraph(f"映射版本：{context.get('audit_procedure_map_version') or 'unknown'}")
+        for item in procedures:
+            _add_bullet(
+                document,
+                f"{item.get('procedure_id')}｜{item.get('procedure')}｜系统：{item.get('system_execution')}｜{item.get('automation_level')}｜人工保留：{item.get('human_retained')}",
+            )
+    else:
+        document.add_paragraph("本次运行未附带程序映射说明。")
+    document.add_paragraph(str(context.get("audit_procedure_map_boundary") or "程序映射只描述审计计划阶段边界；不构成舞弊认定、审计意见或投资建议。"))
+
+    _add_heading(document, "八、补充证据前后差异", 1)
+    delta = context.get("supplement_delta")
+    change = context.get("recommendation_change")
+    if delta:
+        _add_bullet(document, f"父运行：{delta.get('parent_run_id')}；补充后运行：{stored.run.run_id}")
+        _add_bullet(document, f"新增结构化证据数量：{delta.get('supplement_evidence_count')} 份")
+        if change:
+            _add_bullet(document, f"建议变化：{change.get('before')} → {change.get('after')}（{change.get('label')}）")
+        document.add_paragraph(str(delta.get("boundary") or "补充资料仅进入当前案例证据空间，不覆盖原年报字段。"))
+    else:
+        document.add_paragraph("本次运行没有补充证据，无前后差异。")
+    knowledge_snapshot = context.get("knowledge_snapshot_id")
+    source_summary = context.get("source_coverage_summary")
+    if knowledge_snapshot or source_summary:
+        document.add_paragraph(
+            f"知识库快照：{knowledge_snapshot or '未配置'}；来源覆盖状态：{str((source_summary or {}).get('draft_mode'))}（截止日 {str((source_summary or {}).get('cutoff_date')) or '未确认'}，未确认前为草案）"
+        )
 
     _add_heading(document, "六、人工复核说明", 1)
     document.add_paragraph(review.note or "未填写补充说明。")

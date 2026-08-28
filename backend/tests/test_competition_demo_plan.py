@@ -28,6 +28,7 @@ from backend.app.main import (
     _client_identity,
     _configured_cors_origins,
     _dedupe_gap_messages,
+    _demo_external_model_enabled,
     _enrich_model_check,
     _model_readiness,
     _r2_result,
@@ -47,6 +48,31 @@ from backend.app.schemas import (
     StoredRunResponse,
     SupplementRerunRequest,
 )
+
+
+def test_demo_external_model_is_enabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """竞赛本机默认进入真实模型链，用户仍可明确关闭以演示备用路径。"""
+    monkeypatch.delenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", raising=False)
+    assert _demo_external_model_enabled() is True
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
+    assert _demo_external_model_enabled() is False
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("模型输出的run_id、role或rule_id与本次运行不一致", "MODEL_RUN_BINDING_ERROR"),
+        ("候选风险路线的质疑角色只能返回candidate", "MODEL_ROLE_STATUS_ERROR"),
+        ("有证据或非缺口路线必须至少保留一条模型主张", "MODEL_CLAIMS_REQUIRED"),
+        ("未获支持的解释必须明确标为待验证假设", "MODEL_HYPOTHESIS_LABEL_MISSING"),
+    ],
+)
+def test_semantic_failures_have_actionable_stable_codes(message: str, expected: str) -> None:
+    assert agents_module._semantic_failure_code(message) == expected
+    payload = agents_module._semantic_correction_payload({"output_contract": {}}, expected)
+    correction = payload["semantic_correction"]
+    assert correction["previous_failure_code"] == expected
+    assert "修正要求" in correction["instruction"]
 
 
 def test_public_model_ledger_enforces_ip_and_cache_key_scope(tmp_path: Path) -> None:
@@ -323,7 +349,13 @@ def test_demo_readonly_contracts_are_available() -> None:
     client = TestClient(app)
     evaluation = client.get("/api/evaluations/current")
     assert evaluation.status_code == 200
-    assert evaluation.json()["evaluation_id"] == "EVAL-20260811-COMPETITION-8CASE-V1"
+    assert evaluation.json()["evaluation_id"] == "EVAL-20260822-COMPETITION-8CASE-V3"
+    # 8 案全部进入四组：负向与行业案例不得预先标为不适用。
+    payload = evaluation.json()
+    assert len(payload["cases"]) == 8
+    for case in payload["cases"]:
+        assert set(case["groups"]) == {"B0", "B1", "B2", "B3"}
+        assert all(group["status"] == "not_started" for group in case["groups"].values())
     samples = client.get("/api/supplement-samples")
     assert samples.status_code == 200
     assert {item["sample_id"] for item in samples.json()["samples"]} == {"aging", "receipts"}
@@ -726,9 +758,77 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
         )
         assert response.status_code == 200, (item["case_id"], response.text[:500])
         body = response.json()
-        assert body["model_check"]["status"] == "model_success", item["case_id"]
+        assert body["model_check"]["status"] == "model_success", (
+            item["case_id"],
+            [
+                {
+                    "role": step.get("role"),
+                    "status": step.get("status"),
+                    "failure_code": step.get("failure_code"),
+                    "detail": step.get("detail"),
+                }
+                for step in body.get("agent_steps") or []
+            ],
+        )
         assert body["provider_call_count"] == 3, item["case_id"]
         assert {step["role"] for step in body["agent_steps"] if step["status"] == "completed"} == {"challenge", "counter", "review"}
+
+
+def test_demo_run_task_api_shows_real_staged_progress(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """G2：POST /api/demo/runs 返回 202，轮询得到后端真实六阶段，终态可读 RunResponse。"""
+    import backend.app.main as main_module
+    from backend.app.demo_run_tasks import DemoRunTaskStore
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
+    monkeypatch.setattr(
+        main_module,
+        "_run_rag_for_analysis",
+        lambda **_kwargs: ([], [], [], None),
+    )
+    demo_store = DemoRunTaskStore(tmp_path / "demo-tasks")
+    monkeypatch.setattr(main_module, "_get_demo_run_store", lambda: demo_store)
+    client = TestClient(app)
+    try:
+        created = client.post(
+            "/api/demo/runs",
+            json={"case_id": "STD_DEV_T0", "current_year": 2025, "rule_ids": ["R1", "R2"], "run_mode": "full_analysis"},
+        )
+        assert created.status_code == 202, created.text
+        payload = created.json()
+        task_id = payload["task_id"]
+        assert task_id.startswith("DEMO-RUN-")
+        assert payload["status"] in {"queued", "running"}
+        assert payload["stage_schema_version"] == "demo_task_v2"
+        assert list(payload["steps"]) == ["evidence_load", "rule_calculation", "knowledge_retrieval", "agent_collaboration", "evidence_validation", "structured_output"]
+
+        deadline = time.time() + 120
+        task = None
+        while time.time() < deadline:
+            task = client.get(f"/api/demo/runs/{task_id}").json()
+            if task["status"] not in {"queued", "running"}:
+                break
+            time.sleep(0.2)
+        assert task is not None and task["status"] in {"completed", "degraded", "failed"}
+        assert task["run_id"] and task["run_id"].startswith("RUN-")
+        for stage_name, stage in task["steps"].items():
+            assert stage["status"] in {"completed", "skipped", "failed", "degraded", "pending"}, stage_name
+        if task["status"] != "failed":
+            assert task["steps"]["structured_output"]["status"] == "completed"
+            assert "RUN-" in task["steps"]["structured_output"]["detail"]
+        agent_steps = task["agent_steps"]
+        assert set(agent_steps.keys()) == {"challenge", "counter", "review"}
+
+        result_response = client.get(f"/api/demo/runs/{task_id}/result")
+        assert result_response.status_code == 200
+        run = result_response.json()
+        assert run["run_id"] == task["run_id"]
+
+        # 终态任务不可取消；未知任务 404
+        assert client.post(f"/api/demo/runs/{task_id}/cancel").status_code == 409
+        assert client.get("/api/demo/runs/DEMO-RUN-UNKNOWN").status_code == 404
+    finally:
+        demo_store.shutdown()
 
 
 def test_rag_and_sensitive_data_fail_closed_in_all_case_demo(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -909,6 +1009,33 @@ def test_provider_failure_records_remaining_roles_as_skipped(monkeypatch: pytest
     assert [step.status for step in steps[1:]] == ["skipped", "skipped"]
 
 
+def test_provider_timeout_has_distinct_code_and_does_not_blind_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    def provider_timeout(**_kwargs):
+        nonlocal calls
+        calls += 1
+        raise TimeoutError("provider response exceeded window")
+
+    monkeypatch.setattr(agents_module, "_call_model", provider_timeout)
+    steps = run_agent_chain(
+        run_id="RUN-TIMEOUT-CHAIN",
+        rule_result=RuleResult(rule_id="R1", status="candidate", source_validation={}, metrics={}, risk_card={}),
+        evidence_bundle=[{"evidence_id": "E1", "excerpt": "最小证据片段"}],
+        enabled=True,
+        api_key="test-key",
+        base_url="https://example.invalid",
+        model_id="deepseek-v4-flash",
+    )
+
+    assert calls == 1
+    assert steps[0].status == "provider_unreachable"
+    assert steps[0].failure_code == "MODEL_PROVIDER_TIMEOUT"
+    assert steps[0].provider_call_count == 1
+    assert steps[0].model_attempt_history[0]["validation"] == "MODEL_PROVIDER_TIMEOUT"
+    assert [step.status for step in steps[1:]] == ["skipped", "skipped"]
+
+
 def test_model_generated_sensitive_data_stops_later_roles_and_keeps_usage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1058,4 +1185,34 @@ def test_cache_fill_has_owner_identity_and_expiry(tmp_path: Path) -> None:
 
 def test_opencode_go_base_url_does_not_receive_native_deepseek_beta_suffix() -> None:
     assert _strict_tool_base_url("https://opencode.ai/zen/go/v1") == "https://opencode.ai/zen/go/v1"
+    assert _strict_tool_base_url("https://opencode.ai/zen/go/v1/") == "https://opencode.ai/zen/go/v1"
     assert _strict_tool_base_url("https://api.deepseek.com") == "https://api.deepseek.com/beta"
+
+
+def test_strict_tool_base_url_rejects_misconfigured_contracts() -> None:
+    """配置错误必须返回稳定码并提示填写基础地址，不能把错误地址发给供应商。"""
+    from backend.app.agents import ToolArgumentsError
+
+    for invalid_url in (
+        "https://opencode.ai/zen/go/v1/chat/completions",
+        "https://example.com/v1/v1/chat/completions",
+        "http://opencode.ai/zen/go/v1",
+        "opencode.ai/zen/go/v1",
+        "https://opencode.ai/zen/go/v1/v1",
+        "https://中文字符.example.com/v1",
+    ):
+        with pytest.raises(ToolArgumentsError) as excinfo:
+            _strict_tool_base_url(invalid_url)
+        assert excinfo.value.failure_code == "MODEL_PROVIDER_BASE_URL_INVALID"
+        assert "基础地址" in excinfo.value.detail
+
+
+def test_provider_timeout_defaults_to_one_hundred_twenty_seconds_and_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AUDITTRACE_PROVIDER_TIMEOUT_SECONDS", raising=False)
+    assert agents_module._provider_timeout_seconds() == 120.0
+    monkeypatch.setenv("AUDITTRACE_PROVIDER_TIMEOUT_SECONDS", "5")
+    assert agents_module._provider_timeout_seconds() == 10.0
+    monkeypatch.setenv("AUDITTRACE_PROVIDER_TIMEOUT_SECONDS", "999")
+    assert agents_module._provider_timeout_seconds() == 120.0
+    monkeypatch.setenv("AUDITTRACE_PROVIDER_TIMEOUT_SECONDS", "invalid")
+    assert agents_module._provider_timeout_seconds() == 120.0

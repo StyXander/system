@@ -12,7 +12,7 @@
   --border-strong: #46596a;
   --text-primary: #f2f4f7;
   --text-secondary: #a5afba;
-  --text-tertiary: #737f8b;
+  --text-tertiary: #808c98;
   --text-disabled: #4d5863;
   --accent-primary: #7c9fd2;
   --accent-hover: #94b2dc;
@@ -92,7 +92,7 @@ html {
   min-width: 320px;
   color: var(--ink);
   background: var(--canvas);
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 body {
@@ -2724,13 +2724,32 @@ mark {
     font-size: 15px;
   }
 
+  .brand small {
+    display: none;
+  }
+
   .topbar-context {
     gap: var(--space-2);
   }
 
   .service-pill {
-    max-width: 112px;
+    max-width: none;
     font-size: 10px;
+  }
+
+  .service-pill span {
+    display: none;
+  }
+
+  .service-pill::after {
+    content: attr(data-short-status);
+    white-space: nowrap;
+  }
+
+  #demo-open-tech-drawer {
+    padding-right: 9px;
+    padding-left: 9px;
+    white-space: nowrap;
   }
 
   main {

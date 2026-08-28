@@ -19,10 +19,12 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import json
 import os
+import re
 import threading
 import time
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
@@ -30,8 +32,52 @@ from urllib.request import Request, urlopen
 DEFAULT_PROBE_TTL_SECONDS = 300
 # 硬过期时间：10 分钟后快照彻底失效，必须强制刷新探测
 DEFAULT_HARD_EXPIRY_SECONDS = 600
-# 探测网络超时：连接与读取控制在 4 秒以内，确保即使供应商网络波动也不卡死服务端接口
-DEFAULT_PROBE_TIMEOUT_SECONDS = 4.0
+# 探测网络超时：连接与读取控制在 8 秒以内。OpenCode 边缘节点冷启动时 /models
+# 首包常超过 4 秒，4 秒会被误判为不可达；8 秒仍保证接口不长时间阻塞。
+DEFAULT_PROBE_TIMEOUT_SECONDS = 8.0
+
+
+def provider_base_url_error(base_url: str) -> str | None:
+    """校验 DEEPSEEK_BASE_URL 的形状，返回稳定原因码；合法时返回 None。
+
+    允许值（末尾斜杠由调用方规范化）：
+    - https://opencode.ai/zen/go/v1（OpenCode Go 基础地址）
+    - https://api.deepseek.com（原生 DeepSeek，由调用方补 /beta）
+    - 其他 https 的 OpenAI 兼容基础地址（host 含点或为本机别名）
+
+    明确拒绝：
+    - http 明文、缺失 scheme、未知主机、带查询/片段/用户信息；
+    - 以 /chat/completions 结尾的完整请求地址（调用方会自行拼接该后缀）；
+    - 重复的 /v1/v1 版本段。
+    """
+    raw = (base_url or "").strip()
+    if not raw:
+        return "provider_base_url_empty"
+    parsed = urlparse(raw)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https":
+        return "provider_base_url_invalid"
+    if not host or not host.isascii() or ("." not in host and host not in {"localhost", "127.0.0.1"}):
+        return "provider_base_url_invalid"
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        return "provider_base_url_invalid"
+    path = parsed.path.rstrip("/")
+    if "/chat/completions" in path:
+        return "provider_base_url_invalid"
+    if re.search(r"/v1/v1(?:/|$)", path):
+        return "provider_base_url_invalid"
+    return None
+
+
+def provider_base_url_error_message(error_code: str) -> str:
+    """把基础地址错误码转成可操作的中文说明；不回显密钥或完整请求地址。"""
+    if error_code == "provider_base_url_empty":
+        return "尚未配置 DEEPSEEK_BASE_URL；请在 .env 填写供应商基础地址，例如 https://opencode.ai/zen/go/v1。"
+    return (
+        "DEEPSEEK_BASE_URL 不是合法的 https 基础地址。请填写供应商基础地址"
+        "（例如 https://opencode.ai/zen/go/v1），不要填写以 /chat/completions 结尾的完整请求地址，"
+        "也不要填写 http 明文或重复的 /v1/v1 版本段。"
+    )
 
 
 def classify_provider_channel(base_url: str | None = None) -> dict[str, str]:
@@ -100,6 +146,13 @@ def get_provider_error_guidance(
     kind = channel_info["provider_kind"]
     label = channel_info["provider_label"]
 
+    if failure_code == "MODEL_PROVIDER_BASE_URL_INVALID" or failure_code == "provider_base_url_invalid":
+        return {
+            "message": provider_base_url_error_message(failure_code),
+            "next_action_code": "fix_provider_base_url",
+            "reason_code": "provider_base_url_invalid",
+        }
+
     if failure_code == "MODEL_PROVIDER_BALANCE_EXHAUSTED" or http_code == 402:
         if kind == "deepseek_direct":
             msg = (
@@ -155,6 +208,10 @@ def get_provider_error_guidance(
         next_action = "retry_later"
         return {"message": msg, "next_action_code": next_action, "reason_code": "provider_temporarily_unavailable"}
 
+    if failure_code == "MODEL_PROVIDER_TIMEOUT":
+        msg = f"{label} 在完整等待窗口内未返回；本次未自动重复请求，可稍后从新任务重试。"
+        return {"message": msg, "next_action_code": "retry_run", "reason_code": "provider_temporarily_unavailable"}
+
     if http_code in (500, 502, 503, 504):
         msg = f"{label} 服务端临时故障（HTTP {http_code}），请稍后重试。"
         next_action = "retry_later"
@@ -197,7 +254,7 @@ class ProviderSnapshot:
     provider_kind: str = "deepseek_direct"
     provider_label: str = "DeepSeek 官方直连"
     provider_host: str = "api.deepseek.com"
-    model_id: str = "deepseek-v4-flash"
+    model_id: str = "qwen3.5-plus"
     paid_probe_performed: bool = False
     last_runtime_failure_code: str | None = None
     next_action_code: str = "ready"
@@ -232,6 +289,20 @@ def is_provider_probe_enabled() -> bool:
     return configured in ("true", "1", "yes", "on")
 
 
+def _open_with_retry(request: Request, timeout: float):
+    """对只读探测做一次网络层重试，平滑供应商边缘的间歇性握手失败。
+
+    只重试 URLError/OSError/TimeoutError 等网络问题；HTTP 状态错误（401/402/429/5xx）
+    与业务失败不重试，避免把鉴权失败误报成“短暂抖动”。两次都失败时仍由上层
+    归类为 provider_temporarily_unavailable，不改变诚实失败语义。
+    """
+    try:
+        return urlopen(request, timeout=timeout)
+    except (URLError, TimeoutError, OSError):
+        time.sleep(0.8)
+        return urlopen(request, timeout=timeout)
+
+
 def probe_provider(
     *,
     api_key: str | None = None,
@@ -252,8 +323,27 @@ def probe_provider(
 
     # 提取 API Key：优先使用传入参数，其次读取环境变量
     key = (api_key if api_key is not None else os.getenv("DEEPSEEK_API_KEY", "")).strip()
-    target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
-    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")).strip()
+    target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).strip()
+    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus")).strip()
+    base_url_error = provider_base_url_error(target_base_url)
+    if base_url_error is not None:
+        return ProviderSnapshot(
+            status="unavailable",
+            reason_code=base_url_error,
+            message=provider_base_url_error_message(base_url_error),
+            checked_at=_iso_now(),
+            expires_at=_iso_now(DEFAULT_PROBE_TTL_SECONDS),
+            source="probe",
+            stale=False,
+            provider_kind="openai_compatible_other",
+            provider_label="OpenAI 兼容网关",
+            provider_host="unknown",
+            model_id=target_model,
+            paid_probe_performed=False,
+            last_runtime_failure_code="MODEL_PROVIDER_BASE_URL_INVALID",
+            next_action_code="fix_provider_base_url",
+        )
+    target_base_url = target_base_url.rstrip("/")
     channel_info = classify_provider_channel(target_base_url)
     p_kind = channel_info["provider_kind"]
     p_label = channel_info["provider_label"]
@@ -293,7 +383,7 @@ def probe_provider(
             method="GET",
         )
         try:
-            with urlopen(balance_request, timeout=timeout) as response:
+            with _open_with_retry(balance_request, timeout=timeout) as response:
                 raw = response.read()
                 try:
                     balance_data = json.loads(raw.decode("utf-8"))
@@ -423,7 +513,7 @@ def probe_provider(
         method="GET",
     )
     try:
-        with urlopen(models_request, timeout=timeout) as response:
+        with _open_with_retry(models_request, timeout=timeout) as response:
             raw = response.read()
             try:
                 models_data = json.loads(raw.decode("utf-8"))
@@ -552,14 +642,16 @@ def get_provider_snapshot(*, force_refresh: bool = False) -> ProviderSnapshot:
 
     global _current_snapshot, _last_probe_timestamp
     target_base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    target_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
+    target_model = os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus").strip()
     channel_info = classify_provider_channel(target_base_url)
 
     if not is_provider_probe_enabled():
-        # 未开启主动探测不能被配置或历史成功记录提升为当前可运行状态；
-        # 仅保留最近一次真实失败，避免掩盖已知的鉴权或额度问题。
+        # 未开启主动探测时，配置本身或陈旧探测不能被提升为当前可运行状态。
+        # 但同一服务进程中刚完成的真实 Agent 调用是更强的运行时证据，必须
+        # 如实保留；否则结果页已 model_success 而状态栏仍显示“未验证”。
+        # 真实失败仍优先展示，避免成功记录掩盖后续鉴权/额度问题。
         with _lock:
-            if _current_snapshot is not None and _current_snapshot.source == "circuit_breaker":
+            if _current_snapshot is not None and _current_snapshot.source in ("live_run", "circuit_breaker"):
                 return _current_snapshot
         return ProviderSnapshot(
             status="unavailable",
@@ -655,7 +747,7 @@ def record_provider_success(model_id: str = "", base_url: str | None = None) -> 
     global _current_snapshot, _last_probe_timestamp
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
     channel_info = classify_provider_channel(target_base_url)
-    used_model = model_id or os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    used_model = model_id or os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus")
 
     with _lock:
         # 当真实 Agent 运行成功返回有效输出时，重置快照为就绪状态
@@ -685,7 +777,7 @@ def record_provider_failure(failure_code: str, message: str = "", base_url: str 
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
     channel_info = classify_provider_channel(target_base_url)
     guidance = get_provider_error_guidance(failure_code, base_url=target_base_url)
-    used_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    used_model = os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus")
 
     with _lock:
         # 立即写入熔断快照，使后续前端轮询能够及时感知到供应商不可用

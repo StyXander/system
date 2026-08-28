@@ -1,0 +1,1780 @@
+{
+  "schema_version": "competition_demo_cases_v1",
+  "frozen_at": "2026-08-24T10:16:15.108963+08:00",
+  "source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+  "generated_at": "2026-08-24T10:16:15.108963+08:00",
+  "case_count": 15,
+  "featured_case_ids": [
+    "STD_DEV_T0",
+    "CNINFO_000858_T0_20260430",
+    "CNINFO_600938_T0_20260326"
+  ],
+  "backup_candidate_case_ids": [
+    "CNINFO_600276_T0_20260325",
+    "CNINFO_601985_T0_20260429",
+    "CNINFO_000333_T0_20260330",
+    "CNINFO_000651_T0_20260428",
+    "CNINFO_600690_T0_20260326"
+  ],
+  "notes": [
+    "admission_status 仅允许在最终 HEAD 十项门槛全部复验后写为 passed。",
+    "historical_external_model_run 只是传输、Schema 与 Agent 技术链证据，不代表字段正确或专业效果已批准。",
+    "demo_focus 只说明讲解重点，不预写任何运行结论。"
+  ],
+  "cases": [
+    {
+      "case_id": "STD_DEV_T0",
+      "ticker": "600302",
+      "company_name": "西安标准工业股份有限公司（标准股份）",
+      "category": "featured",
+      "demo_focus": "完整主链",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": null,
+      "rule_ids": [
+        "R1",
+        "R2"
+      ],
+      "industry_family": null,
+      "source_fingerprint": "std-dev-t0-w2-v0.2",
+      "rag_index_version": null,
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "标准股份：标准股份2025年年度报告全文",
+          "disclosure_date": "2026-04-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225266733.PDF",
+          "page_count": null,
+          "byte_count": null,
+          "sha256": "CC52826B24EB54AC09784BAA31DCDC2F8E7B0FD165D0EA559E707124F219ED35",
+          "validation_status": "registered_local_pdf"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "标准股份：标准股份2024年年度报告全文（修订版）",
+          "disclosure_date": "2025-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-29/1223359539.PDF",
+          "page_count": null,
+          "byte_count": null,
+          "sha256": "4665665125EBA8B83504D1A2DA59A4083CD3E2FE158EC2B9466983EAB4C65A09",
+          "validation_status": "registered_local_pdf"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "标准股份：标准股份2023年年度报告",
+          "disclosure_date": "2024-04-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-18/1219646140.PDF",
+          "page_count": null,
+          "byte_count": null,
+          "sha256": "6BFF4D4084010EAB55FED5447CFFDC8DA14AD842064F072E83ACB811FD909C87",
+          "validation_status": "registered_local_pdf"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-276BBE96821C",
+        "route": "evidence_gap_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_full_analysis",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "A",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-F7BEF8DA5846",
+              "RUN-V7-3FC0FACC00A5",
+              "RUN-V7-B655B4D7EAEE"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-F7BEF8DA5846.json",
+              "backend\\runtime\\runs\\RUN-V7-3FC0FACC00A5.json",
+              "backend\\runtime\\runs\\RUN-V7-B655B4D7EAEE.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 10,
+        "local_passed_runs": 10,
+        "fresh_model_run_ids": [
+          "RUN-V7-F7BEF8DA5846",
+          "RUN-V7-3FC0FACC00A5",
+          "RUN-V7-B655B4D7EAEE"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "ticker": "000858",
+      "company_name": "五粮液",
+      "category": "featured",
+      "demo_focus": "风险候选案例",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-30",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "23e8c47641812cfc231f33efb08e10239b2e3749c41b8fcd4c7f1e9d83dc910b",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+          "page_count": 141,
+          "byte_count": 3085658,
+          "sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223311527.PDF",
+          "page_count": 147,
+          "byte_count": 7895552,
+          "sha256": "B737191A758994A35E9442D46847DE771FE48B758FEB9A7F35601DEF922435E7",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-29/1219873658.PDF",
+          "page_count": 150,
+          "byte_count": 4646198,
+          "sha256": "1AAB0EFBE751C145990AC9652C3AFF165452EE060BF22A0FE0412996A55E8566",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-FB8C69430CBE",
+        "route": "risk_candidate",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen_with_gaps",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "A",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-9A3AAA76DD82",
+              "RUN-V7-02026FD32B78",
+              "RUN-V7-61AFB3D23D2A"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-9A3AAA76DD82.json",
+              "backend\\runtime\\runs\\RUN-V7-02026FD32B78.json",
+              "backend\\runtime\\runs\\RUN-V7-61AFB3D23D2A.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 10,
+        "local_passed_runs": 10,
+        "fresh_model_run_ids": [
+          "RUN-V7-9A3AAA76DD82",
+          "RUN-V7-02026FD32B78",
+          "RUN-V7-61AFB3D23D2A"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "ticker": "600938",
+      "company_name": "中国海油",
+      "category": "featured",
+      "demo_focus": "能源行业案例",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-26",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "energy",
+      "source_fingerprint": "067812deae33db4916cc9be959052acd45e730306982912dedc073974dbe7021",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国海洋石油有限公司2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225036017.PDF",
+          "page_count": 236,
+          "byte_count": 1511001,
+          "sha256": "8B8B0577C0F38A5A1D54582ED64F233521A986CE27C805679C7846A1BB475606",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国海洋石油有限公司2024年年度报告",
+          "disclosure_date": "2025-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222929636.PDF",
+          "page_count": 244,
+          "byte_count": 1485912,
+          "sha256": "802B2139219C681FC2D7A3C9360CA9FF36DEFE4F54DEE9CF5E67336F42ED48CE",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国海洋石油有限公司2023年年度报告",
+          "disclosure_date": "2024-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-22/1219375212.PDF",
+          "page_count": 270,
+          "byte_count": 1793077,
+          "sha256": "D1D6DBA5B52882D7C6D9D46913EDB14378C8A32BC4E8E4DE794337BAA185E8F5",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-460C9D19DAAA",
+        "route": "industry_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "A",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-239EE70CE909",
+              "RUN-V7-2E809B188DD7",
+              "RUN-V7-244EEBCBCFCE"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-239EE70CE909.json",
+              "backend\\runtime\\runs\\RUN-V7-2E809B188DD7.json",
+              "backend\\runtime\\runs\\RUN-V7-244EEBCBCFCE.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 10,
+        "local_passed_runs": 10,
+        "fresh_model_run_ids": [
+          "RUN-V7-239EE70CE909",
+          "RUN-V7-2E809B188DD7",
+          "RUN-V7-244EEBCBCFCE"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_601857_T0_20260329",
+      "ticker": "601857",
+      "company_name": "中国石油",
+      "category": "能源与资源",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-29",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "energy",
+      "source_fingerprint": "ee3403f125fd6d9e7b35be987cc7d4762943151c79fdd8a2d85d35070232318e",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国石油天然气股份有限公司2025年年报",
+          "disclosure_date": "2026-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-30/1225049376.PDF",
+          "page_count": 273,
+          "byte_count": 9416509,
+          "sha256": "840B15AA4DC38745A6B86A3656063E6A73081CE87407ACB0CA93554F4E836E65",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国石油天然气股份有限公司2024年度报告",
+          "disclosure_date": "2025-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-31/1222962164.PDF",
+          "page_count": 280,
+          "byte_count": 11167845,
+          "sha256": "15A2DE01653CEEFA46FDD18A02A127F434F06DB02DA9EFB0B62C3A12A35A9BBA",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国石油天然气股份有限公司2023年度报告",
+          "disclosure_date": "2024-03-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-26/1219405975.PDF",
+          "page_count": 293,
+          "byte_count": 12437650,
+          "sha256": "B845502E533311280F89D59C2A92C67F94F2BE17451E51E55F93A1D52ABE6692",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-A5CBE84A13B9",
+        "route": "industry_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-82F3AC228BC6"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-82F3AC228BC6.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-82F3AC228BC6"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_600028_T0_20260322",
+      "ticker": "600028",
+      "company_name": "中国石化",
+      "category": "能源与资源",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-22",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "energy",
+      "source_fingerprint": "9d1960bcb53537690c64e85a2cdcfe6e26350ca9f80afb7b6e981975bad63f23",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国石化2025年度报告",
+          "disclosure_date": "2026-03-22",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+          "page_count": 239,
+          "byte_count": 13112821,
+          "sha256": "4B425D76E97F8C151D986A7F1E83AE2D4B22D43F89B950C352240A5AAFFEA329",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国石化2024年年度报告",
+          "disclosure_date": "2025-03-23",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-24/1222873281.PDF",
+          "page_count": 243,
+          "byte_count": 5484519,
+          "sha256": "DA8459D1DBD5D10CADC6FFE5D4F7D11F9935F148104D0DE6165EF2D6CC3E50E0",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国石化2023年年度报告",
+          "disclosure_date": "2024-03-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-25/1219392152.PDF",
+          "page_count": 248,
+          "byte_count": 9590240,
+          "sha256": "CB5001428BCAD173BCBF0B8F207501A8FE033614FF308D3FAF049B5EE7392614",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-45D05E9E3915",
+        "route": "industry_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-CC738A16A455"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-CC738A16A455.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-CC738A16A455"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_600900_T0_20260429",
+      "ticker": "600900",
+      "company_name": "长江电力",
+      "category": "能源与资源",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-29",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "energy",
+      "source_fingerprint": "00bd66776c993a64bb5eb29c539af56704ccc85017921559eb7b71fcef15b1bc",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "长江电力2025年年度报告",
+          "disclosure_date": "2026-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225262036.PDF",
+          "page_count": 259,
+          "byte_count": 1533692,
+          "sha256": "AA0CDB92E3AAD81B1E6454594A64CACBCFEB9013B10DD31F47A93A94E7A70F91",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "长江电力2024年年度报告",
+          "disclosure_date": "2025-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-30/1223421172.PDF",
+          "page_count": 262,
+          "byte_count": 1711311,
+          "sha256": "556767CA1F7C06BB679C827AA6522FF9927D2A63DC2AB64B57194FDC57192048",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "长江电力2023年年度报告",
+          "disclosure_date": "2024-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-30/1219922588.PDF",
+          "page_count": 265,
+          "byte_count": 1799710,
+          "sha256": "A32AA92211F533BEF9BD426A29158060D6BED4A31FCA6C9F6805FD8659C90D38",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-896997B79168",
+        "route": "risk_candidate",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-684E88DF0FBC"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-684E88DF0FBC.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-684E88DF0FBC"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_601899_T0_20260320",
+      "ticker": "601899",
+      "company_name": "紫金矿业",
+      "category": "能源与资源",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-20",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "energy",
+      "source_fingerprint": "37f22e7ada422e230b70385ac0ddc5f4b8b41b463755b954651aaf4c0eaa9164",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "紫金矿业集团股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-20",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-21/1225023658.PDF",
+          "page_count": 352,
+          "byte_count": 79925886,
+          "sha256": "01819E1C7DAAD939D1779A8AA729F50F02151192E609CB28C2C405634A8F343D",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "紫金矿业集团股份有限公司2024年年报报告",
+          "disclosure_date": "2025-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-22/1222870413.PDF",
+          "page_count": 379,
+          "byte_count": 32100114,
+          "sha256": "004F733E709BEEA878229AE02B80A952C543129037FC940AAF01B77DFA977A89",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "紫金矿业集团股份有限公司2023年年度报告",
+          "disclosure_date": "2024-03-22",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-23/1219390064.PDF",
+          "page_count": 377,
+          "byte_count": 15779180,
+          "sha256": "2007E9F79034AC154C5CDC066F8F9A1145BDB1CD5EF4A12287AB63A3DFA93268",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-4C8EE1E41FF8",
+        "route": "risk_candidate",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-82E4037B0089"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-82E4037B0089.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-82E4037B0089"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_002594_T0_20260327",
+      "ticker": "002594",
+      "company_name": "比亚迪",
+      "category": "汽车与装备制造",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-27",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "021d8ed32488c39152428b85a4e23a078d7f84678c203b98d3c26f2cc3d4a807",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-27",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225045351.PDF",
+          "page_count": 268,
+          "byte_count": 7533972,
+          "sha256": "710D8B2E08E37BA521F1C4071D2C3E2369D3CADABC21A45073215D9F72138B0B",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-25/1222881496.PDF",
+          "page_count": 290,
+          "byte_count": 10092140,
+          "sha256": "E9C2D7FDD088E151CCB6C8AD3D95587B2B014B10F2C9731508D23CE07FDE4DE3",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-27/1219412018.PDF",
+          "page_count": 266,
+          "byte_count": 9638124,
+          "sha256": "959B00A12055470A63962303D90557DCA90E84D104D92025AEB70805AA7CC036",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-041B91852A9A",
+        "route": "evidence_gap_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen_with_gaps",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-193AC1017DE4"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-193AC1017DE4.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-193AC1017DE4"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_300750_T0_20260309",
+      "ticker": "300750",
+      "company_name": "宁德时代",
+      "category": "汽车与装备制造",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-09",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "7c12b25c04d44dc9a6a5259c8c9b3317efbf8452d9a827e4fd6057eb8d67f035",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-09",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-10/1225002214.PDF",
+          "page_count": 232,
+          "byte_count": 2043710,
+          "sha256": "C15272977147DEE7E6935A38EA0E4FD6855370AABB106F54CFE20F7CF6048EC9",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-15/1222806982.PDF",
+          "page_count": 229,
+          "byte_count": 2070073,
+          "sha256": "B4F1713D7B821EB076C102711D177FE942CCC2BC8DD171AE5D7A95799A65B0AD",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-15",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-16/1219313047.PDF",
+          "page_count": 231,
+          "byte_count": 5986207,
+          "sha256": "6081F0377617DDDB82F900569D6458C278A7AB26697B34C87684188EAC083471",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-0FEB2BBF7D54",
+        "route": "evidence_gap_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen_with_gaps",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-CA458EFF13A9"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-CA458EFF13A9.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-CA458EFF13A9"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_600031_T0_20260330",
+      "ticker": "600031",
+      "company_name": "三一重工",
+      "category": "汽车与装备制造",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-30",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "f05ad6293593c4253718c939ab23eeef5ed9d805ad3e23c1cdac6a2fa2b423fa",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "三一重工股份有限公司2025年年度报告",
+          "disclosure_date": "2026-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225061378.PDF",
+          "page_count": 250,
+          "byte_count": 1682689,
+          "sha256": "D3F470600EC7D03FF9EB6257A74D1A07486406E02BEB55B1F2BAB5AAABB173E5",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "三一重工股份有限公司2024年年度报告",
+          "disclosure_date": "2025-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-18/1223129214.PDF",
+          "page_count": 255,
+          "byte_count": 5378376,
+          "sha256": "09B21DF2CEF24FD85B4EFA625579138241AE1DE4FA7AD4F2C9FCEF0C694A0D1A",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "三一重工股份有限公司2023年年度报告",
+          "disclosure_date": "2024-04-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-29/1219890100.PDF",
+          "page_count": 247,
+          "byte_count": 5222615,
+          "sha256": "4CAB0DA4413E97BECC91CAC969D4CD19DC0FB87D8645D750424E1BDF600EBEE9",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-FEEDA278B53A",
+        "route": "evidence_gap_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen_with_gaps",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-37B0D265444F"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-37B0D265444F.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-37B0D265444F"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_600519_T0_20260416",
+      "ticker": "600519",
+      "company_name": "贵州茅台",
+      "category": "消费、家电与科技制造",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-16",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "424cbf8aa99ea466c4243476667f6b2d25428dcbdc8c08ff747cd8986e2abf0d",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "贵州茅台2025年年度报告",
+          "disclosure_date": "2026-04-16",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-17/1225114741.PDF",
+          "page_count": 143,
+          "byte_count": 1082847,
+          "sha256": "474905DEEAF0F875FC0A1B097A626C0C7852C427FAADC5D7FC7816CBF45EA288",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "贵州茅台2024年年度报告",
+          "disclosure_date": "2025-04-02",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-03/1222993920.PDF",
+          "page_count": 143,
+          "byte_count": 3626217,
+          "sha256": "5299F4940E2CE4E91084B73DC457D558B9D335FA76FBFEE6227E4254EB7F4A30",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "贵州茅台2023年年度报告",
+          "disclosure_date": "2024-04-02",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-03/1219506510.PDF",
+          "page_count": 143,
+          "byte_count": 3563819,
+          "sha256": "2125FF97A452EA79B0D784E2432F7D224B6AECC330B644B593477D69E22F4ED1",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-D7921B497A54",
+        "route": "evidence_gap_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen_with_gaps",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-EF7258F2FBF3"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-EF7258F2FBF3.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-EF7258F2FBF3"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_002415_T0_20260417",
+      "ticker": "002415",
+      "company_name": "海康威视",
+      "category": "消费、家电与科技制造",
+      "demo_focus": "扩展行业覆盖",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-17",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "30c9a651754a50122fbf67309119cddce3550d612feaf7a07f3a3fe8d23b46c7",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-17",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123062.PDF",
+          "page_count": 263,
+          "byte_count": 17337277,
+          "sha256": "A805779EFB81BEA8158E119AD7C733C4669B8D492DC03C7613199970BFA4B8B2",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-19/1223153152.PDF",
+          "page_count": 272,
+          "byte_count": 12527217,
+          "sha256": "F1A8771D81D6ED723C4D1A7D552400CF408CCA4752033F5BBD0F88AE2729757B",
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-19",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-20/1219703072.PDF",
+          "page_count": 278,
+          "byte_count": 10136455,
+          "sha256": "258CD87781E0EA36F2E4E73521D8E6C4AB740612969102D2C31A6AC279F5F67F",
+          "validation_status": "passed"
+        }
+      ],
+      "historical_external_model_run": {
+        "run_id": "RUN-V7-64A362A57580",
+        "route": "evidence_gap_review",
+        "provider_call_count": 3,
+        "run_completeness": "complete_public_prescreen_with_gaps",
+        "evidence": "outputs/external_model_acceptance/current.json"
+      },
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-CE5C27607807"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-CE5C27607807.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-CE5C27607807"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_002475_T0_20260414",
+      "ticker": "002475",
+      "company_name": "立讯精密工业股份有限公司（立讯精密）",
+      "category": "消费、家电与科技制造",
+      "demo_focus": "消费电子精密制造",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-14",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "af44bddbf5be53b3c2ca66f081d106e41900aaf06ef1df5a1b1623a5253377d2",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-15/1225104908.PDF",
+          "sha256": "957556C331A237CC3235B63659E884C7E1E877B6460F06D5039159F1598E4E46",
+          "byte_count": 5000312,
+          "page_count": 309,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223326862.PDF",
+          "sha256": "E436B5AB1775CFA05AACB4A16DD8E5C6B89E926ED18A7A55A86728BAB6FCB1DA",
+          "byte_count": 1698863,
+          "page_count": 276,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-25/1219799516.PDF",
+          "sha256": "631D4D331124B052A1C0BF9B5E2414F53866EC9C595FD8D8C9047C8DD24F6B66",
+          "byte_count": 10427619,
+          "page_count": 260,
+          "validation_status": "passed"
+        }
+      ],
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-6D069E195A47"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-6D069E195A47.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-6D069E195A47"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_600104_T0_20260401",
+      "ticker": "600104",
+      "company_name": "上海汽车集团股份有限公司（上汽集团）",
+      "category": "汽车与装备制造",
+      "demo_focus": "整车制造销售",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-01",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "afcd99b4654520f2ad09a1261c394e40e9e900a310c282f1de4aed9b431e28d0",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "上汽集团2025年年度报告",
+          "disclosure_date": "2026-04-01",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-02/1225071780.PDF",
+          "sha256": "ACA3B701A1D6C2D59C8063801C579C0B1A589FD7D183E13146E4790CCE3D0874",
+          "byte_count": 1570114,
+          "page_count": 205,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "上汽集团2024年年度报告",
+          "disclosure_date": "2025-04-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-30/1223418977.PDF",
+          "sha256": "C980B2D827F372B5B90742E299D609345C83342584901C96EA95891C43F4AB3F",
+          "byte_count": 1577457,
+          "page_count": 219,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "上汽集团2023年年度报告",
+          "disclosure_date": "2024-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-30/1219463815.PDF",
+          "sha256": "4A2339816A97DC00B9196ED9D82B91373F1C3FC1F200313996B0605D74219E45",
+          "byte_count": 4796308,
+          "page_count": 214,
+          "validation_status": "passed"
+        }
+      ],
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-92D32E04AAD0"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-92D32E04AAD0.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-92D32E04AAD0"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    },
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "ticker": "600309",
+      "company_name": "万华化学集团股份有限公司（万华化学）",
+      "category": "能源与资源",
+      "demo_focus": "化工新材料化工销售",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-20",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "3c113f2f7be3197285fc9405d698ad4b3dd178c3be81d990b2333a0ede1028c4",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "万华化学2025年年度报告",
+          "disclosure_date": "2026-04-20",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-21/1225130793.PDF",
+          "sha256": "766717CC1A3B74221D4A20892B28152B3180EF5C63D683623E8A903EEBDDAC95",
+          "byte_count": 1664944,
+          "page_count": 229,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "万华化学2024年年度报告",
+          "disclosure_date": "2025-04-14",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-15/1223097325.PDF",
+          "sha256": "0C37E70C554609F4A22990FD97F3DA4EE92BB717E44D641AC7800083789D4DF7",
+          "byte_count": 4804744,
+          "page_count": 223,
+          "validation_status": "passed"
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "万华化学2023年年度报告",
+          "disclosure_date": "2024-03-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-19/1219331064.PDF",
+          "sha256": "64EB90A55396ADD030FAAA7A05996FDD5F0095C1C26F0F1309AB6F19522991F1",
+          "byte_count": 4647177,
+          "page_count": 224,
+          "validation_status": "passed"
+        }
+      ],
+      "admission_status": "passed",
+      "admission_evidence": {
+        "level": "B",
+        "gates": {
+          "G0": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json"
+          },
+          "G1": {
+            "status": "passed",
+            "evidence": "backend/competition_demo_cases.json#documents"
+          },
+          "G2": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#attempts"
+          },
+          "G3": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json#source_issues"
+          },
+          "G4": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/restart-audit.json#cold_start"
+          },
+          "G5": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/local-chain-regression.json"
+          },
+          "G6": {
+            "status": "passed",
+            "evidence": [
+              "RUN-V7-C9910613D1AD"
+            ]
+          },
+          "G7": {
+            "status": "passed",
+            "evidence": [
+              "backend\\runtime\\runs\\RUN-V7-C9910613D1AD.json"
+            ]
+          },
+          "G8": {
+            "status": "passed",
+            "evidence": "artifacts/competition-demo-batch7/browser/interaction-audit.json"
+          },
+          "G9": {
+            "status": "passed",
+            "evidence": [
+              "artifacts/competition-demo-batch7/recovery/recovery-audit.json",
+              "artifacts/competition-demo-batch7/restart-audit.json"
+            ]
+          }
+        },
+        "local_required_runs": 5,
+        "local_passed_runs": 5,
+        "fresh_model_run_ids": [
+          "RUN-V7-C9910613D1AD"
+        ],
+        "final_qa": "passed_batch7"
+      }
+    }
+  ],
+  "source_worktree_sha256": "6737CD41AE4072470669F6D90A21C5738FDF7C7028EFF4CB7B84868A0D668833"
+}

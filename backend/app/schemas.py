@@ -102,6 +102,22 @@ class RunRequest(BaseModel):
         return self
 
 
+class DemoRunCreateRequest(BaseModel):
+    """创建固定案例分阶段演示运行；后端返回 202 与 task_id，避免等待整次分析。"""
+
+    case_id: str = Field(min_length=3, max_length=40)
+    current_year: int = Field(description="本年年度；必须在所选案例的连续期间登记表中存在。")
+    scene: Literal["审计计划"] = "审计计划"
+    rule_ids: list[RuleId] = Field(default_factory=lambda: ["R1"])
+    run_mode: RunMode = "full_analysis"
+    planned_materiality: float | None = Field(default=None, ge=0)
+
+    @field_validator("case_id")
+    @classmethod
+    def normalize_case_id(cls, value: str) -> str:
+        return value.strip().upper()
+
+
 class ModelCheck(BaseModel):
     status: str
     model_id: str | None = None
@@ -166,6 +182,7 @@ class AgentOutput(AiGeneratedContentNotice):
     draft_title: str = Field(default="", max_length=200)
     draft_observation: str = Field(default="", max_length=1000)
     ai_recommendation: Literal["retain", "downgrade", "defer", "not_applicable"] | None = None
+    evidence_fitness_violations: list[dict[str, Any]] = Field(default_factory=list, max_length=8)
 
 
 class AgentStep(BaseModel):
@@ -183,6 +200,8 @@ class AgentStep(BaseModel):
     output_tokens: int | None = None
     provider_call_performed: bool = False
     provider_call_count: int = Field(default=0, ge=0)
+    # 每次真实调用只记录脱敏哈希、校验结果和用量；不保存模型原文。
+    model_attempt_history: list[dict[str, Any]] = Field(default_factory=list, max_length=4)
     output: AgentOutput | None = None
 
 

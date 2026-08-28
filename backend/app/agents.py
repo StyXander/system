@@ -86,6 +86,7 @@ from __future__ import annotations
 import hashlib
 from http.client import HTTPException as HTTPClientException
 import json
+import os
 import re
 import time
 from copy import deepcopy
@@ -96,7 +97,7 @@ from urllib.request import Request, urlopen
 from pydantic import ValidationError
 
 from .privacy import scan_sensitive_payload
-from .provider_readiness import get_provider_error_guidance
+from .provider_readiness import get_provider_error_guidance, provider_base_url_error, provider_base_url_error_message
 from .schemas import AgentOutput, AgentRole, AgentStep, RuleResult
 
 
@@ -125,6 +126,21 @@ ROUTE_ROLE_ALLOWED_STATUSES: dict[str, dict[AgentRole, list[str]]] = {
         "review": ["retain", "downgrade", "defer"],
     },
 }
+
+
+def _provider_timeout_seconds() -> float:
+    """读取单角色供应商超时；默认 120 秒并限制在 10—120 秒。
+
+    60 秒旧值在真实验收中仍会于 counter 的边界误杀正常慢响应。
+    延长等待不会放宽 Schema、证据或政策硬校验；达到完整等待窗口后
+    不再自动重复发出第二个可能仍在供应商端执行的昂贵请求。
+    """
+
+    try:
+        configured = float(os.getenv("AUDITTRACE_PROVIDER_TIMEOUT_SECONDS", "120"))
+    except (TypeError, ValueError):
+        configured = 120.0
+    return min(max(configured, 10.0), 120.0)
 ROUTE_CONCLUSIONS = {
     "risk_candidate": "risk_candidate",
     "negative_confirmation": "no_trigger_confirmed",
@@ -491,6 +507,12 @@ def compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, Any
                     "print_page": row.get("print_page"),
                     "excerpt": str(row.get("excerpt") or "")[:500],
                     "review_status": row.get("review_status") or row.get("source_review_status"),
+                    "fitness_class": row.get("fitness_class"),
+                    "allowed_claim_types": row.get("allowed_claim_types") or [],
+                    "source_category": row.get("source_category"),
+                    "claim_scope": row.get("claim_scope"),
+                    "boundary": row.get("boundary"),
+                    "retrieval_id": row.get("retrieval_id"),
                 }
             )
     return compact
@@ -509,6 +531,9 @@ def _system_prompt(role: AgentRole, analysis_route: str = "risk_candidate") -> s
 
 共同合同（所有角色必须遵守）：
 只使用用户消息中的规则计算结果和 evidence_bundle，不得搜索网页、使用公司记忆或补全未提供事实。
+analysis_context 中的 knowledge_retrieval_trace 只是受约束的程序/规范上下文：
+准则、审计准则和税收法规只能支持程序依据；处罚、交易所问询、行业报告、新闻和宏观指标只能作为类比或待验证背景；
+除当前案例年报且通过证据白名单的条目外，任何 KB-* 命中都不能证明当前企业事实，也不能替代页码回查。
 deterministic_constraints 是程序真值：strong_threshold_met=false 时不得写已达到强阈值；
 turnover_trend_available=false 时不得写周转或回款周期较上年延长/缩短；review 必须保留给出的口径与趋势局限。
 当 strong_threshold_met=false 时，任何角色的 claims、normal_explanations、reason_for_status、draft_observation
@@ -519,6 +544,10 @@ turnover_trend_available=false 时不得写周转或回款周期较上年延长/
 如果 evidence_bundle 为空，仍必须调用 submit_agent_output 完成三角色链；此时 claims 和 normal_explanations 必须为空，
 只能填写 data_gaps/requested_materials、路线允许的 analysis_conclusion 以及 review 的缺口草稿，绝不编造事实或 evidence_id。
 不得改写程序计算的数字、公式、页码、原文定位或规则触发结论。
+evidence_bundle 中的 fitness_class 和 allowed_claim_types 是程序编译的证据适配度边界：
+current_entity_primary_evidence 才能支持当前企业事实；authoritative_normative_basis 只能支持规范/程序依据；
+analogous_regulatory_or_industry_background 只能支持类比或待验证背景；unverified_background 不得进入 supported 主张。
+assertion_evidence_procedure_matrix 是程序生成的覆盖表，只能引用其状态和已登记 procedure_id，不得由模型新增认定或程序。
 为保证可复核和展示简洁：claims 只写1条；normal_explanations最多2条；data_gaps和requested_materials各最多3条；
 每条文字尽量不超过60个汉字，reason_for_status不超过100个汉字；不要整段复述证据。
 review 角色必须形成非空 draft_title、draft_observation 与 ai_recommendation；前两角色将两个草稿字段设为空字符串，ai_recommendation设为not_applicable，禁止使用null。
@@ -577,6 +606,10 @@ def _user_payload(
             "trend_limitation": (
                 (rule_result.risk_card or {}).get("trend_limitation") or ""
             ),
+            "knowledge_claim_boundary": (
+                "knowledge_retrieval_trace 仅支持程序/规范依据或待验证背景；"
+                "不得把监管、问询、行业、新闻、宏观命中写成当前企业事实。"
+            ),
         },
         "evidence_bundle": evidence_bundle,
         "evidence_mode": "empty_gap_only" if not allowed_evidence_ids else "evidence_bound",
@@ -601,6 +634,7 @@ def _user_payload(
             "当 strong_threshold_met=false 时只能写未达到、未证实或待核查，不得写达到、超过、触发强阈值。",
             "当 turnover_trend_available=false 时不得写跨年度周转或回款周期变化，只能写资料缺口或待验证假设。",
             "claims 只能使用 allowed_evidence_ids 中的 evidence_id，并且每条 claim 至少绑定一个 evidence_id。",
+            "遵守 fitness_class、allowed_claim_types 和 assertion_evidence_procedure_matrix；规范/类比来源不得证明当前企业事实。",
             "不得输出舞弊、违法、重大错报、审计意见或投资建议；不确定时使用 defer 和 additional_procedure_required。",
         ],
     }
@@ -698,6 +732,22 @@ def _normalize_unverified_explanations(output: AgentOutput) -> AgentOutput:
 
 def _semantic_failure_code(message: str) -> str:
     """将语义硬校验失败归类为稳定码，不把模型原文写入运行记录。"""
+    if "run_id、role或rule_id" in message:
+        return "MODEL_RUN_BINDING_ERROR"
+    if "角色状态不允许" in message or "只能返回candidate" in message or "反证角色状态不允许" in message:
+        return "MODEL_ROLE_STATUS_ERROR"
+    if "模型分析结论不允许" in message:
+        return "MODEL_ANALYSIS_CONCLUSION_ERROR"
+    if "至少保留一条模型主张" in message:
+        return "MODEL_CLAIMS_REQUIRED"
+    if "最终待核查草稿" in message:
+        return "MODEL_REVIEW_DRAFT_MISSING"
+    if "ai_recommendation必须与status一致" in message:
+        return "MODEL_REVIEW_RECOMMENDATION_MISMATCH"
+    if "模型主张必须由本次evidence_id支持" in message:
+        return "MODEL_CLAIM_SUPPORT_ERROR"
+    if "明确标为待验证假设" in message:
+        return "MODEL_HYPOTHESIS_LABEL_MISSING"
     if "强阈值" in message:
         return "MODEL_STRONG_THRESHOLD_CONTRADICTION"
     if "周转趋势" in message or "跨期趋势" in message:
@@ -709,6 +759,64 @@ def _semantic_failure_code(message: str) -> str:
     return "MODEL_SEMANTIC_VALIDATION_ERROR"
 
 
+# —— 肯定断言识别的共用工具 ——
+# 背景：2026-08-23 试评估中，中国建筑 B3 三次连续语义闸门失败（RUN-V7-DBE6AEB55341、
+# RUN-V7-225344592F9E、RUN-V7-0A0D3FD03EA1）。根因是旧正则只用紧邻的“未/不/尚”做
+# 否定判定，而缺口密集案会被提示词引导讨论阈值可评价性，模型写出“无法评估是否达到
+# 强阈值”这类正确的否定/存疑句时，“达到强阈值”前的字符是“否”，紧邻否定被绕过，
+# 整句被误判成肯定断言。这里改为小句级扫描：按句读和转折词切句后，只有当匹配点所在
+# 小句、且位于匹配点之前的片段既没有紧邻的“未/不/尚”，也没有“无法/是否/不足以”等
+# 否定或存疑引导词时，才认定为肯定断言。取舍：小句内靠前的存疑词会放过“虽然无法精
+# 确计算，粗略估计已超过强阈值”这类复合句；下游仍有人工复核与确定性 risk_card 兜
+# 底，而误拦的代价是整条三调用链失败关闭，两害相权取误拦更少的一侧。
+_POSITIVE_ASSERTION_DELIMITERS = re.compile(
+    r"[。；;！!？?\n]|但是?|然而|不过|却|因此|所以|因为|由于|而"
+)
+_NEGATION_OR_HEDGE_CUES = (
+    "无法", "未能", "不得", "不应", "不能", "不宜", "不足", "难以", "是否", "与否",
+    "没有", "未获", "不可", "并非", "并不", "尚未", "暂未", "不构成", "不代表",
+    "不表明", "不等于", "不排除", "存疑", "待核实", "待确认", "待验证", "待判断",
+)
+# “超”排在“超过”前是为了与旧正则保持同一匹配语义；命中位置由小句扫描统一裁决。
+_STRONG_THRESHOLD_PATTERN = re.compile(r"(?:超|达到|超过|高于|突破|触发)\s*强阈值")
+_TREND_CLAIM_PHRASES = (
+    "周转天数显著延长",
+    "周转天数延长",
+    "周转天数显著缩短",
+    "周转天数缩短",
+    "周转天数上升",
+    "周转天数下降",
+    "回款周期显著延长",
+    "回款周期延长",
+    "回款周期显著缩短",
+    "回款周期缩短",
+    "远超上年",
+    "较上年延长",
+    "较上年缩短",
+)
+_TREND_CLAIM_PATTERN = re.compile("|".join(re.escape(phrase) for phrase in _TREND_CLAIM_PHRASES))
+
+
+def _positive_assertion_found(text: str, pattern: re.Pattern[str]) -> bool:
+    """判断模型是否对 pattern 描述的事实作出了非否定的肯定断言。
+
+    “未达到强阈值”“无法评估是否达到强阈值”“尚不能认定达到强阈值”都含
+    “达到强阈值”字样但不是肯定断言，必须放行；“已超过强阈值”“增速差
+    超过强阈值”以及转折后的“字段缺失，但增速差已超过强阈值”必须拦截。
+    """
+    for clause in _POSITIVE_ASSERTION_DELIMITERS.split(text):
+        match = pattern.search(clause)
+        if not match:
+            continue
+        before = clause[: match.start()]
+        if before.endswith(("未", "不", "尚")):
+            continue
+        if any(cue in before for cue in _NEGATION_OR_HEDGE_CUES):
+            continue
+        return True
+    return False
+
+
 def _strict_tool_base_url(base_url: str) -> str:
     """Return the provider's tool-call base without inventing an endpoint suffix.
 
@@ -717,8 +825,19 @@ def _strict_tool_base_url(base_url: str) -> str:
     versioned ``/v1`` path, so appending ``/beta`` would turn a valid URL into a
     404.  This helper intentionally uses only the public URL shape; credentials
     never participate in endpoint selection.
+
+    配置错误（http 明文、带 /chat/completions 的完整请求地址、重复 /v1/v1、未知主机）
+    直接以稳定失败码 MODEL_PROVIDER_BASE_URL_INVALID 关闭，提示用户填写基础地址，
+    而不是把错误地址发送到供应商。
     """
-    normalized = base_url.rstrip("/")
+    normalized = base_url.strip()
+    base_url_error = provider_base_url_error(normalized)
+    if base_url_error is not None:
+        raise ToolArgumentsError(
+            "MODEL_PROVIDER_BASE_URL_INVALID",
+            provider_base_url_error_message(base_url_error),
+        )
+    normalized = normalized.rstrip("/")
     lowered = normalized.lower()
     if normalized.endswith("/beta") or normalized.endswith("/v1") or "/v1/" in normalized:
         return normalized
@@ -817,28 +936,14 @@ def _validate_deterministic_fact_language(output: AgentOutput, rule_result: Rule
     if rule_result.rule_id == "R1":
         strong_met = risk_card.get("screening_strength") == "strong"
         # Match positive assertions only.  A plain substring check would also
-        # reject the safe phrase “未达到强阈值”, because it contains “达到强阈值”.
-        strong_assertion = re.search(r"(?<!未)(?<!不)(?<!尚)(?:已)?(?:超|达到|超过|高于|突破|触发)\s*强阈值", joined)
-        if not strong_met and strong_assertion:
+        # reject the safe phrase “未达到强阈值”, because it contains “达到强阈值”;
+        # hedged clauses (“无法评估是否达到强阈值”) are handled the same way by
+        # the clause-scoped scan instead of adjacent-character lookbehinds.
+        if not strong_met and _positive_assertion_found(joined, _STRONG_THRESHOLD_PATTERN):
             raise ValueError("模型把未达到的R1强阈值写成已达到")
 
         trend_available = bool(rule_result.metrics.get("three_year_trend_available"))
-        trend_claim_phrases = (
-            "周转天数显著延长",
-            "周转天数延长",
-            "周转天数显著缩短",
-            "周转天数缩短",
-            "周转天数上升",
-            "周转天数下降",
-            "回款周期显著延长",
-            "回款周期延长",
-            "回款周期显著缩短",
-            "回款周期缩短",
-            "远超上年",
-            "较上年延长",
-            "较上年缩短",
-        )
-        if not trend_available and any(phrase in joined for phrase in trend_claim_phrases):
+        if not trend_available and _positive_assertion_found(joined, _TREND_CLAIM_PATTERN):
             raise ValueError("模型在周转趋势不可评价时作了跨期趋势判断")
 
         if output.role == "review":
@@ -903,7 +1008,7 @@ def _call_model(
         method="POST",
     )
     started = time.perf_counter()
-    with urlopen(request, timeout=35) as response:
+    with urlopen(request, timeout=_provider_timeout_seconds()) as response:
         raw = response.read()
     duration_ms = round((time.perf_counter() - started) * 1000)
     response_data = json.loads(raw.decode("utf-8"))
@@ -935,10 +1040,12 @@ def _call_model(
 
 def _call_model_with_transient_retry(
     *, api_key: str, base_url: str, model_id: str, role: AgentRole, payload: dict[str, Any], analysis_route: str
-) -> tuple[dict[str, Any], int, str, str, int | None, int | None, int]:
+) -> tuple[dict[str, Any], int, str, str, int | None, int | None, int, list[dict[str, Any]]]:
     """Retry one transient provider failure; classify permanent HTTP failures."""
 
+    transient_attempts: list[dict[str, Any]] = []
     for attempt in range(2):
+        attempt_started = time.perf_counter()
         try:
             result = _call_model(
                 api_key=api_key,
@@ -948,7 +1055,7 @@ def _call_model_with_transient_retry(
                 payload=payload,
                 analysis_route=analysis_route,
             )
-            return (*result, attempt + 1)
+            return (*result, attempt + 1, transient_attempts)
         except HTTPError as error:
             code = int(getattr(error, "code", 0) or 0)
             provider_message = _provider_error_message(error)
@@ -992,15 +1099,119 @@ def _call_model_with_transient_retry(
                     provider_call_count=attempt + 1,
                 ) from error
             time.sleep(1.5)
-        except (URLError, HTTPClientException, TimeoutError, OSError) as error:
+        except TimeoutError as error:
+            # 完整等待窗口已覆盖当前模型的正常慢响应区间。超时后立即
+            # 重发可能重复计费并让页面再等待两分钟，故交由新任务重试。
+            transient_attempts.append(
+                _attempt_record(
+                    attempt=attempt + 1,
+                    kind="provider_timeout",
+                    input_sha256=_json_hash(payload),
+                    response_sha256=None,
+                    duration_ms=round((time.perf_counter() - attempt_started) * 1000),
+                    input_tokens=None,
+                    output_tokens=None,
+                    validation="MODEL_PROVIDER_TIMEOUT",
+                )
+            )
+            setattr(error, "provider_call_count", attempt + 1)
+            setattr(error, "model_attempt_history", transient_attempts)
+            raise
+        except (URLError, HTTPClientException, OSError) as error:
+            transient_attempts.append(
+                _attempt_record(
+                    attempt=attempt + 1,
+                    kind="provider_retry",
+                    input_sha256=_json_hash(payload),
+                    response_sha256=None,
+                    duration_ms=round((time.perf_counter() - attempt_started) * 1000),
+                    input_tokens=None,
+                    output_tokens=None,
+                    validation="MODEL_PROVIDER_UNREACHABLE",
+                )
+            )
             if attempt == 1:
                 setattr(error, "provider_call_count", attempt + 1)
+                setattr(error, "model_attempt_history", transient_attempts)
                 raise
             time.sleep(1.5)
         except (json.JSONDecodeError, KeyError, IndexError, UnicodeDecodeError, TypeError, ValueError) as error:
             setattr(error, "provider_call_count", attempt + 1)
             raise
     raise RuntimeError("unreachable model retry state")
+
+
+SEMANTIC_REPAIR_FAILURE_CODES = {
+    "MODEL_STRONG_THRESHOLD_CONTRADICTION",
+    "MODEL_TREND_CONTRADICTION",
+    "MODEL_BASIS_LIMITATION_MISSING",
+    "MODEL_CAUSAL_EVIDENCE_ERROR",
+    "MODEL_SEMANTIC_VALIDATION_ERROR",
+    "MODEL_RUN_BINDING_ERROR",
+    "MODEL_ROLE_STATUS_ERROR",
+    "MODEL_ANALYSIS_CONCLUSION_ERROR",
+    "MODEL_CLAIMS_REQUIRED",
+    "MODEL_REVIEW_DRAFT_MISSING",
+    "MODEL_REVIEW_RECOMMENDATION_MISMATCH",
+    "MODEL_CLAIM_SUPPORT_ERROR",
+    "MODEL_HYPOTHESIS_LABEL_MISSING",
+}
+
+
+def _attempt_record(
+    *,
+    attempt: int,
+    kind: str,
+    input_sha256: str,
+    response_sha256: str | None,
+    duration_ms: int | None,
+    input_tokens: int | None,
+    output_tokens: int | None,
+    validation: str,
+) -> dict[str, Any]:
+    """保存一次调用的最小可审计信息，绝不保留模型原文。"""
+    return {
+        "attempt": attempt,
+        "kind": kind,
+        "input_sha256": input_sha256,
+        "response_sha256": response_sha256,
+        "duration_ms": duration_ms,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "validation": validation,
+    }
+
+
+_SEMANTIC_CORRECTION_HINTS = {
+    "MODEL_RUN_BINDING_ERROR": "run_id、role、rule_id 必须逐字复制 output_contract 中的值。",
+    "MODEL_ROLE_STATUS_ERROR": "status 只能从 output_contract.status_values_for_this_role 中选择。",
+    "MODEL_ANALYSIS_CONCLUSION_ERROR": "analysis_conclusion 只能从 allowed_analysis_conclusions 中选择。",
+    "MODEL_CLAIMS_REQUIRED": "证据非空时至少输出一条 claims，并引用 allowed_evidence_ids。",
+    "MODEL_REVIEW_DRAFT_MISSING": "review 必须输出非空 draft_title 与 draft_observation。",
+    "MODEL_REVIEW_RECOMMENDATION_MISMATCH": "review 的 ai_recommendation 必须与 status 完全相同。",
+    "MODEL_CLAIM_SUPPORT_ERROR": "每条 claims 的 support_status 必须为 supported，且 evidence_ids 非空。",
+    "MODEL_HYPOTHESIS_LABEL_MISSING": "unverified_hypothesis 的 text 必须包含“待验证假设”六字。",
+}
+
+
+def _semantic_correction_payload(payload: dict[str, Any], failure_code: str) -> dict[str, Any]:
+    """为语义矛盾生成一次不含原文的受控修正请求。"""
+    corrected = json.loads(json.dumps(payload, ensure_ascii=False))
+    failure_hint = _SEMANTIC_CORRECTION_HINTS.get(
+        failure_code,
+        "所有强阈值、趋势、口径、角色状态与证据引用必须逐项满足 output_contract。",
+    )
+    corrected["semantic_correction"] = {
+        "attempt": 1,
+        "previous_failure_code": failure_code,
+        "instruction": (
+            "上一轮工具输出违反 deterministic_constraints。不要复述上一轮答案，"
+            "请重新生成完整 submit_agent_output 参数；所有强阈值、趋势和口径限制"
+            "必须与 deterministic_constraints 完全一致。若证据不足，使用 defer 或待验证假设。"
+            f"本次失败项的修正要求：{failure_hint}"
+        ),
+    }
+    return corrected
 
 
 def run_agent_chain(
@@ -1015,8 +1226,14 @@ def run_agent_chain(
     before_role: Callable[[AgentRole], bool] | None = None,
     analysis_route: str = "risk_candidate",
     analysis_context: dict[str, Any] | None = None,
+    on_step: Callable[[AgentRole, AgentStep], bool] | None = None,
 ) -> list[AgentStep]:
-    """串行执行三角色；任一步失败即关闭AI草稿链，不生成伪造的后续角色答案。"""
+    """串行执行三角色；任一步失败即关闭AI草稿链，不生成伪造的后续角色答案。
+
+    on_step 在每一步（完成、失败或 skipped）结算后回调一次，返回 True 时继续
+    后续角色；回调可以用于把角色实时状态写进演示任务，但不得改写 AgentStep
+    内容或替模型补充输出。
+    """
     if not enabled:
         return [AgentStep(role="challenge", status="not_requested", detail="本次未请求三Agent调用。")]
     if not api_key:
@@ -1027,9 +1244,18 @@ def run_agent_chain(
     previous_outputs: dict[str, AgentOutput] = {}
     steps: list[AgentStep] = []
 
+    def push(step: AgentStep) -> None:
+        steps.append(step)
+        if on_step is not None:
+            try:
+                on_step(step.role, step)
+            except Exception:
+                # 进度回调是旁路观察；它的异常不得改写主链的真实失败/成功状态。
+                pass
+
     def append_skipped(role_index: int, reason: str) -> None:
         for skipped_role in ROLE_ORDER[role_index + 1 :]:
-            steps.append(
+            push(
                 AgentStep(
                     role=skipped_role,
                     status="skipped",
@@ -1047,7 +1273,7 @@ def run_agent_chain(
             except Exception:
                 authorized = False
             if not authorized:
-                steps.append(
+                push(
                     AgentStep(
                         role=role,
                         status="model_transfer_revoked",
@@ -1071,7 +1297,7 @@ def run_agent_chain(
         )
         input_sha256 = _json_hash(payload)
         try:
-            raw_output, duration_ms, response_sha256, _, input_tokens, output_tokens, provider_call_count = _call_model_with_transient_retry(
+            raw_output, duration_ms, response_sha256, _, input_tokens, output_tokens, provider_call_count, transient_attempts = _call_model_with_transient_retry(
                 api_key=api_key,
                 base_url=base_url,
                 model_id=model_id,
@@ -1079,6 +1305,19 @@ def run_agent_chain(
                 payload=payload,
                 analysis_route=analysis_route,
             )
+            attempt_history = [
+                *transient_attempts,
+                _attempt_record(
+                    attempt=provider_call_count,
+                    kind="original",
+                    input_sha256=input_sha256,
+                    response_sha256=response_sha256,
+                    duration_ms=duration_ms,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    validation="pending",
+                )
+            ]
         except ProviderCallError as error:
             status = (
                 "provider_quota_exhausted"
@@ -1087,7 +1326,7 @@ def run_agent_chain(
                 if error.failure_code == "MODEL_PROVIDER_REGION_OPT_IN_REQUIRED"
                 else "provider_unavailable"
             )
-            steps.append(
+            push(
                 AgentStep(
                     role=role,
                     status=status,
@@ -1104,24 +1343,30 @@ def run_agent_chain(
             append_skipped(role_index, "前一角色的供应商调用未完成，后续角色未调用。")
             break
         except (HTTPError, URLError, HTTPClientException, TimeoutError, OSError) as error:
-            steps.append(
+            timed_out = isinstance(error, TimeoutError)
+            push(
                 AgentStep(
                     role=role,
                     status="provider_unreachable",
                     failure_stage="provider",
-                    failure_code="MODEL_PROVIDER_UNREACHABLE",
+                    failure_code="MODEL_PROVIDER_TIMEOUT" if timed_out else "MODEL_PROVIDER_UNREACHABLE",
                     model_id=model_id,
                     prompt_version=PROMPT_VERSION,
-                    detail=f"模型调用失败：{type(error).__name__}",
+                    detail=(
+                        f"模型在 {_provider_timeout_seconds():.0f} 秒完整等待窗口内未返回；未自动重复请求，避免重复计费。"
+                        if timed_out
+                        else f"模型调用失败：{type(error).__name__}"
+                    ),
                     input_sha256=input_sha256,
                     provider_call_performed=True,
                     provider_call_count=max(1, int(getattr(error, "provider_call_count", 1))),
+                    model_attempt_history=list(getattr(error, "model_attempt_history", []))[:4],
                 )
             )
             append_skipped(role_index, "前一角色的模型请求失败，后续角色未调用。")
             break
         except json.JSONDecodeError as error:
-            steps.append(
+            push(
                 AgentStep(
                     role=role,
                     status="MODEL_OUTPUT_INVALID",
@@ -1142,7 +1387,7 @@ def run_agent_chain(
                 "MODEL_TOOL_RESPONSE_STRUCTURE_INVALID",
                 "模型工具调用响应缺少服务端所需的结构字段。",
             )
-            steps.append(
+            push(
                 AgentStep(
                     role=role,
                     status="MODEL_OUTPUT_INVALID",
@@ -1169,7 +1414,8 @@ def run_agent_chain(
                 analysis_route=analysis_route,
             )
         except ValidationError:
-            steps.append(
+            attempt_history[-1]["validation"] = "MODEL_SCHEMA_VALIDATION_ERROR"
+            push(
                 AgentStep(
                     role=role,
                     status="MODEL_OUTPUT_INVALID",
@@ -1185,6 +1431,7 @@ def run_agent_chain(
                     output_tokens=output_tokens,
                     provider_call_performed=True,
                     provider_call_count=provider_call_count,
+                    model_attempt_history=attempt_history,
                 )
             )
             append_skipped(role_index, "前一角色输出未通过服务端硬校验，后续角色未调用。")
@@ -1200,32 +1447,206 @@ def run_agent_chain(
             else:
                 failure_stage = "schema"
                 failure_code = _semantic_failure_code(message)
-            steps.append(
-                AgentStep(
-                    role=role,
-                    status="MODEL_OUTPUT_INVALID",
-                    failure_stage=failure_stage,
-                    failure_code=failure_code,
-                    model_id=model_id,
-                    prompt_version=PROMPT_VERSION,
-                    detail=f"模型输出未通过服务端硬校验：{failure_code}",
-                    input_sha256=input_sha256,
-                    response_sha256=response_sha256,
-                    duration_ms=duration_ms,
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
-                    provider_call_performed=True,
-                    provider_call_count=provider_call_count,
+            attempt_history[-1]["validation"] = failure_code
+            if failure_code in SEMANTIC_REPAIR_FAILURE_CODES:
+                correction_payload = _semantic_correction_payload(payload, failure_code)
+                correction_input_sha256 = _json_hash(correction_payload)
+                correction_response_sha256: str | None = None
+                correction_duration_ms: int | None = None
+                correction_input_tokens: int | None = None
+                correction_output_tokens: int | None = None
+                correction_call_count = 0
+                try:
+                    (
+                        correction_raw,
+                        correction_duration_ms,
+                        correction_response_sha256,
+                        _,
+                        correction_input_tokens,
+                        correction_output_tokens,
+                        correction_call_count,
+                        correction_transient_attempts,
+                    ) = _call_model_with_transient_retry(
+                        api_key=api_key,
+                        base_url=base_url,
+                        model_id=model_id,
+                        role=role,
+                        payload=correction_payload,
+                        analysis_route=analysis_route,
+                    )
+                    attempt_history.extend(correction_transient_attempts)
+                    output = validate_agent_output(
+                        correction_raw,
+                        run_id=run_id,
+                        role=role,
+                        rule_id=rule_result.rule_id,
+                        allowed_evidence_ids=allowed_evidence_ids,
+                        rule_result=rule_result,
+                        analysis_route=analysis_route,
+                    )
+                except ProviderCallError as correction_error:
+                    attempt_history.append(
+                        _attempt_record(
+                            attempt=2,
+                            kind="semantic_correction",
+                            input_sha256=correction_input_sha256,
+                            response_sha256=None,
+                            duration_ms=None,
+                            input_tokens=None,
+                            output_tokens=None,
+                            validation=correction_error.failure_code,
+                        )
+                    )
+                    push(
+                        AgentStep(
+                            role=role,
+                            status="provider_unavailable",
+                            failure_stage="provider",
+                            failure_code=correction_error.failure_code,
+                            model_id=model_id,
+                            prompt_version=PROMPT_VERSION,
+                            detail="语义修正调用未完成，原始语义错误未被放宽。",
+                            input_sha256=input_sha256,
+                            response_sha256=response_sha256,
+                            duration_ms=duration_ms,
+                            input_tokens=input_tokens,
+                            output_tokens=output_tokens,
+                            provider_call_performed=True,
+                            provider_call_count=provider_call_count + correction_error.provider_call_count,
+                            model_attempt_history=attempt_history,
+                        )
+                    )
+                    append_skipped(role_index, "前一角色的语义修正调用未完成，后续角色未调用。")
+                    break
+                except (HTTPError, URLError, HTTPClientException, TimeoutError, OSError) as correction_error:
+                    timed_out = isinstance(correction_error, TimeoutError)
+                    correction_attempts = list(getattr(correction_error, "model_attempt_history", []))
+                    if correction_attempts:
+                        attempt_history.extend(correction_attempts)
+                    else:
+                        attempt_history.append(
+                            _attempt_record(
+                                attempt=2,
+                                kind="semantic_correction",
+                                input_sha256=correction_input_sha256,
+                                response_sha256=None,
+                                duration_ms=None,
+                                input_tokens=None,
+                                output_tokens=None,
+                                validation="MODEL_PROVIDER_TIMEOUT" if timed_out else "MODEL_PROVIDER_UNREACHABLE",
+                            )
+                        )
+                    push(
+                        AgentStep(
+                            role=role,
+                            status="provider_unreachable",
+                            failure_stage="provider",
+                            failure_code="MODEL_PROVIDER_TIMEOUT" if timed_out else "MODEL_PROVIDER_UNREACHABLE",
+                            model_id=model_id,
+                            prompt_version=PROMPT_VERSION,
+                            detail=(
+                                f"语义修正调用在 {_provider_timeout_seconds():.0f} 秒内未返回，原始语义错误未被放宽。"
+                                if timed_out
+                                else "语义修正调用不可达，原始语义错误未被放宽。"
+                            ),
+                            input_sha256=input_sha256,
+                            response_sha256=response_sha256,
+                            duration_ms=duration_ms,
+                            input_tokens=input_tokens,
+                            output_tokens=output_tokens,
+                            provider_call_performed=True,
+                            provider_call_count=provider_call_count + max(1, int(getattr(correction_error, "provider_call_count", 1))),
+                            model_attempt_history=attempt_history[:4],
+                        )
+                    )
+                    append_skipped(role_index, "前一角色的语义修正调用失败，后续角色未调用。")
+                    break
+                except (ValidationError, ValueError, json.JSONDecodeError, KeyError, IndexError, UnicodeDecodeError, TypeError) as correction_error:
+                    correction_code = (
+                        _semantic_failure_code(str(correction_error))
+                        if isinstance(correction_error, ValueError)
+                        else "MODEL_SEMANTIC_CORRECTION_INVALID"
+                    )
+                    attempt_history.append(
+                        _attempt_record(
+                            attempt=2,
+                            kind="semantic_correction",
+                            input_sha256=correction_input_sha256,
+                            response_sha256=correction_response_sha256,
+                            duration_ms=correction_duration_ms,
+                            input_tokens=correction_input_tokens,
+                            output_tokens=correction_output_tokens,
+                            validation=correction_code,
+                        )
+                    )
+                    push(
+                        AgentStep(
+                            role=role,
+                            status="MODEL_OUTPUT_INVALID",
+                            failure_stage="schema",
+                            failure_code=correction_code,
+                            model_id=model_id,
+                            prompt_version=PROMPT_VERSION,
+                            detail="模型语义修正后仍未通过硬校验，未放宽原始约束。",
+                            input_sha256=input_sha256,
+                            response_sha256=response_sha256,
+                            duration_ms=duration_ms,
+                            input_tokens=input_tokens,
+                            output_tokens=output_tokens,
+                            provider_call_performed=True,
+                            provider_call_count=provider_call_count + max(1, correction_call_count),
+                            model_attempt_history=attempt_history,
+                        )
+                    )
+                    append_skipped(role_index, "前一角色输出未通过语义修正硬校验，后续角色未调用。")
+                    break
+                else:
+                    attempt_history.append(
+                        _attempt_record(
+                            attempt=2,
+                            kind="semantic_correction",
+                            input_sha256=correction_input_sha256,
+                            response_sha256=correction_response_sha256,
+                            duration_ms=correction_duration_ms,
+                            input_tokens=correction_input_tokens,
+                            output_tokens=correction_output_tokens,
+                            validation="passed",
+                        )
+                    )
+                    response_sha256 = correction_response_sha256
+                    duration_ms += correction_duration_ms
+                    input_tokens = (input_tokens or 0) + (correction_input_tokens or 0)
+                    output_tokens = (output_tokens or 0) + (correction_output_tokens or 0)
+                    provider_call_count += correction_call_count
+                # 修正成功时继续走敏感信息扫描与 completed 结算；原始失败留在 history。
+            else:
+                push(
+                    AgentStep(
+                        role=role,
+                        status="MODEL_OUTPUT_INVALID",
+                        failure_stage=failure_stage,
+                        failure_code=failure_code,
+                        model_id=model_id,
+                        prompt_version=PROMPT_VERSION,
+                        detail=f"模型输出未通过服务端硬校验：{failure_code}",
+                        input_sha256=input_sha256,
+                        response_sha256=response_sha256,
+                        duration_ms=duration_ms,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        provider_call_performed=True,
+                        provider_call_count=provider_call_count,
+                        model_attempt_history=attempt_history,
+                    )
                 )
-            )
-            append_skipped(role_index, "前一角色输出未通过服务端硬校验，后续角色未调用。")
-            break
+                append_skipped(role_index, "前一角色输出未通过服务端硬校验，后续角色未调用。")
+                break
         sensitive_output_findings = scan_sensitive_payload(output.model_dump(mode="json"))
         if sensitive_output_findings:
             finding_summary = "、".join(
                 f"{item['kind']}@{item['path']}" for item in sensitive_output_findings[:5]
             )
-            steps.append(
+            push(
                 AgentStep(
                     role=role,
                     status="MODEL_OUTPUT_INVALID",
@@ -1241,12 +1662,14 @@ def run_agent_chain(
                     output_tokens=output_tokens,
                     provider_call_performed=True,
                     provider_call_count=provider_call_count,
+                    model_attempt_history=attempt_history,
                 )
             )
             append_skipped(role_index, "前一角色输出命中高风险个人信息格式，后续角色未调用。")
             break
         previous_outputs[role] = output
-        steps.append(
+        attempt_history[-1]["validation"] = "passed"
+        push(
             AgentStep(
                 role=role,
                 status="completed",
@@ -1260,6 +1683,7 @@ def run_agent_chain(
                 output_tokens=output_tokens,
                 provider_call_performed=True,
                 provider_call_count=provider_call_count,
+                model_attempt_history=attempt_history,
                 output=output,
             )
         )

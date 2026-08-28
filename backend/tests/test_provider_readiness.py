@@ -220,6 +220,20 @@ def test_probe_disabled_is_unverified_and_never_ready(monkeypatch):
     assert snapshot.next_action_code == "enable_provider_probe_or_run_live"
 
 
+def test_probe_disabled_retains_real_live_run_success(monkeypatch):
+    """关闭主动探测不能抹掉同进程刚完成的真实调用证据。"""
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-live-run")
+    monkeypatch.delenv("AUDITTRACE_PROVIDER_PROBE_ENABLED", raising=False)
+
+    record_provider_success("deepseek-v4-flash", "https://opencode.ai/zen/go/v1")
+    snapshot = get_provider_snapshot()
+
+    assert snapshot.status == "ready"
+    assert snapshot.reason_code == "ready"
+    assert snapshot.source == "live_run"
+    assert snapshot.paid_probe_performed is True
+
+
 def test_circuit_breaker_record_failure_and_success(monkeypatch):
     monkeypatch.setenv("AUDITTRACE_PROVIDER_PROBE_ENABLED", "true")
     
@@ -304,6 +318,44 @@ def test_classify_provider_channel():
     assert other["provider_kind"] == "openai_compatible_other"
     assert "custom-gateway.corp.com" in other["provider_label"]
     assert other["provider_host"] == "custom-gateway.corp.com"
+
+
+def test_provider_base_url_validation_contract():
+    """基础地址形状校验：拒绝完整请求地址、http 明文、重复版本段与未知主机。"""
+    from backend.app.provider_readiness import (
+        provider_base_url_error,
+        provider_base_url_error_message,
+    )
+
+    assert provider_base_url_error("https://opencode.ai/zen/go/v1") is None
+    assert provider_base_url_error("https://api.deepseek.com") is None
+    assert provider_base_url_error("https://api.deepseek.com/") is None
+    assert provider_base_url_error("https://custom.gateway.example.com/v1") is None
+    assert provider_base_url_error("") == "provider_base_url_empty"
+    assert provider_base_url_error("https://opencode.ai/zen/go/v1/chat/completions") == "provider_base_url_invalid"
+    assert provider_base_url_error("https://example.com/v1/v1") == "provider_base_url_invalid"
+    assert provider_base_url_error("http://opencode.ai/zen/go/v1") == "provider_base_url_invalid"
+    assert provider_base_url_error("opencode.ai/zen/go/v1") == "provider_base_url_invalid"
+    assert provider_base_url_error("https://no-dot-host/v1") == "provider_base_url_invalid"
+    assert provider_base_url_error("https://opencode.ai/zen/go/v1?key=1") == "provider_base_url_invalid"
+    message = provider_base_url_error_message("provider_base_url_invalid")
+    assert "chat/completions" in message and "基础地址" in message
+
+
+def test_probe_provider_invalid_base_url_is_closed_without_network():
+    """基础地址配置错误时返回稳定码并给出中文引导，不发起任何网络请求。"""
+    with patch("backend.app.provider_readiness.urlopen") as mock_url:
+        snapshot = probe_provider(
+            api_key="sk-test-key",
+            base_url="https://opencode.ai/zen/go/v1/chat/completions",
+            model_id="deepseek-v4-flash-vision-exp",
+        )
+        assert snapshot.status == "unavailable"
+        assert snapshot.reason_code == "provider_base_url_invalid"
+        assert "chat/completions" in snapshot.message
+        assert snapshot.next_action_code == "fix_provider_base_url"
+        assert snapshot.last_runtime_failure_code == "MODEL_PROVIDER_BASE_URL_INVALID"
+        mock_url.assert_not_called()
 
 
 def test_get_provider_error_guidance():
