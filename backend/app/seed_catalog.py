@@ -88,6 +88,9 @@ def seed_rag_status(case: dict[str, Any]) -> dict[str, Any]:
     seed = case.get("seed_rag") if isinstance(case.get("seed_rag"), dict) else {}
     return {
         "status": "ready" if evidence else "not_built",
+        "source_status": "source_available" if evidence else "source_missing",
+        "index_status": "seed_snapshot" if evidence else "not_built",
+        "runtime_ready": bool(evidence),
         "case_id": case.get("case_id"),
         "company_name": case.get("company_name"),
         "index_version": seed.get("index_version"),
@@ -96,7 +99,7 @@ def seed_rag_status(case: dict[str, Any]) -> dict[str, Any]:
         "demo_excerpt_count": len(evidence),
         "built_at": seed.get("built_at"),
         "retrieval_mode": "tracked_demo_excerpts",
-        "boundary": "竞赛演示使用完整索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。",
     }
 
 

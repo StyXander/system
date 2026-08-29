@@ -4,6 +4,10 @@
 
 统一 AI 声明：AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。
 
+## 当前整改发布候选（2026-08-29）
+
+当前唯一发布候选为 `RELEASE-CANDIDATE-20260828-V1`，模型统一为 `deepseek-v4-flash`（DeepSeek 官方直连）；15 案由冻结 manifest 驱动，公开任务/结果/质量事件目标使用 Supabase，Render 保持免费 Web 执行。完成结果可跨刷新和重启读取，运行中实例中断后必须显式重跑。provider probe、真实 B3、专业签字、人工评分和最终批准仍为 pending；`configured` 不等于真实模型成功，当前不得写成正式效果提升。历史段落保留用于溯源。
+
 ## 2026-08-13 验收快照
 
 本轮源码仓库全量回归 **201 passed、1 warning、146.22s**；前端契约 **210 unique ids、369 refs、9 views**，JavaScript、CSS、Python 编译、中文说明比例 **1737/17325=10.03%** 和差异卫生检查通过。真实 FastAPI 与浏览器完成 1440×1000、1024×768、768×1024、390×844 四档视口及 9 个视图验收，console error、失败请求、文档横向溢出和 axe violation 均为 0；桌面和手机均实测 RAG prepare/retrieve 与仅计算运行。
@@ -98,7 +102,7 @@ GET  /api/industry-gates/{case_id}
 
 ## 自动化验证
 
-源码仓库当前一次性复验结果（2026-08-13）：**201 passed、1 warning、146.22s**；前端契约 **210 unique ids、369 refs、9 views**；`node --check assets/official-v4/app.js`、Python compileall、CSS 对比度和 `git diff --check` 均通过。中文说明性行检查：**1737/17325 = 10.03%**。
+2026-08-13 历史一次性复验（已由 2026-08-28 整改候选 supersede）：**201 passed、1 warning、146.22s**；前端契约 **210 unique ids、369 refs、9 views**；当时的前端语法命令已校正为当前入口 `node --check assets/official-v4/demo-app.js`。中文说明性行检查：**1737/17325 = 10.03%**。当前事实请读取 `README_RUN.md`、`PROJECT_STATUS.md` 和 `backend/release_records/`。
 
 ```powershell
 backend\.venv\Scripts\python.exe -m pytest backend\tests -q

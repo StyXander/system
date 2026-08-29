@@ -1,0 +1,1341 @@
+{
+  "meta": {
+    "evaluation_id": "EVAL-20260822-COMPETITION-8CASE-V2",
+    "created_at": "2026-08-22T05:39:46+00:00",
+    "status": "pending_human_freeze_signoff",
+    "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+    "supersedes": "EVAL-20260811-COMPETITION-8CASE-V1（只读保留）",
+    "immutable": "本文件存在即拒绝覆盖；后续变更新建评估编号"
+  },
+  "b0_b3_definitions": {
+    "B0": "人工仅查看字段和原文，自行判断",
+    "B1": "只使用确定性规则",
+    "B2": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体",
+    "B3": "确定性规则、RAG、三智能体和硬校验完整链"
+  },
+  "cases": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "company_name": "万科A",
+      "stratum": "strong_direct_candidate",
+      "t0": "2026-03-31",
+      "analysis_year": 2025,
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "5b946b6a5383bb1338e8b1e2",
+      "source_review_status": "cninfo_fields_candidate_pending_human_professional_confirmation",
+      "documents": [
+        {
+          "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-03-31",
+          "announcement_title": "2025年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225067794.PDF",
+          "sha256": "B2BEFC9DA2A9E09C798702C351E6AF65A4B148E32BAA07737B941EDC2CAF1EBA"
+        },
+        {
+          "document_id": "CNINFO-000002-2024-734370D32036",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-03-31",
+          "announcement_title": "2024年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-01/1222974139.PDF",
+          "sha256": "734370D32036C1A18716E42F2E96C0F6FFD8A48C1FE115ECDA945A09EB416AC0"
+        },
+        {
+          "document_id": "CNINFO-000002-2023-511A08955861",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-03-28",
+          "announcement_title": "2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219487237.PDF",
+          "sha256": "511A089558610E86605841F39B98F67993BD444C1E23018A204E704706882D0D"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "accounts_receivable_2025",
+          "field_kind": "accounts_receivable",
+          "year": 2025,
+          "value": 9519075011.05,
+          "unit": "元",
+          "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+          "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+          "pdf_page": 152,
+          "locator": "PDF 第 152 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2025",
+          "field_kind": "revenue",
+          "year": 2025,
+          "value": 233432768960.43,
+          "unit": "元",
+          "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2025",
+          "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+          "pdf_page": 10,
+          "locator": "PDF 第 10 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2024",
+          "field_kind": "accounts_receivable",
+          "year": 2024,
+          "value": 4.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024",
+          "document_id": "CNINFO-000002-2024-734370D32036",
+          "pdf_page": 151,
+          "locator": "PDF 第 151 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2024",
+          "field_kind": "revenue",
+          "year": 2024,
+          "value": 343176440712.96,
+          "unit": "元",
+          "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2024",
+          "document_id": "CNINFO-000002-2024-734370D32036",
+          "pdf_page": 11,
+          "locator": "PDF 第 11 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2023",
+          "field_kind": "accounts_receivable",
+          "year": 2023,
+          "value": 4.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2023",
+          "document_id": "CNINFO-000002-2023-511A08955861",
+          "pdf_page": 138,
+          "locator": "PDF 第 138 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2023",
+          "field_kind": "revenue",
+          "year": 2023,
+          "value": 465739076702.23,
+          "unit": "元",
+          "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2023",
+          "document_id": "CNINFO-000002-2023-511A08955861",
+          "pdf_page": 10,
+          "locator": "PDF 第 10 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/cache_seed.materialized.json 物化种子",
+      "case_payload_sha256": "29736f3ce4c37e88c182035fd7cc0868573ac92e8f62b20d3338eebea4321367"
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "company_name": "中国中铁",
+      "stratum": "standard_direct_candidate",
+      "t0": "2026-03-30",
+      "analysis_year": 2025,
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "ed7f47dc24b6577d73118e8f",
+      "source_review_status": "cninfo_fields_candidate_pending_human_professional_confirmation",
+      "documents": [
+        {
+          "document_id": "CNINFO-601390-2025-FE19F08FA3A0",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-03-30",
+          "announcement_title": "中国中铁2025年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225056528.PDF",
+          "sha256": "FE19F08FA3A075F492F1059CF7D58F5228ED791646AB654C26CD2EFC3261E6F2"
+        },
+        {
+          "document_id": "CNINFO-601390-2024-5BB53DC068F7",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-03-28",
+          "announcement_title": "中国中铁2024年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222946654.PDF",
+          "sha256": "5BB53DC068F7A708286ED562FEE24DFE2BDE2EB95555B4842F099C25407022E5"
+        },
+        {
+          "document_id": "CNINFO-601390-2023-0D07D4688724",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-03-28",
+          "announcement_title": "中国中铁2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219446628.PDF",
+          "sha256": "0D07D4688724959B70D5A90A33E21D45DBD78997E61F47A153B747F60C5F1802"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "accounts_receivable_2025",
+          "field_kind": "accounts_receivable",
+          "year": 2025,
+          "value": 288877597000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+          "document_id": "CNINFO-601390-2025-FE19F08FA3A0",
+          "pdf_page": 30,
+          "locator": "PDF 第 30 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2025",
+          "field_kind": "revenue",
+          "year": 2025,
+          "value": 1090626001000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601390_T0_20260330_REVENUE_2025",
+          "document_id": "CNINFO-601390-2025-FE19F08FA3A0",
+          "pdf_page": 9,
+          "locator": "PDF 第 9 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2024",
+          "field_kind": "accounts_receivable",
+          "year": 2024,
+          "value": 246194352000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+          "document_id": "CNINFO-601390-2024-5BB53DC068F7",
+          "pdf_page": 33,
+          "locator": "PDF 第 33 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2024",
+          "field_kind": "revenue",
+          "year": 2024,
+          "value": 1157439041000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601390_T0_20260330_REVENUE_2024",
+          "document_id": "CNINFO-601390-2024-5BB53DC068F7",
+          "pdf_page": 9,
+          "locator": "PDF 第 9 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2023",
+          "field_kind": "accounts_receivable",
+          "year": 2023,
+          "value": -5000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2023",
+          "document_id": "CNINFO-601390-2023-0D07D4688724",
+          "pdf_page": 141,
+          "locator": "PDF 第 141 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2023",
+          "field_kind": "revenue",
+          "year": 2023,
+          "value": 1260841083000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601390_T0_20260330_REVENUE_2023",
+          "document_id": "CNINFO-601390-2023-0D07D4688724",
+          "pdf_page": 8,
+          "locator": "PDF 第 8 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/cache_seed.materialized.json 物化种子",
+      "case_payload_sha256": "4625986e47de68e4b22f58afb37a4ee2e81ac988a3e6f566f84beadc19496b53"
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "company_name": "中国铁建",
+      "stratum": "strong_direct_candidate",
+      "t0": "2026-03-30",
+      "analysis_year": 2025,
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "0a8a3b63c4354f0aa464e634",
+      "source_review_status": "cninfo_fields_candidate_pending_human_professional_confirmation",
+      "documents": [
+        {
+          "document_id": "CNINFO-601186-2025-A1ABE921A1E9",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-03-30",
+          "announcement_title": "中国铁建2025年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225052234.PDF",
+          "sha256": "A1ABE921A1E9C543284469E31A2EAC2E39B7C6EAD597662836C870FD41E8B8A9"
+        },
+        {
+          "document_id": "CNINFO-601186-2024-464B0B97B8DF",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-03-28",
+          "announcement_title": "中国铁建2024年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222941013.PDF",
+          "sha256": "464B0B97B8DF5D10D2F4D3A593906021DC75F77A63ACE5C3003C054A4368CE43"
+        },
+        {
+          "document_id": "CNINFO-601186-2023-2FCBCC48C4D6",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-03-28",
+          "announcement_title": "中国铁建2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219444058.PDF",
+          "sha256": "2FCBCC48C4D69C1C01E8E134D6B3D4FE5AB6D4FD2C641D96AA57B437FE3775C8"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "accounts_receivable_2025",
+          "field_kind": "accounts_receivable",
+          "year": 2025,
+          "value": 241023952000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+          "document_id": "CNINFO-601186-2025-A1ABE921A1E9",
+          "pdf_page": 32,
+          "locator": "PDF 第 32 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2025",
+          "field_kind": "revenue",
+          "year": 2025,
+          "value": 1029784460000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601186_T0_20260330_REVENUE_2025",
+          "document_id": "CNINFO-601186-2025-A1ABE921A1E9",
+          "pdf_page": 9,
+          "locator": "PDF 第 9 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2024",
+          "field_kind": "accounts_receivable",
+          "year": 2024,
+          "value": 12000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+          "document_id": "CNINFO-601186-2024-464B0B97B8DF",
+          "pdf_page": 32,
+          "locator": "PDF 第 32 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2024",
+          "field_kind": "revenue",
+          "year": 2024,
+          "value": 1067171337000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601186_T0_20260330_REVENUE_2024",
+          "document_id": "CNINFO-601186-2024-464B0B97B8DF",
+          "pdf_page": 9,
+          "locator": "PDF 第 9 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2023",
+          "field_kind": "accounts_receivable",
+          "year": 2023,
+          "value": 155809067000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2023",
+          "document_id": "CNINFO-601186-2023-2FCBCC48C4D6",
+          "pdf_page": 33,
+          "locator": "PDF 第 33 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2023",
+          "field_kind": "revenue",
+          "year": 2023,
+          "value": 1137993486000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601186_T0_20260330_REVENUE_2023",
+          "document_id": "CNINFO-601186-2023-2FCBCC48C4D6",
+          "pdf_page": 10,
+          "locator": "PDF 第 10 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/cache_seed.materialized.json 物化种子",
+      "case_payload_sha256": "804163fed3ef81c9f7e8b24dafb893cf9a6a969c8214d1b72c120d7f60a24ee6"
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "stratum": "strong_direct_candidate",
+      "t0": "2026-04-30",
+      "analysis_year": 2025,
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "181e5e6d151b4e472d0eed99",
+      "source_review_status": "cninfo_fields_candidate_pending_human_professional_confirmation",
+      "documents": [
+        {
+          "document_id": "CNINFO-000858-2025-09133E1F44B3",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-04-30",
+          "announcement_title": "2025年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+          "sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4"
+        },
+        {
+          "document_id": "CNINFO-000858-2024-B737191A7589",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-04-25",
+          "announcement_title": "2024年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223311527.PDF",
+          "sha256": "B737191A758994A35E9442D46847DE771FE48B758FEB9A7F35601DEF922435E7"
+        },
+        {
+          "document_id": "CNINFO-000858-2023-1AAB0EFBE751",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-04-28",
+          "announcement_title": "2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-29/1219873658.PDF",
+          "sha256": "1AAB0EFBE751C145990AC9652C3AFF165452EE060BF22A0FE0412996A55E8566"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "accounts_receivable_2025",
+          "field_kind": "accounts_receivable",
+          "year": 2025,
+          "value": 37745419.51,
+          "unit": "元",
+          "evidence_id": "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "document_id": "CNINFO-000858-2025-09133E1F44B3",
+          "pdf_page": 18,
+          "locator": "PDF 第 18 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2025",
+          "field_kind": "revenue",
+          "year": 2025,
+          "value": 40528509770.23,
+          "unit": "元",
+          "evidence_id": "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "document_id": "CNINFO-000858-2025-09133E1F44B3",
+          "pdf_page": 7,
+          "locator": "PDF 第 7 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2024",
+          "field_kind": "accounts_receivable",
+          "year": 2024,
+          "value": 37346561.95,
+          "unit": "元",
+          "evidence_id": "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024",
+          "document_id": "CNINFO-000858-2024-B737191A7589",
+          "pdf_page": 18,
+          "locator": "PDF 第 18 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2024",
+          "field_kind": "revenue",
+          "year": 2024,
+          "value": 89175178322.7,
+          "unit": "元",
+          "evidence_id": "CNINFO_000858_T0_20260430_REVENUE_2024",
+          "document_id": "CNINFO-000858-2024-B737191A7589",
+          "pdf_page": 7,
+          "locator": "PDF 第 7 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2023",
+          "field_kind": "accounts_receivable",
+          "year": 2023,
+          "value": 42647461.48,
+          "unit": "元",
+          "evidence_id": "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2023",
+          "document_id": "CNINFO-000858-2023-1AAB0EFBE751",
+          "pdf_page": 19,
+          "locator": "PDF 第 19 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2023",
+          "field_kind": "revenue",
+          "year": 2023,
+          "value": 83272067317.19,
+          "unit": "元",
+          "evidence_id": "CNINFO_000858_T0_20260430_REVENUE_2023",
+          "document_id": "CNINFO-000858-2023-1AAB0EFBE751",
+          "pdf_page": 7,
+          "locator": "PDF 第 7 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/cache_seed.materialized.json 物化种子",
+      "case_payload_sha256": "bcd32e5fc5f2355e2f68fc51f35fd54aa856865e949203892a5c9fa9e9bf2451"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "西安标准工业股份有限公司（标准股份）",
+      "stratum": "rule_not_triggered",
+      "t0": "2026-04-30",
+      "analysis_year": 2025,
+      "available_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "source_snapshot_id": "std-dev-t0-w2-v0.2",
+      "source_review_status": "technical_crosscheck_pending_human_confirmation",
+      "documents": [
+        {
+          "document_id": "STD-AR-2025-CC52826B24EB",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-04-30",
+          "announcement_title": "标准股份：标准股份2025年年度报告全文",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225266733.PDF",
+          "sha256": "CC52826B24EB54AC09784BAA31DCDC2F8E7B0FD165D0EA559E707124F219ED35"
+        },
+        {
+          "document_id": "STD-AR-2024-4665665125EB",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-04-29",
+          "announcement_title": "标准股份：标准股份2024年年度报告全文（修订版）",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-29/1223359539.PDF",
+          "sha256": "4665665125EBA8B83504D1A2DA59A4083CD3E2FE158EC2B9466983EAB4C65A09"
+        },
+        {
+          "document_id": "STD-AR-2023-6BFF4D408401",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-04-18",
+          "announcement_title": "标准股份：标准股份2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-18/1219646140.PDF",
+          "sha256": "6BFF4D4084010EAB55FED5447CFFDC8DA14AD842064F072E83ACB811FD909C87"
+        },
+        {
+          "document_id": "STD-AR-2022-9A466F987E16",
+          "document_type": "annual_report",
+          "report_year": 2022,
+          "disclosure_date": "2023-04-19",
+          "announcement_title": "标准股份：标准股份2022年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2023-04-19/1216455382.PDF",
+          "sha256": "9A466F987E16948A06F3E6222E139E707A7D9F6C35A60DE7074C8545B02E7DE8"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "revenue_current",
+          "field_kind": "revenue",
+          "year": 2025,
+          "value": 337238620.57,
+          "unit": "元",
+          "evidence_id": "STD_REV_2025",
+          "document_id": "STD-AR-2025-CC52826B24EB",
+          "pdf_page": 64,
+          "locator": "合并利润表 / 本期金额列",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_previous",
+          "field_kind": "revenue",
+          "year": 2024,
+          "value": 446351660.77,
+          "unit": "元",
+          "evidence_id": "STD_REV_2024",
+          "document_id": "STD-AR-2024-4665665125EB",
+          "pdf_page": 67,
+          "locator": "合并利润表 / 本期金额列",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "ar_current",
+          "field_kind": "accounts_receivable",
+          "year": 2025,
+          "value": 176388063.66,
+          "unit": "元",
+          "evidence_id": "STD_AR_2025",
+          "document_id": "STD-AR-2025-CC52826B24EB",
+          "pdf_page": 59,
+          "locator": "合并资产负债表 / 期末余额列",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "ar_previous",
+          "field_kind": "accounts_receivable",
+          "year": 2024,
+          "value": 282866689.51,
+          "unit": "元",
+          "evidence_id": "STD_AR_2024",
+          "document_id": "STD-AR-2024-4665665125EB",
+          "pdf_page": 62,
+          "locator": "合并资产负债表 / 期末余额列",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "operating_cash_flow_current",
+          "field_kind": "operating_cash_flow",
+          "year": 2025,
+          "value": -32280442.49,
+          "unit": "元",
+          "evidence_id": "STD_CFO_2025",
+          "document_id": "STD-AR-2025-CC52826B24EB",
+          "pdf_page": 67,
+          "locator": "合并现金流量表 / 经营活动产生的现金流量净额 / 本期金额列",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "operating_cash_flow_previous",
+          "field_kind": "operating_cash_flow",
+          "year": 2024,
+          "value": 1570534.28,
+          "unit": "元",
+          "evidence_id": "STD_CFO_2024",
+          "document_id": "STD-AR-2024-4665665125EB",
+          "pdf_page": 71,
+          "locator": "合并现金流量表 / 经营活动产生的现金流量净额 / 本期金额列",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "net_profit_current",
+          "field_kind": "net_profit",
+          "year": 2025,
+          "value": -170193631.28,
+          "unit": "元",
+          "evidence_id": "STD_NP_2025",
+          "document_id": "STD-AR-2025-CC52826B24EB",
+          "pdf_page": 64,
+          "locator": "合并利润表 / 五、净利润 / 本期金额列",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/app/data.py 冻结注册表（W2 技术复核样例）",
+      "case_payload_sha256": "6414ae0b52be8055fb7e994f89dc7ff929f7f1be20102c24e4d1f984adfe82c3"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "stratum": "rule_not_triggered",
+      "t0": "2026-03-26",
+      "analysis_year": 2025,
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "72739e356fa47432b2e40e50",
+      "source_review_status": "cninfo_fields_candidate_pending_human_professional_confirmation",
+      "documents": [
+        {
+          "document_id": "CNINFO-600938-2025-8B8B0577C0F3",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-03-26",
+          "announcement_title": "中国海洋石油有限公司2025年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225036017.PDF",
+          "sha256": "8B8B0577C0F38A5A1D54582ED64F233521A986CE27C805679C7846A1BB475606"
+        },
+        {
+          "document_id": "CNINFO-600938-2024-802B2139219C",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-03-27",
+          "announcement_title": "中国海洋石油有限公司2024年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222929636.PDF",
+          "sha256": "802B2139219C681FC2D7A3C9360CA9FF36DEFE4F54DEE9CF5E67336F42ED48CE"
+        },
+        {
+          "document_id": "CNINFO-600938-2023-D1D6DBA5B528",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-03-21",
+          "announcement_title": "中国海洋石油有限公司2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-22/1219375212.PDF",
+          "sha256": "D1D6DBA5B52882D7C6D9D46913EDB14378C8A32BC4E8E4DE794337BAA185E8F5"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "accounts_receivable_2025",
+          "field_kind": "accounts_receivable",
+          "year": 2025,
+          "value": 32415000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2025",
+          "document_id": "CNINFO-600938-2025-8B8B0577C0F3",
+          "pdf_page": 120,
+          "locator": "PDF 第 120 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2025",
+          "field_kind": "revenue",
+          "year": 2025,
+          "value": 398220000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_600938_T0_20260326_REVENUE_2025",
+          "document_id": "CNINFO-600938-2025-8B8B0577C0F3",
+          "pdf_page": 10,
+          "locator": "PDF 第 10 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2024",
+          "field_kind": "accounts_receivable",
+          "year": 2024,
+          "value": 32918000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2024",
+          "document_id": "CNINFO-600938-2024-802B2139219C",
+          "pdf_page": 124,
+          "locator": "PDF 第 124 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2024",
+          "field_kind": "revenue",
+          "year": 2024,
+          "value": 420506000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_600938_T0_20260326_REVENUE_2024",
+          "document_id": "CNINFO-600938-2024-802B2139219C",
+          "pdf_page": 10,
+          "locator": "PDF 第 10 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2023",
+          "field_kind": "accounts_receivable",
+          "year": 2023,
+          "value": 36291000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2023",
+          "document_id": "CNINFO-600938-2023-D1D6DBA5B528",
+          "pdf_page": 148,
+          "locator": "PDF 第 148 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2023",
+          "field_kind": "revenue",
+          "year": 2023,
+          "value": 416609000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_600938_T0_20260326_REVENUE_2023",
+          "document_id": "CNINFO-600938-2023-D1D6DBA5B528",
+          "pdf_page": 10,
+          "locator": "PDF 第 10 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/cache_seed.materialized.json 物化种子",
+      "case_payload_sha256": "67341d66b95d9fa83c4a66be3dbc8cd999f57beeb9f8cd7142d852347bbf55bd"
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "company_name": "中国建筑",
+      "stratum": "conditional_industry",
+      "t0": "2026-04-17",
+      "analysis_year": 2025,
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_snapshot_id": "c2e093f5898fa212faab503c",
+      "source_review_status": "cninfo_fields_candidate_pending_human_professional_confirmation",
+      "documents": [
+        {
+          "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-04-17",
+          "announcement_title": "中国建筑股份有限公司2025年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123321.PDF",
+          "sha256": "BE7C5A9A87AF23F0F08405942C4159AAC7BE9DBB72C6979DA56B81E69F588815"
+        },
+        {
+          "document_id": "CNINFO-601668-2024-FB6F713453DA",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-04-15",
+          "announcement_title": "中国建筑股份有限公司2024年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-16/1223102350.PDF",
+          "sha256": "FB6F713453DA7DC53C12CB53653CEEF590E5CF503D721FAF16D9D9B3CDAF090D"
+        },
+        {
+          "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-04-18",
+          "announcement_title": "中国建筑股份有限公司2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-19/1219674825.PDF",
+          "sha256": "5E4E7E5DCF13B1E4D20EE52FD0F05872729F9BC9D86D08F49785F9400EA82DA8"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "accounts_receivable_2025",
+          "field_kind": "accounts_receivable",
+          "year": 2025,
+          "value": 415558761000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2025",
+          "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+          "pdf_page": 53,
+          "locator": "PDF 第 53 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "contract_assets_2025",
+          "field_kind": "contract_assets",
+          "year": 2025,
+          "value": 1436000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_CONTRACT_ASSETS_2025",
+          "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+          "pdf_page": 53,
+          "locator": "PDF 第 53 页：合同资产",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "contract_liabilities_2025",
+          "field_kind": "contract_liabilities",
+          "year": 2025,
+          "value": 1000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_CONTRACT_LIABILITIES_2025",
+          "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+          "pdf_page": 187,
+          "locator": "PDF 第 187 页：合同负债",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "long_term_receivables_2025",
+          "field_kind": "long_term_receivables",
+          "year": 2025,
+          "value": 2000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_LONG_TERM_RECEIVABLES_2025",
+          "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+          "pdf_page": 305,
+          "locator": "PDF 第 305 页：长期应收款",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2025",
+          "field_kind": "revenue",
+          "year": 2025,
+          "value": 2082141811000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2025",
+          "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+          "pdf_page": 13,
+          "locator": "PDF 第 13 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2024",
+          "field_kind": "accounts_receivable",
+          "year": 2024,
+          "value": 594000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2024",
+          "document_id": "CNINFO-601668-2024-FB6F713453DA",
+          "pdf_page": 52,
+          "locator": "PDF 第 52 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "contract_assets_2024",
+          "field_kind": "contract_assets",
+          "year": 2024,
+          "value": 12000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_CONTRACT_ASSETS_2024",
+          "document_id": "CNINFO-601668-2024-FB6F713453DA",
+          "pdf_page": 181,
+          "locator": "PDF 第 181 页：合同资产",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "contract_liabilities_2024",
+          "field_kind": "contract_liabilities",
+          "year": 2024,
+          "value": 1000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_CONTRACT_LIABILITIES_2024",
+          "document_id": "CNINFO-601668-2024-FB6F713453DA",
+          "pdf_page": 197,
+          "locator": "PDF 第 197 页：合同负债",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "long_term_receivables_2024",
+          "field_kind": "long_term_receivables",
+          "year": 2024,
+          "value": 2000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_LONG_TERM_RECEIVABLES_2024",
+          "document_id": "CNINFO-601668-2024-FB6F713453DA",
+          "pdf_page": 318,
+          "locator": "PDF 第 318 页：长期应收款",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2024",
+          "field_kind": "revenue",
+          "year": 2024,
+          "value": 2187147839000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2024",
+          "document_id": "CNINFO-601668-2024-FB6F713453DA",
+          "pdf_page": 13,
+          "locator": "PDF 第 13 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "accounts_receivable_2023",
+          "field_kind": "accounts_receivable",
+          "year": 2023,
+          "value": 473000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2023",
+          "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+          "pdf_page": 50,
+          "locator": "PDF 第 50 页：应收账款",
+          "field_basis": "net",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "contract_assets_2023",
+          "field_kind": "contract_assets",
+          "year": 2023,
+          "value": 12000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_CONTRACT_ASSETS_2023",
+          "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+          "pdf_page": 185,
+          "locator": "PDF 第 185 页：合同资产",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "contract_liabilities_2023",
+          "field_kind": "contract_liabilities",
+          "year": 2023,
+          "value": 10000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_CONTRACT_LIABILITIES_2023",
+          "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+          "pdf_page": 200,
+          "locator": "PDF 第 200 页：合同负债",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "long_term_receivables_2023",
+          "field_kind": "long_term_receivables",
+          "year": 2023,
+          "value": 12000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_LONG_TERM_RECEIVABLES_2023",
+          "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+          "pdf_page": 186,
+          "locator": "PDF 第 186 页：长期应收款",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "revenue_2023",
+          "field_kind": "revenue",
+          "year": 2023,
+          "value": 2265529244000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2023",
+          "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+          "pdf_page": 13,
+          "locator": "PDF 第 13 页：营业收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/cache_seed.materialized.json 物化种子",
+      "case_payload_sha256": "aff811e0d119c91079dd0ab1fcc48100eed04118e676edb999e4bc6cbe8ad42e"
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "company_name": "中国人寿",
+      "stratum": "industry_not_applicable",
+      "t0": "2026-03-25",
+      "analysis_year": 2025,
+      "available_years": [],
+      "source_snapshot_id": "42046f7004784286705deca9",
+      "source_review_status": "cninfo_fields_candidate_pending_human_professional_confirmation",
+      "documents": [
+        {
+          "document_id": "CNINFO-601628-2025-575A833FD7B8",
+          "document_type": "annual_report",
+          "report_year": 2025,
+          "disclosure_date": "2026-03-25",
+          "announcement_title": "中国人寿2025年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225030448.PDF",
+          "sha256": "575A833FD7B83AD3568483273645236EDDB751A92AB89F7E1C09105D92CEDB27"
+        },
+        {
+          "document_id": "CNINFO-601628-2024-3CC6DB9BBD9C",
+          "document_type": "annual_report",
+          "report_year": 2024,
+          "disclosure_date": "2025-03-26",
+          "announcement_title": "中国人寿2024年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-27/1222910598.PDF",
+          "sha256": "3CC6DB9BBD9C3C754548B6BE288BCEBAE7187E5264EBA59025237F5AA8C667E0"
+        },
+        {
+          "document_id": "CNINFO-601628-2023-5EA1048C3A93",
+          "document_type": "annual_report",
+          "report_year": 2023,
+          "disclosure_date": "2024-03-27",
+          "announcement_title": "中国人寿2023年年度报告",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219426152.PDF",
+          "sha256": "5EA1048C3A9323B37B1AD2E870DA0FB54D9CFACDFBA159AAD4B9BEC070EDC18A"
+        }
+      ],
+      "financial_fields": [
+        {
+          "field_id": "claims_expense_2025",
+          "field_kind": "claims_expense",
+          "year": 2025,
+          "value": 35000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_CLAIMS_EXPENSE_2025",
+          "document_id": "CNINFO-601628-2025-575A833FD7B8",
+          "pdf_page": 93,
+          "locator": "PDF 第 93 页：保险服务费用",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_liabilities_2025",
+          "field_kind": "insurance_liabilities",
+          "year": 2025,
+          "value": 311631000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_LIABILITIES_2025",
+          "document_id": "CNINFO-601628-2025-575A833FD7B8",
+          "pdf_page": 150,
+          "locator": "PDF 第 150 页：保险合同负债",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_revenue_2025",
+          "field_kind": "insurance_revenue",
+          "year": 2025,
+          "value": 30000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_REVENUE_2025",
+          "document_id": "CNINFO-601628-2025-575A833FD7B8",
+          "pdf_page": 93,
+          "locator": "PDF 第 93 页：保险服务收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_service_result_2025",
+          "field_kind": "insurance_service_result",
+          "year": 2025,
+          "value": -115455000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_SERVICE_RESULT_2025",
+          "document_id": "CNINFO-601628-2025-575A833FD7B8",
+          "pdf_page": 183,
+          "locator": "PDF 第 183 页：保险服务业绩",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "claims_expense_2024",
+          "field_kind": "claims_expense",
+          "year": 2024,
+          "value": -103907000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_CLAIMS_EXPENSE_2024",
+          "document_id": "CNINFO-601628-2024-3CC6DB9BBD9C",
+          "pdf_page": 176,
+          "locator": "PDF 第 176 页：赔付支出",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_liabilities_2024",
+          "field_kind": "insurance_liabilities",
+          "year": 2024,
+          "value": 333654000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_LIABILITIES_2024",
+          "document_id": "CNINFO-601628-2024-3CC6DB9BBD9C",
+          "pdf_page": 166,
+          "locator": "PDF 第 166 页：保险合同负债",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_revenue_2024",
+          "field_kind": "insurance_revenue",
+          "year": 2024,
+          "value": 35000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_REVENUE_2024",
+          "document_id": "CNINFO-601628-2024-3CC6DB9BBD9C",
+          "pdf_page": 100,
+          "locator": "PDF 第 100 页：保险服务收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_service_result_2024",
+          "field_kind": "insurance_service_result",
+          "year": 2024,
+          "value": -111708000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_SERVICE_RESULT_2024",
+          "document_id": "CNINFO-601628-2024-3CC6DB9BBD9C",
+          "pdf_page": 205,
+          "locator": "PDF 第 205 页：保险服务业绩",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "claims_expense_2023",
+          "field_kind": "claims_expense",
+          "year": 2023,
+          "value": 42000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_CLAIMS_EXPENSE_2023",
+          "document_id": "CNINFO-601628-2023-5EA1048C3A93",
+          "pdf_page": 108,
+          "locator": "PDF 第 108 页：赔付支出",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_liabilities_2023",
+          "field_kind": "insurance_liabilities",
+          "year": 2023,
+          "value": 4859175000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_LIABILITIES_2023",
+          "document_id": "CNINFO-601628-2023-5EA1048C3A93",
+          "pdf_page": 238,
+          "locator": "PDF 第 238 页：保险合同负债",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_revenue_2023",
+          "field_kind": "insurance_revenue",
+          "year": 2023,
+          "value": 212445000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_REVENUE_2023",
+          "document_id": "CNINFO-601628-2023-5EA1048C3A93",
+          "pdf_page": 239,
+          "locator": "PDF 第 239 页：保险服务收入",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        },
+        {
+          "field_id": "insurance_service_result_2023",
+          "field_kind": "insurance_service_result",
+          "year": 2023,
+          "value": -150353000000.0,
+          "unit": "元",
+          "evidence_id": "CNINFO_601628_T0_20260325_INSURANCE_SERVICE_RESULT_2023",
+          "document_id": "CNINFO-601628-2023-5EA1048C3A93",
+          "pdf_page": 239,
+          "locator": "PDF 第 239 页：保险服务费用",
+          "field_basis": "reported",
+          "human_review_status": "pending"
+        }
+      ],
+      "data_origin": "backend/cache_seed.materialized.json 物化种子",
+      "case_payload_sha256": "857c6c6bc31b57eabc27420a673084a3d24053d653a1d81017d8403ebf7ae064"
+    }
+  ],
+  "rules": {
+    "rule_ids": [
+      "R1"
+    ],
+    "r1_version": "r1_v0.4-draft",
+    "r1_status": "工程草案，待 A 成员/指导老师专业签署",
+    "threshold_defaults": {
+      "planned_materiality": null,
+      "r1_gap_threshold": 0.15,
+      "r1_strong_gap_threshold": 0.3,
+      "r1_absolute_threshold": 0.0,
+      "r2_min_gap": 0.0
+    },
+    "industry_gate": "industry_gate 按案例行业口径执行；行业不适用时返回 not_applicable 而非候选"
+  },
+  "model": {
+    "model_id": "deepseek-v4-flash",
+    "provider_kind": "opencode_go",
+    "provider_label": "OpenCode Go",
+    "api_key_present": true,
+    "api_key_value_included": false,
+    "prompt_version": "agent_prompt_v3",
+    "tool_schema": "角色专用 submit_agent_output 工具模式（不共用万能结构）",
+    "roles": [
+      "challenge",
+      "counter",
+      "review"
+    ],
+    "b2_calls_per_case": 1,
+    "b3_calls_per_case": 3
+  },
+  "rag": {
+    "index": "案例隔离 SQLite + FAISS",
+    "chunk_size": 900,
+    "chunk_overlap": 120,
+    "question_set_ids": [
+      "boundary",
+      "questions",
+      "review_status",
+      "version"
+    ],
+    "low_confidence_note_threshold": 0.5
+  },
+  "execution_rules": {
+    "b1": "仅确定性计算，0 次模型调用",
+    "b2": "确定性结果 + 一次单模型草稿；无 RAG、无三 Agent",
+    "b3": "确定性计算 + 冻结 RAG + Challenge/Counter/Review 三调用 + 硬校验",
+    "failure_policy": "结构超限、参数错误、事实闸门失败原样记失败；不自动裁剪；不把备用写成模型成功",
+    "retry_policy": "默认不重试；确需重试用新 attempt 编号与新哈希，原失败记录保留",
+    "change_policy": "模型、提示词、规则或输入任何变化必须新建评估编号",
+    "budget_cap": {
+      "input_tokens": 400000,
+      "output_tokens": 30000
+    },
+    "stop_conditions": [
+      "预算超限",
+      "任一硬校验失败且复现",
+      "案例来源指纹漂移",
+      "真人叫停"
+    ]
+  },
+  "governance": {
+    "evaluators": {
+      "required": 2,
+      "names": [
+        null,
+        null
+      ],
+      "note": "姓名由真人在此登记，AI 不代填"
+    },
+    "adjudicator": {
+      "required": 1,
+      "name": null,
+      "note": "总分差 >10 分且讨论不一致时裁决"
+    },
+    "blind_mapping": "B1/B2/B3 每案随机映射 X/Y/Z，密封保存，评分锁定后揭盲",
+    "b0_first": "评分人先完成全部 B0 并锁定后才可接触机器输出；提前看到机器结果则其 B0 作废",
+    "rubric": {
+      "dimensions": [
+        "证据可回查",
+        "事实准确",
+        "缺口完整",
+        "专业边界",
+        "工作可用性"
+      ],
+      "scale": "每维 0—20 分，五维合计 0—100",
+      "counts": [
+        "有效引用数",
+        "无支持事实断言数",
+        "标准缺口数/识别缺口数",
+        "完成用时（分钟）"
+      ]
+    },
+    "consents": {
+      "CNINFO_000002_T0_20260331": "pending_human_registration",
+      "CNINFO_601390_T0_20260330": "pending_human_registration",
+      "CNINFO_601186_T0_20260330": "pending_human_registration",
+      "CNINFO_000858_T0_20260430": "pending_human_registration",
+      "STD_DEV_T0": "pending_human_registration",
+      "CNINFO_600938_T0_20260326": "pending_human_registration",
+      "CNINFO_601668_T0_20260417": "pending_human_registration",
+      "CNINFO_601628_T0_20260325": "pending_human_registration"
+    },
+    "t1_policy": "后验 T1 或参考答案只在全部输出锁定后用于差异裁决，不提前进入模型或 B0",
+    "claims_boundary": "8 案配对结果不构成通用准确率声明，不写“B3 显著优于 B0”"
+  },
+  "integrity": {
+    "meta": "9bb39d91002a85981dd05b9fb206a9f5b2fd0fe943aa493cb7c133e8f130dc50",
+    "b0_b3_definitions": "c9c4ffb3bb7e3a729d063d1bfcd0e606bbb5f3887d3a1705e05c17c0b2daba25",
+    "cases": "530055415b374c734cdf36cae6de8a24245f6309c1873d226fbceaf9f5f9901d",
+    "rules": "6962b48b431b8efcf76e4bf1476a9854e4086473056b2db59d15ad3f3191495d",
+    "model": "add15529d40c1554be3bce0322a93f19aae1a45adc8fce6c1a47de724e222dcd",
+    "rag": "2e7813dac9c0cd85f6ecbc9238d060c4cc37cda7557929133371fbc24e94061e",
+    "execution_rules": "7752a807540dfd6e298afc86f0c36b787c8419fdc345e1ed4973b61da78370e7",
+    "governance": "1a6bff4dd0195a30ad67bca499de5462c68ca013e3921c9a63c329f312cfa814"
+  }
+}

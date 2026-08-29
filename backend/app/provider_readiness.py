@@ -72,10 +72,10 @@ def provider_base_url_error(base_url: str) -> str | None:
 def provider_base_url_error_message(error_code: str) -> str:
     """把基础地址错误码转成可操作的中文说明；不回显密钥或完整请求地址。"""
     if error_code == "provider_base_url_empty":
-        return "尚未配置 DEEPSEEK_BASE_URL；请在 .env 填写供应商基础地址，例如 https://opencode.ai/zen/go/v1。"
+        return "尚未配置 DEEPSEEK_BASE_URL；请在 .env 填写供应商基础地址，例如 https://api.deepseek.com。"
     return (
         "DEEPSEEK_BASE_URL 不是合法的 https 基础地址。请填写供应商基础地址"
-        "（例如 https://opencode.ai/zen/go/v1），不要填写以 /chat/completions 结尾的完整请求地址，"
+        "（例如 https://api.deepseek.com），不要填写以 /chat/completions 结尾的完整请求地址，"
         "也不要填写 http 明文或重复的 /v1/v1 版本段。"
     )
 
@@ -164,7 +164,7 @@ def get_provider_error_guidance(
         elif kind == "opencode_go":
             msg = (
                 "OpenCode Go 接口返回额度不足或付费限制（HTTP 402）。"
-                "请确认 API Key 属于当前有额度的工作区，并确认 DeepSeek V4 Flash 已在该工作区启用。"
+                "请确认 API Key 属于当前有额度的工作区，并确认 qwen3.5-plus 已在该工作区启用。"
             )
             next_action = "check_opencode_go_workspace_quota"
         elif kind == "opencode_zen":
@@ -254,7 +254,7 @@ class ProviderSnapshot:
     provider_kind: str = "deepseek_direct"
     provider_label: str = "DeepSeek 官方直连"
     provider_host: str = "api.deepseek.com"
-    model_id: str = "qwen3.5-plus"
+    model_id: str = "deepseek-v4-flash"
     paid_probe_performed: bool = False
     last_runtime_failure_code: str | None = None
     next_action_code: str = "ready"
@@ -324,7 +324,7 @@ def probe_provider(
     # 提取 API Key：优先使用传入参数，其次读取环境变量
     key = (api_key if api_key is not None else os.getenv("DEEPSEEK_API_KEY", "")).strip()
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).strip()
-    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus")).strip()
+    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")).strip()
     base_url_error = provider_base_url_error(target_base_url)
     if base_url_error is not None:
         return ProviderSnapshot(
@@ -523,7 +523,7 @@ def probe_provider(
             model_ids = {str(item.get("id") or "") for item in model_items if isinstance(item, dict)}
 
             # 若供应商返回了模型列表，且配置的模型既不在列表中也不是已知标准别名
-            known_aliases = {"deepseek-chat", "deepseek-reasoner", "deepseek-v4-flash", "deepseek-coder"}
+            known_aliases = {"qwen3.5-plus", "deepseek-chat", "deepseek-reasoner", "deepseek-v4-flash", "deepseek-coder"}
             if model_ids and target_model not in model_ids and target_model not in known_aliases:
                 # 检查是否存在包含关系的前缀匹配
                 has_match = any(target_model in mid or mid in target_model for mid in model_ids)
@@ -642,7 +642,7 @@ def get_provider_snapshot(*, force_refresh: bool = False) -> ProviderSnapshot:
 
     global _current_snapshot, _last_probe_timestamp
     target_base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    target_model = os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus").strip()
+    target_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
     channel_info = classify_provider_channel(target_base_url)
 
     if not is_provider_probe_enabled():
@@ -747,7 +747,7 @@ def record_provider_success(model_id: str = "", base_url: str | None = None) -> 
     global _current_snapshot, _last_probe_timestamp
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
     channel_info = classify_provider_channel(target_base_url)
-    used_model = model_id or os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus")
+    used_model = model_id or os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
 
     with _lock:
         # 当真实 Agent 运行成功返回有效输出时，重置快照为就绪状态
@@ -777,7 +777,7 @@ def record_provider_failure(failure_code: str, message: str = "", base_url: str 
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
     channel_info = classify_provider_channel(target_base_url)
     guidance = get_provider_error_guidance(failure_code, base_url=target_base_url)
-    used_model = os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus")
+    used_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
 
     with _lock:
         # 立即写入熔断快照，使后续前端轮询能够及时感知到供应商不可用

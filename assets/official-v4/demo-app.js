@@ -85,6 +85,10 @@
     completed: "处理完成",
     failed: "处理失败",
     cancelled: "已取消",
+    expired: "任务结果已过期",
+    TASK_RESULT_EXPIRED: "任务结果已过期",
+    TASK_INTERRUPTED_BY_INSTANCE_RESTART: "实例重启导致任务中断",
+    TASK_INTERRUPTED_BY_RESTART: "服务重启导致任务中断",
     cached_ready: "缓存资料已就绪",
     passed_technical_pending_human: "技术校验通过，建议人工复核",
     needs_human: "需要人工确认",
@@ -166,6 +170,7 @@
     fixedTask: {
       taskId: null,
       task: null,
+      retryOfTaskId: null,
       pollTimer: null,
       pollToken: 0,
       renderSignature: null,
@@ -202,6 +207,15 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
+  }
+
+  function safeHttpsUrl(value) {
+    try {
+      const parsed = new URL(String(value || ""), window.location.origin);
+      return parsed.protocol === "https:" ? parsed.href : "";
+    } catch (_error) {
+      return "";
+    }
   }
 
   function statusLabel(value) {
@@ -279,13 +293,6 @@
     try { window.sessionStorage.removeItem(key); } catch (_error) { /* 忽略 */ }
   }
 
-  function resetStageRail() {
-    [1, 2, 3, 4, 5, 6].forEach((stage) => {
-      setStageState(stage, null);
-      setStageNote(stage, "等待开始");
-    });
-  }
-
   function stopFixedTaskPolling() {
     demoState.fixedTask.pollToken += 1;
     if (demoState.fixedTask.pollTimer) {
@@ -327,11 +334,12 @@
     }
   }
 
-  function updateUrl() {
+  function updateUrl({ replace = true } = {}) {
     const url = new URL(window.location.href);
     url.search = "";
     if (demoState.caseId) url.searchParams.set("case", demoState.caseId);
-    window.history.replaceState(null, "", url);
+    if (replace) window.history.replaceState(null, "", url);
+    else window.history.pushState(null, "", url);
   }
 
   function currentCase() {
@@ -352,7 +360,7 @@
     start.textContent = phase === "running" ? "正在分析…" : "开始审计预筛";
     cancel.hidden = phase !== "running" || !demoState.fixedTask.taskId;
     cancel.disabled = Boolean(cancel.dataset.busy === "true");
-    reset.hidden = !(phase === "success" || phase === "degraded" || phase === "failed_run" || phase === "failed" || phase === "interrupted" || phase === "cancelled");
+    reset.hidden = !(phase === "success" || phase === "degraded" || phase === "failed_run" || phase === "failed" || phase === "interrupted" || phase === "cancelled" || phase === "expired");
     const locked = phase === "running";
     document.querySelectorAll("#demo-featured-cases .demo-case-card").forEach((card) => {
       card.disabled = locked;
@@ -446,7 +454,12 @@
     const reports = bootstrap.cases.reduce((total, item) => total + (item.report_years?.length || 0), 0);
     byId("demo-fact-reports").textContent = String(reports);
     const ragReady = bootstrap.cases.filter((item) => item.rag?.status === "ready").length;
-    byId("demo-fact-rag").textContent = String(ragReady);
+    const ragSourceReady = bootstrap.cases.filter((item) => item.rag?.source_status === "source_available").length;
+    const ragRuntimeReady = bootstrap.cases.filter((item) => item.rag?.runtime_ready === true).length;
+    byId("demo-fact-rag-source").textContent = `${ragSourceReady}/${bootstrap.case_count || 0}`;
+    const ragFact = byId("demo-fact-rag");
+    ragFact.textContent = String(ragReady);
+    ragFact.title = `冻结检索材料 ${ragSourceReady}/${bootstrap.case_count || 0}；当前运行时可检索 ${ragRuntimeReady}/${bootstrap.case_count || 0}。`;
     const readiness = bootstrap.model_readiness || {};
     const modelFact = byId("demo-fact-model");
     modelFact.textContent = readiness.full_analysis_ready ? "真实模型可运行" : "降级可用";
@@ -489,7 +502,7 @@
   function renderTechVersions() {
     const versions = demoState.bootstrap?.versions || {};
     const readiness = demoState.bootstrap?.model_readiness || {};
-    byId("demo-tech-llm").textContent = `${readiness.provider_label || "DeepSeek-compatible API"} · ${readiness.model_id || "模型以运行记录为准"}`;
+    byId("demo-tech-llm").textContent = `${readiness.provider_label || "DeepSeek 官方直连"} · ${readiness.model_id || "deepseek-v4-flash"}`;
     byId("demo-tech-versions").textContent = `工程 ${versions.engine || "—"} · 规则 ${versions.r1 || "—"} / ${versions.r2 || "—"} · RAG ${versions.rag_index || "—"} · Prompt ${versions.agent_prompt || "—"} · 输出 ${versions.agent_output || "—"}`;
   }
 
@@ -543,7 +556,7 @@
     trace.slice(0, 8).forEach((item) => {
       const li = document.createElement("li");
       const officialUrl = String(item.official_url || "");
-      const link = officialUrl ? `<a href="${escapeHtml(officialUrl)}" target="_blank" rel="noopener">打开官方来源</a>` : "";
+      const link = safeHttpsUrl(officialUrl) ? `<a href="${escapeHtml(safeHttpsUrl(officialUrl))}" target="_blank" rel="noopener noreferrer">打开官方来源</a>` : "";
       li.innerHTML = `<strong>知识命中 · ${escapeHtml(item.publisher || "—")} · ${escapeHtml(CATEGORY_SHORT[item.source_category] || item.source_category || "—")}</strong><span>${escapeHtml(item.locator || "官方来源登记条目；请回到原文核验。")} ${link}</span><small>${escapeHtml(String(item.retrieval_id || ""))} · ${escapeHtml(String(item.source_id || ""))} · 快照 ${escapeHtml(String(item.snapshot_id || "—"))} · ${escapeHtml(officialUrl)}</small><small>可支持：${escapeHtml(item.claim_scope || "—")}；边界：${escapeHtml(item.boundary || "—")}</small>`;
       list.append(li);
       rendered.push(item.source_id);
@@ -827,7 +840,7 @@
     summary.innerHTML = `<h4 id="demo-supplement-summary-title">补充证据前后差异（父运行 → 子运行）</h4><dl>${fields.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join("")}</dl>`;
   }
 
-  function selectDemoCase(caseId) {
+  function selectDemoCase(caseId, { fromHistory = false } = {}) {
     if (demoState.phase === "running") return;
     if (!demoState.caseIndex.has(caseId)) {
       showToast("未知案例，已回退默认案例。", "warning");
@@ -838,6 +851,7 @@
     // 切换案例前清空上一案例的结果、证据与错误状态，避免跨案例串线。
     abortActiveRun();
     demoState.caseId = caseId;
+    demoState.fixedTask.retryOfTaskId = null;
     demoState.run = null;
     demoState.outcome = null;
     safeStorageSet(CASE_STORAGE_KEY, caseId);
@@ -846,7 +860,7 @@
     renderCurrentCase();
     renderFeaturedCases();
     renderAllCasesDrawer();
-    updateUrl();
+    updateUrl({ replace: fromHistory });
     if (demoState.phase !== "booting") {
       setPhase("ready");
       setGate("neutral", "已选择案例", "点击“开始审计预筛”后系统才会创建运行；选择案例本身不下载 PDF、不构建索引、不调用模型。");
@@ -903,7 +917,9 @@
     // 真实模型链成功：模型通过硬校验且完整性为非回退的完成态。
     // 公开财报预筛路线的完成标签是 complete_public_prescreen*，与 complete_full_analysis 同级。
     const completedHonest = completeness.startsWith("complete_") && !completeness.includes("fallback");
-    if (modelStatus === "model_success" && completedHonest && executionMode !== "cache_replay") {
+    const cacheReplay = executionMode === "cache_replay" || run.model_check?.cache_hit === true;
+    const deterministicFallback = executionMode === "deterministic_backup" || modelStatus === "demo_fallback";
+    if (modelStatus === "model_success" && completedHonest && !cacheReplay && !deterministicFallback && Number(run.provider_call_count || 0) > 0) {
       return "success";
     }
     // 确定性结果可见但模型链未完成：明确降级，不冒充成功。
@@ -915,6 +931,7 @@
     const caseItem = currentCase();
     if (!caseItem) return;
     const year = Math.max(...(caseItem.report_years || [2025]).map(Number));
+    const retryOfTaskId = demoState.fixedTask.retryOfTaskId;
     const button = byId("demo-start");
     button.disabled = true;
     button.textContent = "正在分析…";
@@ -936,14 +953,18 @@
     try {
       const response = await fetch(`${API_BASE}/api/demo/runs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": window.crypto?.randomUUID ? window.crypto.randomUUID() : `demo-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        },
         body: JSON.stringify({
           case_id: caseItem.case_id,
           current_year: year,
           scene: "审计计划",
           rule_ids: caseItem.rule_ids?.length ? caseItem.rule_ids : ["R1"],
           run_mode: "full_analysis",
+          ...(retryOfTaskId ? { retry_of_task_id: retryOfTaskId } : {}),
         }),
       });
       if (!response.ok) {
@@ -953,6 +974,7 @@
       const payload = await response.json();
       const taskId = payload.task_id;
       demoState.fixedTask.taskId = taskId;
+      demoState.fixedTask.retryOfTaskId = null;
       demoState.fixedTask.task = { task_id: taskId, status: payload.status, stage_schema_version: payload.stage_schema_version, steps: payload.steps || {}, agent_steps: payload.agent_steps || {} };
       demoState.fixedTask.pollToken += 1;
       safeSessionSet(DEMO_TASK_STORAGE_KEY, JSON.stringify({ task_id: taskId, case_id: demoState.caseId }));
@@ -1000,6 +1022,12 @@
     if (!taskId || token !== demoState.fixedTask.pollToken) return;
     try {
       const response = await fetch(`${API_BASE}/api/demo/runs/${encodeURIComponent(taskId)}`, { credentials: "include" });
+      if (response.status === 404) {
+        safeSessionRemove(DEMO_TASK_STORAGE_KEY);
+        demoState.fixedTask.taskId = null;
+        renderDemoFailure("TASK_NOT_FOUND", "任务已不存在", "后端没有找到该任务；页面已停止轮询，请重新创建演示任务。", { retry: true });
+        return;
+      }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const task = await response.json();
       if (token !== demoState.fixedTask.pollToken) return;
@@ -1026,10 +1054,21 @@
   async function renderFixedTaskFinal(task) {
     try {
       let run = task?.result;
-      if (["cancelled", "interrupted", "failed"].includes(task?.status)) {
+      if (["cancelled", "interrupted", "failed", "expired"].includes(task?.status)) {
         clearResultDisplay();
-        const label = task.status === "cancelled" ? "任务已取消" : task.status === "interrupted" ? "任务因服务重启中断" : "任务失败，未形成结构化结果";
-        setGate(task.status === "failed" ? "danger" : "warning", label, task.error || task.failure_code || "后续阶段已跳过，结果接口拒绝导出。");
+        const label = task.status === "cancelled"
+          ? "任务已取消"
+          : task.status === "interrupted"
+            ? "任务因服务重启中断"
+            : task.status === "expired"
+              ? "任务结果已过期"
+              : "任务失败，未形成结构化结果";
+        const detail = task.status === "interrupted"
+          ? `${task.error || "运行中 Web 实例已停止，未自动重放模型调用。"}；旧任务 ${task.task_id || "—"} 已保留，请点击重置后创建新任务。`
+          : task.status === "expired"
+            ? "结果超过公开保留期（默认 7 天），原始正文已按策略清理；请创建新任务。"
+            : (task.error || task.failure_code || "后续阶段已跳过，结果接口拒绝导出。");
+        setGate(task.status === "failed" ? "danger" : "warning", label, detail);
         if (SUPPLEMENT_STATE.parentRun) {
           const status = byId("demo-supplement-status");
           status.hidden = false;
@@ -1038,12 +1077,22 @@
           SUPPLEMENT_STATE.parentRun = null;
         }
         demoState.outcome = task.status;
+        demoState.fixedTask.retryOfTaskId = task.task_id || null;
         safeSessionRemove(DEMO_TASK_STORAGE_KEY);
         setPhase(task.status);
         return;
       }
       if (!run) {
         const response = await fetch(`${API_BASE}/api/demo/runs/${encodeURIComponent(task.task_id)}/result`, { credentials: "include" });
+        if (response.status === 404) {
+          safeSessionRemove(DEMO_TASK_STORAGE_KEY);
+          renderDemoFailure("TASK_NOT_FOUND", "任务已不存在", "后端没有找到该任务；页面已停止轮询，请重新创建演示任务。", { retry: true });
+          return;
+        }
+        if (response.status === 410) {
+          await renderFixedTaskFinal({ ...task, status: "expired", failure_code: "TASK_RESULT_EXPIRED" });
+          return;
+        }
         if (response.status === 409) {
           // 终态与结果写入存在毫秒级竞态：下一次轮询仍会命中终态任务。
           demoState.fixedTask.pollTimer = window.setTimeout(() => { void pollFixedRun(task.task_id, demoState.fixedTask.pollToken); }, 600);
@@ -1175,7 +1224,7 @@
       {
         label: "执行方式",
         value: statusLabel(executionMode),
-        detail: `${(run.provider_call_count ?? 0).toLocaleString("zh-CN")} 次模型调用 · <strong>${(run.input_tokens ?? 0).toLocaleString("zh-CN")} / ${(run.output_tokens ?? 0).toLocaleString("zh-CN")}</strong> tokens`,
+        detail: `${(run.provider_call_count ?? 0).toLocaleString("zh-CN")} 次模型调用 · ${(run.input_tokens ?? 0).toLocaleString("zh-CN")} / ${(run.output_tokens ?? 0).toLocaleString("zh-CN")} tokens`,
         tone: "",
       },
     ];
@@ -1190,7 +1239,7 @@
       strong.textContent = value;
       const small = document.createElement("small");
       small.className = "demo-summary-detail";
-      small.innerHTML = detail;
+      small.textContent = detail;
       cell.append(span, strong, small);
       summary.append(cell);
     });
@@ -1220,7 +1269,7 @@
         ${metricsHtml ? `<div class="demo-metric-grid" aria-label="关键指标">${metricsHtml}</div>` : ""}
         ${claims.length ? `<ul class="demo-item-facts">${claims.map((claim) => `<li>${escapeHtml(claim.text)} <small>(${escapeHtml(claim.support_status)} · ${(claim.evidence_ids || []).map(escapeHtml).join(" / ") || "无引用"})</small></li>`).join("")}</ul>` : ""}
         ${gaps.length ? `<p class="demo-item-facts"><strong>缺失资料 / 需人工核查：</strong>${gaps.map(escapeHtml).join("；")}</p>` : ""}
-        <small style="color:var(--text-tertiary)">${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</small>`;
+        <small class="demo-ai-notice">${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</small>`;
       items.append(card);
     });
     if (!draftItems.length) {
@@ -1282,7 +1331,7 @@
           kind === "rag" ? item.rule_id : null,
         ].filter(Boolean).join(" · ");
         const link = item.document_id && caseId
-          ? `<a href="${escapeHtml(sourceLink(caseId, item.document_id, item.pdf_page))}" target="_blank" rel="noopener">打开原文 PDF</a>`
+          ? `<a href="${escapeHtml(sourceLink(caseId, item.document_id, item.pdf_page))}" target="_blank" rel="noopener noreferrer">打开原文 PDF</a>`
           : "";
         node.innerHTML = `<span class="demo-evidence-meta">${escapeHtml(meta)}</span><span>${escapeHtml(item.excerpt || item.term || "")}</span>${link}`;
         group.append(node);
@@ -1752,10 +1801,14 @@
         setServiceStatus("后端可用 · 模型降级可用", "pending");
       }
       const featuredReady = bootstrap.featured_case_ids.every((id) => demoState.caseIndex.get(id)?.rag?.status === "ready");
+      const release = bootstrap.release || {};
+      const releaseBoundary = release.competition_release_ready
+        ? "当前发布事实已通过自动门禁；正式发布仍以最终人工批准为准。"
+        : `发布候选尚未完全放行（${release.release_status || "remediation_in_progress"}）；页面不会把历史评估或配置状态写成正式通过。`;
       if (!featuredReady) {
         setGate("warning", "部分精选案例 RAG 未就绪", "演示可以继续，但该案例运行会如实显示证据读取状态；团队需重建索引后重验。");
       } else {
-        setGate("neutral", "演示就绪", `已选择 ${currentCase()?.company_name || "默认案例"}；点击“开始审计预筛”创建一次真实运行。${readiness.full_analysis_ready ? "" : "当前模型通道未就绪，运行会显示明确降级状态。"}`);
+        setGate("neutral", "演示就绪", `已选择 ${currentCase()?.company_name || "默认案例"}；点击“开始审计预筛”创建一次真实运行。${readiness.full_analysis_ready ? "" : "当前模型通道未就绪，运行会显示明确降级状态。"} ${releaseBoundary}`);
       }
       setPhase("ready");
     } catch (error) {
@@ -1804,6 +1857,16 @@
     ["demo-cases-drawer", "demo-evidence-drawer", "demo-agent-drawer", "demo-tech-drawer", "demo-live-sample-drawer", "demo-supplement-drawer"].forEach((id) => {
       const dialog = document.getElementById(id);
       dialog?.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+    });
+    window.addEventListener("popstate", () => {
+      const requested = new URLSearchParams(window.location.search).get("case");
+      if (demoState.phase === "running") {
+        // 运行中历史切换不能让旧 task 的结果覆盖当前案例；把 URL 校正回任务案例。
+        updateUrl({ replace: true });
+        showToast("当前任务执行中，暂不能切换案例；请等待终态或取消。", "warning");
+        return;
+      }
+      selectDemoCase(requested || demoState.bootstrap?.featured_case_ids?.[0], { fromHistory: true });
     });
   }
 

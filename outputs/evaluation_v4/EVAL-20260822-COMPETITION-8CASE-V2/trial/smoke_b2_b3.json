@@ -1,0 +1,40 @@
+{
+  "executed_at": "2026-08-23T02:02:04+00:00",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "model_calls": 3,
+  "consent": {
+    "http": 409,
+    "body": {
+      "detail": "本地竞赛模式沿用案例 manifest 许可；逐案 Supabase 同意仅在公网模式启用。",
+      "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+    }
+  },
+  "b3_smoke": {
+    "http": 200,
+    "run_id": "RUN-V7-352AB973AC27",
+    "completeness": "complete_public_prescreen",
+    "screening": "candidate",
+    "route": "risk_candidate",
+    "provider_calls": 3,
+    "input_tokens": 22064,
+    "output_tokens": 17239,
+    "roles": [
+      {
+        "role": "challenge",
+        "status": "completed",
+        "failure": null
+      },
+      {
+        "role": "counter",
+        "status": "completed",
+        "failure": null
+      },
+      {
+        "role": "review",
+        "status": "completed",
+        "failure": null
+      }
+    ],
+    "draft_title": null
+  }
+}

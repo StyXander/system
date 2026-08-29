@@ -1,0 +1,118 @@
+{
+  "case_id": "CNINFO_600938_T0_20260326",
+  "company_name": "中国海油",
+  "analysis_year": 2025,
+  "t0": "2026-03-26",
+  "task_instruction": "## 任务说明（八案统一，不得更改）\n\n你是审计项目组成员，正在为一家 A 股公司制定销售与收款循环的审计计划。\n你只能使用本包提供的冻结财务字段和公开年报来源（可打开来源 URL 回到原文核对）。\n\n请在 60 分钟内完成：\n1. 判断该公司的收入与应收变动关系是否需要列入待核查事项；\n2. 如需列入，写出你关注的具体事项和理由；\n3. 列出你希望索取的补充资料清单；\n4. 如认为信息不足或行业不适用，明确写出暂缓或不适用的理由。\n\n边界：不得认定舞弊、不得出具审计意见、不得给投资建议；\n你的判断只是审计计划阶段的待核查候选。\n按“输出模板”格式作答，并如实填写开始与结束时间。\n",
+  "output_template": "## 输出模板（照此格式填写）\n\n- 开始时间 / 结束时间：\n- 初步判断（四选一）：不触发 / 待核查 / 暂缓 / 行业不适用\n- 关注事项（逐条，含理由）：\n- 引用来源（字段/页码/URL）：\n- 希望索取的补充资料：\n- 其他说明：\n",
+  "financial_fields": [
+    {
+      "field_id": "accounts_receivable_2025",
+      "field_kind": "accounts_receivable",
+      "year": 2025,
+      "value": 32415000000.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2025",
+      "document_id": "CNINFO-600938-2025-8B8B0577C0F3",
+      "pdf_page": 120,
+      "locator": "PDF 第 120 页：应收账款",
+      "field_basis": "net",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "revenue_2025",
+      "field_kind": "revenue",
+      "year": 2025,
+      "value": 398220000000.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_600938_T0_20260326_REVENUE_2025",
+      "document_id": "CNINFO-600938-2025-8B8B0577C0F3",
+      "pdf_page": 10,
+      "locator": "PDF 第 10 页：营业收入",
+      "field_basis": "reported",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "accounts_receivable_2024",
+      "field_kind": "accounts_receivable",
+      "year": 2024,
+      "value": 32918000000.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2024",
+      "document_id": "CNINFO-600938-2024-802B2139219C",
+      "pdf_page": 124,
+      "locator": "PDF 第 124 页：应收账款",
+      "field_basis": "net",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "revenue_2024",
+      "field_kind": "revenue",
+      "year": 2024,
+      "value": 420506000000.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_600938_T0_20260326_REVENUE_2024",
+      "document_id": "CNINFO-600938-2024-802B2139219C",
+      "pdf_page": 10,
+      "locator": "PDF 第 10 页：营业收入",
+      "field_basis": "reported",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "accounts_receivable_2023",
+      "field_kind": "accounts_receivable",
+      "year": 2023,
+      "value": 36291000000.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2023",
+      "document_id": "CNINFO-600938-2023-D1D6DBA5B528",
+      "pdf_page": 148,
+      "locator": "PDF 第 148 页：应收账款",
+      "field_basis": "net",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "revenue_2023",
+      "field_kind": "revenue",
+      "year": 2023,
+      "value": 416609000000.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_600938_T0_20260326_REVENUE_2023",
+      "document_id": "CNINFO-600938-2023-D1D6DBA5B528",
+      "pdf_page": 10,
+      "locator": "PDF 第 10 页：营业收入",
+      "field_basis": "reported",
+      "human_review_status": "pending"
+    }
+  ],
+  "documents": [
+    {
+      "document_id": "CNINFO-600938-2025-8B8B0577C0F3",
+      "document_type": "annual_report",
+      "report_year": 2025,
+      "disclosure_date": "2026-03-26",
+      "announcement_title": "中国海洋石油有限公司2025年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225036017.PDF",
+      "sha256": "8B8B0577C0F38A5A1D54582ED64F233521A986CE27C805679C7846A1BB475606"
+    },
+    {
+      "document_id": "CNINFO-600938-2024-802B2139219C",
+      "document_type": "annual_report",
+      "report_year": 2024,
+      "disclosure_date": "2025-03-27",
+      "announcement_title": "中国海洋石油有限公司2024年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-28/1222929636.PDF",
+      "sha256": "802B2139219C681FC2D7A3C9360CA9FF36DEFE4F54DEE9CF5E67336F42ED48CE"
+    },
+    {
+      "document_id": "CNINFO-600938-2023-D1D6DBA5B528",
+      "document_type": "annual_report",
+      "report_year": 2023,
+      "disclosure_date": "2024-03-21",
+      "announcement_title": "中国海洋石油有限公司2023年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-22/1219375212.PDF",
+      "sha256": "D1D6DBA5B52882D7C6D9D46913EDB14378C8A32BC4E8E4DE794337BAA185E8F5"
+    }
+  ],
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

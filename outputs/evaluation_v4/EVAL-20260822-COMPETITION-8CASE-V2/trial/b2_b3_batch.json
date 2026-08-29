@@ -1,0 +1,272 @@
+{
+  "executed_at": "2026-08-23T02:05:38+00:00",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "authorization": "项目所有者2026-08-22会话授权执行",
+  "budget": {
+    "input": 400000,
+    "output": 300000
+  },
+  "spent": {
+    "input": 132126,
+    "output": 73995
+  },
+  "b2": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "status": "failed",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    }
+  ],
+  "b3": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "status": "ok",
+      "run_id": "RUN-V7-F81B037817A9",
+      "completeness": "incomplete_model_chain_failed",
+      "screening": "candidate",
+      "route": "risk_candidate",
+      "recommendation": "not_generated",
+      "provider_calls": 1,
+      "input_tokens": 7231,
+      "output_tokens": 3228,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "MODEL_OUTPUT_INVALID",
+          "failure": "MODEL_SEMANTIC_VALIDATION_ERROR"
+        },
+        {
+          "role": "counter",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        },
+        {
+          "role": "review",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        }
+      ],
+      "draft_title": null
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "status": "ok",
+      "run_id": "RUN-V7-3706B261DE7D",
+      "completeness": "complete_public_prescreen",
+      "screening": "candidate",
+      "route": "risk_candidate",
+      "recommendation": "retain",
+      "provider_calls": 3,
+      "input_tokens": 24757,
+      "output_tokens": 11590,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "counter",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "review",
+          "status": "completed",
+          "failure": null
+        }
+      ],
+      "draft_title": "R1应收账款增速与营收背离候选：净额口径待人工复核"
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "status": "ok",
+      "run_id": "RUN-V7-0B0A715B2C91",
+      "completeness": "complete_public_prescreen",
+      "screening": "candidate",
+      "route": "risk_candidate",
+      "recommendation": "retain",
+      "provider_calls": 3,
+      "input_tokens": 24852,
+      "output_tokens": 10328,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "counter",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "review",
+          "status": "completed",
+          "failure": null
+        }
+      ],
+      "draft_title": "R1候选核查：增速差21.21%有证据支持，成因与重要性待人工复核"
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "status": "reused_smoke",
+      "run_id": "RUN-V7-352AB973AC27"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "status": "ok",
+      "run_id": "RUN-V7-5D8F23439A99",
+      "completeness": "incomplete_model_chain_failed",
+      "screening": "RULE_NOT_TRIGGERED",
+      "route": "evidence_gap_review",
+      "recommendation": "not_generated",
+      "provider_calls": 1,
+      "input_tokens": 5829,
+      "output_tokens": 2921,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "MODEL_OUTPUT_INVALID",
+          "failure": "MODEL_SEMANTIC_VALIDATION_ERROR"
+        },
+        {
+          "role": "counter",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        },
+        {
+          "role": "review",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        }
+      ],
+      "draft_title": null
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "status": "ok",
+      "run_id": "RUN-V7-8E5C831AEA0A",
+      "completeness": "complete_public_prescreen",
+      "screening": "RULE_NOT_TRIGGERED",
+      "route": "industry_review",
+      "recommendation": "defer",
+      "provider_calls": 3,
+      "input_tokens": 21846,
+      "output_tokens": 10952,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "counter",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "review",
+          "status": "completed",
+          "failure": null
+        }
+      ],
+      "draft_title": "R1能源/矿业应收—收入预筛未达阈值：净额口径与行业资料待复核"
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "status": "ok",
+      "run_id": "RUN-V7-DBE6AEB55341",
+      "completeness": "incomplete_model_chain_failed",
+      "screening": "DATA_GAP",
+      "route": "industry_review",
+      "recommendation": "not_generated",
+      "provider_calls": 1,
+      "input_tokens": 7097,
+      "output_tokens": 4816,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "MODEL_OUTPUT_INVALID",
+          "failure": "MODEL_SEMANTIC_VALIDATION_ERROR"
+        },
+        {
+          "role": "counter",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        },
+        {
+          "role": "review",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        }
+      ],
+      "draft_title": null
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "status": "ok",
+      "run_id": "RUN-V7-319C90366D21",
+      "completeness": "complete_public_prescreen_with_gaps",
+      "screening": "DATA_GAP",
+      "route": "industry_review",
+      "recommendation": "defer",
+      "provider_calls": 3,
+      "input_tokens": 18450,
+      "output_tokens": 12921,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "counter",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "review",
+          "status": "completed",
+          "failure": null
+        }
+      ],
+      "draft_title": "保险服务结果与负债趋势预筛：行业口径资料缺口核查"
+    }
+  ]
+}

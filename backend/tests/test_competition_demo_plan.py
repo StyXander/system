@@ -4,6 +4,7 @@ from io import BytesIO
 from pathlib import Path
 import json
 import time
+import uuid
 from urllib.error import HTTPError
 from unittest.mock import MagicMock
 
@@ -349,16 +350,46 @@ def test_demo_readonly_contracts_are_available() -> None:
     client = TestClient(app)
     evaluation = client.get("/api/evaluations/current")
     assert evaluation.status_code == 200
-    assert evaluation.json()["evaluation_id"] == "EVAL-20260822-COMPETITION-8CASE-V3"
-    # 8 案全部进入四组：负向与行业案例不得预先标为不适用。
+    assert evaluation.json()["evaluation_id"] == "EVAL-20260828-RELEASE-CANDIDATE-V1"
+    assert evaluation.json()["current_pointer_status"] == "valid"
+    # 新评估只为三案技术评估建立骨架；旧八案评估仍作为历史记录保留。
     payload = evaluation.json()
-    assert len(payload["cases"]) == 8
+    assert len(payload["cases"]) == 3
+    assert {case["case_id"] for case in payload["cases"]} == {
+        "CNINFO_000858_T0_20260430",
+        "CNINFO_600938_T0_20260326",
+        "STD_DEV_T0",
+    }
     for case in payload["cases"]:
         assert set(case["groups"]) == {"B0", "B1", "B2", "B3"}
         assert all(group["status"] == "not_started" for group in case["groups"].values())
     samples = client.get("/api/supplement-samples")
     assert samples.status_code == 200
     assert {item["sample_id"] for item in samples.json()["samples"]} == {"aging", "receipts"}
+
+
+def test_public_demo_prefers_frozen_seed_rag_in_a_fresh_namespace(monkeypatch: pytest.MonkeyPatch) -> None:
+    """15 案新命名空间也必须走冻结片段，不依赖开发机旧 FAISS 目录。"""
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setenv("AUDITTRACE_PERSISTENCE", "local")
+    monkeypatch.setenv("AUDITTRACE_RUNTIME_NAMESPACE", f"seed-priority-{uuid.uuid4().hex}")
+    client = TestClient(app)
+
+    seed_case_id = "CNINFO_000858_T0_20260430"
+    status = client.get(f"/api/rag/status?case_id={seed_case_id}")
+    assert status.status_code == 200
+    assert status.json()["index_status"] == "seed_snapshot"
+    assert status.json()["runtime_ready"] is True
+
+    retrieved = client.post(
+        "/api/rag/retrieve",
+        json={"case_id": seed_case_id, "query": "应收账款", "top_k": 5},
+    )
+    assert retrieved.status_code == 200, retrieved.text
+    assert retrieved.json()["filter"]["retrieval_mode"] == "tracked_demo_excerpts"
+    assert retrieved.json()["case_id"] == seed_case_id
 
 
 def test_summary_case_directory_is_compact() -> None:

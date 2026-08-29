@@ -123,6 +123,12 @@ def build_bootstrap_payload(
         card["rag"] = {
             "status": rag.get("status"),
             "chunk_count": rag.get("chunk_count"),
+            # 冻结演示片段、完整索引构建和本次运行可检索性分开呈现，
+            # 避免“seed 摘要存在”被页面误读成“本地 FAISS 已 ready”。
+            "source_status": rag.get("source_status"),
+            "index_status": rag.get("index_status"),
+            "runtime_ready": rag.get("runtime_ready"),
+            "snapshot_id": rag.get("snapshot_id") or rag.get("index_version"),
         }
         cases.append(card)
     readiness = {field: model_readiness.get(field) for field in MODEL_READINESS_FIELDS}

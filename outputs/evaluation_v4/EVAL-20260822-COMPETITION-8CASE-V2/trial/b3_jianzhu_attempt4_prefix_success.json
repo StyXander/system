@@ -1,0 +1,31 @@
+{
+  "attempt": 4,
+  "executed_at": "2026-08-23T02:49:00+00:00（验收诊断会话）",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "purpose": "验收诊断：包装 validate_agent_output 捕获模型原始输出，定位中国建筑 B3 三次语义失败根因。本次运行在引擎修复之前执行，三角色偶然全部通过，证明案例数据与调用链路本身可运行，失败源于校验器对否定/存疑句的误拦。",
+  "http_status": 200,
+  "run_id": "RUN-V7-7234674F1AE0",
+  "run_completeness": "complete_public_prescreen_with_gaps",
+  "screening_status": "DATA_GAP",
+  "route": "industry_review",
+  "ai_recommendation": "defer",
+  "provider_calls": 3,
+  "input_tokens": 22922,
+  "output_tokens": 11651,
+  "roles": [
+    {"role": "challenge", "status": "completed", "failure": null, "input_tokens": 7099, "output_tokens": 4795},
+    {"role": "counter", "status": "completed", "failure": null, "input_tokens": 7655, "output_tokens": 3917},
+    {"role": "review", "status": "completed", "failure": null, "input_tokens": 8168, "output_tokens": 2939}
+  ],
+  "draft_title": "中国建筑合同结算循环行业预筛：字段缺口与口径复核",
+  "diagnosis": {
+    "root_cause": "agents.py 旧正则只用紧邻的未/不/尚判定否定，模型在缺口案中写“无法评估是否达到强阈值”等正确存疑句时被误判为已达到强阈值的肯定断言，触发 MODEL_STRONG_THRESHOLD_CONTRADICTION / MODEL_SEMANTIC_VALIDATION_ERROR 失败关闭。",
+    "evidence": [
+      "attempt3 失败码 MODEL_STRONG_THRESHOLD_CONTRADICTION（agents.py:823 唯一含“强阈值”的报错路径）",
+      "本地机理测试：旧正则对“无法评估是否达到强阈值/尚不能认定达到强阈值/没有证据表明超过强阈值”全部误拦",
+      "本次成功样本措辞为“未达强阈值”（未紧邻达，恰好放行），与失败样本形成对照"
+    ],
+    "capture_file": "tmp/jianzhu_failure_capture.json（三角色原始输出捕获，工程诊断底稿）",
+    "note": "attempt1-3 失败记录保留不改写；attempt1-2 的通用失败码（MODEL_SEMANTIC_VALIDATION_ERROR）因原始输出按设计不落盘，具体触发语句不可回溯，标注 UNKNOWN。"
+  }
+}

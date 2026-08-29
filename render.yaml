@@ -17,6 +17,16 @@ services:
         generateValue: true
       - key: AUDITTRACE_PERSISTENCE
         value: local
+      - key: AUDITTRACE_DEMO_TASK_PERSISTENCE
+        value: supabase
+      - key: AUDITTRACE_DEMO_EXECUTOR_MODE
+        value: web
+      - key: AUDITTRACE_DEMO_TASK_RETENTION_HOURS
+        value: "168"
+      - key: AUDITTRACE_DEMO_TASK_LEASE_SECONDS
+        value: "180"
+      - key: AUDITTRACE_PROVIDER_PROBE_ENABLED
+        value: "true"
       - key: AUDITTRACE_DEMO_USE_EXTERNAL_MODEL
         value: "true"
       - key: AUDITTRACE_MODEL_RUN_WINDOW_SECONDS
@@ -38,6 +48,10 @@ services:
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: DEEPSEEK_BASE_URL
-        value: https://opencode.ai/zen/go/v1
+        value: https://api.deepseek.com
       - key: DEEPSEEK_MODEL
         value: deepseek-v4-flash
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

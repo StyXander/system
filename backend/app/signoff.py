@@ -25,9 +25,11 @@ from typing import Any
 from .schemas import RunRequest
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
+# 发布运行时不能依赖 Render 构建包中通常被忽略的 outputs/；优先读取受 Git
+# 跟踪的最小字节副本。旧 outputs 路径只作为本地历史兼容回退，不覆盖或重写。
 SIGNOFF_DIR = WORKSPACE_ROOT / "outputs" / "professional-signoff"
-# 只读指向最新追加式记录；历史签字文件保持原样并可追溯。
-SIGNOFF_FILE = SIGNOFF_DIR / "R1-v0.4-captain-signoff-20260825-r2.json"
+TRACKED_SIGNOFF_FILE = WORKSPACE_ROOT / "backend" / "release_records" / "r1_signoff_20260825_r2.json"
+SIGNOFF_FILE = TRACKED_SIGNOFF_FILE if TRACKED_SIGNOFF_FILE.is_file() else SIGNOFF_DIR / "R1-v0.4-captain-signoff-20260825-r2.json"
 
 SIGNOFF_RECORD_STATUS = "captain_approved_for_competition_demo"
 SIGNOFF_STALE_STATUS = "signoff_stale_requires_reapproval"

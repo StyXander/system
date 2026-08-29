@@ -95,7 +95,7 @@ from urllib.parse import urlsplit
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -146,7 +146,7 @@ from .provider_readiness import (
     record_provider_failure,
     record_provider_success,
 )
-from .public_model import PublicModelLedger, PublicModelQuotaError, build_cache_key
+from .public_model import PublicModelLedger, PublicModelQuotaError, SupabasePublicModelLedger, build_cache_key
 from .evaluation import load_evaluation_dashboard
 from .catalog import (
     bootstrap_runtime_catalog,
@@ -160,7 +160,7 @@ from .catalog import (
 from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
 from .delivery import build_report, cache_run, replay_cache
 from .demo_bootstrap import blocked_bootstrap_payload, build_bootstrap_payload, load_demo_manifest
-from .demo_run_tasks import AGENT_ROLE_ORDER, STAGE_ORDER, DemoRunTaskStore
+from .demo_run_tasks import AGENT_ROLE_ORDER, STAGE_ORDER, DemoRunTaskStore, IdempotencyConflict, SupabaseDemoRunTaskStore, result_expiry_iso
 from .knowledge_rag import build_retrieval_request, retrieve_knowledge
 from .knowledge_sources import active_source_entries, coverage_group_summary, knowledge_cutoff_date, knowledge_snapshot_id
 from .knowledge_sources import load_source_manifest as load_knowledge_manifest
@@ -211,6 +211,8 @@ from .supabase_adapter import (
     SupabaseConflict,
     SupabaseError,
     SupabaseLeaseLost,
+    demo_task_supabase_enabled,
+    get_demo_task_client,
     get_supabase_client,
     supabase_enabled,
 )
@@ -238,13 +240,25 @@ load_dotenv(WORKSPACE_ROOT / ".env")
 _PUBLIC_MODEL_REQUESTS_BY_IP: dict[str, deque[float]] = {}
 _PUBLIC_MODEL_REQUESTS_GLOBAL: deque[float] = deque()
 _PUBLIC_MODEL_REQUEST_LOCK = threading.Lock()
-_PUBLIC_MODEL_LEDGER: PublicModelLedger | None = None
+_PUBLIC_MODEL_LEDGER: PublicModelLedger | SupabasePublicModelLedger | None = None
+_PUBLIC_MODEL_LEDGER_MODE: str | None = None
 
 
-def _public_model_ledger() -> PublicModelLedger:
-    global _PUBLIC_MODEL_LEDGER
+def _public_model_ledger() -> PublicModelLedger | SupabasePublicModelLedger:
+    """按公开演示台账配置选择本地或跨实例 Supabase 实现。"""
+
+    global _PUBLIC_MODEL_LEDGER, _PUBLIC_MODEL_LEDGER_MODE
+    requested_mode = "supabase" if demo_task_supabase_enabled() else "local"
+    if _PUBLIC_MODEL_LEDGER is not None and _PUBLIC_MODEL_LEDGER_MODE != requested_mode:
+        _PUBLIC_MODEL_LEDGER = None
     if _PUBLIC_MODEL_LEDGER is None:
-        _PUBLIC_MODEL_LEDGER = PublicModelLedger(WORKSPACE_ROOT)
+        if requested_mode == "supabase":
+            # 缺失 URL/service-role key 时让调用方映射为 503，严禁静默退回
+            # 本地额度，避免 Render 重启后清空公共预算并产生匿名超发。
+            _PUBLIC_MODEL_LEDGER = SupabasePublicModelLedger(get_demo_task_client())
+        else:
+            _PUBLIC_MODEL_LEDGER = PublicModelLedger(WORKSPACE_ROOT)
+        _PUBLIC_MODEL_LEDGER_MODE = requested_mode
     return _PUBLIC_MODEL_LEDGER
 
 @asynccontextmanager
@@ -341,6 +355,39 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def security_headers(http_request: Request, call_next: Callable[..., Any]) -> Any:
+    """给 HTML、API 和下载响应统一增加最小安全头，错误分支也不能例外。"""
+
+    response = await call_next(http_request)
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src "
+        "'self'; style-src-attr 'none'; img-src 'self' data:; "
+        "font-src 'self' data:; connect-src 'self'; object-src 'none'; "
+        "base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+    )
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    # 运行状态、任务和下载不能被浏览器/代理复用旧快照；带版本号的静态
+    # 资源可以长期缓存，案例选择器等公开只读路由可由路由自身覆盖策略。
+    path = http_request.url.path
+    if path.startswith("/assets/"):
+        cache_policy = "public, max-age=31536000, immutable"
+    elif path == "/openapi.json":
+        cache_policy = "public, max-age=300"
+    elif path == "/" or path.startswith("/api/"):
+        cache_policy = "private, no-store"
+    else:
+        cache_policy = "no-store"
+    response.headers.setdefault("Cache-Control", cache_policy)
+    if http_request.url.scheme == "https":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
+
+
 def _with_ai_notice(payload: dict[str, Any]) -> dict[str, Any]:
     """所有公开 JSON 对象统一携带同一句 AI 生成内容声明。"""
     return {**payload, "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE}
@@ -434,6 +481,23 @@ async def json_validation_error(_request: Request, error: RequestValidationError
     )
 
 
+@app.exception_handler(SupabaseError)
+async def supabase_error_handler(_request: Request, error: SupabaseError) -> JSONResponse:
+    """远程任务台账异常统一映射为脱敏、可操作的稳定响应。"""
+
+    # Supabase 原始响应、URL 和 service-role key 不进入公开响应；具体错误只留在
+    # 服务端日志（由部署平台收集），浏览器只依赖稳定 code/status 重试或停用入口。
+    return JSONResponse(
+        status_code=int(getattr(error, "status_code", 503) or 503),
+        content=_with_ai_notice(
+            {
+                "detail": str(getattr(error, "code", "SUPABASE_ERROR")),
+                "failure_code": str(getattr(error, "code", "SUPABASE_ERROR")),
+            }
+        ),
+    )
+
+
 @app.exception_handler(Exception)
 async def generic_exception_handler(_request: Request, error: Exception) -> JSONResponse:
     """全局兜底异常处理器：未捕获异常返回脱敏 500 错误，并强制附加 AI 免责声明。"""
@@ -474,7 +538,7 @@ if forensic_editorial_dir.exists():
 def _model_settings() -> tuple[str | None, str, str]:
     api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
     base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    model_id = os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus").strip()
+    model_id = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
     return api_key, base_url, model_id
 
 
@@ -568,7 +632,7 @@ def _model_readiness(request: Request | None = None) -> dict[str, Any]:
         }
     try:
         quota = _public_model_ledger().quota_snapshot(_client_identity(request) if request else None)
-    except (OSError, RuntimeError, ValueError, TypeError) as error:
+    except (OSError, RuntimeError, ValueError, TypeError, SupabaseError) as error:
         return {
             "full_analysis_ready": False,
             "full_analysis_reason_code": "quota_ledger_unavailable",
@@ -781,6 +845,10 @@ def _enforce_public_model_quota(request: Request) -> str | None:
             return _public_model_ledger().reserve(_client_identity(request))
         except PublicModelQuotaError as error:
             raise HTTPException(status_code=429, detail=str(error)) from error
+        except SupabaseError as error:
+            # 生产使用 Supabase 时不可静默降级到进程内 SQLite；静态浏览与
+            # 确定性备用仍可用，但新的真实模型任务必须明确返回 503。
+            raise HTTPException(status_code=503, detail="公开模型额度台账暂不可用。") from error
     now = time.monotonic()
     window_seconds = _positive_int_env("AUDITTRACE_MODEL_RUN_WINDOW_SECONDS", 900)
     per_ip_limit = _positive_int_env("AUDITTRACE_MODEL_RUN_LIMIT", 2)
@@ -1094,6 +1162,12 @@ def _public_pipeline_task(task: dict[str, Any]) -> dict[str, Any]:
 
 def _remote_case_for_run(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any] | None:
     if not supabase_enabled():
+        if _competition_demo_enabled():
+            # 公开演示的 CNINFO 案例以跟踪的元数据/RAG 种子为准；本机目录
+            # 可能还有旧的 SQLite 副本，但不能让它遮蔽发布清单中的快照。
+            seed = get_seed_case(WORKSPACE_ROOT, case_id)
+            if seed is not None:
+                return seed
         local = get_case(WORKSPACE_ROOT, case_id)
         if local is not None:
             return _normalize_official_public_case(local)
@@ -1124,6 +1198,12 @@ def _remote_case_for_run(case_id: str, *, tenant_id: str | None = None) -> dict[
 
 def _case_record(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any] | None:
     if not supabase_enabled():
+        if _competition_demo_enabled():
+            # 与 RAG 和 demo run 共用冻结 seed，避免本机旧案例记录缺少
+            # demo_rag_evidence 时把公开 15 案误判为未登记或未就绪。
+            seed = get_seed_case(WORKSPACE_ROOT, case_id)
+            if seed is not None:
+                return seed
         local = get_case(WORKSPACE_ROOT, case_id)
         if local is not None:
             return _normalize_official_public_case(local)
@@ -3111,9 +3191,13 @@ def _run_rag_for_analysis(
         # Supabase 模式下 active RAG snapshot 是跨实例唯一权威；本机 SQLite
         # 可能仍停留在旧版本，不能把旧片段混进当前运行或把远端 snapshot ID
         # 写到本机结果上。只有完全离线的 local 模式才读取本机索引。
+        # 15 案竞赛发布优先使用随清单冻结的 seed snapshot；本机若残留旧
+        # FAISS 目录也不能改变公开运行的证据版本。完整本地/内部案例仍走
+        # 本机索引和 singleflight prepare_index。
+        use_seed_snapshot = bool(_competition_demo_enabled() and remote_case.get("demo_rag_evidence"))
         local_case = (
             _materialized_case_for_resolved(remote_case, tenant_id=owner_tenant_id)
-            if not supabase_enabled()
+            if not supabase_enabled() and not use_seed_snapshot
             else None
         )
         if local_case is not None:
@@ -3808,6 +3892,7 @@ def _execute_run(
             and run_mode == "full_analysis"
             and not context.get("force_deterministic_backup")
             and _public_demo_enabled()
+            and _demo_external_model_enabled()
         ):
             try:
                 reservation_id = _enforce_public_model_quota(http_request)
@@ -4237,7 +4322,24 @@ def _execute_run(
         agent_steps=all_agent_steps,
     )
     try:
-        response.context["model_quality_snapshot"] = record_external_run(WORKSPACE_ROOT, response) or quality_snapshot(WORKSPACE_ROOT, model_id=_model_settings()[2])
+        # 公开演示的运行详情必须引用 Supabase 当前窗口；不能把本地历史
+        # 台账（尤其是 fallback/cache/test）嵌入本次结果，造成质量口径漂移。
+        if _public_demo_enabled() or demo_task_supabase_enabled():
+            runtime_snapshot = _runtime_quality_snapshot(_model_settings()[2])
+            response.context["model_quality_snapshot"] = runtime_snapshot or {
+                "status": "unmeasured",
+                "window_id": "RUNTIME-UNAVAILABLE-LOCAL",
+                "model_id": _model_settings()[2],
+                "sample_count": 0,
+                "success_count": 0,
+                "success_rate": None,
+                "threshold": 0.8,
+                "alert": False,
+                "source": "no_runtime_supabase_ledger",
+                "boundary": "公开演示尚无 Supabase 运行时质量窗口；本地历史台账不作为当前生产成功率。",
+            }
+        else:
+            response.context["model_quality_snapshot"] = record_external_run(WORKSPACE_ROOT, response) or quality_snapshot(WORKSPACE_ROOT, model_id=_model_settings()[2])
     except (OSError, TypeError, ValueError):
         response.context["model_quality_snapshot"] = {
             "status": "unavailable",
@@ -4292,6 +4394,7 @@ def health(http_request: Request) -> HealthResponse:
     api_key, _, model_id = _model_settings()
     readiness = _model_readiness(http_request)
     provider_info = readiness.get("provider") or {}
+    release = _release_fact_snapshot(readiness=readiness)
     return HealthResponse(
         service_status="ready",
         model_status="configured" if api_key else "config_missing",
@@ -4307,12 +4410,111 @@ def health(http_request: Request) -> HealthResponse:
         provider_reason_code=provider_info.get("reason_code"),
         provider_checked_at=provider_info.get("checked_at"),
         provider_source=provider_info.get("source"),
+        provider_ready=bool(
+            provider_info.get("status") == "ready"
+            and str(provider_info.get("source") or "") in {"probe", "live_run"}
+        ),
+        model_execution_ready=bool(readiness.get("full_analysis_ready")),
+        competition_release_ready=bool(release.get("competition_release_ready")),
     )
 
 
 def _r1_signoff_snapshot() -> dict[str, Any]:
     """返回 R1 专业口径签字的统一只读快照，供状态、导出与页面共用。"""
     return load_signoff_status()
+
+
+def _release_fact_snapshot(
+    *, readiness: dict[str, Any] | None = None, runtime_quality: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """从受跟踪发布记录形成可公开核验的事实快照。"""
+
+    path = WORKSPACE_ROOT / "backend" / "release_records" / "current_release.json"
+    try:
+        state = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        state = {}
+    state = state if isinstance(state, dict) else {}
+    manifest_path = WORKSPACE_ROOT / "backend" / "competition_demo_cases.json"
+    manifest_hash = None
+    manifest_count = None
+    manifest_source_head = None
+    try:
+        raw_manifest = manifest_path.read_bytes()
+        manifest_hash = hashlib.sha256(raw_manifest).hexdigest()
+        parsed_manifest = json.loads(raw_manifest.decode("utf-8"))
+        if isinstance(parsed_manifest, dict):
+            manifest_count = parsed_manifest.get("case_count")
+            manifest_source_head = parsed_manifest.get("source_head")
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        pass
+    expected_manifest_hash = str(((state.get("demo") or {}).get("manifest_sha256") or "")).lower() or None
+    manifest_status = (
+        "verified"
+        if manifest_hash and expected_manifest_hash and manifest_hash == expected_manifest_hash
+        else "blocked"
+    )
+    eval_dashboard = load_evaluation_dashboard(WORKSPACE_ROOT)
+    signoff = load_signoff_status()
+    readiness = readiness or {}
+    configured_model_id = _model_settings()[2]
+    deployment_commit = os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None
+    release_evidence_head = os.getenv("AUDITTRACE_RELEASE_EVIDENCE_HEAD") or None
+    materialized_source_head = ((state.get("demo") or {}).get("materialized_source_head") or manifest_source_head)
+    eval_pointer_status = str(eval_dashboard.get("current_pointer_status") or "legacy")
+    human_scoring_status = str(eval_dashboard.get("human_scoring_status") or "pending")
+    ready_checks = {
+        "manifest_hash": manifest_status == "verified" and manifest_count == 15,
+        "model_id": str(readiness.get("model_id") or ((state.get("model") or {}).get("model_id") or "")) == configured_model_id,
+        # provider probe 是无 Token 的 /models 或 /user/balance 检查，不能与
+        # paid_probe_performed（真实三 Agent 业务调用）混为一谈；新的生产 B3
+        # 另由 fresh_production_b3 门禁单独确认。
+        "provider_probe": bool((readiness.get("provider") or {}).get("status") == "ready")
+        and str((readiness.get("provider") or {}).get("source") or "") == "probe",
+        "evaluation_pointer": eval_pointer_status == "valid",
+        "signoff": signoff.get("signoff_status") == "captain_approved_for_competition_demo",
+        "human_scoring": human_scoring_status not in {"pending", "pending_human_scoring", "pending_human_scoring_and_fresh_model_runs"},
+        "fresh_production_b3": bool((state.get("release_readiness") or {}).get("fresh_production_b3_completed")),
+    }
+    return {
+        "schema_version": str(state.get("schema_version") or "audittrace_release_record_v1"),
+        "release_id": state.get("release_id"),
+        "release_status": state.get("release_status") or "blocked",
+        "model": {
+            "model_id": str(readiness.get("model_id") or ((state.get("model") or {}).get("model_id") or configured_model_id)),
+            "provider_label": readiness.get("provider_label") or (state.get("model") or {}).get("provider_label"),
+        },
+        "heads": {
+            "deployment_commit": deployment_commit,
+            "release_evidence_head": release_evidence_head,
+            "materialized_source_head": materialized_source_head,
+            "demo_manifest_sha256": manifest_hash,
+        },
+        "manifest": {
+            "path": "backend/competition_demo_cases.json",
+            "case_count": manifest_count,
+            "source_head": manifest_source_head,
+            "sha256_expected": expected_manifest_hash,
+            "sha256_status": manifest_status,
+        },
+        "evaluation": {
+            "evaluation_id": eval_dashboard.get("evaluation_id"),
+            "pointer_status": eval_pointer_status,
+            "pointer_reason": eval_dashboard.get("current_pointer_reason"),
+            "human_scoring_status": human_scoring_status,
+            "quality_window": eval_dashboard.get("quality_window"),
+            "runtime_quality_window": runtime_quality,
+        },
+        "signoff": {
+            "status": signoff.get("signoff_status"),
+            "signoff_id": signoff.get("signoff_id"),
+            "record": "backend/release_records/r1_signoff_20260825_r2.json",
+        },
+        "task_continuity": _demo_task_continuity(),
+        "competition_release_ready": all(ready_checks.values()),
+        "ready_checks": ready_checks,
+        "boundary": "配置存在、探测通过和历史评估均不等于新的竞赛发布批准；人工评分和最终批准为空时保持 pending。",
+    }
 
 
 @app.get("/api/status")
@@ -4344,8 +4546,14 @@ def project_status(http_request: Request) -> dict[str, Any]:
         else "unavailable"
     )
     quota_snapshot = readiness.get("quota")
+    runtime_quality = _runtime_quality_snapshot(model_id)
+    release_snapshot = _release_fact_snapshot(readiness=readiness, runtime_quality=runtime_quality)
     return _with_ai_notice({
         **registered,
+        # PROJECT_STATUS.json 是历史登记和团队状态的兼容输入；公开接口的
+        # 当前发布事实必须以受跟踪 release snapshot 为准，避免旧的模型、HEAD
+        # 或评估数字在顶层覆盖本轮整改后的实时判断。
+        "current_release": release_snapshot,
         "readiness_contract_version": "model_readiness_v1",
         "full_analysis_ready": bool(readiness["full_analysis_ready"]),
         "full_analysis_reason_code": str(readiness["full_analysis_reason_code"]),
@@ -4391,6 +4599,8 @@ def project_status(http_request: Request) -> dict[str, Any]:
                 "completed_at": live_acceptance.get("completed_at"),
                 "completed_roles": live_acceptance.get("completed_roles", 0),
             } if isinstance(live_acceptance, dict) and live_acceptance.get("result") == "model_success" else None,
+            "frozen_release_quality_window": registered.get("model_quality_alert") if isinstance(registered, dict) else None,
+            "runtime_quality_window": runtime_quality,
             "boundary": "配置存在不代表真实完整运行已经验收。",
         },
         "demo_mode": {
@@ -4401,8 +4611,13 @@ def project_status(http_request: Request) -> dict[str, Any]:
             "boundary": "竞赛演示仅展示产品思路；账号、多租户和生产保密流程未启用。" if _competition_demo_enabled() else "正式工程边界。",
         },
         "persistence": configured_persistence(),
+        "release": release_snapshot,
         "deployment": {
             "commit": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None,
+            "deployment_commit": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None,
+            "release_evidence_head": os.getenv("AUDITTRACE_RELEASE_EVIDENCE_HEAD") or None,
+            "materialized_source_head": release_snapshot.get("heads", {}).get("materialized_source_head"),
+            "demo_manifest_sha256": release_snapshot.get("heads", {}).get("demo_manifest_sha256"),
             "branch": os.getenv("RENDER_GIT_BRANCH") or os.getenv("GIT_BRANCH") or None,
             "service": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or None,
             "source": "render_runtime_environment" if os.getenv("RENDER_GIT_COMMIT") else "local_runtime_environment",
@@ -4417,13 +4632,15 @@ def project_status(http_request: Request) -> dict[str, Any]:
 
 
 def _local_rag_status_for(case: dict[str, Any], *, tenant_id: str | None) -> dict[str, Any]:
-    """本地持久化下的 RAG 状态统一解析：先看本机材料，再看演示种子证据。"""
+    """本地持久化下的 RAG 状态统一解析：竞赛种子优先于本机旧索引。"""
 
+    # 15 案公开演示的冻结片段是发布事实源；即使工作区恰好留有旧 FAISS
+    # 目录，也不能让命名空间或历史缓存改变 bootstrap 的发布状态。
+    if _competition_demo_enabled() and case.get("demo_rag_evidence"):
+        return seed_rag_status(case)
     local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
     if local_case is not None:
         return rag_status(WORKSPACE_ROOT, str(case["case_id"]).upper())
-    if _competition_demo_enabled() and case.get("demo_rag_evidence"):
-        return seed_rag_status(case)
     return {"status": "not_built"}
 
 
@@ -4462,9 +4679,10 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         registered = {}
     versions = registered.get("versions") if isinstance(registered.get("versions"), dict) else {}
+    model_readiness = _model_readiness(http_request)
     payload = build_bootstrap_payload(
         manifest,
-        model_readiness=_model_readiness(http_request),
+        model_readiness=model_readiness,
         versions=versions,
         rag_status_resolver=_demo_bootstrap_rag_status,
     )
@@ -4477,12 +4695,24 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
         WORKSPACE_ROOT / "backend" / "knowledge_sources.manifest.json"
     )
     payload["knowledge_base"] = coverage_group_summary(knowledge_entries, knowledge_cutoff_date())
-    try:
-        payload["model_quality"] = quality_snapshot(WORKSPACE_ROOT, model_id=_model_settings()[2])
-    except (OSError, TypeError, ValueError):
+    # 公开演示只展示当前发布定义的运行时窗口。不能把本地历史
+    # model-quality.json 的最后十条记录误当成生产 Supabase 窗口。
+    model_id = _model_settings()[2]
+    runtime_quality = _runtime_quality_snapshot(model_id)
+    if runtime_quality is not None:
+        payload["model_quality"] = runtime_quality
+    else:
         payload["model_quality"] = {
-            "status": "unavailable",
-            "boundary": "真实模型成功率台账暂不可读取。",
+            "status": "unmeasured",
+            "window_id": "RUNTIME-UNAVAILABLE-LOCAL",
+            "model_id": model_id,
+            "sample_count": 0,
+            "success_count": 0,
+            "success_rate": None,
+            "threshold": 0.8,
+            "alert": False,
+            "source": "no_runtime_supabase_ledger",
+            "boundary": "公开演示尚无 Supabase 运行时质量窗口；本地历史台账不作为当前生产成功率。",
         }
     # 审计程序映射：静态合同，版本与边界随快照返回。
     try:
@@ -4492,6 +4722,12 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         procedure_map = {"schema_version": None, "procedures": []}
     payload["audit_procedure_map"] = procedure_map
+    # 发布事实与演示资源状态分开返回：bootstrap 可 ready 不代表 provider、评估或
+    # 人工签字已经达到发布门禁，前端必须按 release.competition_release_ready 展示。
+    runtime_quality = _runtime_quality_snapshot(_model_settings()[2])
+    payload["runtime_quality_window"] = runtime_quality
+    payload["release"] = _release_fact_snapshot(readiness=model_readiness, runtime_quality=runtime_quality)
+    payload["task_continuity"] = _demo_task_continuity()
     return _with_ai_notice(payload)
 
 
@@ -6161,8 +6397,21 @@ def rag_retrieve(request: RagRetrieveRequest, http_request: Request) -> dict[str
     authorize_case_access(http_request, case)
     try:
         if not supabase_enabled():
-            local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
-            if local_case is not None:
+            # 公开 15 案始终以冻结 seed snapshot 为准；不能因为本机恰好有旧
+            # 索引，就把 fresh namespace 的检索误判为“索引尚未构建”。
+            if _competition_demo_enabled() and case.get("demo_rag_evidence"):
+                record = retrieve_seed_rag(
+                    case,
+                    query=request.query,
+                    t0=request.t0,
+                    rule_id=request.rule_id,
+                    top_k=request.top_k,
+                    question_id=request.question_id,
+                )
+            else:
+                local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
+                if local_case is None:
+                    raise RuntimeError("本地 RAG 索引尚未构建")
                 record = retrieve(
                     WORKSPACE_ROOT,
                     query=request.query,
@@ -6173,17 +6422,6 @@ def rag_retrieve(request: RagRetrieveRequest, http_request: Request) -> dict[str
                     company_name=request.company_name,
                     question_id=request.question_id,
                 )
-            elif _competition_demo_enabled() and case.get("demo_rag_evidence"):
-                record = retrieve_seed_rag(
-                    case,
-                    query=request.query,
-                    t0=request.t0,
-                    rule_id=request.rule_id,
-                    top_k=request.top_k,
-                    question_id=request.question_id,
-                )
-            else:
-                raise RuntimeError("本地 RAG 索引尚未构建")
         else:
             identity = request_identity(http_request)
             client = get_supabase_client()
@@ -6613,16 +6851,73 @@ def rerun_with_supplement(
 # 六阶段与三角色状态全部由后端业务节点写入，前端定时器只读取状态。
 
 
-_demo_run_store: DemoRunTaskStore | None = None
+_demo_run_store: DemoRunTaskStore | SupabaseDemoRunTaskStore | None = None
 _demo_run_store_lock = threading.Lock()
+_demo_run_store_mode: str | None = None
 
 
-def _get_demo_run_store() -> DemoRunTaskStore:
-    global _demo_run_store
+def _get_demo_run_store() -> DemoRunTaskStore | SupabaseDemoRunTaskStore:
+    global _demo_run_store, _demo_run_store_mode
+    requested_mode = "supabase" if demo_task_supabase_enabled() else "local"
+    runtime_namespace = re.sub(
+        r"[^A-Za-z0-9_-]", "", os.getenv("AUDITTRACE_RUNTIME_NAMESPACE", "")
+    )[:80]
+    store_mode_key = f"{requested_mode}:{runtime_namespace}"
+    executor_mode = os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE", "web").strip().lower()
+    if executor_mode not in {"web", "worker"}:
+        raise HTTPException(status_code=503, detail="演示任务执行模式配置不受支持。")
+    if executor_mode == "worker" and requested_mode != "supabase":
+        raise HTTPException(status_code=503, detail="Worker 执行模式必须同时启用 Supabase 演示任务台账。")
     with _demo_run_store_lock:
+        if _demo_run_store is not None and _demo_run_store_mode != store_mode_key:
+            _demo_run_store.shutdown()
+            _demo_run_store = None
         if _demo_run_store is None:
-            _demo_run_store = DemoRunTaskStore(WORKSPACE_ROOT / "runtime" / "demo-run-tasks")
+            if requested_mode == "supabase":
+                try:
+                    from .demo_run_tasks import SupabaseDemoRunTaskStore
+
+                    _demo_run_store = SupabaseDemoRunTaskStore(get_demo_task_client())
+                except SupabaseError as error:
+                    raise HTTPException(status_code=503, detail="演示任务持久化服务暂不可用。") from error
+            else:
+                from .demo_run_tasks import DemoRunTaskStore
+
+                # 本地开发/自动化台账同样按受控 namespace 隔离，避免一次
+                # 回归测试复用正式演示 task、额度或旧结果。空 namespace 才
+                # 使用历史兼容目录；任何环境变量内容都先做稳定字符过滤。
+                task_root = WORKSPACE_ROOT / "runtime"
+                if runtime_namespace:
+                    task_root = task_root / runtime_namespace
+                _demo_run_store = DemoRunTaskStore(task_root / "demo-run-tasks")
+            _demo_run_store_mode = store_mode_key
         return _demo_run_store
+
+
+def _demo_task_continuity() -> dict[str, Any]:
+    executor_mode = os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE", "web").strip().lower() or "web"
+    if demo_task_supabase_enabled():
+        configured = bool(os.getenv("SUPABASE_URL", "").strip() and os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip())
+        return {
+            "task_backend": "supabase",
+            "executor_mode": executor_mode,
+            "configured": configured,
+            "completed_result_durable": configured,
+            "running_task_resume": False,
+            "boundary": (
+                "完成或降级结果可跨刷新与 Web 重启读取；运行中实例中断后需显式创建新任务。"
+                if configured
+                else "Supabase 演示任务台账未完成服务端配置；新任务会被阻止，不会静默退回本地台账。"
+            ),
+        }
+    return {
+        "task_backend": "local_json",
+        "executor_mode": executor_mode,
+        "configured": True,
+        "completed_result_durable": False,
+        "running_task_resume": False,
+        "boundary": "当前进程的本地演示台账仅用于开发；生产需启用 Supabase 演示任务台账。",
+    }
 
 
 def _demo_task_outcome_from_run(response: RunResponse) -> str:
@@ -6632,6 +6927,79 @@ def _demo_task_outcome_from_run(response: RunResponse) -> str:
     if response.model_check.status == "model_success":
         return "completed"
     return "degraded"
+
+
+def _record_demo_quality_event(store: DemoRunTaskStore | SupabaseDemoRunTaskStore, task: dict[str, Any], response: RunResponse) -> None:
+    """把真实外部运行的脱敏质量事件写入共享台账；fallback/缓存不计入。"""
+
+    client = getattr(store, "client", None)
+    if client is None or not response.provider_call_count:
+        return
+    try:
+        model_id = str(response.context.get("model_id") or _model_settings()[2])
+        failures = [str(step.failure_code) for step in (response.agent_steps or []) if step.failure_code]
+        client.record_model_quality_event(
+            {
+                "run_id": response.run_id,
+                "task_id": str(task.get("task_id") or ""),
+                "case_id": str(response.context.get("case_id") or task.get("case_id") or ""),
+                "model_id": model_id,
+                "route": str(response.context.get("ai_analysis_route") or ""),
+                "outcome": str(response.model_check.status or "unknown"),
+                "provider_call_count": int(response.provider_call_count or 0),
+                "completed_roles": sum(1 for step in (response.agent_steps or []) if step.status == "completed"),
+                "input_tokens": int(response.input_tokens or 0),
+                "output_tokens": int(response.output_tokens or 0),
+                "failure_codes": failures,
+            }
+        )
+    except Exception:  # noqa: BLE001 - 质量台账失败不能覆写已完成分析
+        return
+
+
+def _runtime_quality_snapshot(model_id: str) -> dict[str, Any] | None:
+    """读取 Supabase 最近真实当前模型三角色窗口；不可用时明确标记，而非套用旧本地数字。"""
+
+    if not demo_task_supabase_enabled():
+        return None
+    try:
+        client = get_demo_task_client()
+        rows = client.list_model_quality_events(model_id=model_id, limit=10)
+    except SupabaseError:
+        return {
+            "status": "unavailable",
+            "window_id": f"RUNTIME-{model_id.upper()}-UNAVAILABLE",
+            "model_id": model_id,
+            "sample_count": 0,
+            "success_count": 0,
+            "success_rate": None,
+            "threshold": 0.8,
+            "alert": True,
+            "source": "supabase_model_quality_events",
+            "boundary": "运行时质量台账暂不可读取；不得用本地历史质量窗口替代。",
+        }
+    sample_count = len(rows)
+    success_count = sum(
+        1
+        for row in rows
+        if str(row.get("outcome") or "") == "model_success"
+        and int(row.get("provider_call_count") or 0) > 0
+        and int(row.get("completed_roles") or 0) == 3
+    )
+    rate = success_count / sample_count if sample_count else None
+    return {
+        "status": "below_threshold" if sample_count and rate is not None and rate < 0.8 else "meets_threshold" if sample_count else "unmeasured",
+        "window_id": f"RUNTIME-{model_id.upper()}-LAST10",
+        "model_id": model_id,
+        "sample_count": sample_count,
+        "success_count": success_count,
+        "success_rate": rate,
+        "threshold": 0.8,
+        "alert": bool(sample_count and rate is not None and rate < 0.8),
+        "source": "supabase_model_quality_events",
+        "includes_retries": True,
+        "boundary": f"仅统计最近10次真实 {model_id} 三 Agent 完整尝试；不含 B1、B2、缓存回放、确定性备用或 provider probe。",
+    }
 
 
 def _finalize_demo_run_stages(store: DemoRunTaskStore, task_id: str, response: RunResponse) -> None:
@@ -6725,7 +7093,9 @@ def _execute_demo_run(task: dict[str, Any], store: DemoRunTaskStore, http_reques
         task_id,
         run_id=response.run_id,
         result=response.model_dump(mode="json"),
+        result_expires_at=result_expiry_iso(),
     )
+    _record_demo_quality_event(store, task, response)
     if store.is_cancelled(task_id):
         return
     _finalize_demo_run_stages(store, task_id, response)
@@ -6773,7 +7143,13 @@ def _execute_demo_supplement_run(task: dict[str, Any], store: DemoRunTaskStore, 
         for role in AGENT_ROLE_ORDER:
             store.update_agent_step(task_id, role, "skipped", "异常关闭后未执行。")
         return
-    store.update_task(task_id, run_id=response.run_id, result=response.model_dump(mode="json"))
+    store.update_task(
+        task_id,
+        run_id=response.run_id,
+        result=response.model_dump(mode="json"),
+        result_expires_at=result_expiry_iso(),
+    )
+    _record_demo_quality_event(store, task, response)
     if store.is_cancelled(task_id):
         return
     _finalize_demo_run_stages(store, task_id, response)
@@ -6818,39 +7194,91 @@ def create_supplement_rerun_task(
         "parent_run_id": str(supplement.get("parent_run_id") or ""),
         "supplement_id": supplement_id,
         "stage_schema_version": task.get("stage_schema_version", "demo_task_v2"),
+        "retry_of_task_id": task.get("retry_of_task_id"),
         "steps": task.get("steps", {}),
         "agent_steps": task.get("agent_steps", {}),
     }
 
 
 @app.post("/api/demo/runs", status_code=202)
-def create_demo_run(request: DemoRunCreateRequest, http_request: Request) -> dict[str, Any]:
+def create_demo_run(
+    request: DemoRunCreateRequest,
+    http_request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> dict[str, Any]:
     """创建固定案例分阶段演示运行；返回 202 与 task_id，立即可以轮询。"""
+    idempotency_key = str(idempotency_key or "").strip() or None
+    if idempotency_key and not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", idempotency_key):
+        raise HTTPException(status_code=422, detail="Idempotency-Key 必须为 8 至 128 位字母、数字或 ._:-。")
     if not _competition_demo_enabled():
         raise HTTPException(status_code=403, detail="演示运行接口只在竞赛演示模式启用。")
     if request.run_mode not in {"full_analysis", "calculation_only"}:
         raise HTTPException(status_code=422, detail="run_mode 只能是 full_analysis 或 calculation_only。")
-    if _public_demo_enabled() and not supabase_enabled():
-        seed_ids = {str(case.get("case_id") or "") for case in load_seed_cases(WORKSPACE_ROOT)}
-        seed_ids.add("STD_DEV_T0")
-        if request.case_id not in seed_ids:
-            _reject_shared_demo_mutation("对非内置企业创建演示运行")
+    # 公开模式的允许集合只来自受跟踪的 15 案发布 manifest，不因核心
+    # 案例切换到 Supabase 或远端目录而扩大。清单损坏/缺失是发布材料问题，
+    # 用 503 与“非清单案例”403 分开，避免页面已展示但运行入口偷偷放行别的案例。
+    manifest, manifest_failure = load_demo_manifest()
+    manifest_case = None
+    if _public_demo_enabled():
+        if manifest_failure or not isinstance(manifest, dict):
+            raise HTTPException(status_code=503, detail=f"当前公开演示发布清单不可用：{manifest_failure or 'demo_manifest_invalid'}")
+        manifest_case = next(
+            (item for item in (manifest.get("cases") or [])
+             if isinstance(item, dict) and str(item.get("case_id") or "").upper() == request.case_id.upper()),
+            None,
+        )
+        if manifest_case is None:
+            raise HTTPException(status_code=403, detail="该案例不在当前公开演示的 15 案发布清单中。")
     store = _get_demo_run_store()
-    case = get_case(WORKSPACE_ROOT, request.case_id)
-    if case is None and request.case_id != "STD_DEV_T0":
+    if request.retry_of_task_id:
+        previous = store.snapshot(request.retry_of_task_id)
+        if previous is None:
+            raise HTTPException(status_code=404, detail="待重跑的旧任务不存在。")
+        if str(previous.get("case_id") or "").upper() != request.case_id.upper():
+            raise HTTPException(status_code=422, detail="重跑任务必须使用同一公开案例。")
+        if previous.get("status") not in {"failed", "cancelled", "interrupted", "expired", "degraded"}:
+            raise HTTPException(status_code=409, detail="旧任务尚未进入可安全重跑的终态。")
+    # 演示入口必须与 bootstrap/cases 使用同一套公开案例解析；直接调用
+    # get_case 只认识本地标准案，会让页面展示的 14 个 seed 案在主按钮处 404。
+    case = _case_record(request.case_id, tenant_id=None)
+    if case is None:
+        if _public_demo_enabled():
+            raise HTTPException(status_code=503, detail="当前发布包缺少该公开演示案例。")
         raise HTTPException(status_code=404, detail="案例未登记。")
-    task = store.create(
-        request.case_id,
-        request.model_dump(mode="json"),
-        lambda current: _execute_demo_run(current, store, http_request),
-    )
+    if manifest_case is None:
+        # 非公开开发模式仍保留旧的 seed 年度/规则合同；它不扩大公开接口的
+        # 15 案白名单，只用于本地调试和兼容既有请求。
+        manifest_case = next(
+            (item for item in load_seed_cases(WORKSPACE_ROOT)
+             if str(item.get("case_id") or "").upper() == request.case_id.upper()),
+            None,
+        )
+    if _competition_demo_enabled() and manifest_case is not None:
+        allowed_years = {int(year) for year in (manifest_case.get("report_years") or []) if str(year).isdigit()}
+        if allowed_years and int(request.current_year) not in allowed_years:
+            raise HTTPException(status_code=422, detail="报告年度不在该公开案例的冻结年度范围内。")
+        allowed_rules = {str(rule).upper() for rule in (manifest_case.get("rule_ids") or [])}
+        if allowed_rules and not set(request.rule_ids).issubset(allowed_rules):
+            raise HTTPException(status_code=422, detail="请求规则不在该公开案例的冻结规则范围内。")
+    try:
+        task = store.create(
+            request.case_id,
+            request.model_dump(mode="json"),
+            lambda current: _execute_demo_run(current, store, http_request),
+            idempotency_key=idempotency_key,
+        )
+    except IdempotencyConflict as error:
+        raise HTTPException(status_code=409, detail="该 Idempotency-Key 已绑定另一份请求。") from error
     return {
         "task_id": task["task_id"],
         "status": task["status"],
         "case_id": request.case_id,
+        "retry_of_task_id": task.get("retry_of_task_id") or request.retry_of_task_id,
         "stage_schema_version": task.get("stage_schema_version", "demo_task_v2"),
         "steps": task.get("steps", {}),
         "agent_steps": task.get("agent_steps", {}),
+        "result_expires_at": task.get("result_expires_at"),
+        "continuity": _demo_task_continuity(),
     }
 
 
@@ -6860,6 +7288,7 @@ def get_demo_run_task(task_id: str) -> dict[str, Any]:
     task = _get_demo_run_store().snapshot(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="演示运行任务不存在。")
+    task["continuity"] = _demo_task_continuity()
     return task
 
 
@@ -6869,6 +7298,8 @@ def get_demo_run_result(task_id: str) -> dict[str, Any]:
     task = _get_demo_run_store().snapshot(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="演示运行任务不存在。")
+    if task["status"] == "expired":
+        raise HTTPException(status_code=410, detail="TASK_RESULT_EXPIRED")
     if task["status"] in {"cancelled", "interrupted", "failed"}:
         raise HTTPException(status_code=409, detail="任务未生成可读取的结构化结果。")
     if task["status"] in {"queued", "running"} or task.get("result") is None:

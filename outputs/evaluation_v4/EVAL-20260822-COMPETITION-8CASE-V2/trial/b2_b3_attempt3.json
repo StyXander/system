@@ -1,0 +1,41 @@
+{
+  "attempt": 3,
+  "executed_at": "2026-08-23T02:20:08+00:00",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "b2_wuliangye": {
+    "status": "failed",
+    "error": "TimeoutError: The read operation timed out"
+  },
+  "b3_jianzhu": {
+    "status": "ok",
+    "run_id": "RUN-V7-0A0D3FD03EA1",
+    "completeness": "incomplete_model_chain_failed",
+    "route": "industry_review",
+    "recommendation": "not_generated",
+    "provider_calls": 1,
+    "input_tokens": 7103,
+    "output_tokens": 4146,
+    "roles": [
+      {
+        "role": "challenge",
+        "status": "MODEL_OUTPUT_INVALID",
+        "failure": "MODEL_STRONG_THRESHOLD_CONTRADICTION"
+      },
+      {
+        "role": "counter",
+        "status": "skipped",
+        "failure": "PREVIOUS_ROLE_FAILED"
+      },
+      {
+        "role": "review",
+        "status": "skipped",
+        "failure": "PREVIOUS_ROLE_FAILED"
+      }
+    ],
+    "draft_title": null
+  },
+  "spent": {
+    "input": 7103,
+    "output": 4146
+  }
+}

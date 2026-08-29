@@ -111,6 +111,7 @@ class DemoRunCreateRequest(BaseModel):
     rule_ids: list[RuleId] = Field(default_factory=lambda: ["R1"])
     run_mode: RunMode = "full_analysis"
     planned_materiality: float | None = Field(default=None, ge=0)
+    retry_of_task_id: str | None = Field(default=None, max_length=80)
 
     @field_validator("case_id")
     @classmethod
@@ -149,6 +150,9 @@ class HealthResponse(AiGeneratedContentNotice):
     provider_reason_code: str | None = None
     provider_checked_at: str | None = None
     provider_source: str | None = None
+    provider_ready: bool = False
+    model_execution_ready: bool = False
+    competition_release_ready: bool = False
 
 
 class AgentClaim(BaseModel):

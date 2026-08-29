@@ -135,8 +135,8 @@ class SupabaseConfig:
     timeout_seconds: float
 
     @classmethod
-    def from_env(cls) -> "SupabaseConfig":
-        mode = os.getenv("AUDITTRACE_PERSISTENCE", "local").strip().lower() or "local"
+    def from_env(cls, *, mode_override: str | None = None) -> "SupabaseConfig":
+        mode = (mode_override if mode_override is not None else os.getenv("AUDITTRACE_PERSISTENCE", "local")).strip().lower() or "local"
         url = os.getenv("SUPABASE_URL", "").strip().rstrip("/") or None
         anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip() or None
         service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip() or None
@@ -175,6 +175,23 @@ def supabase_enabled() -> bool:
     return SupabaseConfig.from_env().is_supabase
 
 
+def demo_task_supabase_enabled() -> bool:
+    """独立演示任务台账开关；不改变核心案例的 local/supabase 模式。"""
+
+    return os.getenv("AUDITTRACE_DEMO_TASK_PERSISTENCE", "local").strip().lower() == "supabase"
+
+
+def get_demo_task_client() -> "SupabaseClient":
+    """读取演示台账专用 Supabase 客户端，要求服务端配置完整。"""
+
+    config = SupabaseConfig.from_env(mode_override="supabase")
+    # 演示任务表完全关闭 anon/authenticated 的 RLS 读写，只能由服务端
+    # service-role RPC/REST 访问；存在 anon key 不能替代 service-role key。
+    if not config.url or not config.service_role_key:
+        raise SupabaseNotConfigured("演示任务台账需要 SUPABASE_URL 与 SUPABASE_SERVICE_ROLE_KEY。")
+    return SupabaseClient(config)
+
+
 class SupabaseClient:
     """只使用官方 REST 端点，避免把服务密钥暴露给浏览器。"""
 
@@ -184,7 +201,12 @@ class SupabaseClient:
             raise SupabaseNotConfigured("Supabase 持久化模式未完成服务端配置。")
 
     def _headers(self, *, token: str | None = None, service: bool = False) -> dict[str, str]:
-        key = self.config.service_role_key if service and self.config.service_role_key else self.config.anon_key or self.config.service_role_key
+        if service:
+            if not self.config.service_role_key:
+                raise SupabaseNotConfigured("该 Supabase 操作需要服务端 service-role key。")
+            key = self.config.service_role_key
+        else:
+            key = self.config.anon_key or self.config.service_role_key
         if not key:
             raise SupabaseNotConfigured("Supabase 服务端密钥未配置。")
         headers = {"apikey": key, "Accept": "application/json"}
@@ -430,6 +452,278 @@ class SupabaseClient:
             service=True,
         )
         return rows[0] if rows else None
+
+    # —— 公开竞赛演示任务台账 ——
+    # 这些方法与企业 pipeline_tasks 分开，避免公开任务的 degraded/cancelled/
+    # interrupted 状态污染内部队列合同；全部调用均使用 service role。
+    def insert_demo_run_task(self, row: dict[str, Any]) -> dict[str, Any]:
+        rows = self.insert_table("demo_run_tasks", [row], service=True)
+        return rows[0] if rows else row
+
+    def get_demo_run_task(self, task_id: str) -> dict[str, Any] | None:
+        rows = self.select_table(
+            "demo_run_tasks",
+            filters={"task_id": f"eq.{task_id}"},
+            select="*",
+            service=True,
+        )
+        return rows[0] if rows else None
+
+    def find_active_demo_run_task(self, *, case_id: str, request_sha256: str) -> dict[str, Any] | None:
+        rows = self.select_table(
+            "demo_run_tasks",
+            filters={
+                "case_id": f"eq.{case_id}",
+                "request_sha256": f"eq.{request_sha256}",
+                "status": "in.(queued,running)",
+            },
+            select="*",
+            service=True,
+        )
+        return rows[0] if rows else None
+
+    def find_demo_run_task_by_idempotency(self, *, idempotency_key_sha256: str) -> dict[str, Any] | None:
+        """按服务端哈希查找幂等键，重复请求始终返回同一公开任务。"""
+
+        rows = self.select_table(
+            "demo_run_tasks",
+            filters={"idempotency_key_sha256": f"eq.{idempotency_key_sha256}"},
+            select="*",
+            service=True,
+        )
+        return rows[0] if rows else None
+
+    def claim_demo_run_task(self, *, task_id: str, owner: str, lease_seconds: int) -> dict[str, Any] | None:
+        payload = self._request(
+            "POST",
+            "rest/v1/rpc/claim_demo_run_task",
+            service=True,
+            json_body={"p_task_id": task_id, "p_owner": owner, "p_lease_seconds": lease_seconds},
+        )
+        if isinstance(payload, list):
+            return payload[0] if payload and isinstance(payload[0], dict) else None
+        return payload if isinstance(payload, dict) and payload.get("task_id") else None
+
+    def heartbeat_demo_run_task(self, *, task_id: str, owner: str, lease_token: str, lease_seconds: int) -> bool:
+        payload = self._request(
+            "POST",
+            "rest/v1/rpc/heartbeat_demo_run_task",
+            service=True,
+            json_body={
+                "p_task_id": task_id,
+                "p_owner": owner,
+                "p_lease_token": lease_token,
+                "p_lease_seconds": lease_seconds,
+            },
+        )
+        return payload is True
+
+    def demo_run_task_lease_current(self, *, task_id: str, owner: str, lease_token: str) -> bool:
+        rows = self.select_table(
+            "demo_run_tasks",
+            filters={
+                "task_id": f"eq.{task_id}",
+                "lease_owner": f"eq.{owner}",
+                "lease_token": f"eq.{lease_token}",
+                "status": "eq.running",
+                "lease_until": "gt." + _now(),
+            },
+            select="task_id",
+            service=True,
+        )
+        return bool(rows)
+
+    def claim_next_demo_run_task(self, *, owner: str, lease_seconds: int) -> dict[str, Any] | None:
+        payload = self._request(
+            "POST",
+            "rest/v1/rpc/claim_next_demo_run_task",
+            service=True,
+            json_body={"p_owner": owner, "p_lease_seconds": lease_seconds},
+        )
+        if isinstance(payload, list):
+            return payload[0] if payload and isinstance(payload[0], dict) else None
+        return payload if isinstance(payload, dict) and payload.get("task_id") else None
+
+    def interrupt_expired_demo_run_tasks(self) -> int:
+        payload = self._request("POST", "rest/v1/rpc/interrupt_expired_demo_run_tasks", service=True, json_body={})
+        try:
+            return int(payload or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def cancel_demo_run_task(self, *, task_id: str) -> dict[str, Any] | None:
+        payload = self._request(
+            "POST",
+            "rest/v1/rpc/cancel_demo_run_task",
+            service=True,
+            json_body={"p_task_id": task_id},
+        )
+        if isinstance(payload, list):
+            return payload[0] if payload and isinstance(payload[0], dict) else None
+        return payload if isinstance(payload, dict) else None
+
+    def update_demo_run_task(
+        self,
+        *,
+        task_id: str,
+        values: dict[str, Any],
+        expected_version: int,
+        lease_token: str | None = None,
+    ) -> dict[str, Any] | None:
+        filters = {"task_id": f"eq.{task_id}", "version": f"eq.{int(expected_version)}"}
+        if lease_token:
+            filters["lease_token"] = f"eq.{lease_token}"
+        rows = self.update_table(
+            "demo_run_tasks",
+            {**values, "version": int(expected_version) + 1, "updated_at": _now()},
+            filters=filters,
+            service=True,
+        )
+        return rows[0] if rows else None
+
+    def record_model_quality_event(self, row: dict[str, Any]) -> dict[str, Any]:
+        rows = self.insert_table("model_quality_events", [row], service=True, upsert=True, on_conflict="run_id")
+        return rows[0] if rows else row
+
+    def list_model_quality_events(self, *, model_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        """读取最近真实运行的脱敏质量事件；不读取模型原文或证据正文。"""
+
+        bounded_limit = max(1, min(100, int(limit)))
+        payload = self._request(
+            "GET",
+            "rest/v1/model_quality_events",
+            service=True,
+            params={
+                "select": "run_id,task_id,case_id,model_id,route,outcome,provider_call_count,completed_roles,input_tokens,output_tokens,failure_codes,created_at",
+                "model_id": f"eq.{model_id}",
+                "order": "created_at.desc",
+                "limit": str(bounded_limit),
+            },
+        )
+        return [row for row in payload if isinstance(row, dict)] if isinstance(payload, list) else []
+
+    # —— 公开模型额度与缓存台账 ——
+    # 额度检查必须在数据库事务中完成，不能把 Web 进程内 SQLite 的计数当成
+    # Render 多实例之间的全局事实。RPC 只返回脱敏 JSON，不返回任何供应商内容。
+    def reserve_public_model_usage(
+        self,
+        *,
+        reservation_id: str,
+        client_hash: str,
+        window_seconds: int,
+        per_ip: int,
+        global_window: int,
+        max_concurrent: int,
+        daily_runs: int,
+        reservation_ttl_seconds: int,
+        batch: bool = False,
+    ) -> dict[str, Any]:
+        payload = self._request(
+            "POST",
+            "rest/v1/rpc/reserve_public_model_usage",
+            service=True,
+            json_body={
+                "p_reservation_id": reservation_id,
+                "p_client_hash": client_hash,
+                "p_window_seconds": int(window_seconds),
+                "p_per_ip": int(per_ip),
+                "p_global_window": int(global_window),
+                "p_max_concurrent": int(max_concurrent),
+                "p_daily_runs": int(daily_runs),
+                "p_reservation_ttl_seconds": int(reservation_ttl_seconds),
+                "p_batch": bool(batch),
+            },
+        )
+        if isinstance(payload, list):
+            payload = payload[0] if payload and isinstance(payload[0], dict) else {}
+        return payload if isinstance(payload, dict) else {}
+
+    def settle_public_model_usage(
+        self,
+        *,
+        reservation_id: str,
+        input_tokens: int,
+        output_tokens: int,
+        daily_input_tokens: int,
+        daily_output_tokens: int,
+    ) -> dict[str, Any]:
+        payload = self._request(
+            "POST",
+            "rest/v1/rpc/settle_public_model_usage",
+            service=True,
+            json_body={
+                "p_reservation_id": reservation_id,
+                "p_input_tokens": max(0, int(input_tokens)),
+                "p_output_tokens": max(0, int(output_tokens)),
+                "p_daily_input_tokens": int(daily_input_tokens),
+                "p_daily_output_tokens": int(daily_output_tokens),
+            },
+        )
+        if isinstance(payload, list):
+            payload = payload[0] if payload and isinstance(payload[0], dict) else {}
+        return payload if isinstance(payload, dict) else {}
+
+    def release_public_model_usage(self, *, reservation_id: str) -> None:
+        self._request(
+            "POST",
+            "rest/v1/rpc/release_public_model_usage",
+            service=True,
+            json_body={"p_reservation_id": reservation_id},
+        )
+
+    def snapshot_public_model_usage(
+        self,
+        *,
+        client_hash: str | None,
+        window_seconds: int,
+        global_window: int,
+        max_concurrent: int,
+        reservation_ttl_seconds: int,
+        daily_runs: int,
+    ) -> dict[str, Any]:
+        payload = self._request(
+            "POST",
+            "rest/v1/rpc/snapshot_public_model_usage",
+            service=True,
+            json_body={
+                "p_client_hash": client_hash,
+                "p_window_seconds": int(window_seconds),
+                "p_global_window": int(global_window),
+                "p_max_concurrent": int(max_concurrent),
+                "p_reservation_ttl_seconds": int(reservation_ttl_seconds),
+                "p_daily_runs": int(daily_runs),
+            },
+        )
+        if isinstance(payload, list):
+            payload = payload[0] if payload and isinstance(payload[0], dict) else {}
+        return payload if isinstance(payload, dict) else {}
+
+    def get_public_model_cache(self, *, cache_key_hash: str) -> dict[str, Any] | None:
+        rows = self.select_table(
+            "public_model_cache",
+            filters={"cache_key_hash": f"eq.{cache_key_hash}"},
+            select="cache_key_hash,created_at,run_payload",
+            service=True,
+        )
+        return rows[0] if rows else None
+
+    def put_public_model_cache(self, *, cache_key_hash: str, run_payload: dict[str, Any]) -> dict[str, Any] | None:
+        rows = self.insert_table(
+            "public_model_cache",
+            [{"cache_key_hash": cache_key_hash, "created_at": _now(), "run_payload": run_payload}],
+            service=True,
+            upsert=True,
+            on_conflict="cache_key_hash",
+        )
+        return rows[0] if rows else None
+
+    def delete_public_model_cache(self, *, cache_key_hash: str) -> None:
+        self._request(
+            "DELETE",
+            "rest/v1/public_model_cache",
+            service=True,
+            params={"cache_key_hash": f"eq.{cache_key_hash}"},
+        )
 
     def requeue_pipeline_task(
         self,

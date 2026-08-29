@@ -1,0 +1,17 @@
+{
+  "schema_version": "provider_probe_observation_v1",
+  "probe_id": "PROBE-20260829-DEEPSEEK-DIRECT-LOCAL-01",
+  "checked_at": "2026-08-29T14:23:18+08:00",
+  "environment": "local_external_network",
+  "base_url": "https://api.deepseek.com",
+  "provider_kind": "deepseek_direct",
+  "provider_label": "DeepSeek 官方直连",
+  "model_id": "deepseek-v4-flash",
+  "status": "ready",
+  "reason_code": "ready",
+  "source": "probe",
+  "paid_probe_performed": false,
+  "model_content_sent": false,
+  "production_status": "pending_render_secret_and_production_smoke",
+  "note": "仅验证官方余额/鉴权接口；未执行 Chat Completions 或任何付费业务调用，不代表 Render 生产就绪。"
+}

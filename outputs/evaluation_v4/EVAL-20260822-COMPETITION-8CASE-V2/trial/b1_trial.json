@@ -1,0 +1,268 @@
+{
+  "trial": true,
+  "note": "试运行：真人冻结签署前由工作区 AI 执行的仅计算验证，不构成正式 B1 记录；正式 B1 须按冻结合同重新执行。",
+  "executed_at": "2026-08-22T05:45:24+00:00",
+  "model_calls": 0,
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "records": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "company_name": "万科A",
+      "stratum": "strong_direct_candidate",
+      "http_status": 200,
+      "run_id": "RUN-V7-08B50521B9AE",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "DATA_GAP",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "DATA_GAP",
+          "metrics": {
+            "revenue_growth": null,
+            "ar_growth": null,
+            "growth_gap": null,
+            "absolute_ar_change": null,
+            "ar_to_revenue_current": null,
+            "ar_to_revenue_previous": null,
+            "turnover_days_current": null,
+            "turnover_days_previous": null,
+            "turnover_trend_days": null,
+            "sustained_periods": null,
+            "materiality_multiple": null,
+            "materiality_assessment": "未评价金额重要性"
+          },
+          "observation": "来源技术校验通过，但缺少R1同比所需字段，系统未对缺失金额作任何猜测。",
+          "data_gaps": [
+            "缺少R1基本字段：ar_current、ar_previous、revenue_current、revenue_previous"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "company_name": "中国中铁",
+      "stratum": "standard_direct_candidate",
+      "http_status": 200,
+      "run_id": "RUN-V7-BB6D9577D8E2",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "DATA_GAP",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "DATA_GAP",
+          "metrics": {
+            "revenue_growth": null,
+            "ar_growth": null,
+            "growth_gap": null,
+            "absolute_ar_change": null,
+            "ar_to_revenue_current": null,
+            "ar_to_revenue_previous": null,
+            "turnover_days_current": null,
+            "turnover_days_previous": null,
+            "turnover_trend_days": null,
+            "sustained_periods": null,
+            "materiality_multiple": null,
+            "materiality_assessment": "未评价金额重要性"
+          },
+          "observation": "来源技术校验通过，但缺少R1同比所需字段，系统未对缺失金额作任何猜测。",
+          "data_gaps": [
+            "缺少R1基本字段：ar_current、ar_previous、revenue_current、revenue_previous"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "company_name": "中国铁建",
+      "stratum": "strong_direct_candidate",
+      "http_status": 200,
+      "run_id": "RUN-V7-1F012C606711",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "DATA_GAP",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "DATA_GAP",
+          "metrics": {
+            "revenue_growth": null,
+            "ar_growth": null,
+            "growth_gap": null,
+            "absolute_ar_change": null,
+            "ar_to_revenue_current": null,
+            "ar_to_revenue_previous": null,
+            "turnover_days_current": null,
+            "turnover_days_previous": null,
+            "turnover_trend_days": null,
+            "sustained_periods": null,
+            "materiality_multiple": null,
+            "materiality_assessment": "未评价金额重要性"
+          },
+          "observation": "来源技术校验通过，但缺少R1同比所需字段，系统未对缺失金额作任何猜测。",
+          "data_gaps": [
+            "缺少R1基本字段：ar_current、ar_previous、revenue_current、revenue_previous"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "stratum": "strong_direct_candidate",
+      "http_status": 200,
+      "run_id": "RUN-V7-43FEBF39A1F8",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "candidate",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "candidate",
+          "metrics": {
+            "revenue_growth": -0.5455180406416607,
+            "ar_growth": 0.010679900348899315,
+            "growth_gap": 0.55619794099056,
+            "absolute_ar_change": 398857.55999999493,
+            "ar_to_revenue_current": 0.0009313300618254089,
+            "ar_to_revenue_previous": 0.0004187999693687548,
+            "turnover_days_current": 0.338139415787659,
+            "turnover_days_previous": 0.16371045789385066,
+            "turnover_trend_days": 0.17442895789380833,
+            "sustained_periods": 1,
+            "materiality_multiple": null,
+            "materiality_assessment": "未评价金额重要性",
+            "three_year_trend_available": true
+          },
+          "observation": "应收账款增速为1.07%，营业收入增速为-54.55%，增速差为55.62%；应收账款绝对变动为398,857.56元。未评价金额重要性。",
+          "data_gaps": [
+            "账龄结构",
+            "期后回款",
+            "信用政策变动",
+            "主要客户合同结算条款"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "西安标准工业股份有限公司（标准股份）",
+      "stratum": "rule_not_triggered",
+      "http_status": 200,
+      "run_id": "RUN-V7-FCEA845FB2AF",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "RULE_NOT_TRIGGERED",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "RULE_NOT_TRIGGERED",
+          "metrics": {
+            "revenue_growth": -0.2444553247808452,
+            "ar_growth": -0.3764268816326488,
+            "growth_gap": -0.13197155685180362,
+            "absolute_ar_change": -106478625.85,
+            "ar_to_revenue_current": 0.5230363692090463,
+            "ar_to_revenue_previous": 0.6337305635247945,
+            "turnover_days_current": 248.53023153713167,
+            "turnover_days_previous": 250.47785638073367,
+            "turnover_trend_days": -1.947624843602,
+            "sustained_periods": 0,
+            "materiality_multiple": null,
+            "materiality_assessment": "未评价金额重要性",
+            "three_year_trend_available": true
+          },
+          "observation": "应收账款增速为-37.64%，营业收入增速为-24.45%，增速差为-13.20%；应收账款绝对变动为-106,478,625.85元。未评价金额重要性。",
+          "data_gaps": [
+            "账龄结构",
+            "期后回款",
+            "信用政策变动",
+            "主要客户合同结算条款"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "stratum": "rule_not_triggered",
+      "http_status": 200,
+      "run_id": "RUN-V7-E1659B27C6DD",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "RULE_NOT_TRIGGERED",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "RULE_NOT_TRIGGERED",
+          "metrics": {
+            "revenue_growth": -0.05299805472454614,
+            "accounts_receivable_growth": -0.01528039370557142,
+            "growth_gap": 0.037717661018974724,
+            "three_year_trend_available": true
+          },
+          "observation": "当前应收—收入增速差未达到工程阈值。",
+          "data_gaps": []
+        }
+      ]
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "company_name": "中国建筑",
+      "stratum": "conditional_industry",
+      "http_status": 200,
+      "run_id": "RUN-V7-DFADE1F558FD",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "DATA_GAP",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "DATA_GAP",
+          "metrics": {
+            "three_year_trend_available": true
+          },
+          "observation": "来源技术校验通过，但行业专用规则所需字段或口径存在资料缺口。",
+          "data_gaps": [
+            "2025年缺少accounts_receivable（本期）字段",
+            "2024年缺少accounts_receivable（上期）字段",
+            "2025年缺少contract_assets（本期）字段",
+            "2024年缺少contract_assets（上期）字段",
+            "2025年缺少long_term_receivables（本期）字段",
+            "2024年缺少long_term_receivables（上期）字段",
+            "2025年缺少contract_liabilities（本期）字段",
+            "2024年缺少contract_liabilities（上期）字段"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "company_name": "中国人寿",
+      "stratum": "industry_not_applicable",
+      "http_status": 200,
+      "run_id": "RUN-V7-EF2519B00820",
+      "run_completeness": "incomplete_calculation_only",
+      "execution_mode": "not_applicable",
+      "screening_status": "DATA_GAP",
+      "rules": [
+        {
+          "rule_id": "R1",
+          "status": "DATA_GAP",
+          "metrics": {
+            "three_year_trend_available": true
+          },
+          "observation": "来源技术校验通过，但行业专用规则所需字段或口径存在资料缺口。",
+          "data_gaps": [
+            "2025年缺少insurance_revenue（本期）字段",
+            "2024年缺少insurance_revenue（上期）字段",
+            "2025年缺少claims_expense（本期）字段",
+            "2024年缺少claims_expense（上期）字段",
+            "2024年缺少insurance_liabilities（上期）字段"
+          ]
+        }
+      ]
+    }
+  ]
+}

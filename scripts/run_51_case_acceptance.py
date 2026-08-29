@@ -27,6 +27,12 @@ import urllib.error
 import urllib.parse
 from typing import Any
 
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 AI_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 EXPECTED_RUN_STATUSES = {"RULE_NOT_TRIGGERED", "candidate", "DATA_GAP"}
 TIMEOUT_SECONDS = 120

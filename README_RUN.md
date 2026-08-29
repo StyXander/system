@@ -1,10 +1,15 @@
-# 审迹智链竞赛演示版 0.10.0 本地启动与验收
+# 审迹智链竞赛演示版 0.10.2 本地启动与验收
 
 > 正式入口：根目录 `index.html`，必须由 FastAPI 提供；不要双击静态文件。  
 > 正式范围：审计计划阶段—销售与收款循环。  
 > 统一 AI 声明：AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。  
 
-> **2026-08-26 R3 当前事实（覆盖下方 R2 旧快照）**：新评估目录 `outputs/evaluation_v5/EVAL-20260826-B1B3-CURRENT-R3/` 已追加 9 条当前代码原始记录：B1 3/3 确定性且 provider call=0；B2 0/3 完成、每案一次真实调用并保留 `MODEL_OUTPUT_VALIDATION_FAILED`；B3 3/3 三角色 `model_success`。B2 与 B3 不合并为官方成功率，项目队长正式评分保持空白。qwen3.5-plus 质量窗口为 7/10=70.0%，低于 80% 且 `alert=true`，继续告警、不自动换模型。12 条活跃来源已逐条 HTTP 200 抽查，监管库仍只作“代表性接入”。现场 600436 已完成一次入口与结构化 JSON/CSV/打印 PDF/DOCX 验收，但当前页面终态为需要人工确认/模型链不完整，未冒充成功。当前静态浏览器五视口 axe、错误和溢出均为 0；根目录与 backend 目录全量测试均为 329 passed、1 warning。详见 `PROJECT_STATUS.md` 与 `outputs/browser-r3-export-8000/`。
+> **当前整改发布候选（2026-08-29，唯一当前口径）**：发布记录为 `RELEASE-CANDIDATE-20260828-V1`，当前模型统一为 `deepseek-v4-flash`（DeepSeek 官方直连）。15 案主入口读取冻结 manifest；公开任务/结果和模型质量事件目标使用 Supabase，执行模式为免费 Web。已完成或降级结果可跨刷新与 Web 重启读取；运行中的 Web 实例重启会诚实结算为 `interrupted`，不会自动重放模型调用，需点击重置后显式创建新任务。`configured` 只表示配置存在，provider probe（无 Token）与真实 B3（付费业务调用）分别记录；当前评估指针为 `EVAL-20260828-RELEASE-CANDIDATE-V1`，人工评分、重新 probe/B3 和最终发布批准仍为 pending，不能写成“正式效果提升”。可选付费 Worker 仅有模板 `render.worker.example.yaml`，当前 `render.yaml` 不部署 Worker。
+> 本机已完成一次 DeepSeek 官方只读 provider probe（`paid_probe_performed=false`），证据为 `backend/release_records/provider_probe_20260829_deepseek_local.json`；Render 的 Secret 注入、生产 probe 和新鲜 B3 仍保持 pending，不能把本机结果当作线上发布通过。
+
+> 本段优先于下方历史 R3/R2 记录；历史目录和签字文件保持原样，不作为本候选版本的自动通过依据。每次演示前应读取 `/api/health`、`/api/status`、`/api/demo/bootstrap`，确认模型、Supabase 台账和发布阻断原因；fallback/cache/replay 的 provider call 均应为 0。
+
+> **2026-08-26 R3 历史快照（已由本候选 supersede）**：新评估目录 `outputs/evaluation_v5/EVAL-20260826-B1B3-CURRENT-R3/` 已追加 9 条当前代码原始记录：B1 3/3 确定性且 provider call=0；B2 0/3 完成、每案一次真实调用并保留 `MODEL_OUTPUT_VALIDATION_FAILED`；B3 3/3 三角色 `model_success`。B2 与 B3 不合并为官方成功率，项目队长正式评分保持空白。qwen3.5-plus 质量窗口为 7/10=70.0%，低于 80% 且 `alert=true`，继续告警、不自动换模型。12 条活跃来源已逐条 HTTP 200 抽查，监管库仍只作“代表性接入”。现场 600436 已完成一次入口与结构化 JSON/CSV/打印 PDF/DOCX 验收，但当时页面终态为需要人工确认/模型链不完整，未冒充成功。该五视口、测试和质量数字均属于 R3 冻结证据，不等于本候选 runtime 窗口。详见 `PROJECT_STATUS.md` 与 `outputs/browser-r3-export-8000/`。
 > 当前事实：竞赛演示版把主线收敛为 15 个冻结案例、1 个主运行按钮、6 个过程阶段（证据载入→规则计算→知识检索→三 Agent 协作→证据验证→结构化输出），以及结果/证据/Agent/技术说明抽屉；结果同时提供页面表格、JSON、CSV 和打印/保存 PDF。另有一个受服务端现场开关保护的“评审现场样例接入”次级入口，本机可处理非 15 案的巨潮公开年报，共享站仍为只读。后端审计引擎版本仍为 0.7.1。`PROJECT_AUTHORIZATION.json` 已记录项目所有者对标准股份和杰克科技当前公开来源快照的最小必要模型传输许可；来源哈希变化仍需重新核验，正式案例冻结、全文再分发和专业采用未获自动批准。
 >
 > 2026-08-24 终版增强（历史快照，已由下方 2026-08-25 R2 追加验收 supersede；执行计划《审迹智链_竞赛终版增强与完整验收_分步执行计划_2026-08-24.md》）：固定案例运行改为后端异步任务分阶段展示（`POST /api/demo/runs` 返回 202，页面轮询真实六阶段与三角色状态，每阶段带时间戳，刷新可从 sessionStorage 恢复同一任务）；新增多源审计知识底座（`backend/knowledge_sources.manifest.json` 已登记 13 条真实官方/公开案源：年报、证监会处罚、深交所/上交所问询、会计准则、审计准则、税收法规、行业报告、新闻、宏观指标；以 2026-08-24 为冻结截止日，处罚与问询按精确近五年窗口过滤，页面只声明 representative）；新增“系统替你完成什么”审计程序映射（`backend/audit_procedure_map.json`，自动执行/辅助判断/人工保留三列）；补充材料重新评估已纳入同一异步六阶段任务台账（父子运行差异可回查，原字段不被覆盖）；JSON/CSV/打印 PDF 与 docx 报告扩展来源快照、检索轨迹、时间线、模型尝试、程序映射、监管证据与补充差异字段；配图改为 5 张精选黑金插画（WebP，台账见 `assets/official-v4/illustrations/illustration-manifest.json`）。
@@ -13,7 +18,7 @@
 
 > 真实模型复验（历史快照，已由 R2 当前窗口 supersede）：本机私有演示实例已完成 `RUN-V7-5666A45FCAA7`，执行方式为 `external_live`，三角色均完成，6 次 provider 调用、29278/13889 tokens、8 条知识命中。Challenge 的首次输出触发语义校验后，经一次受控修正通过；Counter 与 Review 首次通过。当时质量窗口为 8/10=80%。
 
-> **2026-08-25 R2 当前代码追加验收（以本段为最新事实）**：队长追加签字记录为 `outputs/professional-signoff/R1-v0.4-captain-signoff-20260825-r2.json`，状态 `captain_approved_for_competition_demo`；签字后事实快照为 `outputs/final-audit-20260825-r2/`。当前模型 ID 为 `qwen3.5-plus`，质量窗口为 **7/10=70.0%**，低于 80% 且 `alert=true`，不得写成稳定成功，现场保留真实失败码与降级。当前代码 B1/B2/B3 R2 网络合同目录为 `outputs/evaluation_v5/EVAL-20260825-B1B3-CURRENT-R2-NETWORK/`：B1 3/3、B2 0/3（`MODEL_OUTPUT_VALIDATION_FAILED`）、B3 3/3 三角色 `model_success`；旧评估目录不被覆盖。最新后端全量回归为 **321 passed、1 warning**（含来源与取消竞态新增测试）；计划要求的 1440×900、1024×768、768×1024、390×844 四视口及额外 1440×1000 基线均通过自动阻断检查，axe 渐变/伪元素 `color-contrast` incomplete 仍需人工复核。视频仍暂缓，不关机。
+> **2026-08-25 R2 历史快照（已由本候选 supersede）**：队长追加签字记录为 `outputs/professional-signoff/R1-v0.4-captain-signoff-20260825-r2.json`，状态 `captain_approved_for_competition_demo`；签字后事实快照为 `outputs/final-audit-20260825-r2/`。当时模型 ID 为 `qwen3.5-plus`，冻结质量窗口为 **7/10=70.0%**，低于 80% 且 `alert=true`，不得写成稳定成功，现场保留真实失败码与降级。R2 B1/B2/B3 网络合同目录为 `outputs/evaluation_v5/EVAL-20260825-B1B3-CURRENT-R2-NETWORK/`：B1 3/3、B2 0/3（`MODEL_OUTPUT_VALIDATION_FAILED`）、B3 3/3 三角色 `model_success`；旧评估目录不被覆盖。R2 的测试、视口和 axe 数字仅作历史证据；当前候选以 release pointer 和 runtime quality window 为准。
 
 ## 一、最省事的启动方法
 
@@ -70,12 +75,15 @@ Invoke-RestMethod "http://127.0.0.1:8000/api/pipelines/$($job.task_id)/result"
 ```ini
 DEEPSEEK_API_KEY=团队自己的Key
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=实际可用的模型ID
+DEEPSEEK_MODEL=deepseek-v4-flash
+AUDITTRACE_PROVIDER_PROBE_ENABLED=true
+AUDITTRACE_DEMO_TASK_PERSISTENCE=supabase
+AUDITTRACE_DEMO_EXECUTOR_MODE=web
 ```
 
 公开部署默认只允许同源访问。需要跨域时，只在 `AUDITTRACE_CORS_ORIGINS` 中填写完整且精确的 `http(s)://主机[:端口]`；经反向代理部署时，`AUDITTRACE_TRUSTED_PROXY_HOPS` 与 `AUDITTRACE_TRUSTED_PROXY_CIDRS` 必须成对配置，且不得使用 `/0` 信任网段。`render.yaml` 通过 Render `generateValue: true` 生成至少 32 位的 `AUDITTRACE_PUBLIC_QUOTA_SECRET`，秘密值不写入仓库。
 
-`GET /api/health` 和 `GET /api/status` 的 `model` 对象会返回 `full_analysis_ready`、`full_analysis_reason_code`、`full_analysis_message` 与 `deterministic_backup_available`。`model_status=configured` 只表示 Key 存在；公开模式只有 Key、额度秘密、额度账本和当前额度都可用时才是 `execution_mode=external_live`。缺少条件时页面显示中文原因和可操作路径，不做供应商探测；明确选择备用时始终标注“确定性备用、未调用模型”。
+`GET /api/health` 和 `GET /api/status` 的 `model` 对象会返回 `full_analysis_ready`、`full_analysis_reason_code`、`full_analysis_message` 与 `deterministic_backup_available`。`model_status=configured` 只表示 Key 存在；provider probe（无 Token 的通道探测）、模型执行就绪和真实 B3 是三层独立门禁。公开生产只有 Supabase 台账、Key、额度秘密、DeepSeek 直连通道和真实探测均满足时才允许 `external_live`；明确选择备用时始终标注“确定性备用、未调用模型”。
 
 模型配置存在不等于完整链通过。0.7.1 已为质疑、反证、复核角色分别生成工具 Schema，并增加确定性事实语言一致性闸门。历史 `RUN-V7-00ED00962F34` 虽曾完成三个角色并形成草稿，但新增闸门发现其把未达到的强阈值写成已达到，因此不再是有效 B3。B2 `EVAL-B2-2F8BE053630D` 的一次实际调用因返回5条claims超过最多4条而失败，原始响应和哈希已留档，未裁剪或再次调用；该调用发生于本轮合规失败关闭补丁前，不具备正式比较资格。没有 Key、合法样例未确认或案例禁止模型传输时，系统只提供本地预检并如实标记不完整；最新结论见 `PROJECT_STATUS.json`。
 

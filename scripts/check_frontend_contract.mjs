@@ -114,7 +114,7 @@ if (!backend.includes("blocked_bootstrap_payload")) failures.push("backend must 
 
 // 触控目标：主按钮沿用 .button 44px；案例卡不小于 44px。
 if (!styles.includes("min-height: 44px")) failures.push("styles must keep 44px touch targets");
-const caseCardRule = html.match(/\.demo-case-card \{([\s\S]*?)\}/);
+const caseCardRule = styles.match(/\.demo-case-card \{([\s\S]*?)\}/);
 if (!caseCardRule || !caseCardRule[1].includes("min-height")) failures.push("demo case cards need an explicit min-height touch target");
 
 if (failures.length) {

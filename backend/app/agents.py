@@ -746,6 +746,8 @@ def _semantic_failure_code(message: str) -> str:
         return "MODEL_REVIEW_RECOMMENDATION_MISMATCH"
     if "模型主张必须由本次evidence_id支持" in message:
         return "MODEL_CLAIM_SUPPORT_ERROR"
+    if "本次证据包以外" in message or "evidence_id" in message and "证据包" in message:
+        return "MODEL_EVIDENCE_REFERENCE_INVALID"
     if "明确标为待验证假设" in message:
         return "MODEL_HYPOTHESIS_LABEL_MISSING"
     if "强阈值" in message:
@@ -757,6 +759,27 @@ def _semantic_failure_code(message: str) -> str:
     if "外部因果" in message:
         return "MODEL_CAUSAL_EVIDENCE_ERROR"
     return "MODEL_SEMANTIC_VALIDATION_ERROR"
+
+
+def _evidence_failure_detail(payload: Any, allowed_evidence_ids: set[str]) -> str:
+    """只返回 JSON 路径/计数诊断，不回显模型原文或证据正文。"""
+
+    paths: list[str] = []
+    if isinstance(payload, dict):
+        for field in ("claims", "normal_explanations"):
+            items = payload.get(field)
+            if not isinstance(items, list):
+                continue
+            for index, item in enumerate(items):
+                if not isinstance(item, dict):
+                    paths.append(f"{field}[{index}]")
+                    continue
+                references = item.get("evidence_ids")
+                if not isinstance(references, list) or not set(str(value) for value in references).issubset(allowed_evidence_ids):
+                    paths.append(f"{field}[{index}].evidence_ids")
+    path_text = ", ".join(paths[:4]) or "output.evidence_ids"
+    suffix = "；其余后续角色已 skipped。" if paths else "；请按当前证据白名单重试。"
+    return f"证据引用校验失败（路径：{path_text}；当前允许证据数 {len(allowed_evidence_ids)}）{suffix}"
 
 
 # —— 肯定断言识别的共用工具 ——
@@ -1155,6 +1178,9 @@ SEMANTIC_REPAIR_FAILURE_CODES = {
     "MODEL_REVIEW_RECOMMENDATION_MISMATCH",
     "MODEL_CLAIM_SUPPORT_ERROR",
     "MODEL_HYPOTHESIS_LABEL_MISSING",
+    # 证据编号越界允许一次定向修正；白名单、Schema 和事实语言仍保持硬校验。
+    "MODEL_EVIDENCE_VALIDATION_ERROR",
+    "MODEL_EVIDENCE_REFERENCE_INVALID",
 }
 
 
@@ -1191,6 +1217,8 @@ _SEMANTIC_CORRECTION_HINTS = {
     "MODEL_REVIEW_RECOMMENDATION_MISMATCH": "review 的 ai_recommendation 必须与 status 完全相同。",
     "MODEL_CLAIM_SUPPORT_ERROR": "每条 claims 的 support_status 必须为 supported，且 evidence_ids 非空。",
     "MODEL_HYPOTHESIS_LABEL_MISSING": "unverified_hypothesis 的 text 必须包含“待验证假设”六字。",
+    "MODEL_EVIDENCE_VALIDATION_ERROR": "每个 evidence_ids 必须逐字复制 output_contract.allowed_evidence_ids；删除不存在的编号，不得创造或猜测编号。",
+    "MODEL_EVIDENCE_REFERENCE_INVALID": "只保留 output_contract.allowed_evidence_ids 中的 evidence_id；当前企业事实不能引用规范、行业或类比背景编号。",
 }
 
 
@@ -1456,6 +1484,7 @@ def run_agent_chain(
                 correction_input_tokens: int | None = None
                 correction_output_tokens: int | None = None
                 correction_call_count = 0
+                correction_raw: Any = {}
                 try:
                     (
                         correction_raw,
@@ -1579,15 +1608,24 @@ def run_agent_chain(
                             validation=correction_code,
                         )
                     )
+                    correction_stage = "evidence" if correction_code in {
+                        "MODEL_EVIDENCE_REFERENCE_INVALID",
+                        "MODEL_EVIDENCE_VALIDATION_ERROR",
+                    } else "schema"
+                    correction_detail = (
+                        _evidence_failure_detail(correction_raw, allowed_evidence_ids)
+                        if correction_stage == "evidence"
+                        else "模型语义修正后仍未通过硬校验，未放宽原始约束。"
+                    )
                     push(
                         AgentStep(
                             role=role,
                             status="MODEL_OUTPUT_INVALID",
-                            failure_stage="schema",
+                            failure_stage=correction_stage,
                             failure_code=correction_code,
                             model_id=model_id,
                             prompt_version=PROMPT_VERSION,
-                            detail="模型语义修正后仍未通过硬校验，未放宽原始约束。",
+                            detail=correction_detail,
                             input_sha256=input_sha256,
                             response_sha256=response_sha256,
                             duration_ms=duration_ms,
@@ -1628,7 +1666,11 @@ def run_agent_chain(
                         failure_code=failure_code,
                         model_id=model_id,
                         prompt_version=PROMPT_VERSION,
-                        detail=f"模型输出未通过服务端硬校验：{failure_code}",
+                    detail=(
+                        _evidence_failure_detail(raw_output, allowed_evidence_ids)
+                        if failure_stage == "evidence"
+                        else f"模型输出未通过服务端硬校验：{failure_code}"
+                    ),
                         input_sha256=input_sha256,
                         response_sha256=response_sha256,
                         duration_ms=duration_ms,

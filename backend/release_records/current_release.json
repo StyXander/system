@@ -1,0 +1,49 @@
+{
+  "schema_version": "audittrace_release_record_v1",
+  "release_id": "RELEASE-CANDIDATE-20260828-V1",
+  "release_status": "remediation_in_progress",
+  "model": {
+    "model_id": "deepseek-v4-flash",
+    "provider_channel": "deepseek_direct",
+    "provider_label": "DeepSeek 官方直连",
+    "external_model_required_for_full_analysis": true
+  },
+  "demo": {
+    "case_manifest": "backend/competition_demo_cases.json",
+    "case_count": 15,
+    "featured_case_ids": [
+      "STD_DEV_T0",
+      "CNINFO_000858_T0_20260430",
+      "CNINFO_600938_T0_20260326"
+    ],
+    "manifest_sha256": "f9851a089c544a0e7e9eb08153021ebfc7380380f410af6677f1a3c1b2f09fe4",
+    "materialized_source_head": "be9839947bbeb2acc9596d349afbabc53b91f922"
+  },
+  "evaluation": {
+    "pointer": "backend/release_records/current_evaluation.json",
+    "human_scoring_status": "pending",
+    "quality_threshold": 0.8
+  },
+  "signoff": {
+    "record": "backend/release_records/r1_signoff_20260825_r2.json",
+    "human_reapproval_required_after_rule_change": true
+  },
+  "task_continuity": {
+    "production_backend": "supabase",
+    "executor_mode": "web",
+    "completed_result_retention_hours": 168,
+    "running_instance_resume": false
+  },
+  "release_readiness": {
+    "provider_probe_required": true,
+    "local_provider_probe": {
+      "status": "ready",
+      "evidence": "backend/release_records/provider_probe_20260829_deepseek_local.json",
+      "production_status": "pending_render_secret_and_production_smoke"
+    },
+    "fresh_production_b3_required": true,
+    "competition_release_ready": false,
+    "reason": "整改候选版本尚未取得新的生产 provider probe、真实 B3、人工评分和最终发布批准。"
+  },
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

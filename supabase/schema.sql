@@ -176,6 +176,77 @@ create table if not exists public.pipeline_tasks (
   updated_at timestamptz not null default now()
 );
 
+-- 公开竞赛演示任务独立于企业 pipeline_tasks：允许 degraded/cancelled/
+-- interrupted/expired，且不把公开匿名请求混入租户队列。所有读写只经
+-- FastAPI service-role RPC；浏览器和 anon/authenticated 均无直接权限。
+create table if not exists public.demo_run_tasks (
+  task_id text primary key,
+  task_kind text not null default 'fixed_public_demo',
+  case_id text not null,
+  retry_of_task_id text,
+  request_payload jsonb not null,
+  request_sha256 text not null,
+  idempotency_key_sha256 text,
+  stage_schema_version text not null default 'demo_task_v2',
+  status text not null default 'queued' check (status in (
+    'queued', 'running', 'completed', 'degraded', 'failed',
+    'cancelled', 'interrupted', 'expired'
+  )),
+  steps jsonb not null default '{}'::jsonb,
+  agent_steps jsonb not null default '{}'::jsonb,
+  non_interruptible boolean not null default false,
+  run_id text,
+  failure_code text,
+  error text,
+  result jsonb,
+  result_expires_at timestamptz,
+  lease_owner text,
+  lease_token uuid,
+  lease_until timestamptz,
+  heartbeat_at timestamptz,
+  version integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.model_quality_events (
+  run_id text primary key,
+  task_id text,
+  case_id text,
+  model_id text not null,
+  route text,
+  outcome text not null,
+  provider_call_count integer not null default 0,
+  completed_roles integer not null default 0,
+  input_tokens integer not null default 0,
+  output_tokens integer not null default 0,
+  failure_codes jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+-- 追加式迁移：已有演示环境执行本文件时不因表已存在而遗漏新字段。
+alter table public.demo_run_tasks add column if not exists request_sha256 text;
+alter table public.demo_run_tasks add column if not exists retry_of_task_id text;
+alter table public.demo_run_tasks add column if not exists idempotency_key_sha256 text;
+alter table public.demo_run_tasks add column if not exists stage_schema_version text not null default 'demo_task_v2';
+alter table public.demo_run_tasks add column if not exists steps jsonb not null default '{}'::jsonb;
+alter table public.demo_run_tasks add column if not exists agent_steps jsonb not null default '{}'::jsonb;
+alter table public.demo_run_tasks add column if not exists non_interruptible boolean not null default false;
+alter table public.demo_run_tasks add column if not exists result_expires_at timestamptz;
+alter table public.demo_run_tasks add column if not exists lease_owner text;
+alter table public.demo_run_tasks add column if not exists lease_token uuid;
+alter table public.demo_run_tasks add column if not exists lease_until timestamptz;
+alter table public.demo_run_tasks add column if not exists heartbeat_at timestamptz;
+alter table public.demo_run_tasks add column if not exists version integer not null default 0;
+alter table public.model_quality_events add column if not exists task_id text;
+alter table public.model_quality_events add column if not exists case_id text;
+alter table public.model_quality_events add column if not exists route text;
+alter table public.model_quality_events add column if not exists provider_call_count integer not null default 0;
+alter table public.model_quality_events add column if not exists completed_roles integer not null default 0;
+alter table public.model_quality_events add column if not exists input_tokens integer not null default 0;
+alter table public.model_quality_events add column if not exists output_tokens integer not null default 0;
+alter table public.model_quality_events add column if not exists failure_codes jsonb not null default '[]'::jsonb;
+
 -- 批次本身记录任务清单与请求快照；任务进度仍由 pipeline_tasks 的租约状态提供。
 create table if not exists public.cache_prewarm_batches (
   batch_id text primary key,
@@ -235,6 +306,14 @@ create index if not exists organization_members_user_idx on public.organization_
 create index if not exists cases_tenant_idx on public.cases(tenant_id);
 create index if not exists rag_chunks_active_scope_idx on public.rag_chunks(case_scope, active, rag_snapshot_id);
 create index if not exists pipeline_tasks_claim_idx on public.pipeline_tasks(status, available_at, lease_until);
+create index if not exists demo_run_tasks_lookup_idx on public.demo_run_tasks(case_id, request_sha256, status);
+create index if not exists demo_run_tasks_expiry_idx on public.demo_run_tasks(status, result_expires_at, lease_until);
+create unique index if not exists demo_run_tasks_active_request_idx
+  on public.demo_run_tasks(case_id, request_sha256)
+  where status in ('queued', 'running');
+create unique index if not exists demo_run_tasks_idempotency_idx
+  on public.demo_run_tasks(idempotency_key_sha256)
+  where idempotency_key_sha256 is not null;
 create index if not exists analysis_runs_tenant_idx on public.analysis_runs(tenant_id, updated_at desc);
 create unique index if not exists analysis_runs_task_idempotency_idx
   on public.analysis_runs(tenant_id, pipeline_task_id)
@@ -271,6 +350,8 @@ alter table public.rag_retrievals enable row level security;
 alter table public.analysis_runs enable row level security;
 alter table public.run_caches enable row level security;
 alter table public.pipeline_tasks enable row level security;
+alter table public.demo_run_tasks enable row level security;
+alter table public.model_quality_events enable row level security;
 alter table public.cache_prewarm_batches enable row level security;
 alter table public.model_transfer_consents enable row level security;
 alter table public.public_model_usage enable row level security;
@@ -278,6 +359,8 @@ alter table public.public_model_cache enable row level security;
 
 revoke all on public.public_model_usage from public, anon, authenticated;
 revoke all on public.public_model_cache from public, anon, authenticated;
+revoke all on public.demo_run_tasks from public, anon, authenticated;
+revoke all on public.model_quality_events from public, anon, authenticated;
 alter table public.audit_events enable row level security;
 
 -- 私有 bucket 由迁移脚本幂等创建；默认不公开，并限制为当前补充资料支持的文件类型。
@@ -516,6 +599,280 @@ begin
 end;
 $$;
 
+-- 公开模型额度 RPC：所有计数、预留、结算和超时回收在同一数据库事务内执行。
+-- 该表已撤销 anon/authenticated 权限；仅 service_role 可调用这些函数。
+create or replace function public.reserve_public_model_usage(
+  p_reservation_id text,
+  p_client_hash text,
+  p_window_seconds integer,
+  p_per_ip integer,
+  p_global_window integer,
+  p_max_concurrent integer,
+  p_daily_runs integer,
+  p_reservation_ttl_seconds integer,
+  p_batch boolean default false
+)
+returns jsonb
+language plpgsql security definer set search_path = public
+as $$
+declare
+  now_ts timestamptz := now();
+  day_start timestamptz := date_trunc('day', now_ts at time zone 'Asia/Shanghai') at time zone 'Asia/Shanghai';
+  recent_ip integer;
+  recent_global integer;
+  active_count integer;
+  day_runs integer;
+begin
+  perform public.assert_service_role();
+  if p_reservation_id is null or length(p_reservation_id) < 8 or length(p_reservation_id) > 128
+     or p_client_hash is null or length(p_client_hash) <> 64 then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_REQUEST_INVALID', 'message', '公开模型额度请求不合法。');
+  end if;
+  lock table public.public_model_usage in share row exclusive mode;
+  update public.public_model_usage
+  set released = true, settled = true
+  where settled = false and released = false
+    and reserved_at < now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+  select count(*) into recent_ip
+  from public.public_model_usage
+  where client_hash = p_client_hash and released = false
+    and reserved_at >= now_ts - make_interval(secs => greatest(p_window_seconds, 60));
+  select count(*) into recent_global
+  from public.public_model_usage
+  where released = false
+    and reserved_at >= now_ts - make_interval(secs => greatest(p_window_seconds, 60));
+  select count(*) into active_count
+  from public.public_model_usage
+  where settled = false and released = false
+    and reserved_at >= now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+  select count(*) into day_runs
+  from public.public_model_usage
+  where released = false and reserved_at >= day_start;
+  if not p_batch and recent_ip >= greatest(p_per_ip, 1) then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_PER_CLIENT', 'message', '当前访问来源的模型额度已达上限，请稍后再试。');
+  end if;
+  if not p_batch and recent_global >= greatest(p_global_window, 1) then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_GLOBAL_WINDOW', 'message', '公开演示模型正在排队，请稍后再试。');
+  end if;
+  if active_count >= greatest(p_max_concurrent, 1) then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_CONCURRENT', 'message', '当前模型并发已满，请等待上一条分析完成。');
+  end if;
+  if day_runs >= greatest(p_daily_runs, 1) then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_DAILY_RUNS', 'message', '今日公开演示额度已用完。');
+  end if;
+  insert into public.public_model_usage(reservation_id, client_hash, reserved_at)
+  values (p_reservation_id, p_client_hash, now_ts);
+  return jsonb_build_object('ok', true, 'reservation_id', p_reservation_id);
+exception when unique_violation then
+  return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_RESERVATION_CONFLICT', 'message', '公开模型额度请求发生并发冲突，请稍后重试。');
+end;
+$$;
+
+create or replace function public.settle_public_model_usage(
+  p_reservation_id text,
+  p_input_tokens integer,
+  p_output_tokens integer,
+  p_daily_input_tokens integer,
+  p_daily_output_tokens integer
+)
+returns jsonb
+language plpgsql security definer set search_path = public
+as $$
+declare
+  current_row public.public_model_usage;
+  day_start timestamptz := date_trunc('day', now() at time zone 'Asia/Shanghai') at time zone 'Asia/Shanghai';
+  used_input bigint;
+  used_output bigint;
+  new_input integer := greatest(coalesce(p_input_tokens, 0), 0);
+  new_output integer := greatest(coalesce(p_output_tokens, 0), 0);
+begin
+  perform public.assert_service_role();
+  select * into current_row from public.public_model_usage
+  where reservation_id = p_reservation_id and released = false for update;
+  if current_row.reservation_id is null then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_RESERVATION_MISSING', 'message', '公开模型额度预留已失效。');
+  end if;
+  select coalesce(sum(input_tokens), 0), coalesce(sum(output_tokens), 0)
+    into used_input, used_output
+  from public.public_model_usage
+  where reserved_at >= day_start and released = false;
+  if used_input - current_row.input_tokens + new_input > greatest(p_daily_input_tokens, 1) then
+    update public.public_model_usage set settled = true, released = true where reservation_id = p_reservation_id;
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_INPUT_TOKENS', 'message', '今日输入 token 预算已用完。');
+  end if;
+  if used_output - current_row.output_tokens + new_output > greatest(p_daily_output_tokens, 1) then
+    update public.public_model_usage set settled = true, released = true where reservation_id = p_reservation_id;
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_OUTPUT_TOKENS', 'message', '今日输出 token 预算已用完。');
+  end if;
+  update public.public_model_usage
+  set input_tokens = new_input, output_tokens = new_output, settled = true
+  where reservation_id = p_reservation_id;
+  return jsonb_build_object('ok', true, 'reservation_id', p_reservation_id);
+end;
+$$;
+
+create or replace function public.release_public_model_usage(p_reservation_id text)
+returns boolean
+language plpgsql security definer set search_path = public
+as $$
+begin
+  perform public.assert_service_role();
+  update public.public_model_usage set settled = true, released = true
+  where reservation_id = p_reservation_id;
+  return found;
+end;
+$$;
+
+create or replace function public.snapshot_public_model_usage(
+  p_client_hash text,
+  p_window_seconds integer,
+  p_global_window integer,
+  p_max_concurrent integer,
+  p_reservation_ttl_seconds integer,
+  p_daily_runs integer
+)
+returns jsonb
+language plpgsql security definer set search_path = public
+as $$
+declare
+  now_ts timestamptz := now();
+  day_start timestamptz := date_trunc('day', now_ts at time zone 'Asia/Shanghai') at time zone 'Asia/Shanghai';
+  global_count integer;
+  client_count integer;
+  active_count integer;
+  daily_count integer;
+begin
+  perform public.assert_service_role();
+  update public.public_model_usage
+  set settled = true, released = true
+  where settled = false and released = false
+    and reserved_at < now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+  select count(*) into global_count from public.public_model_usage
+  where released = false and reserved_at >= now_ts - make_interval(secs => greatest(p_window_seconds, 60));
+  select count(*) into client_count from public.public_model_usage
+  where p_client_hash is not null and client_hash = p_client_hash and released = false
+    and reserved_at >= now_ts - make_interval(secs => greatest(p_window_seconds, 60));
+  select count(*) into active_count from public.public_model_usage
+  where settled = false and released = false
+    and reserved_at >= now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+  select count(*) into daily_count from public.public_model_usage
+  where released = false and reserved_at >= day_start;
+  return jsonb_build_object(
+    'ok', true,
+    'global_remaining_15m', greatest(0, greatest(p_global_window, 1) - global_count),
+    'daily_runs_remaining', greatest(0, greatest(p_daily_runs, 1) - daily_count),
+    'active', active_count,
+    'client_recent', client_count,
+    'max_concurrent', greatest(p_max_concurrent, 1),
+    'reset_at', (day_start + interval '1 day')::text
+  );
+end;
+$$;
+
+create or replace function public.claim_demo_run_task(
+  p_task_id text, p_owner text, p_lease_seconds integer
+)
+returns setof public.demo_run_tasks
+language plpgsql security definer set search_path = public
+as $$
+declare claimed public.demo_run_tasks;
+begin
+  perform public.assert_service_role();
+  update public.demo_run_tasks
+  set status = 'running',
+      lease_owner = p_owner,
+      lease_token = gen_random_uuid(),
+      lease_until = now() + make_interval(secs => greatest(p_lease_seconds, 30)),
+      heartbeat_at = now(),
+      updated_at = now(),
+      version = version + 1
+  where task_id = p_task_id and status = 'queued'
+  returning * into claimed;
+  if claimed.task_id is null then return; end if;
+  return next claimed;
+end;
+$$;
+
+create or replace function public.claim_next_demo_run_task(p_owner text, p_lease_seconds integer)
+returns setof public.demo_run_tasks
+language plpgsql security definer set search_path = public
+as $$
+declare claimed public.demo_run_tasks;
+begin
+  perform public.assert_service_role();
+  -- Worker 模式按创建顺序领取一个 queued 任务；skip locked 允许多个付费
+  -- Worker 并行工作而不重复调用同一任务。
+  select * into claimed
+  from public.demo_run_tasks
+  where status = 'queued'
+  order by created_at
+  for update skip locked
+  limit 1;
+  if claimed.task_id is null then return; end if;
+  update public.demo_run_tasks
+  set status = 'running', lease_owner = p_owner, lease_token = gen_random_uuid(),
+      lease_until = now() + make_interval(secs => greatest(p_lease_seconds, 30)),
+      heartbeat_at = now(), updated_at = now(), version = version + 1
+  where task_id = claimed.task_id
+  returning * into claimed;
+  return next claimed;
+end;
+$$;
+
+create or replace function public.heartbeat_demo_run_task(
+  p_task_id text, p_owner text, p_lease_token uuid, p_lease_seconds integer
+)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare affected integer;
+begin
+  perform public.assert_service_role();
+  update public.demo_run_tasks
+  set lease_until = now() + make_interval(secs => greatest(p_lease_seconds, 30)),
+      heartbeat_at = now(), updated_at = now(), version = version + 1
+  where task_id = p_task_id and lease_owner = p_owner and lease_token = p_lease_token
+    and status = 'running' and lease_until > now();
+  get diagnostics affected = row_count;
+  return affected = 1;
+end;
+$$;
+
+create or replace function public.interrupt_expired_demo_run_tasks()
+returns integer language plpgsql security definer set search_path = public as $$
+declare affected integer;
+begin
+  perform public.assert_service_role();
+  update public.demo_run_tasks
+  set status = 'interrupted',
+      failure_code = 'TASK_INTERRUPTED_BY_INSTANCE_RESTART',
+      error = '服务实例中断，任务未自动重放模型调用。',
+      lease_owner = null, lease_token = null, lease_until = null,
+      updated_at = now(), version = version + 1
+  where status = 'running' and lease_until < now();
+  get diagnostics affected = row_count;
+  return affected;
+end;
+$$;
+
+create or replace function public.cancel_demo_run_task(p_task_id text)
+returns setof public.demo_run_tasks
+language plpgsql security definer set search_path = public
+as $$
+declare cancelled public.demo_run_tasks;
+begin
+  perform public.assert_service_role();
+  update public.demo_run_tasks
+  set status = 'cancelled',
+      failure_code = 'TASK_CANCELLED',
+      error = '用户在外部模型调用前取消了任务。',
+      lease_owner = null, lease_token = null, lease_until = null,
+      updated_at = now(), version = version + 1
+  where task_id = p_task_id and status in ('queued', 'running') and not non_interruptible
+  returning * into cancelled;
+  if cancelled.task_id is null then return; end if;
+  return next cancelled;
+end;
+$$;
+
 create or replace function public.heartbeat_pipeline_task(
   p_task_id text, p_worker_id text, p_lease_token uuid, p_lease_seconds integer
 )
@@ -681,6 +1038,15 @@ revoke all on function public.assert_service_role() from public, anon, authentic
 revoke all on function public.publish_rag_snapshot(text, text, text, integer) from public, anon, authenticated;
 revoke all on function public.upsert_model_transfer_consent(uuid, text, uuid, uuid, text, text, text, text, timestamptz) from public, anon, authenticated;
 revoke all on function public.claim_pipeline_task(text, integer) from public, anon, authenticated;
+revoke all on function public.claim_demo_run_task(text, text, integer) from public, anon, authenticated;
+revoke all on function public.claim_next_demo_run_task(text, integer) from public, anon, authenticated;
+revoke all on function public.heartbeat_demo_run_task(text, text, uuid, integer) from public, anon, authenticated;
+revoke all on function public.interrupt_expired_demo_run_tasks() from public, anon, authenticated;
+revoke all on function public.cancel_demo_run_task(text) from public, anon, authenticated;
+revoke all on function public.reserve_public_model_usage(text, text, integer, integer, integer, integer, integer, integer, boolean) from public, anon, authenticated;
+revoke all on function public.settle_public_model_usage(text, integer, integer, integer, integer) from public, anon, authenticated;
+revoke all on function public.release_public_model_usage(text) from public, anon, authenticated;
+revoke all on function public.snapshot_public_model_usage(text, integer, integer, integer, integer, integer) from public, anon, authenticated;
 revoke all on function public.heartbeat_pipeline_task(text, text, uuid, integer) from public, anon, authenticated;
 revoke all on function public.complete_pipeline_task(text, text, uuid, jsonb) from public, anon, authenticated;
 revoke all on function public.fail_pipeline_task(text, text, uuid, jsonb, boolean) from public, anon, authenticated;
@@ -691,6 +1057,15 @@ grant execute on function public.assert_service_role() to service_role;
 grant execute on function public.publish_rag_snapshot(text, text, text, integer) to service_role;
 grant execute on function public.upsert_model_transfer_consent(uuid, text, uuid, uuid, text, text, text, text, timestamptz) to service_role;
 grant execute on function public.claim_pipeline_task(text, integer) to service_role;
+grant execute on function public.claim_demo_run_task(text, text, integer) to service_role;
+grant execute on function public.claim_next_demo_run_task(text, integer) to service_role;
+grant execute on function public.heartbeat_demo_run_task(text, text, uuid, integer) to service_role;
+grant execute on function public.interrupt_expired_demo_run_tasks() to service_role;
+grant execute on function public.cancel_demo_run_task(text) to service_role;
+grant execute on function public.reserve_public_model_usage(text, text, integer, integer, integer, integer, integer, integer, boolean) to service_role;
+grant execute on function public.settle_public_model_usage(text, integer, integer, integer, integer) to service_role;
+grant execute on function public.release_public_model_usage(text) to service_role;
+grant execute on function public.snapshot_public_model_usage(text, integer, integer, integer, integer, integer) to service_role;
 grant execute on function public.heartbeat_pipeline_task(text, text, uuid, integer) to service_role;
 grant execute on function public.complete_pipeline_task(text, text, uuid, jsonb) to service_role;
 grant execute on function public.fail_pipeline_task(text, text, uuid, jsonb, boolean) to service_role;

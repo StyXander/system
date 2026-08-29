@@ -1,0 +1,24 @@
+# 可选赛前模板：当前 render.yaml 不包含此 Worker，避免免费方案误启用付费实例。
+# 只有用户明确授权赛前临时启用时，才将本文件合并到独立 Blueprint 并确认费用。
+services:
+  - type: worker
+    name: audittrace-demo-worker-optional
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python -m backend.app.demo_worker
+    envVars:
+      - key: AUDITTRACE_DEMO_TASK_PERSISTENCE
+        value: supabase
+      - key: AUDITTRACE_DEMO_EXECUTOR_MODE
+        value: worker
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        sync: false
+      - key: DEEPSEEK_MODEL
+        value: qwen3.5-plus

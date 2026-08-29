@@ -83,6 +83,7 @@ import math
 import os
 import re
 import sqlite3
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -101,6 +102,21 @@ from .cases import (
 )
 from .data import CASE_ID, CASE_NAME, TICKER
 from .schemas import AI_GENERATED_CONTENT_NOTICE
+
+
+_INDEX_LOCKS: dict[str, threading.Lock] = {}
+_INDEX_LOCKS_GUARD = threading.Lock()
+_INDEX_BUILD_STATES: dict[str, dict[str, Any]] = {}
+
+
+def _index_lock(workspace_root: Path, case_id: str) -> threading.Lock:
+    key = f"{workspace_root.resolve()}::{str(case_id).upper()}"
+    with _INDEX_LOCKS_GUARD:
+        return _INDEX_LOCKS.setdefault(key, threading.Lock())
+
+
+def _index_state_key(workspace_root: Path, case_id: str) -> str:
+    return f"{workspace_root.resolve()}::{str(case_id).upper()}"
 
 
 VECTOR_DIM = 384
@@ -408,6 +424,47 @@ def snapshot_id_for_chunks(chunks: list[dict[str, Any]]) -> str:
 
 
 def prepare_index(workspace_root: Path, *, case_id: str = CASE_ID, force: bool = False) -> dict[str, Any]:
+    """按案例 singleflight 建库；并发请求共享同一次完整发布结果。"""
+
+    key = _index_state_key(workspace_root, case_id)
+    with _INDEX_LOCKS_GUARD:
+        previous = _INDEX_BUILD_STATES.get(key)
+        if previous and previous.get("status") == "building":
+            event = previous["event"]
+            waiter = True
+        else:
+            event = threading.Event()
+            _INDEX_BUILD_STATES[key] = {"status": "building", "event": event, "result": None, "error": None}
+            waiter = False
+    if waiter:
+        event.wait()
+        with _INDEX_LOCKS_GUARD:
+            state = _INDEX_BUILD_STATES.get(key) or {}
+            if state.get("error"):
+                raise RuntimeError("RAG_INDEX_BUILD_FAILED")
+            result = state.get("result")
+        if isinstance(result, dict):
+            return dict(result)
+        raise RuntimeError("RAG_INDEX_BUILD_FAILED")
+    try:
+        with _index_lock(workspace_root, case_id):
+            result = _prepare_index_unlocked(workspace_root, case_id=case_id, force=force)
+    except Exception as error:
+        with _INDEX_LOCKS_GUARD:
+            state = _INDEX_BUILD_STATES.get(key)
+            if state is not None:
+                state.update({"status": "failed", "error": "RAG_INDEX_BUILD_FAILED"})
+                state["event"].set()
+        raise error
+    with _INDEX_LOCKS_GUARD:
+        state = _INDEX_BUILD_STATES.get(key)
+        if state is not None:
+            state.update({"status": "ready", "result": dict(result), "error": None})
+            state["event"].set()
+    return result
+
+
+def _prepare_index_unlocked(workspace_root: Path, *, case_id: str = CASE_ID, force: bool = False) -> dict[str, Any]:
     case = get_case(workspace_root, case_id)
     if case is None:
         raise ValueError("案例未登记。")
@@ -532,14 +589,52 @@ def prepare_index(workspace_root: Path, *, case_id: str = CASE_ID, force: bool =
 
 def status(workspace_root: Path, case_id: str = CASE_ID) -> dict[str, Any]:
     # 状态接口也固定一个版本快照，避免 active 指针切换时出现短暂假阴性。
+    key = _index_state_key(workspace_root, case_id)
+    with _INDEX_LOCKS_GUARD:
+        build_state = dict(_INDEX_BUILD_STATES.get(key) or {})
+    if build_state.get("status") == "building":
+        return {
+            "status": "index_building",
+            "source_status": "source_available",
+            "index_status": "building",
+            "runtime_ready": False,
+            "index_version": INDEX_VERSION,
+            "case_id": case_id,
+            "chunk_count": 0,
+            "boundary": "同一案例已有索引构建进行中；并发请求等待同一个版本，不会重复建库。",
+        }
     active_dir = _active_data_dir(workspace_root, case_id)
     manifest = active_dir / "manifest.json"
     if not manifest.exists() or not (active_dir / "rag.faiss").exists():
-        return {"status": "not_built", "index_version": INDEX_VERSION, "case_id": case_id, "chunk_count": 0}
+        payload = {
+            "status": "not_built",
+            "source_status": "source_available",
+            "index_status": "not_built",
+            "runtime_ready": False,
+            "index_version": INDEX_VERSION,
+            "case_id": case_id,
+            "chunk_count": 0,
+        }
+        if build_state.get("status") == "failed":
+            payload.update({"status": "failed", "index_status": "failed", "failure_code": "RAG_INDEX_BUILD_FAILED"})
+        return payload
     try:
-        return json.loads(manifest.read_text(encoding="utf-8"))
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if isinstance(payload, dict):
+            payload.setdefault("source_status", "source_available")
+            payload.setdefault("index_status", "ready")
+            payload.setdefault("runtime_ready", payload.get("status") == "ready")
+        return payload
     except (OSError, json.JSONDecodeError):
-        return {"status": "not_built", "index_version": INDEX_VERSION, "case_id": case_id, "chunk_count": 0}
+        return {
+            "status": "not_built",
+            "source_status": "source_available",
+            "index_status": "corrupt",
+            "runtime_ready": False,
+            "index_version": INDEX_VERSION,
+            "case_id": case_id,
+            "chunk_count": 0,
+        }
 
 
 def export_chunks(workspace_root: Path, case_id: str = CASE_ID) -> list[dict[str, Any]]:

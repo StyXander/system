@@ -1,0 +1,62 @@
+{
+  "evaluation_id": "EVAL-20260822-COMPETITION-8CASE-V2",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "packages": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "company_name": "万科A",
+      "stratum": "strong_direct_candidate",
+      "md_file": "CNINFO_000002_T0_20260331.md",
+      "sha256": "f40c2f041f7551fb74601209ac00468b2c105fae1b182127dd9fb6e865ce1b95"
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "company_name": "中国中铁",
+      "stratum": "standard_direct_candidate",
+      "md_file": "CNINFO_601390_T0_20260330.md",
+      "sha256": "973e303d77499e45fc4149890bf37ba081dafa1fbb237d8497edd5c4e262cd44"
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "company_name": "中国铁建",
+      "stratum": "strong_direct_candidate",
+      "md_file": "CNINFO_601186_T0_20260330.md",
+      "sha256": "c427ea46d4c53117977d477a40cbe8e50ad460e0f5686129aabf7416b19412b6"
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "stratum": "strong_direct_candidate",
+      "md_file": "CNINFO_000858_T0_20260430.md",
+      "sha256": "f02ab778038a24b75b66a3241170978d004c4287cfa55a914c8e7f34246cb737"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "西安标准工业股份有限公司（标准股份）",
+      "stratum": "rule_not_triggered",
+      "md_file": "STD_DEV_T0.md",
+      "sha256": "e47ea2e1292d9805a02acfefef693a8275173971bed9e8b34225893eb0916b73"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "stratum": "rule_not_triggered",
+      "md_file": "CNINFO_600938_T0_20260326.md",
+      "sha256": "497cad419f6d022e464f384095dce51cf6a0122be0fbd7531090f2edc9d1907a"
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "company_name": "中国建筑",
+      "stratum": "conditional_industry",
+      "md_file": "CNINFO_601668_T0_20260417.md",
+      "sha256": "183234c0724ec6251389b50fb7147a9fcbfa722e888402feda6855dc2b81a07f"
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "company_name": "中国人寿",
+      "stratum": "industry_not_applicable",
+      "md_file": "CNINFO_601628_T0_20260325.md",
+      "sha256": "8a7d42eef09a39a5d3ee76c977b7963eff9b30c1e8c2290fb9b105ef509c5729"
+    }
+  ]
+}

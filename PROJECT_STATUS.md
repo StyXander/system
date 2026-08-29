@@ -1,29 +1,33 @@
 # 审迹智链单一事实源
 
-更新时间：2026-08-25
+更新时间：2026-08-28
 统一 AI 声明：**AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。**
 
-## 2026-08-26 R3 缺口修复与真实验收（当前最高优先级事实）
+> **当前整改发布候选（2026-08-29，唯一当前口径）**：`RELEASE-CANDIDATE-20260828-V1`，模型为 `deepseek-v4-flash`（DeepSeek 官方直连）；15 案由 `backend/competition_demo_cases.json` 冻结清单统一驱动。公开演示任务/结果/质量事件采用 Supabase 服务端台账，当前执行模式是 Render 免费 Web；完成结果可跨刷新和重启读取，运行中实例重启会记为 `interrupted`，不自动续跑，需显式重试。provider probe、真实 B3、签字、评估指针和人工评分分别判定，`configured` 不等于真实可运行，当前 `competition_release_ready=false` 直到新鲜证据和真人批准完成。当前评估指针为 `EVAL-20260828-RELEASE-CANDIDATE-V1`，人工评分保持 pending；可选 Worker 仅见 `render.worker.example.yaml`，未写入当前 Blueprint。
+
+> 旧 R3/R2/R1 段落、历史模型和历史成功率均保留用于追溯，并标记为 superseded；对外状态以 `/api/health`、`/api/status`、`/api/demo/bootstrap` 和 `backend/release_records/` 的哈希校验结果为准。
+
+## 2026-08-26 R3 缺口修复与真实验收（历史冻结窗口，已由 2026-08-28 整改候选 supersede）
 
 - B1—B3 已在当前代码建立新的追加式合同目录：`outputs/evaluation_v5/EVAL-20260826-B1B3-CURRENT-R3/`。五粮液、中国海油、标准股份各执行一次，共 9 条原始 JSON；旧 R2 目录和历史目录均未覆盖。
 - R3 结果：B1 为 3/3 确定性完成且外部调用 0；B2 为 0/3 完成，每案仅一次真实单模型调用，原始失败码均为 `MODEL_OUTPUT_VALIDATION_FAILED`、校验阶段为 `validation`，且每条均绑定字段证据与 `PROC-R1-2025` 程序证据卡；B3 为 3/3 `model_success`，三角色均完成。`B2_FAILURE_CLASSIFICATION.json/.md` 在不改写原始记录的前提下，将错误文本进一步映射为 `MODEL_FACT_LANGUAGE_VALIDATION_ERROR` / `fact_language`。B2 与 B3 口径不同，不合并为官方成功率。AI 辅助预评分均值分别为 B1 97.7、B2 59.0、B3 98.3；项目队长正式评分栏仍为空。
-- 当前 qwen3.5-plus 质量窗口仍为 **7/10=70.0%**，阈值 80%，状态 `below_threshold`、`alert=true`；继续告警，不自动换模型。真实失败码、响应哈希、token、耗时和受控修正次数均保留。
+- R3 冻结的 qwen3.5-plus 质量窗口为 **7/10=70.0%**，阈值 80%，状态 `below_threshold`、`alert=true`；该数字只作历史告警证据，不等于当前候选的 runtime 窗口。真实失败码、响应哈希、token、耗时和受控修正次数均保留。
 - 12 条活跃知识来源已完成独立可访问性抽查，结果为 12/12 HTTP 200；活跃来源仍是 13 条登记中的 12 条，另 1 条归档。资料范围继续写“代表性接入”，近五年窗口为 2021-08-24 至 2026-08-24，不宣称全量。
 - 补充材料父子任务合同测试通过；现场 `600436`（片仔癀）入口已在 8000 当前实例完成一次真实任务，企业解析、公告/文档校验、案例登记、RAG、字段提取和结构化导出均有记录。浏览器现场样例终态为“需要人工确认/模型链不完整”，未写成模型成功；证据与 JSON/CSV/打印 PDF/DOCX 位于 `outputs/browser-r3-export-8000/`。
 - 浏览器静态验收 `outputs/browser-r3-static11/static-audit.json` 覆盖 1440×900、1440×1000、1024×768、768×1024、390×844：axe violations/incomplete、console/page/网络错误和横向溢出均为 0。前端契约为 131 unique ids、129 refs、1 script；JavaScript、Python compile、`git diff --check` 均通过。
 - 从项目根目录与 `backend` 目录分别运行全量回归，均为 **329 passed、1 warning**；唯一 warning 仍为 Starlette TestClient/httpx 兼容性弃用提示。
 - R3 事实快照已冻结：`outputs/final-audit-20260826-r3/`；JSON SHA-256 为 `49739505744686c2510222ae49ae1f531d334f257356fd537e8fd13727c7f5a7`，Markdown SHA-256 为 `7ca8861f2334e3f74704f24c2864e6664abb5cde543fa3732389edd945b08e79`。快照主链哈希范围排除 PROJECT_STATUS、README、快照和浏览器输出；回填状态文档不会改变该主链哈希。当前状态仍不能写成“模型稳定成功率超过 80%”或“任意新企业均自动完成”；现场样例人工确认、B2 失败和质量告警必须保留。
 
-## 2026-08-25 R2 追加验收（当前代码事实）
+## 2026-08-25 R2 追加验收（历史冻结窗口，已由 2026-08-28 整改候选 supersede）
 
 - 队长追加签字已完成：`outputs/professional-signoff/R1-v0.4-captain-signoff-20260825-r2.json/.md`；状态为 `captain_approved_for_competition_demo`，姓名字段空白，旧签字记录保持可追溯。签字后事实快照位于 `outputs/final-audit-20260825-r2/`。
 - 当前代码 B1—B3 合同目录为 `outputs/evaluation_v5/EVAL-20260825-B1B3-CURRENT-R2-NETWORK/`：五粮液、中国海油、标准股份各执行 B1/B2/B3 一次，共 9 条原始记录；B1 3/3、B2 0/3（均为 `MODEL_OUTPUT_VALIDATION_FAILED`）、B3 3/3 三角色 `model_success`。旧 `EVAL-20260825-B1B3-AI-PRESCORE-V1` 目录不被覆盖，仅作历史证据。
-- 当前 `qwen3.5-plus` 真实外部三 Agent 质量窗口为 **7/10=70.0%**，阈值 80%，`below_threshold`、`alert=true`；这已构成对队长的低于 80% 告警。不得宣称稳定成功，不自动切换模型。
+- R2 冻结的 `qwen3.5-plus` 真实外部三 Agent 质量窗口为 **7/10=70.0%**，阈值 80%，`below_threshold`、`alert=true`；该数字只作历史告警证据。不得宣称稳定成功，不自动切换模型。
 - 真实 B3 结果均写入知识检索轨迹、来源台账、认定—证据—程序矩阵、证据适配度、数字回查和反确认记录；失败/降级运行保留真实失败码，不冒充成功。
 - 四视口静态/动态浏览器链、键盘抽屉、重置、JSON/CSV/打印入口均已验收；真实 B3 `RUN-V7-DB751326FFAC` 的 API JSON 与 Word/PDF 报告也已核对并记录在 `outputs/final-audit-20260825-r2/real-export-audit.json`。自动阻断项、console/page/网络错误和横向溢出为 0。axe `color-contrast` 因渐变/伪元素无法自动判定，保留人工复核项。
 - 最新回归：后端 **321 passed、1 warning**；前端契约 **131 unique ids、129 refs、1 script**；JavaScript、Python compile、`git diff --check` 和中文说明比例 **2198/21676=10.14%** 均通过。快照 JSON/Markdown 哈希分别为 `fa352bf3fbe15f2c92c3f2136e4fc8a6ec9cb4491a36abb65446f806466eeda8`、`d82df2122b0e7c33a7f1f4481780e34aaecafcc3c1ec3e115ac7bd39f652299f`。
 
-## 2026-08-25 当前主方案、创新增强与 B1—B3 评估状态
+## 2026-08-25 主方案、创新增强与 B1—B3 评估状态（历史快照，已由整改候选 supersede）
 
 - 当前主文档已切换为 `02_最终确定方案/15_审迹智链_项目方案书_V4_竞赛提交版_2026-08-25.md` 与 `02_最终确定方案/16_审迹智链_详细项目计划书_V3_提交冲刺版_2026-08-25.md`；V3.3/V2.4.6 仅保留为历史版本链。
 - 四项审计专属增强已接入运行上下文、前端结果区和结构化导出：确定性路由、认定—证据—程序覆盖矩阵、证据适配度主张边界、数字主张回查与反确认偏差记录。

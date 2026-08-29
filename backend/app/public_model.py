@@ -103,6 +103,13 @@ class PublicModelQuotaError(RuntimeError):
 
     code = "PUBLIC_MODEL_QUOTA_EXCEEDED"
 
+    def __init__(self, message: str, *, code: str | None = None) -> None:
+        super().__init__(message)
+        # Supabase RPC 只允许返回受控短码；保留它可以让 API/日志区分
+        # IP、全局并发、每日预算和数据库不可用，而不暴露供应商或 SQL 详情。
+        if code:
+            self.code = str(code)[:80]
+
 
 class PublicModelLedger:
     """可测试的原子额度账本；运行结果只保存结构化缓存，不保存密钥。"""
@@ -344,6 +351,145 @@ class PublicModelLedger:
     def complete_cache_fill(self, cache_key: str, owner_event: threading.Event | None = None) -> None:
         """只允许当前所有者释放合并点，超时旧任务不能误删新任务。"""
 
+        with self._inflight_lock:
+            current = self._inflight.get(cache_key)
+            if current is None:
+                return
+            event, _started_at = current
+            if owner_event is not None and event is not owner_event:
+                return
+            self._inflight.pop(cache_key, None)
+            event.set()
+
+
+class SupabasePublicModelLedger:
+    """Supabase 版公开额度账本，保持与本地 SQLite 账本相同的调用合同。
+
+    所有计数、并发租约、每日预算和回收都在 Postgres RPC 事务内执行；
+    Web 进程只保留同一缓存键的短时 singleflight，不把额度事实放回本地。
+    ``service-role`` 客户端只在服务端实例化，浏览器和公开响应永远拿不到它。
+    """
+
+    def __init__(self, client: Any | None = None, *, config: QuotaConfig | None = None) -> None:
+        if client is None:
+            from .supabase_adapter import get_demo_task_client
+
+            client = get_demo_task_client()
+        self.client = client
+        self.config = config or QuotaConfig.from_env()
+        self._inflight_lock = threading.Lock()
+        self._inflight: dict[str, tuple[threading.Event, float]] = {}
+
+    @staticmethod
+    def hash_client(client_id: str) -> str:
+        secret = os.getenv("AUDITTRACE_PUBLIC_QUOTA_SECRET", "audittrace-demo-quota").encode("utf-8")
+        return hmac.new(secret, str(client_id).encode("utf-8"), hashlib.sha256).hexdigest()
+
+    @staticmethod
+    def _quota_error(result: dict[str, Any]) -> PublicModelQuotaError:
+        # RPC 只返回稳定码和短消息；不把数据库错误正文传到页面。
+        message = str(result.get("message") or "公开模型额度暂不可用，请稍后重试。")[:240]
+        raw_code = result.get("code")
+        code = str(raw_code)[:80] if raw_code else None
+        return PublicModelQuotaError(message, code=code)
+
+    def _reserve(self, client_id: str, *, batch: bool) -> str:
+        reservation_id = secrets.token_urlsafe(18)
+        result = self.client.reserve_public_model_usage(
+            reservation_id=reservation_id,
+            client_hash=self.hash_client(client_id),
+            window_seconds=self.config.window_seconds,
+            per_ip=self.config.per_ip,
+            global_window=self.config.global_window,
+            max_concurrent=self.config.max_concurrent,
+            daily_runs=self.config.daily_runs,
+            reservation_ttl_seconds=self.config.reservation_ttl_seconds,
+            batch=batch,
+        )
+        if not bool(result.get("ok")):
+            raise self._quota_error(result)
+        accepted = str(result.get("reservation_id") or reservation_id)
+        if not accepted:
+            raise PublicModelQuotaError("公开模型额度预留未返回有效编号。")
+        return accepted
+
+    def reserve(self, client_id: str) -> str:
+        return self._reserve(client_id, batch=False)
+
+    def reserve_batch(self, batch_id: str) -> str:
+        return self._reserve(f"server-prewarm:{batch_id}", batch=True)
+
+    def settle(self, reservation_id: str, *, input_tokens: int = 0, output_tokens: int = 0) -> None:
+        result = self.client.settle_public_model_usage(
+            reservation_id=reservation_id,
+            input_tokens=max(0, int(input_tokens)),
+            output_tokens=max(0, int(output_tokens)),
+            daily_input_tokens=self.config.daily_input_tokens,
+            daily_output_tokens=self.config.daily_output_tokens,
+        )
+        if not bool(result.get("ok")):
+            raise self._quota_error(result)
+
+    def release(self, reservation_id: str) -> None:
+        self.client.release_public_model_usage(reservation_id=reservation_id)
+
+    def quota_snapshot(self, client_id: str | None = None) -> dict[str, Any]:
+        result = self.client.snapshot_public_model_usage(
+            client_hash=self.hash_client(client_id) if client_id else None,
+            window_seconds=self.config.window_seconds,
+            global_window=self.config.global_window,
+            max_concurrent=self.config.max_concurrent,
+            reservation_ttl_seconds=self.config.reservation_ttl_seconds,
+            daily_runs=self.config.daily_runs,
+        )
+        if not bool(result.get("ok", True)):
+            raise self._quota_error(result)
+        # 保持前端旧字段兼容，新台账不返回具体访客标识或数据库行。
+        return {
+            "global_remaining_15m": max(0, int(result.get("global_remaining_15m") or 0)),
+            "daily_runs_remaining": max(0, int(result.get("daily_runs_remaining") or 0)),
+            "active": max(0, int(result.get("active") or 0)),
+            "max_concurrent": max(1, int(result.get("max_concurrent") or self.config.max_concurrent)),
+            "reset_at": str(result.get("reset_at") or ""),
+        }
+
+    def get_cache(self, cache_key: str) -> dict[str, Any] | None:
+        row = self.client.get_public_model_cache(cache_key_hash=cache_key)
+        if not isinstance(row, dict):
+            return None
+        created = str(row.get("created_at") or "")
+        try:
+            parsed = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) - parsed > timedelta(seconds=self.config.cache_seconds):
+                self.client.delete_public_model_cache(cache_key_hash=cache_key)
+                return None
+        except ValueError:
+            self.client.delete_public_model_cache(cache_key_hash=cache_key)
+            return None
+        payload = row.get("run_payload")
+        if not isinstance(payload, dict):
+            self.client.delete_public_model_cache(cache_key_hash=cache_key)
+            return None
+        return payload
+
+    def put_cache(self, cache_key: str, payload: dict[str, Any]) -> None:
+        self.client.put_public_model_cache(cache_key_hash=cache_key, run_payload=payload)
+
+    def acquire_cache_fill(self, cache_key: str) -> tuple[bool, threading.Event]:
+        with self._inflight_lock:
+            existing = self._inflight.get(cache_key)
+            if existing is not None:
+                event, started_at = existing
+                if time.monotonic() - started_at <= self.config.cache_fill_ttl_seconds:
+                    return False, event
+                event.set()
+            event = threading.Event()
+            self._inflight[cache_key] = (event, time.monotonic())
+            return True, event
+
+    def complete_cache_fill(self, cache_key: str, owner_event: threading.Event | None = None) -> None:
         with self._inflight_lock:
             current = self._inflight.get(cache_key)
             if current is None:

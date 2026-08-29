@@ -17,6 +17,11 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 
 API_BASE = "http://127.0.0.1:8000"
 RUN_WAIT_SECONDS = 420

@@ -1,0 +1,95 @@
+{
+  "schema_version": "evaluation_dashboard_v1",
+  "evaluation_id": "EVAL-20260828-RELEASE-CANDIDATE-V1",
+  "status": "pending_human_scoring_and_fresh_model_runs",
+  "frozen_at": null,
+  "model_id": "deepseek-v4-flash",
+  "reviewers_required": 2,
+  "cases_required": 3,
+  "review_forms_required": 6,
+  "review_forms_completed": 0,
+  "human_scoring_status": "pending",
+  "metrics": null,
+  "quality_window": {
+    "window_id": "RUNTIME-DEEPSEEK-V4-FLASH-20260829-PENDING",
+    "sample_count": 0,
+    "success_count": 0,
+    "success_rate": null,
+    "threshold": 0.8,
+    "alert": true,
+    "includes_retries": false,
+    "source": "awaiting_fresh_production_runs"
+  },
+  "groups": {
+    "B0": {
+      "status": "not_started",
+      "definition": "人工仅查看字段和原文，自行判断",
+      "completed": 0,
+      "total": 3
+    },
+    "B1": {
+      "status": "not_started",
+      "definition": "只使用确定性规则",
+      "completed": 0,
+      "total": 3
+    },
+    "B2": {
+      "status": "not_started",
+      "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体",
+      "completed": 0,
+      "total": 3
+    },
+    "B3": {
+      "status": "not_started",
+      "definition": "确定性规则、RAG、三智能体和硬校验完整链",
+      "completed": 0,
+      "total": 3
+    }
+  },
+  "cases": [
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "stratum": "strong_direct_candidate",
+      "t0": "2026-04-30",
+      "available_years": [2025, 2024],
+      "source_snapshot_id": "181e5e6d151b4e472d0eed99",
+      "groups": {
+        "B0": {"status": "not_started", "definition": "人工仅查看字段和原文，自行判断"},
+        "B1": {"status": "not_started", "definition": "只使用确定性规则"},
+        "B2": {"status": "not_started", "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"},
+        "B3": {"status": "not_started", "definition": "确定性规则、RAG、三智能体和硬校验完整链"}
+      }
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "stratum": "rule_not_triggered",
+      "t0": "2026-03-26",
+      "available_years": [2025, 2024],
+      "source_snapshot_id": "72739e356fa47432b2e40e50",
+      "groups": {
+        "B0": {"status": "not_started", "definition": "人工仅查看字段和原文，自行判断"},
+        "B1": {"status": "not_started", "definition": "只使用确定性规则"},
+        "B2": {"status": "not_started", "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"},
+        "B3": {"status": "not_started", "definition": "确定性规则、RAG、三智能体和硬校验完整链"}
+      }
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "标准股份",
+      "stratum": "rule_not_triggered",
+      "t0": "2026-04-30",
+      "available_years": [2025, 2024, 2023],
+      "source_snapshot_id": "std-dev-t0-w2-v0.2",
+      "groups": {
+        "B0": {"status": "not_started", "definition": "人工仅查看字段和原文，自行判断"},
+        "B1": {"status": "not_started", "definition": "只使用确定性规则"},
+        "B2": {"status": "not_started", "definition": "确定性规则加一次直接模型复核，不使用 RAG 和多智能体"},
+        "B3": {"status": "not_started", "definition": "确定性规则、RAG、三智能体和硬校验完整链"}
+      }
+    }
+  ],
+  "disputes": 0,
+  "boundary": "评估分数仅用于竞赛效果展示，不用于训练模型、修改规则或替代人工判断。人工评分尚未完成。"
+}

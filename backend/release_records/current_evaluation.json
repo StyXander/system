@@ -1,0 +1,17 @@
+{
+  "schema_version": "current_evaluation_pointer_v1",
+  "evaluation_id": "EVAL-20260828-RELEASE-CANDIDATE-V1",
+  "dashboard_path": "backend/release_records/evaluations/EVAL-20260828-RELEASE-CANDIDATE-V1/dashboard.json",
+  "dashboard_sha256": "a5c4247d3a1caf154dbc758f3317c074d9a451776a1eba82fdb8f66508f40123",
+  "raw_records_path": "backend/release_records/evaluations/EVAL-20260828-RELEASE-CANDIDATE-V1/raw_records.jsonl",
+  "raw_records_mode": "append_only_jsonl",
+  "raw_records_status": "initialized_no_model_runs",
+  "status": "pending_human_scoring_and_fresh_model_runs",
+  "model_id": "deepseek-v4-flash",
+  "human_scoring_status": "pending",
+  "quality_window": {
+    "window_id": "RUNTIME-DEEPSEEK-V4-FLASH-20260829-PENDING",
+    "threshold": 0.8,
+    "definition": "最近10次真实 deepseek-v4-flash 三 Agent 完整尝试；不含 B1、B2、缓存、回放、确定性备用或 probe。"
+  }
+}

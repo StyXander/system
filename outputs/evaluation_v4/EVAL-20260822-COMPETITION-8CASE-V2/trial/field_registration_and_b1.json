@@ -1,0 +1,234 @@
+{
+  "executed_at": "2026-08-23T02:01:20+00:00",
+  "reviewer_attribution": "项目所有者授权DeepSeek工程预核2026-08-22",
+  "registrations": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "field_id": "revenue_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "field_id": "revenue_2024",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "field_id": "revenue_2023",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "field_id": "accounts_receivable_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "field_id": "accounts_receivable_2024",
+      "decision": "correct",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "field_id": "accounts_receivable_2023",
+      "decision": "correct",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "field_id": "revenue_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "field_id": "revenue_2024",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "field_id": "revenue_2023",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "field_id": "accounts_receivable_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "field_id": "accounts_receivable_2024",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "field_id": "accounts_receivable_2023",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "field_id": "revenue_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "field_id": "revenue_2024",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "field_id": "revenue_2023",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "field_id": "accounts_receivable_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "field_id": "accounts_receivable_2024",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "field_id": "accounts_receivable_2023",
+      "decision": "correct",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "field_id": "revenue_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "field_id": "revenue_2024",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "field_id": "revenue_2023",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "field_id": "accounts_receivable_2025",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "field_id": "accounts_receivable_2023",
+      "decision": "confirm",
+      "http": 200
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "field_id": "accounts_receivable_2024",
+      "decision": "correct",
+      "http": 200
+    }
+  ],
+  "b1_runs": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "company": "万科A",
+      "run_id": "RUN-V7-B56B7DAB4941",
+      "screening": "candidate",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": -0.3197878954759658,
+      "ar_growth": 0.17363564640855028,
+      "gap": 0.4934235418845161
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "company": "中国中铁",
+      "run_id": "RUN-V7-7AC75CF08958",
+      "screening": "candidate",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": -0.05772488885658731,
+      "ar_growth": 0.1733721535577713,
+      "gap": 0.2310970424143586
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "company": "中国铁建",
+      "run_id": "RUN-V7-C0506FBEB2FB",
+      "screening": "candidate",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": -0.03503362178476501,
+      "ar_growth": 0.1771090494095314,
+      "gap": 0.21214267119429642
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company": "五粮液",
+      "run_id": "RUN-V7-894EF8A8A00F",
+      "screening": "candidate",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": -0.5455180406416607,
+      "ar_growth": 0.010679900348899315,
+      "gap": 0.55619794099056
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "company": "西安标准工业股份有限公司（标准股份）",
+      "run_id": "RUN-V7-FB6A2C557B88",
+      "screening": "RULE_NOT_TRIGGERED",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": -0.2444553247808452,
+      "ar_growth": -0.3764268816326488,
+      "gap": -0.13197155685180362
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company": "中国海油",
+      "run_id": "RUN-V7-53CC73FEF010",
+      "screening": "RULE_NOT_TRIGGERED",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": -0.05299805472454614,
+      "ar_growth": null,
+      "gap": 0.037717661018974724
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "company": "中国建筑",
+      "run_id": "RUN-V7-A2AD92BB3B3D",
+      "screening": "DATA_GAP",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": null,
+      "ar_growth": null,
+      "gap": null
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "company": "中国人寿",
+      "run_id": "RUN-V7-0CFB9B7D641B",
+      "screening": "DATA_GAP",
+      "completeness": "incomplete_calculation_only",
+      "rev_growth": null,
+      "ar_growth": null,
+      "gap": null
+    }
+  ],
+  "model_calls": 0,
+  "note": "项目所有者会话授权执行：字段登记含 PDF 页证据；海油/建筑/人寿未登记保持 pending。"
+}

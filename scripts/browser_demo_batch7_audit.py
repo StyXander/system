@@ -10,12 +10,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from axe_playwright_python.sync_playwright import Axe
 from playwright.sync_api import Page, sync_playwright
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +28,35 @@ MANIFEST = ROOT / "backend" / "competition_demo_cases.json"
 DEFAULT_OUT = ROOT / "artifacts" / "competition-demo-batch7" / "browser"
 # 竞赛计划要求的 1440×900 保留；1440×1000 是既有工作台基线，作为额外视口复核。
 VIEWPORTS = ((1440, 900), (1440, 1000), (1024, 768), (768, 1024), (390, 844))
+
+
+def _load_axe() -> Any:
+    """延迟加载 axe，并兼容第三方包在 Windows locale 下的旧读文件方式。
+
+    延迟加载让 ``--help`` 和不做 axe 的参数在缺少浏览器依赖时仍能运行；
+    重试时只在导入第三方包的瞬间把无编码 ``Path.read_text()`` 约束为 UTF-8，
+    不改变项目文件，也不把供应商脚本内容写入审计产物。
+    """
+
+    try:
+        from axe_playwright_python.sync_playwright import Axe
+
+        return Axe
+    except UnicodeDecodeError:
+        original_read_text = Path.read_text
+
+        def read_text_utf8(path: Path, encoding: str | None = None, errors: str | None = None) -> str:
+            return original_read_text(path, encoding=encoding or "utf-8", errors=errors)
+
+        Path.read_text = read_text_utf8  # type: ignore[method-assign]
+        try:
+            sys.modules.pop("axe_playwright_python.sync_playwright", None)
+            sys.modules.pop("axe_playwright_python.base", None)
+            from axe_playwright_python.sync_playwright import Axe
+
+            return Axe
+        finally:
+            Path.read_text = original_read_text  # type: ignore[method-assign]
 
 
 def text(page: Page, selector: str) -> str:
@@ -57,6 +91,7 @@ def observers(page: Page, report: dict[str, Any]) -> None:
 
 def static_audit(base_url: str, output: Path) -> dict[str, Any]:
     rows = []
+    Axe = _load_axe()
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel="chrome", headless=True)
         axe = Axe()

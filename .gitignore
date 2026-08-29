@@ -8,6 +8,9 @@ backend/**/__pycache__/
 .pytest_cache/
 .pytest_tmp/
 .pytest_tmp2/
+.pytest_tmp3/
+.pytest_tmp4/
+.pytest_tmp_*/
 backend/runtime/
 tmp/
 # 本地浏览器验收产物与前端回滚备份只留在本机，不进入发布提交。
@@ -66,9 +69,32 @@ artifacts/
 !/scripts/
 /scripts/*
 !/scripts/freeze_evaluation_v3.py
+!/scripts/freeze_evaluation_v4.py
+!/scripts/build_evaluation_v3_workbook.py
+!/scripts/build_b0_blind_packages.py
+!/scripts/build_field_review_workbook.py
 !/scripts/run_51_case_acceptance.py
 !/scripts/validate_external_acceptance.py
 !/scripts/check_human_review_entry.py
+!/scripts/build_competition_demo_manifest.py
+!/scripts/browser_demo_run_audit.py
+!/scripts/browser_demo_batch7_audit.py
+!/scripts/browser_demo_recovery_audit.py
+!/scripts/verify_demo_outcome_judge.mjs
+!/scripts/run_demo_final_acceptance.py
+!/scripts/finalize_competition_demo_acceptance.py
+!/scripts/run_controlled_b1_b3_prescore.py
+!/scripts/verify_b1_b3_evaluation_integrity.py
+!/scripts/check_knowledge_sources_live.py
+!/scripts/build_truth_snapshot_20260825.py
+!/scripts/browser_demo_structured_output_audit.py
+!/scripts/summarize_b1_b3_evaluation.py
+!/scripts/record_r3_export_artifacts.py
+!/scripts/classify_r3_b2_failures.py
+!/backend/tests/test_demo_bootstrap.py
+!/backend/tests/test_b2_procedure_evidence_contract.py
+!/backend/tests/test_r3_continuation_acceptance.py
+!/启动审迹智链.bat
 !/PROJECT_STATUS.md
 !/README_RUN.md
 !/outputs/
@@ -79,3 +105,7 @@ artifacts/
 !/outputs/external_model_acceptance/
 /outputs/external_model_acceptance/*
 !/outputs/external_model_acceptance/current.json
+# 2026-08-22 正式评估 v4：合同/仪表盘/账本/底稿入库；密封 AI 参考评分与协调人清单不进公开仓库。
+!/outputs/evaluation_v4/
+/outputs/evaluation_v4/sealed-ai-reference/
+/outputs/evaluation_v4/**/coordinator/

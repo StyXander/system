@@ -18,6 +18,7 @@ from .privacy import model_transmission_scope
 from .supabase_adapter import (
     SupabaseAuthError,
     SupabaseError,
+    demo_task_supabase_enabled,
     SupabaseNotConfigured,
     get_supabase_client,
     persistence_mode,
@@ -37,7 +38,7 @@ def model_consent_contract() -> dict[str, str]:
     provider = (urlparse(base_url).hostname or "api.deepseek.com").lower()
     return {
         "provider": provider,
-        "model_id": os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus").strip(),
+        "model_id": os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip(),
         "transmission_scope": model_transmission_scope(),
     }
 
@@ -278,4 +279,21 @@ def identity_for_task(request: Request) -> dict[str, str | None] | None:
 def configured_persistence() -> dict[str, Any]:
     """公开持久化与身份边界，供状态接口和页面一致展示。"""
 
-    return {"mode": persistence_mode(), "auth_required_for_internal": supabase_enabled(), "public_anonymous": True}
+    demo_mode = "supabase" if demo_task_supabase_enabled() else "local"
+    executor_mode = os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE", "web").strip().lower() or "web"
+    demo_supabase_configured = bool(
+        os.getenv("SUPABASE_URL", "").strip()
+        and os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    ) if demo_mode == "supabase" else True
+    return {
+        "mode": persistence_mode(),
+        "demo_task_mode": demo_mode,
+        "demo_executor_mode": executor_mode,
+        "demo_task_configured": demo_supabase_configured,
+        "demo_quota_mode": demo_mode,
+        "demo_quota_configured": demo_supabase_configured,
+        "demo_completed_result_durable": demo_mode == "supabase",
+        "demo_running_resume": False,
+        "auth_required_for_internal": supabase_enabled(),
+        "public_anonymous": True,
+    }

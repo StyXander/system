@@ -1,0 +1,39 @@
+{
+  "attempt": 5,
+  "executed_at": "2026-08-23T03:00:38+00:00",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "purpose": "语义闸门修复后的验证运行：确认中国建筑 B3 完整链在修复后引擎下真实完成。",
+  "engine_fix": {
+    "file": "backend/app/agents.py",
+    "change": "强阈值/周转趋势肯定断言改为小句级扫描（_positive_assertion_found），否定/存疑句（如“无法评估是否达到强阈值”）不再被误判为肯定断言。",
+    "regression_tests": "backend/tests/test_v7_closure.py 新增 8 个回归用例（2 拦截 + 6 放行）",
+    "note": "历史 attempt1-3 失败记录保留不改写；attempt4 为修复前偶然成功的数据点。"
+  },
+  "http_status": 200,
+  "run_id": "RUN-V7-D7725D32F7A4",
+  "run_completeness": "complete_public_prescreen_with_gaps",
+  "screening_status": "DATA_GAP",
+  "route": "industry_review",
+  "ai_recommendation": "defer",
+  "provider_calls": 4,
+  "input_tokens": 23016,
+  "output_tokens": 17729,
+  "steps": [
+    {
+      "role": "challenge",
+      "status": "completed",
+      "failure_code": null
+    },
+    {
+      "role": "counter",
+      "status": "completed",
+      "failure_code": null
+    },
+    {
+      "role": "review",
+      "status": "completed",
+      "failure_code": null
+    }
+  ],
+  "draft_title": "建筑/地产合同结算循环联合预筛：行业口径资料缺口待补"
+}

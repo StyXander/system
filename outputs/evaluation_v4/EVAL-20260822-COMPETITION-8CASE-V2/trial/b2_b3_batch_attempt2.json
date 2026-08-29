@@ -1,0 +1,749 @@
+{
+  "attempt": 2,
+  "executed_at": "2026-08-23T02:12:45+00:00",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "fix_note": "B2 补 User-Agent: AuditTrace-Demo/1.0（OpenCode Go 拒绝 Python-urllib 默认 UA）",
+  "b2": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "status": "ok",
+      "parsed": {
+        "ai_recommendation": "retain",
+        "analysis_conclusion": "additional_procedure_required",
+        "claims": [
+          {
+            "evidence_ids": [
+              "CNINFO_000002_T0_20260331_REVENUE_2025",
+              "CNINFO_000002_T0_20260331_REVENUE_2024",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "2025年营业收入同比下降31.98%（由343,176,440,712.96元降至233,432,768,960.43元），同期应收账款（净额）同比上升17.36%（由8,110,758,258.05元增至9,519,075,011.05元），增速差49.34%，绝对变动约14.08亿元，超过规则强筛查阈值0.30。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_000002_T0_20260331_REVENUE_2025",
+              "CNINFO_000002_T0_20260331_REVENUE_2024",
+              "CNINFO_000002_T0_20260331_REVENUE_2023",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2023"
+            ],
+            "support_status": "supported",
+            "text": "三年连续数据显示：应收账款净额逐年上升（2023年7,293,628,386.69元→2024年8,110,758,258.05元→2025年9,519,075,011.05元），同期营业收入逐年下降（2023年465,739,076,702.23元→2024年343,176,440,712.96元→2025年233,432,768,960.43元），收入与应收反向变动已持续两个期间（sustained_periods=2）。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_000002_T0_20260331_REVENUE_2025",
+              "CNINFO_000002_T0_20260331_REVENUE_2024",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "基于净额口径计算的应收账款周转天数由上年8.19天升至本年13.78天（增加5.59天），应收占收入比由2.36%升至4.08%，反映应收相对收入的占用水平上升。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "应收账款字段为净额/报表列示口径（field_basis=net），非账面余额口径，上述增速、占比及周转指标均受此口径局限，无法据此还原坏账准备等减值影响。"
+          }
+        ],
+        "data_gaps": [
+          "账龄结构",
+          "期后回款记录",
+          "信用政策变动说明",
+          "主要客户合同结算条款",
+          "坏账准备及减值计提明细（净额口径无法还原账面余额）",
+          "分业务/分地区收入构成明细（收入下降的业务原因）",
+          "金额重要性评价（materiality_multiple为空，未评价金额重要性）"
+        ],
+        "draft_observation": "2025年营业收入233,432,768,960.43元，同比下降31.98%；应收账款（净额）9,519,075,011.05元，同比上升17.36%，增速差49.34%，绝对变动约14.08亿元。2023—2025年应收净额连续上升（72.94亿→81.11亿→95.19亿元）而营业收入连续下降（4,657.39亿→3,431.76亿→2,334.33亿元），反向变动已持续两个期间；应收周转天数由8.19天升至13.78天，应收占收入比由2.36%升至4.08%。口径局限：应收账款为净额/报表列示口径，非账面余额口径，相关比率与变动均受此局限；金额重要性未评价。本观察为审计计划阶段筛查草稿，不构成审计认定或审计意见。",
+        "draft_title": "R1候选核查：收入下降31.98%而应收账款净额上升17.36%，增速差49.34%（净额口径，待追加程序）",
+        "normal_explanations": [
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "收入下降可能源于行业周期、业务结构调整或收入确认时点变化，而应收上升可能与年末集中确认收入、客户结算周期延长或信用政策放宽有关，需业务层面数据验证。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "应收账款为净额口径，净额上升可能部分反映坏账准备计提减少或转回，而非实际应收余额增加，需账面余额及减值明细验证。"
+          }
+        ],
+        "reason_for_status": "增速差49.34%远超强筛查阈值0.30，且三年连续数据显示收入与应收反向变动已持续两个期间，确定性信号较强；但应收账款为净额口径，缺乏账龄、期后回款、信用政策及合同条款等佐证，金额重要性未评价，故保留候选并建议追加程序核查，不作风险认定或专业结论。",
+        "requested_materials": [
+          "账龄明细表",
+          "期后回款记录",
+          "信用政策说明",
+          "主要合同关键条款摘要",
+          "坏账准备及减值计提明细表",
+          "分业务/分地区收入构成明细",
+          "收入确认政策及重大会计估计说明"
+        ],
+        "role": "review",
+        "rule_id": "R1",
+        "run_id": "B2-CNINFO_000002_T0_2-1787451165",
+        "schema_version": "agent_output_v2",
+        "status": "retain"
+      },
+      "request_sha256": "54918FC1C1E71CD238D89F19C1B341C72ED3CEFE45BD0E5A0AA672F1DAB8FE43",
+      "response_sha256": "06C3DA7FADF4CD04C9B2A45F91A7EE2CCAC503CCA194F163AA3D9E3FDEE76F81",
+      "duration_ms": 22604,
+      "prompt_tokens": 2097,
+      "completion_tokens": 4311
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "status": "ok",
+      "parsed": {
+        "ai_recommendation": "retain",
+        "analysis_conclusion": "risk_candidate",
+        "claims": [
+          {
+            "evidence_ids": [
+              "CNINFO_601390_T0_20260330_REVENUE_2025",
+              "CNINFO_601390_T0_20260330_REVENUE_2024",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "2025年度营业收入同比下降5.77%（由1,157,439,041,000元降至1,090,626,001,000元），同期应收账款同比增长17.34%（由246,194,352,000元增至288,877,597,000元），增速差为23.11个百分点。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+              "CNINFO_601390_T0_20260330_REVENUE_2025",
+              "CNINFO_601390_T0_20260330_REVENUE_2024"
+            ],
+            "support_status": "supported",
+            "text": "应收账款绝对变动额为42,683,245,000元，应收账款占营业收入比例由21.27%升至26.49%。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2023",
+              "CNINFO_601390_T0_20260330_REVENUE_2025",
+              "CNINFO_601390_T0_20260330_REVENUE_2024"
+            ],
+            "support_status": "supported",
+            "text": "按平均应收账款口径测算，应收账款周转天数由63.55天升至89.54天，增加25.99天。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601390_T0_20260330_REVENUE_2023",
+              "CNINFO_601390_T0_20260330_REVENUE_2024",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2023",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+              "CNINFO_601390_T0_20260330_REVENUE_2025",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2025"
+            ],
+            "support_status": "supported",
+            "text": "连续两年（2024年度、2025年度）应收账款增速均显著高于营业收入增速：2024年度增速差约65.16个百分点，2025年度为23.11个百分点，呈持续背离态势。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601390_T0_20260330_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "本次应收账款数据为净额/报表列示口径（field_basis=net），非账面余额口径，增速与周转天数测算均基于该口径，存在口径局限。"
+          }
+        ],
+        "data_gaps": [
+          "账龄结构",
+          "期后回款记录",
+          "信用政策变动说明",
+          "主要客户合同结算条款",
+          "坏账准备计提明细（净额口径下无法还原账面余额）",
+          "收入确认政策及合同资产与应收账款划分",
+          "分业务板块/分客户应收账款明细",
+          "金额重要性评价基准"
+        ],
+        "draft_observation": "2025年度营业收入同比下降5.77%，应收账款同比增长17.34%，增速差23.11个百分点；应收账款绝对变动42,683,245,000元；应收账款占收入比由21.27%升至26.49%；周转天数由63.55天升至89.54天（增加25.99天）。连续两年（2024、2025）增速差为正且显著。口径局限：应收账款为净额/报表列示口径，非账面余额口径；未评价金额重要性。",
+        "draft_title": "应收账款增速与收入增速持续背离（R1候选）",
+        "normal_explanations": [
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "收入下降可能源于业务结构调整或项目完工结算减少，而应收账款对应存量合同结算进度，两者变动口径不完全可比。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "大型基建企业年末集中结算或项目回款季节性可能导致应收账款时点性上升。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "主要客户付款政策或行业结算周期变化可能导致应收账款自然增长。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "应收账款为净额口径，坏账准备计提变动可能影响净额增速，需结合坏账准备明细核实。"
+          }
+        ],
+        "reason_for_status": "确定性计算显示增速差23.11%超过标准阈值15%，绝对变动42,683,245,000元，周转天数上升约26天且连续两年持续背离，构成R1风险候选；但应收账款为净额口径、缺乏账龄与回款佐证，且未评价金额重要性，需进一步程序核实，故保留候选状态。",
+        "requested_materials": [
+          "账龄明细表",
+          "期后回款记录",
+          "信用政策说明",
+          "主要合同关键条款摘要",
+          "坏账准备计提明细表",
+          "收入确认政策说明",
+          "分业务板块/分客户应收账款明细",
+          "重要性水平确定依据"
+        ],
+        "role": "review",
+        "rule_id": "R1",
+        "run_id": "B2-CNINFO_601390_T0_2-1787451189",
+        "schema_version": "agent_output_v2",
+        "status": "retain"
+      },
+      "request_sha256": "FE4A35AD7E8C4AB89BAF2B58303A73480944DAD15055ABE31B075922DC2BCD47",
+      "response_sha256": "9D0FA7FF4AE54AB93CFB8C40900EFAEE8EDE7D2EDF2E9EE7154089D08D14E25F",
+      "duration_ms": 22361,
+      "prompt_tokens": 2098,
+      "completion_tokens": 4227
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "status": "ok",
+      "parsed": {
+        "ai_recommendation": "retain",
+        "analysis_conclusion": "risk_candidate",
+        "claims": [
+          {
+            "evidence_ids": [
+              "CNINFO_601186_T0_20260330_REVENUE_2025",
+              "CNINFO_601186_T0_20260330_REVENUE_2024"
+            ],
+            "support_status": "supported",
+            "text": "2025年营业收入1,029,784,460,000元，较2024年1,067,171,337,000元下降3.50%。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "2025年应收账款（净额/报表列示口径）241,023,952,000元，较2024年204,759,238,000元增长17.71%，绝对变动36,264,714,000元。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601186_T0_20260330_REVENUE_2025",
+              "CNINFO_601186_T0_20260330_REVENUE_2024",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "营业收入增速（-3.50%）与应收账款增速（+17.71%）的增速差为21.21%，超过R1筛查阈值0.15。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601186_T0_20260330_REVENUE_2025",
+              "CNINFO_601186_T0_20260330_REVENUE_2024",
+              "CNINFO_601186_T0_20260330_REVENUE_2023",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2023"
+            ],
+            "support_status": "supported",
+            "text": "2023-2025年应收账款连续增长（155,809,067,000→204,759,238,000→241,023,952,000元），营业收入连续下降（1,137,993,486,000→1,067,171,337,000→1,029,784,460,000元），收入下降而应收上升的背离趋势持续2期。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601186_T0_20260330_REVENUE_2025",
+              "CNINFO_601186_T0_20260330_REVENUE_2024",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_601186_T0_20260330_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "应收账款/营业收入比率由19.19%升至23.41%，平均余额口径周转天数由61.66天升至79.00天（基于净额口径计算）。"
+          }
+        ],
+        "data_gaps": [
+          "账龄结构",
+          "期后回款记录",
+          "信用政策变动说明",
+          "主要客户合同结算条款",
+          "坏账准备计提明细（账面余额与净额差异）",
+          "收入确认政策（时点法/时段法）及跨期影响",
+          "分客户/分地区应收账款明细",
+          "经营活动现金流量净额及销售收现数据"
+        ],
+        "draft_observation": "基于2023-2025年报表数据：营业收入由2024年1,067,171,337,000元降至2025年1,029,784,460,000元（-3.50%），应收账款（净额/报表列示口径）由2024年204,759,238,000元增至2025年241,023,952,000元（+17.71%），增速差21.21%，超过0.15筛查阈值；绝对变动36,264,714,000元。应收账款/营业收入比率由19.19%升至23.41%，平均余额口径周转天数由61.66天升至79.00天，连续两年（2024、2025）呈收入下降而应收上升的背离趋势。口径局限：应收账款为净额/报表列示额，非账面余额口径，未考虑坏账准备影响；未评价金额重要性（planned materiality未设置）。本观察为审计计划阶段筛查草稿，不构成审计认定。",
+        "draft_title": "应收账款增速与收入增速背离形成R1待核查候选（净额口径）",
+        "normal_explanations": [
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "公司可能因信用政策放宽或客户结算周期延长导致应收账款自然增长（待验证假设）。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "收入确认时点与开票/回款时点错配，年末集中确认收入或大客户延迟付款导致应收上升（待验证假设）。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "应收账款净额口径受坏账准备计提变动影响，净额增长可能部分源于坏账准备减少（待验证假设）。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "业务结构变化（如新增大客户或长账期业务占比上升）导致应收规模扩大（待验证假设）。"
+          }
+        ],
+        "reason_for_status": "确定性计算确认增速差21.21%超过0.15筛查阈值，且收入下降而应收上升的背离趋势持续2期（2024、2025），构成R1风险候选。但应收账款为净额/报表列示口径而非账面余额口径，账龄结构、期后回款、信用政策、合同结算条款等关键数据缺失，且B2基线无RAG、无反证Agent、无人工复核，故保留为风险候选并建议后续追加程序，不作审计认定或专业批准导出。",
+        "requested_materials": [
+          "账龄明细表",
+          "期后回款记录",
+          "信用政策说明",
+          "主要合同关键条款摘要",
+          "坏账准备计提明细表",
+          "收入确认政策说明",
+          "应收账款明细账（分客户）",
+          "现金流量表及销售收现数据"
+        ],
+        "role": "review",
+        "rule_id": "R1",
+        "run_id": "B2-CNINFO_601186_T0_2-1787451214",
+        "schema_version": "agent_output_v2",
+        "status": "retain"
+      },
+      "request_sha256": "AB4DA74108558188B21784B4CAC7996E99E7FEC80D25AD46912C4DAC209EE3A9",
+      "response_sha256": "99E03232F16D59EFB08C864E0555C49B1BAB7A66FAB4C82589ED632EB3DF6900",
+      "duration_ms": 21622,
+      "prompt_tokens": 2099,
+      "completion_tokens": 4364
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "status": "failed",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "status": "ok",
+      "parsed": {
+        "ai_recommendation": "retain",
+        "analysis_conclusion": "additional_procedure_required",
+        "claims": [
+          {
+            "evidence_ids": [
+              "STD_REV_2025",
+              "STD_REV_2024"
+            ],
+            "support_status": "supported",
+            "text": "本年营业收入337,238,620.57元，较上年446,351,660.77元下降24.45%。"
+          },
+          {
+            "evidence_ids": [
+              "STD_AR_2025",
+              "STD_AR_2024"
+            ],
+            "support_status": "supported",
+            "text": "本年应收账款（净额）176,388,063.66元，较上年282,866,689.51元下降37.64%，绝对变动-106,478,625.85元。"
+          },
+          {
+            "evidence_ids": [
+              "STD_REV_2025",
+              "STD_REV_2024",
+              "STD_AR_2025",
+              "STD_AR_2024"
+            ],
+            "support_status": "supported",
+            "text": "收入增速（-24.45%）与应收账款增速（-37.64%）的增速差为-13.20%，绝对值低于15%触发阈值，R1规则未触发。"
+          },
+          {
+            "evidence_ids": [
+              "STD_AR_2023",
+              "STD_AR_2024",
+              "STD_AR_2025",
+              "STD_REV_2023",
+              "STD_REV_2024",
+              "STD_REV_2025"
+            ],
+            "support_status": "supported",
+            "text": "基于2023-2025三年连续数据，应收账款/营业收入比率由63.37%降至52.30%，周转天数由250.48天降至248.53天（改善1.95天），呈改善方向。"
+          },
+          {
+            "evidence_ids": [
+              "STD_AR_2025",
+              "STD_AR_2024",
+              "STD_AR_2023"
+            ],
+            "support_status": "supported",
+            "text": "应收账款字段为净额/报表列示口径（field_basis=net），非账面余额口径，相关比率与变动分析存在口径局限。"
+          }
+        ],
+        "data_gaps": [
+          "账龄结构",
+          "期后回款记录",
+          "信用政策变动",
+          "主要客户合同结算条款",
+          "坏账准备及账面余额口径（净额vs总额）",
+          "金额重要性水平（未评价）"
+        ],
+        "draft_observation": "R1程序筛查未触发。本年营业收入337,238,620.57元，同比下降24.45%；应收账款（净额）176,388,063.66元，同比下降37.64%，绝对变动-106,478,625.85元；增速差-13.20%，绝对值低于15%触发阈值。应收账款/营业收入比率由63.37%降至52.30%，周转天数由250.48天降至248.53天（改善1.95天，基于2023-2025三年连续数据）。口径局限：应收账款为净额/报表列示口径，非账面余额口径；未评价金额重要性。程序筛查未形成R1方向候选，维持保留状态；建议补充账龄、期后回款等程序以验证无风险方向。",
+        "draft_title": "R1程序筛查未触发：收入与应收账款同步下降，增速差-13.20%低于15%阈值",
+        "normal_explanations": [
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "收入与应收账款同步下降且应收账款降幅更大，可能反映业务规模收缩或回款效率改善，而非收入确认或坏账风险上升。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "应收账款绝对额下降约1.06亿元，可能源于销售规模下降及回款改善，需期后回款与账龄数据验证。"
+          }
+        ],
+        "reason_for_status": "R1增速差-13.20%绝对值低于15%阈值，且应收账款降幅（-37.64%）大于收入降幅（-24.45%），方向有利，规则未触发；因净额口径局限及账龄、期后回款等数据缺口，需补充程序验证，故维持保留状态。",
+        "requested_materials": [
+          "账龄明细表",
+          "期后回款记录",
+          "信用政策说明",
+          "主要合同关键条款摘要",
+          "坏账准备明细表",
+          "重要性水平说明"
+        ],
+        "role": "review",
+        "rule_id": "R1",
+        "run_id": "B2-STD_DEV_T0-1787451275",
+        "schema_version": "agent_output_v2",
+        "status": "retain"
+      },
+      "request_sha256": "42672369AC0BD05F6462B9504677279084F81D7E2015ADDEC779448DF4A6AD10",
+      "response_sha256": "5DCE91AF3BDD8208D7DA26837997E3C0CAE2C2C94EDD56A7CA7030F6A4CE7221",
+      "duration_ms": 29893,
+      "prompt_tokens": 1999,
+      "completion_tokens": 5453
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "status": "ok",
+      "parsed": {
+        "ai_recommendation": "retain",
+        "analysis_conclusion": "additional_procedure_required",
+        "claims": [
+          {
+            "evidence_ids": [
+              "CNINFO_600938_T0_20260326_REVENUE_2025",
+              "CNINFO_600938_T0_20260326_REVENUE_2024"
+            ],
+            "support_status": "supported",
+            "text": "2025年合并营业收入398,220百万元，较2024年420,506百万元下降5.30%（-5.2998%）。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "2025年合并应收账款（净额口径）32,415百万元，较2024年32,918百万元下降1.53%（-1.5280%）。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_600938_T0_20260326_REVENUE_2025",
+              "CNINFO_600938_T0_20260326_REVENUE_2024",
+              "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2024"
+            ],
+            "support_status": "supported",
+            "text": "应收—收入增速差为3.77%（-1.53%减-5.30%），低于IND-ENERGY-AR-REV工程阈值15%，规则未触发。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_600938_T0_20260326_REVENUE_2025",
+              "CNINFO_600938_T0_20260326_REVENUE_2024",
+              "CNINFO_600938_T0_20260326_REVENUE_2023",
+              "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2025",
+              "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2024",
+              "CNINFO_600938_T0_20260326_ACCOUNTS_RECEIVABLE_2023"
+            ],
+            "support_status": "supported",
+            "text": "2023-2025年三年连续数据可得（收入416,609/420,506/398,220百万元；应收净额36,291/32,918/32,415百万元），具备趋势观察基础。"
+          }
+        ],
+        "data_gaps": [
+          "应收账款字段为净额口径（field_basis=net），未提供总额及坏账准备变动数据，无法评估坏账准备对净额的影响。",
+          "未获取应收账款账龄结构、前五大客户及重大客户结算明细。",
+          "未获取收入确认政策及重大合同结算条款资料。",
+          "字段来源为自动提取待人工页码确认（auto_extracted_pending_human_page_confirmation），需人工复核页码。"
+        ],
+        "draft_observation": "基于2023-2025年合并报表数据（收入416,609/420,506/398,220百万元；应收净额36,291/32,918/32,415百万元），2025年收入同比下降5.30%，应收净额同比下降1.53%，增速差3.77%，低于IND-ENERGY-AR-REV工程阈值15%，规则未触发。注意：应收账款为净额口径，未含坏账准备变动信息；未形成程序候选不等于企业无风险，建议结合应收账款附注明细、坏账准备变动及收入确认政策进一步核查。",
+        "draft_title": "能源/矿业应收—收入增速差3.77%未达15%阈值，规则未触发",
+        "normal_explanations": [
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "收入与应收净额同步下降、增速差为正且低于阈值，可能反映油价等外部行业因素导致的收入收缩，而非应收管理恶化；此为待验证假设，无证据支持。"
+          }
+        ],
+        "reason_for_status": "确定性计算显示：2025年收入增速-5.30%、应收净额增速-1.53%，增速差3.77%低于工程阈值15%，IND-ENERGY-AR-REV规则未触发，未形成风险候选，故维持retain；边界提示未触发不等于企业无风险，建议结合附注进一步核查。",
+        "requested_materials": [
+          "应收账款附注明细及坏账准备变动（总额、账龄、计提比例）",
+          "收入确认政策与重大客户结算资料",
+          "2023-2025年各期年报应收账款及收入字段页码人工复核确认"
+        ],
+        "role": "review",
+        "rule_id": "R1",
+        "run_id": "B2-CNINFO_600938_T0_2-1787451307",
+        "schema_version": "agent_output_v2",
+        "status": "retain"
+      },
+      "request_sha256": "6318F9F189AE733B7F4FE3996CCDD156499DF67518C8845A41C63673007CB1A0",
+      "response_sha256": "AFEBCE39AF9A9A46A62494A1507E0FFD8F8CCB5E621F0067EBED1363563CF1E0",
+      "duration_ms": 29775,
+      "prompt_tokens": 3579,
+      "completion_tokens": 6087
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "status": "ok",
+      "parsed": {
+        "ai_recommendation": "defer",
+        "analysis_conclusion": "additional_procedure_required",
+        "claims": [
+          {
+            "evidence_ids": [
+              "CNINFO_601668_T0_20260417_REVENUE_2023",
+              "CNINFO_601668_T0_20260417_REVENUE_2024",
+              "CNINFO_601668_T0_20260417_REVENUE_2025"
+            ],
+            "support_status": "supported",
+            "text": "营业收入（合并、reported 口径）三年连续下降：2023 年 2,265,529,244,000 元、2024 年 2,187,147,839,000 元、2025 年 2,082,141,811,000 元；据此计算 2024 年同比约 -3.5%、2025 年同比约 -4.8%。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2023"
+            ],
+            "support_status": "supported",
+            "text": "2023 年应收账款（合并、净额/报表列示口径，PDF 第 50 页）为 473,000 元，与公司营收规模量级明显不符，且为净额口径，存在口径与提取质量局限，需人工核对页码、单位与口径。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601668_T0_20260417_REVENUE_2023",
+              "CNINFO_601668_T0_20260417_REVENUE_2024",
+              "CNINFO_601668_T0_20260417_REVENUE_2025",
+              "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2023"
+            ],
+            "support_status": "supported",
+            "text": "本次证据包仅含营业收入（2023-2025）与 2023 年应收账款，行业规则 R1 所需其余字段（2024/2025 年应收账款、合同资产、长期应收款、合同负债）均缺失，合同结算循环规则无法完成计算，规则状态为 DATA_GAP。"
+          }
+        ],
+        "data_gaps": [
+          "2025年缺少accounts_receivable（本期）字段",
+          "2024年缺少accounts_receivable（上期）字段",
+          "2025年缺少contract_assets（本期）字段",
+          "2024年缺少contract_assets（上期）字段",
+          "2025年缺少long_term_receivables（本期）字段",
+          "2024年缺少long_term_receivables（上期）字段",
+          "2025年缺少contract_liabilities（本期）字段",
+          "2024年缺少contract_liabilities（上期）字段"
+        ],
+        "draft_observation": "行业专用规则 R1（建筑/地产合同结算循环联合预筛）因关键字段资料缺口无法完成计算：2025/2024 年应收账款、合同资产、长期应收款、合同负债均无证据，仅取得 2023 年应收账款（合并、净额/报表列示口径，PDF 第 50 页，值 473,000 元），该值与公司营收规模量级明显不符，需人工核对页码、单位与口径。营业收入三年数据齐备（合并、reported 口径）：2023 年 2,265,529,244,000 元、2024 年 2,187,147,839,000 元、2025 年 2,082,141,811,000 元，据此计算 2024 年同比约 -3.5%、2025 年同比约 -4.8%，呈连续下降；但该趋势不足以单独触发行业规则阈值判断，合同结算循环（合同资产/合同负债/长期应收款）无法评估。应收账款为净额口径，存在口径局限。结论：数据缺口，需补充资料后延期评估，不构成风险认定。",
+        "draft_title": "建筑/地产合同结算循环联合预筛：关键字段缺失，行业规则无法完成计算（DATA_GAP）",
+        "normal_explanations": [
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "营业收入连续下降可能受建筑行业景气周期、项目结算节奏或收入确认时点影响（待验证假设）。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "2023 年应收账款净额数值偏小可能因坏账准备计提、质保金重分类至合同资产或其他报表列示口径所致（待验证假设）。"
+          }
+        ],
+        "reason_for_status": "行业规则 R1 所需字段（2024/2025 年应收账款、合同资产、长期应收款、合同负债）全部缺失，仅营业收入三年数据齐备且呈连续下降（2024 年约 -3.5%、2025 年约 -4.8%），但不足以完成合同结算循环规则计算；2023 年应收账款为净额口径且数值与公司规模量级明显不符，需人工核对。故状态为 defer（数据缺口，待补充资料后评估），不构成风险认定。",
+        "requested_materials": [
+          "缺失字段的官方年报原文、PDF页码、单位和报表口径说明",
+          "合同资产和长期应收款明细",
+          "合同负债结转及收入确认资料",
+          "主要项目结算与回款资料",
+          "2023 年应收账款 PDF 第 50 页人工核对（数值 473,000 元与营收规模量级不符，需确认单位与口径）"
+        ],
+        "role": "review",
+        "rule_id": "R1",
+        "run_id": "B2-CNINFO_601668_T0_2-1787451339",
+        "schema_version": "agent_output_v2",
+        "status": "defer"
+      },
+      "request_sha256": "4F6BBF024D897A1B2A9139F749947B59ACE3A89F2EB1DB8115B23ED5DE622977",
+      "response_sha256": "1C9914A63368579FAB349072B02FB689FDEDC8A0197FE5CD7821E3E5579109D3",
+      "duration_ms": 27597,
+      "prompt_tokens": 3235,
+      "completion_tokens": 5688
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "status": "ok",
+      "parsed": {
+        "ai_recommendation": "defer",
+        "analysis_conclusion": "additional_procedure_required",
+        "claims": [
+          {
+            "evidence_ids": [
+              "CNINFO_601628_T0_20260325_INSURANCE_SERVICE_RESULT_2025",
+              "CNINFO_601628_T0_20260325_INSURANCE_SERVICE_RESULT_2024",
+              "CNINFO_601628_T0_20260325_INSURANCE_SERVICE_RESULT_2023"
+            ],
+            "support_status": "supported",
+            "text": "2023-2025年合并口径保险服务结果分别为-150,353百万元、-111,708百万元、-115,455百万元，连续三年为负；该字段取自年报“保险服务业绩/保险服务费用”报表列示口径，未包含保险服务收入与赔付/费用明细，不能单独作为风险认定依据。"
+          },
+          {
+            "evidence_ids": [
+              "CNINFO_601628_T0_20260325_INSURANCE_LIABILITIES_2025"
+            ],
+            "support_status": "supported",
+            "text": "2025年合并口径保险合同负债为311,631百万元（PDF第150页），但缺少2024年上期保险合同负债数据，无法计算负债同比变动或负债-收入增长差。"
+          },
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "保险服务结果连续为负可能与赔付支出、费用结构或再保险安排有关，但缺少insurance_revenue与claims_expense字段，该假设无法验证。"
+          }
+        ],
+        "data_gaps": [
+          "2025年缺少insurance_revenue（本期）字段",
+          "2024年缺少insurance_revenue（上期）字段",
+          "2025年缺少claims_expense（本期）字段",
+          "2024年缺少claims_expense（上期）字段",
+          "2024年缺少insurance_liabilities（上期）字段",
+          "行业门控显示R1对保险行业fit_level=not_applicable且被blocked，行业专用规则insurance_service_result口径与阈值未经专业人员确认"
+        ],
+        "draft_observation": "行业专用规则（保险服务结果与负债趋势预筛）因关键字段缺失无法完成：仅有2023-2025年保险服务结果（连续三年为负）及2025年保险合同负债，缺少insurance_revenue、claims_expense及2024年上期保险合同负债，无法计算收入增长差、负债增长差或赔付率等阈值指标。同时行业门控显示R1通用规则对保险行业不适用（fit_level=not_applicable），本观察仅为行业专用工程草案筛查，不构成审计认定；正式采用前须由专业人员确认行业口径、字段与阈值。",
+        "draft_title": "保险服务结果连续三年为负但关键字段缺失，行业专用规则无法完成趋势预筛",
+        "normal_explanations": [
+          {
+            "evidence_ids": [],
+            "support_status": "unverified_hypothesis",
+            "text": "保险服务业绩为负可能属于保险行业报表列示口径（如包含分出保费、投资成分剔除等调整），需专业人员确认口径后方可判断是否异常。"
+          }
+        ],
+        "reason_for_status": "确定性结果为DATA_GAP：行业专用规则所需insurance_revenue、claims_expense及2024年上期insurance_liabilities字段缺失，无法计算任何增长差或比率指标；且行业门控显示R1对保险行业不适用，行业专用规则口径与阈值未经专业签核。按基线约束，仅说明缺口，不猜测或编造金额，故状态为defer。",
+        "requested_materials": [
+          "缺失字段（insurance_revenue、claims_expense、2024年insurance_liabilities）的官方年报原文、PDF页码、单位和报表口径说明",
+          "保险合同负债和准备金滚动表",
+          "赔付/费用明细及再保险资料",
+          "保险服务结果勾稽表",
+          "行业专用规则insurance_service_result的口径与阈值专业确认"
+        ],
+        "role": "review",
+        "rule_id": "R1",
+        "run_id": "B2-CNINFO_601628_T0_2-1787451368",
+        "schema_version": "agent_output_v2",
+        "status": "defer"
+      },
+      "request_sha256": "AB48891578633BE9E5B4F6060CA4FF8B646B217EC039FEA08710B41711DA3270",
+      "response_sha256": "26AC8D9EB1AF2451CB8BA30B92DB18D0580569743DBB6AA32881D9FB8FBD2974",
+      "duration_ms": 13731,
+      "prompt_tokens": 3153,
+      "completion_tokens": 2463
+    }
+  ],
+  "b3_retry": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "status": "ok",
+      "run_id": "RUN-V7-3F65BB3F4964",
+      "completeness": "complete_public_prescreen",
+      "route": "risk_candidate",
+      "recommendation": "retain",
+      "provider_calls": 3,
+      "input_tokens": 23325,
+      "output_tokens": 9304,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "counter",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "review",
+          "status": "completed",
+          "failure": null
+        }
+      ],
+      "draft_title": "R1候选核查：应收增速与营收增速背离，业务原因与可收回性待验证"
+    },
+    {
+      "case_id": "STD_DEV_T0",
+      "status": "ok",
+      "run_id": "RUN-V7-FA56AAEC35CE",
+      "completeness": "complete_full_analysis",
+      "route": "evidence_gap_review",
+      "recommendation": "defer",
+      "provider_calls": 3,
+      "input_tokens": 18999,
+      "output_tokens": 14082,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "counter",
+          "status": "completed",
+          "failure": null
+        },
+        {
+          "role": "review",
+          "status": "completed",
+          "failure": null
+        }
+      ],
+      "draft_title": "R1未触发：应收账款净额口径缺口待补充程序核查"
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "status": "ok",
+      "run_id": "RUN-V7-225344592F9E",
+      "completeness": "incomplete_model_chain_failed",
+      "route": "industry_review",
+      "recommendation": "not_generated",
+      "provider_calls": 1,
+      "input_tokens": 7097,
+      "output_tokens": 5000,
+      "roles": [
+        {
+          "role": "challenge",
+          "status": "MODEL_OUTPUT_INVALID",
+          "failure": "MODEL_SEMANTIC_VALIDATION_ERROR"
+        },
+        {
+          "role": "counter",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        },
+        {
+          "role": "review",
+          "status": "skipped",
+          "failure": "PREVIOUS_ROLE_FAILED"
+        }
+      ],
+      "draft_title": null
+    }
+  ],
+  "spent": {
+    "input": 67681,
+    "output": 60979
+  }
+}

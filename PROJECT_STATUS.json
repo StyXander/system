@@ -2,7 +2,26 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-26T02:28:00+08:00",
+  "updated_at": "2026-08-29T14:23:18+08:00",
+  "current_release": {
+    "release_id": "RELEASE-CANDIDATE-20260828-V1",
+    "release_status": "remediation_in_progress",
+    "model_id": "deepseek-v4-flash",
+    "provider_channel": "deepseek_direct",
+    "demo_case_count": 15,
+    "demo_manifest": "backend/competition_demo_cases.json",
+    "demo_task_persistence": "supabase",
+    "demo_executor_mode": "web",
+    "completed_result_retention_hours": 168,
+    "running_task_resume": false,
+    "provider_probe_status": "local_ready_production_pending",
+    "provider_probe_evidence": "backend/release_records/provider_probe_20260829_deepseek_local.json",
+    "fresh_production_b3_status": "pending",
+    "evaluation_id": "EVAL-20260828-RELEASE-CANDIDATE-V1",
+    "human_scoring_status": "pending",
+    "competition_release_ready": false,
+    "boundary": "配置、历史评估或确定性备用不等于新鲜真实 B3 或正式发布批准；运行中 Web 实例重启会如实中断。"
+  },
   "latest_r3_20260826": {
     "status": "real_acceptance_recorded_with_open_gates",
     "evaluation": {

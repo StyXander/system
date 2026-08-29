@@ -1,0 +1,45 @@
+{
+  "schema_version": "professional_signoff_v1",
+  "signoff_id": "SIGNOFF-R1-V0.4-20260825-CAPTAIN-R2",
+  "supersedes_signoff_id": "SIGNOFF-R1-V0.4-20260825-CAPTAIN",
+  "rule_id": "R1",
+  "rule_version": "0.4",
+  "signed_by_role": "项目队长（用户本人）",
+  "signer_name": null,
+  "signer_name_boundary": "项目队长真实姓名未在系统中登记，不虚构",
+  "signed_at": "2026-08-25",
+  "confirmation_source": "codex_user_explicit_confirmation",
+  "status": "captain_approved_for_competition_demo",
+  "scope": "竞赛演示版、销售与收款循环、审计计划阶段风险预筛",
+  "approved_thresholds": {
+    "r1_gap_threshold": 0.15,
+    "r1_strong_gap_threshold": 0.3,
+    "r1_absolute_threshold": 0.0
+  },
+  "approved_assertion_mapping": {
+    "revenue": ["发生", "截止", "准确性"],
+    "accounts_receivable": ["存在", "计价和分摊"]
+  },
+  "approved_basis": {
+    "accounts_receivable_primary_basis": "gross",
+    "minimum_complete_years": 2,
+    "third_year_trend": "only_when_both_revenue_and_accounts_receivable_are_available"
+  },
+  "limitations": [
+    "不是会计师事务所正式审计方法或审计准则",
+    "命中仅形成待核查候选，不证明存在重大错报或舞弊",
+    "未命中不表示企业不存在其他风险",
+    "配置、阈值或认定映射发生变化时必须重新确认",
+    "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+  ],
+  "rule_config_canonical": "{\"minimum_years\":2,\"primary_receivable_basis\":\"gross\",\"r1_absolute_threshold\":0.0,\"r1_gap_threshold\":0.15,\"r1_strong_gap_threshold\":0.3,\"rule_id\":\"R1\",\"rule_version\":\"0.4\",\"three_year_trend_optional\":true}",
+  "rule_config_sha256": "ec422cffed7f7731215f8cbff78c4f0cb9fca2c122e2b263bf13aebf8b4567aa",
+  "signed_payload_canonical": "{\"approved_assertion_mapping\":{\"accounts_receivable\":[\"存在\",\"计价和分摊\"],\"revenue\":[\"发生\",\"截止\",\"准确性\"]},\"approved_thresholds\":{\"r1_absolute_threshold\":0.0,\"r1_gap_threshold\":0.15,\"r1_strong_gap_threshold\":0.3},\"confirmation_source\":\"codex_user_explicit_confirmation\",\"rule_id\":\"R1\",\"rule_version\":\"0.4\",\"scope\":\"竞赛演示版、销售与收款循环、审计计划阶段风险预筛\",\"signed_at\":\"2026-08-25\",\"signed_by_role\":\"项目队长（用户本人）\"}",
+  "signed_payload_sha256": "8eb0f5148e7d3a7eaa6dce2fb4c97a3e408838f92d27b5b797ac4c68f096d96b",
+  "signoff_record_sha256": "8eb0f5148e7d3a7eaa6dce2fb4c97a3e408838f92d27b5b797ac4c68f096d96b",
+  "signoff_record_hash_scope": "UTF-8 bytes of signed_payload_canonical",
+  "source_file_sha256": {
+    "backend/app/schemas.py": "81d80204ef7f9f9a1abfc49bdad968d83f21ed845a6d258f95972feaae061baa",
+    "backend/app/cases.py": "f689231142b46fc777b315eca94aa2723037029db6124c9e057fa7e0756e8f6d"
+  }
+}

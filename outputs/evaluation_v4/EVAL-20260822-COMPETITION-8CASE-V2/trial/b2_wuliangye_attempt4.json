@@ -1,0 +1,107 @@
+{
+  "attempt": 4,
+  "timeout_seconds": 120,
+  "status": "ok",
+  "parsed": {
+    "ai_recommendation": "defer",
+    "analysis_conclusion": "risk_candidate",
+    "claims": [
+      {
+        "evidence_ids": [
+          "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2024"
+        ],
+        "support_status": "supported",
+        "text": "2025年营业收入405.29亿元，较2024年891.75亿元下降54.55%，为重大收入变动。"
+      },
+      {
+        "evidence_ids": [
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024"
+        ],
+        "support_status": "supported",
+        "text": "2025年应收账款（净额口径）3,774.54万元，较2024年3,734.67万元增加39.89万元，增幅1.07%。"
+      },
+      {
+        "evidence_ids": [
+          "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2024",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024"
+        ],
+        "support_status": "supported",
+        "text": "收入增速（-54.55%）与应收增速（1.07%）之差为55.62%，超过强筛查阈值30%，触发R1筛查候选；增速差主要由收入大幅下降驱动，而非应收账款增长。"
+      },
+      {
+        "evidence_ids": [
+          "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2024",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024"
+        ],
+        "support_status": "supported",
+        "text": "应收账款占收入比2025年为0.09%（2024年为0.04%），绝对变动39.89万元相对收入规模极小；计划重要性水平缺失，未评价金额重要性。"
+      },
+      {
+        "evidence_ids": [
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2023",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2023",
+          "CNINFO_000858_T0_20260430_REVENUE_2024",
+          "CNINFO_000858_T0_20260430_REVENUE_2025"
+        ],
+        "support_status": "supported",
+        "text": "三年趋势：应收账款2023年4,264.75万元→2024年3,734.66万元→2025年3,774.54万元，整体平稳；营业收入2023年832.72亿元→2024年891.75亿元→2025年405.29亿元，2025年大幅下降。"
+      }
+    ],
+    "data_gaps": [
+      "计划重要性水平（materiality_multiple为null，未评价金额重要性）",
+      "账龄结构",
+      "期后回款记录",
+      "信用政策变动说明",
+      "主要客户合同结算条款",
+      "坏账准备/减值明细（应收账款为净额口径，无法观察账面余额变动）",
+      "2025年收入大幅下降的业务原因说明"
+    ],
+    "draft_observation": "2025年营业收入405.29亿元，同比下降54.55%；应收账款（净额/报表列示口径，非账面余额口径）3,774.54万元，同比微增1.07%（绝对变动39.89万元）；增速差55.62%，超过强筛查阈值30%，触发R1筛查候选。应收账款占收入比仅0.09%，绝对变动金额相对收入规模极小，增速差主要由收入大幅下降驱动而非应收增长。三年趋势显示应收账款整体平稳（2023年4,264.75万元→2024年3,734.66万元→2025年3,774.54万元），收入2025年骤降。计划重要性水平缺失，未评价金额重要性；因净额口径局限及账龄、回款、信用政策等数据缺口，无法作出重要性认定，建议暂缓复核。",
+    "draft_title": "R1筛查候选：收入大幅下降54.55%而应收账款微增1.07%，增速差55.62%待复核",
+    "normal_explanations": [
+      {
+        "evidence_ids": [
+          "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2024"
+        ],
+        "support_status": "unverified_hypothesis",
+        "text": "收入下降54.55%可能源于业务模式/渠道调整、剥离或合并范围变动等经营事项，而非应收账款回收问题；应收账款保持平稳与此假设一致。"
+      },
+      {
+        "evidence_ids": [
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024"
+        ],
+        "support_status": "unverified_hypothesis",
+        "text": "应收账款为净额口径，坏账准备计提/转回变动可能掩盖账面余额的实际变动，需以账面余额口径复核。"
+      }
+    ],
+    "reason_for_status": "R1筛查候选由规则确定性计算触发（增速差55.62%>强阈值30%），但应收账款绝对变动仅39.89万元、占收入比0.09%，相对收入规模极小，且增速差主要由收入下降54.55%驱动而非应收增长。因计划重要性水平缺失（materiality_multiple为null）、应收账款为净额口径、且缺乏账龄/期后回款/信用政策等关键数据，无法作出重要性认定或排除风险，故暂缓（defer）待补充材料后复核。",
+    "requested_materials": [
+      "计划重要性水平/审计重要性基准",
+      "应收账款账龄明细表",
+      "期后回款记录",
+      "信用政策及变动说明",
+      "主要客户合同关键结算条款摘要",
+      "坏账准备/减值明细表（账面余额口径）",
+      "2025年收入大幅下降的业务原因及合并范围变动说明"
+    ],
+    "role": "review",
+    "rule_id": "R1",
+    "run_id": "B2-wuliangye-1787451726",
+    "schema_version": "agent_output_v2",
+    "status": "defer"
+  },
+  "duration_ms": 31635,
+  "prompt_tokens": 2081,
+  "completion_tokens": 5238,
+  "response_sha256": "CCAE329984048D85B12E94D7EB31B16E05ECCAF142C2E8B86C0EB86A756C340A"
+}

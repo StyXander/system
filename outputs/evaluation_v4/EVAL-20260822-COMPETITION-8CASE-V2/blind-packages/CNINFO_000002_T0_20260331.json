@@ -1,0 +1,118 @@
+{
+  "case_id": "CNINFO_000002_T0_20260331",
+  "company_name": "万科A",
+  "analysis_year": 2025,
+  "t0": "2026-03-31",
+  "task_instruction": "## 任务说明（八案统一，不得更改）\n\n你是审计项目组成员，正在为一家 A 股公司制定销售与收款循环的审计计划。\n你只能使用本包提供的冻结财务字段和公开年报来源（可打开来源 URL 回到原文核对）。\n\n请在 60 分钟内完成：\n1. 判断该公司的收入与应收变动关系是否需要列入待核查事项；\n2. 如需列入，写出你关注的具体事项和理由；\n3. 列出你希望索取的补充资料清单；\n4. 如认为信息不足或行业不适用，明确写出暂缓或不适用的理由。\n\n边界：不得认定舞弊、不得出具审计意见、不得给投资建议；\n你的判断只是审计计划阶段的待核查候选。\n按“输出模板”格式作答，并如实填写开始与结束时间。\n",
+  "output_template": "## 输出模板（照此格式填写）\n\n- 开始时间 / 结束时间：\n- 初步判断（四选一）：不触发 / 待核查 / 暂缓 / 行业不适用\n- 关注事项（逐条，含理由）：\n- 引用来源（字段/页码/URL）：\n- 希望索取的补充资料：\n- 其他说明：\n",
+  "financial_fields": [
+    {
+      "field_id": "accounts_receivable_2025",
+      "field_kind": "accounts_receivable",
+      "year": 2025,
+      "value": 9519075011.05,
+      "unit": "元",
+      "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+      "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+      "pdf_page": 152,
+      "locator": "PDF 第 152 页：应收账款",
+      "field_basis": "net",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "revenue_2025",
+      "field_kind": "revenue",
+      "year": 2025,
+      "value": 233432768960.43,
+      "unit": "元",
+      "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2025",
+      "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+      "pdf_page": 10,
+      "locator": "PDF 第 10 页：营业收入",
+      "field_basis": "reported",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "accounts_receivable_2024",
+      "field_kind": "accounts_receivable",
+      "year": 2024,
+      "value": 4.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024",
+      "document_id": "CNINFO-000002-2024-734370D32036",
+      "pdf_page": 151,
+      "locator": "PDF 第 151 页：应收账款",
+      "field_basis": "net",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "revenue_2024",
+      "field_kind": "revenue",
+      "year": 2024,
+      "value": 343176440712.96,
+      "unit": "元",
+      "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2024",
+      "document_id": "CNINFO-000002-2024-734370D32036",
+      "pdf_page": 11,
+      "locator": "PDF 第 11 页：营业收入",
+      "field_basis": "reported",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "accounts_receivable_2023",
+      "field_kind": "accounts_receivable",
+      "year": 2023,
+      "value": 4.0,
+      "unit": "元",
+      "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2023",
+      "document_id": "CNINFO-000002-2023-511A08955861",
+      "pdf_page": 138,
+      "locator": "PDF 第 138 页：应收账款",
+      "field_basis": "net",
+      "human_review_status": "pending"
+    },
+    {
+      "field_id": "revenue_2023",
+      "field_kind": "revenue",
+      "year": 2023,
+      "value": 465739076702.23,
+      "unit": "元",
+      "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2023",
+      "document_id": "CNINFO-000002-2023-511A08955861",
+      "pdf_page": 10,
+      "locator": "PDF 第 10 页：营业收入",
+      "field_basis": "reported",
+      "human_review_status": "pending"
+    }
+  ],
+  "documents": [
+    {
+      "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+      "document_type": "annual_report",
+      "report_year": 2025,
+      "disclosure_date": "2026-03-31",
+      "announcement_title": "2025年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225067794.PDF",
+      "sha256": "B2BEFC9DA2A9E09C798702C351E6AF65A4B148E32BAA07737B941EDC2CAF1EBA"
+    },
+    {
+      "document_id": "CNINFO-000002-2024-734370D32036",
+      "document_type": "annual_report",
+      "report_year": 2024,
+      "disclosure_date": "2025-03-31",
+      "announcement_title": "2024年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-01/1222974139.PDF",
+      "sha256": "734370D32036C1A18716E42F2E96C0F6FFD8A48C1FE115ECDA945A09EB416AC0"
+    },
+    {
+      "document_id": "CNINFO-000002-2023-511A08955861",
+      "document_type": "annual_report",
+      "report_year": 2023,
+      "disclosure_date": "2024-03-28",
+      "announcement_title": "2023年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219487237.PDF",
+      "sha256": "511A089558610E86605841F39B98F67993BD444C1E23018A204E704706882D0D"
+    }
+  ],
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}
