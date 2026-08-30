@@ -76,8 +76,9 @@ class DemoRunTaskStore:
     ``interrupted``；这比恢复一个永远不会继续的“running”状态更诚实。
     """
 
-    def __init__(self, directory: Path | str) -> None:
+    def __init__(self, directory: Path | str, *, task_id_prefix: str = TASK_ID_PREFIX) -> None:
         self.directory = Path(directory)
+        self.task_id_prefix = "".join(ch for ch in str(task_id_prefix or TASK_ID_PREFIX) if ch.isalnum() or ch == "-") or TASK_ID_PREFIX
         self.directory.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self._tasks: dict[str, dict[str, Any]] = {}
@@ -109,7 +110,7 @@ class DemoRunTaskStore:
     def _load_existing_tasks(self) -> None:
         """加载既有台账，并关闭服务重启前未完成的任务。"""
         with self._lock:
-            for path in sorted(self.directory.glob("DEMO-RUN-*.json")):
+            for path in sorted(self.directory.glob(f"{self.task_id_prefix}-*.json")):
                 task = self._load_file(path.stem)
                 if task is None or not task.get("task_id"):
                     continue
@@ -150,7 +151,7 @@ class DemoRunTaskStore:
                 self._tasks[str(task["task_id"])] = task
 
     def _new_task(self, case_id: str, run_body: dict[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
-        task_id = f"{TASK_ID_PREFIX}-{uuid.uuid4().hex[:12].upper()}"
+        task_id = f"{self.task_id_prefix}-{uuid.uuid4().hex[:12].upper()}"
         now = _iso_now()
         digest = _request_digest(case_id, run_body)
         return {

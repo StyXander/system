@@ -165,6 +165,7 @@
     caseId: null,
     run: null,
     outcome: null,
+    taskCreationBlocked: false,
     runAbort: null,
     techEvaluated: false,
     fixedTask: {
@@ -353,11 +354,33 @@
 
   function renderControls() {
     const start = byId("demo-start");
+    const backup = byId("demo-backup");
+    const recheck = byId("demo-recheck");
     const cancel = byId("demo-cancel");
     const reset = byId("demo-reset");
     const phase = demoState.phase;
-    start.disabled = !(phase === "ready") || !demoState.caseId;
+    const continuity = demoState.bootstrap?.task_continuity || {};
+    // Older local snapshots have no availability field; retain their historical
+    // behavior while making a current explicit "unavailable" state fail closed.
+    const taskStoreReady = continuity.availability ? continuity.availability === "ready" : true;
+    const deterministicAvailable = Boolean(demoState.bootstrap?.model_readiness?.deterministic_backup_available);
+    const canStartBackup = deterministicAvailable
+      && (phase === "ready" || phase === "failed_run")
+      && (!taskStoreReady || demoState.taskCreationBlocked)
+      && Boolean(demoState.caseId);
+    start.disabled = !(phase === "ready") || !demoState.caseId || !taskStoreReady || demoState.taskCreationBlocked;
+    start.title = !taskStoreReady
+      ? "正式演示任务台账不可用；请重新检测，或选择确定性备用演示。"
+      : demoState.taskCreationBlocked
+        ? "上次任务尚未创建成功；请重新检测台账或选择确定性备用演示。"
+        : "创建一份正式演示任务并读取后端真实进度。";
     start.textContent = phase === "running" ? "正在分析…" : "开始审计预筛";
+    backup.hidden = !canStartBackup;
+    backup.disabled = !canStartBackup;
+    backup.title = "确定性备用不调用外部模型，结果只保留在当前 Web 实例。";
+    recheck.hidden = !(phase === "ready" || phase === "failed_run") || taskStoreReady;
+    recheck.disabled = phase === "running";
+    recheck.title = "重新读取 Supabase 演示任务台账可用性。";
     cancel.hidden = phase !== "running" || !demoState.fixedTask.taskId;
     cancel.disabled = Boolean(cancel.dataset.busy === "true");
     reset.hidden = !(phase === "success" || phase === "degraded" || phase === "failed_run" || phase === "failed" || phase === "interrupted" || phase === "cancelled" || phase === "expired");
@@ -469,8 +492,11 @@
     const quality = bootstrap.model_quality || {};
     const qualityFact = byId("demo-fact-model-quality");
     qualityFact.classList.toggle("demo-quality-alert", Boolean(quality.alert));
-    if (quality.status === "unmeasured") {
-      qualityFact.textContent = "待测";
+    if (quality.status === "unavailable" || quality.alert_kind === "ledger_unavailable") {
+      qualityFact.textContent = "台账不可用";
+      qualityFact.title = quality.boundary || "运行时质量台账暂不可读取；不能据此判断模型成功率。";
+    } else if (quality.status === "unmeasured") {
+      qualityFact.textContent = "暂无样本";
       qualityFact.title = quality.boundary || "尚无真实外部三 Agent 完整运行样本。";
     } else if (typeof quality.success_rate === "number") {
       qualityFact.textContent = `${Math.round(quality.success_rate * 100)}%（${quality.success_count}/${quality.sample_count}）`;
@@ -494,8 +520,10 @@
   }
 
   function notifyModelQuality(snapshot) {
-    if (!snapshot?.alert) return;
-    const rate = typeof snapshot.success_rate === "number" ? `${Math.round(snapshot.success_rate * 100)}%` : "低于 80%";
+    if (!snapshot?.alert || snapshot.alert_kind === "ledger_unavailable") return;
+    if (snapshot.alert_kind && snapshot.alert_kind !== "threshold_breach") return;
+    if (typeof snapshot.success_rate !== "number" || !Number.isFinite(snapshot.success_rate) || !(snapshot.sample_count > 0)) return;
+    const rate = `${Math.round(snapshot.success_rate * 100)}%`;
     showToast(`模型成功率告警：最近 ${snapshot.sample_count ?? 0} 次真实外部三 Agent 完整运行仅 ${rate}，低于 80%。失败码已保留，请暂停盲目重试并检查供应商。`, "error");
   }
 
@@ -854,6 +882,7 @@
     demoState.fixedTask.retryOfTaskId = null;
     demoState.run = null;
     demoState.outcome = null;
+    demoState.taskCreationBlocked = false;
     safeStorageSet(CASE_STORAGE_KEY, caseId);
     clearResultDisplay();
     resetStageRail();
@@ -926,15 +955,17 @@
     return "degraded";
   }
 
-  async function startDemoRun() {
-    if (demoState.phase !== "ready" || !demoState.caseId) return;
+  async function startDemoRun({ backup = false } = {}) {
+    const allowedPhase = backup ? new Set(["ready", "failed_run"]) : new Set(["ready"]);
+    if (!allowedPhase.has(demoState.phase) || !demoState.caseId) return;
     const caseItem = currentCase();
     if (!caseItem) return;
     const year = Math.max(...(caseItem.report_years || [2025]).map(Number));
-    const retryOfTaskId = demoState.fixedTask.retryOfTaskId;
-    const button = byId("demo-start");
+    const retryOfTaskId = backup ? null : demoState.fixedTask.retryOfTaskId;
+    const button = byId(backup ? "demo-backup" : "demo-start");
     button.disabled = true;
-    button.textContent = "正在分析…";
+    button.textContent = backup ? "正在启动备用…" : "正在分析…";
+    demoState.taskCreationBlocked = false;
     demoState.run = null;
     demoState.outcome = null;
     demoState.userCancelled = false;
@@ -949,9 +980,11 @@
     setStageNote(4, "等待后端执行");
     setStageNote(5, "等待后端执行");
     setStageNote(6, "等待后端执行");
-    setGate("neutral", "正在执行完整分析", `案例 ${caseItem.case_id} · ${caseItem.company_name} · 报告年度 ${year}；页面只显示后端真实进度。`);
+    setGate("neutral", backup ? "正在启动确定性备用演示" : "正在执行完整分析", backup
+      ? `案例 ${caseItem.case_id} · ${caseItem.company_name} · 不调用外部模型，结果只保留在当前 Web 实例。`
+      : `案例 ${caseItem.case_id} · ${caseItem.company_name} · 报告年度 ${year}；页面只显示后端真实进度。`);
     try {
-      const response = await fetch(`${API_BASE}/api/demo/runs`, {
+      const response = await fetch(`${API_BASE}${backup ? "/api/demo/backup-runs" : "/api/demo/runs"}`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -964,6 +997,7 @@
           scene: "审计计划",
           rule_ids: caseItem.rule_ids?.length ? caseItem.rule_ids : ["R1"],
           run_mode: "full_analysis",
+          ...(backup ? { force_deterministic_backup: true } : {}),
           ...(retryOfTaskId ? { retry_of_task_id: retryOfTaskId } : {}),
         }),
       });
@@ -977,14 +1011,15 @@
       demoState.fixedTask.retryOfTaskId = null;
       demoState.fixedTask.task = { task_id: taskId, status: payload.status, stage_schema_version: payload.stage_schema_version, steps: payload.steps || {}, agent_steps: payload.agent_steps || {} };
       demoState.fixedTask.pollToken += 1;
-      safeSessionSet(DEMO_TASK_STORAGE_KEY, JSON.stringify({ task_id: taskId, case_id: demoState.caseId }));
+      safeSessionSet(DEMO_TASK_STORAGE_KEY, JSON.stringify({ task_id: taskId, case_id: demoState.caseId, mode: backup ? "backup" : "primary" }));
       renderFixedTaskProgress(demoState.fixedTask.task);
       void pollFixedRun(taskId, demoState.fixedTask.pollToken);
     } catch (error) {
       demoState.fixedTask.taskId = null;
       safeSessionRemove(DEMO_TASK_STORAGE_KEY);
-      renderDemoFailure("run_http_error", "本次分析未能创建任务", error.message, { retry: true });
+      renderDemoFailure("run_http_error", backup ? "备用演示未能创建任务" : "本次分析未能创建任务", error.message, { retry: true, taskNotCreated: true });
     } finally {
+      button.textContent = backup ? "启动确定性备用演示" : "开始审计预筛";
       renderControls();
     }
   }
@@ -1154,6 +1189,9 @@
       safeSessionRemove(DEMO_TASK_STORAGE_KEY);
       demoState.fixedTask.taskId = null;
       setPhase("ready");
+      if (String(taskId).startsWith("DEMO-BACKUP-")) {
+        setGate("warning", "备用任务已随实例结束", "确定性备用只保留在当前 Web 实例；请重新检测台账，或重新启动备用演示。页面没有自动重放任何调用。");
+      }
     }
   }
 
@@ -1299,7 +1337,13 @@
 
   function renderDemoFailure(code, title, detail, options) {
     resetStageRail();
-    [1, 2, 3, 4, 5, 6].forEach((stage) => { setStageState(stage, "failed"); setStageNote(stage, "未完成"); });
+    if (options?.taskNotCreated) {
+      setStageNote(1, "任务未创建");
+      [2, 3, 4, 5, 6].forEach((stage) => setStageNote(stage, "未启动"));
+      demoState.taskCreationBlocked = true;
+    } else {
+      [1, 2, 3, 4, 5, 6].forEach((stage) => { setStageState(stage, "failed"); setStageNote(stage, "未完成"); });
+    }
     setGate("danger", title, detail);
     demoState.outcome = "failed_run";
     setPhase("failed_run");
@@ -1736,6 +1780,7 @@
     abortActiveRun();
     demoState.run = null;
     demoState.outcome = null;
+    demoState.taskCreationBlocked = false;
     clearResultDisplay();
     resetStageRail();
     renderCurrentCase();
@@ -1795,17 +1840,24 @@
       renderAllCasesDrawer();
       updateUrl();
       const readiness = bootstrap.model_readiness || {};
-      if (readiness.full_analysis_ready) {
-        setServiceStatus("后端可用 · 真实模型可运行", "success");
+      const continuity = bootstrap.task_continuity || {};
+      const taskStoreReady = continuity.availability ? continuity.availability === "ready" : true;
+      if (taskStoreReady) demoState.taskCreationBlocked = false;
+      if (!taskStoreReady) {
+        setServiceStatus("后端可用 · 任务台账不可用", "danger");
+      } else if (readiness.full_analysis_ready) {
+        setServiceStatus("后端可用 · 任务台账可用 · 真实模型可运行", "success");
       } else {
-        setServiceStatus("后端可用 · 模型降级可用", "pending");
+        setServiceStatus("后端可用 · 任务台账可用 · 模型降级可用", "pending");
       }
       const featuredReady = bootstrap.featured_case_ids.every((id) => demoState.caseIndex.get(id)?.rag?.status === "ready");
       const release = bootstrap.release || {};
       const releaseBoundary = release.competition_release_ready
         ? "当前发布事实已通过自动门禁；正式发布仍以最终人工批准为准。"
         : `发布候选尚未完全放行（${release.release_status || "remediation_in_progress"}）；页面不会把历史评估或配置状态写成正式通过。`;
-      if (!featuredReady) {
+      if (!taskStoreReady) {
+        setGate("warning", "正式任务台账暂不可用", `${continuity.boundary || "Supabase 演示任务台账暂不可读取。"} ${readiness.deterministic_backup_available ? "可以选择“启动确定性备用演示”继续展示完整流程。" : "请先恢复任务台账配置。"}`);
+      } else if (!featuredReady) {
         setGate("warning", "部分精选案例 RAG 未就绪", "演示可以继续，但该案例运行会如实显示证据读取状态；团队需重建索引后重验。");
       } else {
         setGate("neutral", "演示就绪", `已选择 ${currentCase()?.company_name || "默认案例"}；点击“开始审计预筛”创建一次真实运行。${readiness.full_analysis_ready ? "" : "当前模型通道未就绪，运行会显示明确降级状态。"} ${releaseBoundary}`);
@@ -1820,6 +1872,8 @@
 
   function bindEvents() {
     byId("demo-start").addEventListener("click", () => { void startDemoRun(); });
+    byId("demo-backup").addEventListener("click", () => { void startDemoRun({ backup: true }); });
+    byId("demo-recheck").addEventListener("click", () => { void loadBootstrap(); });
     byId("demo-cancel").addEventListener("click", () => { void requestDemoCancel(); });
     byId("demo-reset").addEventListener("click", resetDemo);
     byId("demo-rerun").addEventListener("click", () => { resetDemo(); void startDemoRun(); });

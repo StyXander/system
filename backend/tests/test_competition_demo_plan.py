@@ -1247,3 +1247,114 @@ def test_provider_timeout_defaults_to_one_hundred_twenty_seconds_and_is_bounded(
     assert agents_module._provider_timeout_seconds() == 120.0
     monkeypatch.setenv("AUDITTRACE_PROVIDER_TIMEOUT_SECONDS", "invalid")
     assert agents_module._provider_timeout_seconds() == 120.0
+
+
+def test_demo_manifest_hash_is_stable_across_newline_conventions(tmp_path: Path) -> None:
+    """发布清单的冻结哈希不能因 Windows CRLF / Linux LF 改写而漂移。"""
+    from backend.app.manifest_hash import CANONICAL_MANIFEST_HASH_ALGORITHM, manifest_sha256
+
+    source = Path(__file__).resolve().parents[1] / "competition_demo_cases.json"
+    payload = source.read_text(encoding="utf-8")
+    lf_path = tmp_path / "manifest-lf.json"
+    crlf_path = tmp_path / "manifest-crlf.json"
+    lf_path.write_bytes(payload.replace("\r\n", "\n").encode("utf-8"))
+    crlf_path.write_bytes(payload.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8"))
+    assert CANONICAL_MANIFEST_HASH_ALGORITHM == "canonical_json_v1"
+    assert manifest_sha256(lf_path) == manifest_sha256(crlf_path)
+    release = json.loads((source.parent / "release_records" / "current_release.json").read_text(encoding="utf-8"))
+    assert release["demo"]["manifest_hash_algorithm"] == CANONICAL_MANIFEST_HASH_ALGORITHM
+    assert manifest_sha256(source) == release["demo"]["manifest_sha256"]
+
+
+def test_demo_task_continuity_probe_is_explicit_and_redacts_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """启动快照区分未配置、可用和不可用，且不返回 URL/key。"""
+    import backend.app.main as main_module
+    from backend.app.supabase_adapter import SupabaseUnavailable
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_TASK_PERSISTENCE", "supabase")
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("NEXT_PUBLIC_SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
+    main_module._demo_task_probe_snapshot = None
+    main_module._demo_task_probe_signature = None
+    main_module._demo_task_probe_expires_at = 0
+    missing = main_module._probe_demo_task_store()
+    assert missing["availability"] == "not_configured"
+    assert "url" not in missing and "key" not in missing
+
+    class ReadyClient:
+        def probe_demo_task_store(self) -> None:
+            return None
+
+    monkeypatch.setenv("SUPABASE_URL", "https://unit-test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "unit-test-secret")
+    monkeypatch.setattr(main_module, "get_demo_task_client", lambda: ReadyClient())
+    ready = main_module._probe_demo_task_store()
+    assert ready["availability"] == "ready"
+    assert "unit-test" not in json.dumps(ready)
+
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "unit-test-secret-2")
+    monkeypatch.setattr(main_module, "get_demo_task_client", lambda: (_ for _ in ()).throw(SupabaseUnavailable("hidden")))
+    unavailable = main_module._probe_demo_task_store()
+    assert unavailable["availability"] == "unavailable"
+    assert unavailable["reason_code"] == "SUPABASE_UNAVAILABLE"
+
+
+def test_demo_primary_blocks_without_ledger_but_explicit_backup_runs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Supabase 台账失效时正式入口 fail-closed，备用入口仍可明确执行确定性链。"""
+    import backend.app.main as main_module
+    from backend.app.demo_run_tasks import DemoRunTaskStore
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_TASK_PERSISTENCE", "supabase")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("NEXT_PUBLIC_SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
+    monkeypatch.setattr(main_module, "_run_rag_for_analysis", lambda **_kwargs: ([], [], [], None))
+    backup_store = DemoRunTaskStore(tmp_path / "demo-backup-tasks", task_id_prefix="DEMO-BACKUP")
+    monkeypatch.setattr(main_module, "_get_demo_backup_store", lambda: backup_store)
+    main_module._demo_task_probe_snapshot = None
+    main_module._demo_task_probe_signature = None
+    main_module._demo_task_probe_expires_at = 0
+    client = TestClient(app)
+    try:
+        blocked = client.post(
+            "/api/demo/runs",
+            json={"case_id": "STD_DEV_T0", "current_year": 2025, "rule_ids": ["R1"], "run_mode": "full_analysis"},
+        )
+        assert blocked.status_code == 503
+        assert blocked.headers.get("x-audittrace-failure-code") == "SUPABASE_NOT_CONFIGURED"
+        assert "secret" not in blocked.text.lower()
+
+        created = client.post(
+            "/api/demo/backup-runs",
+            json={"case_id": "STD_DEV_T0", "current_year": 2025, "rule_ids": ["R1"], "run_mode": "full_analysis"},
+        )
+        assert created.status_code == 202, created.text
+        payload = created.json()
+        assert payload["task_id"].startswith("DEMO-BACKUP-")
+        assert payload["continuity"]["reason_code"] == "explicit_deterministic_backup"
+
+        deadline = time.time() + 60
+        task = None
+        while time.time() < deadline:
+            task_response = client.get(f"/api/demo/runs/{payload['task_id']}")
+            assert task_response.status_code == 200, task_response.text
+            task = task_response.json()
+            if task["status"] not in {"queued", "running"}:
+                break
+            time.sleep(0.2)
+        assert task is not None and task["status"] in {"completed", "degraded", "failed"}
+        assert task["continuity"]["task_backend"] == "local_ephemeral"
+        if task["status"] in {"completed", "degraded"}:
+            result = client.get(f"/api/demo/runs/{payload['task_id']}/result")
+            assert result.status_code == 200
+            body = result.json()
+            assert body["execution_mode"] == "deterministic_backup"
+            assert body["provider_call_count"] == 0
+    finally:
+        backup_store.shutdown()

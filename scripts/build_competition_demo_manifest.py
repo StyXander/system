@@ -6,12 +6,11 @@
   2. outputs/external_model_acceptance/current.json（历史外部模型技术链证据，仅作线索）；
   3. backend/app/data.py（标准股份内置案例常量）。
 本脚本不臆造任何 admission_status=passed；最终冻结由批次 5 完成后另行写入。
-写入文件后按最终字节计算 SHA-256，供后续核对与冻结记录使用。
+写入文件后按稳定的 canonical_json_v1 语义 JSON 计算 SHA-256，避免 Windows/Linux 换行差异影响冻结记录。
 """
 
 from __future__ import annotations
 
-import hashlib
 import io
 import json
 import subprocess
@@ -21,6 +20,8 @@ from pathlib import Path
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(WORKSPACE_ROOT))
+
+from backend.app.manifest_hash import canonical_json_sha256
 
 MANIFEST_PATH = WORKSPACE_ROOT / "backend" / "competition_demo_cases.json"
 MATRIX_DIR = WORKSPACE_ROOT / "outputs" / "competition_demo_admission"
@@ -269,7 +270,7 @@ def _write_json(path: Path, payload: dict) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     io.open(path, "w", encoding="utf-8", newline="\n").write(data)
-    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+    return canonical_json_sha256(payload)
 
 
 def main() -> None:

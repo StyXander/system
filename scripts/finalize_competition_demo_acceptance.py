@@ -6,12 +6,17 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from backend.app.manifest_hash import CANONICAL_MANIFEST_HASH_ALGORITHM, manifest_sha256
+
+
 MANIFEST_PATH = ROOT / "backend" / "competition_demo_cases.json"
 OUT = ROOT / "artifacts" / "competition-demo-batch7"
 MATRIX_PATH = ROOT / "outputs" / "competition_demo_admission" / "admission_matrix.json"
@@ -358,13 +363,14 @@ def main() -> int:
         case_id for case_id in manifest.get("backup_candidate_case_ids") or [] if case_id not in all_ids
     ]
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    manifest_hash = sha256(MANIFEST_PATH)
+    manifest_hash = manifest_sha256(MANIFEST_PATH)
     matrix_payload = {
         "schema_version": "competition_demo_admission_matrix_v2",
         "generated_at": now,
         "source_head": manifest.get("source_head"),
         "source_worktree_sha256": manifest["source_worktree_sha256"],
         "manifest_sha256": manifest_hash,
+        "manifest_hash_algorithm": CANONICAL_MANIFEST_HASH_ALGORITHM,
         "case_count": 15,
         "rows": matrix,
     }
@@ -378,6 +384,7 @@ def main() -> int:
         "worktree_dirty": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()),
         "source_worktree_sha256": manifest["source_worktree_sha256"],
         "manifest_sha256": manifest_hash,
+        "manifest_hash_algorithm": CANONICAL_MANIFEST_HASH_ALGORITHM,
         "matrix_sha256": sha256(MATRIX_PATH),
         "case_count": 15,
         "g0_g9_passed": 15,

@@ -137,9 +137,17 @@ class SupabaseConfig:
     @classmethod
     def from_env(cls, *, mode_override: str | None = None) -> "SupabaseConfig":
         mode = (mode_override if mode_override is not None else os.getenv("AUDITTRACE_PERSISTENCE", "local")).strip().lower() or "local"
-        url = os.getenv("SUPABASE_URL", "").strip().rstrip("/") or None
+        # NEXT_PUBLIC_SUPABASE_URL is accepted only as a server-side compatibility
+        # alias.  The public page never receives this value or the service key.
+        url = (
+            os.getenv("SUPABASE_URL", "").strip()
+            or os.getenv("NEXT_PUBLIC_SUPABASE_URL", "").strip()
+        ).rstrip("/") or None
         anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip() or None
-        service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip() or None
+        service_role_key = (
+            os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+            or os.getenv("SUPABASE_SECRET_KEY", "").strip()
+        ) or None
         try:
             signed_url_seconds = max(60, min(86_400, int(os.getenv("SUPABASE_SIGNED_URL_SECONDS", "600"))))
         except ValueError:
@@ -601,6 +609,17 @@ class SupabaseClient:
             },
         )
         return [row for row in payload if isinstance(row, dict)] if isinstance(payload, list) else []
+
+    def probe_demo_task_store(self) -> None:
+        """Confirm the two public-demo tables are reachable with service access.
+
+        This is intentionally read-only.  Insert/update permissions are still
+        proven by the controlled smoke run after deployment, not by creating a
+        synthetic task during every health request.
+        """
+
+        self.select_table("demo_run_tasks", select="task_id", service=True)
+        self.select_table("model_quality_events", select="run_id", service=True)
 
     # —— 公开模型额度与缓存台账 ——
     # 额度检查必须在数据库事务中完成，不能把 Web 进程内 SQLite 的计数当成

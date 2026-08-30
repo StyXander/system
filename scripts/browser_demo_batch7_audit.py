@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -197,7 +198,7 @@ def run_case(page: Page, base_url: str, case_id: str, output: Path, label: str) 
     report["selected_name"] = text(page, "#demo-current-case-name")
     report["selected_meta"] = text(page, "#demo-current-case-meta")
     with page.expect_response(
-        lambda response: response.request.method == "POST" and response.url.endswith("/api/runs"),
+        lambda response: response.request.method == "POST" and response.url.endswith("/api/demo/runs"),
         timeout=420_000,
     ) as response_info:
         page.locator("#demo-start").click()
@@ -206,9 +207,41 @@ def run_case(page: Page, base_url: str, case_id: str, output: Path, label: str) 
         run_payload = run_response.json()
     except Exception:
         run_payload = {}
+    # 固定案例演示入口是异步六阶段任务：POST 只返回 task_id，
+    # 这里等待同一任务进入终态，再读取结果接口，避免把“已入队”误记为模型成功。
+    task_id = str(run_payload.get("task_id") or "").strip()
+    if task_id:
+        task_url = f"{base_url.rstrip('/')}/api/demo/runs/{task_id}"
+        result_url = f"{task_url}/result"
+        task_snapshot: dict[str, Any] = {}
+        deadline = time.monotonic() + 420
+        while time.monotonic() < deadline:
+            probe = page.evaluate(
+                """async (url) => {
+                    const response = await fetch(url, { credentials: "include" });
+                    return { status: response.status, body: await response.json().catch(() => ({})) };
+                }""",
+                task_url,
+            )
+            task_snapshot = probe.get("body") if isinstance(probe, dict) else {}
+            if task_snapshot.get("status") not in {"queued", "running"}:
+                break
+            page.wait_for_timeout(500)
+        result_probe = page.evaluate(
+            """async (url) => {
+                const response = await fetch(url, { credentials: "include" });
+                return { status: response.status, body: await response.json().catch(() => ({})) };
+            }""",
+            result_url,
+        )
+        if isinstance(result_probe, dict) and result_probe.get("status") == 200:
+            run_payload = result_probe.get("body") or {}
+        else:
+            run_payload = task_snapshot.get("result") or {}
     model_check = run_payload.get("model_check") or {}
     report["run_response"] = {
         "http_status": run_response.status,
+        "task_id": task_id or None,
         "run_id": run_payload.get("run_id"),
         "run_completeness": run_payload.get("run_completeness"),
         "model_status": model_check.get("status"),

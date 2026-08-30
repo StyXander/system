@@ -161,6 +161,7 @@ from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
 from .delivery import build_report, cache_run, replay_cache
 from .demo_bootstrap import blocked_bootstrap_payload, build_bootstrap_payload, load_demo_manifest
 from .demo_run_tasks import AGENT_ROLE_ORDER, STAGE_ORDER, DemoRunTaskStore, IdempotencyConflict, SupabaseDemoRunTaskStore, result_expiry_iso
+from .manifest_hash import CANONICAL_MANIFEST_HASH_ALGORITHM, manifest_sha256
 from .knowledge_rag import build_retrieval_request, retrieve_knowledge
 from .knowledge_sources import active_source_entries, coverage_group_summary, knowledge_cutoff_date, knowledge_snapshot_id
 from .knowledge_sources import load_source_manifest as load_knowledge_manifest
@@ -211,6 +212,8 @@ from .supabase_adapter import (
     SupabaseConflict,
     SupabaseError,
     SupabaseLeaseLost,
+    SupabaseNotConfigured,
+    SupabaseConfig,
     demo_task_supabase_enabled,
     get_demo_task_client,
     get_supabase_client,
@@ -4335,6 +4338,7 @@ def _execute_run(
                 "success_rate": None,
                 "threshold": 0.8,
                 "alert": False,
+                "alert_kind": None,
                 "source": "no_runtime_supabase_ledger",
                 "boundary": "公开演示尚无 Supabase 运行时质量窗口；本地历史台账不作为当前生产成功率。",
             }
@@ -4343,6 +4347,8 @@ def _execute_run(
     except (OSError, TypeError, ValueError):
         response.context["model_quality_snapshot"] = {
             "status": "unavailable",
+            "alert": False,
+            "alert_kind": "ledger_unavailable",
             "boundary": "真实模型成功率台账暂不可读取；未改变本次运行结论。",
         }
     # 最终本地/远程落盘前再确认一次；即使租约恰在最后一个模型角色后丢失，
@@ -4439,9 +4445,13 @@ def _release_fact_snapshot(
     manifest_hash = None
     manifest_count = None
     manifest_source_head = None
+    manifest_hash_algorithm = str(((state.get("demo") or {}).get("manifest_hash_algorithm") or "raw_bytes_v1")).strip().lower()
     try:
         raw_manifest = manifest_path.read_bytes()
-        manifest_hash = hashlib.sha256(raw_manifest).hexdigest()
+        if manifest_hash_algorithm == CANONICAL_MANIFEST_HASH_ALGORITHM:
+            manifest_hash = manifest_sha256(manifest_path)
+        elif manifest_hash_algorithm == "raw_bytes_v1":
+            manifest_hash = hashlib.sha256(raw_manifest).hexdigest()
         parsed_manifest = json.loads(raw_manifest.decode("utf-8"))
         if isinstance(parsed_manifest, dict):
             manifest_count = parsed_manifest.get("case_count")
@@ -4494,6 +4504,7 @@ def _release_fact_snapshot(
             "path": "backend/competition_demo_cases.json",
             "case_count": manifest_count,
             "source_head": manifest_source_head,
+            "hash_algorithm": manifest_hash_algorithm,
             "sha256_expected": expected_manifest_hash,
             "sha256_status": manifest_status,
         },
@@ -4711,6 +4722,7 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
             "success_rate": None,
             "threshold": 0.8,
             "alert": False,
+            "alert_kind": None,
             "source": "no_runtime_supabase_ledger",
             "boundary": "公开演示尚无 Supabase 运行时质量窗口；本地历史台账不作为当前生产成功率。",
         }
@@ -6854,6 +6866,85 @@ def rerun_with_supplement(
 _demo_run_store: DemoRunTaskStore | SupabaseDemoRunTaskStore | None = None
 _demo_run_store_lock = threading.Lock()
 _demo_run_store_mode: str | None = None
+_demo_backup_store: DemoRunTaskStore | None = None
+_demo_backup_store_mode: str | None = None
+_demo_backup_store_lock = threading.Lock()
+_demo_task_probe_lock = threading.Lock()
+_demo_task_probe_snapshot: dict[str, Any] | None = None
+_demo_task_probe_signature: tuple[str, str] | None = None
+_demo_task_probe_expires_at = 0.0
+_DEMO_TASK_PROBE_TTL_SECONDS = 30.0
+
+
+def _demo_task_config_signature() -> tuple[str, str]:
+    """Return a cache key without retaining a service key in the snapshot."""
+
+    config = SupabaseConfig.from_env(mode_override="supabase")
+    key_digest = hashlib.sha256((config.service_role_key or "").encode("utf-8")).hexdigest()
+    return (config.url or "", key_digest)
+
+
+def _probe_demo_task_store() -> dict[str, Any]:
+    """Read-only, short-lived availability probe for the public task ledger."""
+
+    global _demo_task_probe_snapshot, _demo_task_probe_signature, _demo_task_probe_expires_at
+    checked_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    if not demo_task_supabase_enabled():
+        return {
+            "availability": "ready",
+            "configured": True,
+            "reason_code": "local_task_store",
+            "checked_at": checked_at,
+        }
+    signature = _demo_task_config_signature()
+    now = time.monotonic()
+    with _demo_task_probe_lock:
+        if (
+            _demo_task_probe_snapshot is not None
+            and _demo_task_probe_signature == signature
+            and _demo_task_probe_expires_at > now
+        ):
+            return dict(_demo_task_probe_snapshot)
+        try:
+            config = SupabaseConfig.from_env(mode_override="supabase")
+            if not config.url or not config.service_role_key:
+                raise SupabaseNotConfigured(
+                    "演示任务台账需要 SUPABASE_URL 与 SUPABASE_SERVICE_ROLE_KEY。"
+                )
+            client = get_demo_task_client()
+            client.probe_demo_task_store()
+            result = {
+                "availability": "ready",
+                "configured": True,
+                "reason_code": "supabase_ready",
+                "checked_at": checked_at,
+            }
+        except SupabaseNotConfigured as error:
+            result = {
+                "availability": "not_configured",
+                "configured": False,
+                "reason_code": getattr(error, "code", "SUPABASE_NOT_CONFIGURED"),
+                "checked_at": checked_at,
+            }
+        except SupabaseError as error:
+            result = {
+                "availability": "unavailable",
+                "configured": True,
+                "reason_code": getattr(error, "code", "SUPABASE_ERROR"),
+                "checked_at": checked_at,
+            }
+        except Exception:
+            # Never expose a driver traceback or URL in a public readiness payload.
+            result = {
+                "availability": "unavailable",
+                "configured": True,
+                "reason_code": "SUPABASE_PROBE_FAILED",
+                "checked_at": checked_at,
+            }
+        _demo_task_probe_snapshot = dict(result)
+        _demo_task_probe_signature = signature
+        _demo_task_probe_expires_at = time.monotonic() + _DEMO_TASK_PROBE_TTL_SECONDS
+        return result
 
 
 def _get_demo_run_store() -> DemoRunTaskStore | SupabaseDemoRunTaskStore:
@@ -6879,7 +6970,12 @@ def _get_demo_run_store() -> DemoRunTaskStore | SupabaseDemoRunTaskStore:
 
                     _demo_run_store = SupabaseDemoRunTaskStore(get_demo_task_client())
                 except SupabaseError as error:
-                    raise HTTPException(status_code=503, detail="演示任务持久化服务暂不可用。") from error
+                    code = str(getattr(error, "code", "SUPABASE_ERROR"))
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"演示任务持久化服务暂不可用（{code}）。",
+                        headers={"X-AuditTrace-Failure-Code": code},
+                    ) from error
             else:
                 from .demo_run_tasks import DemoRunTaskStore
 
@@ -6894,26 +6990,64 @@ def _get_demo_run_store() -> DemoRunTaskStore | SupabaseDemoRunTaskStore:
         return _demo_run_store
 
 
+def _get_demo_backup_store() -> DemoRunTaskStore:
+    """Create the explicitly selected, process-local deterministic backup store."""
+
+    global _demo_backup_store, _demo_backup_store_mode
+    runtime_namespace = re.sub(
+        r"[^A-Za-z0-9_-]", "", os.getenv("AUDITTRACE_RUNTIME_NAMESPACE", "")
+    )[:80]
+    task_root = WORKSPACE_ROOT / "runtime"
+    if runtime_namespace:
+        task_root = task_root / runtime_namespace
+    store_mode_key = str(task_root)
+    with _demo_backup_store_lock:
+        if _demo_backup_store is not None and _demo_backup_store_mode != store_mode_key:
+            _demo_backup_store.shutdown()
+            _demo_backup_store = None
+        if _demo_backup_store is None:
+            _demo_backup_store = DemoRunTaskStore(
+                task_root / "demo-backup-tasks",
+                task_id_prefix="DEMO-BACKUP",
+            )
+            _demo_backup_store_mode = store_mode_key
+        return _demo_backup_store
+
+
+def _store_for_demo_task(task_id: str) -> DemoRunTaskStore | SupabaseDemoRunTaskStore:
+    """Route explicit backup IDs separately from durable public task IDs."""
+
+    return _get_demo_backup_store() if str(task_id).startswith("DEMO-BACKUP-") else _get_demo_run_store()
+
+
 def _demo_task_continuity() -> dict[str, Any]:
     executor_mode = os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE", "web").strip().lower() or "web"
     if demo_task_supabase_enabled():
-        configured = bool(os.getenv("SUPABASE_URL", "").strip() and os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip())
+        probe = _probe_demo_task_store()
+        configured = bool(probe.get("configured"))
+        available = probe.get("availability") == "ready"
         return {
             "task_backend": "supabase",
             "executor_mode": executor_mode,
             "configured": configured,
-            "completed_result_durable": configured,
+            "availability": probe.get("availability"),
+            "reason_code": probe.get("reason_code"),
+            "checked_at": probe.get("checked_at"),
+            "completed_result_durable": available,
             "running_task_resume": False,
             "boundary": (
                 "完成或降级结果可跨刷新与 Web 重启读取；运行中实例中断后需显式创建新任务。"
-                if configured
-                else "Supabase 演示任务台账未完成服务端配置；新任务会被阻止，不会静默退回本地台账。"
+                if available
+                else "Supabase 演示任务台账当前不可用；正式新任务会被阻止，可显式选择确定性备用演示。"
             ),
         }
     return {
         "task_backend": "local_json",
         "executor_mode": executor_mode,
         "configured": True,
+        "availability": "ready",
+        "reason_code": "local_task_store",
+        "checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "completed_result_durable": False,
         "running_task_resume": False,
         "boundary": "当前进程的本地演示台账仅用于开发；生产需启用 Supabase 演示任务台账。",
@@ -6974,7 +7108,8 @@ def _runtime_quality_snapshot(model_id: str) -> dict[str, Any] | None:
             "success_count": 0,
             "success_rate": None,
             "threshold": 0.8,
-            "alert": True,
+            "alert": False,
+            "alert_kind": "ledger_unavailable",
             "source": "supabase_model_quality_events",
             "boundary": "运行时质量台账暂不可读取；不得用本地历史质量窗口替代。",
         }
@@ -6996,6 +7131,7 @@ def _runtime_quality_snapshot(model_id: str) -> dict[str, Any] | None:
         "success_rate": rate,
         "threshold": 0.8,
         "alert": bool(sample_count and rate is not None and rate < 0.8),
+        "alert_kind": "threshold_breach" if sample_count and rate is not None and rate < 0.8 else None,
         "source": "supabase_model_quality_events",
         "includes_retries": True,
         "boundary": f"仅统计最近10次真实 {model_id} 三 Agent 完整尝试；不含 B1、B2、缓存回放、确定性备用或 provider probe。",
@@ -7059,6 +7195,7 @@ def _execute_demo_run(task: dict[str, Any], store: DemoRunTaskStore, http_reques
             rule_ids=list(body.get("rule_ids") or ["R1"]),
             run_mode=str(body.get("run_mode") or "full_analysis"),
             planned_materiality=body.get("planned_materiality"),
+            force_deterministic_backup=bool(body.get("force_deterministic_backup", False)),
         )
     except (TypeError, ValueError) as error:
         store.update_task(task_id, status="failed", failure_code="TASK_INVALID_REQUEST", error=f"{type(error).__name__}: {str(error)[:400]}")
@@ -7200,13 +7337,29 @@ def create_supplement_rerun_task(
     }
 
 
-@app.post("/api/demo/runs", status_code=202)
-def create_demo_run(
+def _demo_backup_continuity() -> dict[str, Any]:
+    return {
+        "task_backend": "local_ephemeral",
+        "executor_mode": "web",
+        "configured": True,
+        "availability": "ready",
+        "reason_code": "explicit_deterministic_backup",
+        "checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "completed_result_durable": False,
+        "running_task_resume": False,
+        "boundary": "确定性备用不调用外部模型；结果只保留在当前 Web 实例，刷新或重启后需重新创建。",
+    }
+
+
+def _create_demo_run_task(
     request: DemoRunCreateRequest,
     http_request: Request,
-    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    *,
+    idempotency_key: str | None,
+    backup: bool = False,
 ) -> dict[str, Any]:
-    """创建固定案例分阶段演示运行；返回 202 与 task_id，立即可以轮询。"""
+    """Validate one frozen case and create either a durable or explicit backup task."""
+
     idempotency_key = str(idempotency_key or "").strip() or None
     if idempotency_key and not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", idempotency_key):
         raise HTTPException(status_code=422, detail="Idempotency-Key 必须为 8 至 128 位字母、数字或 ._:-。")
@@ -7214,6 +7367,14 @@ def create_demo_run(
         raise HTTPException(status_code=403, detail="演示运行接口只在竞赛演示模式启用。")
     if request.run_mode not in {"full_analysis", "calculation_only"}:
         raise HTTPException(status_code=422, detail="run_mode 只能是 full_analysis 或 calculation_only。")
+    if request.force_deterministic_backup and not backup:
+        raise HTTPException(status_code=422, detail="确定性备用必须通过显式备用演示入口启动。")
+    if backup:
+        request = request.model_copy(update={
+            "run_mode": "full_analysis",
+            "force_deterministic_backup": True,
+            "retry_of_task_id": None,
+        })
     # 公开模式的允许集合只来自受跟踪的 15 案发布 manifest，不因核心
     # 案例切换到 Supabase 或远端目录而扩大。清单损坏/缺失是发布材料问题，
     # 用 503 与“非清单案例”403 分开，避免页面已展示但运行入口偷偷放行别的案例。
@@ -7229,7 +7390,7 @@ def create_demo_run(
         )
         if manifest_case is None:
             raise HTTPException(status_code=403, detail="该案例不在当前公开演示的 15 案发布清单中。")
-    store = _get_demo_run_store()
+    store = _get_demo_backup_store() if backup else _get_demo_run_store()
     if request.retry_of_task_id:
         previous = store.snapshot(request.retry_of_task_id)
         if previous is None:
@@ -7278,24 +7439,46 @@ def create_demo_run(
         "steps": task.get("steps", {}),
         "agent_steps": task.get("agent_steps", {}),
         "result_expires_at": task.get("result_expires_at"),
-        "continuity": _demo_task_continuity(),
+        "continuity": _demo_backup_continuity() if backup else _demo_task_continuity(),
     }
+
+
+@app.post("/api/demo/runs", status_code=202)
+def create_demo_run(
+    request: DemoRunCreateRequest,
+    http_request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> dict[str, Any]:
+    """创建固定案例分阶段演示运行；返回 202 与 task_id，立即可以轮询。"""
+
+    return _create_demo_run_task(request, http_request, idempotency_key=idempotency_key)
+
+
+@app.post("/api/demo/backup-runs", status_code=202)
+def create_demo_backup_run(
+    request: DemoRunCreateRequest,
+    http_request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> dict[str, Any]:
+    """创建用户明确选择的确定性备用演示任务；不调用外部模型或 Supabase。"""
+
+    return _create_demo_run_task(request, http_request, idempotency_key=idempotency_key, backup=True)
 
 
 @app.get("/api/demo/runs/{task_id}")
 def get_demo_run_task(task_id: str) -> dict[str, Any]:
     """读取真实任务进度；不存在时返回 404。"""
-    task = _get_demo_run_store().snapshot(task_id)
+    task = _store_for_demo_task(task_id).snapshot(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="演示运行任务不存在。")
-    task["continuity"] = _demo_task_continuity()
+    task["continuity"] = _demo_backup_continuity() if str(task_id).startswith("DEMO-BACKUP-") else _demo_task_continuity()
     return task
 
 
 @app.get("/api/demo/runs/{task_id}/result")
 def get_demo_run_result(task_id: str) -> dict[str, Any]:
     """任务结束后读取现有 RunResponse；未结束返回 409。"""
-    task = _get_demo_run_store().snapshot(task_id)
+    task = _store_for_demo_task(task_id).snapshot(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="演示运行任务不存在。")
     if task["status"] == "expired":
@@ -7310,7 +7493,7 @@ def get_demo_run_result(task_id: str) -> dict[str, Any]:
 @app.post("/api/demo/runs/{task_id}/cancel")
 def cancel_demo_run_task(task_id: str) -> dict[str, Any]:
     """取消尚未进入不可中断外部调用的任务；已终态返回 409。"""
-    cancelled = _get_demo_run_store().cancel(task_id)
+    cancelled = _store_for_demo_task(task_id).cancel(task_id)
     if cancelled is None:
         raise HTTPException(status_code=409, detail="任务不存在或已结束，无法取消。")
     if cancelled.get("cancel_rejected"):

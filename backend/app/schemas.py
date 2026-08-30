@@ -112,6 +112,8 @@ class DemoRunCreateRequest(BaseModel):
     run_mode: RunMode = "full_analysis"
     planned_materiality: float | None = Field(default=None, ge=0)
     retry_of_task_id: str | None = Field(default=None, max_length=80)
+    # 仅由显式确定性备用入口设置；正式主按钮保持真实模型/降级状态原样。
+    force_deterministic_backup: bool = False
 
     @field_validator("case_id")
     @classmethod
