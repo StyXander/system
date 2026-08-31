@@ -438,7 +438,13 @@ security invoker
 set search_path = public
 as $$
 begin
-  if coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' then
+  -- 旧 service_role JWT 在 request.jwt.claim.role 中携带角色；新版
+  -- sb_secret API Key 不再伪装成 JWT，PostgREST 仍以 service_role 执行
+  -- 已显式授权的 RPC，而 SECURITY DEFINER 函数体内 current_user 为其
+  -- 受信任所有者 postgres。RPC 本身均已撤销 PUBLIC/anon/authenticated
+  -- EXECUTE，仅保留 postgres 与 service_role；两条路径必须同时兼容。
+  if coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role'
+     and current_user not in ('service_role', 'postgres') then
     raise insufficient_privilege using message = 'service role required';
   end if;
 end;
