@@ -1283,6 +1283,43 @@ def test_supabase_new_secret_key_is_sent_as_apikey_only(monkeypatch: pytest.Monk
     assert legacy_headers["Authorization"] == "Bearer legacy.jwt.service-role"
 
 
+def test_supabase_claim_falls_back_to_conditional_rest_update(monkeypatch: pytest.MonkeyPatch) -> None:
+    """旧 RPC 的 JWT claim 闸门失败时，仍以版本条件安全领取任务。"""
+    from backend.app.supabase_adapter import SupabaseAuthError, SupabaseClient, SupabaseConfig
+
+    monkeypatch.setenv("SUPABASE_URL", "https://unit-test.supabase.co")
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "sb_secret_unit-test")
+    client = SupabaseClient(SupabaseConfig.from_env(mode_override="supabase"))
+    monkeypatch.setattr(
+        client,
+        "_request",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(SupabaseAuthError("hidden")),
+    )
+    monkeypatch.setattr(
+        client,
+        "get_demo_run_task",
+        lambda _task_id: {"task_id": "DEMO-RUN-UNIT", "status": "queued", "version": 3},
+    )
+    captured: dict[str, object] = {}
+
+    def update_table(table: str, values: dict[str, object], *, filters: dict[str, str], service: bool = False) -> list[dict[str, object]]:
+        captured.update({"table": table, "values": values, "filters": filters, "service": service})
+        return [{"task_id": "DEMO-RUN-UNIT", "status": "running", "version": 4, **values}]
+
+    monkeypatch.setattr(client, "update_table", update_table)
+    claimed = client.claim_demo_run_task(task_id="DEMO-RUN-UNIT", owner="web-unit", lease_seconds=180)
+    assert claimed and claimed["status"] == "running"
+    assert captured["table"] == "demo_run_tasks"
+    assert captured["service"] is True
+    assert captured["filters"] == {
+        "task_id": "eq.DEMO-RUN-UNIT",
+        "status": "eq.queued",
+        "version": "eq.3",
+    }
+    assert captured["values"]["lease_owner"] == "web-unit"  # type: ignore[index]
+
+
 def test_supabase_task_read_survives_optional_expiry_cleanup_failure() -> None:
     """清理 RPC 权限暂不可用时，任务读取仍可继续。"""
     from backend.app.demo_run_tasks import SupabaseDemoRunTaskStore

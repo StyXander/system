@@ -16,7 +16,7 @@ import uuid
 from contextvars import ContextVar, Token
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 from urllib.parse import quote
 
@@ -506,12 +506,41 @@ class SupabaseClient:
         return rows[0] if rows else None
 
     def claim_demo_run_task(self, *, task_id: str, owner: str, lease_seconds: int) -> dict[str, Any] | None:
-        payload = self._request(
-            "POST",
-            "rest/v1/rpc/claim_demo_run_task",
-            service=True,
-            json_body={"p_task_id": task_id, "p_owner": owner, "p_lease_seconds": lease_seconds},
-        )
+        try:
+            payload = self._request(
+                "POST",
+                "rest/v1/rpc/claim_demo_run_task",
+                service=True,
+                json_body={"p_task_id": task_id, "p_owner": owner, "p_lease_seconds": lease_seconds},
+            )
+        except SupabaseAuthError:
+            # 新版 sb_secret 密钥通过 apikey 头完成服务端授权，但旧项目里
+            # 自定义 RPC 可能只读取 JWT claim 的 service_role。此时用同一
+            # 条件（任务编号 + queued 状态 + version）走 REST PATCH 兜底，
+            # 保留原子领取和租约 fencing，不把权限扩大到公开角色。
+            current = self.get_demo_run_task(task_id)
+            if not current or str(current.get("status") or "") != "queued":
+                return None
+            version = int(current.get("version") or 0)
+            lease_token = str(uuid.uuid4())
+            lease_until = (datetime.now(timezone.utc) + timedelta(seconds=max(30, int(lease_seconds)))).isoformat()
+            rows = self.update_table(
+                "demo_run_tasks",
+                {
+                    "status": "running",
+                    "lease_owner": owner,
+                    "lease_token": lease_token,
+                    "lease_until": lease_until,
+                    "heartbeat_at": _now(),
+                },
+                filters={
+                    "task_id": f"eq.{task_id}",
+                    "status": "eq.queued",
+                    "version": f"eq.{version}",
+                },
+                service=True,
+            )
+            return rows[0] if rows and isinstance(rows[0], dict) else None
         if isinstance(payload, list):
             return payload[0] if payload and isinstance(payload[0], dict) else None
         return payload if isinstance(payload, dict) and payload.get("task_id") else None
