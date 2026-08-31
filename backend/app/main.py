@@ -7215,20 +7215,21 @@ def _execute_demo_run(task: dict[str, Any], store: DemoRunTaskStore, http_reques
         response = _run_rules_impl(request, http_request, progress_callback=_progress, agent_step_callback=_role_step)
     except HTTPException as error:
         detail = str(getattr(error, "detail", "") or "")
-        store.update_task(task_id, status="failed", failure_code=f"HTTP_{error.status_code}", error=detail[:400])
         store.update_stage(task_id, "evidence_load", "failed", f"运行被拒绝：{detail[:200]}")
         for stage in STAGE_ORDER[1:]:
             store.update_stage(task_id, stage, "skipped", "前置阶段未完成，后续阶段未执行。")
         for role in AGENT_ROLE_ORDER:
             store.update_agent_step(task_id, role, "skipped", "前置阶段未完成。")
+        # 终态写入放在阶段收口之后，避免 CAS store 拒绝修改 failed 任务。
+        store.update_task(task_id, status="failed", failure_code=f"HTTP_{error.status_code}", error=detail[:400])
         return
     except Exception as error:  # noqa: BLE001 - worker 边界负责失败关闭
-        store.update_task(task_id, status="failed", failure_code="TASK_EXECUTION_ERROR", error=f"{type(error).__name__}: {str(error)[:400]}")
         store.update_stage(task_id, "evidence_load", "failed", f"运行异常：{type(error).__name__}。")
         for stage in STAGE_ORDER[1:]:
             store.update_stage(task_id, stage, "skipped", "异常关闭后未执行。")
         for role in AGENT_ROLE_ORDER:
             store.update_agent_step(task_id, role, "skipped", "异常关闭后未执行。")
+        store.update_task(task_id, status="failed", failure_code="TASK_EXECUTION_ERROR", error=f"{type(error).__name__}: {str(error)[:400]}")
         return
     store.update_task(
         task_id,
@@ -7269,20 +7270,20 @@ def _execute_demo_supplement_run(task: dict[str, Any], store: DemoRunTaskStore, 
         )
     except HTTPException as error:
         detail = str(getattr(error, "detail", "") or "")
-        store.update_task(task_id, status="failed", failure_code=f"HTTP_{error.status_code}", error=detail[:400])
         store.update_stage(task_id, "evidence_load", "failed", f"补充运行被拒绝：{detail[:200]}")
         for stage in STAGE_ORDER[1:]:
             store.update_stage(task_id, stage, "skipped", "前置阶段未完成，后续阶段未执行。")
         for role in AGENT_ROLE_ORDER:
             store.update_agent_step(task_id, role, "skipped", "前置阶段未完成。")
+        store.update_task(task_id, status="failed", failure_code=f"HTTP_{error.status_code}", error=detail[:400])
         return
     except Exception as error:  # noqa: BLE001 - worker boundary fail-closed
-        store.update_task(task_id, status="failed", failure_code="SUPPLEMENT_TASK_EXECUTION_ERROR", error=f"{type(error).__name__}: {str(error)[:400]}")
         store.update_stage(task_id, "evidence_load", "failed", f"补充运行异常：{type(error).__name__}。")
         for stage in STAGE_ORDER[1:]:
             store.update_stage(task_id, stage, "skipped", "异常关闭后未执行。")
         for role in AGENT_ROLE_ORDER:
             store.update_agent_step(task_id, role, "skipped", "异常关闭后未执行。")
+        store.update_task(task_id, status="failed", failure_code="SUPPLEMENT_TASK_EXECUTION_ERROR", error=f"{type(error).__name__}: {str(error)[:400]}")
         return
     store.update_task(
         task_id,

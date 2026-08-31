@@ -1347,6 +1347,35 @@ def test_supabase_task_read_survives_optional_expiry_cleanup_failure() -> None:
         store.shutdown()
 
 
+def test_demo_task_failure_closes_pending_stages_before_terminal_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    """异常任务先收口阶段/角色，再写 failed，避免前端留下 pending。"""
+    from fastapi import HTTPException
+    import backend.app.main as main_module
+
+    events: list[tuple[str, str, str]] = []
+
+    class Store:
+        def update_stage(self, task_id: str, stage: str, status: str, detail: str) -> None:
+            events.append(("stage", stage, status))
+
+        def update_agent_step(self, task_id: str, role: str, status: str, detail: str) -> None:
+            events.append(("agent", role, status))
+
+        def update_task(self, task_id: str, **fields: object) -> None:
+            events.append(("task", str(fields.get("status")), str(fields.get("failure_code"))))
+
+    monkeypatch.setattr(main_module, "_run_rules_impl", lambda *_args, **_kwargs: (_ for _ in ()).throw(HTTPException(status_code=503, detail="quota unavailable")))
+    main_module._execute_demo_run(
+        {"task_id": "DEMO-RUN-UNIT", "run_body": {"case_id": "STD_DEV_T0", "current_year": 2025, "rule_ids": ["R1"], "run_mode": "full_analysis"}},
+        Store(),
+        object(),
+    )
+    assert events[-1] == ("task", "failed", "HTTP_503")
+    assert all(kind != "task" for kind, *_rest in events[:-1])
+    assert [status for kind, _name, status in events if kind == "stage"] == ["failed", "skipped", "skipped", "skipped", "skipped", "skipped"]
+    assert [status for kind, _name, status in events if kind == "agent"] == ["skipped", "skipped", "skipped"]
+
+
 def test_demo_task_continuity_probe_is_explicit_and_redacts_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     """启动快照区分未配置、可用和不可用，且不返回 URL/key。"""
     import backend.app.main as main_module
