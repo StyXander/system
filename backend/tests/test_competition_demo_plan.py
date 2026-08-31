@@ -1320,6 +1320,86 @@ def test_supabase_claim_falls_back_to_conditional_rest_update(monkeypatch: pytes
     assert captured["values"]["lease_owner"] == "web-unit"  # type: ignore[index]
 
 
+def test_supabase_claim_empty_rpc_result_falls_back_to_conditional_rest_update(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """旧 RPC 在新版 Secret Key 下返回空行时也必须安全领取。"""
+    from backend.app.supabase_adapter import SupabaseClient, SupabaseConfig
+
+    monkeypatch.setenv("SUPABASE_URL", "https://unit-test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "sb_secret_unit-test")
+    client = SupabaseClient(SupabaseConfig.from_env(mode_override="supabase"))
+    monkeypatch.setattr(client, "_request", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(
+        client,
+        "get_demo_run_task",
+        lambda _task_id: {"task_id": "DEMO-RUN-UNIT", "status": "queued", "version": 7},
+    )
+    captured: dict[str, object] = {}
+
+    def update_table(table: str, values: dict[str, object], *, filters: dict[str, str], service: bool = False) -> list[dict[str, object]]:
+        captured.update({"table": table, "values": values, "filters": filters, "service": service})
+        return [{"task_id": "DEMO-RUN-UNIT", "status": "running", "version": 7, **values}]
+
+    monkeypatch.setattr(client, "update_table", update_table)
+    claimed = client.claim_demo_run_task(task_id="DEMO-RUN-UNIT", owner="web-unit", lease_seconds=180)
+    assert claimed and claimed["status"] == "running"
+    assert captured["filters"] == {
+        "task_id": "eq.DEMO-RUN-UNIT",
+        "status": "eq.queued",
+        "version": "eq.7",
+    }
+
+
+def test_supabase_store_reclaims_existing_queued_task_in_web_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """重复显式 POST 应复用并执行旧 queued 任务，而不是永久返回等待态。"""
+    from threading import Event
+
+    from backend.app.demo_run_tasks import SupabaseDemoRunTaskStore
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_EXECUTOR_MODE", "web")
+    executed = Event()
+    request_payload = {"case_id": "STD_DEV_T0", "current_year": 2025, "rule_ids": ["R1"]}
+
+    class Client:
+        def find_active_demo_run_task(self, *, case_id: str, request_sha256: str) -> dict[str, object]:
+            return {
+                "task_id": "DEMO-RUN-QUEUED",
+                "case_id": case_id,
+                "request_payload": request_payload,
+                "request_sha256": request_sha256,
+                "status": "queued",
+                "version": 2,
+                "steps": {},
+                "agent_steps": {},
+            }
+
+        def claim_demo_run_task(self, *, task_id: str, owner: str, lease_seconds: int) -> dict[str, object]:
+            return {
+                "task_id": task_id,
+                "case_id": "STD_DEV_T0",
+                "request_payload": request_payload,
+                "status": "running",
+                "version": 2,
+                "lease_owner": owner,
+                "lease_token": "lease-unit",
+                "steps": {},
+                "agent_steps": {},
+            }
+
+        def demo_run_task_lease_current(self, **_kwargs: object) -> bool:
+            return True
+
+    store = SupabaseDemoRunTaskStore(Client())
+    try:
+        task = store.create("STD_DEV_T0", request_payload, lambda _task: executed.set())
+        assert task["task_id"] == "DEMO-RUN-QUEUED"
+        assert task["status"] == "running"
+        assert executed.wait(2)
+    finally:
+        store.shutdown()
+
+
 def test_supabase_task_read_survives_optional_expiry_cleanup_failure() -> None:
     """清理 RPC 权限暂不可用时，任务读取仍可继续。"""
     from backend.app.demo_run_tasks import SupabaseDemoRunTaskStore

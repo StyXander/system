@@ -10,7 +10,8 @@
      - success / degraded / failed 渲染条件互斥，确定性备用不冒充真实模型成功；
      - 不把错误对象直接插入 innerHTML，一律 escapeHtml；
      - 本机存储只保存白名单 case_id，不保存任何敏感信息；
-     - 页面刷新后恢复案例选择，但不自动重新调用模型。 */
+     - 页面刷新后恢复案例选择；running 任务只轮询，尚未被领取的 queued
+       任务可用同一任务编号恢复执行，不重复创建或重放模型调用。 */
 
   const API_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
   const AI_GENERATED_CONTENT_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。";
@@ -1170,17 +1171,43 @@
     try {
       const response = await fetch(`${API_BASE}/api/demo/runs/${encodeURIComponent(taskId)}`, { credentials: "include" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const task = await response.json();
-      demoState.fixedTask.taskId = taskId;
+      let task = await response.json();
+      // queued 表示后台尚未开始任何阶段。若创建任务的 Web 实例恰好在
+      // 领取前重启，刷新时显式重发同一案例请求；后端通过活动任务唯一键
+      // 与原子租约复用原 task_id，不会重复执行已经 running 的模型调用。
+      if (task.status === "queued" && stored.mode === "primary") {
+        const caseItem = currentCase();
+        const year = Math.max(...(caseItem?.report_years || [2025]).map(Number));
+        const resumeResponse = await fetch(`${API_BASE}/api/demo/runs`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": window.crypto?.randomUUID ? window.crypto.randomUUID() : `demo-resume-${Date.now()}`,
+          },
+          body: JSON.stringify({
+            case_id: storedCase,
+            current_year: year,
+            scene: "审计计划",
+            rule_ids: caseItem?.rule_ids?.length ? caseItem.rule_ids : ["R1"],
+            run_mode: "full_analysis",
+          }),
+        });
+        if (resumeResponse.ok) task = await resumeResponse.json();
+      }
+      const restoredTaskId = task.task_id || taskId;
+      demoState.fixedTask.taskId = restoredTaskId;
       demoState.fixedTask.task = task;
       setPhase("running");
       clearResultDisplay();
       resetStageRail();
-      setGate("neutral", "已恢复上次演示任务", "刷新不重新发起模型调用；页面继续读取后端同一任务的真实进度。");
+      setGate("neutral", "已恢复上次演示任务", task.status === "queued"
+        ? "任务仍在排队，页面继续读取后端同一任务的真实进度。"
+        : "页面未重复创建任务，正在读取后端同一任务的真实进度。");
       renderFixedTaskProgress(task);
       if (TASK_ACTIVE_STATUSES.has(task.status)) {
         demoState.fixedTask.pollToken += 1;
-        void pollFixedRun(taskId, demoState.fixedTask.pollToken);
+        void pollFixedRun(restoredTaskId, demoState.fixedTask.pollToken);
       } else {
         demoState.fixedTask.pollToken += 1;
         await renderFixedTaskFinal(task);

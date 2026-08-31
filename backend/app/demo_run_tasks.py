@@ -454,6 +454,37 @@ class SupabaseDemoRunTaskStore:
                 return self._row_to_task(saved)
         return self.get(task_id)
 
+    def _claim_and_submit_queued_task(
+        self,
+        task: dict[str, Any],
+        executor: Callable[[dict[str, Any]], Any],
+    ) -> dict[str, Any]:
+        """在 Web 执行模式下原子领取 queued 任务并提交一次执行。
+
+        Supabase 的活动任务唯一约束会让重复的显式 POST 返回旧 queued
+        任务。若创建该任务的 Web 实例已在领取前退出，只返回旧行会让前端
+        永久停在“等待开始”。这里复用同一任务编号并通过数据库条件领取，
+        因而既能恢复未开始的任务，也不会重复执行已经 running 的任务。
+        """
+
+        if os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE", "web").strip().lower() == "worker":
+            return task
+        if str(task.get("status") or "") != "queued":
+            return task
+        task_id = str(task.get("task_id") or "")
+        if not task_id:
+            return task
+        claimed = self.client.claim_demo_run_task(
+            task_id=task_id,
+            owner=self._owner,
+            lease_seconds=self._lease_seconds,
+        )
+        if not claimed:
+            return task
+        claimed_task = self._row_to_task(claimed) or task
+        self._executor.submit(self._run_wrapper, claimed_task, executor)
+        return claimed_task
+
     def create(
         self,
         case_id: str,
@@ -472,10 +503,14 @@ class SupabaseDemoRunTaskStore:
                 if existing:
                     if str(existing.get("request_sha256") or "") != digest:
                         raise IdempotencyConflict("该 Idempotency-Key 已绑定另一份请求。")
-                    return self._public_task(self._row_to_task(existing) or existing)
+                    task = self._row_to_task(existing) or existing
+                    task = self._claim_and_submit_queued_task(task, executor)
+                    return self._public_task(task)
             active = self.client.find_active_demo_run_task(case_id=case_id, request_sha256=digest)
             if active:
-                return self._public_task(self._row_to_task(active) or active)
+                task = self._row_to_task(active) or active
+                task = self._claim_and_submit_queued_task(task, executor)
+                return self._public_task(task)
             now = _iso_now()
             task_id = f"{TASK_ID_PREFIX}-{uuid.uuid4().hex[:12].upper()}"
             row = {
@@ -506,22 +541,13 @@ class SupabaseDemoRunTaskStore:
                 # partial unique index 竞争时，返回已经成功插入的同请求任务。
                 active = self.client.find_active_demo_run_task(case_id=case_id, request_sha256=digest)
                 if active:
-                    return self._public_task(self._row_to_task(active) or active)
+                    task = self._row_to_task(active) or active
+                    task = self._claim_and_submit_queued_task(task, executor)
+                    return self._public_task(task)
                 raise SupabaseConflict("演示任务创建发生并发冲突。") from error
             task = self._row_to_task(inserted) or row
-            if os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE", "web").strip().lower() == "worker":
-                # Worker 模式由独立进程按数据库租约领取；Web 只入队，不在
-                # 请求进程中偷偷启动线程，也不会把付费 Worker 误写进默认 Blueprint。
-                return self._public_task(task)
-            claimed = self.client.claim_demo_run_task(
-                task_id=task_id,
-                owner=self._owner,
-                lease_seconds=self._lease_seconds,
-            )
-            if claimed:
-                claimed_task = self._row_to_task(claimed) or task
-                self._executor.submit(self._run_wrapper, claimed_task, executor)
-                task = claimed_task
+            # Worker 模式只入队；Web 模式在同一原子领取路径中提交执行。
+            task = self._claim_and_submit_queued_task(task, executor)
             return self._public_task(task)
 
     def claim_next(self) -> dict[str, Any] | None:
