@@ -587,7 +587,16 @@ class SupabaseDemoRunTaskStore:
                 reset_worker_lease_guard(lease_token_context)
 
     def get(self, task_id: str) -> dict[str, Any] | None:
-        self.client.interrupt_expired_demo_run_tasks()
+        # 过期租约清理是维护性 RPC，不应阻断正常的任务读取。某些
+        # Supabase 项目在迁移期间可能尚未授予该函数执行权限；此时仍
+        # 必须允许服务端读取现有任务并继续轮询，真正的读写错误仍会
+        # 由下面的查询原样映射为稳定 Supabase 错误码。
+        from .supabase_adapter import SupabaseError
+
+        try:
+            self.client.interrupt_expired_demo_run_tasks()
+        except SupabaseError:
+            pass
         task = self._row_to_task(self.client.get_demo_run_task(task_id))
         if task and task.get("status") in {"completed", "degraded"} and DemoRunTaskStore._is_expired(task):
             expected = int(task.get("version") or 0)

@@ -1283,6 +1283,33 @@ def test_supabase_new_secret_key_is_sent_as_apikey_only(monkeypatch: pytest.Monk
     assert legacy_headers["Authorization"] == "Bearer legacy.jwt.service-role"
 
 
+def test_supabase_task_read_survives_optional_expiry_cleanup_failure() -> None:
+    """清理 RPC 权限暂不可用时，任务读取仍可继续。"""
+    from backend.app.demo_run_tasks import SupabaseDemoRunTaskStore
+    from backend.app.supabase_adapter import SupabaseAuthError
+
+    class Client:
+        def interrupt_expired_demo_run_tasks(self) -> None:
+            raise SupabaseAuthError("hidden")
+
+        def get_demo_run_task(self, task_id: str) -> dict[str, object]:
+            return {"task_id": task_id, "status": "queued", "steps": {}, "agent_steps": {}}
+
+    store = SupabaseDemoRunTaskStore(Client())
+    try:
+        assert store.get("DEMO-RUN-UNIT") == {
+            "task_id": "DEMO-RUN-UNIT",
+            "status": "queued",
+            "steps": {},
+            "agent_steps": {},
+            "run_body": {},
+            "stage_schema_version": "demo_task_v2",
+            "non_interruptible": False,
+        }
+    finally:
+        store.shutdown()
+
+
 def test_demo_task_continuity_probe_is_explicit_and_redacts_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     """启动快照区分未配置、可用和不可用，且不返回 URL/key。"""
     import backend.app.main as main_module
