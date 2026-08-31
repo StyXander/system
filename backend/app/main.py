@@ -7150,9 +7150,13 @@ def _finalize_demo_run_stages(store: DemoRunTaskStore, task_id: str, response: R
     if response.run_completeness.startswith("incomplete_rag_failure"):
         store.update_stage(task_id, "agent_collaboration", "skipped", "证据加载失败，协作链未执行。")
         store.update_stage(task_id, "evidence_validation", "skipped", "未执行验证。")
+        for role in AGENT_ROLE_ORDER:
+            store.update_agent_step(task_id, role, "skipped", "证据链未完成，三角色协作未执行。")
     elif not chain_ran:
         store.update_stage(task_id, "agent_collaboration", "skipped", "本次未执行模型协作链（未请求或未授权）。")
         store.update_stage(task_id, "evidence_validation", "skipped", "未执行验证。")
+        for role in AGENT_ROLE_ORDER:
+            store.update_agent_step(task_id, role, "skipped", "本次未请求三角色协作。")
     elif len(completed) == 3:
         model_note = ""
         if any(str(step.model_id or "") == "demo-deterministic-v1" for step in completed):
