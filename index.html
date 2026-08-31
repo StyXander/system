@@ -10,7 +10,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.10.5">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.10.6">
   <script src="/assets/official-v4/demo-app.js?v=0.10.4" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
@@ -135,7 +135,7 @@
         </div>
         <figure class="demo-workbench-visual">
           <span class="demo-workbench-visual-art" aria-hidden="true"></span>
-          <img src="/assets/official-v4/illustrations/agents-nodes.webp" width="1672" height="941" alt="" loading="lazy" decoding="async">
+          <img src="/assets/official-v4/illustrations/agents-nodes.webp" width="1672" height="941" alt="" loading="eager" decoding="async">
           <figcaption><span>THREE AGENTS · ONE EVIDENCE BUNDLE</span><strong>质疑、反证、复核围绕同一证据包协作</strong>模型只生成受约束的待核查草稿，确定性事实和最终判断仍由程序与人控制。</figcaption>
         </figure>
       </section>
