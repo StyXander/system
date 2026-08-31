@@ -118,7 +118,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
-import fitz
+import pymupdf as fitz
 from openpyxl import load_workbook
 
 from . import data as standard_data

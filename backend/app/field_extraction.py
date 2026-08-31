@@ -33,7 +33,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-import fitz
+import pymupdf as fitz
 
 from .cases import (
     annotate_financial_field_quality,

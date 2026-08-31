@@ -40,7 +40,7 @@ from typing import Any, Iterable
 from urllib.parse import urljoin, urlparse
 
 import httpx
-import fitz
+import pymupdf as fitz
 
 
 CNINFO_HOME = "https://www.cninfo.com.cn"
