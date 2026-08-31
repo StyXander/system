@@ -220,7 +220,11 @@ class SupabaseClient:
         headers = {"apikey": key, "Accept": "application/json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
-        elif service:
+        elif service and not key.startswith("sb_secret_"):
+            # Supabase's newer ``sb_secret_`` keys are opaque API keys, not
+            # JWTs. Sending one as ``Authorization: Bearer`` makes the
+            # gateway parse it as a JWT and return HTTP 401 (Invalid JWT).
+            # Keep the legacy Bearer header for old JWT service-role keys.
             headers["Authorization"] = f"Bearer {key}"
         return headers
 

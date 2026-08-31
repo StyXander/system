@@ -1266,6 +1266,23 @@ def test_demo_manifest_hash_is_stable_across_newline_conventions(tmp_path: Path)
     assert manifest_sha256(source) == release["demo"]["manifest_sha256"]
 
 
+def test_supabase_new_secret_key_is_sent_as_apikey_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """新版 sb_secret 密钥不是 JWT，不能重复放进 Authorization Bearer。"""
+    from backend.app.supabase_adapter import SupabaseClient, SupabaseConfig
+
+    monkeypatch.setenv("SUPABASE_URL", "https://unit-test.supabase.co")
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "sb_secret_unit-test")
+    config = SupabaseConfig.from_env(mode_override="supabase")
+    headers = SupabaseClient(config)._headers(service=True)
+    assert headers == {"apikey": "sb_secret_unit-test", "Accept": "application/json"}
+
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "legacy.jwt.service-role")
+    legacy_config = SupabaseConfig.from_env(mode_override="supabase")
+    legacy_headers = SupabaseClient(legacy_config)._headers(service=True)
+    assert legacy_headers["Authorization"] == "Bearer legacy.jwt.service-role"
+
+
 def test_demo_task_continuity_probe_is_explicit_and_redacts_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     """启动快照区分未配置、可用和不可用，且不返回 URL/key。"""
     import backend.app.main as main_module
