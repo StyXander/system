@@ -1,6 +1,6 @@
 {
   "schema_version": "illustration_manifest_v1",
-  "purpose": "审迹智链竞赛演示版插图：黑金审计证据语义，与网页深色审计编辑风格一致。",
+  "purpose": "审迹智链竞赛演示版插图：深色审计证据语义，与网页克制、可回查的编辑风格一致。",
   "note": "AI 图片内嵌文字不作为可访问页面内容或架构事实；有信息含义的图使用页面内文字替代。",
   "illustrations": [
     {
@@ -95,6 +95,56 @@
           "file": "system-overview-blue.webp",
           "width": 1672,
           "bytes": 105506
+        }
+      ]
+    },
+    {
+      "asset_name": "workspace-evidence-vault",
+      "usage": "background",
+      "source_file": "exec-b0ec6cc5-af61-4754-a63e-201e4cdee46f.png",
+      "source_sha256": "9ec796635807f60d1e3fbd7b6a14d603d141ecde0dca28d0918ea6cf0bb728f0",
+      "source_dimensions": [
+        1717,
+        916
+      ],
+      "source_bytes": 1419065,
+      "outputs": [
+        {
+          "file": "workspace-evidence-vault-1600.webp",
+          "width": 1600,
+          "bytes": 42136,
+          "sha256": "72ce2b5cbc3749077bb6624b8d5ed39ee32469cb48f8dc8b46929e4826c32137"
+        },
+        {
+          "file": "workspace-evidence-vault-768.webp",
+          "width": 768,
+          "bytes": 33442,
+          "sha256": "db72f84ab5369107f2044b8f44bead2c06a99b275668518734eb328211bce82c"
+        }
+      ]
+    },
+    {
+      "asset_name": "workspace-evidence-hall-v2",
+      "usage": "background",
+      "source_file": "exec-f6e97971-4122-4d5f-8375-509e39d013d5.png",
+      "source_sha256": "e378341bdbf8d8e220f2450e7e372a9ebe4f7004a63dfb35b85239e66546c3d7",
+      "source_dimensions": [
+        1774,
+        887
+      ],
+      "source_bytes": 2059768,
+      "outputs": [
+        {
+          "file": "workspace-evidence-hall-v2-1600.webp",
+          "width": 1600,
+          "bytes": 172170,
+          "sha256": "e0389076ad3af1dba3be2552f27ca764c7a28f3add0956a732ea96927a6edb2e"
+        },
+        {
+          "file": "workspace-evidence-hall-v2-768.webp",
+          "width": 768,
+          "bytes": 73156,
+          "sha256": "5f09efad677104bf6d8dc108aa22e71e7d05d0109d66ae734abdc3a89b83c4bf"
         }
       ]
     }
