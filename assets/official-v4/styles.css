@@ -3636,7 +3636,7 @@ mark {
     white-space: normal;
   }
 }
-+    /* 竞赛演示版增量样式：全部复用 styles.css 的语义变量与组件语言。
+    /* 竞赛演示版增量样式：全部复用 styles.css 的语义变量与组件语言。
        平滑滚动会让自动化点击与键盘定位无法稳定落点，演示页改回即时滚动。 */
     html { scroll-behavior: auto; }
     body { background: #05080b; }
@@ -4805,3 +4805,644 @@ mark {
     @media (prefers-reduced-motion: reduce) {
       .demo-case-card, .button { transition: none; }
     }
+
+/* ==========================================================================
+   0.11.0 视觉精修层（账簿的金属感）
+   --------------------------------------------------------------------------
+   为什么整块追加而不是逐行改写上方 3639—4807 段：那一段是竞赛演示合同，逐行
+   改 60 处色值一旦改错很难回滚。本层只新增声明，删掉本块即恢复 0.10.8 外观。
+   本层不动文案、DOM 结构、class 名、断点骨架，也不动状态语义。
+
+   四条纪律：
+   1) 色温。上方同层"面板深底"有 #041014 / #041116 / #031015 / #020c10 / #061118
+      五个近邻值，画布与面板只差 2—3% 明度，所以整页发平。这里收敛成一条冷青轴
+      上的五级明度，层次靠明度差而不是靠光。
+   2) 高差。画布 < 面板 < 内嵌格 三级真实分层，用 1px 顶部内高光 + 方向性阴影
+      抬起；不用发光球、不用玻璃拟态、不新增装饰库与外部字体。
+   3) 状态。阶段条原先用整格橄榄底 #27200c 表达降级，色温跳出击穿冷青轴；改为
+      格底留在冷轴，状态只走"顶边线 + 序号徽标 + 名称色"三处，颜色仍与文字同现。
+   4) 字。小标签字距收敛到 .10em / .14em 两档；最浅文字抬到 #7d969d，在最深内嵌
+      格上实测 5.14:1、最高面板上 5.27:1，9—11px 也过 4.5:1，不回退 3928 行与
+      打印媒体那两处已实测的对比度修复。
+   ========================================================================== */
+:root {
+  --at-canvas: #04121a;
+  --at-canvas-deep: #030d13;
+  --at-panel: #071a22;
+  --at-panel-raised: #0a242e;
+  --at-inset: #020c11;
+  --at-rule: rgb(146 205 218 / 22%);
+  --at-rule-soft: rgb(146 205 218 / 11%);
+  --at-rule-strong: rgb(196 232 240 / 42%);
+  --at-thread: #82c6d4;
+  --at-thread-bright: #a5dce7;
+  --at-ink: #eef6f7;
+  --at-ink-2: #c0d2d6;
+  --at-ink-3: #93abb1;
+  --at-ink-4: #7d969d;
+  --at-brass: #d8b878;
+  --at-jade: #8cc7a6;
+  --at-clay: #dd938c;
+  --at-edge-hi: inset 0 1px 0 rgb(226 245 250 / 8%);
+  --at-edge-lo: inset 0 -1px 0 rgb(0 0 0 / 26%);
+  --at-elev-1: 0 10px 24px -18px rgb(0 0 0 / 78%);
+  --at-elev-2: 0 26px 58px -30px rgb(0 0 0 / 84%), 0 6px 20px -14px rgb(26 76 94 / 42%);
+  --at-elev-3: 0 40px 88px -42px rgb(0 0 0 / 86%), 0 12px 32px -20px rgb(30 82 100 / 46%);
+  --at-track-label: .14em;
+  --at-track-folio: .1em;
+  --at-ease: cubic-bezier(.22, .72, .24, 1);
+  --at-fast: 140ms;
+  --at-med: 240ms;
+}
+
+/* 全局：焦点、选中态与折叠线统一到冷青轴。 */
+:focus-visible {
+  outline: 2px solid var(--at-thread-bright);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: #04141a;
+  background: var(--at-thread);
+}
+
+.folio,
+.kicker,
+.demo-summary-label,
+.demo-agent-card-badge,
+.demo-agent-card-label,
+.demo-overview-label,
+.demo-positioning-facts dt,
+.demo-knowledge-cell dt,
+.demo-procedure-column h4,
+.demo-supplement-diff h4,
+.demo-overview-evidence-group h5 {
+  color: var(--at-ink-4);
+  letter-spacing: var(--at-track-label);
+}
+
+/* 画布与台面：必须都是实色且不能挂带背景的伪元素。
+   任一祖先出现 ::before/::after 背景，axe 就对整棵子树放弃对比度计算
+   （实测 46 → 338 个 incomplete 节点，等于把无障碍证据自己打掉）。
+   纵深只靠 画布 #04121a < 面板 #071a22 < 内嵌格 #020c11 三级明度差 + 1px 内高光。 */
+#main-content {
+  background: var(--at-canvas);
+}
+
+/* 示意大厅底图：桌面压得太暗会糊成一团，但 ≤640 上游本来就故意再压一档给
+   文字让位，所以这条要收进 min-width，不能用末尾普通规则覆盖移动端调校。 */
+@media (min-width: 641px) {
+  .main-content-art {
+    filter: brightness(.95) saturate(.86) contrast(1.04);
+  }
+}
+
+/* 顶栏：状态胶囊原来是全页最亮的块，压成"点表状态、字表内容"。
+   背景必须是不透明实色——顶栏是 sticky，半透明会让滚过的内容直接透出来。 */
+.topbar {
+  background: #02101a;
+  border-bottom-color: var(--at-rule-soft);
+  box-shadow: 0 1px 0 rgb(146 205 218 / 6%), 0 18px 40px -34px rgb(0 0 0 / 90%);
+}
+
+.topbar .context-label {
+  color: var(--at-ink-4);
+  letter-spacing: var(--at-track-folio);
+}
+
+.topbar .service-pill {
+  padding: 4px 11px;
+  color: var(--at-ink-2);
+  background: rgb(146 205 218 / 5%);
+  border-color: var(--at-rule-soft);
+  border-radius: var(--radius-1);
+  font-weight: 500;
+}
+
+.topbar .service-pill i {
+  background: var(--at-ink-4);
+  box-shadow: 0 0 0 3px rgb(146 205 218 / 8%);
+}
+
+.topbar .service-pill.success i { background: var(--at-jade); box-shadow: 0 0 0 3px rgb(140 199 166 / 14%); }
+.topbar .service-pill.pending i { background: var(--at-brass); box-shadow: 0 0 0 3px rgb(216 184 120 / 14%); }
+.topbar .service-pill.danger i { background: var(--at-clay); box-shadow: 0 0 0 3px rgb(221 147 140 / 14%); }
+
+.topbar .brand {
+  padding-right: 18px;
+  border-right: 1px solid var(--at-rule-soft);
+}
+
+.topbar .brand-mark {
+  background: var(--at-thread);
+  box-shadow: var(--at-edge-hi);
+}
+
+.topbar .button.quiet { min-height: 38px; padding: 7px 13px; font-size: 13px; }
+
+/* 按钮：主按钮原来是偏蓝的 --accent-primary，与整页冷青轴撞色；统一到线程色。 */
+.button {
+  border-color: var(--at-rule);
+  border-radius: var(--radius-2);
+  letter-spacing: .02em;
+  box-shadow: var(--at-edge-hi);
+  transition:
+    color var(--at-fast) var(--at-ease),
+    background-color var(--at-fast) var(--at-ease),
+    border-color var(--at-fast) var(--at-ease),
+    box-shadow var(--at-fast) var(--at-ease),
+    transform var(--at-fast) var(--at-ease);
+}
+
+.button.primary {
+  color: #04141a;
+  background: var(--at-thread-bright);
+  border-color: #bfeaf2;
+  box-shadow: var(--at-edge-hi), var(--at-elev-1);
+}
+
+.button.primary:hover:not(:disabled) {
+  background: #c2ecf3;
+  border-color: #d6f4f9;
+  box-shadow: var(--at-edge-hi), var(--at-elev-2);
+}
+
+.button.primary:active:not(:disabled) { transform: translateY(1px); box-shadow: var(--at-edge-hi); }
+
+.button.quiet {
+  color: var(--at-ink);
+  background: rgb(146 205 218 / 5%);
+  border-color: var(--at-rule);
+}
+
+.button.quiet:hover:not(:disabled) {
+  background: rgb(146 205 218 / 11%);
+  border-color: var(--at-rule-strong);
+  box-shadow: var(--at-edge-hi), var(--at-elev-1);
+}
+
+.button.quiet:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+
+.button:disabled {
+  color: var(--at-ink-4);
+  background: rgb(146 205 218 / 3%);
+  border-color: var(--at-rule-soft);
+  opacity: 1;
+}
+
+/* 首屏：把 CTA 行做成一条有刻度的收口，并让角标真的读得出。 */
+.cinematic-nav {
+  border-bottom-color: var(--at-rule-soft);
+  background: rgb(2 6 10 / 82%);
+}
+
+.cinematic-version { border-color: var(--at-rule); color: var(--at-ink-3); }
+.cinematic-corner { opacity: .58; }
+.cinematic-telemetry { color: var(--at-ink-4); letter-spacing: .2em; }
+
+.cinematic-tagline {
+  max-width: 760px;
+  border-left-color: var(--at-thread);
+  text-wrap: balance;
+}
+
+.cinematic-actions { gap: 18px 22px; }
+
+.cinematic-enter {
+  border-radius: var(--radius-2);
+  box-shadow: var(--at-edge-hi), var(--at-elev-1);
+  transition: background-color var(--at-fast) var(--at-ease), box-shadow var(--at-fast) var(--at-ease), transform var(--at-fast) var(--at-ease);
+}
+
+.cinematic-enter:hover { background: #c2ecf3; box-shadow: var(--at-edge-hi), var(--at-elev-2); transform: translateY(-1px); }
+.cinematic-enter:active { transform: translateY(1px); box-shadow: var(--at-edge-hi); }
+
+.cinematic-proof {
+  padding-left: 22px;
+  border-left: 1px solid var(--at-rule-soft);
+  color: var(--at-ink-4);
+  letter-spacing: var(--at-track-folio);
+}
+
+/* 定位页：账本四格与知识底座的缝色收一档，数字归到同一根基线。 */
+.demo-positioning-facts { border-top-color: var(--at-rule); border-right-color: var(--at-rule-soft); }
+.demo-positioning-facts > div { border-left-color: var(--at-rule-soft); }
+.demo-positioning-facts > div:hover { background: rgb(146 205 218 / 3%); }
+.demo-positioning-facts dd span { color: var(--at-ink); }
+.demo-positioning-facts dd small { color: var(--at-ink-4); }
+.demo-positioning-eyebrow { letter-spacing: var(--at-track-label); }
+.demo-positioning-summary { border-left-color: var(--at-thread); color: #b6c8cc; }
+.demo-positioning-outline { color: #a8d2da; -webkit-text-stroke-color: #7fa9b4; }
+.demo-positioning-serif { color: var(--at-ink); }
+.demo-positioning-enter { background: var(--at-thread-bright); border-color: #bfeaf2; box-shadow: var(--at-edge-hi), var(--at-elev-1); }
+.demo-positioning-enter:hover { background: #c2ecf3; box-shadow: var(--at-edge-hi), var(--at-elev-2); }
+.demo-positioning-boundary { color: var(--at-ink); background: rgb(7 26 34 / 82%); border-color: var(--at-rule); }
+.demo-positioning-boundary:hover { background: rgb(14 44 55 / 88%); border-color: var(--at-rule-strong); }
+
+/* 定位页底图遮罩：data-horizon 原图是亮色天空，直接压在深色文字下会把它顶成
+   浅灰页，描边标题与衬线摘要都读不清（美化前后两张基线截图同证）。
+   遮罩挂在底图自身，不能挂到 .demo-positioning 的伪元素上——那会让整节文字
+   在 axe 里判为 contrast incomplete。 */
+.demo-positioning-art {
+  background:
+    linear-gradient(90deg, rgb(2 7 11 / 95%) 0%, rgb(2 7 11 / 85%) 34%, rgb(2 7 11 / 48%) 62%, rgb(2 7 11 / 34%)),
+    linear-gradient(180deg, rgb(2 7 11 / 76%) 0%, rgb(2 7 11 / 26%) 40%, rgb(3 12 17 / 74%)),
+    #061118 url("/assets/official-v4/illustrations/data-horizon-1440.webp") center / cover no-repeat;
+}
+
+/* 文案栏从 .85fr 提到 1.05fr：原宽度放不下六个展示级字，
+   "销售收款预审"会在 1440 下被拆成"销售收 / 款预审"。
+   必须包在 min-width 里——媒体查询不加权重，写在末尾会反过来覆盖
+   上方 1024 断点的单栏回退，把平板挤成两栏。 */
+@media (min-width: 1025px) {
+  .demo-positioning-grid {
+    grid-template-columns: minmax(460px, 1.05fr) minmax(520px, 1.1fr);
+  }
+}
+
+.demo-positioning-outline {
+  color: #bcdfe5;
+  -webkit-text-stroke-color: #9fd2dc;
+}
+
+@media (max-width: 640px) {
+  .demo-positioning-art {
+    background:
+      linear-gradient(180deg, rgb(2 7 11 / 92%) 0%, rgb(2 7 11 / 78%) 58%, rgb(3 12 17 / 92%)),
+      #061118 url("/assets/official-v4/illustrations/data-horizon-768.webp") center / cover no-repeat;
+  }
+}
+
+/* 四格账本：dd 原本是"大号数字 + 注记"并排，"R1/R2 + 3A" 与 "JSON / 表 / PDF"
+   在 1440 下被迫折行，四格高度不齐。改成纵向堆叠，四个数字对到同一根基线。 */
+.demo-positioning-facts dd { display: grid; justify-items: start; gap: 8px; margin-top: 14px; }
+/* 数字字号原本按 1660 内容宽用 2.2vw 调，1440 下 "JSON / 表 / PDF" 会折两行。 */
+.demo-positioning-facts dd span { font-size: clamp(20px, 1.9vw, 32px); line-height: 1.15; }
+.demo-positioning-visual figcaption { color: var(--at-ink-3); }
+
+/* 多列时才需要抬格高；≤640 是单列且上游故意压到 96px，不能覆盖。 */
+@media (min-width: 641px) {
+  .demo-positioning-facts > div { min-height: 156px; padding: 25px 30px; }
+}
+
+.demo-knowledge-base { background: var(--at-panel); border-color: var(--at-rule-soft); box-shadow: var(--at-edge-hi), var(--at-elev-2); }
+.demo-knowledge-visual { border-right-color: var(--at-rule-soft); }
+.demo-knowledge-grid { background: var(--at-rule-soft); border-color: var(--at-rule-soft); }
+.demo-knowledge-cell { background: var(--at-inset); }
+.demo-knowledge-cell dd { color: var(--at-ink); }
+.demo-knowledge-lead { color: var(--at-ink-2); }
+.demo-knowledge-note { color: var(--at-ink-4); }
+
+/* 工作台首屏：事实行改成带刻度的账簿条目，示意插图抬回可读亮度。 */
+.demo-hero h2 { color: var(--at-ink); letter-spacing: -.01em; }
+.demo-hero .demo-tagline { color: var(--at-ink-2); line-height: 1.95; }
+
+.demo-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 11px 0;
+  padding-top: 16px;
+  border-top-color: var(--at-rule-soft);
+  color: var(--at-ink-4);
+  font-size: 12.5px;
+}
+
+.demo-facts > span { position: relative; padding-left: 13px; border-left: 1px solid var(--at-rule); line-height: 1.55; }
+.demo-facts strong { color: var(--at-ink); font-variant-numeric: tabular-nums lining-nums; }
+.demo-facts .demo-quality-alert { color: var(--at-brass); }
+
+.demo-workbench-visual {
+  border-color: var(--at-rule);
+  box-shadow: var(--at-edge-hi), var(--at-elev-3);
+}
+
+.demo-workbench-visual-art { background: rgb(2 8 12 / 46%); }
+.demo-workbench-visual img { filter: brightness(.88) saturate(.9) contrast(1.05); }
+.demo-workbench-visual figcaption {
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  padding: 12px 14px;
+  color: var(--at-ink-2);
+  background: rgb(2 8 12 / 88%);
+  border-left: 2px solid var(--at-thread);
+}
+.demo-workbench-visual figcaption strong { color: var(--at-ink); }
+.demo-workbench-visual figcaption span { color: var(--at-brass); letter-spacing: var(--at-track-label); }
+
+/* 案例卡：内部节奏对齐，选中态从"几乎看不出"抬到一眼可辨。 */
+.demo-case-grid { gap: 16px; }
+
+.demo-case-card {
+  gap: 7px;
+  padding: 18px 20px 20px;
+  background: var(--at-panel);
+  border-color: var(--at-rule);
+  border-radius: var(--radius-3);
+  box-shadow: var(--at-edge-hi), var(--at-elev-1);
+  transition:
+    border-color var(--at-fast) var(--at-ease),
+    background-color var(--at-fast) var(--at-ease),
+    box-shadow var(--at-med) var(--at-ease),
+    transform var(--at-fast) var(--at-ease);
+}
+
+.demo-case-card::before { border-top-color: rgb(231 239 242 / 24%); border-left-color: rgb(231 239 242 / 24%); }
+.demo-case-card::after { border-right-color: rgb(231 239 242 / 20%); border-bottom-color: rgb(231 239 242 / 20%); }
+.demo-case-card .demo-case-index { color: var(--at-ink-4); letter-spacing: var(--at-track-folio); }
+.demo-case-card h4 { color: var(--at-ink); }
+.demo-case-card .demo-case-meta { color: var(--at-ink-4); }
+.demo-case-card .demo-case-focus { color: var(--at-ink-2); }
+
+.demo-case-card:hover {
+  background: var(--at-panel-raised);
+  border-color: var(--at-rule-strong);
+  box-shadow: var(--at-edge-hi), var(--at-elev-2);
+  transform: translateY(-2px);
+}
+
+.demo-case-card:hover::before,
+.demo-case-card:hover::after { border-color: rgb(231 239 242 / 40%); }
+
+.demo-case-card[aria-pressed="true"] {
+  background: #0f303c;
+  border-color: rgb(165 220 231 / 58%);
+  box-shadow: inset 3px 0 0 var(--at-thread-bright), var(--at-edge-hi), var(--at-elev-2);
+}
+
+.demo-case-card[aria-pressed="true"]::before,
+.demo-case-card[aria-pressed="true"]::after { border-color: rgb(196 232 240 / 52%); }
+
+.demo-case-card[aria-pressed="true"] .demo-case-index,
+.demo-case-card[aria-pressed="true"] .demo-case-meta { color: var(--at-ink-3); }
+
+/* 控制台：格底留在冷轴，状态只走顶边线 + 徽标 + 名称色。 */
+.demo-console {
+  background: var(--at-panel);
+  border-color: var(--at-rule);
+  border-radius: var(--radius-3);
+  box-shadow: var(--at-edge-hi), var(--at-elev-2);
+}
+
+.demo-console::before { border-color: rgb(226 235 238 / 6%); }
+.demo-console::after { border-color: rgb(235 242 244 / 26%); }
+.demo-console-head { background: #0a2530; border-bottom-color: var(--at-rule-soft); }
+.demo-console-head .demo-current-case strong { color: var(--at-ink); }
+.demo-console-head .demo-current-case small { color: var(--at-ink-4); }
+
+.demo-stage-rail { background: var(--at-rule-soft); border-bottom-color: var(--at-rule-soft); }
+
+.demo-stage {
+  background: var(--at-inset);
+  box-shadow: inset 0 2px 0 rgb(146 205 218 / 16%);
+  transition: background-color var(--at-med) var(--at-ease), box-shadow var(--at-med) var(--at-ease);
+}
+
+.demo-stage::before { color: var(--at-ink-4); border-color: rgb(146 205 218 / 34%); transition: color var(--at-fast) var(--at-ease), background-color var(--at-fast) var(--at-ease), border-color var(--at-fast) var(--at-ease); }
+.demo-stage .demo-stage-name { color: var(--at-ink-2); }
+.demo-stage.current { background: rgb(13 48 57 / 92%); box-shadow: inset 0 2px 0 var(--at-thread-bright); }
+.demo-stage.current::before { color: #04141a; background: var(--at-thread-bright); border-color: var(--at-thread-bright); }
+.demo-stage.current .demo-stage-name { color: var(--at-ink); }
+.demo-stage.completed { background: var(--at-inset); box-shadow: inset 0 2px 0 var(--at-jade); }
+.demo-stage.completed::before { color: var(--at-jade); border-color: rgb(140 199 166 / 56%); }
+.demo-stage.completed .demo-stage-name { color: var(--at-jade); }
+.demo-stage.degraded,
+.demo-stage.skipped { background: var(--at-inset); box-shadow: inset 0 2px 0 var(--at-brass); }
+.demo-stage.degraded::before,
+.demo-stage.skipped::before { color: var(--at-brass); border-color: rgb(216 184 120 / 56%); }
+.demo-stage.degraded .demo-stage-name,
+.demo-stage.skipped .demo-stage-name { color: var(--at-brass); }
+.demo-stage.failed { background: var(--at-inset); box-shadow: inset 0 2px 0 var(--at-clay); }
+.demo-stage.failed::before { color: var(--at-clay); border-color: rgb(221 147 140 / 56%); }
+.demo-stage.failed .demo-stage-name { color: var(--at-clay); }
+
+#demo-gate > .demo-gate-detail { background: transparent; }
+
+/* 结果区：三级表面真正分层，缝色统一退到次级线。 */
+.demo-analysis-layout {
+  background: var(--at-panel);
+  border-color: var(--at-rule-soft);
+  box-shadow: var(--at-edge-hi), var(--at-elev-2);
+}
+
+.demo-analysis-main { border-right-color: var(--at-rule-soft); }
+.demo-result-heading { border-bottom-color: var(--at-rule-soft); }
+.demo-section-heading h3 { color: var(--at-ink); }
+
+.demo-audit-overview {
+  background: var(--at-inset);
+  border-color: var(--at-rule);
+  box-shadow: var(--at-edge-hi);
+}
+
+.demo-audit-overview[data-tone="focus"] { border-top-color: var(--at-brass); }
+.demo-audit-overview[data-tone="routine"] { border-top-color: var(--at-jade); }
+.demo-audit-overview[data-tone="gap"] { border-top-color: #e0c188; }
+.demo-audit-overview[data-tone="industry"] { border-top-color: #a9b4d2; }
+.demo-audit-overview[data-tone="invalid"] { border-top-color: var(--at-clay); }
+.demo-overview-lead { border-bottom-color: var(--at-rule-soft); }
+.demo-overview-lead strong { color: var(--at-ink); }
+.demo-overview-lead p,
+.demo-overview-lead > small { color: var(--at-ink-4); }
+.demo-overview-lead > small { color: var(--at-ink-3); }
+.demo-overview-details { background: var(--at-rule-soft); border-color: var(--at-rule-soft); }
+.demo-overview-details article { background: var(--at-panel); }
+.demo-overview-details h4 { color: var(--at-ink); }
+.demo-overview-details p { color: var(--at-ink-2); line-height: 1.85; }
+.demo-overview-evidence-group ul,
+.demo-overview-procedure-list { color: var(--at-ink-2); }
+.demo-overview-procedure-list strong { color: var(--at-ink); }
+.demo-overview-procedure-list span { color: var(--at-ink-3); }
+.demo-overview-evidence-group small,
+.demo-overview-procedure-list small { color: var(--at-ink-4); }
+
+.demo-agent-inline { border-top-color: var(--at-rule-soft); }
+.demo-agent-inline-cards { background: var(--at-rule-soft); border-color: var(--at-rule-soft); }
+.demo-agent-card { background: var(--at-panel); border-top-color: rgb(146 205 218 / 40%); }
+.demo-agent-card-challenge { border-top-color: var(--at-brass); }
+.demo-agent-card-counter { border-top-color: var(--at-jade); }
+.demo-agent-card-review { border-top-color: #a9b4d2; }
+.demo-agent-card[data-status="failed"] { border-top-color: var(--at-clay); }
+.demo-agent-card[data-status="skipped"],
+.demo-agent-card[data-status="not_recorded"] { border-top-color: #b39a5e; }
+.demo-agent-card h4 { color: var(--at-ink); }
+.demo-agent-card-detail,
+.demo-agent-card-reason,
+.demo-agent-card-draft,
+.demo-agent-card-conclusion { color: var(--at-ink-2); }
+.demo-agent-card-reason strong { color: var(--at-ink); }
+.demo-agent-card-failure { color: #ecbfae; }
+.demo-agent-card-conclusion { color: #ecd8a4; }
+.demo-agent-card-empty { color: var(--at-ink-4); }
+.demo-agent-card-model,
+.demo-agent-card-group small { color: var(--at-ink-4); }
+.demo-agent-card-group ul { color: var(--at-ink-2); }
+
+.demo-result-visual { border-color: var(--at-rule-soft); background: var(--at-inset); }
+.demo-result-visual-art { background: rgb(3 11 15 / 42%); }
+.demo-result-visual img { filter: brightness(.84) saturate(.88) contrast(1.04); }
+.demo-result-visual figcaption {
+  right: 18px;
+  padding: 12px 14px;
+  color: var(--at-ink-2);
+  background: rgb(2 9 12 / 88%);
+  border-left: 2px solid var(--at-thread);
+}
+.demo-result-visual figcaption strong { color: var(--at-ink); }
+
+.demo-result-summary { border-color: var(--at-rule); }
+.demo-summary-cell { background: var(--at-inset); border-right-color: var(--at-rule-soft); }
+.demo-summary-cell.is-primary,
+.demo-summary-cell.is-success { box-shadow: inset 0 2px 0 var(--at-thread-bright); }
+.demo-summary-value { color: var(--at-ink); }
+.demo-summary-detail { color: var(--at-ink-4); }
+.demo-summary-detail strong { color: var(--at-ink-2); }
+
+.demo-item-card {
+  background: var(--at-panel);
+  border-color: var(--at-rule-soft);
+  border-left: 3px solid var(--at-thread);
+  box-shadow: var(--at-edge-hi), var(--at-elev-1);
+}
+
+.demo-item-card .demo-item-eyebrow { color: var(--at-ink-4); letter-spacing: var(--at-track-folio); }
+.demo-item-card h4 { color: var(--at-ink); }
+.demo-item-card p,
+.demo-item-card .demo-item-facts { color: var(--at-ink-2); }
+.demo-item-card .demo-item-facts small { color: var(--at-ink-4); }
+
+.demo-metric-grid { border-top-color: var(--at-rule-soft); border-left-color: var(--at-rule-soft); }
+.demo-metric { background: var(--at-inset); border-right-color: var(--at-rule-soft); border-bottom-color: var(--at-rule-soft); }
+.demo-metric span { color: var(--at-ink-4); }
+.demo-metric strong { color: var(--at-ink); }
+
+.demo-evidence-axis li > span { color: var(--at-ink-3); background: var(--at-inset); border-color: var(--at-rule); }
+.demo-evidence-axis li.complete > span { color: #04141a; background: var(--at-thread-bright); border-color: var(--at-thread-bright); }
+.demo-evidence-axis li.warning > span { color: var(--at-brass); border-color: rgb(216 184 120 / 56%); }
+.demo-evidence-axis li:not(:last-child)::after { background: var(--at-rule-soft); }
+.demo-evidence-axis h3,
+.demo-evidence-axis li strong { color: var(--at-ink); }
+.demo-evidence-axis li small { color: var(--at-ink-3); }
+.demo-axis-boundary { color: var(--at-ink-4); border-top-color: var(--at-rule-soft); }
+
+.demo-structured-output,
+.demo-result-actions { border-top-color: var(--at-rule-soft); }
+.demo-table-wrap { border-color: var(--at-rule); box-shadow: var(--at-edge-hi); }
+.demo-structured-table th { color: var(--at-ink-2); background: var(--at-panel-raised); }
+.demo-structured-table td { border-bottom-color: var(--at-rule-soft); }
+.demo-structured-table tbody tr { transition: background-color var(--at-fast) var(--at-ease); }
+.demo-structured-table tbody tr:hover { background: rgb(146 205 218 / 6%); }
+
+.demo-procedure-map,
+.demo-source-ledger,
+.demo-run-trace { border-top-color: var(--at-rule-soft); }
+.demo-procedure-columns { background: var(--at-rule-soft); border-color: var(--at-rule-soft); }
+.demo-procedure-column { background: var(--at-panel); }
+.demo-procedure-column li { color: var(--at-ink-2); }
+.demo-procedure-column li::before { color: var(--at-thread); }
+.demo-procedure-map header h3 { color: var(--at-ink); }
+.demo-procedure-note,
+.demo-procedure-version,
+.demo-source-ledger-note,
+.demo-source-ledger-list small { color: var(--at-ink-4); }
+.demo-source-ledger-list li { color: var(--at-ink-2); }
+.demo-source-ledger-list strong { color: var(--at-ink); }
+.demo-run-trace-list li { color: var(--at-ink-2); }
+.demo-run-trace-list strong { color: var(--at-ink); }
+.demo-run-trace-list small { color: var(--at-ink-4); }
+
+.demo-enhancement-grid { border-color: var(--at-rule-soft); background: var(--at-rule-soft); }
+.demo-enhancement-card { background: var(--at-panel); }
+.demo-enhancement-card h4 { color: var(--at-ink); }
+.demo-enhancement-card p { color: var(--at-ink-4); }
+.demo-enhancement-card ul { color: var(--at-ink-2); }
+.demo-enhancement-card code { color: var(--at-thread); }
+
+.demo-collapse-toggle:hover { background: rgb(146 205 218 / 8%); color: var(--at-thread-bright); }
+.demo-collapse-toggle:focus-visible { outline: 2px solid var(--at-thread-bright); outline-offset: 2px; }
+
+/* 抽屉与提示：给出真实的进入动效，而不是瞬间贴脸。 */
+.detail-drawer { border-left: 1px solid var(--at-rule); box-shadow: var(--at-elev-3); }
+.detail-drawer[open] { animation: at-drawer-in var(--at-med) var(--at-ease); }
+
+@keyframes at-drawer-in {
+  from { opacity: 0; transform: translateX(28px); }
+}
+
+.detail-drawer::backdrop { background: rgb(1 6 9 / 78%); }
+.dialog-head { border-bottom-color: var(--at-rule-soft); }
+.demo-drawer-group > h4,
+.demo-tech-section h4 { color: var(--at-ink); }
+.demo-tech-section p,
+.demo-tech-section li { color: var(--at-ink-2); }
+.demo-stack-card { background: var(--at-inset); border-color: var(--at-rule-soft); }
+.demo-stack-card strong { color: var(--at-ink); }
+.demo-stack-card span { color: var(--at-thread); }
+.demo-stack-card small { color: var(--at-ink-4); }
+.demo-supplement-sample { background: var(--at-inset); border-color: var(--at-rule-soft); color: var(--at-ink-2); }
+.demo-supplement-sample strong { color: var(--at-ink); }
+.demo-supplement-sample small { color: var(--at-ink-4); }
+.demo-supplement-sample:hover { border-color: var(--at-rule-strong); background: var(--at-panel); }
+.demo-supplement-sample[aria-pressed="true"] { background: var(--at-panel-raised); border-color: rgb(165 220 231 / 52%); box-shadow: inset 3px 0 0 var(--at-thread-bright); }
+.demo-supplement-diff,
+.demo-supplement-summary { background: var(--at-inset); border-color: var(--at-rule-soft); }
+.demo-live-form input,
+.demo-live-form select { background: var(--at-inset); border-color: var(--at-rule); color: var(--at-ink); }
+.demo-live-form input:focus,
+.demo-live-form select:focus { border-color: var(--at-thread); }
+.demo-live-steps { background: var(--at-rule-soft); border-color: var(--at-rule-soft); }
+.demo-live-steps li { background: var(--at-panel); }
+.demo-live-steps li span:first-child { color: var(--at-thread); }
+.demo-live-steps li small,
+.demo-live-result dt { color: var(--at-ink-4); }
+.demo-live-result dd,
+.demo-live-result dl div { color: var(--at-ink); background: var(--at-inset); }
+.demo-live-result,
+.demo-live-task { border-color: var(--at-rule-soft); }
+.global-toast { background: rgb(7 26 34 / 97%); border-color: var(--at-rule); border-left-color: var(--at-thread); box-shadow: var(--at-elev-3); }
+.global-toast.error { border-left-color: var(--at-clay); }
+.global-toast.warning { border-left-color: var(--at-brass); }
+
+.demo-footer { color: var(--at-ink-4); }
+.demo-footer strong { color: var(--at-ink-2); }
+
+/* 窄屏：事实行在单列下不留悬空刻度，顶栏状态胶囊收字号。
+   品牌分隔线要撤掉——它会把"审迹智链"挤成两行（390 实测）。 */
+@media (max-width: 640px) {
+  .demo-facts { grid-template-columns: 1fr; gap: 9px; }
+  .topbar .brand { padding-right: 0; border-right: 0; }
+  .topbar .service-pill { font-size: 11px; }
+  /* 窄屏 CTA 是竖排居中，左侧竖线会变成悬空孤线。 */
+  .cinematic-proof { padding-left: 0; border-left: 0; }
+}
+
+/* 动效兜底：减少动态效果时全部落到瞬时，交互反馈仍靠颜色与边框表达。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .demo-case-card:hover,
+  .button.primary:active:not(:disabled),
+  .button.quiet:active:not(:disabled),
+  .cinematic-enter:hover,
+  .cinematic-enter:active { transform: none; }
+}
+
+/* 打印：本层新增的阴影一律不带进纸面。 */
+@media print {
+  .button,
+  .demo-case-card,
+  .demo-console,
+  .demo-analysis-layout,
+  .demo-audit-overview,
+  .demo-item-card,
+  .demo-table-wrap,
+  .detail-drawer,
+  .global-toast { box-shadow: none !important; }
+}
