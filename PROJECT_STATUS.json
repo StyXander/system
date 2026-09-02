@@ -357,11 +357,11 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
-      "latest_result": "347 passed, 1 warning",
-      "executed_on": "2026-09-01",
+      "latest_result": "349 passed, 1 warning",
+      "executed_on": "2026-09-02",
       "status": "passed",
-      "previous_result": "346 passed, 1 warning（同日新增隐私不污染回归测试前，且 346 已跑过 5 组顺序全一致）",
-      "stability_evidence": "347 项基线全量连跑两遍数字与结果完全一致（347 passed / 0 failed，277s 与 311s），中文注释门槛复查 PASS，docs/TEST_INVENTORY.md 已重生成为 34 文件 / 347 项 / 10 个需联网文件。此前 346 项基线另跑过 5 组顺序同数字（默认序连续两遍 + 完全逆序 + 两次轮转，均 0 failed / 0 error），test_demo_run_tasks.py 另有单文件 200 次连跑 0 失败。346 项那组电池不含后来新增的第 347 项敏感污染回归测试，因此 347 项基线下已重新发起同一 5 组电池并全部回读通过（backend/.venv/Scripts/python.exe -u tmp/order_battery.py，日志 tmp/battery-347.txt）：默认序两遍 281s 与 251s、完全逆序 248s、三分之一轮转 257s、三分之二轮转 250s，五组均为 347 passed / 0 failed / 0 error 且数字与结果完全一致，脚本结论行为“通过”、退出码 0。",
+      "previous_result": "347 passed, 1 warning（2026-09-01 基线；此前 346 已跑过 5 组顺序全一致）",
+      "stability_evidence": "347 项基线全量连跑两遍数字与结果完全一致（347 passed / 0 failed，277s 与 311s）；当前 349 项基线于 2026-09-02 重新全量通过（349 passed / 0 failed / 0 error），中文注释门槛复查 PASS，docs/TEST_INVENTORY.md 已重生成为 34 文件 / 349 项 / 10 个需联网文件。此前 346 项基线另跑过 5 组顺序同数字（默认序连续两遍 + 完全逆序 + 两次轮转，均 0 failed / 0 error），test_demo_run_tasks.py 另有单文件 200 次连跑 0 失败。346 项那组电池不含后来新增的第 347 项敏感污染回归测试，因此 347 项基线下已重新发起同一 5 组电池并全部回读通过（backend/.venv/Scripts/python.exe -u tmp/order_battery.py，日志 tmp/battery-347.txt）：默认序两遍 281s 与 251s、完全逆序 248s、三分之一轮转 257s、三分之二轮转 250s，五组均为 347 passed / 0 failed / 0 error 且数字与结果完全一致，脚本结论行为“通过”、退出码 0。",
       "root_cause_fixed": "原判定为“测试顺序依赖”的偶发失败实为 backend/app/demo_run_tasks.py 在 Windows 上 os.replace 原子写被并发读句柄或杀软扫描拒绝（WinError 5）；已改为独立临时名 + 有限重试，终态拒绝迟到写入的生产闸门未放宽。",
       "chinese_comments": "2368/23604 = 10.03%（达手册 10% 门槛；未达本轮自定 11%，未为凑数补注释）",
       "note": "2026-09-01 整改轮：新增公开状态边界（3）、进度回调留痕（3）、签字追溯独立项（1）；修复清洁包烟测对已裁剪 /api/status 的依赖、51 案路由契约测试的枚举来源、以及 5 个与线程调度相关的测试写法。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。2026-09-02 复核 .gitignore 查出并修正三处真实缺陷：/docs/ 整目录被忽略，使 README 与评委包都指向的 docs/TEST_INVENTORY.md 永远进不了版本库；/scripts/* 逐项白名单缺 test_inventory.py、build_delivery_packages.py、axe_inject.py、browser_demo_final_acceptance.py，其中 axe_inject 被最终验收脚本直接 import 必须同进；原注释“测试集已全部纳入版本库”与现状相反——26 个测试文件是从未 git add，并非被忽略，已改为如实描述。2026-09-02 补跑上一轮遗留校验，三项全部实测通过：json.load 解析 PROJECT_STATUS.json 输出 JSON_OK；py_compile 编译 build_delivery_packages.py 与 diagnose_judge_package.py 均通过；git check-ignore -v 对 docs/TEST_INVENTORY.md 与 scripts 下四个验收脚本逐条命中 .gitignore:104 与 :97-100 的 ! 否定规则（父目录先重新包含再逐项放行，顺序正确），git status 亦把这些路径显示为可见未跟踪项而非被忽略，因此“评委从干净克隆复算”的前置条件成立。"
