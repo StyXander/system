@@ -10,8 +10,8 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.10.6">
-  <script src="/assets/official-v4/demo-app.js?v=0.10.4" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.10.8">
+  <script src="/assets/official-v4/demo-app.js?v=0.10.14" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -186,12 +186,49 @@
               <div><span class="folio">STRUCTURED PRESCREEN OUTPUT</span><h3 id="demo-result-heading">结果摘要</h3></div>
               <span class="state pending" id="demo-result-state">—</span>
             </div>
+            <section class="demo-audit-overview" id="demo-audit-overview" aria-labelledby="demo-audit-overview-title">
+              <div class="demo-section-heading">
+                <div><span class="folio">AUDIT PLANNING OVERVIEW</span><h3 id="demo-audit-overview-title">本次审计计划总览</h3></div>
+                <span class="state pending" id="demo-audit-overview-state">等待运行</span>
+              </div>
+              <div class="demo-overview-lead">
+                <div>
+                  <span class="demo-overview-label">计划层级判断</span>
+                  <strong id="demo-audit-overview-conclusion">本次未形成有效审计计划总览</strong>
+                  <p id="demo-audit-overview-disclaimer">这是审计计划阶段的程序建议，不构成审计结论或审计意见。</p>
+                </div>
+                <small id="demo-audit-overview-source">运行后显示判断来源</small>
+              </div>
+              <div class="demo-overview-details">
+                <article>
+                  <h4>为什么这样判断</h4>
+                  <p id="demo-overview-why">尚无可展示的运行理由。</p>
+                </article>
+                <article>
+                  <h4>最关键的证据或资料缺口</h4>
+                  <div id="demo-overview-evidence"><p>尚无可展示的证据或资料缺口。</p></div>
+                </article>
+                <article>
+                  <h4>下一步建议执行的审计程序</h4>
+                  <div id="demo-overview-procedures"><p>运行后根据程序映射确定性选取。</p></div>
+                </article>
+              </div>
+            </section>
+            <div class="demo-result-summary" id="demo-result-summary"></div>
+            <section class="demo-agent-inline" aria-labelledby="demo-agent-inline-title">
+              <div class="demo-section-heading">
+                <div><span class="folio">MULTI-AGENT REVIEW · INLINE SUMMARY</span><h3 id="demo-agent-inline-title">三 Agent 协作结论</h3></div>
+                <span class="state pending" id="demo-agent-inline-state">运行后显示</span>
+              </div>
+              <div class="demo-agent-inline-cards" id="demo-agent-inline-cards">
+                <div class="empty-state"><strong>尚无运行结果</strong><p>完成运行后显示质疑、反证、复核三个角色的真实状态。</p></div>
+              </div>
+            </section>
             <figure class="demo-result-visual" aria-label="从原文资料到可追溯结论的证据链视觉示意">
               <span class="demo-result-visual-art" aria-hidden="true"></span>
               <img src="/assets/official-v4/illustrations/evidence-chain.webp" width="1672" height="941" alt="" loading="lazy" decoding="async">
               <figcaption><strong>原文 → 证据编号 → 结构化结果</strong>页面中的每项主张都必须回到当前运行的证据编号；插图仅作视觉示意，不替代真实来源定位。</figcaption>
             </figure>
-            <div class="demo-result-summary" id="demo-result-summary"></div>
             <div id="demo-result-items" class="demo-result-items"></div>
             <section class="demo-supplement-summary" id="demo-supplement-summary" hidden aria-labelledby="demo-supplement-summary-title"></section>
             <section class="demo-structured-output" aria-labelledby="demo-structured-heading">
@@ -235,7 +272,7 @@
             </section>
             <div class="action-row demo-result-actions">
               <button class="button quiet" type="button" id="demo-open-evidence">查看原文证据</button>
-              <button class="button quiet" type="button" id="demo-open-agents">查看 Agent 协作</button>
+              <button class="button quiet" type="button" id="demo-open-agents">查看 Agent 完整证据</button>
               <button class="button quiet" type="button" id="demo-supplement-rerun">补充证据并重新评估</button>
               <button class="button quiet" type="button" id="demo-download-json">下载 JSON</button>
               <button class="button quiet" type="button" id="demo-download-csv">下载表格 CSV</button>
@@ -265,18 +302,22 @@
             </section>
             <section class="demo-source-ledger" aria-labelledby="demo-source-ledger-title">
               <div class="demo-section-heading">
-                <div><span class="folio">SOURCE LEDGER · OFFICIAL ORIGINALS</span><h3 id="demo-source-ledger-title">来源说明与监管证据</h3></div>
-                <span class="state success">台账级</span>
+                <div><span class="folio">SOURCE LEDGER · OFFICIAL ORIGINALS</span><h3 id="demo-source-ledger-title"><button class="demo-collapse-toggle" id="demo-source-ledger-toggle" type="button" aria-expanded="false" aria-controls="demo-source-ledger-body"><span class="demo-collapse-chevron" aria-hidden="true"></span><span>来源说明与监管证据</span></button></h3></div>
+                <span class="state pending" id="demo-source-ledger-state">台账级 · 0条</span>
               </div>
-              <p class="demo-source-ledger-note" id="demo-source-ledger-note"></p>
-              <ul class="demo-source-ledger-list" id="demo-source-ledger-list"></ul>
+              <div class="demo-collapsible-body" id="demo-source-ledger-body" hidden>
+                <p class="demo-source-ledger-note" id="demo-source-ledger-note"></p>
+                <ul class="demo-source-ledger-list" id="demo-source-ledger-list"></ul>
+              </div>
             </section>
             <section class="demo-run-trace" aria-labelledby="demo-run-trace-title">
               <div class="demo-section-heading">
-                <div><span class="folio">RUN TIMELINE · MODEL ATTEMPTS</span><h3 id="demo-run-trace-title">运行时间线与模型留痕</h3></div>
-                <span class="state success">可审计</span>
+                <div><span class="folio">RUN TIMELINE · MODEL ATTEMPTS</span><h3 id="demo-run-trace-title"><button class="demo-collapse-toggle" id="demo-run-trace-toggle" type="button" aria-expanded="false" aria-controls="demo-run-trace-body"><span class="demo-collapse-chevron" aria-hidden="true"></span><span>运行时间线与模型留痕</span></button></h3></div>
+                <span class="state pending" id="demo-run-trace-state">可审计 · 0阶段 / 0次调用</span>
               </div>
-              <ul class="demo-run-trace-list" id="demo-run-trace-list"></ul>
+              <div class="demo-collapsible-body" id="demo-run-trace-body" hidden>
+                <ul class="demo-run-trace-list" id="demo-run-trace-list"></ul>
+              </div>
             </section>
           </div>
           <aside class="demo-evidence-axis" aria-labelledby="demo-evidence-axis-title">
@@ -322,8 +363,8 @@
 
   <dialog class="detail-drawer" id="demo-agent-drawer" aria-labelledby="demo-agent-drawer-title">
     <div class="dialog-head">
-      <div><span class="folio">MULTI-AGENT · CHALLENGE / COUNTER / REVIEW</span><h2 id="demo-agent-drawer-title">Agent 协作</h2></div>
-      <button class="icon-button" type="button" aria-label="关闭Agent协作" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭Agent协作</span></button>
+      <div><span class="folio">MULTI-AGENT · CHALLENGE / COUNTER / REVIEW</span><h2 id="demo-agent-drawer-title">Agent 完整证据</h2></div>
+      <button class="icon-button" type="button" aria-label="关闭Agent完整证据" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭Agent完整证据</span></button>
     </div>
     <div class="demo-drawer-body" id="demo-agent-drawer-body">
       <div class="empty-state"><strong>尚无运行结果</strong><p>开始一次审计预筛后，这里会显示三个角色的真实执行状态。</p></div>

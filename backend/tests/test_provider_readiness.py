@@ -209,7 +209,7 @@ def test_get_provider_snapshot_caching(monkeypatch):
 
 def test_probe_disabled_is_unverified_and_never_ready(monkeypatch):
     """REQ-BACKEND: 关闭主动探测只能表示未验证，不能伪装成模型就绪。"""
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-disabled-probe")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-probe-off")
     monkeypatch.delenv("AUDITTRACE_PROVIDER_PROBE_ENABLED", raising=False)
 
     snapshot = get_provider_snapshot()

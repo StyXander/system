@@ -1242,6 +1242,12 @@ def _semantic_correction_payload(payload: dict[str, Any], failure_code: str) -> 
     return corrected
 
 
+import logging
+
+# 进度回调的旁路失败只写日志和本地收集列表，不进入 run_output_v2 对外结果结构。
+_LOGGER = logging.getLogger("audittrace.agents")
+
+
 def run_agent_chain(
     *,
     run_id: str,
@@ -1255,12 +1261,14 @@ def run_agent_chain(
     analysis_route: str = "risk_candidate",
     analysis_context: dict[str, Any] | None = None,
     on_step: Callable[[AgentRole, AgentStep], bool] | None = None,
+    observer_failures: list[dict[str, Any]] | None = None,
 ) -> list[AgentStep]:
     """串行执行三角色；任一步失败即关闭AI草稿链，不生成伪造的后续角色答案。
 
     on_step 在每一步（完成、失败或 skipped）结算后回调一次，返回 True 时继续
     后续角色；回调可以用于把角色实时状态写进演示任务，但不得改写 AgentStep
-    内容或替模型补充输出。
+    内容或替模型补充输出。observer_failures 由调用方传入时，会收集回调抛错记录，
+    供上层判定进度可观测性是否降级；主链的成败状态不受其影响。
     """
     if not enabled:
         return [AgentStep(role="challenge", status="not_requested", detail="本次未请求三Agent调用。")]
@@ -1274,12 +1282,30 @@ def run_agent_chain(
 
     def push(step: AgentStep) -> None:
         steps.append(step)
-        if on_step is not None:
-            try:
-                on_step(step.role, step)
-            except Exception:
-                # 进度回调是旁路观察；它的异常不得改写主链的真实失败/成功状态。
-                pass
+        if on_step is None:
+            return
+        try:
+            on_step(step.role, step)
+        except Exception as error:
+            # 进度回调是旁路观察；它的异常不得改写主链的真实失败/成功状态。
+            # 但必须留痕，否则页面显示的阶段会与真实链路静默脱节。
+            _LOGGER.warning(
+                "progress_observer_failed run_id=%s role=%s step_status=%s error_type=%s",
+                run_id,
+                step.role,
+                step.status,
+                type(error).__name__,
+            )
+            if observer_failures is not None:
+                observer_failures.append(
+                    {
+                        "scope": "agent_step",
+                        "run_id": run_id,
+                        "role": step.role,
+                        "step_status": step.status,
+                        "error_type": type(error).__name__,
+                    }
+                )
 
     def append_skipped(role_index: int, reason: str) -> None:
         for skipped_role in ROLE_ORDER[role_index + 1 :]:

@@ -78,6 +78,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import logging
 import math
 import mimetypes
 import os
@@ -234,6 +235,9 @@ from .pipeline import (
 
 ENGINE_VERSION = "0.7.1"
 RUN_SCHEMA_VERSION = "run_output_v2"
+
+# 只记录可观测性事件（例如旁路进度回调失败），不参与也不改变运行结果。
+_RUN_LOGGER = logging.getLogger("audittrace.run")
 R1_VERSION = "r1_v0.4-draft"
 R2_VERSION = "r2_v0.2-auxiliary-draft"
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
@@ -3370,13 +3374,29 @@ def _execute_run(
     progress_callback: Callable[[str, str, str], None] | None = None,
     agent_step_callback: Callable[[str, str, str], None] | None = None,
 ) -> RunResponse:
+    progress_observer_failures: list[dict[str, str]] = []
+
+    def _note_observer_failure(scope: str, detail_key: str, detail: str, error: Exception) -> None:
+        """旁路进度回调失败只留痕，不改主链结果；但绝不能静默。"""
+
+        record = {
+            "scope": scope,
+            "run_id": run_id,
+            "pipeline_task_id": pipeline_task_id,
+            detail_key: detail,
+            "error_type": type(error).__name__,
+        }
+        progress_observer_failures.append(record)
+        _RUN_LOGGER.warning("progress_observer_failed %s", json.dumps(record, ensure_ascii=False))
+
     def _progress(stage: str, status: str, detail: str) -> None:
-        if progress_callback is not None:
-            try:
-                progress_callback(stage, status, detail)
-            except Exception:
-                # 进度回调是旁路观察；它的异常不得阻断真实运行。
-                pass
+        if progress_callback is None:
+            return
+        try:
+            progress_callback(stage, status, detail)
+        except Exception as error:
+            # 进度回调是旁路观察；它的异常不得阻断真实运行，但必须可追查。
+            _note_observer_failure("stage", "stage", stage, error)
 
     def _forward_agent_steps(steps: list[AgentStep], live: bool) -> None:
         # live=True 时 run_agent_chain 已在每步结算时回调过，这里只补演示确定性
@@ -3389,8 +3409,8 @@ def _execute_run(
             suffix = f"（{step.failure_code}）" if step.failure_code else ""
             try:
                 agent_step_callback(step.role, step.status, f"{step.detail}{suffix}")
-            except Exception:
-                pass
+            except Exception as error:
+                _note_observer_failure("agent_step_batch", "role", step.role, error)
 
     def _notify_live_agent_step(role: str, step: AgentStep) -> bool:
         if agent_step_callback is None:
@@ -3398,8 +3418,8 @@ def _execute_run(
         suffix = f"（{step.failure_code}）" if step.failure_code else ""
         try:
             agent_step_callback(role, step.status, f"{step.detail}{suffix}")
-        except Exception:
-            pass
+        except Exception as error:
+            _note_observer_failure("agent_step_live", "role", role, error)
         return True
 
     pipeline_task_id = str(getattr(http_request.state, "audittrace_pipeline_task_id", None) or "").strip()
@@ -4528,8 +4548,157 @@ def _release_fact_snapshot(
     }
 
 
+# 公开 /api/status 允许透出的顶层键。PROJECT_STATUS.json 的历史登记、
+# 旧模型质量窗口、AI 预评分和内部产物路径都不在这里，因此不会外泄。
+_PUBLIC_STATUS_KEYS: tuple[str, ...] = (
+    "engine_version",
+    "run_schema_version",
+    "readiness_contract_version",
+    "full_analysis_ready",
+    "full_analysis_reason_code",
+    "full_analysis_message",
+    "deterministic_backup_available",
+    "formal_scope",
+    "case_count",
+    "cases",
+    "rag",
+    "model",
+    "demo_mode",
+    "persistence",
+    "release",
+    "current_release",
+    "deployment",
+    "catalog",
+    "auth",
+    "signoff",
+)
+
+
+def _is_loopback_request(http_request: Request) -> bool:
+    """对等地址是否回环：本机诊断的判据，不复因历史状态文件。"""
+
+    peer = str(http_request.client.host if http_request.client else "").strip()
+    if not peer:
+        return False
+    try:
+        return ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        return peer.lower() == "localhost"
+
+
+def _is_local_or_authenticated_request(http_request: Request) -> bool:
+    """完整状态只给本机回环或已认证租户；其余一律走公开投影。"""
+
+    if _is_loopback_request(http_request):
+        return True
+    identity, _, _ = _visible_case_records(http_request)
+    return bool(identity and not identity.is_local)
+
+
 @app.get("/api/status")
-def project_status(http_request: Request) -> dict[str, Any]:
+def public_project_status(http_request: Request) -> dict[str, Any]:
+    """公开入口只返回实时发布事实，不再外抛整份历史状态文件。"""
+
+    payload = _project_status_payload(http_request)
+    if not _competition_demo_enabled():
+        return payload
+    return _public_status_projection(payload)
+
+
+@app.get("/api/internal/status")
+def internal_project_status(http_request: Request) -> dict[str, Any]:
+    """完整诊断（历史评估、内部路径、旧模型窗口）只在受控环境可读。"""
+
+    if _competition_demo_enabled() and not _is_local_or_authenticated_request(http_request):
+        raise HTTPException(status_code=403, detail="完整项目状态仅限本机或已认证环境读取。")
+    return _with_ai_notice(_project_status_payload(http_request))
+
+
+def _demo_manifest_case_ids() -> set[str]:
+    """冻结竞赛演示清单的案例编号；读不到时返回空集合，由调用方如实降级。"""
+
+    try:
+        from backend.app.demo_bootstrap import load_demo_manifest
+
+        manifest, _error = load_demo_manifest()
+    except (OSError, ValueError, json.JSONDecodeError):
+        return set()
+    if not isinstance(manifest, dict):
+        return set()
+    entries = manifest.get("cases")
+    if not isinstance(entries, list):
+        return set()
+    return {
+        str(case.get("case_id", "")).strip().upper()
+        for case in entries
+        if isinstance(case, dict) and str(case.get("case_id", "")).strip()
+    }
+
+
+def _restrict_to_demo_manifest(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """按冻结竞赛演示清单裁剪案例列表；清单不可用时原样返回，不凭空删案例。"""
+
+    manifest_ids = _demo_manifest_case_ids()
+    if not manifest_ids:
+        return list(cases)
+    return [
+        case for case in cases
+        if str(case.get("case_id", "")).strip().upper() in manifest_ids
+    ]
+
+
+def _public_status_projection(payload: dict[str, Any]) -> dict[str, Any]:
+    """把公开响应限定在白名单键上。
+
+    PROJECT_STATUS.json 的历史登记（旧模型窗口、AI 预评分、内部产物路径）
+    一律不透出；这里只允许列出的顶层键，缺键就跳过，不凭空补字段。
+    """
+
+    projected = {key: payload[key] for key in _PUBLIC_STATUS_KEYS if key in payload}
+    model = payload.get("model")
+    if isinstance(model, dict):
+        # 冻结在旧模型上的质量窗口属于历史证据，不能冒充当前口径。
+        projected["model"] = {
+            key: value for key, value in model.items() if key != "frozen_release_quality_window"
+        }
+    _apply_demo_case_scope(projected)
+    return _with_ai_notice(projected)
+
+
+def _apply_demo_case_scope(projected: dict[str, Any]) -> None:
+    """公开演示只承认冻结清单内的案例，避免 51 案目录被当成演示范围。"""
+
+    manifest_ids = _demo_manifest_case_ids()
+    if not manifest_ids:
+        # 清单不可用时不猜数字，也不假装是演示集；如实标注为工作区目录。
+        projected["case_scope"] = "workspace_catalog_manifest_unavailable"
+        return
+    cases = projected.get("cases")
+    if isinstance(cases, list):
+        kept = [
+            case for case in cases
+            if isinstance(case, dict)
+            and str(case.get("case_id", "")).strip().upper() in manifest_ids
+        ]
+        projected["cases"] = kept
+        projected["case_count"] = len(kept)
+    rag = projected.get("rag")
+    if isinstance(rag, dict) and isinstance(rag.get("cases"), list):
+        rag_kept = [
+            item for item in rag["cases"]
+            if isinstance(item, dict)
+            and str(item.get("case_id", "")).strip().upper() in manifest_ids
+        ]
+        projected["rag"] = {
+            **rag,
+            "cases": rag_kept,
+            "ready_cases": sum(1 for item in rag_kept if item.get("status") == "ready"),
+            "chunk_count": sum(int(item.get("chunk_count", 0)) for item in rag_kept),
+        }
+    projected["case_scope"] = "frozen_demo_manifest"
+
+
+def _project_status_payload(http_request: Request) -> dict[str, Any]:
     status_path = WORKSPACE_ROOT / "PROJECT_STATUS.json"
     if status_path.is_file():
         try:
@@ -4736,7 +4905,8 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
     payload["audit_procedure_map"] = procedure_map
     # 发布事实与演示资源状态分开返回：bootstrap 可 ready 不代表 provider、评估或
     # 人工签字已经达到发布门禁，前端必须按 release.competition_release_ready 展示。
-    runtime_quality = _runtime_quality_snapshot(_model_settings()[2])
+    # 质量窗口快照每次启动请求只读取一次：window 与 release 复用同一快照，
+    # 避免一次首页加载向 Supabase 重复发起相同的质量事件查询。
     payload["runtime_quality_window"] = runtime_quality
     payload["release"] = _release_fact_snapshot(readiness=model_readiness, runtime_quality=runtime_quality)
     payload["task_continuity"] = _demo_task_continuity()
@@ -4746,6 +4916,9 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
 @app.get("/api/cases")
 def get_cases(http_request: Request, summary: bool = False, http_response: Response = None) -> dict[str, Any]:
     identity, visible_cases, catalog_state = _visible_case_records(http_request)
+    if _competition_demo_enabled() and not _is_local_or_authenticated_request(http_request):
+        # 共享公开演示只承认冻结清单，不把本机 51 案工作区目录当成演示范围。
+        visible_cases = _restrict_to_demo_manifest(visible_cases)
     if http_response is not None:
         http_response.headers["Cache-Control"] = (
             "public, max-age=300, stale-while-revalidate=86400"

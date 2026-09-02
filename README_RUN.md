@@ -5,7 +5,7 @@
 > 统一 AI 声明：AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。  
 
 > **当前整改发布候选（2026-08-29，唯一当前口径）**：发布记录为 `RELEASE-CANDIDATE-20260828-V1`，当前模型统一为 `deepseek-v4-flash`（DeepSeek 官方直连）。15 案主入口读取冻结 manifest；公开任务/结果和模型质量事件目标使用 Supabase，执行模式为免费 Web。已完成或降级结果可跨刷新与 Web 重启读取；运行中的 Web 实例重启会诚实结算为 `interrupted`，不会自动重放模型调用，需点击重置后显式创建新任务。`configured` 只表示配置存在，provider probe（无 Token）与真实 B3（付费业务调用）分别记录；当前评估指针为 `EVAL-20260828-RELEASE-CANDIDATE-V1`，人工评分、重新 probe/B3 和最终发布批准仍为 pending，不能写成“正式效果提升”。可选付费 Worker 仅有模板 `render.worker.example.yaml`，当前 `render.yaml` 不部署 Worker。
-> 本机已完成一次 DeepSeek 官方只读 provider probe（`paid_probe_performed=false`），证据为 `backend/release_records/provider_probe_20260829_deepseek_local.json`；Render 的 Secret 注入、生产 probe 和新鲜 B3 仍保持 pending，不能把本机结果当作线上发布通过。
+> 本机已完成一次 DeepSeek 官方只读 provider probe（`paid_probe_performed=false`），证据为 `backend/release_records/provider_probe_20260829_deepseek_local.json`；Render 的 Secret 注入、生产 probe 和新鲜 B3 仍保持 pending，不能把本机结果当作线上发布通过。2026-09-02 追加：队长裁决模型口径统一为 `deepseek-v4-flash`；官方直连通道本机真实三 Agent 链累计 6/6 案完成、19 次调用、0 失败关闭（08-29 五案 16 次含一案一次内部修正；09-02 标准股份彩排一案 3 次首过，run `RUN-V7-EB6EAE3B87EB`），样本量小不构成稳定成功证明，明细见 `PROJECT_STATUS.json` 的 `deepseek_direct_local_window_20260902`。
 
 > 本段优先于下方历史 R3/R2 记录；历史目录和签字文件保持原样，不作为本候选版本的自动通过依据。每次演示前应读取 `/api/health`、`/api/status`、`/api/demo/bootstrap`，确认模型、Supabase 台账和发布阻断原因；fallback/cache/replay 的 provider call 均应为 0。
 
@@ -26,7 +26,7 @@
 
 `http://127.0.0.1:8000`
 
-手动启动：
+手动启动（Windows PowerShell）：
 
 ```powershell
 backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
@@ -34,7 +34,16 @@ Copy-Item .env.example .env -ErrorAction SilentlyContinue
 backend\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
-复现实测依赖可改用 `backend\requirements-lock.txt`。密钥只写入本机 `.env`；发送包只包含 `.env.example`。
+手动启动（macOS / Linux 等 POSIX 环境，不依赖 BAT）：
+
+```bash
+python3 -m venv backend/.venv
+backend/.venv/bin/python -m pip install -r requirements.txt
+cp -n .env.example .env
+backend/.venv/bin/python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+```
+
+依赖文件分工：根目录 `requirements.txt` 是运行依赖入口；`requirements-dev.txt` 在此之上追加 pytest、Playwright、axe 和 PDF 逐页核对等验收依赖；`backend/requirements-lock.txt` 是本轮实测锁定版本。密钥只写入本机 `.env`；发送包只包含 `.env.example`。
 
 启动器会同时检查 `/api/health` 与 `/api/demo/bootstrap`。如果 8000 端口上是旧后端或不兼容进程，启动器会明确阻断并要求关闭旧服务窗口，不会把单独的健康检查 200 误报成当前演示版已经就绪。若模型链显示 `network_permission_denied` 或 Windows `10013`，说明当前服务进程没有外网权限；关闭旧服务窗口并用正式启动器重启。`dns_resolution_failed` 表示 DNS 或代理异常，`network_timeout` 表示连接超时，这些状态都不会伪装成模型成功。
 
@@ -48,6 +57,16 @@ backend\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.
 6. 只有当次真实模型调用、三角色和硬校验全部完成时才显示模型成功；Provider 失败、确定性备用和缓存回放分别如实标注，不冒充新模型成功。
 
 竞赛演示页不暴露上传、字段确认、缓存管理、补充资料和正式复核写入入口。顶部“现场样例接入”是次级入口，不参与首屏请求；只有本地启动器设置 `AUDITTRACE_ONSITE_LIVE_SAMPLE=true` 时才允许创建非内置巨潮任务，云端共享部署默认关闭。
+
+## 二点五、演示日前检查清单（2026-09-02 源码审查后新增）
+
+1. **主链路一律本机演示**：录视频与现场演示都用 `启动审迹智链.bat` 启动的本机实例（Render 共享站只作备份通道）。免费 Web 实例可能休眠或被回收，任务运行中实例重启会如实结算 `interrupted`，页面不会自动重放模型调用。
+2. **启动后三条预检**：`GET /api/health`、`GET /api/status`、`GET /api/demo/bootstrap`。核对 `bootstrap_ready=true`、`model_readiness.full_analysis_ready` 与原因码、`task_continuity.availability=ready`、3 个精选案例 `rag.status=ready`、`model_quality` 窗口读数。任一不满足时页面会如实降级，先处理再演示。
+3. **每 IP 额度**：公开模型额度默认每访客每 15 分钟 2 次完整链、全局 10 次、并发 2（`render.yaml`）。彩排与正式演示共用同一出口 IP 会互相消耗；如需临时放宽，演示前在 Render 环境变量调整 `AUDITTRACE_MODEL_RUN_LIMIT`/`AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT`，演示结束后回滚为 `render.yaml` 登记值。
+4. **缓存命中语义**：模型结果缓存 24 小时（`AUDITTRACE_MODEL_CACHE_SECONDS=86400`）。前一天预热过的案例当天再跑可能命中缓存，页面会如实显示“已复用经校验的 AI 结果”（degraded 展示语义，不计新的 provider 调用）。讲解词必须能接住这一状态，不得口头升级成“现场真实调用”。
+5. **失败预案（不现场改配置）**：任务失败或降级终态出现后，页面同时提供“重新演示”“一键重置演示”与“启动确定性备用演示”（2026-09-02 修复后在模型链失败/额度受限时可见）；备用链不调用外部模型、结果只保留在当前实例、标注“确定性备用 · 未调用外部模型”。供应商 401/402/区域限制按页面中文指引处理；额度用尽显示“等待上一条分析完成/今日额度”时改走备用或换案例，不反复点击。
+6. **Render 备份通道检查**：演示日提前至少 30 分钟访问共享站唤醒实例，实测一次冷启动等待并记录；确认 `/api/status.deployment.commit` 与本机演示所用代码版本一致。
+
 
 ## 三点一、输入新企业并自动完成巨潮年报到 RAG
 
@@ -102,9 +121,11 @@ backend\.venv\Scripts\python.exe scripts\check_chinese_comments.py
 backend\.venv\Scripts\python.exe -m pytest -q
 ```
 
+2026-09-01 当前源码基线：**347 passed, 1 warning**（34 个测试文件）。稳定性证据：347 项基线已跑过 5 组顺序且数字与结果完全一致（默认收集顺序连续两遍、完全逆序、三分之一与三分之二轮转，均 347 passed / 0 failed / 0 error，耗时 281s、251s、248s、257s、250s，日志 `tmp/battery-347.txt`），此前 346 项基线另跑过同样 5 组顺序全一致；`conftest.py` 已改为每个会话使用独立系统临时目录，不再把 basetemp 钉在仓库内。评委代码复现包**当前不可验收**：2026-09-02 绕开旧教师包单独构建后，在同机独立目录解包、剥离全部模型密钥与 `.env`、且不含四份年报全文，实测 **321 passed, 19 failed, 1 skipped**（收 341 项 = 仓库 347 减 3 个仓库专属测试文件的 6 项），失败项成因目前只是怀疑与依赖年报全文的 RAG 索引、来源哈希、标准案例真实期间路由有关，须由 `scripts/diagnose_judge_package.py` 逐项测量后才能定论——即“评委包不带年报”与“仍执行依赖年报的测试”两件事尚未对齐。此前登记的 **340 passed, 1 skipped** 已作废：交付目录内不存在任何 `04_` 评委包 ZIP，且当日 10:18 的构建在队员包阶段就因缺 `12_`/`13_` 两份 DOCX 中止（见 `交付包/交付包构建与独立复验日志.txt`），该数字无留存产物可复核。整改路径与验收标准见 `docs/superpowers/plans/2026-09-02-judge-package-reproducibility.md`。唯一 skip 仍是 `test_superseded_captain_signoff_remains_traceable`，原因是队长签字原件属团队内部 `outputs/` 证据、按交付边界不随包分发。两套口径分开登记，包内差异不写成源码仓库结果。中文说明行实测 **2368/23604 = 10.03%**，达手册 10% 门槛，未达本轮自定 11% 目标（未为凑数补注释）。测试文件数、项数与需联网清单见 `docs/TEST_INVENTORY.md`，评委代码包随包提供纯文本副本 `测试清单.txt`。无障碍验收已改为逐状态实测：真实 Chrome 下 1440×1000、1024×768、768×1024、390×844 各扫首页、案例选择、工作台、运行中、结果页、折叠展开、证据抽屉、Agent 抽屉、打印预览与刷新后共 10 个状态，axe 全部 executed 且违规为 0，生产 CSP 未放宽；这轮更细的扫描查出并修掉两个真实缺陷——阶段条深底文字实测仅 4.08:1，以及打印媒体沿用小字浅色导致 54 个节点（标题实测 1.15:1）在纸上几乎不可见。
+
 2026-08-24 竞赛演示版 0.10.0 最终源码回归为 **259 passed、1 warning**；中文说明行检查沿用本轮基线 **1918/18628（10.30%）**；前端演示契约为 **89 个唯一 ID、77 个引用、1 个脚本**，结果判定 6 个向量通过。专项覆盖 15 案 bootstrap、现场新企业任务、JSON/表格/CSV/打印 PDF、真实模型/确定性备用/缓存回放的诚实状态、供应商超时边界、证据 ID、禁用词、启动器旧后端识别和评委演示状态机。唯一代码层 warning 是 Starlette TestClient / httpx 兼容性弃用提示。历史 2026-08-09 无密钥清洁运行包仍登记为 **171 passed、1 warning**，本轮未重建该交付包。
 
-0.10.0 在“证据地平线”视觉首页与工作台之间恢复了上一版“证据先行的销售收款预审”产品定位页，工作台统一为旧版深青黑、细线分栏、数字账页和右侧证据追踪轴。关键指标按百分比、百分点、万元或亿元突出显示，不再是一整排同权文字。四视口（1440×1000、1024×768、768×1024、390×844）均无横向溢出、重复 ID、控制台错误、页面错误、失败请求或 HTTP 错误；axe 无 violation，渐变背景产生的对比度 incomplete 已结合四张长截图人工复核，最终源码证据位于 `artifacts/competition-demo-v010-audit-20260824/static-exact-final/`。
+0.10.0 在“证据地平线”视觉首页与工作台之间恢复了上一版“证据先行的销售收款预审”产品定位页，工作台统一为旧版深青黑、细线分栏、数字账页和右侧证据追踪轴。关键指标按百分比、百分点、万元或亿元突出显示，不再是一整排同权文字。四视口（1440×1000、1024×768、768×1024、390×844）均无横向溢出、重复 ID、控制台错误、页面错误、失败请求或 HTTP 错误；axe 无 violation（**此句已被 2026-09-01 复核推翻并标为 superseded：当时只扫了结果页这一个状态，逐状态复扫查出打印媒体 54 个节点与阶段条 4.08:1 两处真实对比度缺陷，修正见上方当前基线段**），渐变背景产生的对比度 incomplete 已结合四张长截图人工复核，最终源码证据位于 `artifacts/competition-demo-v010-audit-20260824/static-exact-final/`。
 
 结构化成果已做真实浏览器下载验收：标准案例与现场企业均可同源生成表格、JSON、CSV 和打印 PDF，文件可解析、运行/任务编号匹配且含 AI 边界声明。未登记企业 `600436` 首次任务 `CNINFO-3BC9823B4708` 从巨潮真实取得并硬校验 3 份年报、建立 1207 块案例隔离 RAG、提取 6 条字段；修复 `indexing` 与 `ready_for_analysis → analyzing` 轮询竞态并清理英文内部枚举后，最终热缓存复验 `CNINFO-86256D86978E` 形成运行 `RUN-V7-55F34B22A43C`、12 行结构化指标和三类可下载文件，严格审计见 `artifacts/competition-demo-v010-audit-20260824/structured-output-label-final/structured-output-audit.json`。当前最终源码的供应商探测仍返回 `provider_temporarily_unavailable`，所以本轮没有伪造新的真实模型成功；此前批次 7 的 `RUN-V7-B655B4D7EAEE` 仍只作为既有三 Agent 真实模型准入证据。
 

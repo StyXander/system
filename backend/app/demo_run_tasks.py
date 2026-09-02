@@ -34,6 +34,10 @@ TASK_STATUSES = (
 )
 TASK_ID_PREFIX = "DEMO-RUN"
 ACTIVE_STATUSES = {"queued", "running"}
+# 过期结算只是维护性动作；任务轮询高频到达，不能让每次读取都向数据库
+# 补发一次 interrupt RPC。窗口内的读取共用上一次结算结果，读写一致性
+# 仍由版本 CAS 与租约保证。
+EXPIRY_SWEEP_MIN_INTERVAL_SECONDS = 30.0
 
 
 class IdempotencyConflict(ValueError):
@@ -93,19 +97,37 @@ class DemoRunTaskStore:
         path = self._file_path(task_id)
         if not path.exists():
             return None
-        try:
-            with open(path, "r", encoding="utf-8") as handle:
-                payload = json.load(handle)
-            return payload if isinstance(payload, dict) else None
-        except (OSError, json.JSONDecodeError):
-            return None
+        # Windows 上原子替换的一瞬间，读句柄可能被拒绝；重试而不是把仍在运行的
+        # 任务读成“不存在”，否则页面会突然显示任务丢失。
+        for attempt in range(4):
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+                return payload if isinstance(payload, dict) else None
+            except PermissionError:
+                threading.Event().wait(0.05 * (attempt + 1))
+            except (OSError, json.JSONDecodeError):
+                return None
+        return None
 
     def _save_file(self, task: dict[str, Any]) -> None:
         path = self._file_path(str(task["task_id"]))
-        tmp = path.with_suffix(".json.tmp")
+        # 每次写用独立临时名，避免两个写者共用同一个 .tmp 互相截断。
+        tmp = path.with_name(f"{path.name}.{threading.get_ident()}.tmp")
         with open(tmp, "w", encoding="utf-8") as handle:
             json.dump(task, handle, ensure_ascii=False, indent=2)
-        tmp.replace(path)
+        try:
+            for attempt in range(4):
+                try:
+                    tmp.replace(path)
+                    return
+                except PermissionError:
+                    # 目标被读句柄或杀软扫描占用时 replace 抛 WinError 5，这是瞬时
+                    # 状态；有限重试后仍失败就向上抛，不静默丢掉任务台账。
+                    threading.Event().wait(0.05 * (attempt + 1))
+        finally:
+            tmp.unlink(missing_ok=True)
+        raise OSError(f"任务台账原子写入持续被拒绝：{path.name}")
 
     def _load_existing_tasks(self) -> None:
         """加载既有台账，并关闭服务重启前未完成的任务。"""
@@ -390,6 +412,8 @@ class SupabaseDemoRunTaskStore:
             self._lease_seconds = max(30, min(900, int(os.getenv("AUDITTRACE_DEMO_TASK_LEASE_SECONDS", "180"))))
         except (TypeError, ValueError):
             self._lease_seconds = 180
+        # 最近一次过期结算的单调时钟读数；0.0 表示本实例尚未结算过。
+        self._last_sweep_monotonic = 0.0
 
     @staticmethod
     def _row_to_task(row: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -617,12 +641,17 @@ class SupabaseDemoRunTaskStore:
         # Supabase 项目在迁移期间可能尚未授予该函数执行权限；此时仍
         # 必须允许服务端读取现有任务并继续轮询，真正的读写错误仍会
         # 由下面的查询原样映射为稳定 Supabase 错误码。
+        # 前端 1.5 秒一次轮询会反复进入本方法，因此 30 秒窗口内只结算
+        # 一次；到期结算的最终效果是中断失租任务，晚几十秒不改变事实。
         from .supabase_adapter import SupabaseError
 
-        try:
-            self.client.interrupt_expired_demo_run_tasks()
-        except SupabaseError:
-            pass
+        now = time.monotonic()
+        if now - self._last_sweep_monotonic >= EXPIRY_SWEEP_MIN_INTERVAL_SECONDS:
+            self._last_sweep_monotonic = now
+            try:
+                self.client.interrupt_expired_demo_run_tasks()
+            except SupabaseError:
+                pass
         task = self._row_to_task(self.client.get_demo_run_task(task_id))
         if task and task.get("status") in {"completed", "degraded"} and DemoRunTaskStore._is_expired(task):
             expected = int(task.get("version") or 0)

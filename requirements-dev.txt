@@ -1,0 +1,13 @@
+# 开发、测试与验收依赖：先装 requirements.txt，再装本文件。
+-r requirements.txt
+
+pytest>=8,<9
+
+# 真实浏览器与无障碍验收（scripts/browser_* 与 axe 检查）
+playwright>=1.44,<2
+axe-playwright-python>=0.1,<1
+
+# PDF 渲染与逐页核对（scripts/render_pdf_pages.py、audit_proposal_*.py）
+pypdf>=4,<7
+pypdfium2>=4,<6
+pillow>=10,<12

@@ -1,9 +1,11 @@
 # 审迹智链单一事实源
 
-更新时间：2026-08-28
+更新时间：2026-09-02
 统一 AI 声明：**AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。**
 
 > **当前整改发布候选（2026-08-29，唯一当前口径）**：`RELEASE-CANDIDATE-20260828-V1`，模型为 `deepseek-v4-flash`（DeepSeek 官方直连）；15 案由 `backend/competition_demo_cases.json` 冻结清单统一驱动。公开演示任务/结果/质量事件采用 Supabase 服务端台账，当前执行模式是 Render 免费 Web；完成结果可跨刷新和重启读取，运行中实例重启会记为 `interrupted`，不自动续跑，需显式重试。provider probe、真实 B3、签字、评估指针和人工评分分别判定，`configured` 不等于真实可运行，当前 `competition_release_ready=false` 直到新鲜证据和真人批准完成。当前评估指针为 `EVAL-20260828-RELEASE-CANDIDATE-V1`，人工评分保持 pending；可选 Worker 仅见 `render.worker.example.yaml`，未写入当前 Blueprint。
+
+> **2026-09-02 模型口径裁决与本机质量窗口登记**：队长裁决生产目标模型统一为 `deepseek-v4-flash`，AGENTS.md、发布记录、部署配置与方案书口径已同步；`qwen3.5-plus` 的 7/10=70.0% 窗口只作历史证据。DeepSeek 官方直连通道自 2026-08-28 切换以来，本机真实三 Agent 完整链累计 **6/6 案完成、19 次 provider 调用、0 次失败关闭**（2026-08-29 五案 16 次，其中一案含一次内部修正调用；2026-09-02 标准股份演示彩排一案 3 次首过，run `RUN-V7-EB6EAE3B87EB`、task `DEMO-RUN-F9E1BA62F5DC`、`external_live`/`model_success`）。该 100% 指完整链最终完成率而非每案首过率；样本量小，不构成稳定成功证明；Render 生产通道的 provider probe 与新鲜 B3 仍 pending。明细登记于 `PROJECT_STATUS.json` 的 `deepseek_direct_local_window_20260902`。
 
 > 旧 R3/R2/R1 段落、历史模型和历史成功率均保留用于追溯，并标记为 superseded；对外状态以 `/api/health`、`/api/status`、`/api/demo/bootstrap` 和 `backend/release_records/` 的哈希校验结果为准。
 

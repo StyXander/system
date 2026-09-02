@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-08-29T14:23:18+08:00",
+  "updated_at": "2026-09-02T23:59:00+08:00",
   "current_release": {
     "release_id": "RELEASE-CANDIDATE-20260828-V1",
     "release_status": "remediation_in_progress",
@@ -21,6 +21,21 @@
     "human_scoring_status": "pending",
     "competition_release_ready": false,
     "boundary": "配置、历史评估或确定性备用不等于新鲜真实 B3 或正式发布批准；运行中 Web 实例重启会如实中断。"
+  },
+  "deepseek_direct_local_window_20260902": {
+    "window_id": "LOCAL-DEEPSEEK-V4-FLASH-DIRECT-20260902",
+    "model_id": "deepseek-v4-flash",
+    "provider_channel": "deepseek_direct",
+    "since": "2026-08-28 候选切换官方直连",
+    "chains_completed": "6/6",
+    "provider_calls": 19,
+    "fail_closed_count": 0,
+    "first_pass_clarification": "1 案含一次内部修正调用（2026-08-29 批次）；100% 仅指完整链最终完成率，不指每案首过率",
+    "components": [
+      "2026-08-29 本机五案烟测 5/5、16 次调用、183962/8891 tokens（17/18 号提交候选与 README_RUN 已登记）",
+      "2026-09-02 标准股份演示彩排 1 案 3 次首过：task DEMO-RUN-F9E1BA62F5DC、run RUN-V7-EB6EAE3B87EB、external_live、model_success、complete_full_analysis、33693/1567 tokens"
+    ],
+    "boundary": "样本量小，不构成稳定成功证明；Render 生产通道 provider probe 与新鲜 B3 仍 pending；生产成功率须由 Render 通道台账另行测量。"
   },
   "latest_r3_20260826": {
     "status": "real_acceptance_recorded_with_open_gates",
@@ -341,11 +356,39 @@
   },
   "tests": {
     "source_repository": {
-      "command": "backend\\.venv\\Scripts\\python.exe -m pytest backend\\tests -q",
-      "latest_result": "281 passed, 1 warning, 174.71s",
-      "executed_on": "2026-08-24",
+      "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
+      "latest_result": "347 passed, 1 warning",
+      "executed_on": "2026-09-01",
       "status": "passed",
-      "note": "2026-08-24 终版增强验收：新增 demo_run_tasks（9）、knowledge_sources（9）、provider base URL 校验（2）、demo run API 端点（1）、同步修复 privacy consent 测试环境依赖与 OpenAPI Callable 回归，共 22 项新增；唯一 warning 为 Starlette TestClient / httpx 兼容弃用提示。"
+      "previous_result": "346 passed, 1 warning（同日新增隐私不污染回归测试前，且 346 已跑过 5 组顺序全一致）",
+      "stability_evidence": "347 项基线全量连跑两遍数字与结果完全一致（347 passed / 0 failed，277s 与 311s），中文注释门槛复查 PASS，docs/TEST_INVENTORY.md 已重生成为 34 文件 / 347 项 / 10 个需联网文件。此前 346 项基线另跑过 5 组顺序同数字（默认序连续两遍 + 完全逆序 + 两次轮转，均 0 failed / 0 error），test_demo_run_tasks.py 另有单文件 200 次连跑 0 失败。346 项那组电池不含后来新增的第 347 项敏感污染回归测试，因此 347 项基线下已重新发起同一 5 组电池并全部回读通过（backend/.venv/Scripts/python.exe -u tmp/order_battery.py，日志 tmp/battery-347.txt）：默认序两遍 281s 与 251s、完全逆序 248s、三分之一轮转 257s、三分之二轮转 250s，五组均为 347 passed / 0 failed / 0 error 且数字与结果完全一致，脚本结论行为“通过”、退出码 0。",
+      "root_cause_fixed": "原判定为“测试顺序依赖”的偶发失败实为 backend/app/demo_run_tasks.py 在 Windows 上 os.replace 原子写被并发读句柄或杀软扫描拒绝（WinError 5）；已改为独立临时名 + 有限重试，终态拒绝迟到写入的生产闸门未放宽。",
+      "chinese_comments": "2368/23604 = 10.03%（达手册 10% 门槛；未达本轮自定 11%，未为凑数补注释）",
+      "note": "2026-09-01 整改轮：新增公开状态边界（3）、进度回调留痕（3）、签字追溯独立项（1）；修复清洁包烟测对已裁剪 /api/status 的依赖、51 案路由契约测试的枚举来源、以及 5 个与线程调度相关的测试写法。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。2026-09-02 复核 .gitignore 查出并修正三处真实缺陷：/docs/ 整目录被忽略，使 README 与评委包都指向的 docs/TEST_INVENTORY.md 永远进不了版本库；/scripts/* 逐项白名单缺 test_inventory.py、build_delivery_packages.py、axe_inject.py、browser_demo_final_acceptance.py，其中 axe_inject 被最终验收脚本直接 import 必须同进；原注释“测试集已全部纳入版本库”与现状相反——26 个测试文件是从未 git add，并非被忽略，已改为如实描述。2026-09-02 补跑上一轮遗留校验，三项全部实测通过：json.load 解析 PROJECT_STATUS.json 输出 JSON_OK；py_compile 编译 build_delivery_packages.py 与 diagnose_judge_package.py 均通过；git check-ignore -v 对 docs/TEST_INVENTORY.md 与 scripts 下四个验收脚本逐条命中 .gitignore:104 与 :97-100 的 ! 否定规则（父目录先重新包含再逐项放行，顺序正确），git status 亦把这些路径显示为可见未跟踪项而非被忽略，因此“评委从干净克隆复算”的前置条件成立。"
+    },
+    "judge_package": {
+      "command": "python -m pytest -q（评委包独立目录解包，无 .env、无任何模型密钥、无四份年报全文）",
+      "latest_result": "321 passed, 19 failed, 1 skipped（2026-09-02 绕开旧教师包单独构建评委包后隔离实测；收 341 项 = 仓库 347 − 仓库专属 3 文件 6 项）",
+      "failure_cause_status": "19 项失败的具体成因未逐项测量，仅登记数字；怀疑与按边界不分发的年报全文有关，需 scripts/diagnose_judge_package.py 输出真实名单后定档。",
+      "executed_on": "2026-09-02",
+      "status": "remediation_required",
+      "superseded_claim": "原登记 340 passed, 1 skipped, 0 failed（2026-09-01）已作废：交付目录内不存在任何 04_ 评委代码复现包 ZIP，且 2026-09-02T10:18 的构建在队员包阶段即因缺 12_/13_ 两份 DOCX 中止（日志 交付包/交付包构建与独立复验日志.txt），该 340 无留存产物可复核。",
+      "plan_reference": "docs/superpowers/plans/2026-09-02-judge-package-reproducibility.md（Phase 1：先取 19 项失败真实名单，再按 requires_full_corpus 分层跳过、加 --package 独立构建、改干净虚拟环境复验）",
+      "root_cause_fixed": "包内 24 项失败全部源于 scripts/build_delivery_packages.py 的 _clean_sources() 漏装测试所需只读数据：audit_procedure_map.json、knowledge_sources.manifest.json、cache_seed.materialized.json 与 release_records 下 json/jsonl 快照；已随源码进包，未放宽任何测试或密钥扫描。",
+      "test_fixes": "两处只在开发者本机才成立的断言已改为确定式：隐私闸门测试显式提供测试密钥（原先隐式依赖本机 .env 才有密钥，从而触发阻断分支），启动快照泄漏检查改禁凭据值与配置键名而非 api_key 子串（reason_code=api_key_missing 属计划要求公开的门禁状态）。",
+      "skip_boundary": "唯一 skip 为 test_superseded_captain_signoff_remains_traceable：队长签字原件在团队内部 outputs/ 签字目录，按交付边界不随包分发，包内如实记 skip 而非删检查或塞入内部证据。",
+      "note": "评委包复现边界与源码仓库结果分开登记；包内未复现年报哈希复验与真实模型外呼，两项仍需真人授权后另行验证。"
+    },
+    "browser_accessibility": {
+      "command": ".agents/tools/browser-qa/.venv/Scripts/python.exe scripts/browser_demo_final_acceptance.py --viewport <视口> --skip-live（需先以 AUDITTRACE_DEMO_MODE=true AUDITTRACE_DEMO_USE_EXTERNAL_MODEL=false 启动本机服务）",
+      "latest_result": "四视口 axe_acceptance=accepted：1440x1000 / 1024x768 / 768x1024 / 390x844 各 10 个状态 axe_executed 全为 true、violations 全为 0，退出码均 0",
+      "executed_on": "2026-09-01",
+      "status": "passed",
+      "states_covered": "landing、case_select、workspace、running、result、collapsible_expanded、evidence_drawer、agent_drawer、print_preview、after_refresh",
+      "csp_boundary": "生产 CSP 未改：axe 走同源虚拟 URL 注入，不使用内联脚本；工具未执行的状态一律判 not_accepted，不用空 violations 冒充通过。",
+      "defects_fixed": "①运行中阶段条 .demo-stage 文字 --text-tertiary(#808c98) 在 #0d3039 上仅 4.08:1，改 #9aa7b4 后 5.71:1；②打印媒体沿用小字浅色，标题 #e8f0f2 on #ffffff 仅 1.15:1，54 个节点判违规，已在 @media print 内强制纸面黑字透明底并让徽章留边框。屏幕与打印计算样式已实测分离（屏 rgb(232,240,242)/深底，打印 rgb(17,17,17)/白底），确认打印规则未泄漏到屏幕。",
+      "manual_review_open": "axe 判不了的 color-contrast incomplete 仍需真人看图定案；逐节点 fg/bg/实测比例/期望比例与四视口审计产物、截图、以及 346 项 5 组顺序电池日志已存档在 artifacts/accessibility-per-state-20260901/，屏幕态每态 15—55 个节点。",
+      "note": "本轮只做确定性演示链，零模型外呼。aria-expanded 与 hidden 同步、打印强制展开有 artifacts/accessibility-per-state-20260901/ 存档实测；键盘 Enter/Space 本轮未取得有效的真实浏览器自动化证据，须按整改计划 Task 11 专项复验并逐项落 JSON 后才可采信，之前登记的“均为实测”表述按过强结论作废。"
     },
     "clean_package": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",

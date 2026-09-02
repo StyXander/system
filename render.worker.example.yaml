@@ -21,4 +21,4 @@ services:
       - key: DEEPSEEK_BASE_URL
         sync: false
       - key: DEEPSEEK_MODEL
-        value: qwen3.5-plus
+        value: deepseek-v4-flash

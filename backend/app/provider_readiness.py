@@ -164,7 +164,7 @@ def get_provider_error_guidance(
         elif kind == "opencode_go":
             msg = (
                 "OpenCode Go 接口返回额度不足或付费限制（HTTP 402）。"
-                "请确认 API Key 属于当前有额度的工作区，并确认 qwen3.5-plus 已在该工作区启用。"
+                "请确认 API Key 属于当前有额度的工作区，并确认当前配置的目标模型已在该工作区启用。"
             )
             next_action = "check_opencode_go_workspace_quota"
         elif kind == "opencode_zen":

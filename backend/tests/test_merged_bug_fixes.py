@@ -255,7 +255,7 @@ def test_probe_disabled_snapshot_closes_status_readiness(monkeypatch: pytest.Mon
     """REQ-BACKEND: provider_probe_disabled 不能由 /api/status 传播成 ready。"""
     from backend.app.provider_readiness import ProviderSnapshot
 
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-unverified-provider")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-unverified")
     monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "false")
     monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
     unverified = ProviderSnapshot(

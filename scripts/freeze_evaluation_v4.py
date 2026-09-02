@@ -196,7 +196,7 @@ def _model_section() -> dict:
     agents_sha = _sha256_file(ROOT / "backend" / "app" / "agents.py")
     schemas_sha = _sha256_file(ROOT / "backend" / "app" / "schemas.py")
     return {
-        "model_id": os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus"),
+        "model_id": os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
         "provider_kind": channel["provider_kind"],
         "provider_label": channel["provider_label"],
         "api_key_present": bool(os.getenv("DEEPSEEK_API_KEY")),

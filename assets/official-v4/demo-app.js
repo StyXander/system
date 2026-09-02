@@ -17,7 +17,6 @@
   const AI_GENERATED_CONTENT_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。";
   const CASE_STORAGE_KEY = "audittrace_demo_case_v1";
   const DEMO_TASK_STORAGE_KEY = "audittrace_demo_task_v1";
-  const RUN_TIMEOUT_MS = 300000;
   const LIVE_POLL_INTERVAL_MS = 1400;
   const DEMO_POLL_INTERVAL_MS = 1500;
   const LIVE_ACTIVE_STATUSES = new Set(["queued", "running", "resolving_company", "searching", "downloading", "validating", "registering", "rag_building", "indexing", "extracting_fields", "analyzing"]);
@@ -50,6 +49,8 @@
     model_success: "三Agent已通过硬校验",
     demo_fallback: "演示确定性草稿已生成",
     not_requested: "未请求模型",
+    not_recorded: "未记录",
+    not_applicable: "当前口径不适用",
     skipped: "跳过：前置角色未完成",
     not_applicable_no_call: "未调用模型",
     not_attempted_rag_failure: "RAG失败，完整分析未完成",
@@ -103,6 +104,52 @@
     industry_review: "行业口径复核",
     evidence_gap_review: "数据缺口复核",
   };
+
+  const AUDIT_OVERVIEW_META = {
+    risk_candidate: {
+      label: "建议列入重点核查",
+      tone: "focus",
+      state: "waiting",
+      procedureIds: ["AP-01", "AP-03", "AP-06"],
+    },
+    no_trigger_confirmed: {
+      label: "暂未发现需提升关注的程序信号，维持常规核查",
+      tone: "routine",
+      state: "success",
+      procedureIds: ["AP-01", "AP-02", "AP-04"],
+    },
+    data_gap: {
+      label: "现有资料不足，补充材料后判断",
+      tone: "gap",
+      state: "waiting",
+      procedureIds: ["AP-02", "AP-04", "AP-06"],
+    },
+    industry_boundary: {
+      label: "当前通用口径不适用，转行业专项复核",
+      tone: "industry",
+      state: "waiting",
+      procedureIds: ["AP-02", "AP-03", "AP-06"],
+    },
+  };
+
+  const AGENT_ROLE_META = {
+    challenge: { name: "质疑 Agent", badge: "步骤 1 · 提出风险假设与缺口", focusLabel: "核心待核查主张" },
+    counter: { name: "反证 Agent", badge: "步骤 2 · 对立检验与正常解释", focusLabel: "主要正常解释或反向证据" },
+    review: { name: "复核 Agent", badge: "步骤 3 · 综合评估与草稿把关", focusLabel: "综合结论" },
+  };
+  const AGENT_ROLE_ORDER = ["challenge", "counter", "review"];
+  const RECOMMENDATION_LABELS = { retain: "建议保留", downgrade: "建议降级", defer: "建议暂缓", not_applicable: "本角色不作建议" };
+  const ROUTE_CONCLUSION_FALLBACKS = {
+    risk_candidate: "risk_candidate",
+    negative_confirmation: "no_trigger_confirmed",
+    industry_review: "industry_boundary",
+    evidence_gap_review: "data_gap",
+  };
+  const OVERVIEW_PROCEDURE_FALLBACK_ORDER = ["AP-01", "AP-02", "AP-03", "AP-04", "AP-05", "AP-06"];
+  const COLLAPSIBLE_SECTIONS = [
+    { buttonId: "demo-source-ledger-toggle", bodyId: "demo-source-ledger-body" },
+    { buttonId: "demo-run-trace-toggle", bodyId: "demo-run-trace-body" },
+  ];
 
   const METRIC_LABELS = {
     revenue_growth: "营业收入增速",
@@ -365,9 +412,14 @@
     // behavior while making a current explicit "unavailable" state fail closed.
     const taskStoreReady = continuity.availability ? continuity.availability === "ready" : true;
     const deterministicAvailable = Boolean(demoState.bootstrap?.model_readiness?.deterministic_backup_available);
+    const modelReady = Boolean(demoState.bootstrap?.model_readiness?.full_analysis_ready);
+    // 供应商链失败后任务已进终态，但台账可用、创建未受阻：后端就绪合同此时
+    // 给出 use_deterministic_backup，前端必须同步露出备用入口，否则演示会
+    // 卡在“只能反复重试真实模型”的死路上（并发/额度受限时尤其致命）。
+    const outcomeFailed = ["failed_run", "failed", "degraded", "expired", "interrupted", "cancelled"].includes(phase);
     const canStartBackup = deterministicAvailable
-      && (phase === "ready" || phase === "failed_run")
-      && (!taskStoreReady || demoState.taskCreationBlocked)
+      && (phase === "ready" || outcomeFailed)
+      && (!taskStoreReady || demoState.taskCreationBlocked || outcomeFailed || !modelReady)
       && Boolean(demoState.caseId);
     start.disabled = !(phase === "ready") || !demoState.caseId || !taskStoreReady || demoState.taskCreationBlocked;
     start.title = !taskStoreReady
@@ -576,24 +628,385 @@
     macro_indicator: "宏观指标",
   };
 
+  function uniqueText(values) {
+    const seen = new Set();
+    const result = [];
+    (Array.isArray(values) ? values : []).forEach((value) => {
+      const text = String(value ?? "").trim();
+      if (text && !seen.has(text)) {
+        seen.add(text);
+        result.push(text);
+      }
+    });
+    return result;
+  }
+
+  function normalizeAgentSteps(steps) {
+    if (Array.isArray(steps)) return steps.filter(Boolean);
+    if (!steps || typeof steps !== "object") return [];
+    return AGENT_ROLE_ORDER
+      .map((role) => (steps[role] ? { role, ...steps[role] } : null))
+      .filter(Boolean);
+  }
+
+  function firstReviewOutput(run) {
+    const steps = normalizeAgentSteps(run?.agent_steps);
+    const review = steps.find((step) => step.role === "review" && step.output);
+    if (review?.output) return review.output;
+    const finalDraft = run?.final_ai_draft;
+    if (finalDraft?.items && Array.isArray(finalDraft.items)) {
+      return finalDraft.items.find((item) => item.role === "review") || finalDraft.items[0] || null;
+    }
+    return run?.ai_draft || null;
+  }
+
+  function sourceBadgeForRun(run) {
+    const modelStatus = String(run?.model_check?.status || "");
+    const executionMode = String(run?.execution_mode || run?.model_check?.execution_mode || "");
+    const cacheReplay = executionMode === "cache_replay" || run?.model_check?.cache_hit === true || run?.cache_hit === true;
+    const deterministicFallback = executionMode === "deterministic_backup" || modelStatus === "demo_fallback";
+    if (deterministicFallback) return "来源：确定性备用 · 未调用外部模型";
+    if (cacheReplay || executionMode === "external_cached") return "来源：已复用经校验的 AI 结果";
+    if (modelStatus === "model_success" && executionMode === "external_live" && Number(run?.provider_call_count || 0) > 0) {
+      return "来源：真实模型复核";
+    }
+    if (modelStatus) return `来源：${statusLabel(modelStatus)} · 仅保留已完成程序结果`;
+    return "来源：程序结果 · 模型状态未记录";
+  }
+
+  function claimObjects(outputs, field = "claims") {
+    const seen = new Set();
+    const claims = [];
+    outputs.forEach((output) => {
+      (Array.isArray(output?.[field]) ? output[field] : []).forEach((claim) => {
+        const text = String(claim?.text || "").trim();
+        if (!text || seen.has(text)) return;
+        seen.add(text);
+        claims.push({
+          text,
+          support_status: claim?.support_status || "—",
+          evidence_ids: uniqueText(claim?.evidence_ids || []),
+        });
+      });
+    });
+    return claims;
+  }
+
+  function procedureRecords(run) {
+    const records = run?.context?.audit_procedures;
+    return Array.isArray(records) ? records.filter((item) => item && typeof item === "object") : [];
+  }
+
+  function deriveAuditOverview(run, outcome) {
+    const context = run?.context || {};
+    const ruleResults = Array.isArray(run?.rule_results) ? run.rule_results : [];
+    const fieldEvidence = Array.isArray(run?.evidence_bundle?.field_evidence) ? run.evidence_bundle.field_evidence : [];
+    const ragEvidence = Array.isArray(run?.evidence_bundle?.rag_evidence) ? run.evidence_bundle.rag_evidence : [];
+    const sourceIssues = Array.isArray(run?.source_validation?.issues) ? run.source_validation.issues : [];
+    const completeness = String(run?.run_completeness || "");
+    const modelStatus = String(run?.model_check?.status || "");
+    const executionMode = String(run?.execution_mode || run?.model_check?.execution_mode || "");
+    const deterministicFallback = executionMode === "deterministic_backup" || modelStatus === "demo_fallback";
+    const reviewOutput = firstReviewOutput(run);
+    const ruleDrafts = ruleResults.map((result) => result?.ai_draft).filter(Boolean);
+    const outputs = [reviewOutput, run?.ai_draft, ...ruleDrafts].filter(Boolean);
+    const rootRoute = run?.ai_analysis_route;
+    const route = ROUTE_CONCLUSION_FALLBACKS[rootRoute] ? rootRoute : context.ai_analysis_route;
+    const explicitConclusion = [
+      run?.ai_analysis_conclusion,
+      context.ai_analysis_conclusion,
+      reviewOutput?.analysis_conclusion,
+      run?.ai_draft?.analysis_conclusion,
+      ...ruleDrafts.map((draft) => draft.analysis_conclusion),
+    ].find((value) => AUDIT_OVERVIEW_META[value] || value === "additional_procedure_required");
+    const routeFallback = ROUTE_CONCLUSION_FALLBACKS[route];
+    const routeFallbackAllowed = deterministicFallback
+      || modelStatus === "model_success"
+      || (modelStatus === "not_applicable" && routeFallback === "industry_boundary");
+    let conclusion = explicitConclusion || (routeFallbackAllowed ? routeFallback : null);
+    const dataGaps = uniqueText([
+      ...outputs.flatMap((output) => output?.data_gaps || []),
+      ...(context.prescreen_summary?.missing_fields || []),
+      ...(context.case_material_gaps || []),
+      ...ruleResults.flatMap((result) => result?.risk_card?.data_gaps || []),
+    ]);
+    const requestedMaterials = uniqueText([
+      ...outputs.flatMap((output) => output?.requested_materials || []),
+      ...ruleResults.flatMap((result) => result?.risk_card?.requested_materials || []),
+    ]);
+    if (conclusion === "additional_procedure_required") {
+      conclusion = dataGaps.length || requestedMaterials.length ? "data_gap" : "risk_candidate";
+    }
+    const completeRuleChain = ruleResults.length > 0
+      && !sourceIssues.length
+      && !completeness.startsWith("incomplete")
+      && (fieldEvidence.length > 0 || ragEvidence.length > 0 || (context.knowledge_retrieval_trace || []).length > 0);
+    const valid = outcome !== "failed_run" && completeRuleChain && Boolean(AUDIT_OVERVIEW_META[conclusion]);
+    if (!valid) {
+      return {
+        valid: false,
+        label: "本次未形成有效审计计划总览",
+        tone: "invalid",
+        source: sourceBadgeForRun(run),
+        reason: outcome === "failed_run" || sourceIssues.length
+          ? "规则或证据链未闭合，系统不生成四类计划判断。"
+          : "本次运行缺少完整规则结果、证据链或可复核的结论字段。",
+        dataGaps,
+        requestedMaterials,
+        claims: [],
+        procedures: [],
+      };
+    }
+    const meta = AUDIT_OVERVIEW_META[conclusion];
+    const reason = [
+      reviewOutput?.reason_for_status,
+      run?.ai_draft?.reason_for_status,
+      ...ruleDrafts.map((draft) => draft.reason_for_status),
+      reviewOutput?.draft_observation,
+      ...ruleResults.map((result) => result?.ai_draft?.draft_observation || result?.risk_card?.observation),
+    ].map((value) => String(value || "").trim()).find(Boolean)
+      || "本次运行已形成规则与证据链，建议结合明细和 Agent 完整证据完成人工复核。";
+    const claims = claimObjects(outputs).filter((claim) => claim.support_status === "supported");
+    const procedures = procedureRecords(run);
+    const selectedProcedures = meta.procedureIds
+      .map((id) => procedures.find((item) => item.procedure_id === id))
+      .filter(Boolean);
+    if (selectedProcedures.length < 3) {
+      OVERVIEW_PROCEDURE_FALLBACK_ORDER.forEach((id) => {
+        if (selectedProcedures.length >= 3 || selectedProcedures.some((item) => item.procedure_id === id)) return;
+        const match = procedures.find((item) => item.procedure_id === id);
+        if (match) selectedProcedures.push(match);
+      });
+    }
+    return {
+      valid: true,
+      conclusion,
+      label: meta.label,
+      tone: meta.tone,
+      state: meta.state,
+      source: `${sourceBadgeForRun(run)} · 路线：${ROUTE_LABELS[route] || "已记录"}`,
+      route,
+      reason,
+      dataGaps,
+      requestedMaterials,
+      claims,
+      procedures: selectedProcedures.slice(0, 3),
+    };
+  }
+
+  function appendOverviewGroup(container, title, items, className = "") {
+    if (!items.length) return;
+    const group = document.createElement("section");
+    group.className = `demo-overview-evidence-group ${className}`.trim();
+    const heading = document.createElement("h5");
+    heading.textContent = title;
+    const list = document.createElement("ul");
+    items.forEach((item) => {
+      const li = document.createElement("li");
+      if (typeof item === "string") {
+        li.textContent = item;
+      } else {
+        li.textContent = item.text;
+        if (item.evidence_ids?.length) {
+          const meta = document.createElement("small");
+          meta.textContent = `支持证据：${item.evidence_ids.join(" / ")}`;
+          li.append(meta);
+        }
+      }
+      list.append(li);
+    });
+    group.append(heading, list);
+    container.append(group);
+  }
+
+  function renderOverviewEvidence(container, overview) {
+    container.replaceChildren();
+    appendOverviewGroup(container, "资料缺口", overview.dataGaps.slice(0, 6));
+    appendOverviewGroup(container, "建议取得材料", overview.requestedMaterials.slice(0, 6));
+    if (!overview.dataGaps.length && !overview.requestedMaterials.length) {
+      appendOverviewGroup(container, "支持主张", overview.claims.slice(0, 3));
+    }
+    if (!container.children.length) {
+      const empty = document.createElement("p");
+      empty.textContent = overview.valid ? "本次运行未形成可展示的当前企业证据主张；请回看原文证据。" : "未生成四类判断，系统不补造证据或资料缺口。";
+      container.append(empty);
+    }
+  }
+
+  function renderOverviewProcedures(container, overview) {
+    container.replaceChildren();
+    if (!overview.procedures.length) {
+      const empty = document.createElement("p");
+      empty.textContent = overview.valid ? "本次运行未返回可选的审计程序映射；请人工确定下一步程序。" : "未形成有效计划时不自动推荐审计程序。";
+      container.append(empty);
+      return;
+    }
+    const list = document.createElement("ol");
+    list.className = "demo-overview-procedure-list";
+    overview.procedures.forEach((procedure) => {
+      const item = document.createElement("li");
+      const title = document.createElement("strong");
+      title.textContent = `${procedure.procedure_id || "—"} · ${procedure.procedure || "审计程序"}`;
+      const system = document.createElement("span");
+      system.textContent = `系统已完成：${procedure.system_execution || "—"}`;
+      const human = document.createElement("span");
+      human.textContent = `人工保留：${procedure.human_retained || "—"}`;
+      item.append(title, system, human);
+      list.append(item);
+    });
+    container.append(list);
+  }
+
+  function renderAuditOverview(run, outcome) {
+    const section = byId("demo-audit-overview");
+    const state = byId("demo-audit-overview-state");
+    const conclusion = byId("demo-audit-overview-conclusion");
+    const overview = deriveAuditOverview(run, outcome);
+    section.dataset.tone = overview.tone;
+    state.className = `state ${overview.valid ? overview.state : "danger"}`;
+    state.textContent = overview.valid ? overview.label : "未形成有效总览";
+    conclusion.textContent = overview.label;
+    byId("demo-audit-overview-source").textContent = overview.source;
+    byId("demo-overview-why").textContent = overview.reason;
+    renderOverviewEvidence(byId("demo-overview-evidence"), overview);
+    renderOverviewProcedures(byId("demo-overview-procedures"), overview);
+    return overview;
+  }
+
+  function appendAgentList(card, label, items, limit, includeEvidence = true) {
+    const visible = (Array.isArray(items) ? items : []).filter((item) => item && (item.text || typeof item === "string")).slice(0, limit);
+    if (!visible.length) return;
+    const group = document.createElement("div");
+    group.className = "demo-agent-card-group";
+    const heading = document.createElement("span");
+    heading.className = "demo-agent-card-label";
+    heading.textContent = label;
+    const list = document.createElement("ul");
+    visible.forEach((item) => {
+      const claim = typeof item === "string" ? { text: item } : item;
+      const li = document.createElement("li");
+      li.textContent = claim.text || "—";
+      if (includeEvidence && claim.evidence_ids?.length) {
+        const evidence = document.createElement("small");
+        evidence.textContent = `${claim.support_status || "—"} · ${claim.evidence_ids.join(" / ")}`;
+        li.append(evidence);
+      }
+      list.append(li);
+    });
+    group.append(heading, list);
+    card.append(group);
+  }
+
+  function renderAgentCards(target, steps, { detail = false } = {}) {
+    target.replaceChildren();
+    const normalized = normalizeAgentSteps(steps);
+    const byRole = new Map(normalized.map((step) => [step.role, step]));
+    AGENT_ROLE_ORDER.forEach((role) => {
+      const step = byRole.get(role) || { role, status: "not_recorded", detail: "本次运行未写入该角色记录。" };
+      const meta = AGENT_ROLE_META[role];
+      const output = step.output && typeof step.output === "object" ? step.output : null;
+      const card = document.createElement("article");
+      card.className = `demo-agent-card demo-agent-card-${role}`;
+      card.dataset.status = step.status || "not_recorded";
+      const badge = document.createElement("span");
+      badge.className = "demo-agent-card-badge";
+      badge.textContent = meta.badge;
+      const heading = document.createElement("h4");
+      heading.textContent = `${meta.name} · ${statusLabel(step.status || "not_recorded")}`;
+      card.append(badge, heading);
+      if (step.failure_code || step.failure_stage) {
+        const failure = document.createElement("p");
+        failure.className = "demo-agent-card-failure";
+        failure.textContent = `失败/跳过留痕：${step.failure_code || "—"}${step.failure_stage ? ` · 阶段：${step.failure_stage}` : ""}`;
+        card.append(failure);
+      }
+      if (step.detail) {
+        const detailNode = document.createElement("p");
+        detailNode.className = "demo-agent-card-detail";
+        detailNode.textContent = step.detail;
+        card.append(detailNode);
+      }
+      if (detail && (step.model_id || step.prompt_version || step.response_sha256)) {
+        const model = document.createElement("small");
+        model.className = "demo-agent-card-model";
+        model.textContent = [step.model_id, step.prompt_version, step.response_sha256 ? `响应 ${step.response_sha256}` : ""].filter(Boolean).join(" · ");
+        card.append(model);
+      }
+      if (!output) {
+        const empty = document.createElement("p");
+        empty.className = "demo-agent-card-empty";
+        empty.textContent = step.status === "skipped" ? "该角色因前置阶段未完成而跳过，页面不补造判断。" : "该角色没有可展示的结构化输出。";
+        card.append(empty);
+        target.append(card);
+        return;
+      }
+      if (role === "review") {
+        const conclusion = document.createElement("p");
+        conclusion.className = "demo-agent-card-conclusion";
+        conclusion.textContent = `综合结论：${AUDIT_OVERVIEW_META[output.analysis_conclusion]?.label || statusLabel(output.analysis_conclusion || "—")} · ${RECOMMENDATION_LABELS[output.ai_recommendation] || statusLabel(output.ai_recommendation || "—")}`;
+        card.append(conclusion);
+        if (output.draft_observation) {
+          const draft = document.createElement("p");
+          draft.className = "demo-agent-card-draft";
+          draft.textContent = output.draft_observation;
+          card.append(draft);
+        }
+      }
+      const claimLimit = detail ? 4 : 2;
+      const normalLimit = detail ? 3 : 2;
+      if (role === "challenge") appendAgentList(card, meta.focusLabel, output.claims || [], claimLimit);
+      if (role === "counter") appendAgentList(card, meta.focusLabel, output.normal_explanations || [], normalLimit);
+      if (role === "review") {
+        appendAgentList(card, "支持主张", output.claims || [], claimLimit);
+        appendAgentList(card, "正常解释", output.normal_explanations || [], normalLimit);
+      }
+      if (output.reason_for_status) {
+        const reason = document.createElement("p");
+        reason.className = "demo-agent-card-reason";
+        reason.innerHTML = `<strong>判断理由：</strong>${escapeHtml(output.reason_for_status)}`;
+        card.append(reason);
+      }
+      target.append(card);
+    });
+  }
+
+  function renderInlineAgents(run) {
+    const steps = normalizeAgentSteps(run?.agent_steps);
+    const byRole = new Map(steps.map((step) => [step.role, step]));
+    const completed = AGENT_ROLE_ORDER.filter((role) => byRole.get(role)?.status === "completed").length;
+    const unresolved = AGENT_ROLE_ORDER.length - completed;
+    const failed = AGENT_ROLE_ORDER.filter((role) => {
+      const status = byRole.get(role)?.status || "not_recorded";
+      return ["failed", "skipped", "not_applicable", "model_transfer_not_allowed", "sensitive_data_blocked", "rag_failed"].includes(status);
+    }).length;
+    const state = byId("demo-agent-inline-state");
+    state.className = `state ${failed ? "danger" : unresolved ? "waiting" : "success"}`;
+    state.textContent = `${completed}/3 已完成 · ${unresolved ? `${unresolved} 个未完成` : "状态已记录"}`;
+    renderAgentCards(byId("demo-agent-inline-cards"), run?.agent_steps, { detail: false });
+  }
+
   function renderSourceLedger(run) {
     const list = byId("demo-source-ledger-list");
     list.replaceChildren();
     const regulatory = run.context?.regulatory_evidence || [];
     const trace = run.context?.knowledge_retrieval_trace || [];
-    const rendered = [];
+    const rendered = new Set();
+    let itemCount = 0;
     trace.slice(0, 8).forEach((item) => {
       const li = document.createElement("li");
       const officialUrl = String(item.official_url || "");
       const link = safeHttpsUrl(officialUrl) ? `<a href="${escapeHtml(safeHttpsUrl(officialUrl))}" target="_blank" rel="noopener noreferrer">打开官方来源</a>` : "";
       li.innerHTML = `<strong>知识命中 · ${escapeHtml(item.publisher || "—")} · ${escapeHtml(CATEGORY_SHORT[item.source_category] || item.source_category || "—")}</strong><span>${escapeHtml(item.locator || "官方来源登记条目；请回到原文核验。")} ${link}</span><small>${escapeHtml(String(item.retrieval_id || ""))} · ${escapeHtml(String(item.source_id || ""))} · 快照 ${escapeHtml(String(item.snapshot_id || "—"))} · ${escapeHtml(officialUrl)}</small><small>可支持：${escapeHtml(item.claim_scope || "—")}；边界：${escapeHtml(item.boundary || "—")}</small>`;
       list.append(li);
-      rendered.push(item.source_id);
+      rendered.add(item.source_id || item.evidence_id || item.retrieval_id);
+      itemCount += 1;
     });
-    regulatory.filter((item) => !rendered.includes(item.source_id)).slice(0, 12 - rendered.length).forEach((item) => {
+    regulatory.filter((item) => !rendered.has(item.source_id || item.evidence_id || item.retrieval_id)).slice(0, Math.max(0, 12 - itemCount)).forEach((item) => {
       const li = document.createElement("li");
       li.innerHTML = `<strong>${escapeHtml(item.publisher || "—")} · ${escapeHtml(item.title || "—")}</strong><span>${escapeHtml(CATEGORY_SHORT[item.source_category] || item.source_category || "")} · 发布于 ${escapeHtml(String(item.published_at || "—"))}</span><small>${escapeHtml(String(item.sha256 || ""))} · ${escapeHtml(String(item.official_url || ""))} · ${escapeHtml(String(item.source_id || ""))}</small>`;
       list.append(li);
+      rendered.add(item.source_id || item.evidence_id || item.retrieval_id);
+      itemCount += 1;
     });
     if (!trace.length && !regulatory.length) {
       const li = document.createElement("li");
@@ -602,6 +1015,9 @@
     }
     const summary = run.context?.source_coverage_summary;
     byId("demo-source-ledger-note").textContent = `${summary?.boundary || ""} 本次实际命中 ${trace.length} 条；快照 ${run.context?.knowledge_snapshot_id || "KNOWLEDGE-UNCONFIGURED-DRAFT"} · 每条命中都标明可支持主张边界，监管、问询、行业、新闻与宏观资料不能证明当前企业事实。`;
+    const state = byId("demo-source-ledger-state");
+    state.className = `state ${itemCount ? "success" : "waiting"}`;
+    state.textContent = `台账级 · ${itemCount}条`;
   }
 
   function renderRunTrace(run) {
@@ -639,6 +1055,48 @@
     if (!list.children.length) {
       list.append(Object.assign(document.createElement("li"), { textContent: "本次任务尚未写入可展示的时间线或模型尝试记录。" }));
     }
+    const callCount = attempts.reduce((total, entry) => total + (Array.isArray(entry.attempts) ? entry.attempts.length : 0), 0) || Number(run.provider_call_count || 0);
+    const state = byId("demo-run-trace-state");
+    state.className = `state ${timeline && Object.keys(timeline).length ? "success" : "waiting"}`;
+    state.textContent = `可审计 · ${Object.keys(timeline).length}阶段 / ${callCount}次调用`;
+  }
+
+  function setCollapsible(section, expanded) {
+    const button = document.getElementById(section.buttonId);
+    const body = document.getElementById(section.bodyId);
+    if (!button || !body) return;
+    button.setAttribute("aria-expanded", String(Boolean(expanded)));
+    body.hidden = !expanded;
+  }
+
+  function resetCollapsibleSections() {
+    COLLAPSIBLE_SECTIONS.forEach((section) => setCollapsible(section, false));
+  }
+
+  function bindCollapsibleSections() {
+    COLLAPSIBLE_SECTIONS.forEach((section) => {
+      const button = document.getElementById(section.buttonId);
+      if (!button) return;
+      button.addEventListener("click", () => {
+        setCollapsible(section, button.getAttribute("aria-expanded") !== "true");
+      });
+    });
+  }
+
+  let printCollapsibleState = null;
+
+  function expandCollapsiblesForPrint() {
+    printCollapsibleState = COLLAPSIBLE_SECTIONS.map((section) => ({
+      section,
+      expanded: document.getElementById(section.buttonId)?.getAttribute("aria-expanded") === "true",
+    }));
+    COLLAPSIBLE_SECTIONS.forEach((section) => setCollapsible(section, true));
+  }
+
+  function restoreCollapsiblesAfterPrint() {
+    if (!printCollapsibleState) return;
+    printCollapsibleState.forEach(({ section, expanded }) => setCollapsible(section, expanded));
+    printCollapsibleState = null;
   }
 
   function renderInnovationControls(run) {
@@ -796,6 +1254,7 @@
     const sampleId = SUPPLEMENT_STATE.selected;
     if (!run || !sampleId || SUPPLEMENT_STATE.busy) return;
     SUPPLEMENT_STATE.busy = true;
+    resetCollapsibleSections();
     byId("demo-supplement-apply").disabled = true;
     const status = byId("demo-supplement-status");
     status.hidden = false;
@@ -912,6 +1371,18 @@
 
   function clearResultDisplay() {
     byId("demo-result").hidden = true;
+    const overview = byId("demo-audit-overview");
+    overview.dataset.tone = "invalid";
+    byId("demo-audit-overview-state").className = "state pending";
+    byId("demo-audit-overview-state").textContent = "等待运行";
+    byId("demo-audit-overview-conclusion").textContent = "本次未形成有效审计计划总览";
+    byId("demo-audit-overview-source").textContent = "运行后显示判断来源";
+    byId("demo-overview-why").textContent = "尚无可展示的运行理由。";
+    byId("demo-overview-evidence").replaceChildren(Object.assign(document.createElement("p"), { textContent: "尚无可展示的证据或资料缺口。" }));
+    byId("demo-overview-procedures").replaceChildren(Object.assign(document.createElement("p"), { textContent: "运行后根据程序映射确定性选取。" }));
+    byId("demo-agent-inline-state").className = "state pending";
+    byId("demo-agent-inline-state").textContent = "运行后显示";
+    byId("demo-agent-inline-cards").replaceChildren(Object.assign(document.createElement("div"), { className: "empty-state", innerHTML: "<strong>尚无运行结果</strong><p>完成运行后显示质疑、反证、复核三个角色的真实状态。</p>" }));
     byId("demo-result-items").replaceChildren();
     byId("demo-result-summary").replaceChildren();
     byId("demo-supplement-summary").hidden = true;
@@ -919,7 +1390,12 @@
     byId("demo-structured-table-body").replaceChildren();
     byId("demo-source-ledger-list").replaceChildren();
     byId("demo-source-ledger-note").textContent = "运行后显示本次命中、来源定位、快照与主张边界。";
+    byId("demo-source-ledger-state").className = "state pending";
+    byId("demo-source-ledger-state").textContent = "台账级 · 0条";
     byId("demo-run-trace-list").replaceChildren();
+    byId("demo-run-trace-state").className = "state pending";
+    byId("demo-run-trace-state").textContent = "可审计 · 0阶段 / 0次调用";
+    resetCollapsibleSections();
     ["demo-coverage-list", "demo-fitness-list", "demo-numeric-list", "demo-anti-list"].forEach((id) => byId(id).replaceChildren());
     byId("demo-coverage-note").textContent = "把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。";
     byId("demo-fitness-note").textContent = "不同来源只能支持不同类型的主张；监管和行业资料不证明当前企业事实。";
@@ -957,7 +1433,9 @@
   }
 
   async function startDemoRun({ backup = false } = {}) {
-    const allowedPhase = backup ? new Set(["ready", "failed_run"]) : new Set(["ready"]);
+    const allowedPhase = backup
+      ? new Set(["ready", "failed_run", "failed", "degraded", "expired", "interrupted", "cancelled"])
+      : new Set(["ready"]);
     if (!allowedPhase.has(demoState.phase) || !demoState.caseId) return;
     const caseItem = currentCase();
     if (!caseItem) return;
@@ -1308,6 +1786,8 @@
       cell.append(span, strong, small);
       summary.append(cell);
     });
+    renderAuditOverview(run, outcome);
+    renderInlineAgents(run);
     const items = byId("demo-result-items");
     items.replaceChildren();
     const draftItems = (run.rule_results || [])
@@ -1331,7 +1811,7 @@
         <span class="demo-item-eyebrow">待核查事项 ${String(index + 1).padStart(2, "0")} · ${escapeHtml(result.risk_card?.rule_id || result.rule_id)}</span>
         <h4>${escapeHtml(draft?.draft_title || result.risk_card?.title || result.rule_id)}</h4>
         <p>${escapeHtml(draft?.draft_observation || result.risk_card?.observation || "等待更多证据。")}</p>
-        ${metricsHtml ? `<div class="demo-metric-grid" aria-label="关键指标">${metricsHtml}</div>` : ""}
+        ${metricsHtml ? `<div class="demo-metric-grid" role="group" aria-label="关键指标">${metricsHtml}</div>` : ""}
         ${claims.length ? `<ul class="demo-item-facts">${claims.map((claim) => `<li>${escapeHtml(claim.text)} <small>(${escapeHtml(claim.support_status)} · ${(claim.evidence_ids || []).map(escapeHtml).join(" / ") || "无引用"})</small></li>`).join("")}</ul>` : ""}
         ${gaps.length ? `<p class="demo-item-facts"><strong>缺失资料 / 需人工核查：</strong>${gaps.map(escapeHtml).join("；")}</p>` : ""}
         <small class="demo-ai-notice">${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</small>`;
@@ -1425,32 +1905,10 @@
     hero.className = "demo-agent-hero";
     hero.innerHTML = `<img src="/assets/official-v4/illustrations/agents-nodes.webp" alt="" width="1672" height="940" loading="lazy" decoding="async"><figcaption>三角色分工 · 挑战（质疑）→ 反证 → 复核；角色状态与失败码以下方卡片为准</figcaption>`;
     body.append(hero);
-    const steps = run.agent_steps || [];
-    if (!steps.length) {
-      body.append(Object.assign(document.createElement("div"), { className: "empty-state", innerHTML: "<strong>本次运行没有 Agent 执行记录</strong><p>模型链未运行时会如实显示，不补造协作过程。</p>" }));
-      return;
-    }
-    const roleMeta = {
-      challenge: { name: "质疑 Agent", badge: "步骤 1 · 提出风险假设与缺口" },
-      counter: { name: "反证 Agent", badge: "步骤 2 · 对立检验与正常解释" },
-      review: { name: "复核 Agent", badge: "步骤 3 · 综合评估与草稿把关" },
-    };
-    steps.forEach((step) => {
-      const meta = roleMeta[step.role] || { name: step.role, badge: "附加步骤" };
-      const output = step.output;
-      const card = document.createElement("article");
-      card.className = "demo-evidence-item";
-      const claims = (output?.claims || []).slice(0, 4).map((claim) => `<li>${escapeHtml(claim.text)} <small>(${escapeHtml(claim.support_status)} · ${(claim.evidence_ids || []).join(" / ") || "无引用"})</small></li>`).join("");
-      const normals = (output?.normal_explanations || []).slice(0, 3).map((item) => `<li>${escapeHtml(item.text)}</li>`).join("");
-      card.innerHTML = `
-        <span class="demo-evidence-meta">${escapeHtml(meta.badge)} · ${escapeHtml(step.model_id || "")}</span>
-        <strong>${escapeHtml(meta.name)} — ${escapeHtml(statusLabel(step.status))}${step.failure_code ? `（${escapeHtml(step.failure_code)}）` : ""}</strong>
-        ${step.detail ? `<span>${escapeHtml(step.detail)}</span>` : ""}
-        ${claims ? `<ul class="demo-item-facts">${claims}</ul>` : ""}
-        ${normals ? `<ul class="demo-item-facts"><li><strong>正常解释：</strong></li>${normals}</ul>` : ""}
-        ${output?.reason_for_status ? `<span>${escapeHtml(output.reason_for_status)}</span>` : ""}`;
-      body.append(card);
-    });
+    const cards = document.createElement("div");
+    cards.className = "demo-agent-detail-cards";
+    body.append(cards);
+    renderAgentCards(cards, run.agent_steps, { detail: true });
   }
 
   function resetEvidenceAxis() {
@@ -1568,7 +2026,6 @@
       evidence_fitness_violations: run.context?.evidence_fitness_violations || run.evidence_bundle?.evidence_fitness_violations || [],
       numeric_claim_trace: run.context?.numeric_claim_trace || run.evidence_bundle?.numeric_claim_trace || {},
       anti_confirmation: run.context?.anti_confirmation || run.evidence_bundle?.anti_confirmation || {},
-      supplement_delta: run.context?.supplement_delta,
       provider_readiness_snapshot: run.context?.provider_readiness_snapshot,
     };
     downloadBlob(`${safeDownloadName(demoState.run.run_id)}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
@@ -1898,6 +2355,9 @@
   }
 
   function bindEvents() {
+    bindCollapsibleSections();
+    window.addEventListener("beforeprint", expandCollapsiblesForPrint);
+    window.addEventListener("afterprint", restoreCollapsiblesAfterPrint);
     byId("demo-start").addEventListener("click", () => { void startDemoRun(); });
     byId("demo-backup").addEventListener("click", () => { void startDemoRun({ backup: true }); });
     byId("demo-recheck").addEventListener("click", () => { void loadBootstrap(); });

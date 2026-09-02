@@ -612,7 +612,7 @@ def main() -> None:
 
     load_dotenv(ROOT / ".env")
     api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
-    model_id = os.getenv("DEEPSEEK_MODEL", "qwen3.5-plus").strip()
+    model_id = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
     base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
 
     contract_path = _contract_path(evaluation_id)

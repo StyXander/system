@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -52,13 +53,56 @@ def test_demo_bootstrap_serves_frozen_manifest_contract(monkeypatch: pytest.Monk
     assert set(featured_rag.values()) == {"ready"}
 
 
+def test_demo_bootstrap_reads_runtime_quality_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """启动快照每次请求只读取一次运行时质量窗口，window 与 release 共用同一快照。
+
+    回归背景：handler 曾先后两次调用 _runtime_quality_snapshot，公开部署
+    每打开一次首页就向 Supabase 重复发一轮质量事件查询；免费层与现场
+    多设备观看时都会放大首屏延迟。
+    """
+
+    import backend.app.main as main_module
+
+    calls: list[str] = []
+
+    def fake_snapshot(model_id: str):
+        calls.append(str(model_id))
+        return None
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setattr(main_module, "_runtime_quality_snapshot", fake_snapshot)
+    payload = TestClient(app).get("/api/demo/bootstrap").json()
+    assert payload["bootstrap_ready"] is True
+    assert len(calls) == 1, f"_runtime_quality_snapshot 被调用 {len(calls)} 次，应为 1 次"
+
+
 def test_demo_bootstrap_leaks_no_secrets_or_local_paths() -> None:
-    """启动快照不得包含凭据、本机绝对路径或旧运行模型输出。"""
+    """启动快照不得包含凭据值、配置键名、本机绝对路径或旧运行模型输出。
+
+    未配置密钥时 full_analysis_reason_code 合法地取值为 api_key_missing，
+    它属于计划要求公开的门禁状态；把该状态码当成泄漏会让本测试只在"本机
+    .env 恰好有密钥"时才通过。因此这里禁的是凭据值与配置键名本身。
+    """
 
     payload = TestClient(app).get("/api/demo/bootstrap").json()
     text = json.dumps(payload, ensure_ascii=False)
-    for banned in ("api_key", "base_url", "DEEPSEEK_API_KEY", ".env", "C:\\", "/home/", "reviewer"):
+    for banned in (
+        "api_key=",
+        "DEEPSEEK_API_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "sk-",
+        "Bearer ",
+        "base_url",
+        ".env",
+        "C:\\",
+        "/home/",
+        "reviewer",
+    ):
         assert banned not in text
+    # 本机真的配了凭据时，任何一项的值都不得出现在对外载荷里。
+    for name in ("DEEPSEEK_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "OPENAI_API_KEY"):
+        value = os.environ.get(name)
+        assert not value or value not in text
     readiness = payload["model_readiness"]
     assert isinstance(readiness["full_analysis_ready"], bool)
     assert isinstance(readiness["deterministic_backup_available"], bool)

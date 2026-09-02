@@ -773,9 +773,15 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
 
     monkeypatch.setattr(agents_module, "_call_model", fake_provider)
     client = TestClient(app)
-    listing = client.get("/api/cases?summary=true")
-    assert listing.status_code == 200
-    cases = listing.json()["cases"]
+    # 本测试的标的是完整种子目录的三 Agent 路由契约，不是公开列表；公开列表已按
+    # 冻结演示清单裁剪，所以案例编号取自路由自身使用的同一权威来源。
+    public_listing = client.get("/api/cases?summary=true")
+    assert public_listing.status_code == 200
+    assert len(public_listing.json()["cases"]) == 15
+    cases = [{"case_id": main_module.CASE_ID}] + [
+        {"case_id": str(case["case_id"])}
+        for case in main_module.load_seed_cases(main_module.WORKSPACE_ROOT)
+    ]
     assert len(cases) == 51
     for item in cases:
         detail = client.get(f"/api/cases/{item['case_id']}")
@@ -1277,10 +1283,10 @@ def test_supabase_new_secret_key_is_sent_as_apikey_only(monkeypatch: pytest.Monk
     headers = SupabaseClient(config)._headers(service=True)
     assert headers == {"apikey": "sb_secret_unit-test", "Accept": "application/json"}
 
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "legacy.jwt.service-role")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "legacy.jwt.fake")
     legacy_config = SupabaseConfig.from_env(mode_override="supabase")
     legacy_headers = SupabaseClient(legacy_config)._headers(service=True)
-    assert legacy_headers["Authorization"] == "Bearer legacy.jwt.service-role"
+    assert legacy_headers["Authorization"] == "Bearer legacy.jwt.fake"
 
 
 def test_supabase_claim_falls_back_to_conditional_rest_update(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1548,3 +1554,31 @@ def test_demo_primary_blocks_without_ledger_but_explicit_backup_runs(monkeypatch
             assert body["provider_call_count"] == 0
     finally:
         backup_store.shutdown()
+
+
+def test_supabase_expiry_sweep_is_throttled() -> None:
+    """任务读取共享 30 秒窗口内的一次过期结算，轮询不得放大为维护 RPC。
+
+    回归背景：SupabaseDemoRunTaskStore.get() 曾在每次轮询前都调用
+    interrupt_expired_demo_run_tasks；前端 1.5 秒一次轮询叠加多设备观看时，
+    免费层 Postgres 被同一个清理动作反复打。结算只是维护性动作，
+    真正的读写一致性由版本 CAS 与租约保证，因此允许限频。
+    """
+    from backend.app.demo_run_tasks import SupabaseDemoRunTaskStore
+
+    sweeps = {"n": 0}
+
+    class Client:
+        def interrupt_expired_demo_run_tasks(self) -> None:
+            sweeps["n"] += 1
+
+        def get_demo_run_task(self, task_id: str) -> dict[str, object]:
+            return {"task_id": task_id, "status": "queued", "steps": {}, "agent_steps": {}}
+
+    store = SupabaseDemoRunTaskStore(Client())
+    try:
+        for _ in range(5):
+            store.get("DEMO-RUN-THROTTLE")
+        assert sweeps["n"] == 1, f"过期结算被触发 {sweeps['n']} 次，5 次轮询内应只结算 1 次"
+    finally:
+        store.shutdown()
