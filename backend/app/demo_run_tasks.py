@@ -39,6 +39,11 @@ ACTIVE_STATUSES = {"queued", "running"}
 # 仍由版本 CAS 与租约保证。
 EXPIRY_SWEEP_MIN_INTERVAL_SECONDS = 30.0
 
+_DEMO_TASK_PERSIST_FIELDS = (
+    "status", "steps", "agent_steps", "run_id", "failure_code", "error", "result",
+    "result_expires_at", "non_interruptible",
+)
+
 
 class IdempotencyConflict(ValueError):
     """同一幂等键绑定了不同请求；服务端必须返回 409 而不是重复调用。"""
@@ -443,17 +448,12 @@ class SupabaseDemoRunTaskStore:
         return view
 
     def _persist(self, task: dict[str, Any], *, expected_version: int | None = None) -> dict[str, Any] | None:
-        fields = {
-            "status": task.get("status"),
-            "steps": task.get("steps") or {},
-            "agent_steps": task.get("agent_steps") or {},
-            "run_id": task.get("run_id"),
-            "failure_code": task.get("failure_code"),
-            "error": task.get("error"),
-            "result": task.get("result"),
-            "result_expires_at": task.get("result_expires_at"),
-            "non_interruptible": bool(task.get("non_interruptible")),
-        }
+        fields = {name: task.get(name) for name in _DEMO_TASK_PERSIST_FIELDS}
+        if not fields.get("steps"):
+            fields["steps"] = {}
+        if not fields.get("agent_steps"):
+            fields["agent_steps"] = {}
+        fields["non_interruptible"] = bool(fields.get("non_interruptible"))
         if task.get("status") in {"completed", "degraded", "failed", "cancelled", "interrupted", "expired"}:
             fields.update({"lease_token": None, "lease_owner": None, "lease_until": None})
         version = int(task.get("version") if expected_version is None else expected_version)

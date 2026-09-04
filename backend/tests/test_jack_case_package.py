@@ -11,6 +11,8 @@ from backend.app.cases import get_period_sources, import_case_zip
 from backend.app.main import _r1_result
 from backend.app.rag import _runtime_dir, prepare_index, retrieve
 
+pytestmark = pytest.mark.repository_only
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = (

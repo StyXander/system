@@ -12,6 +12,7 @@ from backend.app.demo_run_tasks import DemoRunTaskStore
 from backend.app.main import app
 
 
+@pytest.mark.requires_full_corpus
 def test_supplement_parent_child_and_docx_export_share_run_identity(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

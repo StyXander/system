@@ -48,6 +48,8 @@ from backend.app.agents import (
 )
 from backend.app.main import app
 from backend.app.prescore import prescore_group
+from backend.app.manifest_hash import manifest_sha256
+from backend.app.release_gate import evaluate_b3_eligibility
 from backend.app.schemas import AI_GENERATED_CONTENT_NOTICE, RuleResult
 
 DEFAULT_EVALUATION_ID = "EVAL-20260825-B1B3-AI-PRESCORE-V1"
@@ -510,6 +512,54 @@ def _b3_run(client: TestClient, case: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def _b3_gate_evidence(record: dict[str, Any]) -> dict[str, Any]:
+    """把受控 B3 记录投影到生产门禁；预评分脚本不得维护第二套放行规则。"""
+
+    run = record.get("result") or {}
+    steps = run.get("agent_steps") or {}
+    if isinstance(steps, dict):
+        role_statuses = {
+            str(role): str((step or {}).get("status") if isinstance(step, dict) else step)
+            for role, step in steps.items()
+        }
+    else:
+        role_statuses = {}
+        for step in steps if isinstance(steps, list) else []:
+            if isinstance(step, dict) and step.get("role"):
+                role_statuses[str(step["role"])] = str(step.get("status") or "")
+    manifest_path = ROOT / "backend" / "competition_demo_cases.json"
+    manifest_digest = manifest_sha256(manifest_path) if manifest_path.is_file() else ""
+    source_commit = str(record.get("code_head") or "").strip()
+    deployment_commit = str(os.getenv("AUDITTRACE_RELEASE_EVIDENCE_HEAD") or os.getenv("GIT_COMMIT") or "").strip()
+    provider_calls = int(record.get("provider_call_count") or 0)
+    return {
+        "run_id": run.get("run_id") or record.get("run_id"),
+        "run_record_status": "verified" if record.get("run_id") else "missing",
+        "environment": "production" if str(os.getenv("AUDITTRACE_RUN_ENV") or "").lower() == "production" else "local",
+        "external_live": str(os.getenv("AUDITTRACE_EXTERNAL_LIVE") or "").lower() == "true",
+        "provider": os.getenv("AUDITTRACE_PROVIDER_CHANNEL") or "deepseek_direct",
+        "model_id": record.get("model_id"),
+        "source_commit": source_commit,
+        "deployment_commit": deployment_commit,
+        "manifest_sha256": manifest_digest,
+        "manifest_hash_verified": bool(manifest_digest),
+        "result_sha256": _sha256_json(run),
+        "result_hash_verified": True,
+        "result_status": "complete" if str(run.get("status")) == "completed" else str(run.get("status") or ""),
+        "analysis_status": run.get("run_completeness"),
+        "completed_roles": sum(
+            1 for status in role_statuses.values() if str(status).lower() in {"complete", "completed", "model_success"}
+        ),
+        "role_statuses": role_statuses,
+        "provider_calls": provider_calls,
+        "provider_call_ids": run.get("provider_call_ids") or [],
+        "posthoc_validation_error": run.get("posthoc_validation_error") or "",
+        "posthoc_validation_status": run.get("posthoc_validation_status") or "not_recorded",
+        "human_scores_completed": record.get("formal_human_score_status") == "completed",
+        "human_score_record_ids": record.get("human_score_record_ids") or [],
+    }
+
+
 def _record(
     evaluation_id: str,
     case: dict[str, Any],
@@ -549,6 +599,21 @@ def _record(
         "project_captain_comment": None,
         "formal_human_score_status": "pending",
     }
+    if group == "B3":
+        gate_evidence = _b3_gate_evidence(record)
+        eligible, reason = evaluate_b3_eligibility(
+            gate_evidence,
+            expected_model_id=os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip(),
+            expected_source_commit=record.get("code_head") or None,
+            expected_deployment_commit=gate_evidence.get("deployment_commit") or None,
+            expected_manifest_sha256=gate_evidence.get("manifest_sha256") or None,
+        )
+        record["formal_comparison_eligible"] = eligible
+        record["formal_comparison_ineligible_reason"] = None if eligible else reason
+        record["b3_gate_evidence"] = gate_evidence
+    else:
+        record["formal_comparison_eligible"] = False
+        record["formal_comparison_ineligible_reason"] = f"{group} 不属于完整 B3 生产证据"
     record["record_sha256"] = _sha256_json(record)
     return record
 

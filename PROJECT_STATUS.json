@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-09-02T23:59:00+08:00",
+  "updated_at": "2026-09-03T20:14:39+08:00",
   "current_release": {
     "release_id": "RELEASE-CANDIDATE-20260828-V1",
     "release_status": "remediation_in_progress",
@@ -266,7 +266,7 @@
       "validation_boundary": "historical agent_prompt_v3 technical transport/schema/trace acceptance only; automatic field candidates were generated before the 2026-08-13 quality gate, so this batch is not current-code professional content acceptance or a scored B3",
       "api_key_persistence": "not_written_to_source_or_repository"
     },
-    "report": "审迹智链_部署站51案例全量验收与修复记录_2026-08-15.md",
+    "report": "archive/2026-09-02/历史报告/审迹智链_部署站51案例全量验收与修复记录_2026-08-15.md",
     "truth_boundary": "当前修复已推送 GitHub main 并部署 Render；功能验收提交为 9cb953128c2125628c0b4b95ea62f8a4dfe1d956。后端 213 项、线上 9 页面 x 4 视口、只读边界、仅计算、显式备用、RAG 和内置补充样例已通过。Render 自动额度秘密已生效且就绪接口为 ready；但上汽集团单次真实链在首角色收到 MODEL_PROVIDER_AUTH_FAILED，后续角色 skipped，未形成 AI 草稿，因此当前供应商凭据仍需真人在 Render 更换后复验。历史 51 案只证明当时的真实 DeepSeek 三 Agent 技术链，不证明字段正确、风险识别准确率或有效 B3。128 条自动字段候选涉及 30 家公司（其中 72 条为启发式跨年数量级异常），继续等待真人回页复核。"
   },
   "competition_demo": {
@@ -357,26 +357,27 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
-      "latest_result": "349 passed, 1 warning",
-      "executed_on": "2026-09-02",
+      "latest_result": "373 passed, 1 warning in 122.51s（日志 tmp/ai2-final-repo-pytest-20260903-v2.txt）",
+      "executed_on": "2026-09-03",
       "status": "passed",
-      "previous_result": "347 passed, 1 warning（2026-09-01 基线；此前 346 已跑过 5 组顺序全一致）",
-      "stability_evidence": "347 项基线全量连跑两遍数字与结果完全一致（347 passed / 0 failed，277s 与 311s）；当前 349 项基线于 2026-09-02 重新全量通过（349 passed / 0 failed / 0 error），中文注释门槛复查 PASS，docs/TEST_INVENTORY.md 已重生成为 34 文件 / 349 项 / 10 个需联网文件。此前 346 项基线另跑过 5 组顺序同数字（默认序连续两遍 + 完全逆序 + 两次轮转，均 0 failed / 0 error），test_demo_run_tasks.py 另有单文件 200 次连跑 0 失败。346 项那组电池不含后来新增的第 347 项敏感污染回归测试，因此 347 项基线下已重新发起同一 5 组电池并全部回读通过（backend/.venv/Scripts/python.exe -u tmp/order_battery.py，日志 tmp/battery-347.txt）：默认序两遍 281s 与 251s、完全逆序 248s、三分之一轮转 257s、三分之二轮转 250s，五组均为 347 passed / 0 failed / 0 error 且数字与结果完全一致，脚本结论行为“通过”、退出码 0。",
-      "root_cause_fixed": "原判定为“测试顺序依赖”的偶发失败实为 backend/app/demo_run_tasks.py 在 Windows 上 os.replace 原子写被并发读句柄或杀软扫描拒绝（WinError 5）；已改为独立临时名 + 有限重试，终态拒绝迟到写入的生产闸门未放宽。",
-      "chinese_comments": "2368/23604 = 10.03%（达手册 10% 门槛；未达本轮自定 11%，未为凑数补注释）",
-      "note": "2026-09-01 整改轮：新增公开状态边界（3）、进度回调留痕（3）、签字追溯独立项（1）；修复清洁包烟测对已裁剪 /api/status 的依赖、51 案路由契约测试的枚举来源、以及 5 个与线程调度相关的测试写法。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。2026-09-02 复核 .gitignore 查出并修正三处真实缺陷：/docs/ 整目录被忽略，使 README 与评委包都指向的 docs/TEST_INVENTORY.md 永远进不了版本库；/scripts/* 逐项白名单缺 test_inventory.py、build_delivery_packages.py、axe_inject.py、browser_demo_final_acceptance.py，其中 axe_inject 被最终验收脚本直接 import 必须同进；原注释“测试集已全部纳入版本库”与现状相反——26 个测试文件是从未 git add，并非被忽略，已改为如实描述。2026-09-02 补跑上一轮遗留校验，三项全部实测通过：json.load 解析 PROJECT_STATUS.json 输出 JSON_OK；py_compile 编译 build_delivery_packages.py 与 diagnose_judge_package.py 均通过；git check-ignore -v 对 docs/TEST_INVENTORY.md 与 scripts 下四个验收脚本逐条命中 .gitignore:104 与 :97-100 的 ! 否定规则（父目录先重新包含再逐项放行，顺序正确），git status 亦把这些路径显示为可见未跟踪项而非被忽略，因此“评委从干净克隆复算”的前置条件成立。"
+      "previous_result": "349 passed, 1 warning（2026-09-02 基线）",
+      "stability_evidence": "373 项（37 文件）为当前整改后口径；本轮最后一次全量日志 tmp/ai2-final-repo-pytest-20260903-v2.txt（373 passed）。历史 run1 曾出现 1 次失败（371 passed / 1 failed，test_competition_demo_plan.py:798 对 CNINFO_601988_T0_20260330 返回 sensitive_data_blocked），单测与整文件复跑均绿、后续全量亦绿，但间歇性根因尚未完成独立复现，因此本仓库口径不得写成“稳定全绿”；详见 tmp/incident-20260903-间歇性隐私闸门阻断.md。评委包在一次后续 validate-only 中又观察到 CNINFO_600000_T0_20260330 的 sensitive_data_blocked，随后单测及全新解包全量复跑通过；该观察记录见 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md，仍按间歇性风险保留，不改写为稳定通过。docs/TEST_INVENTORY.md 已重生成 37 文件 / 373 项 / 10 个需联网文件。",
+      "root_cause_fixed": "疑似 backend/app/demo_run_tasks.py 在 Windows 上 os.replace 原子写被并发读句柄或杀软扫描拒绝（WinError 5）；已改为独立临时名 + 有限重试，终态拒绝迟到写入的生产闸门未放宽，但间歇性失败尚未完成独立复现，不能写成根因已证实。",
+      "chinese_comments": "2416/23991 = 10.07%（达手册 10% 门槛；新增 backend/app/release_gate.py 与 corpus.py 后实测登记，未为凑数补注释）",
+      "note": "2026-09-03 AI-2 可靠性整改轮：实现评委包独立解耦构建（--package judge）、全文依赖显式跳过闸门（requires_full_corpus）、统一年报文件判据（backend/app/corpus.py）、年报来源校验下载工具（prepare_full_corpus.py）、发布门禁生产实现与反向契约测试（release_gate.py / test_release_gate_contracts.py）、旁路观察器状态留痕（_observer_status）与回环信任显式开关（AUDITTRACE_TRUST_LOOPBACK）。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。"
     },
     "judge_package": {
       "command": "python -m pytest -q（评委包独立目录解包，无 .env、无任何模型密钥、无四份年报全文）",
-      "latest_result": "321 passed, 19 failed, 1 skipped（2026-09-02 绕开旧教师包单独构建评委包后隔离实测；收 341 项 = 仓库 347 − 仓库专属 3 文件 6 项）",
-      "failure_cause_status": "19 项失败的具体成因未逐项测量，仅登记数字；怀疑与按边界不分发的年报全文有关，需 scripts/diagnose_judge_package.py 输出真实名单后定档。",
-      "executed_on": "2026-09-02",
-      "status": "remediation_required",
-      "superseded_claim": "原登记 340 passed, 1 skipped, 0 failed（2026-09-01）已作废：交付目录内不存在任何 04_ 评委代码复现包 ZIP，且 2026-09-02T10:18 的构建在队员包阶段即因缺 12_/13_ 两份 DOCX 中止（日志 交付包/交付包构建与独立复验日志.txt），该 340 无留存产物可复核。",
-      "plan_reference": "docs/superpowers/plans/2026-09-02-judge-package-reproducibility.md（Phase 1：先取 19 项失败真实名单，再按 requires_full_corpus 分层跳过、加 --package 独立构建、改干净虚拟环境复验）",
-      "root_cause_fixed": "包内 24 项失败全部源于 scripts/build_delivery_packages.py 的 _clean_sources() 漏装测试所需只读数据：audit_procedure_map.json、knowledge_sources.manifest.json、cache_seed.materialized.json 与 release_records 下 json/jsonl 快照；已随源码进包，未放宽任何测试或密钥扫描。",
-      "test_fixes": "两处只在开发者本机才成立的断言已改为确定式：隐私闸门测试显式提供测试密钥（原先隐式依赖本机 .env 才有密钥，从而触发阻断分支），启动快照泄漏检查改禁凭据值与配置键名而非 api_key 子串（reason_code=api_key_missing 属计划要求公开的门禁状态）。",
-      "skip_boundary": "唯一 skip 为 test_superseded_captain_signoff_remains_traceable：队长签字原件在团队内部 outputs/ 签字目录，按交付边界不随包分发，包内如实记 skip 而非删检查或塞入内部证据。",
+      "latest_result": "346 passed, 19 skipped, 2 warnings（0 failed；评委包无年报全文边界，详见 交付包/交付清单与扫描报告.txt）",
+      "failure_cause_status": "0 failed, 0 error（最后一次全新解包全量实测）。19 项 skip 均有明确来源：18 项标记 requires_full_corpus，因评委包不分发四份标准股份年报全文；1 项为队长签字原件不随包分发。源码仓库含全文时这些标记用例实际运行；包内未把缺资料伪装成通过。历史 19 项失败的原始逐项名单未留存，根因仍为 UNKNOWN，不以本轮边界修复倒推历史原因。另有一次后续 validate-only 曾在 CNINFO_600000_T0_20260330 报 sensitive_data_blocked；该案例单测与再次全新解包全量均通过，观察记录见 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md，说明仍存在未定位的间歇性隐私闸门风险，不能据此宣称稳定全绿。",
+      "executed_on": "2026-09-03",
+      "status": "passed",
+      "environment_reproducible": "accepted_with_intermittent_observation：2026-09-03 在新建 tmp/ai2-clean-venv-20260903（Python 3.12.10）中按评委包 requirements-dev.txt 完成依赖安装；使用该解释器在最终 ZIP 的全新隔离解包目录最后一次复现 346 passed / 19 skipped / 0 failed（2 warnings）。此前一次后续 validate-only 曾在 CNINFO_600000_T0_20260330 观察到 sensitive_data_blocked；该测试单独重跑及再次全新解包全量均通过，故根因仍未定位。最终构建验证日志为 交付包/交付清单与扫描报告.txt，报告同时记录该 ZIP 的 SHA-256。该证据证明包可安装、可运行，不等同于年报全文或真实模型链已验收，也不等同于稳定全绿。",
+      "superseded_claim": "原 2026-09-02 之 321 passed, 19 failed, 1 skipped 已被本轮实测 346 passed, 19 skipped, 0 failed 取代；取代的是“当前包状态”这一事实，不构成对当年 19 项失败的根因结论。",
+      "plan_reference": "docs/superpowers/plans/2026-09-02-judge-package-reproducibility.md；本轮复核结论：该计划 Phase 1-5 有实测支撑，Phase 6（git archive 清洁快照 + 新建虚拟环境）未执行——改动全部位于未提交工作区（HEAD be0a8d451dd4e3ed8766c335d156b3f59730660c），故不得称“全部 6 个 Phase 已完成”。整改跟踪见 docs/superpowers/plans/2026-09-03-AI-2复核整改-评委包与发布门禁修复计划.md",
+      "root_cause_fixed": "可证实部分：三份只读数据与 release_records 已进包并被 _judge_sources 的 required 清单硬校验（缺失即拒绝出包），白名单扫描 0 阻断；公开状态白名单投影与 AUDITTRACE_TRUST_LOOPBACK 显式回环开关已实现且有正反用例；未放宽任何测试或密钥扫描。当前评委包失败已收敛为 0，缺年报用例由显式 requires_full_corpus 边界跳过；历史 19 项失败的逐项成因仍 UNKNOWN，不作倒推。",
+      "test_fixes": "评委包边界已显式编码：标准年报与真实 RAG 用例统一使用 requires_full_corpus，缺全文时输出带补齐方式的 skip；种子案例三角色路由、隐私 fail-closed、启动快照和公共接口契约仍在包内实跑。",
+      "skip_boundary": "评委包固定保留两类 skip：18 项 requires_full_corpus（四份标准股份年报全文不随包分发）和 1 项 test_superseded_captain_signoff_remains_traceable（队长签字原件在团队内部 outputs/ 目录）。两类均是显式边界，不删测试、不塞内部证据。",
       "note": "评委包复现边界与源码仓库结果分开登记；包内未复现年报哈希复验与真实模型外呼，两项仍需真人授权后另行验证。"
     },
     "browser_accessibility": {
@@ -484,7 +485,7 @@
     "live_model_note": "Current Render SAIC run RUN-V7-75962367DF2A made one provider attempt and failed closed with MODEL_PROVIDER_AUTH_FAILED; counter/review were skipped and no AI draft formed. Earlier local key returned MODEL_PROVIDER_BALANCE_EXHAUSTED. Readiness intentionally does not probe the paid provider, so the team must replace or repair the Render DeepSeek key before one new single-case acceptance.",
     "cache_manifest": "backend/cache_seed.lock.json validated 50/50 ready with 2025/2024/2023 metadata",
     "materialized_candidate_gate": "backend/cache_seed.materialized.json regenerated; 128/394 automatic field rows across 30/50 companies blocked pending human review, including 72 heuristic cross-year order-of-magnitude outlier rows",
-    "demo_script": "17_审迹智链_最终答辩演示脚本_2026-08-08.md",
+    "demo_script": "archive/2026-09-02/历史报告/17_审迹智链_最终答辩演示脚本_2026-08-08.md",
     "proposal_pdf_status": "regenerated_12_pages_and_visually_verified",
     "proposal_pdf_path": "02_最终确定方案/05_审迹智链_项目方案书_V3.3_审计计划单场景与AI主链闭环版.pdf",
     "proposal_pdf_artifacts": "artifacts/review-2026-07-30/proposal-pdf-final",

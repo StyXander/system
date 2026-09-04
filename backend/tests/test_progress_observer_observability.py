@@ -106,3 +106,34 @@ def test_chain_without_observer_still_works_for_existing_callers() -> None:
     )
 
     assert [step.status for step in steps] == ["model_transfer_revoked", "skipped", "skipped"]
+
+
+def test_observer_status_is_ok_when_no_failure() -> None:
+    """健康运行必须显式给出 ok，而不是缺字段，前端才能区分“没降级”和“没测”。"""
+    from backend.app import main as main_module
+
+    assert main_module._observer_status([]) == {"status": "ok", "failure_count": 0, "notice": "留痕通道正常"}
+
+
+def test_observer_status_reports_degraded_with_main_chain_impact_none() -> None:
+    from backend.app import main as main_module
+
+    failures = [
+        {"scope": "stage", "run_id": "RUN-X", "pipeline_task_id": "T-1", "stage": "structured_output", "error_type": "RuntimeError"},
+        {"scope": "agent_step_live", "run_id": "RUN-X", "pipeline_task_id": "T-1", "role": "challenger", "error_type": "RuntimeError"},
+    ]
+    status = main_module._observer_status(failures)
+    assert status["status"] == "degraded"
+    assert status["failure_count"] == 2
+    assert status["affected_stages"] == ["structured_output"]
+    assert status["affected_roles"] == ["challenger"]
+    assert status["main_chain_impact"] == "none"
+    assert status["notice"] == "留痕通道降级，主分析未受影响"
+    assert status["samples"] == failures[:5]
+
+
+def test_observer_status_survives_into_persisted_task_result() -> None:
+    """降级事实必须随 result 落库：顶层新字段会被 _persist 的列白名单丢掉。"""
+    from backend.app import main as main_module
+
+    assert "result" in main_module._DEMO_TASK_PERSIST_FIELDS, "依赖 demo_run_tasks._persist 的列白名单包含 result"

@@ -393,6 +393,7 @@ def test_r1_v04_eight_positive_and_negative_acceptance_examples(
         assert result.metrics["sustained_periods"] == 1
 
 
+@pytest.mark.requires_full_corpus
 def test_run_mode_layers_and_scene_lock_are_explicit() -> None:
     calculation = client.post(
         "/api/runs",
@@ -422,6 +423,7 @@ def test_model_transfer_forbidden_case_can_only_be_incomplete_local_precheck() -
     assert response.json()["model_check"]["status"] == "model_transfer_not_allowed"
 
 
+@pytest.mark.requires_full_corpus
 def test_builtin_public_case_uses_recorded_project_owner_authorization(monkeypatch: pytest.MonkeyPatch) -> None:
     """公开年报只有匹配项目许可记录后才解锁，测试不发出真实模型请求。"""
     detail = client.get("/api/cases/STD_DEV_T0")
@@ -443,6 +445,7 @@ def test_builtin_public_case_uses_recorded_project_owner_authorization(monkeypat
     assert response.json()["model_check"]["status"] != "model_transfer_not_allowed"
 
 
+@pytest.mark.requires_full_corpus
 def test_full_chain_passes_real_rag_evidence_into_agent_bundle(monkeypatch: pytest.MonkeyPatch) -> None:
     _authorize_standard_for_model_test(monkeypatch)
     captured: list[dict] = []

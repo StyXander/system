@@ -11,6 +11,7 @@ import json
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
+import pytest
 
 from backend.app import main as main_module
 
@@ -22,12 +23,33 @@ def _fake_request(host: str | None) -> SimpleNamespace:
     return SimpleNamespace(client=client)
 
 
-def test_loopback_detection_covers_ipv4_ipv6_and_missing_peer() -> None:
+def test_loopback_detection_covers_ipv4_ipv6_and_missing_peer(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUDITTRACE_TRUST_LOOPBACK", "1")
     assert main_module._is_loopback_request(_fake_request("127.0.0.1")) is True
     assert main_module._is_loopback_request(_fake_request("::1")) is True
     assert main_module._is_loopback_request(_fake_request("localhost")) is True
     assert main_module._is_loopback_request(_fake_request("203.0.113.7")) is False
     assert main_module._is_loopback_request(_fake_request(None)) is False
+
+
+def test_loopback_requires_explicit_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    """同机反代不能再自动等于可信本机：必须显式开关。"""
+
+    monkeypatch.delenv("AUDITTRACE_TRUST_LOOPBACK", raising=False)
+    assert main_module._is_loopback_request(_fake_request("127.0.0.1")) is False
+    assert main_module._is_loopback_request(_fake_request("::1")) is False
+
+
+def test_loopback_opt_in_restores_local_access(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUDITTRACE_TRUST_LOOPBACK", "1")
+    assert main_module._is_loopback_request(_fake_request("127.0.0.1")) is True
+    assert main_module._is_loopback_request(_fake_request("203.0.113.7")) is False
+
+
+def test_internal_status_rejects_public_caller_without_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AUDITTRACE_TRUST_LOOPBACK", raising=False)
+    client = TestClient(main_module.app, client=("127.0.0.1", 54321))
+    assert client.get("/api/internal/status").status_code == 403
 
 
 def test_public_projection_drops_history_and_internal_paths() -> None:

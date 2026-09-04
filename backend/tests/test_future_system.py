@@ -22,11 +22,13 @@ def _create_run() -> dict:
     return response.json()
 
 
+@pytest.mark.requires_full_corpus
 def test_registered_source_hashes_match_real_files() -> None:
     context, sources = get_period_sources(2023, ("R1", "R2"))
     assert _validate_sources(sources, context["t0"]) == []
 
 
+@pytest.mark.requires_full_corpus
 def test_standard_case_annual_reports_expose_verified_official_urls() -> None:
     """四份年报的官方公告元数据只来自内置案例源表，并进入案例详情与字段证据。"""
     expected_urls = {
@@ -57,6 +59,7 @@ def test_standard_case_annual_reports_expose_verified_official_urls() -> None:
     assert all(item["source_url"] == expected_urls[item["year"]] for item in sources)
 
 
+@pytest.mark.requires_full_corpus
 def test_wrong_source_hash_is_a_hard_failure() -> None:
     context, sources = get_period_sources(2023, ("R1",))
     sources[0]["file_sha256"] = "0" * 64
@@ -86,6 +89,7 @@ def test_forbidden_conclusion_is_blocked_in_data_gaps_too() -> None:
         )
 
 
+@pytest.mark.requires_full_corpus
 def test_rag_index_is_ready_and_has_real_chunks() -> None:
     response = client.post("/api/rag/prepare")
     assert response.status_code == 200
@@ -107,6 +111,7 @@ def test_rag_professional_question_set_is_versioned_and_bounded() -> None:
     assert all(item["target_sections"] and item["expected_fields"] and item["no_hit_prompt"] for item in body["questions"])
 
 
+@pytest.mark.requires_full_corpus
 def test_rag_fixed_question_returns_traceable_candidate_fragments() -> None:
     response = client.post(
         "/api/rag/retrieve",
@@ -139,6 +144,7 @@ def test_rag_fixed_question_rejects_wrong_rule_binding() -> None:
     assert "不属于规则" in response.json()["detail"]
 
 
+@pytest.mark.requires_full_corpus
 def test_rag_no_hit_is_only_a_gap_candidate_and_never_auto_syncs() -> None:
     response = client.post(
         "/api/rag/retrieve",
@@ -158,6 +164,7 @@ def test_rag_no_hit_is_only_a_gap_candidate_and_never_auto_syncs() -> None:
     assert "不能据此认定" in body["evidence_gap"]["message"]
 
 
+@pytest.mark.requires_full_corpus
 def test_rag_retrieval_enforces_t0_and_logs_pages() -> None:
     response = client.post(
         "/api/rag/retrieve",
@@ -173,6 +180,7 @@ def test_rag_retrieval_enforces_t0_and_logs_pages() -> None:
     assert logged.status_code == 200
 
 
+@pytest.mark.requires_full_corpus
 def test_rag_company_filter_prevents_cross_company_hits() -> None:
     response = client.post(
         "/api/rag/retrieve",

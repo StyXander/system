@@ -4586,10 +4586,12 @@ mark {
     .demo-structured-table th,
     .demo-structured-table td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid rgb(130 198 212 / 16%); }
     .demo-structured-table th { color: #9eb4b9; background: #07181e; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
-    .demo-structured-table td:nth-child(1),
-    .demo-structured-table td:nth-child(3),
-    .demo-structured-table td:nth-child(4) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-    .demo-structured-table tbody tr:last-child td { border-bottom: 0; }
+     .demo-structured-table td:nth-child(1),
+     .demo-structured-table td:nth-child(3),
+     .demo-structured-table td:nth-child(4) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+     .demo-structured-table th:nth-child(5),
+     .demo-structured-table td:nth-child(5) { min-width: 280px; line-height: 1.55; }
+     .demo-structured-table tbody tr:last-child td { border-bottom: 0; }
     .demo-result-actions { margin-top: 24px; padding-top: 22px; border-top: 1px solid rgb(130 198 212 / 20%); }
     .demo-console,
     .demo-result {
@@ -5008,6 +5010,15 @@ mark {
 
 .cinematic-actions { gap: 18px 22px; }
 
+.cinematic-secondary {
+  color: var(--at-ink-2);
+  font-size: 13px;
+  letter-spacing: var(--at-track-label);
+  text-underline-offset: 5px;
+}
+
+.cinematic-secondary:hover { color: var(--at-ink); }
+
 .cinematic-enter {
   border-radius: var(--radius-2);
   box-shadow: var(--at-edge-hi), var(--at-elev-1);
@@ -5038,6 +5049,23 @@ mark {
 .demo-positioning-enter:hover { background: #c2ecf3; box-shadow: var(--at-edge-hi), var(--at-elev-2); }
 .demo-positioning-boundary { color: var(--at-ink); background: rgb(7 26 34 / 82%); border-color: var(--at-rule); }
 .demo-positioning-boundary:hover { background: rgb(14 44 55 / 88%); border-color: var(--at-rule-strong); }
+
+.demo-positioning-deliverables {
+  align-self: center;
+  padding: clamp(24px, 3vw, 42px);
+  background: rgb(4 16 22 / 88%);
+  border: 1px solid var(--at-rule);
+  box-shadow: var(--at-edge-hi), var(--at-elev-2);
+}
+
+.demo-positioning-deliverables ol { display: grid; gap: 0; margin: 24px 0 18px; padding: 0; list-style: none; }
+.demo-positioning-deliverables li { display: grid; grid-template-columns: 42px 1fr; gap: 14px; padding: 18px 0; border-top: 1px solid var(--at-rule-soft); }
+.demo-positioning-deliverables li:last-child { border-bottom: 1px solid var(--at-rule-soft); }
+.demo-positioning-deliverables li > span { color: var(--at-thread-bright); font-family: var(--font-mono); }
+.demo-positioning-deliverables li div { display: grid; gap: 5px; }
+.demo-positioning-deliverables strong { color: var(--at-ink); }
+.demo-positioning-deliverables small,
+.demo-positioning-deliverables > p:last-child { color: var(--at-ink-3); line-height: 1.7; }
 
 /* 定位页底图遮罩：data-horizon 原图是亮色天空，直接压在深色文字下会把它顶成
    浅灰页，描边标题与衬线摘要都读不清（美化前后两张基线截图同证）。
@@ -5096,6 +5124,49 @@ mark {
 /* 工作台首屏：事实行改成带刻度的账簿条目，示意插图抬回可读亮度。 */
 .demo-hero h2 { color: var(--at-ink); letter-spacing: -.01em; }
 .demo-hero .demo-tagline { color: var(--at-ink-2); line-height: 1.95; }
+
+.demo-deliverables {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 22px 0 0;
+  padding: 1px;
+  list-style: none;
+  background: var(--at-rule-soft);
+  border: 1px solid var(--at-rule-soft);
+}
+
+.demo-deliverables li { display: grid; gap: 5px; padding: 16px 18px; background: var(--at-inset); }
+.demo-deliverables strong { color: var(--at-ink); font-size: 14px; }
+.demo-deliverables span { color: var(--at-ink-3); font-size: 12px; line-height: 1.6; }
+
+.demo-secondary-menu { position: relative; }
+.demo-secondary-menu summary {
+  min-height: 38px;
+  padding: 8px 13px;
+  color: var(--at-ink-2);
+  background: rgb(7 26 34 / 72%);
+  border: 1px solid var(--at-rule);
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+}
+.demo-secondary-menu summary::-webkit-details-marker { display: none; }
+.demo-secondary-menu summary::after { content: " +"; color: var(--at-thread-bright); }
+.demo-secondary-menu[open] summary::after { content: " −"; }
+.demo-secondary-menu > div {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  min-width: 150px;
+  padding: 8px;
+  background: var(--at-panel-raised);
+  border: 1px solid var(--at-rule);
+  box-shadow: var(--at-elev-2);
+}
+.demo-secondary-menu .button { justify-content: flex-start; width: 100%; }
 
 .demo-facts {
   display: grid;
@@ -5228,6 +5299,30 @@ mark {
 .demo-analysis-main { border-right-color: var(--at-rule-soft); }
 .demo-result-heading { border-bottom-color: var(--at-rule-soft); }
 .demo-section-heading h3 { color: var(--at-ink); }
+
+.demo-evidence-challenge {
+  margin: 20px 0 24px;
+  padding: clamp(18px, 2.4vw, 30px);
+  background: linear-gradient(135deg, rgb(7 31 39 / 96%), rgb(4 17 23 / 96%));
+  border: 1px solid var(--at-rule);
+  border-top: 3px solid var(--at-thread-bright);
+  box-shadow: var(--at-edge-hi), var(--at-elev-1);
+}
+.demo-evidence-challenge[data-state="unlocated"] { border-top-color: var(--at-brass); }
+.demo-evidence-challenge[data-state="empty"] { border-top-color: var(--at-clay); }
+.demo-challenge-boundary { max-width: 920px; margin: 12px 0 20px; color: var(--at-ink-3); line-height: 1.75; }
+.demo-challenge-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr); gap: 18px; }
+.demo-challenge-claim { display: grid; align-content: start; gap: 10px; padding: 20px; background: var(--at-inset); border-left: 3px solid var(--at-thread-bright); }
+.demo-challenge-claim > span { color: var(--at-ink-4); font-size: 11px; letter-spacing: var(--at-track-label); }
+.demo-challenge-claim strong { color: var(--at-ink); font-size: clamp(18px, 2vw, 26px); line-height: 1.55; }
+.demo-challenge-claim small { color: var(--at-ink-3); overflow-wrap: anywhere; }
+.demo-challenge-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 0; padding: 1px; background: var(--at-rule-soft); }
+.demo-challenge-facts div { min-width: 0; padding: 14px; background: var(--at-panel); }
+.demo-challenge-facts dt { color: var(--at-ink-4); font-size: 11px; letter-spacing: var(--at-track-folio); }
+.demo-challenge-facts dd { margin: 7px 0 0; color: var(--at-ink-2); line-height: 1.55; overflow-wrap: anywhere; }
+.demo-challenge-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.demo-challenge-actions small { flex: 1 1 260px; color: var(--at-ink-4); line-height: 1.6; }
+.demo-challenge-actions a[aria-disabled="true"] { color: var(--at-ink-4); background: rgb(146 205 218 / 3%); border-color: var(--at-rule-soft); pointer-events: none; }
 
 .demo-audit-overview {
   background: var(--at-inset);
@@ -5410,10 +5505,18 @@ mark {
    品牌分隔线要撤掉——它会把"审迹智链"挤成两行（390 实测）。 */
 @media (max-width: 640px) {
   .demo-facts { grid-template-columns: 1fr; gap: 9px; }
+  .demo-deliverables { grid-template-columns: 1fr; }
+  .demo-challenge-grid { grid-template-columns: 1fr; }
+  .demo-challenge-facts { grid-template-columns: 1fr; }
+  .demo-challenge-actions .button { width: 100%; justify-content: center; }
   .topbar .brand { padding-right: 0; border-right: 0; }
   .topbar .service-pill { font-size: 11px; }
   /* 窄屏 CTA 是竖排居中，左侧竖线会变成悬空孤线。 */
   .cinematic-proof { padding-left: 0; border-left: 0; }
+}
+
+@media (max-width: 1024px) {
+  .demo-challenge-grid { grid-template-columns: 1fr; }
 }
 
 /* 动效兜底：减少动态效果时全部落到瞬时，交互反馈仍靠颜色与边框表达。 */

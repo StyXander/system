@@ -873,6 +873,81 @@
     return overview;
   }
 
+  function traceableChallengeClaim(run) {
+    const ruleResults = Array.isArray(run?.rule_results) ? run.rule_results : [];
+    const reviewOutput = firstReviewOutput(run);
+    const outputs = [reviewOutput, run?.ai_draft, ...ruleResults.map((result) => result?.ai_draft)].filter(Boolean);
+    const claims = claimObjects(outputs);
+    return claims.find((claim) => claim.support_status === "supported" && claim.evidence_ids.length)
+      || claims.find((claim) => claim.evidence_ids.length)
+      || claims[0]
+      || null;
+  }
+
+  function challengeMetric(run, evidenceId) {
+    const ruleResults = Array.isArray(run?.rule_results) ? run.rule_results : [];
+    const matched = ruleResults.find((result) => {
+      const claims = Array.isArray(result?.ai_draft?.claims) ? result.ai_draft.claims : [];
+      return evidenceId && claims.some((claim) => (claim?.evidence_ids || []).includes(evidenceId));
+    }) || ruleResults[0];
+    const metric = Object.entries(matched?.metrics || {})
+      .find(([key, value]) => value !== null && value !== undefined && METRIC_LABELS[key]);
+    return metric ? `${METRIC_LABELS[metric[0]]}：${formatMetricValue(metric[0], metric[1])}` : "本次主张未绑定可展示的关键数字";
+  }
+
+  function renderEvidenceChallenge(run, outcome) {
+    const challenge = byId("demo-evidence-challenge");
+    const claim = traceableChallengeClaim(run);
+    const allEvidence = [
+      ...(Array.isArray(run?.evidence_bundle?.field_evidence) ? run.evidence_bundle.field_evidence : []),
+      ...(Array.isArray(run?.evidence_bundle?.rag_evidence) ? run.evidence_bundle.rag_evidence : []),
+    ];
+    const evidenceId = claim?.evidence_ids?.find((id) => allEvidence.some((item) => item?.evidence_id === id))
+      || claim?.evidence_ids?.[0]
+      || "";
+    const evidence = allEvidence.find((item) => item?.evidence_id === evidenceId) || null;
+    const steps = new Map(normalizeAgentSteps(run?.agent_steps).map((step) => [step.role, step]));
+    const counter = steps.get("counter");
+    const review = steps.get("review");
+    const procedures = procedureRecords(run);
+    const overview = deriveAuditOverview(run, outcome);
+    const humanNext = procedures.find((item) => item?.human_retained)?.human_retained
+      || overview.requestedMaterials?.[0]
+      || overview.dataGaps?.[0]
+      || "请由审计人员回查原文并决定是否执行追加程序";
+    const caseId = run?.context?.case_id || currentCase()?.case_id;
+    const sourceUrl = evidence?.document_id && caseId
+      ? sourceLink(caseId, evidence.document_id, evidence.pdf_page)
+      : "";
+    const state = byId("demo-challenge-state");
+    const sourceLinkNode = byId("demo-challenge-open-source");
+
+    challenge.dataset.state = sourceUrl ? "traceable" : claim ? "unlocated" : "empty";
+    state.className = `state ${sourceUrl ? "success" : claim ? "waiting" : "danger"}`;
+    state.textContent = sourceUrl ? "可一次点击回查" : claim ? "主张存在 · 原文定位缺失" : "未形成可展示主张";
+    byId("demo-challenge-claim").textContent = claim?.text || "本次运行没有形成可展示主张，系统不补造内容。";
+    byId("demo-challenge-run").textContent = `run_id：${run?.run_id || "—"}`;
+    byId("demo-challenge-evidence-id").textContent = evidenceId || "未提供";
+    byId("demo-challenge-metric").textContent = challengeMetric(run, evidenceId);
+    byId("demo-challenge-review").textContent = `反证：${statusLabel(counter?.status || "not_recorded")} · 复核：${statusLabel(review?.status || "not_recorded")}`;
+    byId("demo-challenge-human-next").textContent = humanNext;
+    byId("demo-challenge-boundary").textContent = `${sourceBadgeForRun(run)}；主张、证据和页码均取自运行 ${run?.run_id || "—"}，不构成审计结论。`;
+
+    if (sourceUrl) {
+      sourceLinkNode.href = sourceUrl;
+      sourceLinkNode.removeAttribute("aria-disabled");
+      sourceLinkNode.removeAttribute("tabindex");
+      sourceLinkNode.textContent = `打开原文${evidence.pdf_page ? `第 ${evidence.pdf_page} 页` : "定位"}`;
+      byId("demo-challenge-source-meta").textContent = `${evidenceId} · ${evidence.document_id}${evidence.pdf_page ? ` · PDF 第 ${evidence.pdf_page} 页` : ""}`;
+    } else {
+      sourceLinkNode.removeAttribute("href");
+      sourceLinkNode.setAttribute("aria-disabled", "true");
+      sourceLinkNode.setAttribute("tabindex", "-1");
+      sourceLinkNode.textContent = "当前主张未提供可定位原文";
+      byId("demo-challenge-source-meta").textContent = "接口未提供可核对的 document_id / pdf_page；页面没有自行补填。";
+    }
+  }
+
   function appendAgentList(card, label, items, limit, includeEvidence = true) {
     const visible = (Array.isArray(items) ? items : []).filter((item) => item && (item.text || typeof item === "string")).slice(0, limit);
     if (!visible.length) return;
@@ -1787,6 +1862,7 @@
       summary.append(cell);
     });
     renderAuditOverview(run, outcome);
+    renderEvidenceChallenge(run, outcome);
     renderInlineAgents(run);
     const items = byId("demo-result-items");
     items.replaceChildren();
@@ -1940,6 +2016,123 @@
     setAxisItem("output", `${metricCount} 个结构化指标 · JSON / 表格 / PDF`, "complete");
   }
 
+  function fieldEvidenceRows(run) {
+    if (Array.isArray(run?.evidence_bundle?.field_evidence)) return run.evidence_bundle.field_evidence;
+    if (Array.isArray(run?.field_evidence)) return run.field_evidence;
+    if (Array.isArray(run?.context?.field_evidence)) return run.context.field_evidence;
+    return [];
+  }
+
+  function fieldEvidenceMap(run) {
+    return new Map(fieldEvidenceRows(run).filter((row) => row?.field_id).map((row) => [row.field_id, row]));
+  }
+
+  function formatCalculationInput(row) {
+    if (!row) return "输入字段证据缺失";
+    const value = Number(row.value);
+    if (!Number.isFinite(value)) return `${row.field_id || "字段"} 待补充`;
+    const formatted = value.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+    return `${formatted}${row.unit ? ` ${row.unit}` : ""}`;
+  }
+
+  function calculationProcessForMetric(run, result, key) {
+    const metrics = result?.metrics || {};
+    const fields = fieldEvidenceMap(run);
+    const field = (fieldId) => fields.get(fieldId);
+    const metricOutput = formatMetricValue(key, metrics[key]);
+    const missing = (ids) => ids.filter((fieldId) => !field(fieldId)).join("、");
+    const withInputs = (formula, ids) => {
+      const missingIds = missing(ids);
+      return missingIds
+        ? `${formula}；缺少输入字段证据：${missingIds}`
+        : `${formula} = ${metricOutput}`;
+    };
+
+    switch (key) {
+      case "revenue_growth":
+        return withInputs(
+          `营业收入增速 = (${formatCalculationInput(field("revenue_current"))} - ${formatCalculationInput(field("revenue_previous"))}) / ${formatCalculationInput(field("revenue_previous"))}`,
+          ["revenue_current", "revenue_previous"],
+        );
+      case "ar_growth":
+        return withInputs(
+          `应收账款增速 = (${formatCalculationInput(field("ar_current"))} - ${formatCalculationInput(field("ar_previous"))}) / ${formatCalculationInput(field("ar_previous"))}`,
+          ["ar_current", "ar_previous"],
+        );
+      case "growth_gap":
+        return metrics.ar_growth !== null && metrics.ar_growth !== undefined && metrics.revenue_growth !== null && metrics.revenue_growth !== undefined
+          ? `增速差 = 应收账款增速 ${formatMetricValue("ar_growth", metrics.ar_growth)} - 营业收入增速 ${formatMetricValue("revenue_growth", metrics.revenue_growth)} = ${metricOutput}`
+          : "增速差需要同时存在应收账款增速和营业收入增速；输入值见字段证据";
+      case "absolute_ar_change":
+        return withInputs(
+          `应收账款绝对变动 = ${formatCalculationInput(field("ar_current"))} - ${formatCalculationInput(field("ar_previous"))}`,
+          ["ar_current", "ar_previous"],
+        );
+      case "ar_to_revenue_current":
+        return withInputs(
+          `本年应收 / 收入 = ${formatCalculationInput(field("ar_current"))} / ${formatCalculationInput(field("revenue_current"))}`,
+          ["ar_current", "revenue_current"],
+        );
+      case "ar_to_revenue_previous":
+        return withInputs(
+          `上年应收 / 收入 = ${formatCalculationInput(field("ar_previous"))} / ${formatCalculationInput(field("revenue_previous"))}`,
+          ["ar_previous", "revenue_previous"],
+        );
+      case "turnover_days_current":
+        return withInputs(
+          `本年应收周转天数 = ((${formatCalculationInput(field("ar_current"))} + ${formatCalculationInput(field("ar_previous"))}) / 2) / ${formatCalculationInput(field("revenue_current"))} × 365`,
+          ["ar_current", "ar_previous", "revenue_current"],
+        );
+      case "turnover_days_previous":
+        return withInputs(
+          `上年应收周转天数 = ((${formatCalculationInput(field("ar_previous"))} + ${formatCalculationInput(field("ar_prior"))}) / 2) / ${formatCalculationInput(field("revenue_previous"))} × 365`,
+          ["ar_previous", "ar_prior", "revenue_previous"],
+        );
+      case "turnover_trend_days":
+        return metrics.turnover_days_current !== null && metrics.turnover_days_current !== undefined && metrics.turnover_days_previous !== null && metrics.turnover_days_previous !== undefined
+          ? `周转天数变化 = 本年 ${formatMetricValue("turnover_days_current", metrics.turnover_days_current)} - 上年 ${formatMetricValue("turnover_days_previous", metrics.turnover_days_previous)} = ${metricOutput}`
+          : "周转天数变化需要本年和上年周转天数；输入值见字段证据";
+      case "sustained_periods": {
+        const threshold = run?.context?.configured_parameters?.r1_gap_threshold;
+        return metrics.growth_gap !== null && metrics.growth_gap !== undefined
+          ? `持续期间按增速差 ${formatMetricValue("growth_gap", metrics.growth_gap)} 与阈值 ${threshold ?? "待配置"} 比较，满足期数 = ${metricOutput}`
+          : "持续期间需要可比较的增速差；当前未计算";
+      }
+      case "materiality_multiple": {
+        const planned = run?.context?.configured_parameters?.planned_materiality;
+        return planned
+          ? `金额重要性倍数 = |应收账款绝对变动| / 计划重要性（${formatCalculationInput({ value: planned, unit: "元" })}） = ${metricOutput}`
+          : "未设置计划重要性，金额重要性倍数未计算";
+      }
+      case "materiality_assessment":
+        return "将应收账款绝对变动与计划重要性比较；计划重要性缺失时保留“未评价金额重要性”";
+      case "three_year_trend_available":
+        return `检查 ar_prior、revenue_prior 字段证据是否齐全 → ${metricOutput}`;
+      case "operating_cash_flow_growth":
+        return withInputs(
+          `经营现金流增速 = (${formatCalculationInput(field("operating_cash_flow_current"))} - ${formatCalculationInput(field("operating_cash_flow_previous"))}) / ${formatCalculationInput(field("operating_cash_flow_previous"))}`,
+          ["operating_cash_flow_current", "operating_cash_flow_previous"],
+        );
+      case "cashflow_to_revenue_current":
+        return withInputs(
+          `本年经营现金流 / 收入 = ${formatCalculationInput(field("operating_cash_flow_current"))} / ${formatCalculationInput(field("revenue_current"))}`,
+          ["operating_cash_flow_current", "revenue_current"],
+        );
+      case "cashflow_to_revenue_previous":
+        return withInputs(
+          `上年经营现金流 / 收入 = ${formatCalculationInput(field("operating_cash_flow_previous"))} / ${formatCalculationInput(field("revenue_previous"))}`,
+          ["operating_cash_flow_previous", "revenue_previous"],
+        );
+      case "net_profit_cashflow_gap":
+        return withInputs(
+          `净利润—经营现金流差额 = (经营现金流 - 净利润) / |净利润|，净利润为正且字段齐全时计算`,
+          ["operating_cash_flow_current", "net_profit_current"],
+        );
+      default:
+        return "按后端 run_output_v2 结果读取；详细输入值见字段证据";
+    }
+  }
+
   function structuredMetricRows(run) {
     const rows = [];
     (run.rule_results || []).forEach((result) => {
@@ -1952,6 +2145,7 @@
           formatted_value: formatMetricValue(key, value),
           raw_value: value,
           basis: PERCENT_METRICS.has(key) || key === "growth_gap" ? "比例按小数存储" : key.includes("days") ? "单位：天" : "run_output_v2 原始值",
+          calculation_process: calculationProcessForMetric(run, result, key),
         });
       });
     });
@@ -1964,13 +2158,13 @@
     const rows = structuredMetricRows(run);
     if (!rows.length) {
       const tr = document.createElement("tr");
-      tr.innerHTML = '<td colspan="4">本次运行没有可展示的结构化指标；系统不会补造数值。</td>';
+      tr.innerHTML = '<td colspan="5">本次运行没有可展示的结构化指标；系统不会补造数值。</td>';
       body.append(tr);
       return;
     }
     rows.forEach((row) => {
       const tr = document.createElement("tr");
-      [row.rule_id, row.metric_label, row.formatted_value, `${String(row.raw_value)} · ${row.basis}`].forEach((value) => {
+      [row.rule_id, row.metric_label, row.formatted_value, `${String(row.raw_value)} · ${row.basis}`, row.calculation_process].forEach((value) => {
         const td = document.createElement("td");
         td.textContent = value;
         tr.append(td);
@@ -1999,6 +2193,7 @@
     if (!demoState.run || ["failed_run", "failed", "cancelled", "interrupted"].includes(demoState.outcome)) return;
     const run = demoState.run;
     const task = demoState.fixedTask.task || {};
+    const metricRows = structuredMetricRows(run);
     const payload = {
       schema_version: "audittrace_structured_export_v1",
       exported_at: new Date().toISOString(),
@@ -2024,6 +2219,7 @@
       assertion_evidence_procedure_matrix: run.context?.assertion_evidence_procedure_matrix || run.evidence_bundle?.assertion_evidence_procedure_matrix || [],
       evidence_fitness_boundary: run.context?.evidence_fitness_boundary,
       evidence_fitness_violations: run.context?.evidence_fitness_violations || run.evidence_bundle?.evidence_fitness_violations || [],
+      calculation_process: metricRows.map(({ rule_id, metric_key, calculation_process }) => ({ rule_id, metric_key, calculation_process })),
       numeric_claim_trace: run.context?.numeric_claim_trace || run.evidence_bundle?.numeric_claim_trace || {},
       anti_confirmation: run.context?.anti_confirmation || run.evidence_bundle?.anti_confirmation || {},
       provider_readiness_snapshot: run.context?.provider_readiness_snapshot,
@@ -2043,20 +2239,20 @@
     const supplementId = run.context?.supplement_id || "";
     const rows = structuredMetricRows(demoState.run);
     const lines = [
-      ["run_id", "rule_id", "metric_key", "metric_label", "formatted_value", "raw_value", "basis"].map(csvCell).join(","),
-      ...rows.map((row) => [demoState.run.run_id, row.rule_id, row.metric_key, row.metric_label, row.formatted_value, row.raw_value, row.basis].map(csvCell).join(",")),
-      [run.run_id, "__meta__", "task_status", "任务终态", "", task.status || demoState.outcome || "", "后端任务台账"].map(csvCell).join(","),
-      [run.run_id, "__meta__", "parent_run_id", "父运行编号", "", parentRunId, "补充材料父子链"].map(csvCell).join(","),
-      [run.run_id, "__meta__", "supplement_id", "补充资料编号", "", supplementId, "补充材料父子链"].map(csvCell).join(","),
-      [run.run_id, "__meta__", "task_timeline", "六阶段时间线", "", JSON.stringify(task.steps || {}), "后端任务台账"].map(csvCell).join(","),
-      [demoState.run.run_id, "__meta__", "knowledge_retrieval_trace", "知识检索轨迹", "", JSON.stringify(demoState.run.context?.knowledge_retrieval_trace || []), "来源、定位、快照与主张边界"].map(csvCell).join(","),
-      [demoState.run.run_id, "__meta__", "model_attempt_history", "模型调用留痕", "", JSON.stringify(demoState.run.context?.model_attempt_history || []), "响应哈希、校验、失败码"].map(csvCell).join(","),
-      [demoState.run.run_id, "__meta__", "source_coverage_summary", "来源覆盖摘要", "", JSON.stringify(demoState.run.context?.source_coverage_summary || {}), "代表性接入边界"].map(csvCell).join(","),
-      [demoState.run.run_id, "__meta__", "assertion_evidence_procedure_matrix", "认定—证据—程序覆盖矩阵", "", JSON.stringify(demoState.run.context?.assertion_evidence_procedure_matrix || []), "覆盖状态与程序映射"].map(csvCell).join(","),
-      [demoState.run.run_id, "__meta__", "evidence_fitness", "证据适配度与主张边界", "", JSON.stringify({ boundary: demoState.run.context?.evidence_fitness_boundary, violations: demoState.run.context?.evidence_fitness_violations || [] }), "来源类别限制主张范围"].map(csvCell).join(","),
-      [demoState.run.run_id, "__meta__", "numeric_claim_trace", "数字主张回查", "", JSON.stringify(demoState.run.context?.numeric_claim_trace || {}), "原数字—来源—验证状态"].map(csvCell).join(","),
-      [demoState.run.run_id, "__meta__", "anti_confirmation", "反确认偏差搜索", "", JSON.stringify(demoState.run.context?.anti_confirmation || {}), "反向问题、命中与正常解释"].map(csvCell).join(","),
-      [run.run_id, "__meta__", "supplement_delta", "补充材料差异摘要", "", JSON.stringify(run.context?.supplement_delta || null), "新增证据、建议变化与原字段保护"].map(csvCell).join(","),
+      ["run_id", "rule_id", "metric_key", "metric_label", "formatted_value", "raw_value", "basis", "calculation_process"].map(csvCell).join(","),
+      ...rows.map((row) => [demoState.run.run_id, row.rule_id, row.metric_key, row.metric_label, row.formatted_value, row.raw_value, row.basis, row.calculation_process].map(csvCell).join(",")),
+      [run.run_id, "__meta__", "task_status", "任务终态", "", task.status || demoState.outcome || "", "后端任务台账", ""].map(csvCell).join(","),
+      [run.run_id, "__meta__", "parent_run_id", "父运行编号", "", parentRunId, "补充材料父子链", ""].map(csvCell).join(","),
+      [run.run_id, "__meta__", "supplement_id", "补充资料编号", "", supplementId, "补充材料父子链", ""].map(csvCell).join(","),
+      [run.run_id, "__meta__", "task_timeline", "六阶段时间线", "", JSON.stringify(task.steps || {}), "后端任务台账", ""].map(csvCell).join(","),
+      [demoState.run.run_id, "__meta__", "knowledge_retrieval_trace", "知识检索轨迹", "", JSON.stringify(demoState.run.context?.knowledge_retrieval_trace || []), "来源、定位、快照与主张边界", ""].map(csvCell).join(","),
+      [demoState.run.run_id, "__meta__", "model_attempt_history", "模型调用留痕", "", JSON.stringify(demoState.run.context?.model_attempt_history || []), "响应哈希、校验、失败码", ""].map(csvCell).join(","),
+      [demoState.run.run_id, "__meta__", "source_coverage_summary", "来源覆盖摘要", "", JSON.stringify(demoState.run.context?.source_coverage_summary || {}), "代表性接入边界", ""].map(csvCell).join(","),
+      [demoState.run.run_id, "__meta__", "assertion_evidence_procedure_matrix", "认定—证据—程序覆盖矩阵", "", JSON.stringify(demoState.run.context?.assertion_evidence_procedure_matrix || []), "覆盖状态与程序映射", ""].map(csvCell).join(","),
+      [demoState.run.run_id, "__meta__", "evidence_fitness", "证据适配度与主张边界", "", JSON.stringify({ boundary: demoState.run.context?.evidence_fitness_boundary, violations: demoState.run.context?.evidence_fitness_violations || [] }), "来源类别限制主张范围", ""].map(csvCell).join(","),
+      [demoState.run.run_id, "__meta__", "numeric_claim_trace", "数字主张回查", "", JSON.stringify(demoState.run.context?.numeric_claim_trace || {}), "原数字—来源—验证状态", ""].map(csvCell).join(","),
+      [demoState.run.run_id, "__meta__", "anti_confirmation", "反确认偏差搜索", "", JSON.stringify(demoState.run.context?.anti_confirmation || {}), "反向问题、命中与正常解释", ""].map(csvCell).join(","),
+      [run.run_id, "__meta__", "supplement_delta", "补充材料差异摘要", "", JSON.stringify(run.context?.supplement_delta || null), "新增证据、建议变化与原字段保护", ""].map(csvCell).join(","),
     ];
     downloadBlob(`${safeDownloadName(demoState.run.run_id)}-metrics.csv`, `\uFEFF${lines.join("\r\n")}`, "text/csv;charset=utf-8");
   }
@@ -2144,7 +2340,7 @@
     if (hasStructuredAnalysis) {
       structuredRows.forEach((row) => {
         const tr = document.createElement("tr");
-        [row.rule_id, row.metric_label, row.formatted_value, `${String(row.raw_value)} · ${row.basis}`].forEach((value) => {
+        [row.rule_id, row.metric_label, row.formatted_value, `${String(row.raw_value)} · ${row.basis}`, row.calculation_process].forEach((value) => {
           const td = document.createElement("td");
           td.textContent = value;
           tr.append(td);
@@ -2216,6 +2412,7 @@
     const task = demoState.liveSample.task;
     if (!task?.result) return;
     const analysis = task.result.analysis || {};
+    const metricRows = structuredMetricRows(analysis);
     downloadBlob(`${safeDownloadName(task.task_id)}-sample.json`, JSON.stringify({
       schema_version: "audittrace_live_sample_export_v1",
       exported_at: new Date().toISOString(),
@@ -2228,6 +2425,7 @@
       assertion_evidence_procedure_matrix: analysis.context?.assertion_evidence_procedure_matrix || [],
       evidence_fitness_boundary: analysis.context?.evidence_fitness_boundary,
       evidence_fitness_violations: analysis.context?.evidence_fitness_violations || [],
+      calculation_process: metricRows.map(({ rule_id, metric_key, calculation_process }) => ({ rule_id, metric_key, calculation_process })),
       numeric_claim_trace: analysis.context?.numeric_claim_trace || {},
       anti_confirmation: analysis.context?.anti_confirmation || {},
     }, null, 2), "application/json;charset=utf-8");
@@ -2239,14 +2437,14 @@
     const analysis = task.result.analysis || {};
     const rows = structuredMetricRows(analysis);
     const lines = [
-      ["task_id", "run_id", "case_id", "rule_id", "metric_key", "metric_label", "formatted_value", "raw_value", "basis"].map(csvCell).join(","),
-      ...rows.map((row) => [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", row.rule_id, row.metric_key, row.metric_label, row.formatted_value, row.raw_value, row.basis].map(csvCell).join(",")),
-      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "knowledge_retrieval_trace", "知识检索轨迹", "", JSON.stringify(analysis.context?.knowledge_retrieval_trace || []), "来源、定位、快照与主张边界"].map(csvCell).join(","),
-      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "model_attempt_history", "模型调用留痕", "", JSON.stringify(analysis.context?.model_attempt_history || []), "响应哈希、校验、失败码"].map(csvCell).join(","),
-      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "source_coverage_summary", "来源覆盖摘要", "", JSON.stringify(analysis.context?.source_coverage_summary || {}), "代表性接入边界"].map(csvCell).join(","),
-      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "assertion_evidence_procedure_matrix", "认定—证据—程序覆盖矩阵", "", JSON.stringify(analysis.context?.assertion_evidence_procedure_matrix || []), "覆盖状态与程序映射"].map(csvCell).join(","),
-      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "numeric_claim_trace", "数字主张回查", "", JSON.stringify(analysis.context?.numeric_claim_trace || {}), "原数字—来源—验证状态"].map(csvCell).join(","),
-      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "anti_confirmation", "反确认偏差搜索", "", JSON.stringify(analysis.context?.anti_confirmation || {}), "反向问题、命中与正常解释"].map(csvCell).join(","),
+      ["task_id", "run_id", "case_id", "rule_id", "metric_key", "metric_label", "formatted_value", "raw_value", "basis", "calculation_process"].map(csvCell).join(","),
+      ...rows.map((row) => [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", row.rule_id, row.metric_key, row.metric_label, row.formatted_value, row.raw_value, row.basis, row.calculation_process].map(csvCell).join(",")),
+      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "knowledge_retrieval_trace", "知识检索轨迹", "", JSON.stringify(analysis.context?.knowledge_retrieval_trace || []), "来源、定位、快照与主张边界", ""].map(csvCell).join(","),
+      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "model_attempt_history", "模型调用留痕", "", JSON.stringify(analysis.context?.model_attempt_history || []), "响应哈希、校验、失败码", ""].map(csvCell).join(","),
+      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "source_coverage_summary", "来源覆盖摘要", "", JSON.stringify(analysis.context?.source_coverage_summary || {}), "代表性接入边界", ""].map(csvCell).join(","),
+      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "assertion_evidence_procedure_matrix", "认定—证据—程序覆盖矩阵", "", JSON.stringify(analysis.context?.assertion_evidence_procedure_matrix || []), "覆盖状态与程序映射", ""].map(csvCell).join(","),
+      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "numeric_claim_trace", "数字主张回查", "", JSON.stringify(analysis.context?.numeric_claim_trace || {}), "原数字—来源—验证状态", ""].map(csvCell).join(","),
+      [task.task_id, analysis.run_id || "", task.result.case_id || task.case_id || "", "__meta__", "anti_confirmation", "反确认偏差搜索", "", JSON.stringify(analysis.context?.anti_confirmation || {}), "反向问题、命中与正常解释", ""].map(csvCell).join(","),
     ];
     downloadBlob(`${safeDownloadName(task.task_id)}-metrics.csv`, `\uFEFF${lines.join("\r\n")}`, "text/csv;charset=utf-8");
   }
@@ -2307,12 +2505,9 @@
       demoState.cases = bootstrap.cases || [];
       demoState.caseIndex = new Map(demoState.cases.map((item) => [item.case_id, item]));
       const urlCase = new URLSearchParams(window.location.search).get("case");
-      const storedCase = safeStorageGet(CASE_STORAGE_KEY);
       const preferred = demoState.cases.some((item) => item.case_id === urlCase)
         ? urlCase
-        : demoState.cases.some((item) => item.case_id === storedCase)
-          ? storedCase
-          : bootstrap.featured_case_ids[0];
+        : bootstrap.featured_case_ids[0];
       demoState.caseId = preferred || null;
       renderFacts();
       notifyModelQuality(bootstrap.model_quality);
@@ -2366,6 +2561,7 @@
     byId("demo-rerun").addEventListener("click", () => { resetDemo(); void startDemoRun(); });
     byId("demo-open-all-cases").addEventListener("click", () => { byId("demo-cases-drawer").showModal(); });
     byId("demo-open-evidence").addEventListener("click", () => { byId("demo-evidence-drawer").showModal(); });
+    byId("demo-challenge-open-drawer").addEventListener("click", () => { byId("demo-evidence-drawer").showModal(); });
     byId("demo-open-agents").addEventListener("click", () => { byId("demo-agent-drawer").showModal(); });
     byId("demo-supplement-rerun").addEventListener("click", () => {
       byId("demo-supplement-drawer").showModal();
@@ -2380,12 +2576,16 @@
       byId("demo-tech-drawer").showModal();
       void loadTechEvaluation();
     });
-    byId("demo-open-live-sample").addEventListener("click", () => { byId("demo-live-sample-drawer").showModal(); });
+    byId("demo-open-live-sample").addEventListener("click", () => {
+      byId("demo-secondary-menu").open = false;
+      byId("demo-live-sample-drawer").showModal();
+    });
     byId("demo-live-sample-form").addEventListener("submit", (event) => { void startLiveSample(event); });
     byId("demo-live-download-json").addEventListener("click", downloadLiveSampleJson);
     byId("demo-live-download-csv").addEventListener("click", downloadLiveSampleCsv);
     byId("demo-live-print-report").addEventListener("click", printLiveSampleReport);
     byId("demo-open-tech-drawer").addEventListener("click", () => {
+      byId("demo-secondary-menu").open = false;
       byId("demo-tech-drawer").showModal();
       void loadTechEvaluation();
     });

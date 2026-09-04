@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import demo_bootstrap
+from backend.app.corpus import is_local_corpus_available
 from backend.app.main import app
 
 AI_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
@@ -49,8 +50,15 @@ def test_demo_bootstrap_serves_frozen_manifest_contract(monkeypatch: pytest.Monk
         for case in payload["cases"]
         if case["case_id"] in FEATURED_ORDER
     }
-    # 首页 3 个精选案例 RAG 必须就绪，否则不得进入 ready（计划 8.5 预检）。
-    assert set(featured_rag.values()) == {"ready"}
+    # 源码仓库含四份标准年报时，三个精选案例均应有真实 RAG；评委包
+    # 按分发边界不含全文，标准开发案例只能显示 not_built，两个公开
+    # seed 案例仍必须 ready，不能把缺资料伪装成 failed。
+    if is_local_corpus_available(Path(__file__).resolve().parents[2]):
+        assert set(featured_rag.values()) == {"ready"}
+    else:
+        assert featured_rag["STD_DEV_T0"] == "not_built"
+        assert featured_rag["CNINFO_000858_T0_20260430"] == "ready"
+        assert featured_rag["CNINFO_600938_T0_20260326"] == "ready"
 
 
 def test_demo_bootstrap_reads_runtime_quality_once(monkeypatch: pytest.MonkeyPatch) -> None:

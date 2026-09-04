@@ -10,8 +10,8 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.11.0">
-  <script src="/assets/official-v4/demo-app.js?v=0.10.14" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.11.1">
+  <script src="/assets/official-v4/demo-app.js?v=0.10.18" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -25,7 +25,7 @@
       </a>
       <div class="cinematic-nav-meta">
         <span>审计计划 · 销售与收款循环</span>
-        <a href="#demo-positioning">产品定位</a>
+        <a href="#demo-positioning">方法与边界</a>
         <span class="cinematic-version">0.10.2 · DEMO</span>
       </div>
     </nav>
@@ -36,12 +36,13 @@
       <h1 id="demo-landing-title">审迹智链</h1>
       <div class="cinematic-en-name" lang="en">AuditTrace</div>
       <p class="cinematic-tagline">
-        面向会计师事务所<strong>审计计划阶段</strong>，围绕销售与收款循环，
-        把<strong>确定性计算、原文检索与三 Agent 草稿</strong>绑定到可回查证据，再交由人作最终处理。
+        面向会计师事务所<strong>审计计划阶段</strong>，交付预审风险备忘录、
+        <strong>Top 5 待核查事项</strong>与待索取资料清单；每项主张都绑定原文证据，再交由人作最终处理。
       </p>
       <div class="cinematic-actions">
-        <a class="cinematic-enter" id="demo-enter-workspace" href="#demo-positioning">查看产品定位</a>
-        <span class="cinematic-proof">15 案冻结准入 · 证据可回查 · 失败如实降级</span>
+        <a class="cinematic-enter" id="demo-enter-workspace" href="#workspace-root">进入评委演示</a>
+        <a class="cinematic-secondary" href="#demo-positioning">先看方法与边界</a>
+        <span class="cinematic-proof">默认冻结案例已选 · 一次启动 · 一次点击回到原文</span>
       </div>
     </div>
     <span class="cinematic-corner top" aria-hidden="true"></span>
@@ -58,19 +59,21 @@
           <span class="demo-positioning-outline">销售收款预审</span>
           <span class="demo-positioning-serif">审迹智链</span>
         </h2>
-        <p class="demo-positioning-summary">从公开年报样例或评审现场样例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿；结构化结果、证据缺口与人工处理边界始终单独显示。</p>
+        <p class="demo-positioning-summary">从冻结公开年报案例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿。评委可直接看到风险备忘录、Top 5 待核查事项、待索取资料清单，以及每条主张对应的证据编号和人工下一步。</p>
         <div class="demo-positioning-actions">
           <a class="demo-positioning-enter" href="#workspace-root">进入证据工作台</a>
           <button class="demo-positioning-boundary" type="button" id="demo-positioning-boundary">查看方法与边界</button>
         </div>
       </div>
-      <figure class="demo-positioning-visual">
-        <div class="demo-positioning-frame">
-          <span class="demo-positioning-frame-art" aria-hidden="true"></span>
-          <img src="/assets/official-v4/overview-workbench.png" width="1440" height="900" alt="审迹智链旧版证据工作台视觉示意">
-        </div>
-        <figcaption>界面视觉示意 · 实际运行状态与结构化结果以下方工作台为准</figcaption>
-      </figure>
+      <aside class="demo-positioning-deliverables" aria-label="评委可直接检查的三类交付物">
+        <p class="folio">JUDGE CHECKLIST · 同源结构化交付</p>
+        <ol>
+          <li><span>01</span><div><strong>预审风险备忘录</strong><small>结论、理由与适用边界同屏呈现</small></div></li>
+          <li><span>02</span><div><strong>Top 5 待核查事项</strong><small>主张、关键数字与反证状态逐项留痕</small></div></li>
+          <li><span>03</span><div><strong>待索取资料清单</strong><small>明确哪些步骤必须由审计人员继续完成</small></div></li>
+        </ol>
+        <p>以下工作台是当前实际界面，不再使用旧版工作台截图作宣传示意。</p>
+      </aside>
     </div>
     <dl class="demo-positioning-facts" aria-label="演示能力摘要">
       <div><dt>已登记案例</dt><dd><span id="demo-positioning-case-count">15</span><small>个冻结样例</small></dd></div>
@@ -107,8 +110,13 @@
         <i aria-hidden="true"></i>
         <span id="demo-service-status">正在检查本地后端</span>
       </span>
-      <button class="button quiet" type="button" id="demo-open-tech-drawer">技术说明</button>
-      <button class="button quiet" type="button" id="demo-open-live-sample">现场样例</button>
+      <details class="demo-secondary-menu" id="demo-secondary-menu">
+        <summary>次级入口</summary>
+        <div>
+          <button class="button quiet" type="button" id="demo-open-tech-drawer" aria-label="打开技术说明">技术说明</button>
+          <button class="button quiet" type="button" id="demo-open-live-sample" aria-label="打开现场样例">现场样例</button>
+        </div>
+      </details>
     </div>
   </header>
 
@@ -121,10 +129,14 @@
         <p class="kicker">PUBLIC ANNUAL REPORT PRESCREEN · EVIDENCE-BOUND</p>
         <h2 id="demo-hero-heading"><span>上市公司年报</span><span>风险预筛</span></h2>
         <p class="demo-tagline">
-          选择一个已登记案例并开始审计预筛：系统读取冻结的公开年报证据，执行固定专业规则，
-          调用案例隔离 RAG 与三 Agent（质疑 / 反证 / 复核）生成可回查的结构化待核查事项。
-          结果仅供审计计划阶段进一步核查。
+          默认冻结案例已经选好。点击一次即可生成预审风险备忘录、Top 5 待核查事项和待索取资料清单，
+          并把每条主张连回本次运行的原文证据。结果仅供审计计划阶段进一步核查。
         </p>
+        <ul class="demo-deliverables" aria-label="本次演示将生成的三类交付物">
+          <li><strong>风险备忘录</strong><span>先看结论和边界</span></li>
+          <li><strong>Top 5 待核查事项</strong><span>再看主张、数字与反证</span></li>
+          <li><strong>待索取资料清单</strong><span>最后交给人工继续执行</span></li>
+        </ul>
         <div class="demo-facts" id="demo-facts">
           <span>已登记案例 <strong id="demo-fact-cases">—</strong> 个</span>
           <span>冻结年报 <strong id="demo-fact-reports">—</strong> 份</span>
@@ -186,6 +198,31 @@
               <div><span class="folio">STRUCTURED PRESCREEN OUTPUT</span><h3 id="demo-result-heading">结果摘要</h3></div>
               <span class="state pending" id="demo-result-state">—</span>
             </div>
+            <section class="demo-evidence-challenge" id="demo-evidence-challenge" data-state="empty" aria-labelledby="demo-evidence-challenge-title">
+              <div class="demo-section-heading">
+                <div><span class="folio">30-SECOND EVIDENCE CHALLENGE</span><h3 id="demo-evidence-challenge-title">30 秒证据挑战</h3></div>
+                <span class="state pending" id="demo-challenge-state">等待运行</span>
+              </div>
+              <p class="demo-challenge-boundary" id="demo-challenge-boundary">运行后，从同一次运行中选取一条真实主张，并显示证据编号、关键数字、反证/复核状态与人工下一步。</p>
+              <div class="demo-challenge-grid">
+                <article class="demo-challenge-claim">
+                  <span>待核查主张</span>
+                  <strong id="demo-challenge-claim">尚无运行结果</strong>
+                  <small id="demo-challenge-run">run_id：—</small>
+                </article>
+                <dl class="demo-challenge-facts">
+                  <div><dt>证据编号</dt><dd id="demo-challenge-evidence-id">—</dd></div>
+                  <div><dt>关键数字</dt><dd id="demo-challenge-metric">—</dd></div>
+                  <div><dt>反证 / 复核</dt><dd id="demo-challenge-review">—</dd></div>
+                  <div><dt>人工下一步</dt><dd id="demo-challenge-human-next">—</dd></div>
+                </dl>
+              </div>
+              <div class="demo-challenge-actions">
+                <a class="button primary" id="demo-challenge-open-source" aria-disabled="true" tabindex="-1">当前主张未提供可定位原文</a>
+                <button class="button quiet" type="button" id="demo-challenge-open-drawer">查看本次全部证据</button>
+                <small id="demo-challenge-source-meta">页码与原文入口必须来自本次运行证据。</small>
+              </div>
+            </section>
             <section class="demo-audit-overview" id="demo-audit-overview" aria-labelledby="demo-audit-overview-title">
               <div class="demo-section-heading">
                 <div><span class="folio">AUDIT PLANNING OVERVIEW</span><h3 id="demo-audit-overview-title">本次审计计划总览</h3></div>
@@ -239,7 +276,7 @@
               <div class="demo-table-wrap" role="region" aria-label="本次运行结构化指标表格（可横向滚动）" tabindex="0">
                 <table class="demo-structured-table" id="demo-structured-table">
                   <caption>本次运行规则指标结构化明细</caption>
-                  <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th></tr></thead>
+                   <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th><th scope="col">计算过程</th></tr></thead>
                   <tbody id="demo-structured-table-body"></tbody>
                 </table>
               </div>
@@ -466,7 +503,7 @@
         <div class="demo-table-wrap" id="demo-live-table-wrap" hidden>
           <table class="demo-structured-table">
             <caption>现场样例规则指标结构化明细</caption>
-            <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th></tr></thead>
+             <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th><th scope="col">计算过程</th></tr></thead>
             <tbody id="demo-live-structured-table-body"></tbody>
           </table>
         </div>

@@ -782,7 +782,14 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
         {"case_id": str(case["case_id"])}
         for case in main_module.load_seed_cases(main_module.WORKSPACE_ROOT)
     ]
-    assert len(cases) == 51
+    # 评委包不携带标准股份年报全文；种子案例仍应完整验证三角色路由，
+    # 标准开发案例的真实年报链由源码仓库（含全文）单独验收。
+    from backend.app.corpus import is_local_corpus_available
+
+    corpus_available = is_local_corpus_available(main_module.WORKSPACE_ROOT)
+    if not corpus_available:
+        cases = [case for case in cases if case["case_id"] != main_module.CASE_ID]
+    assert len(cases) == (51 if corpus_available else 50)
     for item in cases:
         detail = client.get(f"/api/cases/{item['case_id']}")
         assert detail.status_code == 200, item["case_id"]
@@ -878,6 +885,9 @@ def test_rag_and_sensitive_data_fail_closed_in_all_case_demo(monkeypatch: pytest
     provider_calls: list[str] = []
     monkeypatch.setattr(agents_module, "_call_model", lambda **_kwargs: provider_calls.append("called"))
     client = TestClient(app)
+    # 该测试验证演示主链的 fail-closed 行为，不要求标准开发案例的本机年报；
+    # 评委包使用带冻结 seed RAG 片段的公开案例完成同一合同。
+    demo_case_id = "CNINFO_000858_T0_20260430"
 
     monkeypatch.setattr(
         main_module,
@@ -886,7 +896,7 @@ def test_rag_and_sensitive_data_fail_closed_in_all_case_demo(monkeypatch: pytest
     )
     rag_failed = client.post(
         "/api/runs",
-        json={"case_id": "STD_DEV_T0", "current_year": 2024, "rule_ids": ["R1"], "run_mode": "full_analysis"},
+        json={"case_id": demo_case_id, "current_year": 2024, "rule_ids": ["R1"], "run_mode": "full_analysis"},
     )
     assert rag_failed.status_code == 200
     assert rag_failed.json()["model_check"]["status"] == "not_attempted_rag_failure"
@@ -904,7 +914,7 @@ def test_rag_and_sensitive_data_fail_closed_in_all_case_demo(monkeypatch: pytest
     )
     sensitive = client.post(
         "/api/runs",
-        json={"case_id": "STD_DEV_T0", "current_year": 2024, "rule_ids": ["R1"], "run_mode": "full_analysis"},
+        json={"case_id": demo_case_id, "current_year": 2024, "rule_ids": ["R1"], "run_mode": "full_analysis"},
     )
     assert sensitive.status_code == 200
     assert sensitive.json()["model_check"]["status"] == "sensitive_data_blocked"

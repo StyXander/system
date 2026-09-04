@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import sys
@@ -91,13 +92,20 @@ def main() -> int:
 
         main_json_data = json.loads(main_json.read_text(encoding="utf-8"))
         main_csv_text = main_csv.read_text(encoding="utf-8-sig")
+        main_csv_rows = list(csv.reader(main_csv_text.splitlines()))
         main_pdf_text = pdf_text(main_pdf)
         report["exports"]["main"] = {
             "run_id": run_id,
             "table_rows": main_rows,
             "json_schema": main_json_data.get("schema_version"),
             "json_has_run": main_json_data.get("run", {}).get("run_id") == run_id,
+            "json_has_calculation_process": bool(main_json_data.get("calculation_process"))
+            and all(item.get("calculation_process") for item in main_json_data.get("calculation_process", [])),
             "csv_has_run": run_id in main_csv_text,
+            "csv_header": main_csv_rows[0] if main_csv_rows else [],
+            "csv_has_calculation_process": bool(main_csv_rows)
+            and "calculation_process" in main_csv_rows[0]
+            and any(row[-1].strip() for row in main_csv_rows[1:] if row),
             "csv_lines": len([line for line in main_csv_text.splitlines() if line.strip()]),
             "pdf_pages": pdf_pages(main_pdf),
             "pdf_has_title": "结果摘要" in main_pdf_text and "结构化结果明细" in main_pdf_text,
@@ -105,6 +113,11 @@ def main() -> int:
             "files": {path.name: {"bytes": path.stat().st_size, "sha256": sha256(path)} for path in (main_json, main_csv, main_pdf)},
         }
 
+        # The secondary entry points are intentionally collapsed in the judge-facing
+        # header; expand the native details element before opening the live sample.
+        secondary_menu = page.locator("#demo-secondary-menu")
+        if not secondary_menu.get_attribute("open"):
+            secondary_menu.locator("summary").click()
         page.locator("#demo-open-live-sample").click()
         page.locator("#demo-live-company").fill(args.company)
         page.locator("#demo-live-sample-form").evaluate("form => form.requestSubmit()")
@@ -127,6 +140,7 @@ def main() -> int:
 
         live_json_data = json.loads(live_json.read_text(encoding="utf-8"))
         live_csv_text = live_csv.read_text(encoding="utf-8-sig")
+        live_csv_rows = list(csv.reader(live_csv_text.splitlines()))
         live_pdf_text = pdf_text(live_pdf)
         report["exports"]["live"] = {
             "task_id": live_task_id,
@@ -134,7 +148,13 @@ def main() -> int:
             "table_rows": live_rows,
             "json_schema": live_json_data.get("schema_version"),
             "json_has_task": live_json_data.get("task", {}).get("task_id") == live_task_id,
+            "json_has_calculation_process": bool(live_json_data.get("calculation_process"))
+            and all(item.get("calculation_process") for item in live_json_data.get("calculation_process", [])),
             "csv_has_task": live_task_id in live_csv_text,
+            "csv_header": live_csv_rows[0] if live_csv_rows else [],
+            "csv_has_calculation_process": bool(live_csv_rows)
+            and "calculation_process" in live_csv_rows[0]
+            and any(row[-1].strip() for row in live_csv_rows[1:] if row),
             "csv_lines": len([line for line in live_csv_text.splitlines() if line.strip()]),
             "pdf_pages": pdf_pages(live_pdf),
             "pdf_has_title": "评审现场样例接入" in live_pdf_text,
@@ -149,13 +169,17 @@ def main() -> int:
         report["exports"]["main"]["table_rows"] > 0,
         report["exports"]["main"]["json_schema"] == "audittrace_structured_export_v1",
         report["exports"]["main"]["json_has_run"],
+        report["exports"]["main"]["json_has_calculation_process"],
         report["exports"]["main"]["csv_has_run"],
+        report["exports"]["main"]["csv_has_calculation_process"],
         report["exports"]["main"]["pdf_has_title"],
         report["exports"]["main"]["pdf_has_ai_notice"],
         report["exports"]["live"]["table_rows"] > 0,
         report["exports"]["live"]["json_schema"] == "audittrace_live_sample_export_v1",
         report["exports"]["live"]["json_has_task"],
+        report["exports"]["live"]["json_has_calculation_process"],
         report["exports"]["live"]["csv_has_task"],
+        report["exports"]["live"]["csv_has_calculation_process"],
         report["exports"]["live"]["pdf_has_title"],
         report["exports"]["live"]["pdf_has_ai_notice"],
         not report["console_errors"],

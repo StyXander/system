@@ -37,6 +37,7 @@ def test_health_without_key_is_explicit(monkeypatch: pytest.MonkeyPatch) -> None
     assert response.json()["model_status"] == "config_missing"
 
 
+@pytest.mark.requires_full_corpus
 def test_r1_2023_is_candidate_and_deterministic_without_model() -> None:
     response = client.post(
         "/api/runs",
@@ -51,6 +52,7 @@ def test_r1_2023_is_candidate_and_deterministic_without_model() -> None:
     assert len(body["sources"]) == 4
 
 
+@pytest.mark.requires_full_corpus
 def test_r2_blocks_cross_sign_cashflow_growth_without_forcing_candidate() -> None:
     response = client.post(
         "/api/runs",
@@ -69,6 +71,7 @@ def test_r2_blocks_cross_sign_cashflow_growth_without_forcing_candidate() -> Non
     assert result["agent_steps"][0]["status"] == "not_applicable"
 
 
+@pytest.mark.requires_full_corpus
 def test_agent_chain_reports_missing_configuration_without_fake_output(monkeypatch: pytest.MonkeyPatch) -> None:
     _authorize_standard_for_model_test(monkeypatch)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
@@ -85,6 +88,7 @@ def test_agent_chain_reports_missing_configuration_without_fake_output(monkeypat
     assert result["agent_steps"][0]["output"] is None
 
 
+@pytest.mark.requires_full_corpus
 def test_public_demo_limits_only_anonymous_model_calls(monkeypatch: pytest.MonkeyPatch) -> None:
     _authorize_standard_for_model_test(monkeypatch)
     monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")

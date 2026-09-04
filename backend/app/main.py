@@ -83,6 +83,7 @@ import math
 import mimetypes
 import os
 import re
+import subprocess
 import threading
 import time
 import uuid
@@ -139,6 +140,7 @@ from .cases import (
 )
 from .industry_gate import build_not_applicable_context, evaluate_industry_gate
 from .industry_rules import build_industry_prescreen
+from .corpus import is_local_corpus_available
 from .privacy import model_transmission_scope, scan_sensitive_payload
 from .provider_readiness import (
     classify_provider_channel,
@@ -161,8 +163,17 @@ from .catalog import (
 from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
 from .delivery import build_report, cache_run, replay_cache
 from .demo_bootstrap import blocked_bootstrap_payload, build_bootstrap_payload, load_demo_manifest
-from .demo_run_tasks import AGENT_ROLE_ORDER, STAGE_ORDER, DemoRunTaskStore, IdempotencyConflict, SupabaseDemoRunTaskStore, result_expiry_iso
+from .demo_run_tasks import (
+    AGENT_ROLE_ORDER,
+    STAGE_ORDER,
+    DemoRunTaskStore,
+    IdempotencyConflict,
+    SupabaseDemoRunTaskStore,
+    _DEMO_TASK_PERSIST_FIELDS,
+    result_expiry_iso,
+)
 from .manifest_hash import CANONICAL_MANIFEST_HASH_ALGORITHM, manifest_sha256
+from .release_gate import evaluate_b3_eligibility, evaluate_release_ready
 from .knowledge_rag import build_retrieval_request, retrieve_knowledge
 from .knowledge_sources import active_source_entries, coverage_group_summary, knowledge_cutoff_date, knowledge_snapshot_id
 from .knowledge_sources import load_source_manifest as load_knowledge_manifest
@@ -3356,6 +3367,22 @@ def _reconcile_registered_context(
         card["available_context"] = ["公开年报汇总账龄已登记；客户级明细与真实性仍待人工复核。"]
 
 
+def _observer_status(failures: list[dict[str, Any]]) -> dict[str, Any]:
+    """把旁路观察器失败压成一条可展示状态：只描述留痕通道，绝不改写主链结论。"""
+
+    if not failures:
+        return {"status": "ok", "failure_count": 0, "notice": "留痕通道正常"}
+    return {
+        "status": "degraded",
+        "failure_count": len(failures),
+        "affected_stages": sorted({str(item["stage"]) for item in failures if "stage" in item}),
+        "affected_roles": sorted({str(item["role"]) for item in failures if "role" in item}),
+        "main_chain_impact": "none",
+        "notice": "留痕通道降级，主分析未受影响",
+        "samples": failures[:5],
+    }
+
+
 def _execute_run(
     *,
     context: dict[str, Any],
@@ -3439,6 +3466,7 @@ def _execute_run(
         _require_worker_lease(http_request)
     context.update(
         {
+            "observer_status": _observer_status(progress_observer_failures),
             "scene": "审计计划",
             "selected_rule_ids": rule_ids,
             "run_mode": run_mode,
@@ -4310,6 +4338,7 @@ def _execute_run(
         rag_error=rag_error,
     ))
     all_agent_steps = [step for result in rule_results for step in result.agent_steps]
+    context["observer_status"] = _observer_status(progress_observer_failures)
     response = RunResponse(
         run_id=run_id,
         status=screening_status,
@@ -4450,6 +4479,76 @@ def _r1_signoff_snapshot() -> dict[str, Any]:
     return load_signoff_status()
 
 
+def _git_release_snapshot() -> tuple[str | None, bool | None]:
+    """读取当前源码快照和 dirty 状态；无法读取时不猜测为 clean。"""
+
+    configured_head = str(os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "").strip()
+    try:
+        head_process = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=WORKSPACE_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            check=False,
+        )
+        status_process = subprocess.run(
+            ["git", "status", "--porcelain=v1"],
+            cwd=WORKSPACE_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            check=False,
+        )
+        head = head_process.stdout.strip().lower()
+        if head_process.returncode == 0 and head:
+            return head, bool(status_process.stdout.strip()) if status_process.returncode == 0 else None
+    except (OSError, subprocess.SubprocessError):
+        pass
+    # Render 可能只保留构建 commit，不保留 .git；环境变量仍需显式存在。
+    return (configured_head.lower() or None), False if configured_head else None
+
+
+def _load_fresh_b3_evidence(state: dict[str, Any]) -> dict[str, Any] | None:
+    """只读取发布记录明确绑定的 B3 证据，缺失时返回 None 而不是读取历史结果。"""
+
+    readiness = state.get("release_readiness") or {}
+    inline = readiness.get("fresh_production_b3_evidence")
+    if isinstance(inline, dict):
+        return inline
+    relative_path = str(
+        readiness.get("fresh_production_b3_evidence_path")
+        or readiness.get("fresh_b3_evidence_path")
+        or ""
+    ).strip()
+    if not relative_path:
+        return None
+    candidate = (WORKSPACE_ROOT / relative_path).resolve()
+    try:
+        candidate.relative_to(WORKSPACE_ROOT.resolve())
+    except ValueError:
+        return None
+    try:
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _load_current_evaluation_pointer(pointer_path: Path) -> dict[str, Any]:
+    """读取发布记录指向的当前评估指针，失败时返回空对象并保持阻断。"""
+
+    try:
+        payload = json.loads(pointer_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def _release_fact_snapshot(
     *, readiness: dict[str, Any] | None = None, runtime_quality: dict[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -4488,11 +4587,52 @@ def _release_fact_snapshot(
     signoff = load_signoff_status()
     readiness = readiness or {}
     configured_model_id = _model_settings()[2]
+    git_head, worktree_dirty = _git_release_snapshot()
     deployment_commit = os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None
     release_evidence_head = os.getenv("AUDITTRACE_RELEASE_EVIDENCE_HEAD") or None
     materialized_source_head = ((state.get("demo") or {}).get("materialized_source_head") or manifest_source_head)
     eval_pointer_status = str(eval_dashboard.get("current_pointer_status") or "legacy")
     human_scoring_status = str(eval_dashboard.get("human_scoring_status") or "pending")
+    pointer_relative = str((state.get("evaluation") or {}).get("pointer") or "").strip()
+    pointer_data = _load_current_evaluation_pointer(WORKSPACE_ROOT / pointer_relative) if pointer_relative else {}
+    fresh_b3_evidence = _load_fresh_b3_evidence(state)
+    gate_release_data = {
+        **state,
+        "demo": {**(state.get("demo") or {}), "materialized_source_head": materialized_source_head},
+        "evaluation": {
+            **(state.get("evaluation") or {}),
+            "evaluation_id": pointer_data.get("evaluation_id") or eval_dashboard.get("evaluation_id"),
+            "human_scoring_status": human_scoring_status,
+        },
+        "signoff": {**(state.get("signoff") or {}), "signoff_status": signoff.get("signoff_status")},
+    }
+    gate_evaluation_data = {
+        **pointer_data,
+        "pointer_status": eval_pointer_status,
+        "model_id": pointer_data.get("model_id") or eval_dashboard.get("model_id"),
+        "raw_records_status": pointer_data.get("raw_records_status"),
+        "human_scoring_status": human_scoring_status,
+    }
+    b3_ready, b3_reason = evaluate_b3_eligibility(
+        fresh_b3_evidence or {},
+        expected_model_id=configured_model_id,
+        expected_source_commit=git_head,
+        expected_deployment_commit=deployment_commit,
+        expected_manifest_sha256=manifest_hash,
+    )
+    release_ready, release_reason = evaluate_release_ready(
+        gate_release_data,
+        gate_evaluation_data,
+        git_head=git_head,
+        worktree_dirty=worktree_dirty,
+        human_final_approval=bool((state.get("release_readiness") or {}).get("human_final_approval")),
+        deployment_commit=deployment_commit,
+        release_evidence_head=release_evidence_head,
+        manifest_sha256=manifest_hash,
+        expected_model_id=configured_model_id,
+        signoff_status=signoff.get("signoff_status"),
+        b3_evidence=fresh_b3_evidence,
+    )
     ready_checks = {
         "manifest_hash": manifest_status == "verified" and manifest_count == 15,
         "model_id": str(readiness.get("model_id") or ((state.get("model") or {}).get("model_id") or "")) == configured_model_id,
@@ -4504,7 +4644,8 @@ def _release_fact_snapshot(
         "evaluation_pointer": eval_pointer_status == "valid",
         "signoff": signoff.get("signoff_status") == "captain_approved_for_competition_demo",
         "human_scoring": human_scoring_status not in {"pending", "pending_human_scoring", "pending_human_scoring_and_fresh_model_runs"},
-        "fresh_production_b3": bool((state.get("release_readiness") or {}).get("fresh_production_b3_completed")),
+        "fresh_production_b3": b3_ready,
+        "release_gate": release_ready,
     }
     return {
         "schema_version": str(state.get("schema_version") or "audittrace_release_record_v1"),
@@ -4515,10 +4656,12 @@ def _release_fact_snapshot(
             "provider_label": readiness.get("provider_label") or (state.get("model") or {}).get("provider_label"),
         },
         "heads": {
+            "git_head": git_head,
             "deployment_commit": deployment_commit,
             "release_evidence_head": release_evidence_head,
             "materialized_source_head": materialized_source_head,
             "demo_manifest_sha256": manifest_hash,
+            "worktree_dirty": worktree_dirty,
         },
         "manifest": {
             "path": "backend/competition_demo_cases.json",
@@ -4533,6 +4676,7 @@ def _release_fact_snapshot(
             "pointer_status": eval_pointer_status,
             "pointer_reason": eval_dashboard.get("current_pointer_reason"),
             "human_scoring_status": human_scoring_status,
+            "raw_records_status": gate_evaluation_data.get("raw_records_status"),
             "quality_window": eval_dashboard.get("quality_window"),
             "runtime_quality_window": runtime_quality,
         },
@@ -4542,7 +4686,12 @@ def _release_fact_snapshot(
             "record": "backend/release_records/r1_signoff_20260825_r2.json",
         },
         "task_continuity": _demo_task_continuity(),
-        "competition_release_ready": all(ready_checks.values()),
+        "release_gate": {
+            "status": "ready" if release_ready else "blocked",
+            "reason": release_reason,
+            "fresh_b3_reason": b3_reason,
+        },
+        "competition_release_ready": release_ready,
         "ready_checks": ready_checks,
         "boundary": "配置存在、探测通过和历史评估均不等于新的竞赛发布批准；人工评分和最终批准为空时保持 pending。",
     }
@@ -4574,9 +4723,24 @@ _PUBLIC_STATUS_KEYS: tuple[str, ...] = (
 )
 
 
-def _is_loopback_request(http_request: Request) -> bool:
-    """对等地址是否回环：本机诊断的判据，不复因历史状态文件。"""
+_TRUST_LOOPBACK_FLAG = "AUDITTRACE_TRUST_LOOPBACK"
 
+
+def _loopback_trusted_by_config() -> bool:
+    """回环是否可作为本机判据：默认关闭，只有本机开发显式开启。
+
+    部署环境里同机反向代理会让外部请求看起来像 127.0.0.1，
+    所以“对端是回环”不再是充分条件，必须由显式开关授权。
+    """
+
+    return str(os.environ.get(_TRUST_LOOPBACK_FLAG, "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_loopback_request(http_request: Request) -> bool:
+    """对等地址是否回环：仅在显式开关下采信，不复因历史状态文件。"""
+
+    if not _loopback_trusted_by_config():
+        return False
     peer = str(http_request.client.host if http_request.client else "").strip()
     if not peer:
         return False
@@ -4600,16 +4764,14 @@ def public_project_status(http_request: Request) -> dict[str, Any]:
     """公开入口只返回实时发布事实，不再外抛整份历史状态文件。"""
 
     payload = _project_status_payload(http_request)
-    if not _competition_demo_enabled():
-        return payload
-    return _public_status_projection(payload)
+    return _public_status_projection(payload, demo_scope=_competition_demo_enabled())
 
 
 @app.get("/api/internal/status")
 def internal_project_status(http_request: Request) -> dict[str, Any]:
     """完整诊断（历史评估、内部路径、旧模型窗口）只在受控环境可读。"""
 
-    if _competition_demo_enabled() and not _is_local_or_authenticated_request(http_request):
+    if not _is_local_or_authenticated_request(http_request):
         raise HTTPException(status_code=403, detail="完整项目状态仅限本机或已认证环境读取。")
     return _with_ai_notice(_project_status_payload(http_request))
 
@@ -4647,7 +4809,7 @@ def _restrict_to_demo_manifest(cases: list[dict[str, Any]]) -> list[dict[str, An
     ]
 
 
-def _public_status_projection(payload: dict[str, Any]) -> dict[str, Any]:
+def _public_status_projection(payload: dict[str, Any], *, demo_scope: bool = True) -> dict[str, Any]:
     """把公开响应限定在白名单键上。
 
     PROJECT_STATUS.json 的历史登记（旧模型窗口、AI 预评分、内部产物路径）
@@ -4661,7 +4823,8 @@ def _public_status_projection(payload: dict[str, Any]) -> dict[str, Any]:
         projected["model"] = {
             key: value for key, value in model.items() if key != "frozen_release_quality_window"
         }
-    _apply_demo_case_scope(projected)
+    if demo_scope:
+        _apply_demo_case_scope(projected)
     return _with_ai_notice(projected)
 
 
@@ -4818,6 +4981,19 @@ def _local_rag_status_for(case: dict[str, Any], *, tenant_id: str | None) -> dic
     # 目录，也不能让命名空间或历史缓存改变 bootstrap 的发布状态。
     if _competition_demo_enabled() and case.get("demo_rag_evidence"):
         return seed_rag_status(case)
+    # 评委代码包不分发标准股份年报全文。此时标准案例仍可出现在
+    # 15 案启动清单，但只能如实显示“未构建”，不能把一次缺文件建库
+    # 失败污染为 failed，进而让整个 bootstrap 看起来像程序故障。
+    if str(case.get("case_id") or "").strip().upper() == CASE_ID and not is_local_corpus_available(WORKSPACE_ROOT):
+        return {
+            "status": "not_built",
+            "source_status": "source_missing",
+            "index_status": "not_built",
+            "runtime_ready": False,
+            "case_id": CASE_ID,
+            "chunk_count": 0,
+            "reason_code": "standard_corpus_missing",
+        }
     local_case = _materialized_case_for_resolved(case, tenant_id=tenant_id)
     if local_case is not None:
         return rag_status(WORKSPACE_ROOT, str(case["case_id"]).upper())

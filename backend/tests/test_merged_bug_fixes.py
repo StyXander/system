@@ -85,6 +85,7 @@ def test_model_readiness_conditions(monkeypatch: pytest.MonkeyPatch) -> None:
     assert info3["deterministic_backup_available"] is True
 
 
+@pytest.mark.requires_full_corpus
 def test_force_deterministic_backup_direct_run(client: TestClient) -> None:
     """AT-003: 即使没有已存 run_id，POST /api/runs 携带 force_deterministic_backup=True 也可直接执行。"""
     payload = {

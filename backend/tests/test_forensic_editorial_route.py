@@ -1,9 +1,12 @@
 """独立 Forensic Editorial 页面保留兼容入口，根页由正式 V4 工作台提供。"""
 
 from fastapi.testclient import TestClient
+import pytest
 
 from backend.app.main import WORKSPACE_ROOT, app
 
+
+pytestmark = pytest.mark.repository_only
 
 client = TestClient(app)
 

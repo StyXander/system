@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import io
 import json
@@ -17,8 +18,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
+if str(Path(__file__).resolve().parents[1]) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from backend.app.corpus import standard_corpus_paths
 
 ROOT = Path(__file__).resolve().parents[1]
+VALIDATION_PYTHON = sys.executable
 DELIVERY_DIR = ROOT / "交付包"
 OFFICE_DIR = ROOT / "outputs" / "2026-07-28-v4-closure"
 
@@ -48,7 +54,7 @@ CASE_ZIP = OFFICE_DIR / "审迹智链_标准案例包_V1.zip"
 TEAM_ZIP = DELIVERY_DIR / "01_队员Word_Excel材料包_2026-08-09.zip"
 TEACHER_ZIP = DELIVERY_DIR / "02_老师方案材料包_2026-08-09.zip"
 CLEAN_ZIP = DELIVERY_DIR / "03_审迹智链0.7.1_无密钥清洁运行包_2026-08-09.zip"
-JUDGE_ZIP = DELIVERY_DIR / "04_审迹智链_评委代码复现包_2026-09-01.zip"
+JUDGE_ZIP = DELIVERY_DIR / "04_审迹智链_评委代码复现包_2026-09-03.zip"
 REPORT = DELIVERY_DIR / "交付清单与扫描报告.txt"
 VALIDATION_LOG = DELIVERY_DIR / "交付包构建与独立复验日志.txt"
 AI_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
@@ -188,7 +194,7 @@ def _clean_sources() -> list[tuple[str, Path]]:
         for item in _iter_python_files(ROOT / "backend" / "tests")
         if Path(item[0]).name not in repository_only_tests
     )
-    for report in sorted(ROOT.glob("标准股份*.pdf")):
+    for report in standard_corpus_paths(ROOT):
         # 内置案例登记的是根目录相对路径；打包时必须保持同一位置，否则哈希与RAG都会失效。
         items.append((report.name, report))
     return items
@@ -204,7 +210,7 @@ def _judge_sources() -> list[tuple[str, Path]]:
     因此测试清单以随包生成的纯文本成员提供。
     """
 
-    report_names = {report.name for report in sorted(ROOT.glob("标准股份*.pdf"))}
+    report_names = {report.name for report in standard_corpus_paths(ROOT)}
     items = [item for item in _clean_sources() if Path(item[0]).name not in report_names]
 
     required = [
@@ -215,12 +221,20 @@ def _judge_sources() -> list[tuple[str, Path]]:
         "backend/release_records/current_release.json",
         "scripts/check_chinese_comments.py",
         "scripts/test_inventory.py",
+        "scripts/prepare_full_corpus.py",
         # B2 契约测试会 import 这个模块；漏打包会让评委侧整个收集阶段失败。
         "scripts/run_controlled_b1_b3_prescore.py",
+        # 这三份只读数据是历史评委包失败的致因，必须与源码同批进包，不得再靠人记得。
+        *PACKAGE_DATA_FILES,
     ]
     missing = [name for name in required if not (ROOT / name).is_file()]
     if missing:
         raise RuntimeError(f"评委包缺少必需文件，先修复再打包：{missing}")
+    # required 只能证明文件在仓库里存在；这里再查一次它们是否真的进了包。
+    packaged_names = {Path(name).as_posix() for name, _path in items}
+    absent = [name for name in PACKAGE_DATA_FILES if name not in packaged_names]
+    if absent:
+        raise RuntimeError(f"评委包成员里没有这几份只读数据文件，先修复再打包：{absent}")
     if not (ROOT / "docs" / "TEST_INVENTORY.md").is_file():
         raise RuntimeError("评委包缺少测试清单来源，先运行 scripts/test_inventory.py。")
     if any(Path(name).name in report_names for name, _path in items):
@@ -239,18 +253,20 @@ JUDGE_README = """审迹智链 AuditTrace 评委代码复现包
 正式范围：审计计划阶段—销售与收款循环。
 本包用途：从零安装依赖、启动服务、复算完整离线测试；不含四份公开年报全文。
 运行要求：Python 3.10 或更高版本，Windows、macOS、Linux 同一条命令。
-安装：python -m pip install -r requirements.txt
+安装（复现测试与验收依赖）：python -m pip install -r requirements-dev.txt
+只跑服务不跑测试：python -m pip install -r requirements.txt
 启动：python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 访问：http://127.0.0.1:8000
 测试（离线，无需密钥）：python -m pytest -q
-预期结果：以 PROJECT_STATUS.json 的 tests.judge_package.latest_result 登记的**当次隔离实测**为准。
-截至 2026-09-02，该口径为 321 passed、19 failed、1 skipped，本包处于 remediation_required
-状态、暂不可作为验收依据。19 项失败的具体成因尚未逐项测量确认（怀疑与按边界不分发的
-四份年报全文有关，但未经 scripts/diagnose_judge_package.py 逐项证实前不作为结论）。
-整改完成后此段将回填为实测的 <N> passed、<M> skipped、0 failed，并逐项列出跳过理由。
-源码仓库口径另记为 347 passed。
-唯一固定 skip 为 test_superseded_captain_signoff_remains_traceable（队长签字原件属团队内部
-outputs/ 证据，不随包分发）；两套数字分开登记。
+预期结果：0 failed、0 error。缺少四份标准股份年报全文时，依赖真实年报
+的测试会以 requires_full_corpus 明确 skip；队长签字原件属于团队内部
+outputs/ 证据，也会按边界保留对应 skip。两类 skip 都不会伪装成通过。
+若要按竞赛 15 案只读演示启动，请显式设置 AUDITTRACE_DEMO_MODE=true；
+无模型 Key 时再设置 AUDITTRACE_DEMO_USE_EXTERNAL_MODEL=false，页面会走
+确定性演示备用并保留“非正式模型运行”的状态边界。
+本说明不内联写死通过项数：具体数字随版本变化，以仓库 PROJECT_STATUS.json 的
+tests.judge_package 段与本轮复验日志为准；打包脚本会把二者与实测结果强制比对，
+登记数字与实测不一致时无法出包。源码仓库口径另行分开登记。
 测试清单与联网项边界：见随包“测试清单.txt”。
 依赖锁定复现：python -m pip install -r backend/requirements-lock.txt
 验收脚本：python scripts/check_chinese_comments.py；python scripts/test_inventory.py
@@ -285,7 +301,7 @@ RUN_README = """审迹智链 AuditTrace 0.7.1 清洁运行包
 模型 Key：可选。不开启模型时仍可执行“仅计算预检”，页面会明确显示运行不完整；不要把真实 Key 发给队员或老师。
 标准案例：网页可下载模板；“模板”目录也提供同一合成案例包。新公司需先填写字段、来源页和真实哈希，系统不承诺任意 PDF 自动取数。
 外发边界：本包为保留标准案例 RAG 与来源复验能力而包含四份公开年报全文；在真人确认全文再分发边界前，仅限团队内部技术复验，禁止外发。队员 Word/Excel 包和老师方案材料包不含年报全文。
-源码仓库最近复验：177 passed、1 warning；本包独立复验：171 passed、1 warning。两套测试口径分开登记。
+源码仓库与本包两套测试口径分开登记；具体项数不在此内联写死，以 PROJECT_STATUS.json 与本轮复验日志为准。
 测试命令：backend\\.venv\\Scripts\\python.exe -m pytest -q
 预期结果：0 failed；具体通过项以包内当前测试实际输出为准。打包脚本已在独立临时目录执行同一测试及RAG/R1烟测。
 AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。
@@ -438,7 +454,7 @@ def _verify_clean_archive(path: Path) -> ValidationResult:
             environment.pop(key, None)
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         tests = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q"],
+            [VALIDATION_PYTHON, "-m", "pytest", "-q"],
             cwd=extracted,
             env=environment,
             capture_output=True,
@@ -541,7 +557,7 @@ print(json.dumps({
 }, ensure_ascii=False))
 """
         smoke = subprocess.run(
-            [sys.executable, "-c", smoke_script],
+            [VALIDATION_PYTHON, "-c", smoke_script],
             cwd=extracted,
             env=environment,
             capture_output=True,
@@ -580,6 +596,9 @@ JUDGE_COMMENT_FLOOR = 0.10
 # 随包公开边界烟测：只允许走前端真正会调的接口，并确认内部诊断面对非本机
 # 调用保持关闭，避免“源码仓库通过、交付包泄露”这类口径分裂。
 _JUDGE_SMOKE = """
+import os
+os.environ.setdefault("AUDITTRACE_DEMO_MODE", "true")
+os.environ.setdefault("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
 import json
 from fastapi.testclient import TestClient
 from backend.app.main import app
@@ -599,6 +618,19 @@ print(json.dumps({"case_count": len(listing["cases"])}, ensure_ascii=False))
 """
 
 
+def _assert_registered_matches_measured(pytest_summary: str, status_root: Path = ROOT) -> None:
+    """登记数字必须与本轮实测一致：数字漂移不能只靠人记得，要变成出包硬条件。"""
+
+    status = json.loads((status_root / "PROJECT_STATUS.json").read_text(encoding="utf-8"))
+    registered = str(((status.get("tests") or {}).get("judge_package") or {}).get("latest_result", ""))
+    for token in re.findall(r"\d+ (?:passed|skipped|failed|error)s?", pytest_summary):
+        if token not in registered:
+            raise RuntimeError(
+                f"评委包实测 {token!r} 与 PROJECT_STATUS.json 登记不一致：{registered!r}；"
+                "先复跑确认，再更新登记，不得改数字凑包。"
+            )
+
+
 def _verify_judge_archive(path: Path) -> ValidationResult:
     """在隔离目录复现评委包：确认无年报、离线测试全通过、注释门与公开边界。"""
 
@@ -606,7 +638,7 @@ def _verify_judge_archive(path: Path) -> ValidationResult:
         extracted = Path(temporary)
         with zipfile.ZipFile(path) as archive:
             archive.extractall(extracted)
-        if sorted(p.name for p in extracted.glob("标准股份*.pdf")):
+        if standard_corpus_paths(extracted):
             raise RuntimeError("评委包解包后仍含年报全文，违反未确认再分发边界。")
         environment = os.environ.copy()
         # 评委包必须能在完全没有密钥的环境复现，不能依赖开发机凭据。
@@ -620,7 +652,7 @@ def _verify_judge_archive(path: Path) -> ValidationResult:
             environment.pop(key, None)
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         tests = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q"],
+            [VALIDATION_PYTHON, "-m", "pytest", "-q"],
             cwd=extracted,
             env=environment,
             capture_output=True,
@@ -633,7 +665,7 @@ def _verify_judge_archive(path: Path) -> ValidationResult:
         if tests.returncode:
             raise RuntimeError("评委包离线测试失败：\n" + tests.stdout[-6000:] + tests.stderr[-2000:])
         comments = subprocess.run(
-            [sys.executable, "scripts/check_chinese_comments.py"],
+            [VALIDATION_PYTHON, "scripts/check_chinese_comments.py"],
             cwd=extracted,
             env=environment,
             capture_output=True,
@@ -653,7 +685,7 @@ def _verify_judge_archive(path: Path) -> ValidationResult:
         if measured < JUDGE_COMMENT_FLOOR:
             raise RuntimeError(f"评委包中文注释占比 {ratio_line} 低于手册要求的 10%。")
         smoke = subprocess.run(
-            [sys.executable, "-c", _JUDGE_SMOKE],
+            [VALIDATION_PYTHON, "-c", _JUDGE_SMOKE],
             cwd=extracted,
             env=environment,
             capture_output=True,
@@ -669,6 +701,7 @@ def _verify_judge_archive(path: Path) -> ValidationResult:
         pytest_summary = pytest_lines[-1] if pytest_lines else "pytest完成但未返回摘要"
         smoke_lines = [line.strip() for line in smoke.stdout.splitlines() if line.strip()]
         smoke_summary = smoke_lines[-1] if smoke_lines else "{}"
+        _assert_registered_matches_measured(pytest_summary, extracted)
         target_note = "达到11%目标" if measured >= JUDGE_COMMENT_TARGET else "未达11%目标（手册10%门槛已过）"
         return ValidationResult(
             summary=(
@@ -785,71 +818,123 @@ def _write_failure_log(started_at: str, error: BaseException) -> None:
     )
 
 
-def main() -> None:
-    started_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    team_sources = _office_sources()
-    teacher_sources = _teacher_sources()
-    clean_sources = _clean_sources()
-    try:
-        team_scan, _ = _build_zip(TEAM_ZIP, team_sources)
-        teacher_scan, _ = _build_zip(TEACHER_ZIP, teacher_sources)
-        clean_scan, clean_validation = _build_zip(
-            CLEAN_ZIP,
-            clean_sources,
-            {"README_运行说明.txt": RUN_README},
-            validator=_verify_clean_archive,
-        )
-    except Exception as error:
-        _write_failure_log(started_at, error)
-        raise
+PACKAGE_BUILDERS: dict[str, Callable[[], tuple[str, Path, Callable[[], list[tuple[str, Path]]], Callable[[], str] | None, Callable[[Path], ValidationResult] | None]]] = {
+    "team": lambda: ("01_队员材料包", TEAM_ZIP, _office_sources, None, None),
+    "teacher": lambda: ("02_老师方案包", TEACHER_ZIP, _teacher_sources, None, None),
+    "clean": lambda: ("03_清洁运行包", CLEAN_ZIP, _clean_sources, lambda: RUN_README, _verify_clean_archive),
+    "judge": lambda: ("04_评委复现包", JUDGE_ZIP, _judge_sources, None, _verify_judge_archive),
+}
 
-    # 三个既有包已经产出并留痕；评委包异常只如实追加登记，不把已通过的复验
-    # 日志改写成 FAILED，否则一次评委包试跑会毁掉整轮交付记录。
-    judge_sources: list[tuple[str, Path]] = []
-    judge_scan: ScanResult | None = None
-    judge_validation: ValidationResult | None = None
-    judge_error: str | None = None
-    try:
-        judge_sources = _judge_sources()
-        judge_scan, judge_validation = _build_zip(
-            JUDGE_ZIP,
-            judge_sources,
-            _judge_generated(),
-            validator=_verify_judge_archive,
-        )
-    except Exception as error:
-        judge_detail = _sanitize_local_paths(str(error)).strip().splitlines()
-        judge_error = f"{type(error).__name__}：{judge_detail[0] if judge_detail else '无明细'}"
 
-    results: list[tuple[Path, ScanResult]] = [
-        (TEAM_ZIP, team_scan),
-        (TEACHER_ZIP, teacher_scan),
-        (CLEAN_ZIP, clean_scan),
-    ]
-    if judge_scan is not None:
-        results.append((JUDGE_ZIP, judge_scan))
-    if clean_validation is None:
-        raise RuntimeError("内部错误：清洁运行包未执行独立复验。")
+def _build_one(kind: str, output_dir: Path, *, skip_validate: bool) -> dict[str, Any]:
+    """单个包的失败只影响该包的记录：旧教师材料缺失不得连坐评委包。"""
+    label, default_path, sources_fn, readme_fn, validator_fn = PACKAGE_BUILDERS[kind]()
+    target = output_dir / default_path.name
+    try:
+        sources = sources_fn()
+        generated = None
+        if readme_fn:
+            generated = {"README_运行说明.txt": readme_fn()}
+        elif kind == "judge":
+            generated = _judge_generated()
+        scan, validation = _build_zip(
+            target,
+            sources,
+            generated,
+            validator=None if skip_validate else validator_fn,
+        )
+    except FileNotFoundError as error:
+        return {
+            "kind": kind,
+            "label": label,
+            "file": target.name,
+            "path": target,
+            "status": "未构建（白名单源文件缺失）",
+            "error": str(error),
+            "scan": None,
+            "validation": None,
+            "sources": [],
+        }
+    except Exception as error:
+        return {
+            "kind": kind,
+            "label": label,
+            "file": target.name,
+            "path": target,
+            "status": f"未构建（{type(error).__name__}）",
+            "error": str(error),
+            "scan": None,
+            "validation": None,
+            "sources": [],
+        }
+    return {
+        "kind": kind,
+        "label": label,
+        "file": target.name,
+        "path": target,
+        "sha256": _sha256(target),
+        "status": "已构建",
+        "scan": scan,
+        "validation": validation,
+        "validation_summary": validation.summary if validation else ("按参数跳过" if skip_validate else "无需复验"),
+        "sources": sources,
+    }
+
+
+def _validate_only(kind: str, output_dir: Path) -> dict[str, Any]:
+    label, default_path, sources_fn, readme_fn, validator_fn = PACKAGE_BUILDERS[kind]()
+    target = output_dir / default_path.name
+    if not target.is_file():
+        return {
+            "kind": kind,
+            "label": label,
+            "file": target.name,
+            "path": target,
+            "status": "未复验（文件缺失）",
+            "error": "目标 ZIP 不存在",
+            "scan": None,
+            "validation": None,
+            "sources": [],
+        }
+    scan = scan_archive(target)
+    validation = validator_fn(target) if validator_fn else None
+    return {
+        "kind": kind,
+        "label": label,
+        "file": target.name,
+        "path": target,
+        "sha256": _sha256(target),
+        "status": "已复验",
+        "scan": scan,
+        "validation": validation,
+        "validation_summary": validation.summary if validation else "无需复验",
+        "sources": [],
+    }
+
+
+def _write_records(started_at: str, records: list[dict[str, Any]], output_dir: Path) -> None:
+    report_file = output_dir / REPORT.name
+    log_file = output_dir / VALIDATION_LOG.name
     generated_date = datetime.now().astimezone().date().isoformat()
-    package_count = len(results)
-    judge_summary = (
-        f"评委代码包独立复验：{judge_validation.summary}"
-        if judge_validation is not None
-        else f"评委代码包未完成：{judge_error}"
-    )
+    built_records = [r for r in records if r["status"] in {"已构建", "已复验"} and r["scan"] is not None]
+
     lines = [
         "审迹智链 0.7.1 交付清单与白名单扫描报告",
         f"生成日期：{generated_date}",
-        f"扫描结论：{package_count} 个包均为 0 阻断项；递归检查了 DOCX、XLSX 与嵌套 ZIP。",
+        f"扫描结论：本次处理 {len(records)} 个目标包，其中 {len(built_records)} 个包成功并均为 0 阻断项；递归检查了 DOCX、XLSX 与嵌套 ZIP。",
         "扫描范围：.env、Markdown、日志、缓存、临时文件、旧网站、路径穿越/重复成员、本机路径、个人标记和常见密钥/令牌形态。",
-        "说明：.env.example 仅含空值模板；四份标准股份年报位于ZIP根目录；清洁运行包已独立解包完成pytest、状态/API、RAG准备与检索、2023年R1烟测。",
-        "外发边界：清洁运行包含四份公开年报全文；在真人确认全文再分发边界前，仅限团队内部技术复验，禁止外发。队员包、老师包和评委包不含年报全文。",
+        "说明：.env.example 仅含空值模板；清洁运行包若按内部复验边界构建，四份标准股份年报位于其ZIP根目录；评委包不含年报全文。",
+        "外发边界：清洁运行包含四份公开年报全文时，在真人确认全文再分发边界前仅限团队内部技术复验；队员包、老师包和评委包不含年报全文。",
         "评委包复现边界：完整离线测试、依赖安装与公开接口边界可复算；缺年报全文时标准案例来源哈希复验与RAG检索按设计返回来源不完整，不复现这两项即不得宣称全量复现。",
-        f"独立复验：{clean_validation.summary}",
-        judge_summary,
-        "",
     ]
-    for path, result in results:
+    for r in records:
+        summary_note = r.get("validation_summary") or r.get("error") or r["status"]
+        lines.append(f"{r['label']}（{r['file']}）：{r['status']} - {summary_note}")
+    lines.append("")
+
+    for r in built_records:
+        path = r["path"]
+        result = r["scan"]
         lines.extend(
             [
                 f"文件：{path.name}",
@@ -861,48 +946,79 @@ def main() -> None:
                 "",
             ]
         )
-    REPORT.write_text("\n".join(lines), encoding="utf-8-sig")
+    report_file.write_text("\n".join(lines), encoding="utf-8-sig")
+
+    all_passed = all(r["status"] in {"已构建", "已复验"} for r in records)
     log_lines = [
         "审迹智链交付包构建与独立复验日志",
         f"开始时间：{started_at}",
         f"结束时间：{datetime.now().astimezone().isoformat(timespec='seconds')}",
-        "最终状态：PASSED",
-        f"评委包状态：{'完成并通过独立复验' if judge_validation is not None else f'未完成（{judge_error}）'}",
+        f"最终状态：{'PASSED' if all_passed else 'PARTIAL'}",
         f"统一AI声明：{AI_NOTICE}",
-        "外发边界：清洁运行包含四份公开年报全文，合法再分发真人确认前仅限团队内部技术复验，禁止外发；队员包、老师包和评委包不含年报全文。",
-        "",
-        *_source_manifest("队员包", team_sources),
-        "",
-        *_source_manifest("老师包", teacher_sources),
-        "",
-        *_source_manifest("清洁运行包", clean_sources),
+        "外发边界：清洁运行包可能包含四份公开年报全文，合法再分发真人确认前仅限团队内部技术复验，禁止外发；队员包、老师包和评委包不含年报全文。",
         "",
     ]
-    if judge_sources:
-        log_lines.extend([*_source_manifest("评委代码包", judge_sources), ""])
-    for package_path, result in results:
+    for r in records:
+        if r.get("sources"):
+            log_lines.extend([*_source_manifest(r["label"], r["sources"]), ""])
+    for r in built_records:
+        path = r["path"]
+        result = r["scan"]
         log_lines.extend(
             [
-                f"[{package_path.name}]",
-                f"SHA-256={_sha256(package_path)}",
+                f"[{path.name}]",
+                f"SHA-256={_sha256(path)}",
                 f"top_level_files={result.file_count}",
                 f"nested_files={result.nested_file_count}",
                 f"uncompressed_bytes={result.total_bytes}",
                 "blockers=0",
                 "entry\tbytes\tsha256",
-                *_entry_manifest(package_path),
+                *_entry_manifest(path),
                 "",
             ]
         )
-    log_lines.extend(["[清洁运行包独立复验明细]", clean_validation.detail, ""])
-    if judge_validation is not None:
-        log_lines.extend(["[评委代码包独立复验明细]", judge_validation.detail, ""])
+    for r in records:
+        val = r.get("validation")
+        if val is not None:
+            log_lines.extend([f"[{r['label']}独立复验明细]", val.detail, ""])
+        elif r.get("error"):
+            log_lines.extend([f"[{r['label']}独立复验明细]", f"未完成：{r['error']}", ""])
+    log_file.write_text("\n".join(log_lines), encoding="utf-8-sig")
+    print(report_file)
+    print(log_file)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="构建审迹智链交付包（可按包独立构建，可只跑复验）")
+    parser.add_argument("--package", choices=(*PACKAGE_BUILDERS, "all"), default="all", help="指定构建哪一个包")
+    parser.add_argument("--validate-only", action="store_true", help="只解包复验已有 ZIP，不重新构建")
+    parser.add_argument("--skip-validate", action="store_true", help="只构建不复验（仅用于本地诊断）")
+    parser.add_argument("--output-dir", type=Path, default=DELIVERY_DIR, help="输出目录")
+    parser.add_argument(
+        "--python-executable",
+        type=Path,
+        default=Path(sys.executable),
+        help="独立复验使用的 Python 解释器；默认使用当前解释器",
+    )
+    arguments = parser.parse_args(argv)
+
+    global VALIDATION_PYTHON
+    VALIDATION_PYTHON = str(arguments.python_executable)
+    if not arguments.python_executable.is_file():
+        parser.error(f"复验解释器不存在：{arguments.python_executable}")
+
+    arguments.output_dir.mkdir(parents=True, exist_ok=True)
+    kinds = tuple(PACKAGE_BUILDERS) if arguments.package == "all" else (arguments.package,)
+    started_at = datetime.now().astimezone().isoformat(timespec="seconds")
+
+    if arguments.validate_only:
+        records = [_validate_only(kind, arguments.output_dir) for kind in kinds]
     else:
-        log_lines.extend(["[评委代码包独立复验明细]", f"未完成：{judge_error}", ""])
-    VALIDATION_LOG.write_text("\n".join(log_lines), encoding="utf-8-sig")
-    print(REPORT)
-    print(VALIDATION_LOG)
+        records = [_build_one(kind, arguments.output_dir, skip_validate=arguments.skip_validate) for kind in kinds]
+
+    _write_records(started_at, records, arguments.output_dir)
+    return 0 if all(record["status"] in {"已构建", "已复验"} for record in records) else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
