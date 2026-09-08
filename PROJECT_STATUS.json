@@ -632,9 +632,47 @@
     },
     "release_gates": {
       "competition_release_ready": false,
-      "reason": "外置版本绑定未建立、人工评分未完成、真人最终发布批准未给出、工作树未提交；另有 AD-1—AD-4 待真人裁决"
+      "reason": "外置绑定待真人批准签名、人工评分台账为空、真人最终发布批准未给出、materialized_source_head 与新 HEAD 不一致待重建冻结"
     },
-    "boundary": "本轮所有新增记录只证明材料、算术与代码契约层面的可回查性，不证明专业口径正确、不证明效果提升、不代替任何签字。"
+    "boundary": "本轮所有新增记录只证明材料、算术与代码契约层面的可回查性，不证明专业口径正确、不证明效果提升、不代替任何签字。",
+    "commit": {
+      "head": "d5ff829dcc1a5cadf6c36d4b7a413e49548336c4",
+      "files": 20,
+      "note": "含 2026-09-07 未提交的门禁整改与本轮 M08 代码；三个门禁脚本入 .gitignore 白名单；未 push、未部署"
+    },
+    "clean_tree_run": {
+      "run_id": "RUN-V7-0351B4C6950D",
+      "task_id": "DEMO-RUN-6565C61D7C66",
+      "case_id": "CNINFO_000858_T0_20260430",
+      "current_year": 2025,
+      "git_head": "d5ff829dcc1a5cadf6c36d4b7a413e49548336c4",
+      "worktree_clean": true,
+      "provider_calls": 3,
+      "cache_hit": false,
+      "duration_ms": 14623,
+      "input_tokens": 35481,
+      "output_tokens": 2073,
+      "final_status": "candidate / complete_public_prescreen",
+      "record_sha256": "6f01d33dc12e84e45f3e1ec62b4ac69ab0383649b341cdb136c0c6d1e67532ec",
+      "evidence": "docs/2026-09-08_clean-tree真实完整链运行与正式外置绑定.md"
+    },
+    "release_binding": {
+      "anchor": "../audittrace-release-bindings/release-20260908-d5ff829.json",
+      "outside_workspace": true,
+      "git_head": "d5ff829dcc1a5cadf6c36d4b7a413e49548336c4",
+      "bound_repo_files": 6,
+      "bound_run_records": 1,
+      "content_sha256": "0011f8b450a8890cc8ddb13f45664ca6bd51f65befa21b67cbc48ceb71c69b45",
+      "approval_state": "pending_human_approval",
+      "signed_by_ai": false,
+      "verify_result": "只剩两项：人工评分未完成、外置绑定缺少真人批准签名；树外位置、内容自校验、6 文件与运行原件哈希、HEAD 一致、clean tree、调用 ID 重算、角色齐备、非缓存非备用、事实闸门重跑全部通过"
+    },
+    "items_1_to_4": {
+      "1": "docs/2026-09-08_案例登记值裁决建议单.md（AD-1—AD-4 待真人裁决；上午“9 项冲突”误报已作废）",
+      "2": "02_最终确定方案/27_..._盲审提交候选_2026-09-08.docx 与 26 号实名母版并存，待队长按组委会口径选择",
+      "3": "人工评分台账与 record_human_score.py 已建立并接线，真实台账为空",
+      "4": "提交 d5ff829 + clean-tree 真实运行 + 正式锚点（待真人批准）"
+    }
   },
   "latest_review_20260907": {
     "plan": "docs/superpowers/plans/2026-09-07-AuditTrace概览复核与审查修改计划.md",
