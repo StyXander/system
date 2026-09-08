@@ -21,11 +21,13 @@ from typing import Any
 import pytest
 
 from backend.app.release_evidence import (
+    AUTOMATED_IDENTITIES,
     BINDING_PENDING_APPROVAL,
     BINDING_VERIFIED,
     build_b3_evidence_from_disk,
     build_release_binding,
     compute_approval_signature,
+    human_score_row_digest,
     verify_release_binding,
 )
 from backend.app.release_gate import SIGNOFF_APPROVED, VALID, evaluate_release_ready
@@ -260,20 +262,52 @@ def _ledger(path: Path, rows: list[dict[str, Any]]) -> Path:
     return path
 
 
-def _score_row(record_id: str, scorer: str, *, scores: Any = None, signature: str | None = "c" * 64) -> dict[str, Any]:
-    return {
+def _write_rubric(workspace: Path) -> Path:
+    """在临时工作区放一份测试用评分标准，模拟“已由真人冻结”。"""
+
+    rubric_dir = workspace / "backend" / "release_records" / "human_scores" / "rubrics"
+    rubric_dir.mkdir(parents=True, exist_ok=True)
+    (rubric_dir / "TEST-RUBRIC-V1.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "human_score_rubric_v1",
+                "rubric_version": "TEST-RUBRIC-V1",
+                "required_dimensions": ["相关性", "依据", "可执行性"],
+                "score_min": 1,
+                "score_max": 5,
+                "status": "frozen",
+                "frozen_by": "测试夹具甲",
+                "frozen_at": "2026-09-08T10:00:00+08:00",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    return rubric_dir
+
+
+def _score_row(record_id: str, scorer: str, *, scores: Any = None, signature: str | None = None) -> dict[str, Any]:
+    """按写入端同一摘要规范签好一行评分；signature 传入坏值用于制造反例。"""
+
+    row: dict[str, Any] = {
+        "schema_version": "human_score_record_v1",
         "record_id": record_id,
         "run_id": RUN_ID,
         "scorer": scorer,
+        "rubric_version": "TEST-RUBRIC-V1",
         "scores": {"相关性": 4, "依据": 4, "可执行性": 3} if scores is None else scores,
-        "signed_payload_sha256": signature,
+        "scored_at": "2026-09-08T11:00:00+08:00",
+        "signed_payload_sha256": "",
     }
+    row["signed_payload_sha256"] = human_score_row_digest(row) if signature is None else signature
+    return row
 
 
 def test_human_scores_require_two_signed_real_scorers(tmp_path: Path) -> None:
-    """两名真人、分数非空且带签名哈希时才算完成，并只从台账推导。"""
+    """两名真人、摘要可重算且维度齐全时才算完成，并只从台账推导。"""
 
     _write_run(tmp_path, _run())
+    _write_rubric(tmp_path)
     ledger = _ledger(tmp_path / "scores.jsonl", [_score_row("SCORE-1", "张三"), _score_row("SCORE-2", "李四")])
     result = _evidence(tmp_path, human_score_ledger_path=ledger)
     assert result["evidence"]["human_scores_completed"] is True
@@ -287,7 +321,7 @@ def test_human_scores_require_two_signed_real_scorers(tmp_path: Path) -> None:
         ([_score_row("SCORE-1", "张三"), _score_row("SCORE-2", "张三")], "同一人重复评分"),
         ([_score_row("SCORE-1", "张三"), _score_row("SCORE-2", "AI")], "自动化身份"),
         ([_score_row("SCORE-1", "张三"), _score_row("SCORE-2", "李四", scores={})], "分数为空"),
-        ([_score_row("SCORE-1", "张三"), _score_row("SCORE-2", "李四", signature=None)], "缺签名哈希"),
+        ([_score_row("SCORE-1", "张三"), _score_row("SCORE-2", "李四", signature="")], "缺签名哈希"),
         ([_score_row("SCORE-1", "张三"), _score_row("SCORE-1", "李四")], "记录 ID 重复"),
     ],
     ids=["单人", "同人重复", "AI署名", "空分数", "无签名", "重复ID"],
@@ -296,6 +330,7 @@ def test_human_score_ledger_rejections(tmp_path: Path, rows: list[dict[str, Any]
     """台账不合格时 human_scores_completed 必须为 False，并给出原因。"""
 
     _write_run(tmp_path, _run())
+    _write_rubric(tmp_path)
     ledger = _ledger(tmp_path / "scores.jsonl", rows)
     result = _evidence(tmp_path, human_score_ledger_path=ledger)
     assert result["evidence"]["human_scores_completed"] is False
@@ -329,6 +364,8 @@ def test_binding_must_live_outside_workspace(tmp_path: Path) -> None:
 
 
 def _make_binding(workspace: Path, *, approver: str = "", approved_at: str = "") -> Path:
+    """生成一份最小锚点；本文件的用例只测漂移与篡改，必需清单由收紧用例单独覆盖。"""
+
     tracked, outside = _binding_inputs(workspace)
     build_release_binding(
         workspace_root=workspace,
@@ -339,22 +376,31 @@ def _make_binding(workspace: Path, *, approver: str = "", approved_at: str = "")
         binding_path=outside,
         approver=approver,
         approved_at=approved_at,
+        required_files=(),
     )
     return outside
+
+
+def _verify(workspace: Path, outside: Path, *, head: str | None = COMMIT, dirty: bool | None = False) -> dict[str, Any]:
+    """本文件统一的绑定复验入口：必需清单置空，只测漂移、HEAD 与批准状态。"""
+
+    return verify_release_binding(
+        outside, workspace_root=workspace, git_head=head, worktree_dirty=dirty, required_files=()
+    )
 
 
 def test_binding_stays_pending_until_a_real_person_approves(tmp_path: Path) -> None:
     """未签锚点只能是待签状态；补上真人签名摘要后才算通过。"""
 
     outside = _make_binding(tmp_path, approver="张三", approved_at="2026-09-08T12:00:00+08:00")
-    pending = verify_release_binding(outside, workspace_root=tmp_path, git_head=COMMIT, worktree_dirty=False)
+    pending = _verify(tmp_path, outside)
     assert pending["status"] == BINDING_PENDING_APPROVAL
     payload = json.loads(outside.read_text(encoding="utf-8"))
     payload["human_approval"]["signature_sha256"] = compute_approval_signature(
         payload["human_approval"]["content_sha256"], approver="张三", approved_at="2026-09-08T12:00:00+08:00"
     )
     outside.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    assert verify_release_binding(outside, workspace_root=tmp_path, git_head=COMMIT, worktree_dirty=False)["status"] == BINDING_VERIFIED
+    assert _verify(tmp_path, outside)["status"] == BINDING_VERIFIED
 
 
 def test_binding_rejects_late_edit_of_approver(tmp_path: Path) -> None:
@@ -364,7 +410,7 @@ def test_binding_rejects_late_edit_of_approver(tmp_path: Path) -> None:
     payload = json.loads(outside.read_text(encoding="utf-8"))
     payload["human_approval"]["approver"] = "李四"
     outside.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    report = verify_release_binding(outside, workspace_root=tmp_path, git_head=COMMIT, worktree_dirty=False)
+    report = _verify(tmp_path, outside)
     assert report["status"] == "blocked"
     assert "疑似被改写" in report["reason"]
 
@@ -400,7 +446,7 @@ def test_binding_rejects_drift_and_tampering(tmp_path: Path, tamper: str) -> Non
         dirty = True
     elif tamper == "missing":
         outside.unlink()
-    report = verify_release_binding(outside, workspace_root=tmp_path, git_head=head, worktree_dirty=dirty)
+    report = _verify(tmp_path, outside, head=head, dirty=dirty)
     assert report["status"] != BINDING_VERIFIED
     assert report["reason"]
 
@@ -477,7 +523,9 @@ def test_inline_self_declared_evidence_is_no_longer_read() -> None:
             "fresh_production_b3_evidence_path": "backend/release_records/current_release.json",
         }
     }
-    assert _load_fresh_b3_evidence(state) is None
+    evidence, reason = _load_fresh_b3_evidence(state)
+    assert evidence is None
+    assert reason and "fresh_production_b3_run_id" in reason
 
 
 def test_current_release_record_still_blocks_release() -> None:
@@ -496,3 +544,8 @@ def test_current_release_record_still_blocks_release() -> None:
     ledger = REPO_ROOT / ledger_relative
     rows = [line for line in (ledger.read_text(encoding="utf-8").splitlines() if ledger.is_file() else []) if line.strip()]
     assert rows == [], "AI 不得预先写入任何人工评分行"
+    # 评分标准同样只能由真人冻结：目录里出现任何自动化署名的标准都算越界。
+    rubric_dir = REPO_ROOT / "backend/release_records/human_scores/rubrics"
+    for spec_path in sorted(rubric_dir.glob("*.json")) if rubric_dir.is_dir() else []:
+        spec = json.loads(spec_path.read_text(encoding="utf-8"))
+        assert str(spec.get("frozen_by") or "").strip().lower() not in AUTOMATED_IDENTITIES, spec_path.name

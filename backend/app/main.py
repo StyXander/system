@@ -4496,18 +4496,19 @@ def _git_release_snapshot() -> tuple[str | None, bool | None]:
     return (configured_head.lower() or None), False if configured_head else None
 
 
-def _load_fresh_b3_evidence(state: dict[str, Any]) -> dict[str, Any] | None:
+def _load_fresh_b3_evidence(state: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
     """只用磁盘原件重算 B3 证据；发布记录里的自报字段一律不采信。
 
     旧实现允许 `release_readiness.fresh_production_b3_evidence` 内联一份字典，
     等于让同一份文件自己声明“已验证”。现在只读取一个 run_id，其余状态全部由
-    `build_b3_evidence_from_disk` 重算得到；重算不成立时返回 None，让门禁保持阻断。
+    `build_b3_evidence_from_disk` 重算得到；重算不成立时把原因一并返回，让上层
+    快照显示真实阻断点，而不是只剩一个看不出根因的 None。
     """
 
     readiness = state.get("release_readiness") or {}
     run_id = str(readiness.get("fresh_production_b3_run_id") or "").strip()
     if not run_id:
-        return None
+        return None, "发布记录未登记 fresh_production_b3_run_id"
     demo = state.get("demo") or {}
     ledger_relative = str(readiness.get("human_score_ledger_path") or "").strip()
     ledger_path: Path | None = None
@@ -4527,11 +4528,17 @@ def _load_fresh_b3_evidence(state: dict[str, Any]) -> dict[str, Any] | None:
         expected_deployment_commit=os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None,
         expected_manifest_sha256=str(demo.get("manifest_sha256") or "") or None,
     )
-    return result.get("evidence") if result.get("status") == "loaded" else None
+    if result.get("status") == "loaded":
+        return result.get("evidence"), None
+    return None, str(result.get("reason") or "B3 证据重算未通过")
 
 
 def _release_binding_snapshot(state: dict[str, Any], *, git_head: str | None, worktree_dirty: bool | None) -> dict[str, Any]:
-    """校验外置版本绑定；绑定文件必须在工作区之外，否则等于自证。"""
+    """校验外置版本绑定；绑定文件必须在工作区之外，否则等于自证。
+
+    锚点还必须覆盖门禁当前选用的那次运行和登记的人工评分台账，否则“绑定通过”
+    只说明另一份运行、另一本台账没漂移。
+    """
 
     readiness = state.get("release_readiness") or {}
     binding_relative = str((readiness.get("release_binding") or {}).get("path") or "").strip()
@@ -4540,11 +4547,15 @@ def _release_binding_snapshot(state: dict[str, Any], *, git_head: str | None, wo
     binding_path = Path(binding_relative).expanduser()
     if not binding_path.is_absolute():
         binding_path = (WORKSPACE_ROOT / binding_relative).resolve()
+    selected_run = str(readiness.get("fresh_production_b3_run_id") or "").strip()
+    ledger_relative = str(readiness.get("human_score_ledger_path") or "").strip()
     return verify_release_binding(
         binding_path,
         workspace_root=WORKSPACE_ROOT,
         git_head=git_head,
         worktree_dirty=worktree_dirty,
+        expected_run_ids=[selected_run] if selected_run else None,
+        expected_human_score_ledger=ledger_relative or None,
     )
 
 
@@ -4604,7 +4615,7 @@ def _release_fact_snapshot(
     human_scoring_status = str(eval_dashboard.get("human_scoring_status") or "pending")
     pointer_relative = str((state.get("evaluation") or {}).get("pointer") or "").strip()
     pointer_data = _load_current_evaluation_pointer(WORKSPACE_ROOT / pointer_relative) if pointer_relative else {}
-    fresh_b3_evidence = _load_fresh_b3_evidence(state)
+    fresh_b3_evidence, fresh_b3_load_reason = _load_fresh_b3_evidence(state)
     gate_release_data = {
         **state,
         "demo": {**(state.get("demo") or {}), "materialized_source_head": materialized_source_head},
@@ -4629,6 +4640,9 @@ def _release_fact_snapshot(
         expected_deployment_commit=deployment_commit,
         expected_manifest_sha256=manifest_hash,
     )
+    # 读取器在重算阶段就阻断时，它给出的原因比“字段缺失”更贴近根因，必须原样带出。
+    if fresh_b3_evidence is None and fresh_b3_load_reason:
+        b3_reason = fresh_b3_load_reason
     # 外置绑定先独立重算，再把结论交给门禁；门禁不读取仓库内的自报字段。
     binding_snapshot = _release_binding_snapshot(state, git_head=git_head, worktree_dirty=worktree_dirty)
     release_ready, release_reason = evaluate_release_ready(

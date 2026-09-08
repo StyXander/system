@@ -13,8 +13,10 @@
 3. 调用 ID 能否由逐次尝试的输入/响应哈希重算得到，并与存储值一致；
 4. 运行级调用数与角色级调用数是否相等，缓存回放与备用子运行是否被排除；
 5. 确定性事实语言闸门能否对落盘输出重跑通过；
-6. 人工评分台账是否给出至少两名真人的已签名非空评分；
-7. 外置版本绑定是否位于工作区之外、内容哈希是否自洽、指向的文件是否漂移。
+6. 人工评分台账是否给出至少两名真人的已签名非空评分，且整行摘要可重算，
+   维度与区间符合**已由真人冻结**的评分标准；
+7. 外置版本绑定是否位于工作区之外、内容哈希是否自洽、必需清单是否齐、
+   指向的文件与本次 --run-id 的运行原件是否漂移、是否覆盖了本次复验的运行。
 
 任何一项不成立都以退出码 1 结束，并把原因写进报告；本脚本不写回任何状态文件。
 """
@@ -32,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from backend.app.release_evidence import (  # noqa: E402
+    HUMAN_SCORE_RUBRIC_DIR_RELATIVE,
     BINDING_VERIFIED,
     build_b3_evidence_from_disk,
     verify_release_binding,
@@ -62,14 +65,24 @@ def main() -> int:
     parser.add_argument("--ledger", default=None, help="人工评分台账 JSONL 路径")
     parser.add_argument("--binding", default=None, help="外置版本绑定文件路径")
     parser.add_argument("--expected-model-id", default=None)
+    parser.add_argument("--rubric-dir", default=str(ROOT / HUMAN_SCORE_RUBRIC_DIR_RELATIVE), help="已冻结人工评分标准目录")
     parser.add_argument("--json", dest="json_out", default=None, help="把完整报告另存为 JSON")
     args = parser.parse_args()
 
     ledger = Path(args.ledger).expanduser().resolve() if args.ledger else None
+    rubric_dir = Path(args.rubric_dir).expanduser().resolve()
+    ledger_relative: str | None = None
+    if ledger is not None:
+        try:
+            ledger_relative = str(ledger.relative_to(ROOT))
+        except ValueError:
+            # 台账在仓库之外时无法与锚点里的相对路径对上，按原样传给绑定校验去拒绝。
+            ledger_relative = str(ledger)
     result = build_b3_evidence_from_disk(
         args.run_id,
         workspace_root=ROOT,
         human_score_ledger_path=ledger,
+        human_rubric_dir=rubric_dir,
         expected_model_id=args.expected_model_id,
     )
     failures: list[str] = []
@@ -88,6 +101,8 @@ def main() -> int:
             workspace_root=ROOT,
             git_head=_git_head(),
             worktree_dirty=_worktree_dirty(),
+            expected_run_ids=[args.run_id],
+            expected_human_score_ledger=ledger_relative,
         )
         if binding_report.get("status") != BINDING_VERIFIED:
             failures.append(f"外置版本绑定未通过：{binding_report.get('reason')}")

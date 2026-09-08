@@ -11,9 +11,10 @@
 
 检查项：
 1. 评分人姓名必须显式给出，且不接受 AI、auto、codex、unknown、待填写等自动化身份；
-2. 分数必须逐项写成 `名称=数值`，留空、非数值或超出 1—5 分都拒绝写入；
-3. 记录只追加，`record_id` 重复即拒绝，不改写也不删除历史行；
-4. 每行自带 `signed_payload_sha256`，绑定该行内容与评分人，供发布门禁独立回查。
+2. `--rubric-version` 必须指向一份**已由真人冻结**的评分标准文件，维度与上下限由它决定；
+3. 分数必须逐项写成 `名称=数值`，维度集合必须与标准的必填维度完全一致，越界即拒绝；
+4. 记录只追加，`record_id` 重复即拒绝，不改写也不删除历史行；
+5. 每行的 `signed_payload_sha256` 由发布证据模块的同一函数计算，读写两端不会各自漂移。
 
 边界：本脚本只负责把真人的评分如实落盘。它不校验分数是否“合理”，不代替第二
 名评分者，也不生成任何效果结论。AI 不应代为运行本脚本填写他人分数。
@@ -22,7 +23,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -34,26 +34,26 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from backend.app.release_evidence import (  # noqa: E402
+    HUMAN_SCORE_RUBRIC_DIR_RELATIVE,
+    AUTOMATED_IDENTITIES,
+    human_score_row_digest,
+    load_frozen_rubric,
+)
+
 DEFAULT_LEDGER = ROOT / "backend/release_records/human_scores/EVAL-20260828-RELEASE-CANDIDATE-V1.jsonl"
-# 自动化身份一律不接受，避免把 AI 预评分混进真人评分门禁。
-AUTOMATED_IDENTITIES = {"ai", "auto", "automatic", "codex", "qoder", "chatgpt", "gpt", "unknown", "待填写", "tbd", "n/a"}
+DEFAULT_RUBRIC_DIR = ROOT / HUMAN_SCORE_RUBRIC_DIR_RELATIVE
 SCORE_PATTERN = re.compile(r"^(?P<label>[^=]+)=(?P<value>-?\d+(?:\.\d+)?)$")
-SCORE_MIN, SCORE_MAX = 1, 5
 RUN_ID_PATTERN = re.compile(r"^RUN-[A-Z0-9-]{6,64}$")
 
 
-def canonical_sha256(value: Any) -> str:
-    """对行内容做规范化哈希，保证同一内容在任何机器上得到同一摘要。"""
-
-    serialized = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-
-
-def _parse_scores(pairs: list[str]) -> dict[str, float]:
-    """把 `名称=数值` 解析成评分字典；任何一项不合规都直接终止。"""
+def _parse_scores(pairs: list[str], spec: dict[str, Any]) -> dict[str, float]:
+    """把 `名称=数值` 解析成评分字典，并按冻结标准核对维度与区间。"""
 
     if not pairs:
         raise SystemExit("至少需要一项 --score 名称=数值；留空不得视为评分完成。")
+    low, high = float(spec["score_min"]), float(spec["score_max"])
+    required = {str(item).strip() for item in spec["required_dimensions"]}
     scores: dict[str, float] = {}
     for raw in pairs:
         match = SCORE_PATTERN.match(raw.strip())
@@ -63,9 +63,14 @@ def _parse_scores(pairs: list[str]) -> dict[str, float]:
         value = float(match.group("value"))
         if not label:
             raise SystemExit(f"评分项名称为空：{raw}")
-        if not SCORE_MIN <= value <= SCORE_MAX:
-            raise SystemExit(f"评分项 {label} 的值 {value} 超出 {SCORE_MIN}—{SCORE_MAX} 分区间")
+        if label not in required:
+            raise SystemExit(f"评分项 {label} 不在冻结标准 {spec['rubric_version']} 的必填维度内")
+        if not low <= value <= high:
+            raise SystemExit(f"评分项 {label} 的值 {value} 超出 {low}-{high} 区间")
         scores[label] = value
+    missing = sorted(required - set(scores))
+    if missing:
+        raise SystemExit(f"冻结标准 {spec['rubric_version']} 要求逐项评分，缺少：" + "、".join(missing))
     return scores
 
 
@@ -95,6 +100,7 @@ def main() -> int:
     parser.add_argument("--blind-form-sha256", default="", help="所填盲评表文件的 SHA-256，便于回查")
     parser.add_argument("--note", default="")
     parser.add_argument("--ledger", default=str(DEFAULT_LEDGER))
+    parser.add_argument("--rubric-dir", default=str(DEFAULT_RUBRIC_DIR), help="已冻结评分标准所在目录")
     args = parser.parse_args()
 
     scorer = args.scorer.strip()
@@ -104,11 +110,16 @@ def main() -> int:
         raise SystemExit(f"评分人 {scorer} 是自动化身份，人工评分门禁不接受。")
     if not RUN_ID_PATTERN.fullmatch(args.run_id.strip()):
         raise SystemExit("run_id 格式不合法")
-    scores = _parse_scores(args.score)
-    if not args.rubric_version.strip():
-        raise SystemExit("必须提供 --rubric-version；评分标准需由真人先冻结，不能默认套用。")
+    rubric_dir = Path(args.rubric_dir)
+    spec, rubric_error = load_frozen_rubric(args.rubric_version, rubric_dir)
+    if spec is None:
+        raise SystemExit(f"评分标准不可用：{rubric_error}；评分标准必须由真人先冻结，不能默认套用。")
+    scores = _parse_scores(args.score, spec)
 
     ledger = Path(args.ledger)
+    blind_form = args.blind_form_sha256.strip()
+    if blind_form and not re.fullmatch(r"[0-9a-fA-F]{64}", blind_form):
+        raise SystemExit("blind_form_sha256 必须是 64 位十六进制哈希，或留空")
     record_id = f"SCORE-{uuid.uuid4().hex[:12].upper()}"
     if record_id in _existing_record_ids(ledger):
         raise SystemExit("record_id 重复，拒绝写入")
@@ -120,13 +131,13 @@ def main() -> int:
         "scorer": scorer,
         "rubric_version": args.rubric_version.strip(),
         "scores": scores,
-        "blind_form_sha256": args.blind_form_sha256.strip(),
+        "blind_form_sha256": blind_form,
         "note": args.note.strip(),
         "scored_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "signed_payload_sha256": "",
     }
-    # 摘要绑定行内容与评分人；先算内容再填摘要位，避免自引用。
-    row["signed_payload_sha256"] = canonical_sha256(row)
+    # 摘要绑定整行内容；与发布门禁读取端共用同一函数，两端规则不会各自漂移。
+    row["signed_payload_sha256"] = human_score_row_digest(row)
     ledger.parent.mkdir(parents=True, exist_ok=True)
     with ledger.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")

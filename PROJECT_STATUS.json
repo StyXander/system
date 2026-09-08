@@ -563,7 +563,10 @@
       "open": [
         "封面与参赛人员待填写",
         "第 2 页含导师真实手机号与手写签名，匿名口径未确认",
-        "老师是否接受本轮逐段修改"
+        "老师是否接受本轮逐段修改",
+        "A01 修复后 27 号盲审 DOCX 与 PDF 哈希已更新（docx 2887ec5c…、pdf 294cd589…），旧哈希一律作废",
+        "正式交付位置与阶段唯一附件清单仍未定：两份 PDF 目前只在 artifacts/ 渲染目录下",
+        "本轮只复核页数与文本层，未重新做逐页视觉验收，不继承“人工核验完成”作为当前事实"
       ]
     },
     "m03": {
@@ -598,8 +601,14 @@
       "video_script": "docs/2026-09-08_初赛五分钟视频录制台本与画面清单.md（计划 290 秒，口播 1200 字）"
     },
     "m08": {
-      "status": "F02 与 F03 已实现并有反例测试；线上门禁仍为 false",
+      "status": "F02/F03 的重算读取器与外置绑定已实现，但 2026-09-08 独立验收发现 A02、A03 两处校验缺口；本轮已返工收紧，F02/F03 在该验收复核通过前不得视为关闭",
       "record": "docs/2026-09-08_M08独立证据校验与外置版本绑定整改记录.md",
+      "rework_record": "docs/2026-09-08_A01-A04返工执行留痕.md",
+      "acceptance_gaps": [
+        "A02 评分读取端原先只核对 signed_payload_sha256 的格式，从不重算整行，也不核对维度、区间与有限性；改分不改摘要会被接受",
+        "A03 锚点原先允许 repo_files/run_records 为空且必需清单缺项，循环无待检项仍返回 verified",
+        "A03 补充：source_commit/deployment_commit/manifest_sha256 原先由调用方期望值直接写成运行事实，manifest_hash_verified 仅等于“传了值”；实际运行原件的 context 并未登记这些版本字段"
+      ],
       "files": [
         "backend/app/release_evidence.py",
         "backend/app/provider_calls.py",
@@ -609,19 +618,21 @@
         "scripts/verify_release_evidence.py",
         "backend/tests/test_release_evidence.py"
       ],
-      "tests": "test_release_evidence 36 passed；test_release_gate_contracts 20 passed；全量 420 passed / 1 warning",
-      "live_check": "verify_release_evidence.py 对 RUN-V7-30E58BC730C6 重算一致，仅因人工评分未完成而 FAIL；改写锚点后报“疑似被改写”",
+      "tests": "返工后专项逐文件实测：test_release_evidence 36、test_release_evidence_hardening 31、test_release_gate_contracts 20、test_blind_submission_anonymity 5，四文件合并 92 passed；全量回归见 rework_record",
+      "live_check": "verify_release_evidence.py 复验 RUN-V7-0351B4C6950D 与现存 v1 锚点均 FAIL（退出码 1），失败原因如实列出；返工前该组合曾被报为“只剩两项”",
       "not_closed": [
-        "current_release.json 未新增 fresh_production_b3_run_id、human_score_ledger_path 与 release_binding 字段，线上门禁继续阻断",
-        "真实运行发生在脏工作树，绑定要求 clean tree，提交后需重跑",
-        "人工评分台账尚未建立，两名真人评分空白"
+        "current_release.json 仍未登记 fresh_production_b3_run_id 与 release_binding.path，线上门禁继续阻断",
+        "绑定 schema 升为 v2 且必需清单扩到 9 个文件，本机三份 v1 锚点全部不再受支持，必须由真人在最终代码冻结后重建",
+        "人工评分台账为空，且 rubrics/ 下无任何由真人冻结的评分标准；标准未冻结时评分门禁按设计失败关闭",
+        "运行原件 context 未登记 source_commit/deployment_commit/manifest_sha256，读取端不再用期望值补写，因此生产 B3 版本资格无法成立；需要真人先决定由谁在运行时写入版本事实",
+        "本机盲审 PDF 仅完成页数与文本层核验，逐页视觉验收仍未做"
       ]
     },
     "m09": {
       "status": "交付面扫描通过，外发许可仍需真人确认",
       "script": "scripts/check_delivery_surface.py",
       "report": "artifacts/competition-improvement-20260908/delivery-surface-report.json",
-      "result": "交付面 173 个文件；固定依赖 41 项，THIRD_PARTY_NOTICES.md 补登记 14 项后覆盖 41/41；敏感形态必须处理 0 处、待判定 0 处、测试夹具 28 处、亿元金额形态 28 处；生成 173 项 SHA-256 清单",
+      "result": "返工后重跑：交付面 180 个文件（本轮新增 2 个脚本与 rubrics 目录后由 173 增加）、固定依赖 41 项覆盖 41/41、敏感形态必须处理 0 处、待判定 0 处、测试夹具 28 处、亿元金额形态 28 处、预期出现 2 处，RESULT: PASS。返工前同日首测为 173 个文件与 173 项哈希清单（后一次 177）",
       "existing_secret_scan": "scripts/scan_working_tree_secrets.py 报告 no_secret_hits",
       "unverified_licenses": [
         "axe-playwright-python（元数据未声明）",
@@ -632,7 +643,7 @@
     },
     "release_gates": {
       "competition_release_ready": false,
-      "reason": "外置绑定待真人批准签名、人工评分台账为空、真人最终发布批准未给出、materialized_source_head 与新 HEAD 不一致待重建冻结"
+      "reason": "外置绑定仍是 v1 且已不受支持（需真人在最终冻结后按 v2 重建并签署）、人工评分台账为空且无真人冻结的评分标准、未登记 fresh_production_b3_run_id 与 release_binding.path、真人最终发布批准未给出、materialized_source_head 与新 HEAD 不一致待重建冻结、运行原件未登记生产版本事实"
     },
     "boundary": "本轮所有新增记录只证明材料、算术与代码契约层面的可回查性，不证明专业口径正确、不证明效果提升、不代替任何签字。",
     "commit": {
@@ -665,13 +676,43 @@
       "content_sha256": "0011f8b450a8890cc8ddb13f45664ca6bd51f65befa21b67cbc48ceb71c69b45",
       "approval_state": "pending_human_approval",
       "signed_by_ai": false,
-      "verify_result": "只剩两项：人工评分未完成、外置绑定缺少真人批准签名；树外位置、内容自校验、6 文件与运行原件哈希、HEAD 一致、clean tree、调用 ID 重算、角色齐备、非缓存非备用、事实闸门重跑全部通过"
+      "schema_version": "audittrace_release_binding_v1（已被本轮返工取代）",
+      "verify_result": "2026-09-08 返工后实测：verify_release_evidence.py 退出码 1，失败项为“人工评分未完成或未绑定独立台账”与“外置绑定版本不受支持，当前只接受 audittrace_release_binding_v2”。原登记的“只剩两项…全部通过”作废",
+      "superseded_note": "原文曾写“只剩两项：人工评分未完成、外置绑定缺少真人批准签名”。独立验收复现出另外两处缺口：锚点可以不含任何文件与运行仍判 verified（A03），评分行改分不改摘要仍被接受（A02）；且该锚点绑定 d5ff829 后 HEAD 已前进，严格 HEAD 相等规则下本就不成立。因此“机器能自证的环节已全部走通、只剩两项人工操作”的说法不成立。",
+      "rebuild_required": "schema 升为 v2、必需文件扩到 9 项并新增选用运行与人工台账交叉绑定后，本机三份 v1 锚点（rehearsal-20260908、release-20260908-d5ff829、release-20260908-1c9f1db）全部不再受支持，须由真人在最终代码冻结后重建；本轮未生成 v2 锚点，也未代签。"
     },
     "items_1_to_4": {
       "1": "docs/2026-09-08_案例登记值裁决建议单.md（AD-1—AD-4 待真人裁决；上午“9 项冲突”误报已作废）",
-      "2": "02_最终确定方案/27_..._盲审提交候选_2026-09-08.docx 与 26 号实名母版并存，待队长按组委会口径选择",
-      "3": "人工评分台账与 record_human_score.py 已建立并接线，真实台账为空",
-      "4": "提交 d5ff829 + clean-tree 真实运行 + 正式锚点（待真人批准）"
+      "2": "02_最终确定方案/27_..._盲审提交候选_2026-09-08.docx 与 26 号实名母版并存，待队长按组委会口径选择。首版盲审件曾在包内残留导师签名图像部件（A01），已于本轮移除并通过部件级复验；有缺陷的旧件留档于 artifacts/independent-plan-acceptance-20260908/A01-defective-blind-copy-27.docx",
+      "3": "人工评分台账与 record_human_score.py 已建立并接线，真实台账为空。返工后写入与读取共用同一摘要函数，且必须先由真人在 rubrics/ 冻结评分标准，否则评分门禁按设计失败关闭",
+      "4": "提交 d5ff829 + clean-tree 真实运行 + v1 锚点。该锚点在独立验收后判定不成立（A02/A03 缺口 + HEAD 已前进 + 未获真人批准），已作废，待最终冻结后按 v2 重建"
+    },
+    "independent_acceptance_20260908": {
+      "report": "docs/2026-09-08_Qwen交付独立验收报告.md",
+      "evidence_dir": "artifacts/independent-plan-acceptance-20260908/",
+      "plan": "docs/2026-09-08_Qwen验收报告返工计划.md",
+      "rework_record": "docs/2026-09-08_A01-A04返工执行留痕.md",
+      "verdict_at_acceptance": "整体暂不通过，部分交付可以保留；M08 不通过需返工，F02/F03 不得关闭",
+      "findings": {
+        "A01": "已修：_strip_drawings 之前只删显示节点，未清除 word/_rels 中的 image 关系与孤立媒体。现按引用可达性删关系，并在保存后逐部件复验",
+        "A02": "已修：读取端整行重算绑定摘要，并按真人冻结的评分标准核对维度集合、上下限与有限数值；写入端改为共用同一摘要函数",
+        "A03": "已修：绑定拒绝空清单与必需文件缺项、要求覆盖门禁选用运行与登记台账，schema 升 v2；运行原件未登记的版本值不再由期望值补写",
+        "A04": "本段与 release_binding/m08 的表述已更正；生产 B3 事实、发布指针与外置绑定仍待真人在最终冻结后补齐"
+      },
+      "retest_commands": [
+        "backend/.venv/Scripts/python.exe -m pytest backend/tests/test_release_evidence.py backend/tests/test_release_evidence_hardening.py backend/tests/test_release_gate_contracts.py backend/tests/test_blind_submission_anonymity.py -q",
+        "backend/.venv/Scripts/python.exe scripts/build_blind_submission_copy.py",
+        "backend/.venv/Scripts/python.exe scripts/render_blind_submission_pdf.py",
+        "backend/.venv/Scripts/python.exe scripts/verify_release_evidence.py --run-id RUN-V7-0351B4C6950D --expected-model-id deepseek-v4-flash --ledger backend/release_records/human_scores/EVAL-20260828-RELEASE-CANDIDATE-V1.jsonl --binding ../audittrace-release-bindings/release-20260908-1c9f1db.json"
+      ],
+      "not_in_scope_this_round": [
+        "M03 六类案例的原件回页与专业裁决",
+        "M04 检索行为整改与 26 问判据修订（需先由人确认相关性判据）",
+        "M07 独立目录冷启动与两名首次使用者观察",
+        "M05 真人冻结与 B0—B3 评分、M06 队员出镜录制、M10 决赛材料",
+        "M02 正式交付位置与阶段唯一附件清单"
+      ],
+      "boundary": "本轮返工只收紧机器可校验的环节并更正表述，不新增任何真人签署、不冻结评分标准、不生成正式锚点、不调用付费模型、不提交或推送。"
     }
   },
   "latest_review_20260907": {
