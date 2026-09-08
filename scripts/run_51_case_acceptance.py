@@ -1,8 +1,8 @@
-"""审迹智链 51 案例端到端验收脚本。
+"""审迹智链案例端到端验收脚本。
 
 对指定后端（默认本地 http://127.0.0.1:8000，可用 --base-url 指向部署站）执行：
 1. /api/health 与 /api/status 基础可用性；
-2. /api/cases?summary=true 案例目录完整性（51 个内置案例）；
+2. /api/cases?summary=true 案例目录完整性（默认按当前 manifest 的案例数）；
 3. 每个案例的详情接口（含统一 AI 声明不变式）；
 4. 每个案例一次 calculation_only 的 R1 确定性运行（不调用外部模型）；
 5. 每个案例一次 RAG 检索烟测（查询词“应收账款”）；
@@ -11,7 +11,7 @@
 用法：
     backend\\.venv\\Scripts\\python.exe scripts\\run_51_case_acceptance.py
     backend\\.venv\\Scripts\\python.exe scripts\\run_51_case_acceptance.py --base-url https://audittrace-demo.onrender.com
-    backend\\.venv\\Scripts\\python.exe scripts\\run_51_case_acceptance.py --skip-rag --only-readonly
+    backend\\.venv\\Scripts\\python.exe scripts\\run_51_case_acceptance.py --expected-case-count 51
 
 退出码：全部通过为 0，任何失败为 1。
 """
@@ -25,6 +25,7 @@ import time
 import urllib.request
 import urllib.error
 import urllib.parse
+from pathlib import Path
 from typing import Any
 
 
@@ -36,6 +37,11 @@ if hasattr(sys.stderr, "reconfigure"):
 AI_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 EXPECTED_RUN_STATUSES = {"RULE_NOT_TRIGGERED", "candidate", "DATA_GAP"}
 TIMEOUT_SECONDS = 120
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_EXPECTED_CASE_COUNT = int(
+    json.loads((REPO_ROOT / "backend" / "competition_demo_cases.json").read_text(encoding="utf-8"))
+    .get("case_count", 0)
+)
 
 
 def request_json(base_url: str, path: str, method: str = "GET", payload: dict | None = None, retries: int = 3) -> tuple[int, Any]:
@@ -87,6 +93,12 @@ def main() -> int:
     parser.add_argument("--skip-rag", action="store_true", help="跳过每个案例的 RAG 检索烟测")
     parser.add_argument("--skip-runs", action="store_true", help="跳过 calculation_only 运行")
     parser.add_argument("--only-readonly", action="store_true", help="只测只读边界抽查")
+    parser.add_argument(
+        "--expected-case-count",
+        type=int,
+        default=DEFAULT_EXPECTED_CASE_COUNT,
+        help=f"要求目录案例数精确匹配该值（默认读取 manifest：{DEFAULT_EXPECTED_CASE_COUNT}）",
+    )
     parser.add_argument("--json-out", default=None, help="把结果写到 JSON 文件")
     args = parser.parse_args()
     base_url = args.base_url.rstrip("/")
@@ -100,10 +112,10 @@ def main() -> int:
         if not ok:
             failures.append(f"{case_id} [{stage}] {detail}")
 
-    def gate(condition: bool, message: str, stage: str = "health") -> None:
+    def gate(condition: bool, message: str, stage: str = "health") -> bool:
         if not condition:
             failures.append(f"{stage}: {message}")
-        check(condition, message)
+        return check(condition, message)
 
     # 1. health / status
     try:
@@ -138,12 +150,20 @@ def main() -> int:
     # 2. 案例目录
     try:
         code, summary = request_json(base_url, "/api/cases?summary=true")
-        check(code == 200, f"/api/cases?summary=true HTTP {code}")
+        gate(code == 200, f"/api/cases?summary=true HTTP {code}", "catalog")
         cases = (summary or {}).get("cases") or []
         print(f"  [info] 目录案例数 = {len(cases)}")
-        check(len(cases) >= 51, f"案例数 {len(cases)} < 51")
+        gate(
+            len(cases) == args.expected_case_count,
+            f"案例数 {len(cases)} 与期望值 {args.expected_case_count} 不一致",
+            "catalog",
+        )
         for item in cases:
-            check(set(item) >= {"case_id", "company_name", "available_years"}, f"摘要缺字段: {item.get('case_id')}")
+            gate(
+                isinstance(item, dict) and set(item) >= {"case_id", "company_name", "available_years"},
+                f"摘要缺字段: {item.get('case_id') if isinstance(item, dict) else '<非对象>'}",
+                "catalog",
+            )
     except Exception as error:  # noqa: BLE001
         cases = []
         failures.append(f"/api/cases?summary=true 异常: {error}")
@@ -156,9 +176,11 @@ def main() -> int:
         try:
             code, detail = request_json(base_url, f"/api/cases/{urllib.parse.quote(case_id)}")
             ok = check(code == 200, f"详情 HTTP {code}")
-            if ok and isinstance(detail, dict):
+            if ok:
+                ok = check(isinstance(detail, dict), "详情响应不是对象") and ok
+            if isinstance(detail, dict):
                 ok = check(str(detail.get("case_id") or "") == case_id, "详情 case_id 不一致") and ok
-                check(has_notice(detail), "详情缺少统一 AI 声明")
+                ok = check(has_notice(detail), "详情缺少统一 AI 声明") and ok
             years = sorted({int(y) for y in ((detail or {}).get("available_years") or []) if str(y).isdigit()}, reverse=True)
             if not years:
                 years = sorted({int(y) for y in item.get("available_years") or [] if str(y).isdigit()}, reverse=True)
@@ -181,13 +203,15 @@ def main() -> int:
                     status_value = ""
                     completeness = ""
                     run_id = ""
-                    if run_ok and isinstance(run, dict):
+                    if run_ok:
+                        run_ok = check(isinstance(run, dict), "运行响应不是对象") and run_ok
+                    if isinstance(run, dict):
                         status_value = str(run.get("screening_status") or run.get("status") or "")
                         completeness = str(run.get("run_completeness") or "")
                         run_id = str(run.get("run_id") or "")
                         run_ok = check(status_value in EXPECTED_RUN_STATUSES, f"意外运行状态 {status_value}") and run_ok
                         run_ok = check(has_notice(run), "运行结果缺少统一 AI 声明") and run_ok
-                        check(run_id.startswith("RUN-V7"), f"run_id 异常: {run_id}")
+                        run_ok = check(run_id.startswith("RUN-V7"), f"run_id 异常: {run_id}") and run_ok
                     record(case_id, "calculation_only", run_ok, f"year={current_year} status={status_value} completeness={completeness}")
                 except urllib.error.HTTPError as error:
                     detail_text = ""
@@ -206,11 +230,13 @@ def main() -> int:
                     code, rag = request_json(base_url, "/api/rag/retrieve", method="POST", payload=payload)
                     rag_ok = check(code == 200, f"rag HTTP {code}")
                     count = 0
-                    if rag_ok and isinstance(rag, dict):
+                    if rag_ok:
+                        rag_ok = check(isinstance(rag, dict), "RAG 响应不是对象") and rag_ok
+                    if isinstance(rag, dict):
                         results = rag.get("results") or []
                         count = len(results)
                         rag_ok = check(count > 0, "RAG 检索返回 0 条结果") and rag_ok
-                        check(has_notice(rag), "RAG 结果缺少统一 AI 声明")
+                        rag_ok = check(has_notice(rag), "RAG 结果缺少统一 AI 声明") and rag_ok
                     record(case_id, "rag", rag_ok, f"hits={count}")
                 except urllib.error.HTTPError as error:
                     record(case_id, "rag", False, f"HTTP {error.code}")

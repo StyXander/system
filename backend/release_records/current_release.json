@@ -44,7 +44,10 @@
     },
     "fresh_production_b3_required": true,
     "competition_release_ready": false,
-    "reason": "整改候选版本尚未取得新的生产 provider probe、真实 B3、人工评分和最终发布批准。"
+    "reason": "整改候选版本尚未取得新的生产 provider probe、真实 B3、人工评分和最终发布批准。",
+    "human_score_ledger_path": "backend/release_records/human_scores/EVAL-20260828-RELEASE-CANDIDATE-V1.jsonl",
+    "human_score_ledger_status": "empty_pending_two_real_scorers",
+    "fresh_production_b3_run_id_note": "未登记。本轮真实运行 RUN-V7-30E58BC730C6 的 run_completeness=complete_public_prescreen 且 environment 非 production，不构成生产 B3 证据，故不写入 fresh_production_b3_run_id。"
   },
   "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 }

@@ -102,6 +102,11 @@ artifacts/
 !/scripts/build_delivery_packages.py
 !/scripts/axe_inject.py
 !/scripts/browser_demo_final_acceptance.py
+# 发布门禁的独立重算工具：门禁代码入库而重算脚本不入库，评委就无法从干净克隆复验，
+# 外置版本绑定与人工评分台账也会退化成口头承诺。三个脚本必须与门禁同仓。
+!/scripts/verify_release_evidence.py
+!/scripts/build_release_binding.py
+!/scripts/record_human_score.py
 # README 与评委包都指向这份测试清单，原先被整目录 /docs/ 忽略而永远进不了版本库。
 !/docs/
 /docs/*

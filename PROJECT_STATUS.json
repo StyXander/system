@@ -2,7 +2,7 @@
   "status_file": "registered",
   "status_schema_version": "project_status_v1",
   "project_name": "审迹智链 AuditTrace",
-  "updated_at": "2026-09-03T20:14:39+08:00",
+  "updated_at": "2026-09-08T13:04:38+08:00",
   "current_release": {
     "release_id": "RELEASE-CANDIDATE-20260828-V1",
     "release_status": "remediation_in_progress",
@@ -42,7 +42,11 @@
     "evaluation": {
       "evaluation_id": "EVAL-20260826-B1B3-CURRENT-R3",
       "records": 9,
-      "cases": ["五粮液", "中国海油", "标准股份"],
+      "cases": [
+        "五粮液",
+        "中国海油",
+        "标准股份"
+      ],
       "b1": "3/3 deterministic; provider_calls=0",
       "b2": "0/3 completed; three real single calls failed with MODEL_OUTPUT_VALIDATION_FAILED; PROC-R1-2025 bound",
       "b3": "3/3 model_success; three roles complete",
@@ -74,13 +78,24 @@
       "task_state": "需要人工确认",
       "task_id": "CNINFO-38FF6302B49D",
       "run_id": "RUN-V7-950E54F69317",
-      "structured_exports": ["json", "csv", "print_pdf", "docx"],
+      "structured_exports": [
+        "json",
+        "csv",
+        "print_pdf",
+        "docx"
+      ],
       "model_success": false,
       "boundary": "现场可实时处理并如实降级；未将模型链不完整写成成功。"
     },
     "browser": {
       "static_audit": "outputs/browser-r3-static11/static-audit.json",
-      "viewports": ["1440x900", "1440x1000", "1024x768", "768x1024", "390x844"],
+      "viewports": [
+        "1440x900",
+        "1440x1000",
+        "1024x768",
+        "768x1024",
+        "390x844"
+      ],
       "axe_violations": 0,
       "axe_incomplete": 0,
       "errors": 0,
@@ -121,7 +136,11 @@
     "current_code_evaluation": {
       "evaluation_id": "EVAL-20260825-B1B3-CURRENT-R2-NETWORK",
       "records": 9,
-      "cases": ["五粮液", "中国海油", "标准股份"],
+      "cases": [
+        "五粮液",
+        "中国海油",
+        "标准股份"
+      ],
       "b1": "3/3 deterministic; provider_calls=0",
       "b2": "0/3 completed; 3 failed with MODEL_OUTPUT_VALIDATION_FAILED",
       "b3": "3/3 model_success; each has 3 completed roles",
@@ -155,7 +174,13 @@
       "run_audit": "outputs/browser-r2-run/run-audit-summary.json",
       "run_audit_1440x900": "outputs/browser-r2-run-1440x900/run-audit-summary.json",
       "export_audit": "outputs/browser-r2-export/export-audit.json",
-      "viewports": ["1440x900", "1440x1000 (extra baseline)", "1024x768", "768x1024", "390x844"],
+      "viewports": [
+        "1440x900",
+        "1440x1000 (extra baseline)",
+        "1024x768",
+        "768x1024",
+        "390x844"
+      ],
       "automated_blocking_findings": 0,
       "console_page_network_errors": 0,
       "horizontal_overflow": false,
@@ -177,8 +202,16 @@
     "superseded_by": "latest_r2_20260825",
     "current_proposal": "02_最终确定方案/15_审迹智链_项目方案书_V4_竞赛提交版_2026-08-25.md",
     "current_plan": "02_最终确定方案/16_审迹智链_详细项目计划书_V3_提交冲刺版_2026-08-25.md",
-    "historical_documents": ["05_审迹智链_项目方案书_V3_全面复盘修订版.md", "05_审迹智链_详细项目计划书_V2.4_资料入口指标库与快速MVP补充版.md"],
-    "innovation_controls": ["deterministic_route_controller", "assertion_evidence_procedure_matrix", "evidence_fitness_claim_boundary", "numeric_claim_trace_and_anti_confirmation"],
+    "historical_documents": [
+      "05_审迹智链_项目方案书_V3_全面复盘修订版.md",
+      "05_审迹智链_详细项目计划书_V2.4_资料入口指标库与快速MVP补充版.md"
+    ],
+    "innovation_controls": [
+      "deterministic_route_controller",
+      "assertion_evidence_procedure_matrix",
+      "evidence_fitness_claim_boundary",
+      "numeric_claim_trace_and_anti_confirmation"
+    ],
     "b1_b2_b3_evaluation": {
       "evaluation_id": "EVAL-20260825-B1B3-AI-PRESCORE-V1",
       "records": 9,
@@ -357,14 +390,14 @@
   "tests": {
     "source_repository": {
       "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
-      "latest_result": "373 passed, 1 warning in 122.51s（日志 tmp/ai2-final-repo-pytest-20260903-v2.txt）",
-      "executed_on": "2026-09-03",
+      "latest_result": "420 passed, 1 warning in 96.40s（2026-09-08 当前工作树，M08 独立证据重算与外置绑定后，停止本机服务复跑；同日早一次全量为 238.49s，差异来自联网用例耗时，项数一致）",
+      "executed_on": "2026-09-08",
       "status": "passed",
-      "previous_result": "349 passed, 1 warning（2026-09-02 基线）",
-      "stability_evidence": "373 项（37 文件）为当前整改后口径；本轮最后一次全量日志 tmp/ai2-final-repo-pytest-20260903-v2.txt（373 passed）。历史 run1 曾出现 1 次失败（371 passed / 1 failed，test_competition_demo_plan.py:798 对 CNINFO_601988_T0_20260330 返回 sensitive_data_blocked），单测与整文件复跑均绿、后续全量亦绿，但间歇性根因尚未完成独立复现，因此本仓库口径不得写成“稳定全绿”；详见 tmp/incident-20260903-间歇性隐私闸门阻断.md。评委包在一次后续 validate-only 中又观察到 CNINFO_600000_T0_20260330 的 sensitive_data_blocked，随后单测及全新解包全量复跑通过；该观察记录见 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md，仍按间歇性风险保留，不改写为稳定通过。docs/TEST_INVENTORY.md 已重生成 37 文件 / 373 项 / 10 个需联网文件。",
+      "previous_result": "384 passed, 1 warning in 224.05s（2026-09-07 R05/R06 后）",
+      "stability_evidence": "2026-09-08 停服务全量回归 420 passed / 1 warning，最后一次用时 96.40s（同日另一次为 238.49s，联网用例耗时不同，项数一致）；docs/TEST_INVENTORY.md 已更新为 38 文件 / 420 项 / 10 个需联网文件。同日一次全量回归中出现 1 次 test_all_seed_cases_enter_three_role_external_route 失败，当时本机 8000 端口服务正在运行并向 backend/runtime 追加记录；停服务后该测试单文件复跑与全量复跑均为绿。该现象根因未定位，只记录相关性，不写成已证实的因果，也不写成稳定全绿。历史 sensitive_data_blocked 间歇性失败同样保留，详情见 tmp/incident-20260903-间歇性隐私闸门阻断.md 与 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md。",
       "root_cause_fixed": "疑似 backend/app/demo_run_tasks.py 在 Windows 上 os.replace 原子写被并发读句柄或杀软扫描拒绝（WinError 5）；已改为独立临时名 + 有限重试，终态拒绝迟到写入的生产闸门未放宽，但间歇性失败尚未完成独立复现，不能写成根因已证实。",
-      "chinese_comments": "2416/23991 = 10.07%（达手册 10% 门槛；新增 backend/app/release_gate.py 与 corpus.py 后实测登记，未为凑数补注释）",
-      "note": "2026-09-03 AI-2 可靠性整改轮：实现评委包独立解耦构建（--package judge）、全文依赖显式跳过闸门（requires_full_corpus）、统一年报文件判据（backend/app/corpus.py）、年报来源校验下载工具（prepare_full_corpus.py）、发布门禁生产实现与反向契约测试（release_gate.py / test_release_gate_contracts.py）、旁路观察器状态留痕（_observer_status）与回环信任显式开关（AUDITTRACE_TRUST_LOOPBACK）。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。"
+      "chinese_comments": "2486/24471 = 10.16%（达手册 10% 门槛；新增 backend/app/release_evidence.py 与 provider_calls.py 的说明性注释均解释真实边界）",
+      "note": "2026-09-08 M08：新增 backend/app/release_evidence.py 独立重算运行原件哈希、按尝试哈希重派生调用 ID、重跑确定性事实语言闸门，并从独立人工评分台账推导评分完成状态；backend/app/release_gate.py 增加外置版本绑定前置条件；backend/app/provider_calls.py 统一在线与离线的调用 ID 派生规则；scripts/verify_release_evidence.py 与 scripts/build_release_binding.py 提供 CLI。此前 2026-09-07 的门禁反例契约、缓存回放归属修复与目录验收脚本改动继续有效。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。"
     },
     "judge_package": {
       "command": "python -m pytest -q（评委包独立目录解包，无 .env、无任何模型密钥、无四份年报全文）",
@@ -403,8 +436,8 @@
     },
     "chinese_comments": {
       "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "1886/18438 = 10.23%",
-      "executed_on": "2026-08-23",
+      "latest_result": "2486/24471 = 10.16%",
+      "executed_on": "2026-09-08",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -497,6 +530,189 @@
       "clean_runtime": "交付包/03_审迹智链0.7.1_无密钥清洁运行包_2026-08-09.zip",
       "scan": "3 packages zero blockers; clean runtime 171 passed, 1 warning, 24.15s; API/RAG/R1 smoke passed"
     }
+  },
+  "competition_improvement_20260908": {
+    "plan": "docs/2026-09-08_AuditTrace竞赛要求逐项达成审查与全面改进计划.md",
+    "ledger": "docs/2026-09-08_竞赛改进任务执行台账.md",
+    "head": "26059cfc79643f05b37d706393ebbb851dc32f80",
+    "scope": "当前本地工作树；M02/M03/M04/M05/M06/M08/M09 已执行并留痕，未提交、未部署、未代发任何外部消息；真实模型调用经队长明确授权 1 次",
+    "live_run": {
+      "run_id": "RUN-V7-30E58BC730C6",
+      "task_id": "DEMO-RUN-75A7591A4E22",
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company": "五粮液",
+      "current_year": 2025,
+      "model_id": "deepseek-v4-flash",
+      "prompt_version": "agent_prompt_v3",
+      "execution_mode": "external_live",
+      "provider_calls": 3,
+      "cache_hit": false,
+      "duration_ms": 13847,
+      "tokens": "35220 输入 / 1861 输出",
+      "final_status": "candidate / complete_public_prescreen",
+      "record_sha256": "09f7d30699058e921dfa5b87dd6e5e52c0217b4a79dc9aa8c3fb948bc267c824",
+      "evidence": "docs/2026-09-08_当前工作树真实完整链运行留痕.md 与 artifacts/competition-improvement-20260908/live-run/",
+      "boundary": "样本量 1 的技术层完整链证据；run_completeness 为 complete_public_prescreen 且 environment 非 production，不作为正式生产 B3，也不构成效果结论"
+    },
+    "m02": {
+      "status": "候选稿完成，待真人填写与匿名裁决",
+      "artifact": "02_最终确定方案/26_审迹智链_AuditTrace_初赛方案书_竞赛核对修订稿_2026-09-08.docx",
+      "pdf": "artifacts/competition-improvement-20260908/proposal-render-v5/（15 页）",
+      "record": "docs/2026-09-08_26号初赛方案书PDF逐页核验记录.md",
+      "fix": "表10 浏览器记录行补 2026-09-07 日期；proposal-changes.json 累计 27 处 before/after",
+      "open": [
+        "封面与参赛人员待填写",
+        "第 2 页含导师真实手机号与手写签名，匿名口径未确认",
+        "老师是否接受本轮逐段修改"
+      ]
+    },
+    "m03": {
+      "status": "六类核对表完成，专业裁决未做",
+      "artifact": "docs/2026-09-08_六类代表案例独立复算核对表.md",
+      "data": "artifacts/competition-improvement-20260908/case-recheck/case-recheck.json",
+      "script": "scripts/build_case_independent_recomputation.py",
+      "result": "15 案 calculation_only 复跑（按 field_kind 取收入与应收族）：8 案独立复算与程序一致、1 案指标暴露矛盾、6 案因资料缺口 N/A。",
+      "p1": [
+        "紫金矿业 2023/2024 应收账款登记为 4.00 元 / 1.00 元，长江电力 2024、立讯精密 2023/2024、万华化学 2023/2025 出现 1.00/5.00 元，形似页码或位数",
+        "中国石油、中国石化应收三年恒定（9,000,000 / 7,000,000），与同案例并存的 accounts_receivable_net、accounts_receivable_allowance 相差 1—3 个数量级",
+        "中国海油程序报出 growth_gap=0.0377176610 却把 ar_growth、绝对变动与周转天数置 null，两者不能同时成立",
+        "上述 6 案引擎均返回 DATA_GAP，未用可疑值编造增速或风险卡；8 个数据齐备案例复算逐项一致"
+      ],
+      "uncovered_category": "行业不适用：15 案 industry_gate 的 fit_level 全为 direct，当前演示集无法演示该路径，本轮如实标注未演示",
+      "retracted": "首版报的“9 项登记冲突、标准股份应收三年为负值、中国石油/中国石化约 1/126 与 1/311”系脚本把所有非营业收入字段误当应收所致（那三个负数是标准股份净利润，公司确实亏损），已作废并重跑。",
+      "adjudication": "docs/2026-09-08_案例登记值裁决建议单.md（AD-1—AD-4）"
+    },
+    "m04": {
+      "status": "测试集与实跑完成，真人相关性标注未做",
+      "artifact": "docs/2026-09-08_知识库来源分栏与检索测试集实测.md",
+      "script": "scripts/run_knowledge_retrieval_test_set.py",
+      "data": "artifacts/competition-improvement-20260908/retrieval-test/{questions.json,results.json}",
+      "result": "26 问；12 问期望拒答，11 问仍有命中；13 条来源中 5 条页码或行号级定位、4 条描述性、4 条写明以原件为准；0 条含可回查原文短引；6 条带 query_terms",
+      "boundary": "未做真人相关性标注，因此不报告 Recall@k、Precision@k 或检索准确率"
+    },
+    "m05_m06": {
+      "status": "工具与台本完成，真人执行未做",
+      "evaluation_contract": "docs/2026-09-08_B0-B3同案对照冻结合同模板.md",
+      "instruments": "artifacts/competition-improvement-20260908/evaluation-instruments/（两份盲评表 + 逐案对照记录表，UTF-8 BOM）",
+      "metrics_script": "scripts/compute_b0_b3_metrics.py（缺人工评分时 fail closed，不编造数字）",
+      "video_script": "docs/2026-09-08_初赛五分钟视频录制台本与画面清单.md（计划 290 秒，口播 1200 字）"
+    },
+    "m08": {
+      "status": "F02 与 F03 已实现并有反例测试；线上门禁仍为 false",
+      "record": "docs/2026-09-08_M08独立证据校验与外置版本绑定整改记录.md",
+      "files": [
+        "backend/app/release_evidence.py",
+        "backend/app/provider_calls.py",
+        "backend/app/main.py",
+        "backend/app/release_gate.py",
+        "scripts/build_release_binding.py",
+        "scripts/verify_release_evidence.py",
+        "backend/tests/test_release_evidence.py"
+      ],
+      "tests": "test_release_evidence 36 passed；test_release_gate_contracts 20 passed；全量 420 passed / 1 warning",
+      "live_check": "verify_release_evidence.py 对 RUN-V7-30E58BC730C6 重算一致，仅因人工评分未完成而 FAIL；改写锚点后报“疑似被改写”",
+      "not_closed": [
+        "current_release.json 未新增 fresh_production_b3_run_id、human_score_ledger_path 与 release_binding 字段，线上门禁继续阻断",
+        "真实运行发生在脏工作树，绑定要求 clean tree，提交后需重跑",
+        "人工评分台账尚未建立，两名真人评分空白"
+      ]
+    },
+    "m09": {
+      "status": "交付面扫描通过，外发许可仍需真人确认",
+      "script": "scripts/check_delivery_surface.py",
+      "report": "artifacts/competition-improvement-20260908/delivery-surface-report.json",
+      "result": "交付面 173 个文件；固定依赖 41 项，THIRD_PARTY_NOTICES.md 补登记 14 项后覆盖 41/41；敏感形态必须处理 0 处、待判定 0 处、测试夹具 28 处、亿元金额形态 28 处；生成 173 项 SHA-256 清单",
+      "existing_secret_scan": "scripts/scan_working_tree_secrets.py 报告 no_secret_hits",
+      "unverified_licenses": [
+        "axe-playwright-python（元数据未声明）",
+        "pillow",
+        "pypdf",
+        "pypdfium2（本机未安装）"
+      ]
+    },
+    "release_gates": {
+      "competition_release_ready": false,
+      "reason": "外置版本绑定未建立、人工评分未完成、真人最终发布批准未给出、工作树未提交；另有 AD-1—AD-4 待真人裁决"
+    },
+    "boundary": "本轮所有新增记录只证明材料、算术与代码契约层面的可回查性，不证明专业口径正确、不证明效果提升、不代替任何签字。"
+  },
+  "latest_review_20260907": {
+    "plan": "docs/superpowers/plans/2026-09-07-AuditTrace概览复核与审查修改计划.md",
+    "head": "26059cfc79643f05b37d706393ebbb851dc32f80",
+    "scope": "当前本地工作树；R01-R03、R05-R06 已按复核结论修改并通过回归，未提交、未部署、未调用付费生产模型",
+    "changes": [
+      "backend/app/release_gate.py：固定 challenge/counter/review 角色集合，严格校验非空唯一调用 ID、调用数一致性、真人评分 ID，并拒绝字符串 false 作为最终批准",
+      "backend/app/main.py 与 backend/app/schemas.py：为真实供应商尝试派生绑定输入/响应哈希的 provider_call_ids，缺哈希或尝试记录不一致时失败关闭；最终批准改为严格布尔 True",
+      "backend/app/main.py、backend/app/delivery.py 与 backend/app/schemas.py：新请求缓存、文件缓存和远程缓存回放清空本次及嵌套 Agent provider 调用明细，草稿 run_id 重绑本次运行，旧运行编号只在来源上下文中保留",
+      "backend/tests/test_release_gate_contracts.py、backend/tests/test_competition_demo_plan.py：新增重试缺响应哈希、缓存调用编号和验收漏报反例契约",
+      "scripts/run_51_case_acceptance.py：默认从当前 manifest 读取案例数，目录数量不符时进入失败清单；目录字段、详情声明、运行编号和 RAG 声明失败会进入统一失败汇总；可用 --expected-case-count 复核历史 51 案口径"
+    ],
+    "tests": {
+      "source_repository": "384 passed, 1 warning in 224.05s",
+      "release_gate_contracts": "20 passed",
+      "state_and_recovery_subset": "33 passed, 1 warning",
+      "test_inventory": "37 files / 384 items / 10 network files",
+      "chinese_comments": "2434/24072 = 10.11%",
+      "frontend_contract": "166 unique ids, 175 id references, 1 script"
+    },
+    "runtime": {
+      "calculation_only": "15 案 90 次本地确定性运行，90/90 passed，provider_call_count=0；证据 artifacts/review-plan-20260907/local-chain-regression.json",
+      "rag_and_readonly": "15 案详情 + 15 案 RAG 共 30 项通过；公开写入边界 3 项均 HTTP 403；证据 artifacts/review-plan-20260907/15-case-readonly-rag.json",
+      "failure_recovery": "真实模型不可达返回 incomplete_model_chain_failed/unavailable；显式备用生成带 parent_run_id 的 complete_demo_fallback/deterministic_backup 子运行；证据 artifacts/review-plan-20260907/a3-failure-recovery.json",
+      "acceptance_script_after_fix": "本地真实服务跳过运行与 RAG 后，15 案详情和 3 项只读边界通过；失败计数为 0；证据 artifacts/review-plan-20260907/acceptance-script-postfix.json",
+      "second_self_review": "R05 已清理三条缓存路径的嵌套调用明细并重绑草稿 run_id；R06 统计为 2434/24072=10.11%；专项 22 passed、全量 384 passed / 1 warning in 224.05s"
+    },
+    "browser": {
+      "viewports": [
+        "1440x1000",
+        "1024x768",
+        "768x1024",
+        "390x844"
+      ],
+      "states": [
+        "landing",
+        "case_select",
+        "workspace",
+        "running",
+        "result",
+        "collapsible_expanded",
+        "evidence_drawer",
+        "agent_drawer",
+        "print_preview"
+      ],
+      "axe": "每个视口 9 个状态均真实执行，violations=0，工具未执行项=0",
+      "console_network_overflow": "四视口 console/page/failed request/HTTP error=0，文档横向溢出=0",
+      "keyboard_print_download": "Enter/Esc/Space 焦点和折叠状态通过；打印折叠区强制展开通过；JSON/CSV 真实下载通过",
+      "artifacts": "artifacts/review-plan-20260907/browser-final/"
+    },
+    "judge_package": {
+      "zip": "交付包/04_审迹智链_评委代码复现包_2026-09-04.zip",
+      "result": "346 passed, 19 skipped, 1 warning in 49.96s",
+      "source_only_test_count": 19,
+      "source_only_mapping": "artifacts/review-plan-20260907/test-collection-diff.json",
+      "difference_reason": "8 项仓库交付/取证/杰克案例测试，9 项本轮新增门禁参数化反例，1 项供应商调用 ID 派生测试，1 项验收脚本失败汇总测试；评委包未包含这些当前工作树新增项",
+      "skip_boundary": "19 项均为缺标准股份年报全文或内部队长签字原件的显式跳过，不作为完整模型链通过"
+    },
+    "release_gates": {
+      "competition_release_ready": false,
+      "provider": "本地健康接口 provider_status=unavailable、provider_ready=false、model_execution_ready=false；真实生产探测 pending",
+      "fresh_b3": "pending；当前评估 initialized_no_model_runs，真人评分 pending",
+      "version_binding": "current_release.json 的 materialized_source_head 仍为 be983994…，与当前 HEAD 不同；未强行改写",
+      "open_p1": [
+        "F02：fresh B3 证据加载仍需独立重算运行记录、结果文件和人工记录，当前没有可用生产证据",
+        "F03：发布记录与代码同仓的非循环外置证据绑定流程尚未落地",
+        "F04/F05/F10：生产模型、专业签字、B0—B3 真人评分及净额/账面余额口径仍未完成"
+      ],
+      "closed_or_reframed": [
+        "F01：错误角色、重复/空/类型错误调用 ID、空/重复/类型错误评分 ID和字符串 false 反例已拒绝",
+        "R01：逐次尝试缺哈希、调用次数与历史记录不一致时不再生成 provider_call_ids",
+        "R02/R05：缓存回放的本次及嵌套 Agent provider 调用明细已清空，旧调用只通过缓存来源上下文回查",
+        "R03：验收脚本的必要嵌套断言已纳入失败汇总并返回非零退出码",
+        "F06：源码与评委包差额已逐项映射，当前差额为 19 项 source-only",
+        "F08/F09：当前测试清单和状态索引已更新，历史文档保留为历史口径"
+      ]
+    },
+    "boundary": "本记录证明当前源码的确定性链、失败关闭、浏览器交互和包内复现边界；不证明真实生产 provider、有效 B3、专业正确性、人工评分或竞赛发布批准。"
   },
   "standard_annual_report_sources": [
     {

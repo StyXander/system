@@ -142,6 +142,7 @@ from .industry_gate import build_not_applicable_context, evaluate_industry_gate
 from .industry_rules import build_industry_prescreen
 from .corpus import is_local_corpus_available
 from .privacy import model_transmission_scope, scan_sensitive_payload
+from .provider_calls import derive_provider_call_ids
 from .provider_readiness import (
     classify_provider_channel,
     get_provider_snapshot,
@@ -174,6 +175,7 @@ from .demo_run_tasks import (
 )
 from .manifest_hash import CANONICAL_MANIFEST_HASH_ALGORITHM, manifest_sha256
 from .release_gate import evaluate_b3_eligibility, evaluate_release_ready
+from .release_evidence import build_b3_evidence_from_disk, verify_release_binding
 from .knowledge_rag import build_retrieval_request, retrieve_knowledge
 from .knowledge_sources import active_source_entries, coverage_group_summary, knowledge_cutoff_date, knowledge_snapshot_id
 from .knowledge_sources import load_source_manifest as load_knowledge_manifest
@@ -213,6 +215,7 @@ from .schemas import (
     RuleResult,
     RunRequest,
     RunResponse,
+    sanitize_cached_trace,
     StoredRunResponse,
     SupplementSampleRequest,
     SupplementRerunRequest,
@@ -1879,6 +1882,9 @@ def _replay_remote_cache_payload(payload: Any, cache_id: str) -> RunResponse:
     run_data["output_tokens"] = 0
     run_data["duration_ms"] = 0
     run_data["provider_call_count"] = 0
+    # 回放沿用原 Agent 轨迹，但本次没有供应商调用；旧 ID 只能通过
+    # replayed_from_run_id / cache_source_model_usage 回查，不能挂在新 run 上。
+    run_data["provider_call_ids"] = []
     original_model = run_data.get("model_check") if isinstance(run_data.get("model_check"), dict) else {}
     run_data["model_check"] = {
         "status": "cache_replay",
@@ -1889,12 +1895,13 @@ def _replay_remote_cache_payload(payload: Any, cache_id: str) -> RunResponse:
         "output_tokens": 0,
         "duration_ms": 0,
         "provider_call_count": 0,
-        "detail": "本次回放保留原Agent轨迹，但没有重新运行RAG或模型。",
+        "detail": "本次回放保留来源角色状态和草稿，但没有重新运行RAG或模型。",
     }
     try:
-        return RunResponse.model_validate(run_data)
+        replayed = RunResponse.model_validate(run_data)
     except (TypeError, ValueError) as error:
         raise HTTPException(status_code=503, detail="公网运行缓存无法形成有效回放。") from error
+    return sanitize_cached_trace(replayed, current_run_id=replay_id)
 
 
 def _remote_prewarm_report(batch: dict[str, Any]) -> dict[str, Any]:
@@ -2797,6 +2804,12 @@ def _enrich_model_check(model_check: ModelCheck, results: list[RuleResult]) -> M
     })
 
 
+def _provider_call_ids(steps: list[AgentStep], run_id: str) -> list[str]:
+    """兼容既有调用点；真实派生规则已抽到 provider_calls 供在线与离线共用。"""
+
+    return derive_provider_call_ids(steps, run_id)
+
+
 def _cached_run_for_new_request(
     cached: RunResponse,
     *,
@@ -2810,40 +2823,8 @@ def _cached_run_for_new_request(
 ) -> RunResponse:
     """复用已验证的模型结果，但为本次请求生成新的可追溯运行编号。"""
 
-    def rebind_run_ids(value: Any) -> Any:
-        if isinstance(value, dict):
-            return {
-                key: run_id if key == "run_id" else rebind_run_ids(child)
-                for key, child in value.items()
-            }
-        if isinstance(value, list):
-            return [rebind_run_ids(child) for child in value]
-        return deepcopy(value)
-
-    results: list[RuleResult] = []
-    for result in cached.rule_results:
-        steps: list[AgentStep] = []
-        for step in result.agent_steps:
-            output = step.output
-            if output is not None:
-                output = output.model_copy(update={"run_id": run_id})
-            steps.append(
-                step.model_copy(
-                    update={
-                        "output": output,
-                        "provider_call_performed": False,
-                        "provider_call_count": 0,
-                    }
-                )
-            )
-        results.append(
-            result.model_copy(
-                update={
-                    "agent_steps": steps,
-                    "ai_draft": rebind_run_ids(result.ai_draft) if result.ai_draft else None,
-                }
-            )
-        )
+    cached_trace = sanitize_cached_trace(cached, current_run_id=run_id)
+    results = cached_trace.rule_results
     cached_context = deepcopy(context)
     cached_context["cache_source_run_id"] = cached.run_id
     cached_context["cache_source_model_usage"] = {
@@ -2864,7 +2845,7 @@ def _cached_run_for_new_request(
             "provider_call_count": 0,
         }
     )
-    flattened_steps = [step for result in results for step in result.agent_steps]
+    flattened_steps = cached_trace.agent_steps
     completed_roles = {step.role for step in flattened_steps if step.status == "completed"}
     return cached.model_copy(
         update={
@@ -2875,7 +2856,7 @@ def _cached_run_for_new_request(
             "rule_results": results,
             "evidence_bundle": deepcopy(evidence_bundle),
             "retrievals": deepcopy(retrievals),
-            "final_ai_draft": rebind_run_ids(cached.final_ai_draft) if cached.final_ai_draft else None,
+            "final_ai_draft": cached_trace.final_ai_draft,
             "model_check": model_check,
             "execution_mode": "external_cached",
             "cache_hit": True,
@@ -2886,6 +2867,7 @@ def _cached_run_for_new_request(
             "output_tokens": 0,
             "duration_ms": 0,
             "provider_call_count": 0,
+            "provider_call_ids": [],
             "parent_run_id": context.get("parent_run_id"),
             "ai_analysis_route": cached.ai_analysis_route or cached_context.get("ai_analysis_route") or "risk_candidate",
             "ai_analysis_conclusion": cached.ai_analysis_conclusion or cached.model_check.analysis_conclusion,
@@ -4361,6 +4343,7 @@ def _execute_run(
         output_tokens=model_check.output_tokens or 0,
         duration_ms=model_check.duration_ms or 0,
         provider_call_count=model_check.provider_call_count,
+        provider_call_ids=_provider_call_ids(all_agent_steps, run_id),
         cache_hit=model_check.cache_hit,
         cache_key_hash=model_check.cache_key_hash,
         parent_run_id=context.get("parent_run_id"),
@@ -4514,29 +4497,55 @@ def _git_release_snapshot() -> tuple[str | None, bool | None]:
 
 
 def _load_fresh_b3_evidence(state: dict[str, Any]) -> dict[str, Any] | None:
-    """只读取发布记录明确绑定的 B3 证据，缺失时返回 None 而不是读取历史结果。"""
+    """只用磁盘原件重算 B3 证据；发布记录里的自报字段一律不采信。
+
+    旧实现允许 `release_readiness.fresh_production_b3_evidence` 内联一份字典，
+    等于让同一份文件自己声明“已验证”。现在只读取一个 run_id，其余状态全部由
+    `build_b3_evidence_from_disk` 重算得到；重算不成立时返回 None，让门禁保持阻断。
+    """
 
     readiness = state.get("release_readiness") or {}
-    inline = readiness.get("fresh_production_b3_evidence")
-    if isinstance(inline, dict):
-        return inline
-    relative_path = str(
-        readiness.get("fresh_production_b3_evidence_path")
-        or readiness.get("fresh_b3_evidence_path")
-        or ""
-    ).strip()
-    if not relative_path:
+    run_id = str(readiness.get("fresh_production_b3_run_id") or "").strip()
+    if not run_id:
         return None
-    candidate = (WORKSPACE_ROOT / relative_path).resolve()
-    try:
-        candidate.relative_to(WORKSPACE_ROOT.resolve())
-    except ValueError:
-        return None
-    try:
-        payload = json.loads(candidate.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return None
-    return payload if isinstance(payload, dict) else None
+    demo = state.get("demo") or {}
+    ledger_relative = str(readiness.get("human_score_ledger_path") or "").strip()
+    ledger_path: Path | None = None
+    if ledger_relative:
+        candidate = (WORKSPACE_ROOT / ledger_relative).resolve()
+        try:
+            candidate.relative_to(WORKSPACE_ROOT.resolve())
+        except ValueError:
+            # 台账指向工作区之外时不承认它是本机人工记录。
+            candidate = None
+        ledger_path = candidate
+    result = build_b3_evidence_from_disk(
+        run_id,
+        human_score_ledger_path=ledger_path,
+        expected_model_id=str(((state.get("model") or {}).get("model_id") or "")) or None,
+        expected_source_commit=str(demo.get("materialized_source_head") or "") or None,
+        expected_deployment_commit=os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None,
+        expected_manifest_sha256=str(demo.get("manifest_sha256") or "") or None,
+    )
+    return result.get("evidence") if result.get("status") == "loaded" else None
+
+
+def _release_binding_snapshot(state: dict[str, Any], *, git_head: str | None, worktree_dirty: bool | None) -> dict[str, Any]:
+    """校验外置版本绑定；绑定文件必须在工作区之外，否则等于自证。"""
+
+    readiness = state.get("release_readiness") or {}
+    binding_relative = str((readiness.get("release_binding") or {}).get("path") or "").strip()
+    if not binding_relative:
+        return {"status": "blocked", "reason": "缺少外置版本绑定记录"}
+    binding_path = Path(binding_relative).expanduser()
+    if not binding_path.is_absolute():
+        binding_path = (WORKSPACE_ROOT / binding_relative).resolve()
+    return verify_release_binding(
+        binding_path,
+        workspace_root=WORKSPACE_ROOT,
+        git_head=git_head,
+        worktree_dirty=worktree_dirty,
+    )
 
 
 def _load_current_evaluation_pointer(pointer_path: Path) -> dict[str, Any]:
@@ -4620,18 +4629,23 @@ def _release_fact_snapshot(
         expected_deployment_commit=deployment_commit,
         expected_manifest_sha256=manifest_hash,
     )
+    # 外置绑定先独立重算，再把结论交给门禁；门禁不读取仓库内的自报字段。
+    binding_snapshot = _release_binding_snapshot(state, git_head=git_head, worktree_dirty=worktree_dirty)
     release_ready, release_reason = evaluate_release_ready(
         gate_release_data,
         gate_evaluation_data,
         git_head=git_head,
         worktree_dirty=worktree_dirty,
-        human_final_approval=bool((state.get("release_readiness") or {}).get("human_final_approval")),
+        # 发布批准必须是状态文件中的布尔 True；"false" 等字符串不能靠
+        # Python truthiness 变成批准。
+        human_final_approval=(state.get("release_readiness") or {}).get("human_final_approval") is True,
         deployment_commit=deployment_commit,
         release_evidence_head=release_evidence_head,
         manifest_sha256=manifest_hash,
         expected_model_id=configured_model_id,
         signoff_status=signoff.get("signoff_status"),
         b3_evidence=fresh_b3_evidence,
+        release_binding=binding_snapshot,
     )
     ready_checks = {
         "manifest_hash": manifest_status == "verified" and manifest_count == 15,
@@ -4645,6 +4659,7 @@ def _release_fact_snapshot(
         "signoff": signoff.get("signoff_status") == "captain_approved_for_competition_demo",
         "human_scoring": human_scoring_status not in {"pending", "pending_human_scoring", "pending_human_scoring_and_fresh_model_runs"},
         "fresh_production_b3": b3_ready,
+        "release_binding": str(binding_snapshot.get("status") or "") == "verified",
         "release_gate": release_ready,
     }
     return {
@@ -4690,6 +4705,8 @@ def _release_fact_snapshot(
             "status": "ready" if release_ready else "blocked",
             "reason": release_reason,
             "fresh_b3_reason": b3_reason,
+            "release_binding_status": binding_snapshot.get("status"),
+            "release_binding_reason": binding_snapshot.get("reason"),
         },
         "competition_release_ready": release_ready,
         "ready_checks": ready_checks,

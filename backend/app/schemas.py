@@ -250,6 +250,8 @@ class RunResponse(AiGeneratedContentNotice):
     output_tokens: int = 0
     duration_ms: int = 0
     provider_call_count: int = 0
+    # 每次真实供应商尝试的内部追踪 ID；由输入/响应哈希派生，不保存供应商原文或密钥。
+    provider_call_ids: list[str] = Field(default_factory=list, max_length=32)
     cache_hit: bool = False
     cache_key_hash: str | None = None
     parent_run_id: str | None = None
@@ -258,6 +260,56 @@ class RunResponse(AiGeneratedContentNotice):
     ai_execution_requested: bool = False
     ai_execution_completed: bool = False
     agent_steps: list[AgentStep] = Field(default_factory=list)
+
+
+def sanitize_cached_trace(run: RunResponse, *, current_run_id: str) -> RunResponse:
+    """清理缓存结果中的本次调用字段，并把草稿编号绑定到回放运行。"""
+
+    def rebind_run_ids(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: current_run_id if key == "run_id" else rebind_run_ids(child)
+                for key, child in value.items()
+            }
+        if isinstance(value, list):
+            return [rebind_run_ids(child) for child in value]
+        return value
+
+    def sanitize_step(step: AgentStep) -> AgentStep:
+        output = step.output
+        if output is not None:
+            output = output.model_copy(update={"run_id": current_run_id})
+        return step.model_copy(
+            update={
+                "output": output,
+                "input_sha256": None,
+                "response_sha256": None,
+                "duration_ms": None,
+                "input_tokens": None,
+                "output_tokens": None,
+                "provider_call_performed": False,
+                "provider_call_count": 0,
+                "model_attempt_history": [],
+            }
+        )
+
+    results = [
+        result.model_copy(
+            update={
+                "agent_steps": [sanitize_step(step) for step in result.agent_steps],
+                "ai_draft": rebind_run_ids(result.ai_draft) if result.ai_draft else None,
+            }
+        )
+        for result in run.rule_results
+    ]
+    flattened_steps = [step for result in results for step in result.agent_steps]
+    return run.model_copy(
+        update={
+            "rule_results": results,
+            "final_ai_draft": rebind_run_ids(run.final_ai_draft) if run.final_ai_draft else None,
+            "agent_steps": flattened_steps,
+        }
+    )
 
 
 class HumanReviewRequest(BaseModel):

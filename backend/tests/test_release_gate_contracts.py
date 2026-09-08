@@ -18,8 +18,11 @@ import sys
 from pathlib import Path
 
 import pytest
+from scripts import run_51_case_acceptance as acceptance_script
 
 from backend.app.release_gate import SIGNOFF_APPROVED, VALID, evaluate_b3_eligibility, evaluate_release_ready
+from backend.app.main import _provider_call_ids
+from backend.app.schemas import AgentStep
 from backend.app.signoff import SIGNOFF_STALE_STATUS, load_signoff_status
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -191,6 +194,133 @@ def test_b3_requires_all_six_bindings() -> None:
         assert reason and reason != VALID
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("role_statuses", {"x": "completed", "y": "completed", "z": "completed"}),
+        ("role_statuses", {"challenge": "completed", "counter": "completed", "review": "completed", "other": "completed"}),
+        ("provider_call_ids", ["CALL-1", "CALL-1", "CALL-2"]),
+        ("provider_call_ids", ["CALL-1", "", "CALL-3"]),
+        ("provider_call_ids", ["CALL-1", "CALL-2"]),
+        ("provider_call_ids", ["CALL-1", 2, "CALL-3"]),
+        ("human_score_record_ids", ["SCORE-1", "SCORE-1"]),
+        ("human_score_record_ids", [""]),
+        ("human_score_record_ids", ["SCORE-1", 2]),
+    ],
+)
+def test_b3_rejects_placeholder_or_mismatched_audit_ids(field: str, value: object) -> None:
+    """角色、供应商调用和真人评分留痕必须是固定集合、非空字符串且不重复。"""
+
+    evidence = _valid_b3_evidence(**{field: value})
+    valid, reason = evaluate_b3_eligibility(evidence)
+    assert valid is False
+    assert reason and reason != VALID
+
+
+def test_provider_call_ids_are_derived_only_from_complete_attempt_hashes() -> None:
+    """真实供应商尝试必须逐项有脱敏输入/响应哈希，缺失时保持失败关闭。"""
+    steps = [
+        AgentStep(
+            role=role,
+            status="completed",
+            detail="provider result",
+            provider_call_performed=True,
+            provider_call_count=1,
+            input_sha256=input_hash,
+            response_sha256=response_hash,
+            model_attempt_history=[
+                {"input_sha256": input_hash, "response_sha256": response_hash}
+            ],
+        )
+        for index, role in enumerate(("challenge", "counter", "review"), start=1)
+        for input_hash, response_hash in [("a" * 63 + f"{index:x}", "b" * 63 + f"{index:x}")]
+    ]
+
+    identifiers = _provider_call_ids(steps, "RUN-B3-FRESH-0001")
+    assert len(identifiers) == 3
+    assert len(set(identifiers)) == 3
+    assert all(identifier.startswith("CALL-") for identifier in identifiers)
+
+    incomplete = steps[0].model_copy(update={"model_attempt_history": []})
+    assert _provider_call_ids([incomplete, *steps[1:]], "RUN-B3-FRESH-0001") == []
+
+    malformed = steps[0].model_copy(
+        update={"model_attempt_history": [{"input_sha256": "x", "response_sha256": "y"}]}
+    )
+    assert _provider_call_ids([malformed, *steps[1:]], "RUN-B3-FRESH-0001") == []
+
+    non_string_hash = steps[0].model_copy(
+        update={"model_attempt_history": [{"input_sha256": 1, "response_sha256": "b" * 64}]}
+    )
+    assert _provider_call_ids([non_string_hash, *steps[1:]], "RUN-B3-FRESH-0001") == []
+
+    # 重试成功时，第一次失败尝试没有响应哈希；不能借用角色级最终响应哈希补齐。
+    retry_without_response = steps[0].model_copy(
+        update={
+            "provider_call_count": 2,
+            "response_sha256": "b" * 64,
+            "model_attempt_history": [
+                {"input_sha256": "a" * 64, "response_sha256": None},
+                {"input_sha256": "a" * 64, "response_sha256": "b" * 64},
+            ],
+        }
+    )
+    assert _provider_call_ids([retry_without_response, *steps[1:]], "RUN-B3-FRESH-0001") == []
+
+    extra_history = steps[0].model_copy(
+        update={
+            "provider_call_count": 1,
+            "model_attempt_history": [
+                {"input_sha256": "a" * 64, "response_sha256": "b" * 64},
+                {"input_sha256": "a" * 64, "response_sha256": "b" * 64},
+            ],
+        }
+    )
+    assert _provider_call_ids([extra_history, *steps[1:]], "RUN-B3-FRESH-0001") == []
+
+    zero_count = steps[0].model_copy(update={"provider_call_count": 0})
+    assert _provider_call_ids([zero_count, *steps[1:]], "RUN-B3-FRESH-0001") == []
+
+
+def test_51_case_acceptance_propagates_nested_check_failures(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """摘要字段和详情声明失败时，端到端脚本必须非零退出而不是只打印提示。"""
+
+    health = {
+        "service_status": "ready",
+        "full_analysis_ready": False,
+        "full_analysis_reason_code": "test",
+        "full_analysis_message": "test",
+        "deterministic_backup_available": True,
+    }
+
+    def fake_request(_base_url: str, path: str, **_kwargs: object) -> tuple[int, object]:
+        if path == "/api/health":
+            return 200, health
+        if path == "/api/status":
+            return 200, {"model": health, "ai_generated_content_notice": acceptance_script.AI_NOTICE}
+        if path == "/api/cases?summary=true":
+            # 故意缺少 company_name，验证目录字段断言会进入 failures。
+            return 200, {"cases": [{"case_id": "TEST", "available_years": [2025]}]}
+        if path == "/api/cases/TEST":
+            # 故意缺少统一声明，验证详情阶段结果会被置为失败。
+            return 200, {"case_id": "TEST", "available_years": [2025]}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(acceptance_script, "request_json", fake_request)
+    monkeypatch.setattr(acceptance_script, "run_readonly_checks", lambda *_args: [])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["run_51_case_acceptance.py", "--expected-case-count", "1", "--skip-runs", "--skip-rag"],
+    )
+
+    assert acceptance_script.main() == 1
+    output = capsys.readouterr().out
+    assert "摘要缺字段" in output
+    assert "详情缺少统一 AI 声明" in output
+    assert "失败 2 项" in output
+
+
 def test_release_ready_stays_false_without_human_approval() -> None:
     """技术条件全部满足时，缺真人最终批准仍必须不合格；显式批准才可能为真。"""
     commit = "f" * 40
@@ -223,10 +353,24 @@ def test_release_ready_stays_false_without_human_approval() -> None:
         "expected_model_id": "deepseek-v4-flash",
         "signoff_status": SIGNOFF_APPROVED,
         "b3_evidence": b3,
+        # 绑定已验证时才继续测“缺真人批准”这条分支。
+        "release_binding": {"status": "verified", "reason": ""},
     }
 
     valid, reason = evaluate_release_ready(release_data, evaluation_data, **kwargs)
     assert valid is False and "缺少真人最终发布批准" in reason
+
+    no_binding = evaluate_release_ready(
+        release_data, evaluation_data, **{k: v for k, v in kwargs.items() if k != "release_binding"}
+    )
+    assert no_binding[0] is False and "外置版本绑定未通过" in no_binding[1]
+
+    string_false = evaluate_release_ready(
+        release_data,
+        evaluation_data,
+        **{**kwargs, "human_final_approval": "false"},
+    )
+    assert string_false == (False, "缺少真人最终发布批准")
 
     dirty = evaluate_release_ready(release_data, evaluation_data, **{**kwargs, "worktree_dirty": True})
     assert dirty[0] is False and "未提交" in dirty[1]

@@ -143,7 +143,22 @@ def test_cached_model_result_uses_current_request_evidence_metadata() -> None:
         status="candidate",
         source_validation={"status": "passed", "issues": []},
         metrics={},
-        agent_steps=[AgentStep(role="review", status="completed", detail="完成", output=output)],
+        agent_steps=[
+            AgentStep(
+                role="review",
+                status="completed",
+                detail="完成",
+                input_sha256="a" * 64,
+                response_sha256="b" * 64,
+                duration_ms=900,
+                input_tokens=120,
+                output_tokens=30,
+                provider_call_performed=True,
+                provider_call_count=1,
+                model_attempt_history=[{"input_sha256": "a" * 64, "response_sha256": "b" * 64}],
+                output=output,
+            )
+        ],
         ai_draft=output.model_dump(mode="json"),
     )
     cached = RunResponse(
@@ -161,6 +176,7 @@ def test_cached_model_result_uses_current_request_evidence_metadata() -> None:
         output_tokens=30,
         duration_ms=900,
         provider_call_count=3,
+        provider_call_ids=["CALL-OLD"],
     )
     rebound = _cached_run_for_new_request(
         cached,
@@ -186,20 +202,60 @@ def test_cached_model_result_uses_current_request_evidence_metadata() -> None:
     assert rebound.output_tokens == 0
     assert rebound.duration_ms == 0
     assert rebound.provider_call_count == 0
+    assert rebound.provider_call_ids == []
     assert rebound.model_check.provider_call_count == 0
-    assert rebound.rule_results[0].agent_steps[0].provider_call_performed is False
+    cached_step = rebound.rule_results[0].agent_steps[0]
+    assert cached_step.provider_call_performed is False
+    assert cached_step.provider_call_count == 0
+    assert cached_step.input_sha256 is None
+    assert cached_step.response_sha256 is None
+    assert cached_step.model_attempt_history == []
+    assert cached_step.input_tokens is None
+    assert cached_step.output_tokens is None
+    assert cached_step.duration_ms is None
 
 
 def test_cache_replay_reports_zero_fresh_model_usage(tmp_path: Path) -> None:
     """已批准的原运行可保留轨迹，但回放运行本身必须明确为零调用。"""
 
+    source_output = AgentOutput(
+        schema_version="agent_output_v2",
+        run_id="RUN-CACHE-SOURCE",
+        role="review",
+        rule_id="R1",
+        analysis_conclusion="risk_candidate",
+        status="retain",
+        reason_for_status="待复核",
+    )
+    source_step = AgentStep(
+        role="review",
+        status="completed",
+        detail="来源运行完成",
+        input_sha256="a" * 64,
+        response_sha256="b" * 64,
+        duration_ms=900,
+        input_tokens=120,
+        output_tokens=30,
+        provider_call_performed=True,
+        provider_call_count=3,
+        model_attempt_history=[{"input_sha256": "a" * 64, "response_sha256": "b" * 64}],
+        output=source_output,
+    )
+    source_rule = RuleResult(
+        rule_id="R1",
+        status="candidate",
+        source_validation={"status": "passed", "issues": []},
+        metrics={},
+        agent_steps=[source_step],
+        ai_draft=source_output.model_dump(mode="json"),
+    )
     source = RunResponse(
         run_id="RUN-CACHE-SOURCE",
         status="candidate",
         context={"case_id": "STD_DEV_T0", "execution_mode": "external_live"},
         source_validation={"status": "passed", "issues": []},
         sources=[],
-        rule_results=[],
+        rule_results=[source_rule],
         model_check=ModelCheck(
             status="model_success",
             model_id="model-a",
@@ -215,6 +271,8 @@ def test_cache_replay_reports_zero_fresh_model_usage(tmp_path: Path) -> None:
         output_tokens=30,
         duration_ms=900,
         provider_call_count=3,
+        provider_call_ids=["CALL-OLD"],
+        final_ai_draft={"items": [source_output.model_dump(mode="json")]},
     )
     stored = StoredRunResponse(
         run=source,
@@ -231,9 +289,23 @@ def test_cache_replay_reports_zero_fresh_model_usage(tmp_path: Path) -> None:
     assert replayed.execution_mode == "cache_replay"
     assert replayed.cache_hit is True
     assert replayed.provider_call_count == 0
+    assert replayed.provider_call_ids == []
     assert replayed.model_check.provider_call_count == 0
     assert replayed.context["external_model_call_performed"] is False
     assert replayed.context["cache_source_model_usage"]["provider_call_count"] == 3
+    replayed_step = replayed.rule_results[0].agent_steps[0]
+    assert replayed_step.provider_call_performed is False
+    assert replayed_step.provider_call_count == 0
+    assert replayed_step.input_sha256 is None
+    assert replayed_step.response_sha256 is None
+    assert replayed_step.model_attempt_history == []
+    assert replayed_step.input_tokens is None
+    assert replayed_step.output_tokens is None
+    assert replayed_step.duration_ms is None
+    assert replayed_step.output is not None
+    assert replayed_step.output.run_id == replayed.run_id
+    assert replayed.rule_results[0].ai_draft["run_id"] == replayed.run_id
+    assert replayed.final_ai_draft["items"][0]["run_id"] == replayed.run_id
 
     remote_payload = {
         **metadata,
@@ -242,8 +314,19 @@ def test_cache_replay_reports_zero_fresh_model_usage(tmp_path: Path) -> None:
     remote_replay = _replay_remote_cache_payload(remote_payload, metadata["cache_id"])
     assert remote_replay.execution_mode == "cache_replay"
     assert remote_replay.provider_call_count == 0
+    assert remote_replay.provider_call_ids == []
     assert remote_replay.context["external_model_call_performed"] is False
     assert remote_replay.context["cache_source_model_usage"]["input_tokens"] == 120
+    remote_step = remote_replay.rule_results[0].agent_steps[0]
+    assert remote_step.provider_call_performed is False
+    assert remote_step.provider_call_count == 0
+    assert remote_step.input_sha256 is None
+    assert remote_step.response_sha256 is None
+    assert remote_step.model_attempt_history == []
+    assert remote_step.output is not None
+    assert remote_step.output.run_id == remote_replay.run_id
+    assert remote_replay.rule_results[0].ai_draft["run_id"] == remote_replay.run_id
+    assert remote_replay.final_ai_draft["items"][0]["run_id"] == remote_replay.run_id
 
 
 def test_auto_candidate_quality_gate_and_minimal_model_payload() -> None:

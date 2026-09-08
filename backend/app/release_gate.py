@@ -12,6 +12,8 @@ from typing import Any, Mapping
 
 # 三 Agent 闭环要求三个角色全部完成，缺一个就不是完整链。
 REQUIRED_AGENT_ROLES = 3
+# 正式 B3 的角色集合是固定合同；仅凭三个任意键不能证明三角色闭环。
+REQUIRED_AGENT_ROLE_NAMES = frozenset({"challenge", "counter", "review"})
 # 完整 B3 链至少三次供应商真实调用；配置存在或 probe 都不算调用。
 MIN_PROVIDER_CALLS = 3
 # 真实运行的 run_id 前缀；MOCK、CACHE 等等价前缀一律视为非真实。
@@ -34,6 +36,8 @@ SIGNOFF_APPROVED = "captain_approved_for_competition_demo"
 POINTER_VALID = "valid"
 COMPLETED_RESULT_STATUSES = frozenset({"complete", "completed", "model_success"})
 COMPLETED_ANALYSIS_STATUSES = frozenset({"complete_full_analysis", "completed", "model_success"})
+# 外置版本绑定只有重算一致才算通过；缺少、待签或漂移都保持阻断。
+BINDING_VERIFIED = "verified"
 
 
 def _as_int(value: Any) -> int:
@@ -69,10 +73,25 @@ def _role_completion_is_valid(evidence: Mapping[str, Any]) -> bool:
     roles = evidence.get("role_statuses")
     if not isinstance(roles, Mapping):
         return False
+    if set(roles) != REQUIRED_AGENT_ROLE_NAMES:
+        return False
     return len(roles) == REQUIRED_AGENT_ROLES and all(
         _text(status).lower() in {"complete", "completed", "model_success"}
         for status in roles.values()
     )
+
+
+def _nonempty_unique_ids(value: Any) -> tuple[bool, list[str]]:
+    """检查审计留痕 ID 为非空字符串且不重复，拒绝只凑数量的占位值。"""
+
+    if not isinstance(value, (list, tuple)):
+        return False, []
+    if any(not isinstance(item, str) for item in value):
+        return False, []
+    normalized = [item.strip() for item in value]
+    if any(not item for item in normalized):
+        return False, normalized
+    return len(normalized) == len(set(normalized)), normalized
 
 
 def evaluate_b3_eligibility(
@@ -139,8 +158,10 @@ def evaluate_b3_eligibility(
     if _as_int(evidence.get("provider_calls")) < MIN_PROVIDER_CALLS:
         return False, "供应商真实调用次数不足3次"
     call_ids = evidence.get("provider_call_ids")
-    if not isinstance(call_ids, (list, tuple)) or len(call_ids) < MIN_PROVIDER_CALLS:
-        return False, "缺少三次真实供应商调用的可追踪 ID"
+    call_ids_valid, normalized_call_ids = _nonempty_unique_ids(call_ids)
+    provider_calls = _as_int(evidence.get("provider_calls"))
+    if not call_ids_valid or len(normalized_call_ids) != provider_calls or len(normalized_call_ids) < MIN_PROVIDER_CALLS:
+        return False, "供应商调用 ID 必须非空、唯一且与真实调用次数一致"
     posthoc_error = _text(evidence.get("posthoc_validation_error"))
     if posthoc_error:
         return False, f"未通过事后事实闸门: {posthoc_error}"
@@ -149,8 +170,9 @@ def evaluate_b3_eligibility(
     if not _is_true(evidence.get("human_scores_completed")):
         return False, "真人评分未完成"
     score_ids = evidence.get("human_score_record_ids")
-    if not isinstance(score_ids, (list, tuple)) or not score_ids:
-        return False, "缺少真人评分记录 ID"
+    score_ids_valid, normalized_score_ids = _nonempty_unique_ids(score_ids)
+    if not score_ids_valid or not normalized_score_ids:
+        return False, "真人评分记录 ID 必须为非空且唯一的真实记录"
     return True, VALID
 
 
@@ -167,6 +189,7 @@ def evaluate_release_ready(
     expected_model_id: str | None,
     signoff_status: str | None,
     b3_evidence: Mapping[str, Any] | None,
+    release_binding: Mapping[str, Any] | None = None,
 ) -> tuple[bool, str]:
     """判断发布门禁能否打开；任一条不满足即返回不合格并给出原因。
 
@@ -226,6 +249,12 @@ def evaluate_release_ready(
     )
     if not b3_valid:
         return False, f"新鲜生产 B3 不合格：{b3_reason}"
-    if not human_final_approval:
+    # 版本绑定必须由工作区之外的锚点重算通过；仓库内的记录不能自证源码未被改动。
+    binding_status = _text(release_binding.get("status")) if isinstance(release_binding, Mapping) else ""
+    if binding_status != BINDING_VERIFIED:
+        binding_reason = _text(release_binding.get("reason")) if isinstance(release_binding, Mapping) else ""
+        return False, f"外置版本绑定未通过：{binding_reason or '缺少绑定记录'}"
+    # 调用方即使错误传入字符串 "false" 也不能靠 Python truthiness 放行。
+    if not _is_true(human_final_approval):
         return False, "缺少真人最终发布批准"
     return True, VALID

@@ -1,6 +1,6 @@
 # 审迹智链单一事实源
 
-更新时间：2026-09-02
+更新时间：2026-09-08
 统一 AI 声明：**AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。**
 
 > **当前整改发布候选（2026-08-29，唯一当前口径）**：`RELEASE-CANDIDATE-20260828-V1`，模型为 `deepseek-v4-flash`（DeepSeek 官方直连）；15 案由 `backend/competition_demo_cases.json` 冻结清单统一驱动。公开演示任务/结果/质量事件采用 Supabase 服务端台账，当前执行模式是 Render 免费 Web；完成结果可跨刷新和重启读取，运行中实例重启会记为 `interrupted`，不自动续跑，需显式重试。provider probe、真实 B3、签字、评估指针和人工评分分别判定，`configured` 不等于真实可运行，当前 `competition_release_ready=false` 直到新鲜证据和真人批准完成。当前评估指针为 `EVAL-20260828-RELEASE-CANDIDATE-V1`，人工评分保持 pending；可选 Worker 仅见 `render.worker.example.yaml`，未写入当前 Blueprint。
@@ -8,6 +8,34 @@
 > **2026-09-02 模型口径裁决与本机质量窗口登记**：队长裁决生产目标模型统一为 `deepseek-v4-flash`，AGENTS.md、发布记录、部署配置与方案书口径已同步；`qwen3.5-plus` 的 7/10=70.0% 窗口只作历史证据。DeepSeek 官方直连通道自 2026-08-28 切换以来，本机真实三 Agent 完整链累计 **6/6 案完成、19 次 provider 调用、0 次失败关闭**（2026-08-29 五案 16 次，其中一案含一次内部修正调用；2026-09-02 标准股份演示彩排一案 3 次首过，run `RUN-V7-EB6EAE3B87EB`、task `DEMO-RUN-F9E1BA62F5DC`、`external_live`/`model_success`）。该 100% 指完整链最终完成率而非每案首过率；样本量小，不构成稳定成功证明；Render 生产通道的 provider probe 与新鲜 B3 仍 pending。明细登记于 `PROJECT_STATUS.json` 的 `deepseek_direct_local_window_20260902`。
 
 > 旧 R3/R2/R1 段落、历史模型和历史成功率均保留用于追溯，并标记为 superseded；对外状态以 `/api/health`、`/api/status`、`/api/demo/bootstrap` 和 `backend/release_records/` 的哈希校验结果为准。
+
+## 2026-09-08 竞赛要求逐项整改（当前工作树）
+
+- 依据 `docs/2026-09-08_AuditTrace竞赛要求逐项达成审查与全面改进计划.md` 执行 M02/M03/M04/M05/M06/M08/M09，逐任务状态见 `docs/2026-09-08_竞赛改进任务执行台账.md`，机器可读索引见 `PROJECT_STATUS.json.competition_improvement_20260908`。HEAD 仍为 `26059cfc…`，工作树未提交，未部署，未代发任何外部消息。
+- **M02 初赛方案书**：26 号候选稿渲染为 15 页（`artifacts/competition-improvement-20260908/proposal-render-v5/`），15 张页面图逐页人工查看；正文最小字号 8.0pt、第 8 页来源 URL 段 7.5pt，右边界未越可打印区。数字实测核对：384 项测试（截至 2026-09-07）、15 案、45 份登记年报（15×3 年，全部带 SHA-256，本地不驻留全文）、`deepseek-v4-flash`、B2 `EVAL-B2-2F8BE053630D` 失败事实均一致。发现并修正 1 处：表 10 “浏览器记录”行原写“最近记录”，与列标题“带日期的已有证据”矛盾，已改为 2026-09-07 记录。逐页记录见 `docs/2026-09-08_26号初赛方案书PDF逐页核验记录.md`。封面与参赛人员仍为“待填写”，第 2 页含导师真实手机号与手写签名，匿名口径未确认前不得作为提交版。
+- **H04/M05 真实模型运行（经队长授权 1 次）**：`RUN-V7-30E58BC730C6` / task `DEMO-RUN-75A7591A4E22`，案例五粮液 `CNINFO_000858_T0_20260430` 2025 年度，`external_live`、`deepseek-v4-flash`、`agent_prompt_v3`，3 次 provider 调用、三个可追踪调用 ID、`cache_hit=false`、13,847 ms、35,220/1,861 tokens，三角色全部 `completed` 且各带输入/响应哈希，磁盘原件 207,492 字节、SHA-256 `09f7d306…c824`。终态 `candidate` / `complete_public_prescreen`，**不是**正式生产 B3。留痕见 `docs/2026-09-08_当前工作树真实完整链运行留痕.md`。
+- **M03 六类案例独立复算**：`scripts/build_case_independent_recomputation.py` 对 15 案各跑一次 `calculation_only`（provider 调用 0），按 `field_kind` 取收入与应收族原值独立复算并与程序逐项比对。结果：**8 案一致、1 案指标暴露矛盾、6 案因资料缺口 N/A**。**当日更正**：本项首版曾报“9 项登记冲突、标准股份应收三年为负值（−212,351,971.28 等）、中国石油/中国石化详情值约为来源值 1/126 与 1/311”，经复核是脚本把所有非营业收入字段误当应收所致（那三个负数实为标准股份**净利润**，公司确实亏损），属误报，已作废并重跑。修正后的真实疑点：紫金矿业 2023/2024 应收登记为 **4.00 元 / 1.00 元**，长江电力 2024、立讯精密 2023/2024、万华化学 2023/2025 出现 **1.00/5.00 元**，形似页码或位数；中国石油、中国石化应收三年恒定（9,000,000 / 7,000,000）且与同案例并存的 `accounts_receivable_net`、`accounts_receivable_allowance` 相差 1—3 个数量级；中国海油程序报出 `growth_gap=0.0377176610` 却把 `ar_growth` 置 null，两者不能同时成立。这 6 案引擎均返回 `DATA_GAP`，没有用可疑值编造增速或风险卡。裁决项见 `docs/2026-09-08_案例登记值裁决建议单.md`（AD-1—AD-4），核对表见 `docs/2026-09-08_六类代表案例独立复算核对表.md`，复核人与日期一律留空。另：六类中“行业不适用”无法演示——15 案 `industry_gate.fit_level` 全为 `direct`。
+- **M04 知识库**：26 问测试集实跑（`scripts/run_knowledge_retrieval_test_set.py`）。13 条来源中 5 条页码或行号级定位、4 条描述性、4 条写明“页码以原件为准”，**0 条含可回查原文短引**，6 条带 `query_terms`。12 问期望拒答中 11 问仍有命中，说明台账检索缺相关性下限（零相关问题也会返回权威材料）；跨公司提问时年报会被标 `case_fact_prohibited`，但同公司提问下的无关问题仍标 `case_fact`。未做真人相关性标注，因此不报告 Recall@k 或 Precision@k。见 `docs/2026-09-08_知识库来源分栏与检索测试集实测.md`。
+- **M05/M06 工具与台本**：`docs/2026-09-08_B0-B3同案对照冻结合同模板.md`（S1—S12 门禁顺序、2.1—2.12 待真人冻结字段、11 项指标逐条分子分母）、两份盲评表与逐案对照记录表（UTF-8 BOM）、`scripts/compute_b0_b3_metrics.py`（缺人工评分时 fail closed，实测对今天的运行只报 N/A 与 1/1 完整链，不编造效果数字）；`docs/2026-09-08_初赛五分钟视频录制台本与画面清单.md`（计划 290 秒、口播 1200 字、S01—S20 画面清单、33 项录后自检空勾选）。真人出镜、录制与评分均未执行。
+- **M08 关闭 F02/F03**：新增 `backend/app/release_evidence.py` 从磁盘原件重算结果哈希、按尝试哈希重派生调用 ID、重跑确定性事实语言闸门，并只从独立人工评分台账推导评分完成状态；`_load_fresh_b3_evidence` 不再读取发布记录内联的自报字典。新增外置版本绑定（锚点必须在工作区之外，绑定真人批准 → 内容哈希 → 源码与运行原件哈希 → 门禁），`evaluate_release_ready` 未获 `verified` 绑定一律阻断。调用 ID 派生规则抽到 `backend/app/provider_calls.py` 供在线与离线共用。实测：`test_release_evidence` 36 项、`test_release_gate_contracts` 20 项、全量 **420 passed / 1 warning in 96.40s**（同日另一次为 238.49s，联网用例耗时不同，项数一致）；`verify_release_evidence.py` 对今天的运行重算一致，仅因人工评分未完成而 FAIL；改写锚点后报“疑似被改写”。中文说明 2486/24471=10.16%。
+- **M09 交付面**：`scripts/check_delivery_surface.py` 扫 173 个交付面文件，生成 173 项 SHA-256 清单；固定依赖 41 项，`THIRD_PARTY_NOTICES.md` 补登记 14 项后覆盖 41/41（其中 `axe-playwright-python`、`pillow`、`pypdf`、`pypdfium2` 的许可证仍待核验，本机未安装或元数据未声明）；敏感形态必须处理 0 处、待判定 0 处，28 处为测试夹具、28 处为亿元级金额形态；既有 `scripts/scan_working_tree_secrets.py` 报 `no_secret_hits`。
+- **同日续（第 1—3 项）**：① 登记值诊断完成，产出 `docs/2026-09-08_案例登记值裁决建议单.md`（AD-1—AD-4 待真人裁决），并更正本日上午的误报；② 匿名口径产出 `02_最终确定方案/27_..._盲审提交候选_2026-09-08.docx`（15 页，身份字段与导师签名图像已移除，全文身份残留扫描 0 处），实名母版 26 号未改动，两份并存供队长选择，见 `docs/2026-09-08_初赛匿名口径与两份提交版说明.md`；③ 人工评分台账已建立并接线到发布记录（`backend/release_records/human_scores/`，含 README 与 `scripts/record_human_score.py`），**台账当前为空**，实测拒绝空姓名、自动化身份、超区间分数与缺评分标准版本，两名真人写入后 `verify_release_evidence.py` 即报 PASS。
+- **第 4 项未完成部分**：第二次真实完整链调用被本机权限分类器拦截，尚未执行；外置版本绑定锚点因此仍未建立，`competition_release_ready` 继续为 `false`。
+- 一次全量回归中出现 1 次 `test_all_seed_cases_enter_three_role_external_route` 失败，当时本机 8000 端口服务在运行并向 `backend/runtime` 追加记录；停服务后单文件与全量复跑均绿。根因未定位，按间歇性风险保留，不写成稳定全绿。
+
+## 2026-09-07 概览复核与门禁整改（上一轮工作树）
+
+- 当前复核对象为 HEAD `26059cfc79643f05b37d706393ebbb851dc32f80`。按复核结论完成 R01-R03、R05-R06 修改，尚未提交、部署或调用付费生产模型；`RELEASE-CANDIDATE-20260828-V1` 仍保持 `competition_release_ready=false`。
+- 发布门禁继续使用固定的 `challenge/counter/review` 角色集合；供应商调用 ID 和真人评分记录 ID 必须为非空、唯一字符串，调用 ID 数量必须等于真实调用次数；最终批准只接受布尔值 `true`。每次尝试只能使用自身的输入/响应哈希，重试缺哈希或历史数量不一致时失败关闭。新请求、文件和远程缓存回放均清空本次 `provider_call_ids`，嵌套 Agent 步骤的来源调用明细也会清空，旧运行编号只在缓存来源上下文回查。相关代码为 `backend/app/release_gate.py`、`backend/app/main.py`、`backend/app/delivery.py`、`backend/app/schemas.py`。
+- 源码最后一次全量回归为 **384 passed、1 warning（224.05 秒）**；发布门禁契约 **20 passed**；故障/恢复相关子集仍为 **33 passed、1 warning**。`docs/TEST_INVENTORY.md` 已更新为 37 个测试文件、384 项、10 个需联网文件；中文说明比例为 **2434/24072=10.11%**；前端契约为 166 个唯一 ID、175 个引用、1 个脚本。
+- 真实本地运行验收：15 个冻结案例执行 90 次 `calculation_only`，90/90 通过且 provider 调用为 0；15 案详情与 RAG 共 30 项通过；公开写入边界 3 项均返回 HTTP 403。真实模型不可达时记录 `incomplete_model_chain_failed/unavailable`，显式备用入口生成带 `parent_run_id` 的 `complete_demo_fallback/deterministic_backup` 子运行。
+- 四视口（1440×1000、1024×768、768×1024、390×844）均完成真实页面选择→分阶段运行→结果→证据抽屉→Agent 抽屉→补充证据父子差异→打印→JSON/CSV 下载。每个视口 9 个状态的 axe 均真实执行且 violations=0；console/page/失败请求/HTTP error=0；横向溢出=0；Enter/Esc/Space 焦点与折叠状态、打印强制展开均通过。截图和 JSON 位于 `artifacts/review-plan-20260907/browser-final/`。生产 CSP 未修改；一次通用静态审计工具因内联 axe 被 CSP 阻止，不能把该工具的空结果当作无障碍通过，本轮以同源注入版本的真实结果为准。
+- 2026-09-04 评委包独立解压复跑为 **346 passed、19 skipped、1 warning**。旧包与当前源码收集项相差 19 项；原差异清单记录了其中 18 项，当前新增的 1 项为验收脚本失败汇总反例测试。差异构成为 8 项仓库交付/取证/杰克案例测试、9 项门禁参数化反例、1 项调用 ID 派生测试、1 项验收脚本失败汇总测试。19 项 skip 均是缺年报全文或内部签字原件的显式边界。
+- 未闭合门禁仍有：fresh B3 证据需独立重算运行记录、结果文件和人工评分记录；发布记录与代码同仓的非循环外置证据绑定流程；生产 provider、专业签字、B0—B3 真人评分；标准股份净额/账面余额口径的专业确认。历史状态、历史模型样本和旧报告继续保留，不能代替这些当前证据。
+- 验收脚本的必要断言漏报已修复，并有隔离反例证明失败会返回非零退出码；缓存轨迹归属修复也已完成。本次修复尚未随当前评委 ZIP 重新打包，旧包不能证明包含 R01-R03、R05-R06 修复。
+- 修复后在真实本地服务上运行验收脚本（跳过运行与 RAG）完成 15 案详情和 3 项只读边界检查，失败 0 项；原始结果位于 `artifacts/review-plan-20260907/acceptance-script-postfix.json`。
+
+本轮详细执行记录见 `docs/superpowers/plans/2026-09-07-AuditTrace概览复核与审查修改计划.md`；机器可读索引见 `PROJECT_STATUS.json.latest_review_20260907`。
 
 ## 2026-08-26 R3 缺口修复与真实验收（历史冻结窗口，已由 2026-08-28 整改候选 supersede）
 

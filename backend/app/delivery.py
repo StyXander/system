@@ -84,7 +84,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from .schemas import AI_GENERATED_CONTENT_NOTICE, HumanReviewRequest, RunResponse, StoredRunResponse
+from .schemas import AI_GENERATED_CONTENT_NOTICE, HumanReviewRequest, RunResponse, StoredRunResponse, sanitize_cached_trace
 
 
 REPORT_VERSION = "report_v2"
@@ -174,6 +174,8 @@ def replay_cache(workspace_root: Path, cache_id: str) -> RunResponse | None:
     run_data["output_tokens"] = 0
     run_data["duration_ms"] = 0
     run_data["provider_call_count"] = 0
+    # 旧运行的调用编号属于缓存来源，不属于本次回放运行。
+    run_data["provider_call_ids"] = []
     run_data["model_check"] = {
         "status": "cache_replay",
         "model_id": run_data.get("model_check", {}).get("model_id"),
@@ -183,10 +185,11 @@ def replay_cache(workspace_root: Path, cache_id: str) -> RunResponse | None:
         "output_tokens": 0,
         "duration_ms": 0,
         "provider_call_count": 0,
-        "detail": "本次回放保留原Agent轨迹，但没有重新运行RAG或模型。",
+        "detail": "本次回放保留来源角色状态和草稿，但没有重新运行RAG或模型。",
     }
-    # Agent 轨迹属于原运行证据链，回放时保留并由 execution_mode 明确区分。
-    return RunResponse.model_validate(run_data)
+    # 原始缓存仍可通过 cache_id 回查；回放响应只展示本次角色状态和草稿。
+    replayed = RunResponse.model_validate(run_data)
+    return sanitize_cached_trace(replayed, current_run_id=replay_id)
 
 
 def _set_cell_shading(cell: Any, fill: str) -> None:
