@@ -394,7 +394,11 @@ def _needs_human(error: Exception) -> bool:
         "COMPANY_NOT_FOUND",
         "ANNUAL_REPORT_NOT_FOUND",
         "ANNOUNCEMENT_DATE_INVALID",
-        "PDF_CONTENT_MISMATCH",
+        "CNINFO_ACCESS_DENIED",
+        "PDF_IDENTITY_MISMATCH",
+        "PDF_NOT_ANNUAL_REPORT",
+        "PDF_REPORT_YEAR_UNCONFIRMED",
+        "PDF_IDENTITY_UNRESOLVED",
         "PDF_PAGE_COUNT_INVALID",
         "PDF_PARSE_FAILED",
     }
@@ -851,25 +855,38 @@ def run_ingestion(
         task["report_years"] = years
         _set_step(workspace_root, task, "announcement_search", "running", "正在查询目标年度报告公告。", years=years)
         candidates_by_year: dict[str, list[dict[str, Any]]] = {}
+        query_status_by_year: dict[str, dict[str, Any]] = {}
         for year in years:
             # 每个年度独立查询，缺一年度就停止，避免生成看似完整的断档案例。
-            candidates = cninfo.search_annual_reports(company, year)
+            candidates, query_status = cninfo.search_annual_reports_detailed(company, year)
             candidates_by_year[str(year)] = candidates
+            query_status_by_year[str(year)] = query_status
             if not candidates:
                 raise CNInfoError("ANNUAL_REPORT_NOT_FOUND", f"未找到 {year} 年年度报告全文。")
+        truncated_years = sorted(year for year, status in query_status_by_year.items() if status.get("truncated"))
         _set_step(
             workspace_root,
             task,
             "announcement_search",
             "passed",
-            f"已查询 {len(candidates_by_year)} 个年度。",
+            (
+                f"已查询 {len(candidates_by_year)} 个年度；{', '.join(truncated_years)} 年候选被分页上限截断，未完整核验最新版本。"
+                if truncated_years
+                else f"已查询 {len(candidates_by_year)} 个年度。"
+            ),
             # 候选数量用于解释为什么选择了当前全文版本。
             candidate_counts={year: len(rows) for year, rows in candidates_by_year.items()},
+            query_status=query_status_by_year,
         )
 
         _set_step(workspace_root, task, "document_select", "running", "正在按全文、年度和修订版规则选择公告。")
         selected_reports = [
-            cninfo.select_annual_report(candidates_by_year[str(year)], year) for year in years
+            cninfo.select_annual_report(
+                candidates_by_year[str(year)],
+                year,
+                query_status=query_status_by_year.get(str(year)),
+            )
+            for year in years
         ]
         _set_step(
             workspace_root,
@@ -939,17 +956,36 @@ def run_ingestion(
 
         _set_step(workspace_root, task, "document_validate", "running", "正在校验 PDF 文件头、页数、企业和报告年度。")
         validated: list[dict[str, Any]] = []
+        unresolved: list[dict[str, Any]] = []
         for item in downloaded:
-            # 企业、年度、PDF 文件头和哈希校验全部通过才允许进入 RAG。
+            # 企业身份、报告年度与年报类型三项都成立才允许进入 RAG。
             validation = cninfo.validate_pdf(item["content"], item["announcement"], company)
-            validated.append(
-                {
-                    **item["announcement"],
-                    "document_id": _document_id(company["ticker"], item["announcement"]["report_year"], item["sha256"]),
-                    "content": item["content"],
-                    "final_url": item["final_url"],
-                    **validation,
-                }
+            document = {
+                **item["announcement"],
+                "document_id": _document_id(company["ticker"], item["announcement"]["report_year"], item["sha256"]),
+                "content": item["content"],
+                "final_url": item["final_url"],
+                **validation,
+            }
+            if validation.get("validation_status") != "passed":
+                unresolved.append(document)
+            validated.append(document)
+        if unresolved:
+            # 年度仅在比较列出现：整案转人工确认，不放行也不静默丢掉某一份。
+            raise CNInfoError(
+                "PDF_IDENTITY_UNRESOLVED",
+                "存在封面未确认目标报告年度的 PDF，需要人工确认文档身份后才能进入分析。",
+                detail={
+                    "documents": [
+                        {
+                            "document_id": item["document_id"],
+                            "report_year": item.get("report_year"),
+                            "sha256": item.get("sha256"),
+                            "content_checks": item.get("content_checks"),
+                        }
+                        for item in unresolved
+                    ]
+                },
             )
         _set_step(
             workspace_root,

@@ -3,14 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#05080B">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="description" content="审迹智链 AuditTrace 竞赛演示版：上市公司年报风险预筛工作台（审计计划阶段·销售与收款循环）">
   <title>审迹智链 · 上市公司年报风险预筛</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231F5B4D'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
-  <link rel="preload" href="/assets/official-v4/cinematic/evidence-horizon.webp" as="image" type="image/webp">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.11.1">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.2">
   <script src="/assets/official-v4/demo-app.js?v=0.10.18" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
@@ -18,7 +17,6 @@
   <a class="skip-link" href="#main-content">跳到主要内容</a>
 
   <section class="cinematic-landing" id="demo-landing" aria-labelledby="demo-landing-title">
-    <div class="cinematic-landing-art" aria-hidden="true"></div>
     <nav class="cinematic-nav" aria-label="项目首页导航">
       <a class="cinematic-brand" href="#demo-landing" aria-label="审迹智链项目首页">
         <strong>审迹智链</strong><span>AuditTrace</span>
@@ -29,9 +27,8 @@
         <span class="cinematic-version">0.10.2 · DEMO</span>
       </div>
     </nav>
-    <span class="cinematic-telemetry left" aria-hidden="true">AT / EVIDENCE-BOUND / MULTI-AGENT</span>
-    <span class="cinematic-telemetry right" aria-hidden="true">15 REGISTERED CASES / 45 REPORTS</span>
     <div class="cinematic-hero">
+      <div class="cinematic-hero-copy">
       <p class="cinematic-chip">北京市大学生数智会计创新应用竞赛 · 财会 Multi-Agent 应用</p>
       <h1 id="demo-landing-title">审迹智链</h1>
       <div class="cinematic-en-name" lang="en">AuditTrace</div>
@@ -44,13 +41,16 @@
         <a class="cinematic-secondary" href="#demo-positioning">先看方法与边界</a>
         <span class="cinematic-proof">默认冻结案例已选 · 一次启动 · 一次点击回到原文</span>
       </div>
+      </div>
+      <figure class="cinematic-shot">
+        <img src="/assets/official-v4/screenshots/real-run-evidence-challenge-RUN-V7-1A7B085BEEA2.png" width="714" height="640" loading="eager" decoding="async" alt="示例界面：一次真实运行产出的待核查事项，含事项标题、关键数字、证据编号 STD_AR_2025 与打开原文第 59 页入口。">
+        <figcaption><span>示例界面 · 非本次访问的实时结果</span>来自一次真实模型运行 RUN-V7-1A7B085BEEA2：西安标准工业股份有限公司（标准股份）· 600302 · 报告年度 2025/2024/2023 · 结果性质为真实模型复核，仍需人工核查。</figcaption>
+      </figure>
     </div>
-    <span class="cinematic-corner top" aria-hidden="true"></span>
-    <span class="cinematic-corner bottom" aria-hidden="true"></span>
   </section>
 
   <section class="demo-positioning" id="demo-positioning" aria-labelledby="demo-positioning-title">
-    <div class="demo-positioning-art" aria-hidden="true"></div>
+    <div class="demo-positioning-panorama" aria-hidden="true"></div>
     <div class="demo-positioning-grid">
       <div class="demo-positioning-copy">
         <p class="demo-positioning-eyebrow">产品定位 · AUDIT PLANNING · EVIDENCE FIRST</p>
@@ -82,7 +82,7 @@
     </dl>
     <section class="demo-knowledge-base" aria-labelledby="demo-knowledge-title">
       <figure class="demo-knowledge-visual">
-        <img src="/assets/official-v4/illustrations/knowledge-portal.webp" width="1672" height="940" alt="" loading="lazy" decoding="async">
+        <img src="/assets/official-v4/illustrations/knowledge-evidence-network-v1.webp" width="1200" height="1200" alt="" loading="lazy" decoding="async">
         <figcaption>多源官方资料经过来源校验后进入审计证据空间</figcaption>
       </figure>
       <div class="demo-knowledge-copy">
@@ -120,48 +120,11 @@
   </header>
 
   <main id="main-content" tabindex="-1">
-    <div class="main-content-art" aria-hidden="true"></div>
     <h2 class="sr-only">审迹智链竞赛演示：上市公司年报风险预筛工作台</h2>
 
     <div class="demo-shell">
-      <section class="demo-hero" aria-labelledby="demo-hero-heading">
-        <p class="kicker">PUBLIC ANNUAL REPORT PRESCREEN · EVIDENCE-BOUND</p>
-        <h2 id="demo-hero-heading"><span>上市公司年报</span><span>风险预筛</span></h2>
-        <p class="demo-tagline">
-          默认冻结案例已经选好。点击一次即可生成预审风险备忘录、Top 5 待核查事项和待索取资料清单，
-          并把每条主张连回本次运行的原文证据。结果仅供审计计划阶段进一步核查。
-        </p>
-        <ul class="demo-deliverables" aria-label="本次演示将生成的三类交付物">
-          <li><strong>风险备忘录</strong><span>先看结论和边界</span></li>
-          <li><strong>Top 5 待核查事项</strong><span>再看主张、数字与反证</span></li>
-          <li><strong>待索取资料清单</strong><span>最后交给人工继续执行</span></li>
-        </ul>
-        <div class="demo-facts" id="demo-facts">
-          <span>已登记案例 <strong id="demo-fact-cases">—</strong> 个</span>
-          <span>冻结年报 <strong id="demo-fact-reports">—</strong> 份</span>
-          <span>RAG 冻结材料 <strong id="demo-fact-rag-source">—</strong> 案</span>
-          <span>RAG 运行时就绪 <strong id="demo-fact-rag">—</strong> 案</span>
-          <span>模型通道 <strong id="demo-fact-model">正在读取</strong></span>
-          <span>真实成功率 <strong id="demo-fact-model-quality">待测</strong></span>
-        </div>
-        <figure class="demo-workbench-visual">
-          <span class="demo-workbench-visual-art" aria-hidden="true"></span>
-          <img src="/assets/official-v4/illustrations/agents-nodes.webp" width="1672" height="941" alt="" loading="eager" decoding="async">
-          <figcaption><span>THREE AGENTS · ONE EVIDENCE BUNDLE</span><strong>质疑、反证、复核围绕同一证据包协作</strong>模型只生成受约束的待核查草稿，确定性事实和最终判断仍由程序与人控制。</figcaption>
-        </figure>
-      </section>
-
-      <section aria-labelledby="demo-cases-heading">
-        <div class="demo-section-heading">
-          <h3 id="demo-cases-heading">精选案例</h3>
-          <button class="button quiet" type="button" id="demo-open-all-cases">查看全部 15 个案例</button>
-        </div>
-        <div class="demo-case-grid" id="demo-featured-cases" role="group" aria-label="首页精选案例，可选择一个开始演示">
-          <div class="empty-state"><strong>正在读取案例清单</strong><p>案例来自冻结 manifest，读取失败时不会显示模拟案例。</p></div>
-        </div>
-      </section>
-
       <section class="demo-console" aria-labelledby="demo-console-heading">
+        <div class="demo-console-panorama" aria-hidden="true"></div>
         <div class="demo-console-head">
           <div class="demo-current-case">
             <p class="folio folio-compact">CURRENT CASE / 开始演示</p>
@@ -189,6 +152,47 @@
           <div class="demo-gate-detail">正在读取案例 manifest 与服务状态。</div>
         </div>
       </section>
+
+
+
+      <section aria-labelledby="demo-cases-heading">
+        <div class="demo-section-heading">
+          <h3 id="demo-cases-heading">精选案例</h3>
+          <button class="button quiet" type="button" id="demo-open-all-cases">查看全部 15 个案例</button>
+        </div>
+        <div class="demo-case-grid" id="demo-featured-cases" role="group" aria-label="首页精选案例，可选择一个开始演示">
+          <div class="empty-state"><strong>正在读取案例清单</strong><p>案例来自冻结 manifest，读取失败时不会显示模拟案例。</p></div>
+        </div>
+      </section>
+
+      <section class="demo-hero" aria-labelledby="demo-hero-heading">
+              <p class="kicker">PUBLIC ANNUAL REPORT PRESCREEN · EVIDENCE-BOUND</p>
+              <h2 id="demo-hero-heading"><span>上市公司年报</span><span>风险预筛</span></h2>
+              <p class="demo-tagline">
+                默认冻结案例已经选好。点击一次即可生成预审风险备忘录、Top 5 待核查事项和待索取资料清单，
+                并把每条主张连回本次运行的原文证据。结果仅供审计计划阶段进一步核查。
+              </p>
+              <ul class="demo-deliverables" aria-label="本次演示将生成的三类交付物">
+                <li><strong>风险备忘录</strong><span>先看结论和边界</span></li>
+                <li><strong>Top 5 待核查事项</strong><span>再看主张、数字与反证</span></li>
+                <li><strong>待索取资料清单</strong><span>最后交给人工继续执行</span></li>
+              </ul>
+              <div class="demo-facts" id="demo-facts">
+                <span>已登记案例 <strong id="demo-fact-cases">—</strong> 个</span>
+                <span>冻结年报 <strong id="demo-fact-reports">—</strong> 份</span>
+                <span>RAG 冻结材料 <strong id="demo-fact-rag-source">—</strong> 案</span>
+                <span>RAG 运行时就绪 <strong id="demo-fact-rag">—</strong> 案</span>
+                <span>模型通道 <strong id="demo-fact-model">正在读取</strong></span>
+                <span>真实成功率 <strong id="demo-fact-model-quality">待测</strong></span>
+              </div>
+              <figure class="demo-workbench-visual">
+                <img class="demo-workbench-illustration" src="/assets/official-v4/illustrations/agent-evidence-review-v1.webp" width="1200" height="1200" alt="" loading="lazy" decoding="async">
+                <figcaption><span>THREE AGENTS · ONE EVIDENCE BUNDLE</span><strong>质疑、反证、复核围绕同一证据包协作</strong>模型只生成受约束的待核查草稿，确定性事实和最终判断仍由程序与人控制。</figcaption>
+              </figure>
+            </section>
+
+
+
 
       <section class="demo-result" id="demo-result" hidden aria-labelledby="demo-result-heading">
         <div class="demo-analysis-layout">
@@ -261,8 +265,6 @@
               </div>
             </section>
             <figure class="demo-result-visual" aria-label="从原文资料到可追溯结论的证据链视觉示意">
-              <span class="demo-result-visual-art" aria-hidden="true"></span>
-              <img src="/assets/official-v4/illustrations/evidence-chain.webp" width="1672" height="941" alt="" loading="lazy" decoding="async">
               <figcaption><strong>原文 → 证据编号 → 结构化结果</strong>页面中的每项主张都必须回到当前运行的证据编号；插图仅作视觉示意，不替代真实来源定位。</figcaption>
             </figure>
             <div id="demo-result-items" class="demo-result-items"></div>

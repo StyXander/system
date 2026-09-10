@@ -1,7 +1,7 @@
 {
   "schema_version": "illustration_manifest_v1",
-  "purpose": "审迹智链竞赛演示版插图：深色审计证据语义，与网页克制、可回查的编辑风格一致。",
-  "note": "AI 图片内嵌文字不作为可访问页面内容或架构事实；有信息含义的图使用页面内文字替代。",
+  "purpose": "审迹智链竞赛演示版插图：用白纸、石墨与钴蓝表达审计证据语义，并与网页克制、可回查的编辑风格一致。",
+  "note": "AI 图片内嵌文字不作为可访问页面内容或架构事实；有信息含义的图使用页面内文字替代。v1 浅色插图为纯白或极浅灰底，不声明透明通道。",
   "illustrations": [
     {
       "asset_name": "agents-nodes",
@@ -145,6 +145,118 @@
           "width": 768,
           "bytes": 73156,
           "sha256": "5f09efad677104bf6d8dc108aa22e71e7d05d0109d66ae734abdc3a89b83c4bf"
+        }
+      ]
+    },
+    {
+      "asset_name": "audit-document-inspection-v1",
+      "usage": "low-opacity-background",
+      "source_file": "exec-c384e183-7d22-4227-a8c2-df322941acae.png",
+      "source_sha256": "2f0571d3444406b2e42351fdb01c0f1cd69010209802ac8ef6a5df0ad4b86eb4",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "source_bytes": 1386658,
+      "background": "#F6F7F9",
+      "outputs": [
+        {
+          "file": "audit-document-inspection-v1.webp",
+          "width": 1200,
+          "bytes": 62190,
+          "sha256": "a23ff8e5de8fcf51002c0162c38894b43bedc37633480c6f1975bb63adbb2b7f"
+        }
+      ]
+    },
+    {
+      "asset_name": "knowledge-evidence-network-v1",
+      "usage": "original",
+      "source_file": "exec-c218cd0b-60f1-4690-a29d-114d9030802f.png",
+      "source_sha256": "bc71110b00665f6b60b505ce334fb54268fd242abf26b4f21f890b7f36df5e89",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "source_bytes": 1139280,
+      "background": "#FFFFFF",
+      "outputs": [
+        {
+          "file": "knowledge-evidence-network-v1.webp",
+          "width": 1200,
+          "bytes": 52946,
+          "sha256": "acff8a7d36125a5678dd8cc286dfa0568a294f0f33ae46620db4a6ada207a966"
+        }
+      ]
+    },
+    {
+      "asset_name": "agent-evidence-review-v1",
+      "usage": "original",
+      "source_file": "exec-546cbfaa-d153-4e12-b37d-0f8fcd183479.png",
+      "source_sha256": "42aa0c2b44837faab94fdbd11a5658b074c6c2dc33979c4c17c607727474d612",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "source_bytes": 889240,
+      "background": "#FFFFFF",
+      "outputs": [
+        {
+          "file": "agent-evidence-review-v1.webp",
+          "width": 1200,
+          "bytes": 27678,
+          "sha256": "096a76cddb24af807d47e2d523c29238726861fdc1aafe7174aeb7b8e65019ff"
+        }
+      ]
+    },
+    {
+      "asset_name": "audit-evidence-horizon-v1",
+      "usage": "section-background",
+      "source_file": "exec-958aaff2-25d9-41a9-bef7-e41ed784c5c5.png",
+      "source_sha256": "a434b9c342f0c85cdeee3714ed5d2905c6a1ab2c32dfb933de16958c7a170db4",
+      "source_dimensions": [
+        1891,
+        831
+      ],
+      "source_bytes": 1342279,
+      "background": "#F6F7F9",
+      "outputs": [
+        {
+          "file": "audit-evidence-horizon-v1-1600.webp",
+          "width": 1600,
+          "bytes": 45698,
+          "sha256": "3bdee579b714ee5edd31f909cb0681b5ef355a51ff226fcf8d13937ded268c56"
+        },
+        {
+          "file": "audit-evidence-horizon-v1-900.webp",
+          "width": 900,
+          "bytes": 19432,
+          "sha256": "033e2dfd456b8797666e2dab1741d061e0206269f660db03883b498655d0ef58"
+        }
+      ]
+    },
+    {
+      "asset_name": "audit-workbench-horizon-v1",
+      "usage": "panel-background",
+      "source_file": "exec-411e5515-c633-4bde-a8e0-422f9fd01d3a.png",
+      "source_sha256": "cf36431fca9f4216cf78d45adec3da48c04d85782b353985c8d3ccc4bc802c1d",
+      "source_dimensions": [
+        2048,
+        768
+      ],
+      "source_bytes": 1529674,
+      "background": "#F6F7F9",
+      "outputs": [
+        {
+          "file": "audit-workbench-horizon-v1-1600.webp",
+          "width": 1600,
+          "bytes": 23924,
+          "sha256": "372dfb092ee7a59b7baa09ac461ebb37c0ce65708756fa518c640ebd9bb44b97"
+        },
+        {
+          "file": "audit-workbench-horizon-v1-900.webp",
+          "width": 900,
+          "bytes": 10274,
+          "sha256": "de362082c67b54be3eed05e970e48975e7040ced727803f76ee53e47b17aea3d"
         }
       ]
     }

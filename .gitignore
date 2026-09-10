@@ -111,6 +111,10 @@ artifacts/
 !/docs/
 /docs/*
 !/docs/TEST_INVENTORY.md
+# 缺陷审查报告、可复跑反例与实施计划都是复验依据；留在 /docs/* 里等于只有本机可见。
+!/docs/2026-09-09_代码与运行逻辑审查及开源对照优化方案.md
+!/docs/review-assets/
+!/docs/superpowers/
 !/启动审迹智链.bat
 !/PROJECT_STATUS.md
 !/README_RUN.md

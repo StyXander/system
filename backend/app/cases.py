@@ -1815,6 +1815,14 @@ def financial_field_candidate_quality_issues(row: dict[str, Any]) -> list[str]:
     excerpt = re.sub(r"\s+", "", str(row.get("raw_excerpt") or row.get("excerpt") or ""))
 
     is_ratio = field_kind in _RATIO_FIELD_KINDS or str(row.get("unit") or "") == "%"
+    column_identity = str(row.get("column_identity") or "")
+    identity_resolved = column_identity.startswith("resolved")
+    if is_automatic_candidate and not is_ratio and column_identity and not identity_resolved:
+        # 本期列必须由表头位置确立；靠金额大小猜列会把上期的数当成本期用。
+        issues.append(
+            f"自动候选未确立本期列身份（{column_identity.removeprefix('unresolved_')}），"
+            "表头期间列或附注列不可确认，须人工回页指定本期列。"
+        )
     if is_ratio:
         if source_unit != "%":
             issues.append("比例字段的来源单位不是百分比，自动候选不能进入计算。")
@@ -1826,7 +1834,7 @@ def financial_field_candidate_quality_issues(row: dict[str, Any]) -> list[str]:
         )
         if suspicious_ratio_context:
             issues.append("比例候选疑似取到附注编号、监管阈值或期限，须人工回页确认。")
-    elif source_value is not None and abs(source_value) <= 100:
+    elif source_value is not None and abs(source_value) <= 100 and not identity_resolved:
         issues.append(
             f"自动提取金额的原始值仅为 {source_value:g}{source_unit or '（单位未知）'}，"
             "疑似附注号、序号或叙述数字，须人工回页确认。"

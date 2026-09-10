@@ -180,6 +180,7 @@ def test_retrieval_returns_locator_snapshot_and_claim_boundary():
     request = build_retrieval_request(
         case_id="C1", question_id="R1", source_categories=["auditing_standard"],
         as_of_date="2026-08-24", cutoff_date="2026-08-24", snapshot_id="SNAP-1",
+        query_text="收入确认风险 实质性程序",
     )
     hits = retrieve_knowledge(entries, request, limit=1)
     assert len(hits) == 1

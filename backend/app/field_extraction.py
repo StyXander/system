@@ -85,6 +85,11 @@ UNIT_MULTIPLIER = {"元": 1.0, "千元": 1_000.0, "万元": 10_000.0, "百万元
 NOTE_REFERENCE_PATTERN = re.compile(
     r"^(?:[一二三四五六七八九十百千万]+[、.．]\d{1,3}|[（(][一二三四五六七八九十百千万]+[）)]\d{1,3})$"
 )
+# 列身份来自表头：附注列标签与期间列标签都要显式出现在表头文本中。
+NOTE_COLUMN_LABELS = ("附注", "注释", "附注号")
+PERIOD_LABEL_PATTERN = re.compile(
+    r"\d{4}\s*年(?:\s*12\s*月\s*31\s*日|末|度|底)?|本期|上期|期末|期初|本年|上年"
+)
 
 
 def _number(raw: str) -> float | None:
@@ -114,10 +119,13 @@ def _unit(text: str) -> tuple[str | None, float]:
     return name, UNIT_MULTIPLIER[name]
 
 
-def _line_candidates(
+def _scan_number_cells(
     lines: list[str], start: int, *, term: str = "", allow_percent: bool = False
 ) -> list[tuple[float, str]]:
-    """读取关键词所在行之后的有限窗口，避免把整页其他表的数字串进来。"""
+    """按文档顺序读取关键词之后的有限窗口，产出可供列位置判定的单元格。
+
+    本函数不排序、不猜本期列；列身份由 _resolve_column 依据表头决定。
+    """
 
     # 限定窗口长度，减少把同页其他表格的金额误绑定到关键词。
     window_lines = lines[start : min(len(lines), start + 8)]
@@ -146,17 +154,81 @@ def _line_candidates(
             if 2000 <= abs(value) <= 2100 and len(raw.replace(",", "").replace(".", "")) == 4:
                 continue
             candidates.append((value, line.strip()))
-    # 表格抽取常先读到“4”“七5”“（3）”等附注号，再读到真正金额。
-    # 若同一受控窗口存在明显金额，优先把小整数留作待排除编号，不让其抢占首候选。
-    if not allow_percent and candidates and abs(candidates[0][0]) <= 100:
-        material = [item for item in candidates if abs(item[0]) > 100]
-        if material:
-            candidates = material + [item for item in candidates if abs(item[0]) <= 100]
     return candidates
 
 
+def _reorder_for_visibility(scanned: list[tuple[float, str]]) -> list[tuple[float, str]]:
+    """把疑似附注号的小整数排到后面，只用于候选展示顺序。
+
+    该排序不再决定自动采用值；采用值必须由表头列身份确立，否则标为歧义。
+    """
+
+    if not scanned or abs(scanned[0][0]) > 100:
+        return scanned
+    material = [item for item in scanned if abs(item[0]) > 100]
+    if not material:
+        return scanned
+    return material + [item for item in scanned if abs(item[0]) <= 100]
+
+
+def _label_year(label: str) -> int | None:
+    """只在表头期间标签显式写出四位数年度时才返回年度。"""
+
+    match = re.match(r"\s*(\d{4})\s*年", str(label))
+    return int(match.group(1)) if match else None
+
+
+def _header_layout(lines: list[str], start: int) -> dict[str, Any]:
+    """回看有限表头，得到期间列数量、顺序与附注列是否位于期间列之前。"""
+
+    # 只回看四行，避免把上一张表的列头接到本字段行上。
+    header_text = " ".join(lines[max(0, start - 4) : start + 1])
+    labels = [match.group(0) for match in PERIOD_LABEL_PATTERN.finditer(header_text)]
+    note_position = min(
+        (header_text.find(label) for label in NOTE_COLUMN_LABELS if label in header_text),
+        default=-1,
+    )
+    first_period = PERIOD_LABEL_PATTERN.search(header_text)
+    return {
+        "period_count": len(labels),
+        "period_labels": labels,
+        "note_first": bool(labels) and note_position >= 0 and note_position < first_period.start(),
+    }
+
+
+def _resolve_column(
+    scanned: list[tuple[float, str]], layout: dict[str, Any], *, report_year: int | None = None
+) -> tuple[int | None, str]:
+    """返回本期单元格下标；表头不能唯一确立时给出可诊断的歧义原因。"""
+
+    if not scanned:
+        return None, "unresolved_no_cell"
+    if not layout["period_count"]:
+        return None, "unresolved_no_period_header"
+    # 附注列在期间列之前且多出一个单元格时按位置丢掉附注单元格，不按数值丢掉。
+    offset = 1 if layout["note_first"] and len(scanned) > layout["period_count"] else 0
+    if len(scanned) - offset < layout["period_count"]:
+        return None, "unresolved_cell_count_below_period_columns"
+    if report_year:
+        # 比较列可能倒序排列，因此按目标报告年度对齐，而不是固定取第一列。
+        matched = [
+            index
+            for index, label in enumerate(layout["period_labels"])
+            if _label_year(label) == int(report_year)
+        ]
+        if not matched:
+            return None, "unresolved_report_year_not_in_header"
+        if len(matched) > 1:
+            return None, "unresolved_ambiguous_year_columns"
+        index = offset + matched[0]
+        if index >= len(scanned):
+            return None, "unresolved_cell_count_below_period_columns"
+        return index, "resolved_by_header_position"
+    return offset, "resolved_by_header_position"
+
+
 def _find_page_candidate(
-    pages: list[str], config: dict[str, Any]
+    pages: list[str], config: dict[str, Any], *, report_year: int | None = None
 ) -> dict[str, Any] | None:
     """在所有页面中选择同时命中专业词和报表标题的最高分候选。"""
 
@@ -172,10 +244,19 @@ def _find_page_candidate(
             for line_index, line in enumerate(lines):
                 if term not in line:
                     continue
-                candidates = _line_candidates(lines, line_index, term=term, allow_percent=is_ratio)
-                if not candidates:
+                scanned = _scan_number_cells(lines, line_index, term=term, allow_percent=is_ratio)
+                if not scanned:
                     continue
-                value, raw_line = candidates[0]
+                layout = _header_layout(lines, line_index)
+                cell_index, column_identity = _resolve_column(
+                    scanned, layout, report_year=None if is_ratio else report_year
+                )
+                if cell_index is None:
+                    # 表头未确立列身份时沿用可见性排序，只保留候选可读性；
+                    # 该候选会在质量闸门处成为资料缺口，不再冒充已确认的本期值。
+                    value, raw_line = scanned[0] if is_ratio else _reorder_for_visibility(scanned)[0]
+                else:
+                    value, raw_line = scanned[cell_index]
                 if is_ratio and unit_name is None:
                     # 比例字段必须在同页或同一表头明确出现百分比单位，不能把普通金额猜成比例。
                     continue
@@ -186,6 +267,9 @@ def _find_page_candidate(
                     score += 5
                 if page_index < 80:
                     score += 1
+                if column_identity.startswith("resolved"):
+                    # 已确立本期列的页面必须优先于仅靠排序可见的歧义页面。
+                    score += 8
                 ranked.append(
                     (
                         score,
@@ -200,6 +284,11 @@ def _find_page_candidate(
                             "raw_excerpt": " | ".join(lines[max(0, line_index - 2) : min(len(lines), line_index + 8)]),
                             "term": term,
                             "score": score,
+                            "column_identity": column_identity,
+                            "period_labels": layout["period_labels"],
+                            "cell_values": [item[0] for item in scanned],
+                            "adopted_cell_index": cell_index,
+                            "adopted_line": raw_line,
                             "page_hints": [hint for hint in config["hints"] if hint in text],
                         },
                     )
@@ -283,7 +372,7 @@ def extract_cninfo_fields(
                 else:
                     optional_missing.append(message)
                 continue
-            candidate = _find_page_candidate(pages, config)
+            candidate = _find_page_candidate(pages, config, report_year=report_year)
             if candidate is None:
                 if kind in required:
                     issues.append(f"{report_year}年缺少{kind}字段候选。")
@@ -313,6 +402,11 @@ def extract_cninfo_fields(
                     "pdf_page": candidate["page"],
                     "locator": candidate["locator"],
                     "raw_excerpt": candidate["raw_excerpt"],
+                    # 列身份与候选单元格集合一起保存，人工复核能看到放弃了哪些列。
+                    "column_identity": candidate["column_identity"],
+                    "period_labels": candidate["period_labels"],
+                    "cell_values": candidate["cell_values"],
+                    "adopted_cell_index": candidate["adopted_cell_index"],
                     "extraction_method": "pdf_text_heuristic_candidate",
                     "source_review_status": "auto_extracted_pending_human_page_confirmation",
                     }

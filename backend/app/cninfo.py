@@ -34,13 +34,17 @@ from __future__ import annotations
 
 import hashlib
 import re
+import tempfile
 import time
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urljoin, urlparse
 
 import httpx
 import pymupdf as fitz
+
+from .secure_download import SecureDownloadError, download_bounded
 
 
 CNINFO_HOME = "https://www.cninfo.com.cn"
@@ -60,6 +64,11 @@ ANNUAL_CATEGORY = "category_ndbg_szsh;"
 # 下载上限用于防止异常响应占满服务内存，最小大小用于排除错误页面。
 MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024
 MIN_DOWNLOAD_BYTES = 4 * 1024
+# 瞬断与网关类故障值得退避重试；403 是访问限制，重复冲击没有意义。
+RETRYABLE_STATUS_CODES = frozenset({408, 429, 502, 503, 504})
+ACCESS_DENIED_STATUS_CODES = frozenset({403})
+MAX_RETRY_SECONDS = 8.0
+DEFAULT_RETRY_DEADLINE_SECONDS = 60.0
 # 年报通常远大于十页，页数门槛可以快速拦截空白 PDF 或网页伪装文件。
 MIN_PDF_PAGES = 10
 MAX_ANNOUNCEMENT_PAGES = 10
@@ -239,6 +248,25 @@ def _company_from_row(row: dict[str, Any], market: str) -> dict[str, Any] | None
     }
 
 
+def _retry_delay(response: httpx.Response | None, attempt: int, remaining: float) -> float | None:
+    """计算下一次等待时长；429 优先读 Retry-After，其余用指数退避加确定性抖动。
+
+    抖动由尝试次数派生而不是随机数，保证同一批次的等待记录可以复算。
+    """
+
+    if remaining <= 0:
+        return None
+    delay: float | None = None
+    if response is not None and response.status_code == 429:
+        raw = str(response.headers.get("Retry-After") or "").strip()
+        if raw.isdigit():
+            delay = float(raw)
+    if delay is None:
+        seed = hashlib.sha256(f"cninfo-retry:{attempt}".encode("utf-8")).hexdigest()[:4]
+        delay = min(MAX_RETRY_SECONDS, 2.0 ** attempt) + (int(seed, 16) % 250) / 1000.0
+    return delay if delay <= remaining else None
+
+
 class CNInfoClient:
     """低频访问巨潮公开数据的同步客户端，可注入 MockTransport 做离线测试。"""
 
@@ -249,6 +277,7 @@ class CNInfoClient:
         min_delay_seconds: float = 1.0,
         timeout_seconds: float = 60.0,
         max_retries: int = 2,
+        retry_deadline_seconds: float = DEFAULT_RETRY_DEADLINE_SECONDS,
         today: date | None = None,
     ) -> None:
         # 默认关闭系统代理，避免代理把官方 PDF 替换成登录页或验证码页面。
@@ -267,6 +296,9 @@ class CNInfoClient:
         )
         self.min_delay_seconds = max(0.0, float(min_delay_seconds))
         self.max_retries = max(0, int(max_retries))
+        self.retry_deadline_seconds = max(0.0, float(retry_deadline_seconds))
+        self._retry_journal: list[dict[str, Any]] = []
+        self._retry_stop_reason = "not_needed"
         self._last_request_at = 0.0
         self.today = today or date.today()
 
@@ -291,35 +323,79 @@ class CNInfoClient:
         self._last_request_at = time.monotonic()
 
     def _request(self, method: str, url: str, *, source: str, **kwargs: Any) -> httpx.Response:
-        """统一执行有限重试；403、429和网络错误不会无限重试。"""
+        """统一执行有限重试：瞬断与网关类故障退避恢复，403 立即停止。"""
 
         if not _is_trusted_url(url):
             raise CNInfoError("CNINFO_URL_NOT_ALLOWED", f"拒绝访问非巨潮来源：{url}")
-        # 每次请求都经过统一节流和有限重试，避免循环查询时形成高频抓取。
+        # 公告查询是无副作用的只读 POST，可与 GET 共用本策略；模型请求不走这里。
+        deadline = time.monotonic() + self.retry_deadline_seconds
         last_error: Exception | None = None
         for attempt in range(self.max_retries + 1):
             try:
                 self._wait_before_request()
                 response = self.client.request(method, url, **kwargs)
-                if response.status_code in {403, 429}:
-                    if attempt < self.max_retries:
-                        time.sleep(min(8.0, 2.0 ** attempt))
-                        continue
-                    raise CNInfoError("CNINFO_RATE_LIMITED", f"巨潮{source}请求被限制（HTTP {response.status_code}）。")
+                if response.status_code in ACCESS_DENIED_STATUS_CODES:
+                    self._record_retry(attempt, response.status_code, 0.0, "access_denied")
+                    self._retry_stop_reason = "access_denied"
+                    raise CNInfoError(
+                        "CNINFO_ACCESS_DENIED",
+                        f"巨潮{source}访问被拒绝（HTTP {response.status_code}），已停止重试，需要人工检查来源与访问方式。",
+                    )
+                if response.status_code in RETRYABLE_STATUS_CODES:
+                    remaining = deadline - time.monotonic()
+                    if attempt >= self.max_retries:
+                        self._record_retry(attempt, response.status_code, 0.0, "retries_exhausted")
+                        self._retry_stop_reason = "retries_exhausted"
+                        return response
+                    delay = _retry_delay(response, attempt, remaining)
+                    if delay is None:
+                        self._record_retry(attempt, response.status_code, 0.0, "deadline_exceeded")
+                        self._retry_stop_reason = "deadline_exceeded"
+                        return response
+                    self._record_retry(attempt, response.status_code, delay, "backoff")
+                    self._retry_stop_reason = "backoff"
+                    time.sleep(delay)
+                    continue
+                self._retry_stop_reason = "succeeded" if attempt else "not_needed"
                 return response
             except CNInfoError:
                 raise
             except (httpx.HTTPError, OSError) as error:
                 last_error = error
-                if attempt < self.max_retries:
-                    time.sleep(min(8.0, 2.0 ** attempt))
-                    continue
+                delay = _retry_delay(None, attempt, deadline - time.monotonic())
+                if attempt >= self.max_retries or delay is None:
+                    break
+                self._record_retry(attempt, None, delay, "network_error")
+                self._retry_stop_reason = "network_error"
+                time.sleep(delay)
         detail = _network_error_detail(last_error, self.max_retries + 1)
+        self._retry_stop_reason = "network_error"
         raise CNInfoError(
             "CNINFO_NETWORK_ERROR",
             f"巨潮{source}请求失败，已停止重试。{detail['suggestion']}",
             detail=detail,
         ) from last_error
+
+    def _record_retry(self, attempt: int, status_code: int | None, delay: float, reason: str) -> None:
+        """记录状态码、次数、计划等待与终止原因，供限流复盘与验收回看。"""
+
+        self._retry_journal.append(
+            {
+                "attempt": attempt + 1,
+                "status_code": status_code,
+                "planned_wait_seconds": round(delay, 3),
+                "reason": reason,
+            }
+        )
+
+    def retry_summary(self) -> dict[str, Any]:
+        """返回本客户端的重试台账摘要；不隐藏任何一次退避。"""
+
+        return {
+            "retried_requests": sum(1 for item in self._retry_journal if item["reason"] == "backoff"),
+            "journal": list(self._retry_journal),
+            "stop_reason": self._retry_stop_reason,
+        }
 
     def resolve_company(self, company_query: str) -> dict[str, Any]:
         """用代码或名称解析唯一公司；名称多匹配时返回人工确认状态。"""
@@ -359,7 +435,14 @@ class CNInfoClient:
         return matches[0]
 
     def search_annual_reports(self, company: dict[str, Any], report_year: int) -> list[dict[str, Any]]:
-        """查询一个报告年度的年度报告公告，并保留原始元数据的必要字段。"""
+        """查询一个报告年度的年度报告公告，只返回候选列表。"""
+
+        return self.search_annual_reports_detailed(company, report_year)[0]
+
+    def search_annual_reports_detailed(
+        self, company: dict[str, Any], report_year: int
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """查询年度报告公告并同时返回翻页完整性，截断时不得宣称已核验全部版本。"""
 
         if not 2000 <= int(report_year) <= self.today.year + 1:
             raise CNInfoError("REPORT_YEAR_INVALID", f"报告年度不在允许范围：{report_year}")
@@ -382,6 +465,8 @@ class CNInfoClient:
         }
         # 查询窗口按报告年度后的公告年度设置，避免把披露日期当成报告年度。
         announcements: list[dict[str, Any]] = []
+        has_more = False
+        page = 0
         for page in range(1, MAX_ANNOUNCEMENT_PAGES + 1):
             payload["pageNum"] = str(page)
             response = self._request("POST", ANNOUNCEMENT_QUERY_URL, source="年度报告公告", data=payload)
@@ -390,14 +475,28 @@ class CNInfoClient:
             if not isinstance(rows, list):
                 raise CNInfoError("CNINFO_INVALID_ANNOUNCEMENTS", "巨潮公告响应缺少 announcements 列表。")
             announcements.extend(row for row in rows if isinstance(row, dict))
-            if not body.get("hasMore") or len(rows) == 0:
+            has_more = bool(body.get("hasMore"))
+            if not has_more or len(rows) == 0:
+                has_more = False
                 break
+        truncated = has_more and page >= MAX_ANNOUNCEMENT_PAGES
+        query_status = {
+            "report_year": int(report_year),
+            "se_date": payload["seDate"],
+            "fetched_pages": page,
+            "max_pages": MAX_ANNOUNCEMENT_PAGES,
+            "has_more": has_more,
+            "truncated": truncated,
+            "raw_announcement_count": len(announcements),
+            "completeness": "partial_page_limit_reached" if truncated else "complete",
+        }
         normalized: list[dict[str, Any]] = []
         for row in announcements:
             item = self._normalize_announcement(row, company, report_year)
             if item is not None:
                 normalized.append(item)
-        return normalized
+        query_status["candidate_count"] = len(normalized)
+        return normalized, query_status
 
     def _normalize_announcement(
         self, row: dict[str, Any], company: dict[str, Any], report_year: int
@@ -438,7 +537,13 @@ class CNInfoClient:
             },
         }
 
-    def select_annual_report(self, candidates: list[dict[str, Any]], report_year: int) -> dict[str, Any]:
+    def select_annual_report(
+        self,
+        candidates: list[dict[str, Any]],
+        report_year: int,
+        *,
+        query_status: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """选择最新有效全文；同日期以修订版优先，选择依据写入结果。"""
 
         valid = [item for item in candidates if item.get("report_year") == report_year]
@@ -471,30 +576,84 @@ class CNInfoClient:
         # 同一年度可能同时存在摘要、正文和修订件，选择依据必须可解释并写入日志。
         chosen["selection_reason"] = "同年度候选按公告日期倒序选择；同日修订版优先。"
         chosen["candidate_count"] = len(valid)
+        if query_status and query_status.get("truncated"):
+            # 翻页触顶时无法证明已取得最新版本，必须在记录里显式说明。
+            chosen["selection_reason"] += "候选列表已被分页上限截断，未完整核验最新版本。"
+        chosen["candidate_completeness"] = (
+            "partial_page_limit_reached"
+            if query_status and query_status.get("truncated")
+            else ("complete" if query_status else "unknown")
+        )
         chosen["candidate_urls"] = [item["source_url"] for item in valid]
         return chosen
 
     def download_pdf(self, source_url: str) -> tuple[bytes, dict[str, Any]]:
-        """下载巨潮 PDF 并校验响应大小、最终 URL 和文件头。"""
+        """流式下载巨潮 PDF；限额在接收过程中生效，重定向逐跳复校。"""
 
         if not _is_trusted_url(source_url, static_only=True):
             raise CNInfoError("PDF_URL_NOT_ALLOWED", "年报下载地址不是巨潮静态 PDF 原件。")
-        response = self._request("GET", source_url, source="年报 PDF")
-        if response.status_code != 200:
-            raise CNInfoError("PDF_HTTP_ERROR", f"年报 PDF 下载返回 HTTP {response.status_code}。")
-        final_url = str(response.url)
-        if not _is_trusted_url(final_url, static_only=True):
-            raise CNInfoError("PDF_REDIRECT_NOT_ALLOWED", "年报 PDF 重定向到了非巨潮地址。")
-        content = response.content
-        # 先检查响应大小和 PDF 文件头，再交给 PyMuPDF，降低解析异常的影响面。
-        if len(content) > MAX_DOWNLOAD_BYTES:
-            raise CNInfoError("PDF_TOO_LARGE", "年报 PDF 超过 100MB 安全上限。")
-        if len(content) < MIN_DOWNLOAD_BYTES:
-            raise CNInfoError("PDF_TOO_SMALL", "年报 PDF 文件过小，疑似错误响应。")
-        if not content.startswith(b"%PDF-"):
-            raise CNInfoError("PDF_MAGIC_INVALID", "下载内容不是 PDF 文件。")
-        digest = hashlib.sha256(content).hexdigest().upper()
-        return content, {"final_url": final_url, "byte_count": len(content), "sha256": digest}
+
+        def allowed(url: str) -> bool:
+            # 每一跳都要重新确认仍是巨潮静态原件，不能只信最初的请求地址。
+            return _is_trusted_url(url, static_only=True)
+
+        code_map = {
+            "TOO_LARGE": "PDF_TOO_LARGE",
+            "TOO_SMALL": "PDF_TOO_SMALL",
+            "PDF_MAGIC_INVALID": "PDF_MAGIC_INVALID",
+            "REDIRECT_NOT_ALLOWED": "PDF_REDIRECT_NOT_ALLOWED",
+            "REDIRECT_LOCATION_MISSING": "PDF_REDIRECT_NOT_ALLOWED",
+            "TOO_MANY_REDIRECTS": "PDF_REDIRECT_NOT_ALLOWED",
+            "HTTP_ERROR": "PDF_HTTP_ERROR",
+            "NETWORK_ERROR": "CNINFO_NETWORK_ERROR",
+        }
+        deadline = time.monotonic() + self.retry_deadline_seconds
+        with tempfile.TemporaryDirectory(prefix="audittrace-pdf-") as scratch:
+            target = Path(scratch) / "annual-report.pdf"
+            downloaded = None
+            for attempt in range(self.max_retries + 1):
+                try:
+                    self._wait_before_request()
+                    downloaded = download_bounded(
+                        source_url,
+                        target,
+                        client=self.client,
+                        max_bytes=MAX_DOWNLOAD_BYTES,
+                        min_bytes=MIN_DOWNLOAD_BYTES,
+                        require_pdf=True,
+                        is_allowed_url=allowed,
+                    )
+                    break
+                except SecureDownloadError as error:
+                    status_code = error.detail.get("status_code")
+                    if status_code in ACCESS_DENIED_STATUS_CODES:
+                        self._record_retry(attempt, status_code, 0.0, "access_denied")
+                        raise CNInfoError(
+                            "CNINFO_ACCESS_DENIED",
+                            f"巨潮年报下载被拒绝（HTTP {status_code}），已停止重试，需要人工检查来源与访问方式。",
+                        ) from error
+                    retryable = error.code == "NETWORK_ERROR" or (
+                        error.code == "HTTP_ERROR" and status_code in RETRYABLE_STATUS_CODES
+                    )
+                    delay = _retry_delay(None, attempt, deadline - time.monotonic()) if retryable else None
+                    if delay is None or attempt >= self.max_retries:
+                        raise CNInfoError(
+                            code_map.get(error.code, "PDF_DOWNLOAD_FAILED"),
+                            f"巨潮年报 PDF 下载失败：{error}",
+                            detail=error.detail,
+                        ) from error
+                    self._record_retry(attempt, status_code, delay, "backoff")
+                    time.sleep(delay)
+            assert downloaded is not None  # 循环只会在成功或抛错后离开。
+            content = target.read_bytes()
+            # 返回字节保持既有合同；接收峰值已按块受限，最后一次读取是解析所需。
+            return content, {
+                "final_url": downloaded.final_url,
+                "byte_count": downloaded.byte_count,
+                "sha256": downloaded.sha256,
+                "redirect_hops": downloaded.hops,
+                "streamed": True,
+            }
 
     def validate_pdf(
         self,
@@ -519,11 +678,14 @@ class CNInfoClient:
             # 读取文档元数据和前几页做身份校验；完整文本留给后续 RAG 建库处理。
             # 部分银行/保险 H 股年报封面只保留英文或图片，不能只依赖中文“年度报告”。
             metadata_text = "\n".join(str(value or "") for value in (document.metadata or {}).values())
+            # 封面证据只取前 3 页；正文比较列出现的年份不能当报告年度。
+            cover_text = "\n".join(document[index].get_text("text") for index in range(min(3, page_count)))
             page_text = "\n".join(document[index].get_text("text") for index in range(min(12, page_count)))
-            sample_text = f"{metadata_text}\n{page_text}"
+            sample_text = f"{metadata_text}\n{cover_text}\n{page_text}"
         finally:
             document.close()
         compact = re.sub(r"\s+", "", sample_text).lower()
+        compact_cover = re.sub(r"\s+", "", f"{metadata_text}\n{cover_text}").lower()
         announcement_title = re.sub(r"\s+", "", str(announcement.get("announcement_title") or "")).lower()
         company_names = {
             _normalize_name(company.get("company_name", "")),
@@ -532,34 +694,60 @@ class CNInfoClient:
         }
         name_hit = any(name and name in compact for name in company_names)
         code_hit = str(company.get("ticker", "")) in compact
-        year_hit = f"{announcement['report_year']}年" in compact or str(announcement["report_year"]) in compact
+        report_year = str(announcement["report_year"])
+        year_cover_hit = f"{report_year}年" in compact_cover or report_year in compact_cover
+        year_comparison_only_hit = not year_cover_hit and report_year in compact
         annual_content_hit = any(term in compact for term in ("年度报告", "年报", "annualreport"))
         # H 股公告的 PDF 封面有时是图片或纯英文，正文前 12 页不含“年度报告”。
         # 此时只有在官方公告标题本身明确为年度报告时才允许通过，并保留该来源依据。
         official_annual_title_hit = any(term in announcement_title for term in ("年度报告", "年报", "annualreport"))
         annual_hit = annual_content_hit or official_annual_title_hit
-        score = sum((name_hit, code_hit, year_hit, annual_hit))
-        if score < 3 or not annual_hit:
+        # 企业身份、报告年度、年报类型各自都是必要条件，任何一项都不能靠其他项补分。
+        content_checks = {
+            "name_hit": name_hit,
+            "code_hit": code_hit,
+            "year_hit": year_cover_hit,
+            "annual_report_hit": annual_hit,
+            "annual_report_content_hit": annual_content_hit,
+            "annual_report_title_hit": official_annual_title_hit,
+            "year_source": "cover_text" if year_cover_hit else ("comparison_column_only" if year_comparison_only_hit else "absent"),
+            "text_sample_chars": len(sample_text),
+        }
+        if not (name_hit or code_hit):
             raise CNInfoError(
-                "PDF_CONTENT_MISMATCH",
-                "PDF 内容未能同时确认目标企业、报告年度和年度报告类型。",
-                detail={"name_hit": name_hit, "code_hit": code_hit, "year_hit": year_hit, "annual_hit": annual_hit},
+                "PDF_IDENTITY_MISMATCH",
+                "PDF 正文未复述目标企业名称或证券代码，无法确认文档属于该企业。",
+                detail=content_checks,
             )
+        if not annual_hit:
+            raise CNInfoError(
+                "PDF_NOT_ANNUAL_REPORT",
+                "PDF 正文与官方公告标题都未确认年度报告类型。",
+                detail=content_checks,
+            )
+        if not year_cover_hit:
+            if not year_comparison_only_hit:
+                raise CNInfoError(
+                    "PDF_REPORT_YEAR_UNCONFIRMED",
+                    "封面与文档元数据未出现目标报告年度，不能确认文档年度。",
+                    detail=content_checks,
+                )
+            # 年度只在比较列出现：可能是上一年的报告或修订件，交人工指定而不是自动放行。
+            return {
+                "validation_status": "identity_unresolved",
+                "page_count": page_count,
+                "byte_count": len(content),
+                "sha256": hashlib.sha256(content).hexdigest().upper(),
+                "content_checks": content_checks,
+                "ocr_required": len(sample_text.strip()) < 200,
+            }
         # 返回哈希、页数和命中项，后续案例登记与证据回查只依赖这一份结果。
         return {
             "validation_status": "passed",
             "page_count": page_count,
             "byte_count": len(content),
             "sha256": hashlib.sha256(content).hexdigest().upper(),
-            "content_checks": {
-                "name_hit": name_hit,
-                "code_hit": code_hit,
-                "year_hit": year_hit,
-                "annual_report_hit": annual_hit,
-                "annual_report_content_hit": annual_content_hit,
-                "annual_report_title_hit": official_annual_title_hit,
-                "text_sample_chars": len(sample_text),
-            },
+            "content_checks": content_checks,
             "ocr_required": len(sample_text.strip()) < 200,
         }
 

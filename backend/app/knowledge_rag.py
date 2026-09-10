@@ -5,8 +5,8 @@ G3-6 合同：
   可选行业、固定问题 ID、截止日期与快照 ID；
 - 返回结果携带 retrieval_id、source_id、document_id、页码/段落定位、内容哈希、
   发布机构与日期、证据支持状态与来源类别；
-- 权威规则库不得被新闻片段覆盖：排序时 authoritative_rules 优先于
-  industry_context，案例证据优先级由调用方案例隔离保证；
+- 权威规则库不得被新闻片段覆盖：先做相关性门禁，再在同等相关条目中按
+  authoritative_rules > industry_context 定序；零相关词条目一律剔除；
 - 截止日期过滤：published_at 晚于截止日的条目直接剔除。
 """
 from __future__ import annotations
@@ -42,18 +42,80 @@ REQUIRED_RETRIEVAL_FIELDS = (
 )
 
 KNOWLEDGE_RETRIEVAL_SCHEMA_VERSION = "knowledge_retrieval_trace_v1"
+# 相关性门禁版本：旧口径按权威等级返回零命中条目，必须与新口径可区分。
+KNOWLEDGE_RETRIEVAL_VERSION = "knowledge_retrieval_relevance_gate_v2"
+
+TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_]{2,}|[一-鿿]{2,}")
+CJK_RUN_PATTERN = re.compile(r"[一-鿿]+")
+
+
+def _tokens_from_text(text: str) -> set[str]:
+    """生成确定性词符：整段加 2 至 4 字滑窗，弥补中文没有空格分词。
+
+    滑窗只用于本仓库内的小词表匹配，不引入外部分词库，保证结果可复现。
+    """
+
+    tokens: set[str] = set()
+    for run in TOKEN_PATTERN.findall(str(text or "")):
+        lowered = run.lower()
+        tokens.add(lowered)
+        if not CJK_RUN_PATTERN.fullmatch(lowered):
+            continue
+        for size in (2, 3, 4):
+            for index in range(0, max(0, len(lowered) - size + 1)):
+                tokens.add(lowered[index : index + size])
+    return tokens
+
+
+def controlled_question_terms(question_id: str) -> set[str]:
+    """把 KB-R1、RAG-Q1 等固定编号展开成已登记的中文问题词，不做外网搜索。
+
+    问题词表复用案例检索的固定问题登记，避免同一竞赛出现两套问题定义。
+    """
+
+    # 延迟导入：rag 依赖 faiss，知识检索调用方不应被迫加载向量库。
+    from .rag import RAG_QUESTIONS
+
+    wanted = {token.upper() for token in str(question_id or "").replace("KB-", "").split("-") if token}
+    terms: list[str] = []
+    for item in RAG_QUESTIONS:
+        rule_ids = {str(rule).upper() for rule in item.get("rule_ids") or []}
+        if str(item.get("question_id") or "").upper() not in wanted and not wanted & rule_ids:
+            continue
+        terms.append(str(item.get("retrieval_query") or ""))
+        terms.append(str(item.get("title") or ""))
+        terms.extend(str(term) for term in item.get("anchor_terms") or [])
+    return {token for text in terms for token in _tokens_from_text(text)}
+
+
+def _searchable_text(entry: dict[str, Any]) -> str:
+    """条目可匹配文本 = 标题 + 最小检索片段 + 登记的 query_terms。"""
+
+    return " ".join(
+        [
+            str(entry.get("title") or ""),
+            str(entry.get("retrieval_excerpt") or ""),
+            " ".join(str(term) for term in (entry.get("query_terms") or [])),
+        ]
+    ).lower()
 
 
 def _query_tokens(request: dict[str, Any]) -> set[str]:
-    """从固定问题、行业和公司标识提取小型、确定性的排序词，不做外网搜索。"""
+    """相关词来自问题文本与受控词表；公司代码和行业只作缩小范围的辅助词。
+
+    case_id 不再作为词来源：它匹配不到任何条目正文，只会污染排序。
+    """
+
     raw = " ".join(
-        str(request.get(key) or "")
-        for key in ("question_id", "ticker", "industry", "case_id")
+        [
+            str(request.get("query_text") or ""),
+            str(request.get("question_text") or ""),
+            str(request.get("ticker") or ""),
+            str(request.get("industry") or ""),
+        ]
     )
-    return {
-        token.lower()
-        for token in re.findall(r"[A-Za-z0-9_]{2,}|[\u4e00-\u9fff]{2,}", raw)
-    }
+    tokens = _tokens_from_text(raw)
+    return tokens | controlled_question_terms(str(request.get("question_id") or ""))
 
 
 def _claim_scope(entry: dict[str, Any], request: dict[str, Any]) -> tuple[str, str]:
@@ -80,30 +142,34 @@ def retrieve_knowledge(
 ) -> list[dict[str, Any]]:
     """在本地来源清单的最小检索片段中做可复现检索，返回可导出的命中轨迹。
 
-    该函数不下载网页、不把整篇文档交给模型。命中由来源类别、权威层级、固定
-    问题词和登记的 query_terms 决定，并带回 URL、定位和摘要哈希供人工复查。
+    该函数不下载网页、不把整篇文档交给模型。命中先由来源范围、截止日和
+    相关性门禁决定，权威等级只用于同等相关度之间定序；零词命中条目不得成为
+    证据候选。命中带回 URL、定位、摘要哈希与相关词数供人工复查。
     """
     allowed_categories = set(request.get("source_categories") or [])
     active = active_source_entries(entries, request.get("cutoff_date"))
     candidates = [entry for entry in active if entry.get("source_category") in allowed_categories]
     ranked = rank_candidates(candidates, request)
-    tokens = _query_tokens(request)
+    tokens = {token for token in _query_tokens(request) if token}
+    if limit <= 0 or not tokens:
+        # limit=0 与无问题词都表示"不要结果"，不能强行凑出一条无关条目。
+        return []
 
-    def sort_key(item: tuple[int, dict[str, Any]]) -> tuple[int, int, int]:
-        index, entry = item
-        searchable = " ".join(
-            [
-                str(entry.get("title") or ""),
-                str(entry.get("retrieval_excerpt") or ""),
-                " ".join(str(term) for term in (entry.get("query_terms") or [])),
-            ]
-        ).lower()
+    scored: list[tuple[int, int, int, dict[str, Any]]] = []
+    for ordinal, entry in enumerate(ranked):
+        searchable = _searchable_text(entry)
         matches = sum(1 for token in tokens if token in searchable)
+        if matches == 0:
+            continue
+        if _claim_scope(entry, request)[0] == "case_fact_prohibited":
+            # 其他企业年报既不能证明当前案例事实，也不该占用本次上下文预算。
+            continue
         layer = str(entry.get("layer") or LAYER_BY_CATEGORY.get(str(entry.get("source_category") or ""), "case_evidence"))
-        return (-AUTHORITY_RANK.get(layer, 0), -matches, index)
+        scored.append((-matches, -AUTHORITY_RANK.get(layer, 0), ordinal, entry))
+    scored.sort(key=lambda item: item[:3])
 
     hits: list[dict[str, Any]] = []
-    for ordinal, entry in sorted(enumerate(ranked), key=sort_key)[: max(1, limit)]:
+    for matches, _authority, ordinal, entry in scored[:limit]:
         excerpt = str(entry.get("retrieval_excerpt") or entry.get("title") or "").strip()
         locator = str(entry.get("retrieval_locator") or "官方来源登记条目；请回到原文核验。")
         content_sha256 = str(entry.get("excerpt_sha256") or "").strip() or hashlib.sha256(
@@ -136,6 +202,8 @@ def retrieve_knowledge(
                 "excerpt": excerpt[:800],
                 "content_sha256": content_sha256,
                 "support_status": "candidate",
+                "relevance_matches": -matches,
+                "retrieval_version": KNOWLEDGE_RETRIEVAL_VERSION,
                 "claim_scope": scope,
                 "boundary": boundary,
                 "snapshot_id": request.get("snapshot_id"),
@@ -154,8 +222,12 @@ def build_retrieval_request(
     snapshot_id: str,
     ticker: str | None = None,
     industry: str | None = None,
+    query_text: str = "",
 ) -> dict[str, Any]:
-    """构造一次受约束检索请求；缺字段直接拒绝，不允许无边界检索。"""
+    """构造一次受约束检索请求；缺字段直接拒绝，不允许无边界检索。
+
+    question_id 只是受控编号，query_text 才是相关性判定的问题文本。
+    """
     categories = [category for category in source_categories if category in SOURCE_CATEGORIES]
     if not categories:
         raise ValueError("source_categories 必须至少包含一个已登记类别。")
@@ -164,6 +236,7 @@ def build_retrieval_request(
     return {
         "case_id": case_id,
         "question_id": question_id,
+        "query_text": str(query_text or ""),
         "source_categories": categories,
         "as_of_date": as_of_date,
         "cutoff_date": cutoff_date,

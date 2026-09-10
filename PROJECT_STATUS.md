@@ -1,6 +1,6 @@
 # 审迹智链单一事实源
 
-更新时间：2026-09-08
+更新时间：2026-09-09
 统一 AI 声明：**AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。**
 
 > **当前整改发布候选（2026-08-29，唯一当前口径）**：`RELEASE-CANDIDATE-20260828-V1`，模型为 `deepseek-v4-flash`（DeepSeek 官方直连）；15 案由 `backend/competition_demo_cases.json` 冻结清单统一驱动。公开演示任务/结果/质量事件采用 Supabase 服务端台账，当前执行模式是 Render 免费 Web；完成结果可跨刷新和重启读取，运行中实例重启会记为 `interrupted`，不自动续跑，需显式重试。provider probe、真实 B3、签字、评估指针和人工评分分别判定，`configured` 不等于真实可运行，当前 `competition_release_ready=false` 直到新鲜证据和真人批准完成。当前评估指针为 `EVAL-20260828-RELEASE-CANDIDATE-V1`，人工评分保持 pending；可选 Worker 仅见 `render.worker.example.yaml`，未写入当前 Blueprint。
@@ -8,6 +8,17 @@
 > **2026-09-02 模型口径裁决与本机质量窗口登记**：队长裁决生产目标模型统一为 `deepseek-v4-flash`，AGENTS.md、发布记录、部署配置与方案书口径已同步；`qwen3.5-plus` 的 7/10=70.0% 窗口只作历史证据。DeepSeek 官方直连通道自 2026-08-28 切换以来，本机真实三 Agent 完整链累计 **6/6 案完成、19 次 provider 调用、0 次失败关闭**（2026-08-29 五案 16 次，其中一案含一次内部修正调用；2026-09-02 标准股份演示彩排一案 3 次首过，run `RUN-V7-EB6EAE3B87EB`、task `DEMO-RUN-F9E1BA62F5DC`、`external_live`/`model_success`）。该 100% 指完整链最终完成率而非每案首过率；样本量小，不构成稳定成功证明；Render 生产通道的 provider probe 与新鲜 B3 仍 pending。明细登记于 `PROJECT_STATUS.json` 的 `deepseek_direct_local_window_20260902`。
 
 > 旧 R3/R2/R1 段落、历史模型和历史成功率均保留用于追溯，并标记为 superseded；对外状态以 `/api/health`、`/api/status`、`/api/demo/bootstrap` 和 `backend/release_records/` 的哈希校验结果为准。
+
+## 2026-09-09 数据链路缺陷修复（当前工作树，未提交）
+
+- 依据 `docs/2026-09-09_代码与运行逻辑审查及开源对照优化方案.md` 与实施计划 `docs/superpowers/plans/2026-09-09_数据链路缺陷修复实施计划.md`，关闭五项实测复现缺陷：C01 字段取错本期列、C02 检索相关性不参与排序、C03 PDF 年度可靠其他命中补分通过、C04 采集适配器不复校重定向落点且伪 PDF 可过、C05 503 不重试；另关闭 4.1（先收完整响应体再判体积）与 4.2（翻页触顶静默返回部分候选）。
+- 取值口径变更：本期列由表头期间列与单元格位置确立，金额大小不再参与列选择；列身份不可确立时字段成为资料缺口，不再进入确定性计算。闸门原先"原始值 ≤100 即疑似附注号"与缺陷同源，已限定为列身份未确立时才触发。
+- 检索口径变更：问题文本与受控中文问题词先做相关性门禁，零词命中条目与被判定为 `case_fact_prohibited` 的他企业年报一律剔除，权威等级只用于同等相关度定序；`knowledge_no_relevant_evidence` 与"知识库不可用"分离，前者作为资料缺口继续，后者仍失败关闭不调用模型。命中记录新增 `relevance_matches` 与 `retrieval_version=knowledge_retrieval_relevance_gate_v2`。
+- 网络口径变更：408/429/502/503/504 与网络瞬断在 60 秒总预算内退避重试，429 读取 `Retry-After`，403 改为 `CNINFO_ACCESS_DENIED` 立即停止并转人工；重试台账记录状态码、次数、计划等待与终止原因。年报下载与标准案例缓存改用同一受控下载组件（逐跳复校、块级限额、增量哈希、原子落盘）。
+- 实测证据：`pytest backend/tests -q` **502 passed**（改动前基线 456 passed，新增 46 项缺陷回归，见 `docs/TEST_INVENTORY.md`）；`scripts/check_chinese_comments.py` 2582/25221 = **10.24% ≥ 10%**；`scripts/check_frontend_contract.mjs` ok；复核脚本 `docs/review-assets/20260909_logic_probes.py` 五项输出全部符合期望（C01=80、C02=0 命中、C03=rejected:PDF_REPORT_YEAR_UNCONFIRMED、C04=ok=false/redirect_not_allowed、C05=3 次请求）。
+- 知识检索测试集量化：同一 26 题、k=5 下，HEAD `155e3ad` 基线"应拒未拒"11 条、"意外空"0 条；修复后分别 **6 条 / 0 条**。基线为当日重建产物 `artifacts/competition-improvement-20260908/retrieval-test/results_baseline_head_155e3ad.json`（原 9/8 产物在实施中被中间态运行覆盖）。剩余 6 条属"登记条目是类比/背景入口"，需真人标注相关/不相关后才能继续收紧。
+- **仍未证明**：以上全部是离线夹具与真实清单上的工程事实，不构成真实年报字段错误率、不构成检索质量评分、不构成 B0—B3 任何专业结论。真实年报解析对照（含 Docling）与 AKShare 适配器均未实施。
+- **未触碰的人工门禁**：未 commit/push/部署，未调用付费模型（provider 调用 0），未改动 `backend/competition_demo_cases.json`、冻结案例数据、T0、baseline、发布记录与任何签字或人工评分。`knowledge_ingest.py` 仍未被任何路由调用，其边界修复只表示"接入前已具备条件"，不得写成入库链已可用。
 
 ## 2026-09-08 竞赛要求逐项整改（当前工作树）
 

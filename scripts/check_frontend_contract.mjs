@@ -62,7 +62,8 @@ for (const banned of ["app.js", "fusion.js"]) {
 }
 const stylesheets = [...html.matchAll(/<link[^>]+href="([^"]+)"/g)].map((match) => match[1]);
 if (stylesheets.some((src) => src.includes("fusion.css"))) failures.push("page must not load fusion.css");
-if (!html.includes('/assets/official-v4/cinematic/evidence-horizon.webp')) failures.push("restored cinematic homepage image is missing");
+// 纠偏方案 §8：星球背景退出首页并取消预加载，首屏不得再引用这张装饰图。
+if (html.includes('/assets/official-v4/cinematic/evidence-horizon.webp')) failures.push("homepage must not load the cinematic planet image");
 if (!html.includes('href="#demo-positioning"') || !html.includes('href="#workspace-root"')) failures.push("homepage must flow through positioning page into the demo workspace");
 
 // 主要按钮唯一：demo-start 是唯一主运行按钮；结果操作最多三个。

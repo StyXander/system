@@ -83,6 +83,25 @@ def test_claim_scope_keeps_normative_and_analogous_sources_out_of_case_facts() -
 def test_retrieval_filters_future_entries_and_returns_locator_hash_and_boundary() -> None:
     entries, error = load_source_manifest(MANIFEST)
     assert error is None
+    # 两条夹具文本相关度相同，只有截止日不同，用于证明时点过滤真的生效。
+    entries.append(
+        {
+            "source_id": "SRC-CURRENT-TEST",
+            "source_category": "news",
+            "publisher": "测试",
+            "title": "截止日内资料",
+            "official_url": "https://www.csrc.gov.cn/current",
+            "published_at": "2025-06-01",
+            "retrieved_at": "2025-06-02T00:00:00Z",
+            "document_id": "CURRENT-TEST",
+            "sha256": "y",
+            "coverage_status": "representative",
+            "validation_status": "passed",
+            "retrieval_excerpt": "销售与收款循环的收入确认问询。",
+            "retrieval_locator": "测试定位",
+            "query_terms": ["销售与收款"],
+        }
+    )
     entries.append(
         {
             "source_id": "SRC-FUTURE-TEST",
@@ -110,9 +129,10 @@ def test_retrieval_filters_future_entries_and_returns_locator_hash_and_boundary(
         snapshot_id="KNOWLEDGE-20260824-REPRESENTATIVE-V1",
         ticker="600302",
         industry="制造业",
+        query_text="销售与收款 应收账款 营业收入 问询 处罚",
     )
     hits = retrieve_knowledge(entries, request, limit=10)
-    assert hits
+    assert "SRC-CURRENT-TEST" in {hit["source_id"] for hit in hits}
     assert all(hit["source_id"] != "SRC-FUTURE-TEST" for hit in hits)
     assert all(hit["locator"] and hit["content_sha256"] for hit in hits)
     assert all(hit["claim_scope"] == "contextual_hypothesis_only" for hit in hits)

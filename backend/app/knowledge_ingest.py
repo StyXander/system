@@ -5,23 +5,35 @@
 - 网络失败不生成合成文档；同一文档版本变化时生成新版本，不覆盖旧哈希；
 - 固定 User-Agent 与低并发，单次采集文件大小有上限；
 - 输出 record 只包含来源元数据与哈希，不回传正文到任何外部服务。
+
+接线状态：本模块当前未被 backend/app 任何路由调用，属于"已实现未接入"的
+来源适配器。新增外部来源时必须连同测试一起接线，不得当成已可用的入库链。
 """
 from __future__ import annotations
 
-import hashlib
 import re
+import tempfile
+import threading
 import time
-import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from urllib.parse import urlparse
 
+import httpx
+
 from .knowledge_sources import OFFICIAL_HOST_SUFFIXES, normalize_source_entry
+from .secure_download import SecureDownloadError, download_bounded
+
 
 USER_AGENT = "AuditTrace-KnowledgeBot/0.1 (+audit-planning research; public official sources)"
 MAX_DOWNLOAD_BYTES = 120 * 1024 * 1024
 MIN_DELAY_SECONDS = 2.0
+# 节流状态是模块级的：多个调用方共享同一份采集预算。
+_last_call_at = 0.0
+_throttle_lock = threading.Lock()
 
 # 登录/验证码/未知来源的页面标记；命中即拒绝，不把错误页面当原文。
+# 只对 HTML 正文判定，PDF 二进制里偶然出现这些字节不算挑战页。
 BLOCKED_BODY_HINTS = ("验证码", "登录", "login", "captcha", "机房访问", "禁止访问", "access denied")
 
 
@@ -41,57 +53,75 @@ def _is_official_url(url: str) -> bool:
     return parsed.scheme == "https" and any(host == suffix or host.endswith("." + suffix) for suffix in OFFICIAL_HOST_SUFFIXES)
 
 
+def _throttle() -> None:
+    """按模块级状态节流，落实 MIN_DELAY_SECONDS 而不是只声明它。"""
+
+    global _last_call_at
+    with _throttle_lock:
+        wait = MIN_DELAY_SECONDS - (time.monotonic() - _last_call_at)
+        if wait > 0:
+            time.sleep(wait)
+        _last_call_at = time.monotonic()
+
+
 def assess_official_document(
     url: str,
     *,
     expect_pdf: bool,
     timeout: float = 30.0,
+    client: httpx.Client | None = None,
 ) -> FetchAssessment:
     """下载并校验一份官方文档；通过后返回内容哈希与最终 URL。
 
     校验规则：
-    1. 主机必须在官方域名白名单内；
-    2. HTTP 2xx + 内容类型匹配（期望 PDF 时 content-type 含 application/pdf，
-       或 URL 以 .pdf 结尾）；
-    3. 正文不命中登录/验证码标记；
-    4. 200MB 上限与超时保护。
+    1. 初始地址与每一跳落点都必须在官方域名白名单内；
+    2. HTTP 2xx；期望 PDF 时以文件头 %PDF- 为准，Content-Type 只作辅助；
+    3. HTML 正文不命中登录/验证码标记；
+    4. 120MiB 上限、超时与模块级节流。
     不通过时绝不生成合成文档。
     """
     if not _is_official_url(url):
         return FetchAssessment(False, "host_not_official", "来源主机不在官方域名白名单。")
-    if expect_pdf and not (url.lower().endswith(".pdf") or "finalpage" in url.lower()):
-        pass  # 内容类型仍以响应头为准
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": USER_AGENT,
-            "Accept": "application/pdf,text/html;q=0.9,*/*;q=0.8",
-        },
+    _throttle()
+    owns_client = client is None
+    http_client = client or httpx.Client(
+        timeout=httpx.Timeout(timeout, connect=min(20.0, timeout)),
+        trust_env=False,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/pdf,text/plain,*/*"},
     )
     started = time.perf_counter()
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            content_type = (response.headers.get("Content-Type") or "").lower()
-            raw = response.read(MAX_DOWNLOAD_BYTES + 1)
-            final_url = response.geturl()
-    except urllib.error.HTTPError as error:
-        return FetchAssessment(False, f"http_{error.code}", f"HTTP {error.code}。")
-    except (urllib.error.URLError, TimeoutError, OSError) as error:
-        return FetchAssessment(False, "network_error", f"{type(error).__name__}。")
-    if len(raw) > MAX_DOWNLOAD_BYTES:
-        return FetchAssessment(False, "too_large", "文档超过采集上限。")
-    body_prefix = raw[:2048].decode("utf-8", "replace").lower()
-    if any(hint in body_prefix for hint in BLOCKED_BODY_HINTS):
-        return FetchAssessment(False, "blocked_page", "页面命中登录/验证码标记。")
-    if expect_pdf and "pdf" not in content_type and content_type not in ("application/octet-stream", ""):
-        return FetchAssessment(False, "content_type_mismatch", f"期望 PDF，实际 {content_type}。")
+        with tempfile.TemporaryDirectory(prefix="audittrace-source-") as scratch:
+            try:
+                downloaded = download_bounded(
+                    url,
+                    Path(scratch) / "source-document",
+                    client=http_client,
+                    max_bytes=MAX_DOWNLOAD_BYTES,
+                    require_pdf=expect_pdf,
+                    # 每一跳都重新过白名单，防止官方地址把人带出站外。
+                    is_allowed_url=_is_official_url,
+                )
+            except SecureDownloadError as error:
+                return FetchAssessment(False, error.code.lower(), f"{error}。")
+            # 只有非 PDF 正文才需要判断登录/验证码标记；PDF 二进制不作文本解读。
+            if not expect_pdf and "pdf" not in downloaded.content_type:
+                head = downloaded.path.read_bytes()[:2048].decode("utf-8", "replace").lower()
+                if any(hint in head for hint in BLOCKED_BODY_HINTS):
+                    return FetchAssessment(False, "blocked_page", "页面命中登录/验证码标记。")
+            sha256 = downloaded.sha256
+            final_url = downloaded.final_url
+            content_type = downloaded.content_type
+    finally:
+        if owns_client:
+            http_client.close()
     return FetchAssessment(
         True,
         "ok",
         f"下载完成，耗时 {round((time.perf_counter() - started) * 1000)}ms。",
         content_type=content_type,
         final_url=final_url,
-        sha256=hashlib.sha256(raw).hexdigest(),
+        sha256=sha256,
     )
 
 

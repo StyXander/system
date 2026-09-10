@@ -46,13 +46,14 @@ def _pdf_bytes(year: int, *, include_fields: bool = False) -> bytes:
         if page_number == 0:
             text = f"测试科技股份有限公司 600302 {year}年年度报告"
         elif include_fields and page_number == 1:
-            text = "主要会计数据\n单位：元\n营业收入\n1000\n900\n"
+            # 真实年报必带期间列头；缺列头时提取器只能报歧义，不能猜本期列。
+            text = f"主要会计数据\n单位：元\n项目 {year}年 {year - 1}年\n营业收入\n1000\n900\n"
             if year == 2023:
-                text = "主要会计数据\n单位：元\n营业收入\n900\n800\n"
+                text = f"主要会计数据\n单位：元\n项目 {year}年 {year - 1}年\n营业收入\n900\n800\n"
         elif include_fields and page_number == 2:
-            text = "资产及负债状况\n单位：元\n应收账款\n七、5\n500\n450\n"
+            text = f"资产及负债状况\n单位：元\n项目 附注 {year}年12月31日 {year - 1}年12月31日\n应收账款\n七、5\n500\n450\n"
             if year == 2023:
-                text = "资产及负债状况\n单位：元\n应收账款\n七、5\n450\n400\n"
+                text = f"资产及负债状况\n单位：元\n项目 附注 {year}年12月31日 {year - 1}年12月31日\n应收账款\n七、5\n450\n400\n"
         elif page_number == 3:
             text = "销售模式与回款政策\n信用政策 客户账期 结算方式 回款政策"
         else:
@@ -417,10 +418,28 @@ class _FakeCNInfoClient:
             }
         ]
 
-    def select_annual_report(self, candidates: list[dict[str, object]], _year: int) -> dict[str, object]:
+    def select_annual_report(
+        self,
+        candidates: list[dict[str, object]],
+        _year: int,
+        *,
+        query_status: dict[str, object] | None = None,
+    ) -> dict[str, object]:
         selected = dict(candidates[0])
         selected.update({"selection_reason": "offline fixture", "candidate_count": 1, "candidate_urls": [selected["source_url"]]})
+        selected["candidate_completeness"] = "complete" if query_status else "unknown"
         return selected
+
+    def search_annual_reports_detailed(
+        self, company: dict[str, str], year: int
+    ) -> tuple[list[dict[str, object]], dict[str, object]]:
+        return self.search_annual_reports(company, year), {
+            "report_year": year,
+            "fetched_pages": 1,
+            "has_more": False,
+            "truncated": False,
+            "completeness": "complete",
+        }
 
     def download_pdf(self, source_url: str) -> tuple[bytes, dict[str, object]]:
         self.downloaded_urls.append(source_url)

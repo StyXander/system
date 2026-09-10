@@ -33,13 +33,13 @@ from __future__ import annotations
 
 import hashlib
 import threading
-import uuid
 from pathlib import Path
 from typing import Any
 
 import httpx
 
 from .data import ANNUAL_REPORT_SOURCES
+from .secure_download import SecureDownloadError, download_bounded
 
 
 TRUSTED_SOURCE_PREFIX = "https://static.cninfo.com.cn/finalpage/"
@@ -77,33 +77,30 @@ def _registered_sources() -> list[dict[str, str | int]]:
 
 
 def _download_source(client: httpx.Client, source: dict[str, Any], target: Path) -> int:
-    temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.part")
-    digest = hashlib.sha256()
-    byte_count = 0
-    first_bytes = b""
+    """受控下载一份已登记的年报原件；哈希不符即丢弃，不留半成品。"""
+
     try:
-        with client.stream("GET", str(source["source_url"])) as response:
-            response.raise_for_status()
-            with temporary.open("wb") as handle:
-                for block in response.iter_bytes(1024 * 1024):
-                    if not block:
-                        continue
-                    byte_count += len(block)
-                    if byte_count > MAX_SOURCE_BYTES:
-                        raise ValueError(f"{source['year']} 年来源文件超过 50MB 安全上限。")
-                    if len(first_bytes) < 5:
-                        first_bytes += block[: 5 - len(first_bytes)]
-                    digest.update(block)
-                    handle.write(block)
-        if not first_bytes.startswith(b"%PDF-"):
-            raise ValueError(f"{source['year']} 年来源响应不是 PDF。")
-        actual_sha256 = digest.hexdigest().upper()
-        if actual_sha256 != source["file_sha256"]:
-            raise ValueError(f"{source['year']} 年来源文件 SHA-256 与登记值不一致。")
-        temporary.replace(target)
-        return byte_count
-    finally:
-        temporary.unlink(missing_ok=True)
+        downloaded = download_bounded(
+            str(source["source_url"]),
+            target,
+            client=client,
+            max_bytes=MAX_SOURCE_BYTES,
+            require_pdf=True,
+            # 白名单仍由本模块掌握：来源清单前缀就是这里的受信边界。
+            is_allowed_url=lambda url: str(url).startswith(TRUSTED_SOURCE_PREFIX),
+            expected_sha256=str(source["file_sha256"]),
+        )
+    except SecureDownloadError as error:
+        messages = {
+            "TOO_LARGE": f"{source['year']} 年来源文件超过 50MB 安全上限。",
+            "PDF_MAGIC_INVALID": f"{source['year']} 年来源响应不是 PDF。",
+            "SHA256_MISMATCH": f"{source['year']} 年来源文件 SHA-256 与登记值不一致。",
+            "TOO_SMALL": f"{source['year']} 年来源响应过小，疑似错误页面。",
+            "REDIRECT_NOT_ALLOWED": f"{source['year']} 年来源被重定向到非巨潮地址。",
+            "HTTP_ERROR": f"{source['year']} 年来源下载返回 HTTP {error.detail.get('status_code')}。",
+        }
+        raise ValueError(messages.get(error.code, f"{source['year']} 年来源下载失败：{error}")) from error
+    return downloaded.byte_count
 
 
 def ensure_standard_sources(

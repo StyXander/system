@@ -22,7 +22,7 @@ from backend.app.agents import (
     run_agent_chain,
 )
 from backend.app.cases import annotate_financial_field_rows_quality, financial_field_candidate_quality_issues
-from backend.app.field_extraction import _line_candidates
+from backend.app.field_extraction import _reorder_for_visibility, _scan_number_cells
 from backend.app.delivery import cache_run, replay_cache
 from backend.app.main import (
     _cached_run_for_new_request,
@@ -386,10 +386,12 @@ def test_auto_candidate_quality_gate_and_minimal_model_payload() -> None:
         not any("连续年度金额相差" in issue for issue in row["candidate_quality_issues"])
         for row in structured_rows
     )
-    candidates = _line_candidates(
-        ["应收账款", "4", "8,110,758,258.05", "7,293,628,386.69"],
-        0,
-        term="应收账款",
+    candidates = _reorder_for_visibility(
+        _scan_number_cells(
+            ["应收账款", "4", "8,110,758,258.05", "7,293,628,386.69"],
+            0,
+            term="应收账款",
+        )
     )
     assert candidates[0][0] == 8_110_758_258.05
 

@@ -3313,11 +3313,13 @@ def _run_knowledge_retrieval(
             snapshot_id=knowledge_snapshot_id(),
             ticker=str(context.get("ticker") or "") or None,
             industry=str((context.get("industry_gate") or {}).get("industry") or "") or None,
+            # 问题文本单独传递：固定编号只用于展开受控同义词，不再充当语义信号。
+            query_text=str(context.get("question_text") or ""),
         )
         request["company_name"] = str(context.get("company_name") or "")
         trace = retrieve_knowledge(entries, request, limit=8)
         if not trace:
-            return [], summary, "knowledge_retrieval_empty"
+            return [], summary, "knowledge_no_relevant_evidence"
         return trace, summary, None
     except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         return [], None, f"knowledge_retrieval_error:{type(error).__name__}"
@@ -3629,7 +3631,17 @@ def _execute_run(
             ]
             context["source_coverage_summary"] = knowledge_summary
             context["knowledge_snapshot_id"] = knowledge_snapshot_id()
-            if knowledge_error is not None:
+            if knowledge_error == "knowledge_no_relevant_evidence":
+                # 无相关证据是合法结果：记为资料缺口继续，不拿无关权威条目充数。
+                evidence_gaps.append(
+                    {
+                        "type": "knowledge_no_relevant_evidence",
+                        "message": "登记知识源中没有与本次固定问题相关且可回查的条目；本项按资料缺口保留，需人工补充权威依据。",
+                        "detail": knowledge_error,
+                    }
+                )
+                _progress("knowledge_retrieval", "not_applicable", "知识检索无相关命中；已按资料缺口继续。")
+            elif knowledge_error is not None:
                 rag_error = knowledge_error
                 evidence_gaps.append(
                     {
