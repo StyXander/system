@@ -259,6 +259,39 @@
           "sha256": "de362082c67b54be3eed05e970e48975e7040ced727803f76ee53e47b17aea3d"
         }
       ]
+    },
+    {
+      "asset_name": "audittrace-hero-editorial-v1",
+      "usage": "hero-background",
+      "source_file": "exec-75ada62f-d605-4cf8-a2a5-f6b2c0dbf512.png",
+      "source_sha256": "af7af03f01bc3891af28e3c286b139d3021784c0494cd8f303ccad5707e4dbc7",
+      "source_dimensions": [
+        1891,
+        832
+      ],
+      "source_bytes": 1775249,
+      "background": "#F6F7F9",
+      "generation": {
+        "mode": "built-in-imagegen",
+        "reference": "ChatGPT Image 2026年9月10日 11_03_04 (3).png",
+        "prompt_summary": "第四张编辑式纸张与石材构图；冷白、石墨、克制钴蓝；左侧留白、右侧审计档案夹；禁文字、数字、UI与品牌标识。"
+      },
+      "outputs": [
+        {
+          "file": "audittrace-hero-editorial-v1-1600.webp",
+          "width": 1600,
+          "height": 704,
+          "bytes": 55960,
+          "sha256": "25a06c74d674175e20c5aac8ca52b42c90d6433a5e4894b9ba2f051bc1034c89"
+        },
+        {
+          "file": "audittrace-hero-editorial-v1-900.webp",
+          "width": 900,
+          "height": 396,
+          "bytes": 19150,
+          "sha256": "2c7a802127e61d087e045e97f00773c5467dd0405337b2d837fa38206209e818"
+        }
+      ]
     }
   ]
 }

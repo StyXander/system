@@ -5861,3 +5861,69 @@ textarea {
   .demo-console-head,
   .demo-stage-rail { backdrop-filter: none; }
 }
+
+/* ==== 0.13.3 第四张方向：首页冷色编辑台与衬线标题 ====
+   第四张参考图的纸张、石材和杂志式留白被改成冷白 / 石墨 / 克制钴蓝，
+   只把生成图当作背景层；真实运行截图、HTML 文案和页面状态继续承担全部信息含义。 */
+.cinematic-landing {
+  background: var(--paper-page);
+}
+
+.cinematic-landing::before {
+  display: none;
+}
+
+.cinematic-hero-editorial {
+  position: absolute;
+  z-index: 0;
+  inset: 72px 0 0;
+  background:
+    linear-gradient(90deg, rgb(246 247 249 / 98%) 0%, rgb(246 247 249 / 92%) 32%, rgb(246 247 249 / 62%) 50%, rgb(246 247 249 / 18%) 72%, rgb(246 247 249 / 4%) 100%),
+    url("/assets/official-v4/illustrations/audittrace-hero-editorial-v1-1600.webp") center right / cover no-repeat;
+  opacity: .88;
+  pointer-events: none;
+}
+
+.cinematic-brand strong,
+.cinematic-hero h1,
+.cinematic-chip,
+.cinematic-tagline {
+  font-family: var(--font-serif);
+}
+
+.cinematic-brand strong {
+  letter-spacing: -.045em;
+}
+
+.cinematic-hero h1 {
+  font-weight: 650;
+  letter-spacing: -.055em;
+  line-height: 1.02;
+}
+
+.cinematic-chip {
+  letter-spacing: .09em;
+}
+
+.cinematic-tagline {
+  line-height: 1.9;
+}
+
+@media (max-width: 1023px) {
+  .cinematic-hero-editorial {
+    inset: 64px 0 0;
+    background-image:
+      linear-gradient(90deg, rgb(246 247 249 / 98%) 0%, rgb(246 247 249 / 86%) 42%, rgb(246 247 249 / 30%) 100%),
+      url("/assets/official-v4/illustrations/audittrace-hero-editorial-v1-900.webp");
+    background-position: center right;
+    opacity: .62;
+  }
+}
+
+@media (max-width: 767px) {
+  .cinematic-hero-editorial {
+    inset: 56px 0 0;
+    background-position: 76% center;
+    opacity: .2;
+  }
+}
