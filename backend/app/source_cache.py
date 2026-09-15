@@ -119,7 +119,11 @@ def ensure_standard_sources(
         timeout=httpx.Timeout(120.0, connect=30.0),
         follow_redirects=True,
         trust_env=False,
-        headers={"User-Agent": "AuditTrace/0.7.1 official-source-cache"},
+        headers={
+            "User-Agent": "AuditTrace/0.7.1 official-source-cache",
+            # 静态年报站按巨潮官网来源页上下文提供文件，避免云构建环境被判为无来源直链。
+            "Referer": "https://www.cninfo.com.cn/",
+        },
     )
     try:
         with _SOURCE_CACHE_LOCK:

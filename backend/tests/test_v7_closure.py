@@ -207,6 +207,42 @@ def test_public_demo_downloads_registered_pdf_once_and_verifies_hash(
     assert (tmp_path / "标准股份：测试年报.pdf").read_bytes() == fake_pdf
 
 
+def test_public_demo_source_request_includes_cninfo_referer(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fake_pdf = b"%PDF-1.4\nAuditTrace official source context\n%%EOF\n"
+    expected_sha256 = hashlib.sha256(fake_pdf).hexdigest().upper()
+    source_url = "https://static.cninfo.com.cn/finalpage/2099-01-01/referer.PDF"
+    monkeypatch.setattr(
+        source_cache_module,
+        "ANNUAL_REPORT_SOURCES",
+        {
+            2099: {
+                "source_url": source_url,
+                "source_file": "标准股份：Referer测试年报.pdf",
+                "file_sha256": expected_sha256,
+            }
+        },
+    )
+    observed_headers: dict[str, str | None] = {}
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        observed_headers["referer"] = request.headers.get("referer")
+        return httpx.Response(200, content=fake_pdf, request=request, headers={"content-type": "application/pdf"})
+
+    original_client = httpx.Client
+
+    def client_with_mock_transport(*args: object, **kwargs: object) -> httpx.Client:
+        return original_client(*args, **kwargs, transport=httpx.MockTransport(respond))
+
+    monkeypatch.setattr(source_cache_module.httpx, "Client", client_with_mock_transport)
+    result = source_cache_module.ensure_standard_sources(tmp_path)
+
+    assert result["status"] == "ready"
+    assert observed_headers["referer"] == "https://www.cninfo.com.cn/"
+
+
 def test_public_demo_rejects_wrong_official_source_hash(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
