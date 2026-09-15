@@ -5584,8 +5584,8 @@ textarea {
 .demo-case-card { min-height: 0; padding: 14px 16px; }
 .demo-case-card h4 { font-size: 16px; line-height: 1.45; }
 
-/* §6：结果区约 58:42；普通事项白底灰线，不再每条都挂蓝色左条。 */
-.demo-analysis-layout { grid-template-columns: minmax(0, 58fr) minmax(300px, 42fr); }
+/* §6：结果区约 65:35，证据追踪轴收窄，为结果摘要留出更多空间。 */
+.demo-analysis-layout { grid-template-columns: minmax(0, 65fr) minmax(300px, 35fr); }
 .demo-item-card { border-left: 1px solid var(--at-rule); }
 
 /* §4：首页价值标题最多两行，取消描边大字与实心字的叠压。 */
