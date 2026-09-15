@@ -228,7 +228,8 @@ def test_public_demo_source_request_includes_cninfo_referer(
     observed_headers: dict[str, str | None] = {}
 
     def respond(request: httpx.Request) -> httpx.Response:
-        observed_headers["referer"] = request.headers.get("referer")
+        for name in ("referer", "origin", "x-requested-with"):
+            observed_headers[name] = request.headers.get(name)
         return httpx.Response(200, content=fake_pdf, request=request, headers={"content-type": "application/pdf"})
 
     original_client = httpx.Client
@@ -240,7 +241,11 @@ def test_public_demo_source_request_includes_cninfo_referer(
     result = source_cache_module.ensure_standard_sources(tmp_path)
 
     assert result["status"] == "ready"
-    assert observed_headers["referer"] == "https://www.cninfo.com.cn/"
+    assert observed_headers == {
+        "referer": "https://www.cninfo.com.cn/new/index",
+        "origin": "https://www.cninfo.com.cn",
+        "x-requested-with": "XMLHttpRequest",
+    }
 
 
 def test_public_demo_rejects_wrong_official_source_hash(

@@ -44,6 +44,7 @@ from .secure_download import SecureDownloadError, download_bounded
 
 
 TRUSTED_SOURCE_PREFIX = "https://static.cninfo.com.cn/finalpage/"
+CNINFO_PORTAL = "https://www.cninfo.com.cn"
 MAX_SOURCE_BYTES = 50 * 1024 * 1024
 SOURCE_REQUEST_INTERVAL_SECONDS = 2.0
 _SOURCE_CACHE_LOCK = threading.Lock()
@@ -121,8 +122,11 @@ def ensure_standard_sources(
         trust_env=False,
         headers={
             "User-Agent": "AuditTrace/0.7.1 official-source-cache",
-            # 静态年报站按巨潮官网来源页上下文提供文件，避免云构建环境被判为无来源直链。
-            "Referer": "https://www.cninfo.com.cn/",
+            "Accept": "application/json,text/plain,*/*",
+            "X-Requested-With": "XMLHttpRequest",
+            # 与现场采集器一致，标明这是从巨潮公告页受控读取登记年报。
+            "Origin": CNINFO_PORTAL,
+            "Referer": f"{CNINFO_PORTAL}/new/index",
         },
     )
     try:
