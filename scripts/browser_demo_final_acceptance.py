@@ -225,10 +225,12 @@ def main() -> int:
         # 定位页：知识底座真实数量
         page.locator("#demo-enter-workspace").click()
         page.wait_for_timeout(600)
-        knowledge = text_of(page, "#demo-knowledge-grid")
+        page.locator("#demo-knowledge-details summary").click()
+        knowledge = text_of(page, "#demo-knowledge-metrics")
+        knowledge_categories = text_of(page, "#demo-knowledge-categories")
         kb_note = text_of(page, "#demo-knowledge-note")
-        report["knowledge_base"] = {"grid_head": knowledge[:400], "note": kb_note[:300]}
-        step("knowledge_base", f"grid={knowledge[:120]} note={kb_note[:120]}")
+        report["knowledge_base"] = {"metrics": knowledge[:400], "categories": knowledge_categories[:400], "note": kb_note[:300]}
+        step("knowledge_base", f"metrics={knowledge[:120]} categories={knowledge_categories[:120]} note={kb_note[:120]}")
         axe_state(page, report, "case_select", step)
 
         # 工作台

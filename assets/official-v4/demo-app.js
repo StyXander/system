@@ -601,34 +601,97 @@
 
   function renderKnowledgeBase() {
     const knowledge = demoState.bootstrap?.knowledge_base || { draft_mode: true };
-    const grid = byId("demo-knowledge-grid");
-    grid.replaceChildren();
+    const metrics = byId("demo-knowledge-metrics");
+    const categoryList = byId("demo-knowledge-categories");
+    metrics.replaceChildren();
+    categoryList.replaceChildren();
+
     const state = byId("demo-knowledge-state");
-    state.textContent = knowledge.draft_mode ? "草案待核验" : "代表性接入 · 冻结快照";
+    state.textContent = knowledge.draft_mode ? "草案 · 待确认截止日" : "代表性接入 · 非完整覆盖";
+    state.dataset.status = knowledge.draft_mode ? "draft" : "representative";
+
+    const numberOrNull = (value) => {
+      if (value === undefined || value === null || value === "") return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+    };
+    const total = numberOrNull(knowledge.total_sources);
+    const active = numberOrNull(knowledge.active_source_count);
+    const archived = numberOrNull(knowledge.archived_source_count);
+    const verified = numberOrNull(knowledge.verified_sources);
     const cutoff = byId("demo-knowledge-cutoff");
-    if (knowledge.cutoff_date) {
-      cutoff.textContent = `截止 ${knowledge.cutoff_date}`;
-      cutoff.setAttribute("datetime", knowledge.cutoff_date);
+    const cutoffDate = String(knowledge.cutoff_date || "").trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cutoffDate)) {
+      cutoff.textContent = cutoffDate;
+      cutoff.setAttribute("datetime", cutoffDate);
     } else {
-      cutoff.textContent = "截止日待确认";
+      cutoff.textContent = "待确认";
       cutoff.removeAttribute("datetime");
     }
-    const registeredSources = knowledge.draft_mode ? knowledge.total_sources : knowledge.active_source_count;
-    byId("demo-knowledge-total").textContent = Number.isFinite(registeredSources)
-      ? `${registeredSources} 条${knowledge.draft_mode ? "登记草案" : "活跃来源"}`
-      : "来源数量待确认";
+
+    function appendMetric(label, value, detail) {
+      const item = document.createElement("div");
+      item.className = "demo-knowledge-metric";
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const definition = document.createElement("dd");
+      const figure = document.createElement("span");
+      figure.className = "demo-knowledge-metric-value";
+      figure.textContent = value;
+      const caption = document.createElement("small");
+      caption.textContent = detail;
+      definition.append(figure, caption);
+      item.append(term, definition);
+      metrics.append(item);
+    }
+
     const categories = knowledge.categories || {};
     const order = ["annual_report", "csrc_penalty", "exchange_inquiry", "accounting_standard", "auditing_standard", "tax_regulation", "industry_report", "news", "macro_indicator"];
-    order.forEach((key) => {
-      const category = categories[key] || { document_count: 0, verified_count: 0, coverage_status: "representative", validation_status: "pending" };
-      const cell = document.createElement("div");
-      cell.className = "demo-knowledge-cell";
-      cell.innerHTML = `<dt>${escapeHtml(KNOWLEDGE_CATEGORY_LABELS[key] || key)}</dt><dd>${category.document_count ?? 0}<small>已核验 ${category.verified_count ?? 0} 条</small></dd>`;
-      grid.append(cell);
+    const populatedCategories = order.filter((key) => {
+      const category = categories[key];
+      return category && (numberOrNull(category.document_count) || 0) > 0;
     });
+    const categoryCount = populatedCategories.length;
+    const archivedCount = archived !== null ? archived : total !== null && active !== null ? Math.max(total - active, 0) : null;
+
+    appendMetric(
+      "活跃来源",
+      !knowledge.draft_mode && active !== null && total !== null ? active + " / " + total : "待核验",
+      knowledge.draft_mode
+        ? "截止日未确认，暂不判定活跃范围"
+        : archivedCount !== null ? archivedCount + " 条归档 · 活跃 / 登记" : "活跃来源 / 全部登记"
+    );
+    appendMetric(
+      "资料类别",
+      String(categoryCount),
+      knowledge.draft_mode ? "草案中有资料记录的类别" : "当前有资料记录的类别"
+    );
+    appendMetric(
+      "来源校验",
+      !knowledge.draft_mode && verified !== null && active !== null ? verified + " / " + active : "待核验",
+      "校验通过 / 活跃来源"
+    );
+
+    populatedCategories.forEach((key) => {
+      const chip = document.createElement("li");
+      chip.textContent = KNOWLEDGE_CATEGORY_LABELS[key] || key;
+      categoryList.append(chip);
+    });
+    if (!populatedCategories.length) {
+      const empty = document.createElement("li");
+      empty.className = "is-empty";
+      empty.textContent = "资料类别待核验";
+      categoryList.append(empty);
+    }
+
     const note = byId("demo-knowledge-note");
     const boundary = String(knowledge.boundary || "知识库截止日未确认：全部类别按草案处理。").replace(/\brepresentative\b/gi, "代表性接入");
-    note.textContent = `${boundary} 快照编号 ${knowledge.snapshot_id || "KNOWLEDGE-UNCONFIGURED-DRAFT"}。`;
+    const snapshotId = String(knowledge.snapshot_id || "KNOWLEDGE-UNCONFIGURED-DRAFT");
+    const detailParts = [boundary, "快照编号 " + snapshotId + "。"];
+    if (total !== null && active !== null && archivedCount !== null) {
+      detailParts.push("来源登记 " + total + " 条，其中活跃 " + active + " 条、归档 " + archivedCount + " 条。");
+    }
+    note.textContent = detailParts.join(" ");
   }
 
   const CATEGORY_SHORT = {

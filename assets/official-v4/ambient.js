@@ -58,6 +58,8 @@
   }
   document.addEventListener('pointermove', event => {
     if (!enabled() || !pointer.matches || event.pointerType === 'touch') return;
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    glow.classList.toggle('is-dark-surface', Boolean(target && target.closest('.demo-knowledge-base')));
     targetX = event.clientX; targetY = event.clientY;
     if (!tracking) {
       x = targetX; y = targetY;
