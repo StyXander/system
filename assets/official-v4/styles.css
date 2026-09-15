@@ -5927,3 +5927,137 @@ textarea {
     opacity: .2;
   }
 }
+
+/* 0.13.4 光效设计：以现有冷白编辑台和证据检索为依据，细网格与斜向扫光
+   表达资料检视；衬线品牌、无衬线正文、等宽元数据沿用现状。颜色沿用钴蓝
+   操作色与石墨文字，装饰蓝仅作低透明背景，不编码业务状态。间距沿用 8px
+   基准，保留 52:48 双栏和 1024/768 断点。悬停轻抬、焦点实线、禁用不发光。
+   背景只变换 transform/opacity；可暂停，离屏停止，减少动态和打印时静止。 */
+.audit-ambient {
+  position: absolute;
+  inset: 72px 0 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  contain: paint;
+}
+.audit-ambient-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgb(40 86 216 / 7%) 1px, transparent 1px), linear-gradient(90deg, rgb(40 86 216 / 7%) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(100deg, transparent 25%, #000 100%);
+  opacity: .48;
+}
+.audit-ambient-light {
+  position: absolute;
+  inset: -25% -45%;
+  background: linear-gradient(115deg, transparent 36%, rgb(126 163 235 / 4%) 42%, rgb(134 172 246 / 23%) 49%, rgb(255 255 255 / 68%) 51%, transparent 59%);
+  transform: translateX(-12%);
+}
+.cinematic-shot img {
+  box-shadow: 0 24px 60px -28px rgb(24 48 91 / 28%), 0 2px 8px rgb(24 48 91 / 5%);
+}
+.cinematic-enter, .demo-positioning-enter {
+  box-shadow: 0 6px 18px -8px rgb(40 86 216 / 48%);
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease), background-color 180ms var(--ease);
+}
+.audit-motion-toggle {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 0 32px 20px auto;
+  min-height: 44px;
+  padding: 8px 12px;
+  font: 12px var(--font-sans);
+  color: var(--ink-sub);
+  background: var(--paper-surface);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.audit-motion-toggle:disabled { cursor: default; }
+.audit-motion-toggle:focus-visible,
+.cinematic-enter:focus-visible,
+.demo-positioning-enter:focus-visible { outline: 2px solid var(--action-blue); outline-offset: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .cinematic-enter:hover, .demo-positioning-enter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -8px rgb(40 86 216 / 48%);
+  }
+  .audit-motion-toggle:not(:disabled):hover { border-color: var(--control-line); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cinematic-landing[data-motion] .audit-ambient-light { animation: audit-light-drift 18s ease-in-out infinite alternate; }
+  .cinematic-landing[data-motion] .audit-ambient-grid { animation: audit-grid-breathe 12s ease-in-out infinite alternate; }
+  .cinematic-landing[data-motion="paused"] .audit-ambient-light,
+  .cinematic-landing[data-motion="paused"] .audit-ambient-grid { animation-play-state: paused; }
+}
+@keyframes audit-light-drift { to { transform: translateX(18%); opacity: .65; } }
+@keyframes audit-grid-breathe { to { opacity: .22; } }
+@media (max-width: 1023px) { .audit-ambient { inset-block-start: 64px; } }
+@media (max-width: 767px) {
+  .audit-ambient { inset-block-start: 56px; opacity: .55; }
+  .audit-ambient-grid { background-size: 48px 48px; }
+  .audit-motion-toggle { margin-right: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-enter, .demo-positioning-enter { transition: none; transform: none; }
+}
+@media print { .audit-ambient, .audit-motion-toggle { display: none !important; } }
+
+/* 0.13.5 用户指定的追光与漫反射：用低饱和冰蓝的宽幅椭圆光域模拟
+   编辑台上的漫反射。保留字号、网格与语义状态色；光层不参与点击和布局。 */
+.demo-positioning > .audit-ambient { position: absolute; inset: 0; z-index: 0; }
+.audit-diffuse-blue, .audit-diffuse-ice {
+  position: absolute;
+  width: 110%;
+  height: 110%;
+  inset: -12% auto auto -25%;
+  background: radial-gradient(ellipse at center, rgb(92 142 238 / 27%), rgb(125 177 245 / 12%) 34%, transparent 66%);
+  transform: translate3d(-12%, -8%, 0) rotate(-18deg);
+  pointer-events: none;
+}
+.audit-diffuse-ice {
+  inset: auto -30% -25% auto;
+  background: radial-gradient(ellipse at center, rgb(111 212 237 / 20%), rgb(197 229 253 / 16%) 30%, transparent 65%);
+  transform: translate3d(8%, 12%, 0) rotate(12deg);
+}
+.audit-pointer-glow {
+  position: fixed;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms ease;
+  mix-blend-mode: multiply;
+}
+.audit-pointer-glow::before {
+  content: '';
+  position: absolute;
+  width: 620px; height: 620px;
+  left: -310px; top: -310px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(100 160 250 / 22%) 0%, rgb(130 201 247 / 13%) 22%, rgb(150 180 250 / 6%) 43%, transparent 68%);
+  pointer-events: none;
+}
+.audit-pointer-glow.is-tracking { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion] .audit-diffuse-blue { animation: audit-diffuse-drift 16s ease-in-out infinite alternate; }
+  [data-motion] .audit-diffuse-ice { animation: audit-diffuse-return 21s ease-in-out infinite alternate; }
+  [data-motion='paused'] .audit-diffuse-blue,
+  [data-motion='paused'] .audit-diffuse-ice { animation-play-state: paused; }
+}
+@keyframes audit-diffuse-drift {
+  50% { opacity: .65; }
+  to { transform: translate3d(28%, 16%, 0) rotate(14deg); opacity: 1; }
+}
+@keyframes audit-diffuse-return {
+  50% { opacity: .6; }
+  to { transform: translate3d(-28%, -20%, 0) rotate(-16deg); opacity: .9; }
+}
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .audit-pointer-glow { display: none; }
+}
+@media print { .audit-pointer-glow { display: none !important; } }
