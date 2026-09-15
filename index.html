@@ -9,9 +9,9 @@
   <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.6">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.8">
   <script src="/assets/official-v4/ambient.js?v=0.13.5" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.10.18" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.10.19" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -92,6 +92,11 @@
         <p class="demo-positioning-eyebrow">AUDIT KNOWLEDGE BASE · MULTISOURCE</p>
         <h3 id="demo-knowledge-title">审计知识底座</h3>
         <p class="demo-knowledge-lead" id="demo-knowledge-summary">年报、监管处罚、交易所问询、会计/审计准则、税收法规及行业、新闻、宏观资料均登记来源、哈希、日期与覆盖状态；未经官方列表核对的部分只标注“代表性接入”，不冒充完整覆盖。</p>
+        <div class="demo-knowledge-meta" aria-label="知识底座数据口径">
+          <span class="demo-knowledge-snapshot" id="demo-knowledge-state">代表性快照</span>
+          <time class="demo-knowledge-meta-item" id="demo-knowledge-cutoff">截止日待确认</time>
+          <span class="demo-knowledge-meta-item" id="demo-knowledge-total">来源数量待确认</span>
+        </div>
         <dl class="demo-knowledge-grid" id="demo-knowledge-grid" aria-label="知识底座来源类别计数"></dl>
         <p class="demo-knowledge-note" id="demo-knowledge-note"></p>
       </div>

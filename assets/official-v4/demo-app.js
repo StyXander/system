@@ -603,17 +603,32 @@
     const knowledge = demoState.bootstrap?.knowledge_base || { draft_mode: true };
     const grid = byId("demo-knowledge-grid");
     grid.replaceChildren();
+    const state = byId("demo-knowledge-state");
+    state.textContent = knowledge.draft_mode ? "草案待核验" : "代表性接入 · 冻结快照";
+    const cutoff = byId("demo-knowledge-cutoff");
+    if (knowledge.cutoff_date) {
+      cutoff.textContent = `截止 ${knowledge.cutoff_date}`;
+      cutoff.setAttribute("datetime", knowledge.cutoff_date);
+    } else {
+      cutoff.textContent = "截止日待确认";
+      cutoff.removeAttribute("datetime");
+    }
+    const registeredSources = knowledge.draft_mode ? knowledge.total_sources : knowledge.active_source_count;
+    byId("demo-knowledge-total").textContent = Number.isFinite(registeredSources)
+      ? `${registeredSources} 条${knowledge.draft_mode ? "登记草案" : "活跃来源"}`
+      : "来源数量待确认";
     const categories = knowledge.categories || {};
     const order = ["annual_report", "csrc_penalty", "exchange_inquiry", "accounting_standard", "auditing_standard", "tax_regulation", "industry_report", "news", "macro_indicator"];
     order.forEach((key) => {
       const category = categories[key] || { document_count: 0, verified_count: 0, coverage_status: "representative", validation_status: "pending" };
       const cell = document.createElement("div");
       cell.className = "demo-knowledge-cell";
-      cell.innerHTML = `<dt>${escapeHtml(KNOWLEDGE_CATEGORY_LABELS[key] || key)}</dt><dd>${category.document_count ?? 0}<small>${category.verified_count ?? 0} 条已核验 · ${escapeHtml(category.coverage_status)}</small></dd>`;
+      cell.innerHTML = `<dt>${escapeHtml(KNOWLEDGE_CATEGORY_LABELS[key] || key)}</dt><dd>${category.document_count ?? 0}<small>已核验 ${category.verified_count ?? 0} 条</small></dd>`;
       grid.append(cell);
     });
     const note = byId("demo-knowledge-note");
-    note.textContent = `${knowledge.boundary || "知识库截止日未确认：全部类别按草案处理。"} 快照 ${knowledge.snapshot_id || "KNOWLEDGE-UNCONFIGURED-DRAFT"} · 截止日 ${knowledge.cutoff_date || "未确认"}。`;
+    const boundary = String(knowledge.boundary || "知识库截止日未确认：全部类别按草案处理。").replace(/\brepresentative\b/gi, "代表性接入");
+    note.textContent = `${boundary} 快照编号 ${knowledge.snapshot_id || "KNOWLEDGE-UNCONFIGURED-DRAFT"}。`;
   }
 
   const CATEGORY_SHORT = {
