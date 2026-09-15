@@ -3,7 +3,8 @@ services:
     name: audittrace-demo
     runtime: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt && python -m backend.app.public_demo_bootstrap && python -m backend.app.public_catalog_bootstrap
+    # 官方年报源可用时照常校验并建库；Render 收到官方 HTTP 403 时只降级标准样例，继续发布公开演示站。
+    buildCommand: pip install -r backend/requirements.txt && python -m backend.app.public_demo_bootstrap --allow-missing-sources && python -m backend.app.public_catalog_bootstrap
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:

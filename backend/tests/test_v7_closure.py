@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from backend.app import agents as agents_module
 from backend.app import cases as cases_module
 from backend.app import main as main_module
+from backend.app import public_demo_bootstrap as public_demo_bootstrap_module
 from backend.app import source_cache as source_cache_module
 from backend.app.agents import _agent_output_tool_for, _parse_json_content, run_agent_chain, validate_agent_output
 from backend.app.delivery import build_report
@@ -246,6 +247,36 @@ def test_public_demo_source_request_includes_cninfo_referer(
         "origin": "https://www.cninfo.com.cn",
         "x-requested-with": "XMLHttpRequest",
     }
+
+
+def test_public_demo_bootstrap_only_degrades_on_explicit_official_http_403(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def denied(_workspace_root: Path) -> dict:
+        raise ValueError("2022 年来源下载返回 HTTP 403。")
+
+    monkeypatch.setattr(public_demo_bootstrap_module, "ensure_standard_sources", denied)
+    monkeypatch.setattr(
+        public_demo_bootstrap_module,
+        "prepare_index",
+        lambda *_args, **_kwargs: pytest.fail("缺少完整来源时不得复用或构建索引"),
+    )
+
+    with pytest.raises(ValueError, match="HTTP 403"):
+        public_demo_bootstrap_module.prepare_public_demo()
+
+    result = public_demo_bootstrap_module.prepare_public_demo(allow_missing_sources=True)
+    assert result["public_demo_bootstrap"] == "degraded"
+    assert result["sources"]["reason_code"] == "OFFICIAL_SOURCE_HTTP_403"
+    assert result["rag"]["status"] == "not_built"
+    assert result["rag"]["reason_code"] == "standard_corpus_missing"
+
+    def hash_mismatch(_workspace_root: Path) -> dict:
+        raise ValueError("SHA-256 校验失败")
+
+    monkeypatch.setattr(public_demo_bootstrap_module, "ensure_standard_sources", hash_mismatch)
+    with pytest.raises(ValueError, match="SHA-256"):
+        public_demo_bootstrap_module.prepare_public_demo(allow_missing_sources=True)
 
 
 def test_public_demo_rejects_wrong_official_source_hash(
