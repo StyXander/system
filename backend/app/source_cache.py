@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,7 @@ from .secure_download import SecureDownloadError, download_bounded
 
 TRUSTED_SOURCE_PREFIX = "https://static.cninfo.com.cn/finalpage/"
 MAX_SOURCE_BYTES = 50 * 1024 * 1024
+SOURCE_REQUEST_INTERVAL_SECONDS = 2.0
 _SOURCE_CACHE_LOCK = threading.Lock()
 
 
@@ -121,6 +123,7 @@ def ensure_standard_sources(
     )
     try:
         with _SOURCE_CACHE_LOCK:
+            last_request_at: float | None = None
             for source in _registered_sources():
                 target = (root / str(source["source_file"])).resolve()
                 try:
@@ -133,6 +136,13 @@ def ensure_standard_sources(
                     reused.append({"year": source["year"], "bytes": target.stat().st_size})
                     continue
                 target.unlink(missing_ok=True)
+                # 年报下载都来自同一官方主机；限制连续请求间隔，避免一次构建
+                # 集中下载多份原件触发来源站的访问频率限制。
+                if last_request_at is not None:
+                    remaining = SOURCE_REQUEST_INTERVAL_SECONDS - (time.monotonic() - last_request_at)
+                    if remaining > 0:
+                        time.sleep(remaining)
+                last_request_at = time.monotonic()
                 byte_count = _download_source(http_client, source, target)
                 downloaded.append({"year": source["year"], "bytes": byte_count})
     finally:

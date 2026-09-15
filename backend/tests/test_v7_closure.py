@@ -235,6 +235,45 @@ def test_public_demo_rejects_wrong_official_source_hash(
     assert not list(tmp_path.glob("*.part"))
 
 
+def test_public_demo_spaces_sequential_official_source_requests(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fake_pdf = b"%PDF-1.4\nTwo registered annual reports\n%%EOF\n"
+    expected_sha256 = hashlib.sha256(fake_pdf).hexdigest().upper()
+    sources = {
+        year: {
+            "source_url": f"https://static.cninfo.com.cn/finalpage/2099-01-01/{year}.PDF",
+            "source_file": f"report-{year}.pdf",
+            "file_sha256": expected_sha256,
+        }
+        for year in (2098, 2099)
+    }
+    monkeypatch.setattr(source_cache_module, "ANNUAL_REPORT_SOURCES", sources)
+    class FakeClock:
+        ticks = iter((100.0, 100.5, 103.0))
+        waits: list[float] = []
+
+        @staticmethod
+        def monotonic() -> float:
+            return next(FakeClock.ticks)
+
+        @staticmethod
+        def sleep(seconds: float) -> None:
+            FakeClock.waits.append(seconds)
+
+    monkeypatch.setattr(source_cache_module, "time", FakeClock)
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=fake_pdf, request=request, headers={"content-type": "application/pdf"})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as http_client:
+        result = source_cache_module.ensure_standard_sources(tmp_path, client=http_client)
+
+    assert result["source_count"] == 2
+    assert FakeClock.waits == [1.5]
+
+
 def test_public_demo_run_fails_closed_when_official_cache_cannot_be_prepared(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
