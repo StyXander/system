@@ -132,10 +132,19 @@ def build_bootstrap_payload(
         }
         cases.append(card)
     readiness = {field: model_readiness.get(field) for field in MODEL_READINESS_FIELDS}
+    featured_ids = {str(item) for item in manifest["featured_case_ids"]}
+    # 就绪位不能恒为 true：推荐案例一个都跑不起来时，页面仍显示"就绪"就是假信号。
+    featured_runtime_ready = [
+        str(card.get("case_id") or "") for card in cases if str(card.get("case_id") or "") in featured_ids and card["rag"].get("runtime_ready")
+    ]
+    featured_cases_pending = [
+        str(card.get("case_id") or "") for card in cases if str(card.get("case_id") or "") in featured_ids and not card["rag"].get("runtime_ready")
+    ]
     return {
         "schema_version": BOOTSTRAP_SCHEMA_VERSION,
-        "bootstrap_ready": True,
-        "bootstrap_reason_code": None,
+        "bootstrap_ready": bool(featured_runtime_ready),
+        "bootstrap_reason_code": None if featured_runtime_ready else "demo_featured_cases_not_runtime_ready",
+        "featured_cases_pending": featured_cases_pending,
         "source_head": manifest.get("source_head"),
         "manifest_frozen_at": manifest.get("frozen_at"),
         "engine_version": versions.get("engine"),
@@ -162,6 +171,7 @@ def blocked_bootstrap_payload(reason_code: str) -> dict[str, Any]:
         "schema_version": BOOTSTRAP_SCHEMA_VERSION,
         "bootstrap_ready": False,
         "bootstrap_reason_code": reason_code,
+        "featured_cases_pending": [],
         "cases": [],
         "case_count": 0,
         "featured_case_ids": [],

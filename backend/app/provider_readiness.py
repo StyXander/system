@@ -90,23 +90,31 @@ def classify_provider_channel(base_url: str | None = None) -> dict[str, str]:
     - openai_compatible_other: 其他通用 OpenAI 兼容代理网关
     """
     raw_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).strip()
-    url_lower = raw_url.lower()
+    # 子串匹配会把 api.deepseek.com.evil.tld 判成官方直连，必须按主机名精确比对。
+    from urllib.parse import urlparse
 
-    if "api.deepseek.com" in url_lower:
+    try:
+        parsed_url = urlparse(raw_url)
+        url_host = (parsed_url.hostname or "").lower()
+        url_path = (parsed_url.path or "").lower()
+    except ValueError:
+        url_host, url_path = "", ""
+
+    if url_host == "api.deepseek.com":
         return {
             "provider_kind": "deepseek_direct",
             "provider_label": "DeepSeek 官方直连",
             "provider_host": "api.deepseek.com",
             "base_url": raw_url,
         }
-    if "opencode.ai/zen/go" in url_lower or "zen/go" in url_lower:
+    if url_host == "opencode.ai" and "/zen/go" in url_path:
         return {
             "provider_kind": "opencode_go",
             "provider_label": "OpenCode Go",
             "provider_host": "opencode.ai",
             "base_url": raw_url,
         }
-    if "opencode.ai/zen" in url_lower or "opencode.ai" in url_lower:
+    if url_host == "opencode.ai" and "/zen" in url_path:
         return {
             "provider_kind": "opencode_zen",
             "provider_label": "OpenCode Zen",
@@ -114,13 +122,8 @@ def classify_provider_channel(base_url: str | None = None) -> dict[str, str]:
             "base_url": raw_url,
         }
 
-    # 解析其他通用网关的主机名
-    from urllib.parse import urlparse
-    try:
-        parsed = urlparse(raw_url)
-        host = parsed.netloc or "custom-gateway"
-    except Exception:
-        host = "custom-gateway"
+    # 解析其他通用网关的主机名；hostname 不含 userinfo，避免把 user:pass 写进公开标签。
+    host = url_host or "custom-gateway"
     return {
         "provider_kind": "openai_compatible_other",
         "provider_label": f"OpenAI 兼容网关 ({host})",

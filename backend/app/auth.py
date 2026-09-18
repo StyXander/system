@@ -292,7 +292,8 @@ def configured_persistence() -> dict[str, Any]:
         "demo_task_configured": demo_supabase_configured,
         "demo_quota_mode": demo_mode,
         "demo_quota_configured": demo_supabase_configured,
-        "demo_completed_result_durable": demo_mode == "supabase",
+        # 只有凭据齐备才谈"可跨重启读取"；开关打开但没配 Key 时不能宣称持久化。
+        "demo_completed_result_durable": demo_mode == "supabase" and demo_supabase_configured,
         "demo_running_resume": False,
         "auth_required_for_internal": supabase_enabled(),
         "public_anonymous": True,

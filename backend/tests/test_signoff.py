@@ -165,11 +165,12 @@ def test_signoff_status_endpoint_exposes_snapshot():
     assert "signoff" in payload
     assert payload["signoff"]["rule_id"] == "R1"
     assert "boundary" in payload["signoff"]
-    assert payload["signoff"]["signoff_status"] in {
-        SIGNOFF_RECORD_STATUS,
-        SIGNOFF_STALE_STATUS,
-        "no_signoff_record",
-    }
+    # 钉住当前仓库真实状态：签字已因规则合同变更失效，状态页与发布门禁必须一致。
+    # 旧断言接受三个合法值之一，签字怎么漂都不会红。
+    assert payload["signoff"]["signoff_status"] == SIGNOFF_STALE_STATUS == load_signoff_status()["signoff_status"]
+    ready_checks = payload["release"]["ready_checks"]
+    assert ready_checks["signoff"] is False
+    assert ready_checks["human_scoring"] is False
     assert "注册会计师" not in payload["signoff"]["signoff_status"]
 
 

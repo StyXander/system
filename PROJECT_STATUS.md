@@ -1,6 +1,6 @@
 # 审迹智链单一事实源
 
-更新时间：2026-09-09
+更新时间：2026-09-15
 统一 AI 声明：**AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。**
 
 > **当前整改发布候选（2026-08-29，唯一当前口径）**：`RELEASE-CANDIDATE-20260828-V1`，模型为 `deepseek-v4-flash`（DeepSeek 官方直连）；15 案由 `backend/competition_demo_cases.json` 冻结清单统一驱动。公开演示任务/结果/质量事件采用 Supabase 服务端台账，当前执行模式是 Render 免费 Web；完成结果可跨刷新和重启读取，运行中实例重启会记为 `interrupted`，不自动续跑，需显式重试。provider probe、真实 B3、签字、评估指针和人工评分分别判定，`configured` 不等于真实可运行，当前 `competition_release_ready=false` 直到新鲜证据和真人批准完成。当前评估指针为 `EVAL-20260828-RELEASE-CANDIDATE-V1`，人工评分保持 pending；可选 Worker 仅见 `render.worker.example.yaml`，未写入当前 Blueprint。
@@ -8,6 +8,34 @@
 > **2026-09-02 模型口径裁决与本机质量窗口登记**：队长裁决生产目标模型统一为 `deepseek-v4-flash`，AGENTS.md、发布记录、部署配置与方案书口径已同步；`qwen3.5-plus` 的 7/10=70.0% 窗口只作历史证据。DeepSeek 官方直连通道自 2026-08-28 切换以来，本机真实三 Agent 完整链累计 **6/6 案完成、19 次 provider 调用、0 次失败关闭**（2026-08-29 五案 16 次，其中一案含一次内部修正调用；2026-09-02 标准股份演示彩排一案 3 次首过，run `RUN-V7-EB6EAE3B87EB`、task `DEMO-RUN-F9E1BA62F5DC`、`external_live`/`model_success`）。该 100% 指完整链最终完成率而非每案首过率；样本量小，不构成稳定成功证明；Render 生产通道的 provider probe 与新鲜 B3 仍 pending。明细登记于 `PROJECT_STATUS.json` 的 `deepseek_direct_local_window_20260902`。
 
 > 旧 R3/R2/R1 段落、历史模型和历史成功率均保留用于追溯，并标记为 superseded；对外状态以 `/api/health`、`/api/status`、`/api/demo/bootstrap` 和 `backend/release_records/` 的哈希校验结果为准。
+
+## 2026-09-15 全量三轮审查与人工门禁修复（当前工作树，未提交）
+
+- 审查产物：`docs/2026-09-15_全量三轮审查报告_代码方案书对应与部署.md`（第一遍广度扫描、第二遍逐条自验、第三遍反向复核；含推翻子代理 2 条结论与推翻本报告自身 1 条的订正记录）。
+- 证据完整性：`outputs/`、`archive/` 共 47 个受控文件此前在本机清理磁盘时被删（约 532K，磁盘不是内存），已 `git restore` 全部恢复，`git ls-files --deleted` 现为 0。`artifacts/` 与 `outputs/**/*.zip` 从未入库（`*.zip` 被 gitignore），git 无法恢复；其中评委包依赖的 `outputs/2026-07-28-v4-closure/审迹智链_标准案例包_V1.zip` 已用仓库自带 `scripts/export_case_template.py` 重建（5,641 字节），`test_delivery_package_build.py` 由红转绿。`artifacts/` 下的截图与 axe 证据未恢复，相关历史主张（如"严格 axe 0 violation"）此刻不可回查。
+- 修复的人工门禁（P1）：① `cases.py` 字段重提取会把真人校正值覆盖回机器候选、却继承"已人工确认"留痕，现改为决定/值/页码/定位/复核状态同源继承，候选快照仍保留机器原值；② 本轮又发现同一函数会整表重写 `financial_fields.json`，换年度或 R1↔R2 复跑会抹掉其他年度候选与复核历史，现按 field_id 合并保留；③ `HumanReviewRequest.reviewer_type` 默认值由 `human` 改为 `automation`，自称真人必须填复核人姓名且会话可归属，服务端覆盖式盖章 `reviewer_user_id/reviewer_source`。
+- 修复的状态与部署口径：`demo_completed_result_durable` 需凭据齐备才为真；供应商通道判定改为主机名精确匹配（`api.deepseek.com.evil.tld` 不再被标"官方直连"，标签不再可能带出 `user:pass`）；状态页 `human_scoring` 与发布门禁同用 `== "completed"`；`release_evidence` 的 `run_record_status`/`result_hash_verified` 由常量改为按磁盘登记值与重算结果推导；`rag.status()` 未建库时不再一律写 `source_available`；`bootstrap_ready` 不再恒真，改为"至少一个推荐案例 runtime_ready"，并新增 `featured_cases_pending`；`public_catalog_bootstrap` 半发布或客户端建不起来时以退出码 1 中断构建；生产依赖不再安装 pytest。
+- 前端真实状态修正：结构化结果徽章由写死的绿色"同源生成"改为按本次是否产出指标驱动（HTML 默认 pending，重跑时复位）；证据轴 output 档不再无条件 complete；知识台账空态区分"已接入但本次未命中"与"尚未接入"；补充资料重跑对 401/403 明确说明需要登录后的真人账号。
+- 测试口径修正：`test_signoff.py` 原断言接受签字状态的全部三个合法值（恒真），现钉住当前真实状态 `signoff_stale_requires_reapproval` 并要求 `release.ready_checks.signoff is False` 与 `human_scoring is False`。
+- 实测：`pytest backend/tests -q` **508 passed / 1 skipped / 0 failed**（48 个测试文件、509 项收集；跳过项为内部签字原件不随交付包分发）；`check_frontend_contract.mjs` ok（171 ids / 181 引用 / 2 scripts）；`node --check demo-app.js` ok。
+- 队长决定并落实：初赛方案书按**实名口径**提交。新增 `02_最终确定方案/28_审迹智链_AuditTrace_初赛方案书_实名提交版_2026-09-15.docx`，由生成器 `scripts/build_realname_submission_copy.py` 从 26 号实名母版还原 29 处身份、删除封面盲审说明行、按母版字节重嵌导师签名图像（SHA-256 `fdf3cf8b…` 与验收记录一致），并把图7那句被改写的"AI生成分析内容"恢复为逐字统一声明；26/27/27b 三份原稿未改动，逐处留痕在 `docs/review-assets/2026-09-15_realname_identity_restore.json`。LibreOffice 渲染复验 15 页与母版一致，封面与第 2 页页面图已人工查看。**封面四项与参赛人员四行在母版里本就是"待填写"，仍需成员本人填真实信息；填完须重新渲染并更新哈希。**
+- 仍未处理：`render.yaml` 线上仍装开区间 `requirements.txt`（本机 `.bat` 装 `requirements-lock.txt`），验收版本与线上版本不同源，改动部署安装源风险高，留队长决定；每 IP 额度在免费 Web 共用出口 IP 下可能塌缩（未配 `AUDITTRACE_TRUSTED_PROXY_HOPS/CIDRS`）未做双客户端实测；`agents.py:982/985`、`main.py:4310-4312`、`evidence_fitness.py:127-135`、`release_gate.py` 其余 13 条阻断分支、`_release_fact_snapshot` 仍无测试；`anti_confirmation` 的"已执行反证检索"、`demo_run_tasks` 心跳异常不置失租、`coverage_matrix` 的"计价和分摊"与映射文件"计价分摊"字面不一致、`seed_catalog._DEMO_RETRIEVALS` 无界增长均未改。
+- 未越界声明：本轮所有数字均为工程事实，不构成真实年报字段错误率、不构成 B0—B3 专业评分；未 commit/push/部署，provider 调用 0 次，冻结案例、T0、baseline、发布记录与人工评分字段未改。（**该"未 commit/push/部署"已被 2026-09-18 一轮覆盖，见下节；本轮其余声明仍成立。**）
+
+## 2026-09-18 Render 两项异常核因与修复（当前工作树）
+
+- 证据目录：`outputs/render-two-issues-20260918-0931/`（`baseline.md`、`acceptance.md`、`storage-upload-checklist.md`、改前 889 行补丁、线上 `health/status/bootstrap` 原始响应、故障注入浏览器验收截图与日志）。
+- 版本对齐实测：Render `deployment.commit` 与本地 HEAD 均为 `a4fe995`，线上 `index.html`/`demo-app.js`/`styles.css` 三份资源与 HEAD **逐字节一致**；因此两张截图对应代码可追溯，而 09-15 那批修复因未提交所以从未上线。
+- 标准股份 403 根因（已确认）：`*.pdf` 被 gitignore → Render 无原件；`ensure_standard_sources()` 无条件下载全部四个登记年度且任一份失败即整单失败；本机四份原件齐全并命中有效缓存，**运行期根本不发网络请求**，这才是"本地正常"的真实含义。`SUPABASE_PRIVATE_BUCKET` 等配置存在不等于桶里有文件。
+- 2022 年依赖经查为比较基期依赖（`PERIODS` 中 2023 的 previous 是 2022，`STD_AR_2022` 是真实字段证据），**予以保留**，未删年度绕过问题。
+- 来源修复：`source_cache.py` 改为"本地有效缓存 → Supabase 私有桶 → 官方受控下载"三级顺序；私有桶读取复用同一个 `download_bounded`，PDF 头、50MB 上限、登记 SHA-256 三项检查不放宽，凭据不齐时不猜测而是直接回退。新增 `scripts/upload_standard_sources_to_storage.py`（上传前逐份核对哈希，不符拒绝；`--verify` 读回复验）。官方来源入口仍回巨潮原件，未创建公开全文镜像。
+- 任务失败收尾实测：后端本已正确（任务落 `failed`、六阶段收口、`/result` 409）；隔离复现抓到 1/2 次轮询处于"阶段已失败而任务仍 running"的撕裂窗口，前端据此把横幅写成"正在执行完整分析"、后两阶段留"等待开始"。修复在 `demo-app.js`：撕裂读归一化为未执行并给原因，已拒绝时横幅如实改写。新增端到端测试钉住该读路径契约。
+- 五粮液提示矛盾：`outcomeFromRun` 五条件合取任一不满足都统称 degraded，而三处文案一律写"本次未完成真实模型调用"，与同屏"三Agent已通过硬校验 · 3/3 角色完成"互斥。新增 `degradedReason()` 分为回放/确定性备用/真实失败/证据不完整四类，阶段条、结果胶囊、顶部通知统一取同一分类。**该次运行属于哪一支仍未定**（原始留痕未取得），线上 `model_quality` 实测 10/10 只可排除通道整体故障。
+- 就绪显示：`bootstrap_ready` 不再恒真并新增 `featured_cases_pending`；前端开始横幅按该字段点名未就绪案例，案例卡片对 `runtime_ready=false` 追加纯文字"来源或索引未就绪"行（不只靠颜色）。
+- 门禁修复：`scripts/verify_demo_outcome_judge.mjs` 原硬依赖 `artifacts/` 下两个本机文件，而 `artifacts/` 整目录被 gitignore、0 个受控文件，**干净克隆必然 ENOENT 崩溃**；现改为自洽向量 + 缺产物时显式 SKIPPED，共 20 项断言。
+- 实测：`pytest backend/tests -q` **514 passed / 1 skipped / 0 failed**（436.73s）；`test_v7_closure.py` 54 passed；`check_frontend_contract.mjs` ok（171 ids / 181 引用）；中文注释 `2617/25430 = 10.29%` PASS；`git diff --check` clean。真实浏览器故障注入 **22 项全过**，覆盖四视口、减少动态、控制台与失败请求；对照克隆证明候选集相对纯 HEAD 净增 6 条通过、失败集合逐条相同。
+- 仍未完成：私有桶内四份对象**尚未上传**（本机无 Supabase 凭据，清单已备在 `storage-upload/`）；因此标准股份 `runtime_ready` 在线仍为 false，须待回填后由运行期自动恢复，不需重新部署。每 IP 额度塌缩、`prepare_full_corpus.py` 未加 gitignore 白名单导致干净克隆无法收集两个测试模块，均为既存未处理项。
+- 边界：本轮 provider 真实模型调用 **0 次**；未改审计规则、冻结案例、T0、baseline、发布记录、人工评分与签字；`docs/review-assets/2026-09-15_realname_identity_restore.json` 因疑似含个人身份线索**未纳入提交**。
 
 ## 2026-09-09 数据链路缺陷修复（当前工作树，未提交）
 

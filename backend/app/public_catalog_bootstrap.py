@@ -7,9 +7,9 @@ PDF 与 FAISS 运行目录。发布后的新实例可以立即展示 50 家企�
 字段的候选质量状态原样保留，发布不会把待回页候选提升为人工确认。
 幂等写入允许每次部署重试，相同案例不因重复构建而新建副本。
 单家企业失败不会隐藏其他企业的成功记录，最多回显前五条稳定错误码。
-短时 Supabase 不可用时返回 deferred，不让静态网页因外部持久化故障
-整体构建失败；下次部署会重试同一批可复验写入。
-未配置 Supabase 的本地竞赛模式显式跳过，不伪装成远程发布成功。
+一旦已声明使用 Supabase，客户端建不起来或只发布了一半都让构建以失败结束：
+静默 deferred 会被 render.yaml 的 && 链当成成功继续部署，把半发布带上线上。
+未配置 Supabase 的本地竞赛模式在检查持久化模式时就显式跳过，不伪装成远程发布成功。
 """
 
 from __future__ import annotations
@@ -38,7 +38,8 @@ def main() -> None:
         client = get_supabase_client()
     except SupabaseError as error:
         print(json.dumps({"status": "deferred", "reason": getattr(error, "code", "SUPABASE_ERROR"), "case_count": len(cases)}, ensure_ascii=False))
-        return
+        # 已声明用 Supabase 却连客户端都建不起来，属于部署故障，不能静默继续。
+        raise SystemExit(1)
 
     succeeded = 0
     failures: list[dict[str, str]] = []
@@ -65,6 +66,9 @@ def main() -> None:
             ensure_ascii=False,
         )
     )
+    if succeeded != len(cases):
+        # 半发布必须让构建失败：否则 render.yaml 的 && 链会把它当成成功继续部署。
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

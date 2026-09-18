@@ -255,6 +255,7 @@ def test_reviewed_run_can_cache_replay_and_export_word() -> None:
             "status": "保留为待核查候选",
             "note": "仅用于系统回归测试。",
             "reviewer": "测试复核人",
+            "reviewer_type": "human",
             "export_approved": True,
         },
     )

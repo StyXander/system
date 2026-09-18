@@ -587,6 +587,32 @@ def _prepare_index_unlocked(workspace_root: Path, *, case_id: str = CASE_ID, for
     return manifest
 
 
+def _source_status_for_case(workspace_root: Path, case_id: str) -> str:
+    """未建库时如实说明原件状态；查不清就写 unverified，不再一律宣称 source_available。"""
+
+    # 延迟导入：案例层依赖本模块，顶层互相导入会成环。
+    from .cases import get_case
+
+    try:
+        case = get_case(workspace_root, case_id)
+    except (OSError, ValueError, TypeError):
+        return "source_unverified"
+    documents = [item for item in (case or {}).get("documents", []) if isinstance(item, dict)]
+    if not documents:
+        return "source_missing"
+    for item in documents:
+        relative = str(item.get("storage_relpath") or item.get("source_file") or "").strip()
+        if not relative:
+            return "source_unverified"
+        candidates = (workspace_root / relative, _active_data_dir(workspace_root, case_id) / relative)
+        try:
+            if not any(path.is_file() for path in candidates):
+                return "source_missing"
+        except OSError:
+            return "source_unverified"
+    return "source_available"
+
+
 def status(workspace_root: Path, case_id: str = CASE_ID) -> dict[str, Any]:
     # 状态接口也固定一个版本快照，避免 active 指针切换时出现短暂假阴性。
     key = _index_state_key(workspace_root, case_id)
@@ -608,7 +634,7 @@ def status(workspace_root: Path, case_id: str = CASE_ID) -> dict[str, Any]:
     if not manifest.exists() or not (active_dir / "rag.faiss").exists():
         payload = {
             "status": "not_built",
-            "source_status": "source_available",
+            "source_status": _source_status_for_case(workspace_root, case_id),
             "index_status": "not_built",
             "runtime_ready": False,
             "index_version": INDEX_VERSION,

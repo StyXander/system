@@ -379,8 +379,15 @@ def build_b3_evidence_from_disk(
     )
     evidence = {
         "run_id": run.run_id,
-        # 以下状态全部由本函数重算得到，不接受任何外部声明。
-        "run_record_status": "verified",
+        # 以下状态全部由本函数按磁盘原件重算得到，不接受任何外部声明。
+        # 三项版本登记值缺一就不能写成 verified，避免常量把不完整记录洗成已核验。
+        "run_record_status": (
+            "verified"
+            if original_versions["source_commit"]
+            and original_versions["deployment_commit"]
+            and original_versions["manifest_sha256"]
+            else "incomplete_record"
+        ),
         "environment": str(context.get("environment") or ""),
         "external_live": run.execution_mode == "external_live",
         "provider": str(context.get("provider") or ""),
@@ -395,7 +402,7 @@ def build_b3_evidence_from_disk(
             and original_versions["manifest_sha256"] == expectations["manifest_sha256"]
         ),
         "result_sha256": file_sha256,
-        "result_hash_verified": True,
+        "result_hash_verified": bool(file_sha256) and path.is_file(),
         "result_status": run.status,
         "analysis_status": run.run_completeness,
         "completed_roles": len(steps),

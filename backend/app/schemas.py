@@ -318,7 +318,10 @@ class HumanReviewRequest(BaseModel):
     reviewer: str = Field(default="", max_length=100)
     reviewed_at: str | None = None
     export_approved: bool = False
-    reviewer_type: Literal["human", "automation"] = "human"
+    # 默认必须是 automation：自称真人要显式声明，再由服务端校验并盖章归属。
+    reviewer_type: Literal["human", "automation"] = "automation"
+    reviewer_user_id: str | None = Field(default=None, max_length=120)
+    reviewer_source: str | None = Field(default=None, max_length=40)
 
 
 class ModelTransferConsentRequest(BaseModel):

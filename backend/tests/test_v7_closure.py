@@ -249,6 +249,181 @@ def test_public_demo_source_request_includes_cninfo_referer(
     }
 
 
+REAL_HTTPX_CLIENT = httpx.Client
+
+
+class _StubStorageConfig:
+    url = "https://stub-project.supabase.co"
+    service_role_key = "stub-service-role-key"
+    private_bucket = "audittrace-private"
+
+
+class _StubStorageClient:
+    config = _StubStorageConfig()
+
+
+def _stub_supabase_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+    """只替换"凭据从哪来"，不替换私有桶读取与校验实现本身。"""
+
+    import backend.app.supabase_adapter as supabase_adapter_module
+
+    monkeypatch.setattr(supabase_adapter_module, "get_demo_task_client", lambda: _StubStorageClient())
+
+
+def _register_one_source(monkeypatch: pytest.MonkeyPatch, sha256: str) -> str:
+    filename = "标准股份：私有桶缓存年报.pdf"
+    monkeypatch.setattr(
+        source_cache_module,
+        "ANNUAL_REPORT_SOURCES",
+        {
+            2022: {
+                "source_url": "https://static.cninfo.com.cn/finalpage/2099-01-01/private-bucket.PDF",
+                "source_file": filename,
+                "file_sha256": sha256,
+            }
+        },
+    )
+    return filename
+
+
+def _client_with(monkeypatch: pytest.MonkeyPatch, respond) -> list[str]:
+    """把 source_cache 内部新建的 httpx.Client 换成 MockTransport，并记录请求 URL。"""
+
+    seen: list[str] = []
+    original = REAL_HTTPX_CLIENT
+
+    def factory(*args: object, **kwargs: object) -> httpx.Client:
+        def recording(request: httpx.Request) -> httpx.Response:
+            seen.append(str(request.url))
+            return respond(request)
+
+        return original(*args, **kwargs, transport=httpx.MockTransport(recording))
+
+    monkeypatch.setattr(source_cache_module.httpx, "Client", factory)
+    return seen
+
+
+def test_standard_sources_restore_from_private_storage_without_touching_official(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """私有桶命中时不得再请求官方站：这是 Render 绕开 403 的正路。"""
+
+    content = b"%PDF-1.4\nrestored from private storage\n%%EOF\n"
+    sha = hashlib.sha256(content).hexdigest().upper()
+    filename = _register_one_source(monkeypatch, sha)
+    _stub_supabase_credentials(monkeypatch)
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        assert request.headers.get("authorization", "").startswith("Bearer ")
+        assert request.headers.get("apikey") == "stub-service-role-key"
+        return httpx.Response(200, content=content, headers={"content-type": "application/pdf"})
+
+    seen = _client_with(monkeypatch, respond)
+
+    def official_must_not_run(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("私有桶命中时不得请求官方来源")
+
+    monkeypatch.setattr(source_cache_module, "_download_source", official_must_not_run)
+    result = source_cache_module.ensure_standard_sources(tmp_path)
+
+    assert [row["year"] for row in result["restored_from_private_storage"]] == [2022]
+    assert result["downloaded"] == []
+    assert result["source_count"] == 1
+    assert (tmp_path / filename).read_bytes() == content
+    assert len(seen) == 1
+    assert seen[0].endswith(f"/public-annual-reports/STD_DEV_T0/2022-{sha}.pdf")
+    assert seen[0].startswith("https://stub-project.supabase.co/storage/v1/object/audittrace-private/")
+
+
+def test_standard_sources_reject_corrupted_private_storage_object(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """私有桶对象哈希不符必须丢弃并回退官方，绝不留下半个可用错文件。"""
+
+    good = b"%PDF-1.4\nregistered original bytes\n%%EOF\n"
+    corrupt = b"%PDF-1.4\nsome other bytes here\n%%EOF\n"
+    sha = hashlib.sha256(good).hexdigest().upper()
+    filename = _register_one_source(monkeypatch, sha)
+    _stub_supabase_credentials(monkeypatch)
+
+    seen: list[str] = []
+    original = REAL_HTTPX_CLIENT
+    official_client = original(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, content=good, request=request)
+    ))
+
+    def factory(*args: object, **kwargs: object) -> httpx.Client:
+        def respond(request: httpx.Request) -> httpx.Response:
+            seen.append(str(request.url))
+            return httpx.Response(200, content=corrupt, request=request)
+
+        return original(*args, **kwargs, transport=httpx.MockTransport(respond))
+
+    monkeypatch.setattr(source_cache_module.httpx, "Client", factory)
+    result = source_cache_module.ensure_standard_sources(tmp_path, client=official_client)
+
+    assert result["restored_from_private_storage"] == []
+    assert [row["year"] for row in result["downloaded"]] == [2022]
+    assert (tmp_path / filename).read_bytes() == good
+    assert any(url.endswith(f"2022-{sha}.pdf") for url in seen)
+
+
+def test_standard_sources_fall_back_to_official_when_private_object_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    content = b"%PDF-1.4\nofficial download fallback\n%%EOF\n"
+    sha = hashlib.sha256(content).hexdigest().upper()
+    filename = _register_one_source(monkeypatch, sha)
+    _stub_supabase_credentials(monkeypatch)
+    seen = _client_with(monkeypatch, lambda request: httpx.Response(404, json={"error": "Not Found"}, request=request))
+
+    original = REAL_HTTPX_CLIENT
+    official_client = original(
+        headers={"User-Agent": "test"},
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, content=content, request=request)),
+    )
+    result = source_cache_module.ensure_standard_sources(tmp_path, client=official_client)
+
+    assert result["restored_from_private_storage"] == []
+    assert [row["year"] for row in result["downloaded"]] == [2022]
+    assert (tmp_path / filename).read_bytes() == content
+    assert seen and seen[0].endswith(f"2022-{sha}.pdf")
+
+
+def test_standard_sources_without_credentials_keep_official_403_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """没有 Supabase 凭据时不猜、不静默成功，官方 403 仍按原合同失败关闭。"""
+
+    import backend.app.supabase_adapter as supabase_adapter_module
+
+    content = b"%PDF-1.4\nirrelevant\n%%EOF\n"
+    sha = hashlib.sha256(content).hexdigest().upper()
+    _register_one_source(monkeypatch, sha)
+
+    def unconfigured() -> None:
+        raise supabase_adapter_module.SupabaseNotConfigured("缺少 SUPABASE_URL 与 SUPABASE_SERVICE_ROLE_KEY。")
+
+    monkeypatch.setattr(supabase_adapter_module, "get_demo_task_client", unconfigured)
+    original = REAL_HTTPX_CLIENT
+    official_client = original(
+        transport=httpx.MockTransport(lambda request: httpx.Response(403, text="denied", request=request))
+    )
+    with pytest.raises(ValueError, match="HTTP 403"):
+        source_cache_module.ensure_standard_sources(tmp_path, client=official_client)
+    assert not list(tmp_path.glob("*.pdf"))
+
+
+def test_standard_source_object_path_rejects_untrusted_registry() -> None:
+    for year, sha in ((1899, "A" * 64), (2022, "not-a-hash"), (True, "A" * 64), (2022.0, "A" * 64)):
+        with pytest.raises(ValueError, match="拒绝拼接私有桶路径"):
+            source_cache_module._standard_source_object_path(year, sha)  # type: ignore[arg-type]
+
+
 def test_public_demo_bootstrap_only_degrades_on_explicit_official_http_403(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -362,6 +537,81 @@ def test_public_demo_run_fails_closed_when_official_cache_cannot_be_prepared(
     assert response.status_code == 503
     assert "官方来源缓存准备失败" in response.json()["detail"]
     assert response.json()["ai_generated_content_notice"] == AI_GENERATED_CONTENT_NOTICE
+
+
+def test_public_demo_task_reaches_observable_failed_terminal_on_source_403(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """异步演示任务链的收口契约：来源 403 后轮询方必须读到终态，而不是停在"仍在分析"。
+
+    上面的单测只验写入顺序；评委实际经过的是 GET /api/demo/runs/{id} 这条读路径，
+    线上截图正是卡在该读路径上仍显示"正在执行完整分析"，所以这里按真实 HTTP 往返钉住：
+    任务落 failed、六阶段全部收口不残留 pending、结果接口 409、终态不可取消。
+    """
+    import time
+
+    from backend.app.demo_run_tasks import DemoRunTaskStore
+
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "false")
+    demo_store = DemoRunTaskStore(tmp_path / "demo-tasks")
+    monkeypatch.setattr(main_module, "_get_demo_run_store", lambda: demo_store)
+
+    def denied(_workspace_root: Path) -> dict:
+        raise ValueError("2022 年来源下载返回 HTTP 403。")
+
+    monkeypatch.setattr(main_module, "ensure_standard_sources", denied)
+
+    created = client.post(
+        "/api/demo/runs",
+        json={"case_id": "STD_DEV_T0", "current_year": 2025, "rule_ids": ["R1", "R2"], "run_mode": "full_analysis"},
+    )
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+
+    try:
+        deadline = time.time() + 60
+        task = None
+        while time.time() < deadline:
+            polled = client.get(f"/api/demo/runs/{task_id}")
+            assert polled.status_code == 200, polled.text
+            task = polled.json()
+            if task["status"] not in {"queued", "running"}:
+                break
+            time.sleep(0.1)
+    finally:
+        demo_store.shutdown()
+    assert task is not None, "轮询方始终读不到终态"
+    assert task["status"] == "failed", task["status"]
+    assert task["failure_code"] == "HTTP_503"
+    assert "官方来源缓存准备失败" in task["error"]
+    assert "2022 年来源下载返回 HTTP 403" in task["error"]
+    assert not task.get("run_id")
+
+    stages = task["steps"]
+    assert list(stages) == [
+        "evidence_load",
+        "rule_calculation",
+        "knowledge_retrieval",
+        "agent_collaboration",
+        "evidence_validation",
+        "structured_output",
+    ]
+    assert stages["evidence_load"]["status"] == "failed"
+    assert "运行被拒绝" in stages["evidence_load"]["detail"]
+    # 残留 pending 会被前端渲染成"等待开始"，看起来就像仍在跑；失败收口后不允许出现。
+    assert {name: step["status"] for name, step in stages.items() if name != "evidence_load"} == {
+        name: "skipped" for name in stages if name != "evidence_load"
+    }
+    assert {role: step["status"] for role, step in task["agent_steps"].items()} == {
+        role: "skipped" for role in ("challenge", "counter", "review")
+    }
+
+    refused = client.get(f"/api/demo/runs/{task_id}/result")
+    assert refused.status_code == 409
+    assert client.post(f"/api/demo/runs/{task_id}/cancel").status_code == 409
 
 
 def test_case_import_blocks_wrong_hash_cross_case_and_zip_traversal() -> None:

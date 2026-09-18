@@ -784,3 +784,19 @@ def test_cninfo_field_confirmation_preserves_candidate_and_unlocks_r1(tmp_path: 
     assert corrected["field"]["candidate"]["value"] == 500.0
     assert corrected["field"]["human_review"]["decision"] == "correct"
     assert get_cninfo_field_readiness(tmp_path, case_id, ["R1"], 2024) == []
+
+    # 重跑字段提取：真人校正值必须继续作为规则输入，机器候选快照保持原值。
+    second = create_task(
+        tmp_path,
+        {"company_query": "600302", "years": 2, "latest_year": 2024, "analysis_mode": "full_analysis", "rule_ids": ["R1"]},
+    )
+    again = run_ingestion(tmp_path, second["task_id"], client=_FakeCNInfoClient(pdfs))
+    assert again["case_id"] == case_id
+    rows = {(row["field_kind"], row["year"]): row for row in get_financial_rows(tmp_path, case_id)}
+    reopened = rows[("accounts_receivable", 2024)]
+    assert reopened["value"] == 510.0
+    assert reopened["candidate"]["value"] == 500.0
+    assert reopened["pdf_page"] == 3
+    assert reopened["human_review"]["decision"] == "correct"
+    assert reopened["source_review_status"] == "human_corrected"
+    assert get_cninfo_field_readiness(tmp_path, case_id, ["R1"], 2024) == []

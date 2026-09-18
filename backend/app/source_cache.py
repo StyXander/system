@@ -32,6 +32,7 @@ PDF 文件头只是第一层格式检查，最终还必须与登记整文件哈�
 from __future__ import annotations
 
 import hashlib
+import re
 import threading
 import time
 from pathlib import Path
@@ -48,6 +49,23 @@ CNINFO_PORTAL = "https://www.cninfo.com.cn"
 MAX_SOURCE_BYTES = 50 * 1024 * 1024
 SOURCE_REQUEST_INTERVAL_SECONDS = 2.0
 _SOURCE_CACHE_LOCK = threading.Lock()
+
+# Render 免费实例没有持久磁盘，官方来源又会在运行期返回 403；已核验原件改放
+# 现有 Supabase 私有桶，运行环境优先从私有桶取回，官方链接仍保留作来源回查。
+STANDARD_SOURCE_OBJECT_ROOT = "public-annual-reports"
+STANDARD_SOURCE_CASE_SEGMENT = "STD_DEV_T0"
+_SHA256_PATTERN = re.compile(r"^[0-9A-F]{64}$")
+
+
+def _standard_source_object_path(year: int, file_sha256: str) -> str:
+    """由登记数据内容寻址出对象路径；年度与哈希不合法就拒绝，不拼出可疑路径。"""
+
+    sha = str(file_sha256).upper()
+    if not isinstance(year, int) or isinstance(year, bool) or not 1900 <= year <= 2999:
+        raise ValueError("来源缓存的登记年度不合法，拒绝拼接私有桶路径。")
+    if not _SHA256_PATTERN.fullmatch(sha):
+        raise ValueError("来源缓存的登记 SHA-256 不是 64 位十六进制，拒绝拼接私有桶路径。")
+    return f"{STANDARD_SOURCE_OBJECT_ROOT}/{STANDARD_SOURCE_CASE_SEGMENT}/{year}-{sha}.pdf"
 
 
 def _file_sha256(path: Path) -> str:
@@ -106,6 +124,65 @@ def _download_source(client: httpx.Client, source: dict[str, Any], target: Path)
     return downloaded.byte_count
 
 
+def _private_storage_reader() -> tuple[httpx.Client, str] | None:
+    """构造只读取本私有桶的客户端；Supabase 凭据不齐时返回 None 而不是猜。
+
+    刻意复用 get_demo_task_client()：它要求 SUPABASE_URL 与 service-role key 同时
+    存在，所以"持久化开关配了"不会被当成"凭据可用"。
+    """
+
+    from .supabase_adapter import get_demo_task_client  # 延迟导入，避免与持久化层互引
+
+    try:
+        adapter = get_demo_task_client()
+    except Exception:  # noqa: BLE001 - 未配置只是"没有缓存可用"，不是运行失败
+        return None
+    config = adapter.config
+    service_key = str(config.service_role_key or "")
+    base_url = str(config.url or "")
+    if not base_url or not service_key:
+        return None
+    allowed_prefix = f"{base_url}/storage/v1/object/{config.private_bucket}/"
+    client = httpx.Client(
+        timeout=httpx.Timeout(120.0, connect=30.0),
+        follow_redirects=True,
+        trust_env=False,
+        headers={"apikey": service_key, "Authorization": f"Bearer {service_key}"},
+    )
+    return client, allowed_prefix
+
+
+def _restore_from_private_storage(source: dict[str, Any], target: Path) -> int | None:
+    """从私有桶取回一份已登记原件；校验不成立就不留文件并回退官方下载。
+
+    走的是与官方下载同一个 download_bounded，因此 PDF 文件头、体积上限和
+    登记 SHA-256 三项检查一项都不放宽；私有桶只改变"文件从哪来"。
+    """
+
+    reader = _private_storage_reader()
+    if reader is None:
+        return None
+    client, allowed_prefix = reader
+    object_path = _standard_source_object_path(int(source["year"]), str(source["file_sha256"]))
+    try:
+        downloaded = download_bounded(
+            f"{allowed_prefix}{object_path}",
+            target,
+            client=client,
+            max_bytes=MAX_SOURCE_BYTES,
+            require_pdf=True,
+            # 只允许落在本私有桶前缀内，重定向也不能越出。
+            is_allowed_url=lambda url: str(url).startswith(allowed_prefix),
+            expected_sha256=str(source["file_sha256"]),
+        )
+    except SecureDownloadError:
+        target.unlink(missing_ok=True)
+        return None
+    finally:
+        client.close()
+    return downloaded.byte_count
+
+
 def ensure_standard_sources(
     workspace_root: Path,
     *,
@@ -114,6 +191,7 @@ def ensure_standard_sources(
     """确保四份标准案例年报存在且哈希正确；公开路由仍回到官方原件。"""
     root = workspace_root.resolve()
     downloaded: list[dict[str, Any]] = []
+    restored: list[dict[str, Any]] = []
     reused: list[dict[str, Any]] = []
     owns_client = client is None
     http_client = client or httpx.Client(
@@ -144,6 +222,11 @@ def ensure_standard_sources(
                     reused.append({"year": source["year"], "bytes": target.stat().st_size})
                     continue
                 target.unlink(missing_ok=True)
+                # 先试私有桶：命中就不碰官方站，也不受官方 403 影响。
+                restored_bytes = _restore_from_private_storage(source, target)
+                if restored_bytes is not None:
+                    restored.append({"year": source["year"], "bytes": restored_bytes})
+                    continue
                 # 年报下载都来自同一官方主机；限制连续请求间隔，避免一次构建
                 # 集中下载多份原件触发来源站的访问频率限制。
                 if last_request_at is not None:
@@ -158,8 +241,9 @@ def ensure_standard_sources(
             http_client.close()
     return {
         "status": "ready",
-        "source_count": len(downloaded) + len(reused),
+        "source_count": len(downloaded) + len(reused) + len(restored),
         "downloaded": downloaded,
+        "restored_from_private_storage": restored,
         "reused": reused,
-        "boundary": "文件只在运行环境中用于哈希校验、确定性计算与本地RAG；公开来源入口仍跳转巨潮资讯原件。",
+        "boundary": "文件只在运行环境中用于哈希校验、确定性计算与本地RAG；私有桶只改变文件从哪来，不放宽 PDF、体积与 SHA-256 三项检查；公开来源入口仍跳转巨潮资讯原件。",
     }

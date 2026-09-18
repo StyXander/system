@@ -4683,7 +4683,8 @@ def _release_fact_snapshot(
         and str((readiness.get("provider") or {}).get("source") or "") == "probe",
         "evaluation_pointer": eval_pointer_status == "valid",
         "signoff": signoff.get("signoff_status") == "captain_approved_for_competition_demo",
-        "human_scoring": human_scoring_status not in {"pending", "pending_human_scoring", "pending_human_scoring_and_fresh_model_runs"},
+        # 与 release_gate 同判据：只有明确 completed 才算人工评分完成，不用"不在黑名单里"。
+        "human_scoring": human_scoring_status == "completed",
         "fresh_production_b3": b3_ready,
         "release_binding": str(binding_snapshot.get("status") or "") == "verified",
         "release_gate": release_ready,
@@ -6200,7 +6201,20 @@ def review_run(run_id: str, review: HumanReviewRequest, http_request: Request) -
     case = _case_record(str(stored_before.run.context.get("case_id") or ""), tenant_id=run_owner_tenant)
     if case is None:
         raise HTTPException(status_code=404, detail="运行对应案例不存在。")
-    authorize_case_write(http_request, case)
+    identity = authorize_case_write(http_request, case)
+    if review.reviewer_type == "human":
+        # 自称真人必须可归属：空名、无法辨识的服务会话都不能记为人工复核。
+        if not review.reviewer.strip():
+            raise HTTPException(status_code=422, detail="人工复核必须填写复核人姓名，不能匿名自称真人。")
+        if not (identity.user_id.strip() and identity.source in {"local", "supabase"}):
+            raise HTTPException(
+                status_code=403,
+                detail="当前会话无法归属到可辨识的操作者，不能记为人工复核；请由真人登录后再提交。",
+            )
+    # 归属信息由服务端盖章，客户端自报的同名字段一律覆盖。
+    review = review.model_copy(
+        update={"reviewer_user_id": identity.user_id[:120], "reviewer_source": identity.source[:40]}
+    )
     if load_run(WORKSPACE_ROOT, run_id) is None:
         # 本地 materialize 仅为复用原子化人工复核写入；权威副本随后同步回 Postgres。
         save_run(WORKSPACE_ROOT, stored_before.run)

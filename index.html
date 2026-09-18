@@ -9,9 +9,9 @@
   <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.9">
-  <script src="/assets/official-v4/ambient.js?v=0.13.6" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.10.20" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.11">
+  <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.10.21" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -286,7 +286,7 @@
             <section class="demo-structured-output" aria-labelledby="demo-structured-heading">
               <div class="demo-section-heading">
                 <div><span class="folio">JSON / TABLE / PRINT PDF</span><h3 id="demo-structured-heading">结构化结果明细</h3></div>
-                <span class="state success">同源生成</span>
+                <span class="state pending" id="demo-structured-state">等待本次运行结果</span>
               </div>
               <div class="demo-table-wrap" role="region" aria-label="本次运行结构化指标表格（可横向滚动）" tabindex="0">
                 <table class="demo-structured-table" id="demo-structured-table">

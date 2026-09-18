@@ -5159,6 +5159,13 @@ mark {
 .demo-case-card h4 { color: var(--at-ink); }
 .demo-case-card .demo-case-meta { color: var(--at-ink-4); }
 .demo-case-card .demo-case-focus { color: var(--at-ink-2); }
+/* 运行时就绪状态与案例准入验收是两件事，用分隔线分开；语义由文字承载，颜色只作辅助。 */
+.demo-case-card .demo-case-readiness {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgb(var(--at-clay-rgb) / 34%);
+  color: var(--at-clay);
+}
 
 .demo-case-card:hover {
   background: var(--at-panel-raised);
@@ -6069,7 +6076,9 @@ textarea {
 }
 @media print { .audit-pointer-glow { display: none !important; } }
 
-/* 0.13.9 深色证据舱：把知识库从重复计数表改为真实汇总、类别脉络和可展开的数据口径。 */
+/* 0.13.10 浅色证据舱：面板回到全站白底纸面语义，文字与语义色一律走现成 ink token；
+   光带图、42s 漂移与 paused/reduced-motion 收口原样保留，只把混合模式改为 multiply——
+   白底上 screen 会把光带洗成不可见，而深色版那条 screen 光带正是把 navy 抬成灰黑的原因。 */
 .demo-knowledge-base {
   position: relative;
   isolation: isolate;
@@ -6077,11 +6086,11 @@ textarea {
   min-width: 0;
   min-height: 510px;
   grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
-  border: 1px solid rgb(132 177 210 / 25%);
+  border: 1px solid var(--at-rule);
   border-radius: 3px;
-  background: #071523;
-  color: #edf4fa;
-  box-shadow: 0 24px 62px rgb(5 18 32 / 18%);
+  background: var(--at-panel);
+  color: var(--at-ink);
+  box-shadow: var(--at-elev-1);
 }
 
 .demo-knowledge-base::before,
@@ -6096,16 +6105,18 @@ textarea {
 .demo-knowledge-base::before {
   inset: -7% -4%;
   background: url("/assets/official-v4/illustrations/knowledge-ambient-ribbons-v1.png") 50% 50% / cover no-repeat;
-  opacity: .28;
-  mix-blend-mode: screen;
+  opacity: .85;
+  mix-blend-mode: multiply;
   transform: scale(1.02);
   animation: knowledge-light-drift 42s ease-in-out infinite alternate;
 }
 
+/* 遮罩走以文字块为中心的径向：中心近白保住正文对比度，四角放开让光带透出来。
+   左列自带不透明底，光带实际只服务右列，线性渐隐会把整列一起压死。 */
 .demo-knowledge-base::after {
   background:
-    radial-gradient(ellipse at 34% 48%, rgb(26 110 178 / 10%), transparent 48%),
-    linear-gradient(90deg, rgb(7 21 35 / 4%) 0%, rgb(7 21 35 / 12%) 38%, rgb(7 21 35 / 73%) 61%, rgb(7 21 35 / 47%) 100%);
+    radial-gradient(ellipse 58% 70% at 63% 50%, rgb(255 255 255 / 96%) 0%, rgb(255 255 255 / 88%) 52%, rgb(255 255 255 / 26%) 100%),
+    radial-gradient(ellipse at 34% 48%, rgb(var(--at-brand-rgb) / 5%), transparent 48%);
 }
 
 .demo-knowledge-visual {
@@ -6116,11 +6127,11 @@ textarea {
   min-width: 0;
   min-height: 510px;
   padding: 25px 22px 18px;
-  border-right: 1px solid rgb(157 194 221 / 17%);
+  border-right: 1px solid var(--at-rule-soft);
   border-bottom: 0;
   background:
-    radial-gradient(ellipse at 49% 48%, rgb(42 130 205 / 15%), transparent 56%),
-    linear-gradient(145deg, rgb(11 31 49 / 38%), rgb(7 21 35 / 4%) 72%);
+    radial-gradient(ellipse at 49% 48%, rgb(42 130 205 / 9%), transparent 58%),
+    linear-gradient(145deg, #F5F9FD, #E9F1F9 78%);
 }
 
 .demo-knowledge-visual img {
@@ -6130,7 +6141,7 @@ textarea {
   max-height: 448px;
   object-fit: contain;
   background: transparent;
-  filter: drop-shadow(0 22px 34px rgb(0 0 0 / 25%));
+  filter: drop-shadow(0 18px 28px rgb(32 36 44 / 16%));
 }
 
 .demo-knowledge-visual figcaption {
@@ -6139,7 +6150,7 @@ textarea {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 4px 0;
-  color: rgb(202 219 234 / 68%);
+  color: var(--at-ink-3);
   font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: .02em;
@@ -6148,7 +6159,7 @@ textarea {
 
 .demo-knowledge-visual figcaption span {
   flex: 0 0 auto;
-  color: #85c5ef;
+  color: var(--at-thread-bright);
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: .12em;
@@ -6163,17 +6174,17 @@ textarea {
 }
 
 .demo-knowledge-copy .demo-positioning-eyebrow {
-  color: #95a9bb;
+  color: var(--at-ink-3);
   font-size: 10px;
 }
 
 .demo-knowledge-copy .demo-positioning-eyebrow::before {
-  background: linear-gradient(90deg, #63b7eb, transparent);
+  background: linear-gradient(90deg, var(--at-rule-strong), transparent);
 }
 
 .demo-knowledge-copy h3 {
   margin-top: 15px;
-  color: #f5f8fc;
+  color: var(--at-ink);
   font-size: clamp(28px, 3vw, 39px);
   font-weight: 650;
   letter-spacing: .01em;
@@ -6182,7 +6193,7 @@ textarea {
 .demo-knowledge-lead {
   max-width: 58ch;
   margin-top: 16px;
-  color: #bdcbd8;
+  color: var(--at-ink-2);
   font-size: 13px;
   line-height: 1.85;
 }
@@ -6198,21 +6209,21 @@ textarea {
 .demo-knowledge-snapshot {
   min-height: 29px;
   padding: 6px 10px;
-  border: 1px solid rgb(104 220 170 / 29%);
-  background: rgb(41 148 105 / 12%);
-  color: #99e2bf;
+  border: 1px solid rgb(var(--at-jade-rgb) / 26%);
+  background: rgb(var(--at-jade-rgb) / 8%);
+  color: var(--at-jade);
   font-size: 10px;
   letter-spacing: .02em;
 }
 
 .demo-knowledge-snapshot[data-status="draft"] {
-  border-color: rgb(231 185 112 / 34%);
-  background: rgb(173 116 40 / 13%);
-  color: #f0cb8c;
+  border-color: rgb(138 90 22 / 30%);
+  background: var(--at-warn-soft);
+  color: var(--at-brass-ink);
 }
 
 .demo-knowledge-meta-item {
-  color: #94a8ba;
+  color: var(--at-ink-3);
   font-family: var(--font-mono);
   font-size: 9px;
 }
@@ -6224,7 +6235,7 @@ textarea {
   margin: 27px 0 0;
   padding: 16px 0 17px;
   border: 0;
-  border-block: 1px solid rgb(154 186 211 / 19%);
+  border-block: 1px solid var(--at-rule);
   background: transparent;
 }
 
@@ -6236,11 +6247,11 @@ textarea {
 
 .demo-knowledge-metric + .demo-knowledge-metric {
   padding-left: 15px;
-  border-left: 1px solid rgb(154 186 211 / 17%);
+  border-left: 1px solid var(--at-rule-soft);
 }
 
 .demo-knowledge-metric dt {
-  color: #9eafbf;
+  color: var(--at-ink-3);
   font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: .04em;
@@ -6250,7 +6261,7 @@ textarea {
   display: grid;
   gap: 5px;
   margin: 10px 0 0;
-  color: #f5f8fc;
+  color: var(--at-ink);
   font-family: var(--font-mono);
   font-size: 25px;
   font-variant-numeric: tabular-nums;
@@ -6263,7 +6274,7 @@ textarea {
 }
 
 .demo-knowledge-metric dd small {
-  color: #91a3b5;
+  color: var(--at-ink-3);
   font-family: var(--font-sans);
   font-size: 9px;
   font-weight: 400;
@@ -6285,9 +6296,9 @@ textarea {
   gap: 7px;
   min-height: 29px;
   padding: 5px 9px;
-  border: 1px solid rgb(141 176 202 / 20%);
-  background: rgb(192 217 238 / 4%);
-  color: #d2deea;
+  border: 1px solid var(--at-rule);
+  background: var(--at-inset);
+  color: var(--at-ink-2);
   font-size: 10px;
   line-height: 1.35;
 }
@@ -6296,22 +6307,22 @@ textarea {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #62b8ed;
+  background: var(--at-thread);
   content: "";
 }
 
 .demo-knowledge-categories li.is-empty {
-  color: #edc989;
+  color: var(--at-brass-ink);
 }
 
 .demo-knowledge-categories li.is-empty::before {
-  background: #edc989;
+  background: var(--at-brass);
 }
 
 .demo-knowledge-details {
   margin-top: 20px;
   padding-top: 14px;
-  border-top: 1px solid rgb(154 186 211 / 17%);
+  border-top: 1px solid var(--at-rule);
 }
 
 .demo-knowledge-details summary {
@@ -6319,7 +6330,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #c7d5e2;
+  color: var(--at-ink-2);
   cursor: pointer;
   font-size: 11px;
   list-style: none;
@@ -6327,7 +6338,7 @@ textarea {
 
 .demo-knowledge-details summary::-webkit-details-marker { display: none; }
 .demo-knowledge-details summary::after {
-  color: #74c6ef;
+  color: var(--at-thread-bright);
   content: "+";
   font-family: var(--font-mono);
   font-size: 17px;
@@ -6337,15 +6348,15 @@ textarea {
 .demo-knowledge-details[open] summary::after { content: "−"; }
 .demo-knowledge-details summary:focus-visible {
   border-radius: 2px;
-  outline: 2px solid #70bff0;
+  outline: 2px solid var(--at-thread-bright);
   outline-offset: 4px;
 }
 
 .demo-knowledge-details-body {
   margin-top: 13px;
   padding: 12px 14px;
-  border-left: 2px solid #61b9eb;
-  background: rgb(221 237 250 / 5%);
+  border-left: 2px solid var(--at-thread);
+  background: var(--at-inset);
 }
 
 .demo-knowledge-date {
@@ -6353,12 +6364,12 @@ textarea {
   flex-wrap: wrap;
   gap: 8px;
   margin: 0;
-  color: #94a9bc;
+  color: var(--at-ink-3);
   font-size: 10px;
 }
 
 .demo-knowledge-date time {
-  color: #e0eaf2;
+  color: var(--at-ink-2);
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
@@ -6367,17 +6378,13 @@ textarea {
   margin: 8px 0 0;
   padding: 0;
   border: 0;
-  color: #a8b8c7;
+  color: var(--at-ink-3);
   font-size: 10px;
   line-height: 1.75;
   overflow-wrap: anywhere;
 }
 
-.audit-pointer-glow.is-dark-surface { mix-blend-mode: screen; }
-.audit-pointer-glow.is-dark-surface::before {
-  background: radial-gradient(circle, rgb(83 169 255 / 27%) 0%, rgb(65 210 222 / 15%) 25%, rgb(58 128 199 / 7%) 44%, transparent 69%);
-}
-
+/* 光效暂停开关对浅色光带同样生效，不能因为换底就丢掉。 */
 .demo-positioning[data-motion="paused"] .demo-knowledge-base::before { animation-play-state: paused; }
 
 @keyframes knowledge-light-drift {
@@ -6399,14 +6406,14 @@ textarea {
     min-height: 350px;
     padding: 18px 24px 14px;
     border-right: 0;
-    border-bottom: 1px solid rgb(157 194 221 / 17%);
+    border-bottom: 1px solid var(--at-rule-soft);
   }
   .demo-knowledge-visual img { max-height: 292px; }
   .demo-knowledge-copy { padding: 30px 34px 34px; }
   .demo-knowledge-base::after {
     background:
-      radial-gradient(ellipse at 50% 29%, rgb(26 110 178 / 11%), transparent 43%),
-      linear-gradient(180deg, rgb(7 21 35 / 4%) 0%, rgb(7 21 35 / 26%) 34%, rgb(7 21 35 / 60%) 100%);
+      radial-gradient(ellipse 74% 58% at 50% 62%, rgb(255 255 255 / 96%) 0%, rgb(255 255 255 / 88%) 54%, rgb(255 255 255 / 26%) 100%),
+      radial-gradient(ellipse at 50% 29%, rgb(var(--at-brand-rgb) / 5%), transparent 43%);
   }
 }
 

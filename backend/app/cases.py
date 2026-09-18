@@ -1358,6 +1358,29 @@ def update_cninfo_financial_fields(
             if same_candidate and isinstance(previous.get("human_review"), dict)
             else {"status": "pending", "decision": None}
         )
+        # 候选快照和规则输入值分开保存：继承真人决定时规则输入值必须沿用真人校正值，
+        # 否则下一轮重提取会把校正值静默覆盖成机器值，留痕却仍显示真人已确认。
+        accepted_value = value
+        accepted_page = pdf_page
+        accepted_locator = str(row.get("locator") or "自动提取候选；待人工回页确认")[:300]
+        accepted_review_status = str(row.get("source_review_status") or "auto_extracted_pending_human_page_confirmation")
+        if same_candidate and human_review.get("decision") in {"confirm", "correct"}:
+            try:
+                stored_value = float(previous.get("value"))
+            except (TypeError, ValueError):
+                stored_value = None
+            if stored_value is not None and math.isfinite(stored_value):
+                accepted_value = stored_value
+            try:
+                stored_page = int(previous.get("pdf_page"))
+            except (TypeError, ValueError):
+                stored_page = 0
+            if stored_page >= 1:
+                accepted_page = stored_page
+            accepted_locator = str(previous.get("locator") or accepted_locator)[:300]
+            # 复核状态与决定同源：不能一边继承真人决定，一边把行重新标成待人工确认。
+            if str(previous.get("source_review_status") or "") in _HUMAN_ACCEPTED_REVIEW_STATUSES:
+                accepted_review_status = str(previous["source_review_status"])
         # 历史记录追加保存，便于评审回看每次确认、修正和拒绝。
         human_review_history = (
             deepcopy(previous.get("human_review_history"))
@@ -1371,7 +1394,7 @@ def update_cninfo_financial_fields(
                 "field_id": field_id,
                 "field_kind": kind,
                 "year": year,
-                "value": value,
+                "value": accepted_value,
                 "candidate": {
                     "value": value,
                     "pdf_page": pdf_page,
@@ -1389,17 +1412,28 @@ def update_cninfo_financial_fields(
                 "disclosure_date": document["disclosure_date"],
                 "announcement_title": document["announcement_title"],
                 "source_url": document["source_url"],
-                "pdf_page": pdf_page,
+                "pdf_page": accepted_page,
                 "print_page": row.get("print_page"),
-                "locator": str(row.get("locator") or "自动提取候选；待人工回页确认")[:300],
+                "locator": accepted_locator,
                 "file_sha256": document["sha256"],
-                "source_review_status": str(row.get("source_review_status") or "auto_extracted_pending_human_page_confirmation"),
+                "source_review_status": accepted_review_status,
                 "extraction_method": str(row.get("extraction_method") or "pdf_text_heuristic_candidate")[:100],
                 "raw_excerpt": str(row.get("raw_excerpt") or "")[:1000],
                 "human_review": human_review,
                 "human_review_history": human_review_history,
             }
         )
+    # 本轮没有重新提取的年度/字段要原样保留：否则换年度或 R1↔R2 复跑一次，
+    # 就会把其他年度的候选连同真人复核留痕一起抹掉。
+    produced_ids = {str(row.get("field_id") or "") for row in normalized}
+    for previous in previous_rows:
+        if not isinstance(previous, dict):
+            continue
+        previous_field_id = str(previous.get("field_id") or f"{previous.get('field_kind')}_{previous.get('year')}")
+        if previous_field_id in produced_ids:
+            continue
+        normalized.append(previous)
+        produced_ids.add(previous_field_id)
     # R1 的可用年度必须同时有营业收入和应收账款，不能用单个字段的最长年度误判完整性。
     # 行业专用规则不一定使用 R1 字段；先分别计算普通字段和专用字段，避免银行、保险、
     # 券商案例明明有候选却因为 R1 为空而在页面显示“无可用年度”。

@@ -362,16 +362,25 @@
     // 避免滚动中的样式计算与布局抖动。
     if (signature === demoState.fixedTask.renderSignature) return;
     demoState.fixedTask.renderSignature = signature;
+    let failedUpstream = 0;
     FIXED_STAGE_KEYS.forEach((stageKey, index) => {
-      const stage = steps[stageKey] || { status: "pending", detail: "等待开始" };
+      const raw = steps[stageKey];
+      const stage = raw || { status: "pending", detail: "等待开始" };
+      // 阶段状态逐条写入，轮询可能读到撕裂视图：上游已失败而本阶段仍是 pending 时，
+      // 不能留着"等待开始"让人以为还在跑，必须归一化成未执行并给出原因。
+      const tornPending = failedUpstream > 0 && (stage.status === "pending" || !raw);
       const stateName = stage.status === "running" ? "current"
         : stage.status === "completed" ? "completed"
           : stage.status === "degraded" ? "degraded"
             : stage.status === "failed" ? "failed"
-              : stage.status === "skipped" ? "skipped" : null;
+              : (stage.status === "skipped" || tornPending) ? "skipped" : null;
       setStageState(index + 1, stateName);
-      setStageNote(index + 1, stage.detail || "等待开始");
+      setStageNote(index + 1, tornPending ? "前置阶段未完成，后续阶段未执行。" : (stage.detail || "等待开始"));
+      if (stage.status === "failed") failedUpstream = index + 1;
     });
+    if (failedUpstream) {
+      setGate("danger", "运行已被拒绝，后端正在收口终态", `第 ${failedUpstream} 阶段未通过，后续阶段不再执行；页面只显示后端真实进度，不会把已拒绝的运行写成仍在分析。`);
+    }
     const finished = Object.values(agentSteps).filter((step) => step && step.status !== "pending").length;
     if (finished) {
       const summary = Object.entries(agentSteps)
@@ -455,11 +464,18 @@
     const years = (caseItem.report_years || []).join(" / ");
     const admission = caseItem.admission_status === "passed" ? "已完成准入验收" : "候选案例 · 准入验收进行中";
     const categoryLabel = CATEGORY_LABELS[caseItem.category] || caseItem.category;
+    // 准入验收说的是案例数据，不代表本次运行环境已备好原件与索引；两者必须分开显示，
+    // 否则未就绪案例仍顶着"完整主链"，点下去只会撞来源失败。
+    const runtimeReady = caseItem.rag?.runtime_ready !== false;
+    const readinessLine = runtimeReady
+      ? ""
+      : `<span class="demo-case-focus demo-case-readiness">来源或索引未就绪 · 本次运行会如实降级，需团队重建后重验</span>`;
     return `<button type="button" class="demo-case-card" data-demo-case="${escapeHtml(caseItem.case_id)}" aria-pressed="${selected ? "true" : "false"}">
       <span class="demo-case-index">CASE ${String(index + 1).padStart(2, "0")} · ${escapeHtml(caseItem.ticker || "")}</span>
       <h4>${escapeHtml(caseItem.company_name)}</h4>
       <span class="demo-case-meta">${escapeHtml(categoryLabel)} · ${escapeHtml(years)}</span>
       <span class="demo-case-focus">${escapeHtml(caseItem.demo_focus || "")} · ${escapeHtml(admission)}</span>
+      ${readinessLine}
     </button>`;
   }
 
@@ -1163,7 +1179,11 @@
     });
     if (!trace.length && !regulatory.length) {
       const li = document.createElement("li");
-      li.textContent = "知识库台账尚未接入监管与准则来源。";
+      const snapshot = String(run.context?.knowledge_snapshot_id || "");
+      // 台账已接入但本次没命中，不能写成"尚未接入"；两种状态的处置方式不同。
+      li.textContent = snapshot && !snapshot.startsWith("KNOWLEDGE-UNCONFIGURED")
+        ? "知识台账已接入，但本次运行没有命中相关条目；该缺口已计入资料缺口，需人工补充权威依据。"
+        : "知识库台账尚未接入监管与准则来源。";
       list.append(li);
     }
     const summary = run.context?.source_coverage_summary;
@@ -1422,6 +1442,9 @@
       });
       if (!fromSample.ok) {
         const body = await fromSample.json().catch(() => ({}));
+        if (fromSample.status === 401 || fromSample.status === 403) {
+          throw new Error("补充资料重跑需要登录后的真人账号；公开演示访客未开放该操作。");
+        }
         throw new Error(body.detail || `HTTP ${fromSample.status}`);
       }
       const record = await fromSample.json();
@@ -1541,6 +1564,8 @@
     byId("demo-supplement-summary").hidden = true;
     byId("demo-supplement-summary").replaceChildren();
     byId("demo-structured-table-body").replaceChildren();
+    byId("demo-structured-state").className = "state pending";
+    byId("demo-structured-state").textContent = "等待本次运行结果";
     byId("demo-source-ledger-list").replaceChildren();
     byId("demo-source-ledger-note").textContent = "运行后显示本次命中、来源定位、快照与主张边界。";
     byId("demo-source-ledger-state").className = "state pending";
@@ -1584,6 +1609,55 @@
     // 确定性结果可见但模型链未完成：明确降级，不冒充成功。
     return "degraded";
   }
+
+  // degraded 是五条件合取闸门失败后的统称，至少对应四种事实不同的情形：可信历史回放、
+  // 确定性备用、真实模型失败、字段缺失。展示层若一律写成"本次未完成真实模型调用"，
+  // 就会在回放场景与同屏的"三Agent已通过硬校验 · 3/3 角色完成"直接自相矛盾。
+  // 这里只做分类，不取 statusLabel，保持纯函数可被前端合同测试单独提取执行。
+  function degradedReason(run) {
+    const executionMode = String(run?.execution_mode || run?.model_check?.execution_mode || "unavailable");
+    const modelStatus = String(run?.model_check?.status || "");
+    const calls = Number(run?.provider_call_count || 0);
+    if (executionMode === "cache_replay" || run?.model_check?.cache_hit === true || run?.cache_hit === true) {
+      return { kind: "cache_replay", calls };
+    }
+    if (executionMode === "deterministic_backup" || modelStatus === "demo_fallback") {
+      return { kind: "deterministic_backup", calls };
+    }
+    if (modelStatus && modelStatus !== "model_success") {
+      return { kind: "model_failed", calls };
+    }
+    // 模型自称成功却没有本次可核验调用或完成态：只能记为证据不完整，不得据此断定模型从未执行。
+    return { kind: "evidence_incomplete", calls };
+  }
+
+  // 每个分支各自说真话；model_failed 保留原有措辞，避免把真实失败改弱。
+  const DEGRADED_COPY = {
+    cache_replay: {
+      stage: (reason) => `已复用历史分析结果 · 本次新增 ${reason.calls} 次模型调用`,
+      pill: (reason) => `复用历史分析结果 · 本次新增 ${reason.calls} 次模型调用`,
+      gateTitle: "本次复用历史分析结果",
+      gateDetail: (reason) => `三 Agent 的完成状态来自被复用的原运行，本次新增 ${reason.calls} 次模型调用；这既不等于本次实时完成，也不得写成模型失败。`,
+    },
+    deterministic_backup: {
+      stage: () => "确定性备用链完成 · 本次未调用外部模型",
+      pill: () => "确定性备用 · 未调用外部模型",
+      gateTitle: "确定性备用演示已完成",
+      gateDetail: () => "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。",
+    },
+    model_failed: {
+      stage: (_reason, modelLabel, agentsDone) => `本次未完成真实模型调用（${modelLabel}${agentsDone ? ` · ${agentsDone}/3 角色完成` : ""}）`,
+      pill: () => "降级：确定性结果可见，本次模型调用未完成",
+      gateTitle: "本次未完成真实模型调用",
+      gateDetail: (_reason, modelLabel) => `确定性计算结果仍可查看（${modelLabel}）；失败码已保留，后续角色如实标记。`,
+    },
+    evidence_incomplete: {
+      stage: (_reason, modelLabel, agentsDone) => `运行证据不完整，需核查（${modelLabel}${agentsDone ? ` · ${agentsDone}/3 角色完成` : ""}）`,
+      pill: () => "运行证据不完整 · 需核查",
+      gateTitle: "运行证据不完整，需核查",
+      gateDetail: (_reason, modelLabel) => `模型状态登记为 ${modelLabel}，但本次没有可核验的调用留痕；页面不据此断定模型从未执行，也不把它记为成功。`,
+    },
+  };
 
   async function startDemoRun({ backup = false } = {}) {
     const allowedPhase = backup
@@ -1872,8 +1946,10 @@
       setStageState(6, "completed");
       setStageNote(6, "JSON / 表格 / PDF 可导出");
     } else if (outcome === "degraded") {
+      const reason = degradedReason(run);
+      const copy = DEGRADED_COPY[reason.kind] || DEGRADED_COPY.evidence_incomplete;
       setStageState(4, "degraded");
-      setStageNote(4, `本次未完成真实模型调用（${statusLabel(modelStatus)}${agentsDone ? ` · ${agentsDone}/3 角色完成` : ""}）`);
+      setStageNote(4, copy.stage(reason, statusLabel(modelStatus), agentsDone));
       setStageState(5, "completed");
       setStageNote(5, "确定性证据与缺口已保留");
       setStageState(6, "completed");
@@ -1894,10 +1970,12 @@
     const year = Math.max(...(caseItem?.report_years || [0]).map(Number));
     const statePill = byId("demo-result-state");
     statePill.className = `state ${outcome === "success" ? "success" : outcome === "degraded" ? "waiting" : "danger"}`;
+    const degradedOutcome = outcome === "degraded" ? degradedReason(run) : null;
+    const degradedCopy = degradedOutcome ? (DEGRADED_COPY[degradedOutcome.kind] || DEGRADED_COPY.evidence_incomplete) : null;
     statePill.textContent = outcome === "success"
       ? "真实模型链完成"
       : outcome === "degraded"
-        ? "降级：确定性结果可见，本次未完成真实模型调用"
+        ? degradedCopy.pill(degradedOutcome)
         : "失败";
     const executionMode = run.execution_mode || run.model_check?.execution_mode || "unavailable";
     const summary = byId("demo-result-summary");
@@ -1981,7 +2059,7 @@
     if (outcome === "success") {
       setGate("success", statusLabel(run.run_completeness), `AI 分析路线：${ROUTE_LABELS[run.ai_analysis_route] || "三Agent协同复核"}；${AI_GENERATED_CONTENT_NOTICE}`);
     } else if (outcome === "degraded") {
-      setGate("warning", "本次未完成真实模型调用", `确定性计算结果仍可查看（${statusLabel(run.model_check?.status)}）；失败码已保留，后续角色如实标记。${AI_GENERATED_CONTENT_NOTICE}`);
+      setGate("warning", degradedCopy.gateTitle, `${degradedCopy.gateDetail(degradedOutcome, statusLabel(run.model_check?.status))}${AI_GENERATED_CONTENT_NOTICE}`);
     } else {
       setGate("danger", "本次分析失败", `${statusLabel(run.model_check?.status || run.run_completeness)}；可一键重置演示后重试，或联系团队处理。`);
     }
@@ -2091,7 +2169,7 @@
     setAxisItem("screening", `${statusLabel(run.screening_status)} · ${run.rule_results?.length ?? 0} 条规则结果`);
     setAxisItem("rag", `${ragCount} 次检索片段 · ${agentsDone}/3 角色完成`, outcome === "success" ? "complete" : "warning");
     setAxisItem("evidence", `${fieldCount} 条字段证据 · ${gapCount} 项资料缺口`, gapCount ? "warning" : "complete");
-    setAxisItem("output", `${metricCount} 个结构化指标 · JSON / 表格 / PDF`, "complete");
+    setAxisItem("output", `${metricCount} 个结构化指标 · JSON / 表格 / PDF`, outcome === "success" && metricCount ? "complete" : "warning");
   }
 
   function fieldEvidenceRows(run) {
@@ -2232,14 +2310,19 @@
 
   function renderStructuredTable(run) {
     const body = byId("demo-structured-table-body");
+    const badge = byId("demo-structured-state");
     body.replaceChildren();
     const rows = structuredMetricRows(run);
     if (!rows.length) {
+      badge.className = "state waiting";
+      badge.textContent = "本次未形成结构化指标";
       const tr = document.createElement("tr");
       tr.innerHTML = '<td colspan="5">本次运行没有可展示的结构化指标；系统不会补造数值。</td>';
       body.append(tr);
       return;
     }
+    badge.className = "state success";
+    badge.textContent = "同源生成";
     rows.forEach((row) => {
       const tr = document.createElement("tr");
       [row.rule_id, row.metric_label, row.formatted_value, `${String(row.raw_value)} · ${row.basis}`, row.calculation_process].forEach((value) => {
@@ -2607,7 +2690,11 @@
       } else {
         setServiceStatus("后端可用 · 任务台账可用 · 模型降级可用", "pending");
       }
-      const featuredReady = bootstrap.featured_case_ids.every((id) => demoState.caseIndex.get(id)?.rag?.status === "ready");
+      const pendingFeatured = Array.isArray(bootstrap.featured_cases_pending) ? bootstrap.featured_cases_pending : null;
+      const featuredReady = pendingFeatured
+        ? pendingFeatured.length === 0
+        : bootstrap.featured_case_ids.every((id) => demoState.caseIndex.get(id)?.rag?.status === "ready");
+      const pendingNames = (pendingFeatured || []).map((id) => demoState.caseIndex.get(id)?.company_name || id).join("、");
       const release = bootstrap.release || {};
       const releaseBoundary = release.competition_release_ready
         ? "当前发布事实已通过自动门禁；正式发布仍以最终人工批准为准。"
@@ -2615,7 +2702,7 @@
       if (!taskStoreReady) {
         setGate("warning", "正式任务台账暂不可用", `${continuity.boundary || "Supabase 演示任务台账暂不可读取。"} ${readiness.deterministic_backup_available ? "可以选择“启动确定性备用演示”继续展示完整流程。" : "请先恢复任务台账配置。"}`);
       } else if (!featuredReady) {
-        setGate("warning", "部分精选案例 RAG 未就绪", "演示可以继续，但该案例运行会如实显示证据读取状态；团队需重建索引后重验。");
+        setGate("warning", "部分精选案例运行环境未就绪", `${pendingNames || "见下方案例卡片"} 的官方来源或检索索引尚未就绪，点击运行会如实停在"读取证据"失败；该状态只表示运行准备，不改动案例的人工验收记录。其余案例可正常演示。`);
       } else {
         setGate("neutral", "演示就绪", `已选择 ${currentCase()?.company_name || "默认案例"}；点击“开始审计预筛”创建一次真实运行。${readiness.full_analysis_ready ? "" : "当前模型通道未就绪，运行会显示明确降级状态。"} ${releaseBoundary}`);
       }
