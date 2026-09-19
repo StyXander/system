@@ -309,6 +309,24 @@ def _contract_materiality_text(stored: StoredRunResponse) -> str:
     return f"{assessment}（重要性倍数 {multiple}）" if multiple is not None else assessment
 
 
+def _contract_execution_badge_text(stored: StoredRunResponse) -> str:
+    """运行来源一行：execution_badge 的 mode/label 与真实调用数并排。
+
+    契约 §六：三态（external_live/cache_replay/deterministic_backup）在页面与导出中
+    永不混淆；mode 为 None 表示来源无法判定，如实写未提供，不得推断成功或失败。
+    """
+    badge = stored.run.execution_badge
+    if badge is None:
+        return MISSING_FIELD_TEXT
+    label = _contract_text(badge, "label")
+    mode = _contract_text(badge, "mode")
+    calls = getattr(badge, "provider_call_count", None)
+    if label == MISSING_FIELD_TEXT:
+        return MISSING_FIELD_TEXT
+    suffix = f"（本次真实调用 {calls} 次）" if isinstance(calls, int) else ""
+    return f"{label}｜{mode}{suffix}"
+
+
 def _evidence_page_lookup(evidence_bundle: dict[str, Any]) -> dict[str, str]:
     """把证据编号映射到"来源类型·PDF 页码"，供待核查事项逐条回查。"""
     lookup: dict[str, str] = {}
@@ -469,6 +487,8 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             ("证据闭合状态", _contract_evidence_text(stored)),
             ("处置", _contract_disposition_text(stored)),
             ("金额重要性", _contract_materiality_text(stored)),
+            # 运行来源与优先级/闭合状态/处置同属三层状态区：三态在报告与页面中永不混淆。
+            ("运行来源", _contract_execution_badge_text(stored)),
             ("程序筛查", stored.run.screening_status),
             ("AI建议", stored.run.ai_recommendation),
             ("人工处理", review.status),
