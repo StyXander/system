@@ -1,0 +1,332 @@
+{
+  "generated_at": "2026-09-19T23:19:23.467400+08:00",
+  "purpose": "W19 后端 JSON 与 Word 导出逐字段比对留档",
+  "redline_scope": "系统自撰标题与行标签；模型散文与 RAG 引出原文不计入",
+  "field_totals": {
+    "ok": 40,
+    "total": 40
+  },
+  "redline_totals": 0,
+  "records": [
+    {
+      "run_id": "RUN-V7-901E91444479",
+      "label": "五粮液 risk_candidate 型",
+      "execution_mode": "external_live",
+      "run_completeness": "complete_public_prescreen",
+      "field_checks": [
+        {
+          "row": "审计关注优先级",
+          "expected_contains": "P2 优先核查",
+          "actual": "P2 优先核查",
+          "ok": true
+        },
+        {
+          "row": "证据闭合状态",
+          "expected_contains": "E2 部分闭合",
+          "actual": "E2 部分闭合",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "建议保留",
+          "actual": "建议保留（retain）",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "retain",
+          "actual": "建议保留（retain）",
+          "ok": true
+        },
+        {
+          "row": "金额重要性",
+          "expected_contains": "未评价金额重要性",
+          "actual": "未评价金额重要性",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "本次真实模型运行",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "external_live",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行完整性",
+          "expected_contains": "complete_public_prescreen",
+          "actual": "complete_public_prescreen",
+          "ok": true
+        }
+      ],
+      "field_ok": 8,
+      "field_total": 8,
+      "redline_scope": "系统自撰标题与行标签；模型散文与 RAG 引出原文不计入",
+      "redline_violations": [],
+      "ai_notice_verbatim_in_body": true,
+      "ai_notice_in_docprops": true,
+      "gate_passed": true,
+      "degraded_note_present": false
+    },
+    {
+      "run_id": "RUN-V7-A923212497D0",
+      "label": "五粮液 additional_procedure 型",
+      "execution_mode": "external_live",
+      "run_completeness": "complete_public_prescreen",
+      "field_checks": [
+        {
+          "row": "审计关注优先级",
+          "expected_contains": "P2 优先核查",
+          "actual": "P2 优先核查",
+          "ok": true
+        },
+        {
+          "row": "证据闭合状态",
+          "expected_contains": "E2 部分闭合",
+          "actual": "E2 部分闭合",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "建议保留",
+          "actual": "建议保留（retain）",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "retain",
+          "actual": "建议保留（retain）",
+          "ok": true
+        },
+        {
+          "row": "金额重要性",
+          "expected_contains": "未评价金额重要性",
+          "actual": "未评价金额重要性",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "本次真实模型运行",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "external_live",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行完整性",
+          "expected_contains": "complete_public_prescreen",
+          "actual": "complete_public_prescreen",
+          "ok": true
+        }
+      ],
+      "field_ok": 8,
+      "field_total": 8,
+      "redline_scope": "系统自撰标题与行标签；模型散文与 RAG 引出原文不计入",
+      "redline_violations": [],
+      "ai_notice_verbatim_in_body": true,
+      "ai_notice_in_docprops": true,
+      "gate_passed": true,
+      "degraded_note_present": false
+    },
+    {
+      "run_id": "RUN-V7-3F25634550E2",
+      "label": "标准股份 G/defer 型",
+      "execution_mode": "external_live",
+      "run_completeness": "complete_full_analysis",
+      "field_checks": [
+        {
+          "row": "审计关注优先级",
+          "expected_contains": "G 暂不分级（资料/口径受限）",
+          "actual": "G 暂不分级（资料/口径受限）",
+          "ok": true
+        },
+        {
+          "row": "证据闭合状态",
+          "expected_contains": "E2 部分闭合",
+          "actual": "E2 部分闭合",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "建议暂缓",
+          "actual": "建议暂缓（defer）",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "defer",
+          "actual": "建议暂缓（defer）",
+          "ok": true
+        },
+        {
+          "row": "金额重要性",
+          "expected_contains": "未评价金额重要性",
+          "actual": "未评价金额重要性",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "本次真实模型运行",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "external_live",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行完整性",
+          "expected_contains": "complete_full_analysis",
+          "actual": "complete_full_analysis",
+          "ok": true
+        }
+      ],
+      "field_ok": 8,
+      "field_total": 8,
+      "redline_scope": "系统自撰标题与行标签；模型散文与 RAG 引出原文不计入",
+      "redline_violations": [],
+      "ai_notice_verbatim_in_body": true,
+      "ai_notice_in_docprops": true,
+      "gate_passed": true,
+      "degraded_note_present": false
+    },
+    {
+      "run_id": "RUN-V7-D4556858C359",
+      "label": "中国海油 S 型",
+      "execution_mode": "external_live",
+      "run_completeness": "complete_public_prescreen",
+      "field_checks": [
+        {
+          "row": "审计关注优先级",
+          "expected_contains": "S 暂缓判断",
+          "actual": "S 暂缓判断",
+          "ok": true
+        },
+        {
+          "row": "证据闭合状态",
+          "expected_contains": "E3 未闭合",
+          "actual": "E3 未闭合",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "建议暂缓",
+          "actual": "建议暂缓（defer）",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "defer",
+          "actual": "建议暂缓（defer）",
+          "ok": true
+        },
+        {
+          "row": "金额重要性",
+          "expected_contains": "未提供",
+          "actual": "未提供",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "本次真实模型运行",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "external_live",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行完整性",
+          "expected_contains": "complete_public_prescreen",
+          "actual": "complete_public_prescreen",
+          "ok": true
+        }
+      ],
+      "field_ok": 8,
+      "field_total": 8,
+      "redline_scope": "系统自撰标题与行标签；模型散文与 RAG 引出原文不计入",
+      "redline_violations": [],
+      "ai_notice_verbatim_in_body": true,
+      "ai_notice_in_docprops": true,
+      "gate_passed": true,
+      "degraded_note_present": false
+    },
+    {
+      "run_id": "RUN-V7-C1914EDAAD08",
+      "label": "长江电力 DATA_GAP 型",
+      "execution_mode": "external_live",
+      "run_completeness": "complete_public_prescreen_with_gaps",
+      "field_checks": [
+        {
+          "row": "审计关注优先级",
+          "expected_contains": "G 暂不分级（资料/口径受限）",
+          "actual": "G 暂不分级（资料/口径受限）",
+          "ok": true
+        },
+        {
+          "row": "证据闭合状态",
+          "expected_contains": "E3 未闭合",
+          "actual": "E3 未闭合",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "建议暂缓",
+          "actual": "建议暂缓（defer）",
+          "ok": true
+        },
+        {
+          "row": "处置",
+          "expected_contains": "defer",
+          "actual": "建议暂缓（defer）",
+          "ok": true
+        },
+        {
+          "row": "金额重要性",
+          "expected_contains": "未提供",
+          "actual": "未提供",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "本次真实模型运行",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行来源",
+          "expected_contains": "external_live",
+          "actual": "本次真实模型运行｜external_live（本次真实调用 3 次）",
+          "ok": true
+        },
+        {
+          "row": "运行完整性",
+          "expected_contains": "complete_public_prescreen_with_gaps",
+          "actual": "complete_public_prescreen_with_gaps",
+          "ok": true
+        }
+      ],
+      "field_ok": 8,
+      "field_total": 8,
+      "redline_scope": "系统自撰标题与行标签；模型散文与 RAG 引出原文不计入",
+      "redline_violations": [],
+      "ai_notice_verbatim_in_body": true,
+      "ai_notice_in_docprops": true,
+      "gate_passed": true,
+      "degraded_note_present": false
+    }
+  ]
+}

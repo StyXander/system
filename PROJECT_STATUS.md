@@ -276,13 +276,15 @@
   其中 2 次 `analysis_conclusion=additional_procedure_required`、1 次 `risk_candidate`；
   自然语言层允许差异，程序事实层稳定。**D1 数字闸门误杀已在真实 live 路径上确认修复**
   （当日 13:09—13:13 曾三次全败于同一数字）。
-- **W22 Demo Case Matrix**：在当前 HEAD 上取三条 fresh live，四条路线给出**四种不同结果**，
+- **W22 Demo Case Matrix**：在当前 HEAD 上取三条 fresh live，**四家公司、三种技术路线、四组不同的优先级/证据/处置组合**，
   全部可回查 `outputs/w21-w23-live-verification-20260919/w22_matrix.json`：
   五粮液 `P2 优先核查 / E2 / retain`（risk_candidate，+55.62pp strong）；
   标准股份 `G 暂不分级 / E2 / defer`（R1 未触发 −13.20pp，R2 `DATA_NOT_COMPARABLE`）；
   中国海油 `S 暂缓判断 / E3 / defer`（industry_review）；
   长江电力 `G 暂不分级 / E3 / defer`（R1 `DATA_GAP`，`blocked_candidate_count=6`）。
-  **严格落 `P4` 的 live 案例本轮未取到**——`S` 优先于 `P4` 是已裁定的保守顺序，非缺陷。
+  三种技术路线为 risk_candidate / evidence_gap_review / industry_review。
+  **严格落 `P4` 的 live 案例本轮未取到**；按开工基线 §7.5 的批准替代方案改用 `S` 案例，
+  并在讲解中区分「维持常规程序」与「暂缓判断」两种处置——该替代有签字依据，不属违约。
 - **W17 在 live 路径上再次确认**：长江电力 `growth_gap=null`，不再出现历史 1.45e9 量级；
   抽取诊断原文（"同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认"）
   已在 `prescreen_plan.candidate_quality_issues` 中供前端 W16 直接读取。
@@ -311,16 +313,41 @@
   原基线 577，+9 为 W05 补齐项）；`scripts/check_chinese_comments.py` **2813/26641 = 10.56%** PASS；
   `node scripts/verify_demo_outcome_judge.mjs` **75 项通过**；`git diff --check` 退出码 0；
   `scripts/scan_working_tree_secrets.py` `no_secret_hits`。
-- **付费调用**：本轮经队长授权执行 **6 次真实完整链运行 / 18 次 provider 调用**
-  （W21 三次 + W22 三次），全部 `external_live`、`cache_hit=false`；
-  所有测试与只读探针一律前缀 `DEEPSEEK_API_KEY=`，未提交、未推送、未部署。
-- **间歇项触发条件已复现定位**（升级 2026-09-15 段"根因未定位"的登记）：
+- **付费调用台账（按完整链次数与 provider 次数双口径登记）**：
+  2026-09-19 21:41—21:47 窗口共 **8 次真实完整链运行 / 24 次 provider 调用**，构成如下：
+  ① 旧 `:8000` 实例上的诊断运行 `RUN-V7-9F95459E6259`（1 次/3 调用，用于发现契约字段未挂载）；
+  ② W21 三次 `RUN-V7-A923212497D0 / CD12FD56306C / 901E91444479`（3 次/9 调用）；
+  ③ W22 三次 `RUN-V7-3F25634550E2 / D4556858C359 / C1914EDAAD08`（3 次/9 调用）；
+  ④ 缓存态补验尝试 `RUN-V7-8C272297D1EB`（1 次/3 调用，未命中缓存，见下）。
+  其中 **W21/W22 验收子集为 6 次/18 次**，不得把子集当作整轮总消耗。
+  预算口径为完整链次数：目标 ≤12、硬上限 15；实际 8 次，**未触顶**。
+  全部 `external_live`、`cache_hit=false`；所有测试与只读探针一律前缀 `DEEPSEEK_API_KEY=`。
+  相关成果已提交（`13f2554`、`381a2bd` 及后续），未推送、未部署。
+- **cache_replay 不可达的精确原因（非配置问题）**：`get_public_model_cache` /
+  `put_public_model_cache` 仅在 `SupabaseClient` 实现（`supabase_adapter.py:759-781`，
+  打 `rest/v1/public_model_cache`），本地持久化模式无对应实现；
+  同参数重跑实测仍 `cache_hit=false`。故该状态在本机**结构性不可达**，
+  按执行计划作为**明确豁免的剩余项**登记，总评为"有保留完成"；**未伪造 `export_approved`**。
+- **间歇项触发条件（相关性证据，非已证明根因）**：
   `test_all_seed_cases_enter_three_role_external_route` 在**有第二个 uvicorn 实例运行并写同一份
   `backend/runtime`** 时全量失败、单独运行时通过；停掉该实例后全量 **586 passed / 1 skipped / 0 failed**（157.77s）。
   本轮实测两次：`:8011` 在跑时全量 FAILED，`taskkill` 停掉后全量绿。
-  失败现场伴随多条 `ResourceWarning: unclosed database in <sqlite3.Connection>` 指向案例台账 sqlite，
-  说明测试的 `TestClient(app)` 与在线实例共用同一份磁盘台账状态而被干扰。
-  **精确失效路径仍未定位**，但触发条件可复现，故按"跑全量回归前必须停掉所有 uvicorn 实例"作为操作规程执行。
+  失败现场伴随多条 `ResourceWarning: unclosed database in <sqlite3.Connection>` 指向案例台账 sqlite。
+  **这是可复现的触发条件（相关性），精确失效机制仍未证明**——该用例自身使用 pytest runtime
+  namespace 并替换部分额度账本，现有材料不足以把共享台账干扰写成唯一根因。
+  操作规程：跑全量回归前停掉所有 uvicorn 实例。
+- **Word 模板字体已改（复核附带发现）**：正文由 Microsoft YaHei 9pt 改为**宋体小四 12pt**，
+  主标题与一级标题由 17pt 改为**黑体三号 16pt**，二级/三级标题黑体 14pt/12pt 递减。
+  **表格因密度用宋体五号 10.5pt，是对"正文小四"的登记例外**；顶部横幅与声明行 10.5pt。
+  新增 `test_report_uses_songti_body_and_heiti_headings` 锁定正文与标题字号字族。
+- **P0 注释目标未达成（如实登记，不注水）**：硬门槛 ≥10% 满足（2813/26641 = **10.56%**），
+  但 P0 自设目标 ≥11.5% **未达成**。补齐需约 280 行注释，属注水且会降低可读性，故不补；
+  达标与达到目标两项分开记录。
+- **W19 留档补齐**：五条 live 的后端 JSON ↔ Word 逐字段比对已落盘
+  `outputs/w21-w23-live-verification-20260919/w19_docx_comparison.json`，**40/40 通过、红线违规 0**；
+  红线核对范围限定为系统自撰标题与行标签。
+- **工作树状态精确表述**：相关已跟踪改动已全部提交；`docs/review-assets/2026-09-15_realname_identity_restore.json`
+  因疑似含个人身份线索按既有决定**保持未跟踪、不纳入提交**，故"工作树干净"的字面说法不成立。
 - **未闭合项**：`cache_replay` 态仍未在真实浏览器实测（本机需 Supabase 缓存行 + 真人 `export_approved`），
   **不得计入验收通过**；④ 区存在「应收账款账龄明细表 / 账龄明细表」近似重复条目（呈现层瑕疵）；
   `PROC-R1-*` 程序结果证据无 PDF 页码，回链如实显示"原文入口未提供"；

@@ -161,3 +161,29 @@ def test_badge_model_keeps_provider_call_count_field() -> None:
     """ExecutionBadge 必须保留本次真实调用数，供页面与报告同源引用。"""
     badge = ExecutionBadge(mode="external_live", label="本次真实模型运行", provider_call_count=3)
     assert badge.provider_call_count == 3
+
+
+def test_report_uses_songti_body_and_heiti_headings(tmp_path: Path) -> None:
+    """用户口径：正文宋体小四(12pt)、标题黑体三号(16pt)。
+
+    表格因密度用五号(10.5pt)，是对"正文小四"的登记例外，不在此断言。
+    """
+    from docx.shared import Pt as _Pt
+
+    raw = _load("run_contract_mock.json")
+    path = build_report(tmp_path, _stored(raw))
+    document = Document(path)
+
+    normal = document.styles["Normal"]
+    assert normal.font.name == "宋体"
+    assert normal.font.size == _Pt(12)
+
+    title_run = document.paragraphs[0].runs[0]
+    assert title_run.font.name == "黑体"
+    assert title_run.font.size == _Pt(16)
+
+    headings = [p for p in document.paragraphs if p.style.name.startswith("Heading")]
+    assert headings, "报告应至少有一个标题段"
+    first = headings[0].runs[0]
+    assert first.font.name == "黑体"
+    assert first.font.size == _Pt(16)

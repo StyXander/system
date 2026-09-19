@@ -218,7 +218,22 @@ def _set_cell_shading(cell: Any, fill: str) -> None:
     shading.set(qn("w:fill"), fill)
 
 
-def _set_run_font(run: Any, name: str = "Microsoft YaHei") -> None:
+# 用户口径（2026-09-19）：正文宋体小四、标题黑体三号。
+# 三号=16pt 用于主标题与一级标题；下级标题沿用黑体但按层级递减，避免整篇同号失去结构。
+# 表格密度高于正文，用五号 10.5pt；这是对"正文小四"的表格例外，已在 PROJECT_STATUS 登记。
+BODY_FONT = "宋体"
+HEADING_FONT = "黑体"
+BODY_PT = 12          # 小四
+TABLE_PT = 10.5       # 五号，表格密度例外
+NOTICE_PT = 10.5      # 顶部横幅与声明行
+_HEADING_PT = {1: 16, 2: 14, 3: 12}   # 三号 / 四号 / 小四
+
+
+def _heading_pt(level: int) -> float:
+    return float(_HEADING_PT.get(level, 12))
+
+
+def _set_run_font(run: Any, name: str = BODY_FONT) -> None:
     run.font.name = name
     run._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), name)
     run._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), name)
@@ -247,8 +262,8 @@ def _table_rows(document: Document, entries: list[tuple[str, Any]]) -> None:
         for index, cell in enumerate(cells):
             for paragraph in cell.paragraphs:
                 for run in paragraph.runs:
-                    _set_run_font(run)
-                    run.font.size = Pt(8.5)
+                    _set_run_font(run, BODY_FONT)
+                    run.font.size = Pt(TABLE_PT)
                     if index == 0:
                         run.bold = True
 
@@ -256,7 +271,8 @@ def _table_rows(document: Document, entries: list[tuple[str, Any]]) -> None:
 def _add_heading(document: Document, text: str, level: int = 1) -> None:
     paragraph = document.add_heading(text, level=level)
     for run in paragraph.runs:
-        _set_run_font(run)
+        _set_run_font(run, HEADING_FONT)
+        run.font.size = Pt(_heading_pt(level))
         run.font.color.rgb = RGBColor(12, 71, 82)
 
 
@@ -363,17 +379,17 @@ def _grid_table(document: Document, header: list[str], rows: list[list[str]]) ->
         _set_cell_shading(cell, "DCEFF1")
         for paragraph in cell.paragraphs:
             for run in paragraph.runs:
-                _set_run_font(run)
+                _set_run_font(run, BODY_FONT)
                 run.bold = True
-                run.font.size = Pt(8.5)
+                run.font.size = Pt(TABLE_PT)
     for row in rows:
         cells = table.add_row().cells
         for index, value in enumerate(row):
             cells[index].text = str(value)
             for paragraph in cells[index].paragraphs:
                 for run in paragraph.runs:
-                    _set_run_font(run)
-                    run.font.size = Pt(8.5)
+                    _set_run_font(run, BODY_FONT)
+                    run.font.size = Pt(TABLE_PT)
 
 
 _SUPPORT_STATUS_LABELS = {
@@ -414,21 +430,22 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
     section.left_margin = Cm(2.0)
     section.right_margin = Cm(2.0)
     normal = document.styles["Normal"]
-    normal.font.name = "Microsoft YaHei"
-    normal._element.rPr.rFonts.set(qn("w:eastAsia"), "Microsoft YaHei")
-    normal.font.size = Pt(9)
+    normal.font.name = BODY_FONT
+    normal._element.rPr.rFonts.set(qn("w:eastAsia"), BODY_FONT)
+    normal.font.size = Pt(BODY_PT)
 
     title = document.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title_run = title.add_run("审迹智链 · 预审风险备忘录")
-    _set_run_font(title_run)
+    _set_run_font(title_run, HEADING_FONT)
     title_run.bold = True
-    title_run.font.size = Pt(17)
+    title_run.font.size = Pt(16)
     title_run.font.color.rgb = RGBColor(8, 87, 104)
     subtitle = document.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     subtitle_run = subtitle.add_run(f"{REPORT_VERSION}｜AI生成内容｜审计计划阶段")
-    _set_run_font(subtitle_run)
+    _set_run_font(subtitle_run, HEADING_FONT)
+    subtitle_run.font.size = Pt(BODY_PT)
     subtitle_run.bold = True
     subtitle_run.font.color.rgb = RGBColor(22, 124, 142)
 
@@ -440,28 +457,32 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
         else f"【{AI_GENERATED_CONTENT_NOTICE}】"
     )
     warning_run = warning.add_run(warning_text)
-    _set_run_font(warning_run)
+    _set_run_font(warning_run, BODY_FONT)
+    warning_run.font.size = Pt(NOTICE_PT)
     warning_run.bold = True
     warning_run.font.color.rgb = RGBColor(170, 76, 24)
     if is_automation:
         ai_notice = document.add_paragraph()
         ai_notice.alignment = WD_ALIGN_PARAGRAPH.CENTER
         ai_notice_run = ai_notice.add_run(f"【{AI_GENERATED_CONTENT_NOTICE}】")
-        _set_run_font(ai_notice_run)
+        _set_run_font(ai_notice_run, BODY_FONT)
+        ai_notice_run.font.size = Pt(NOTICE_PT)
         ai_notice_run.bold = True
         ai_notice_run.font.color.rgb = RGBColor(170, 76, 24)
     if demo_preview:
         preview = document.add_paragraph()
         preview.alignment = WD_ALIGN_PARAGRAPH.CENTER
         preview_run = preview.add_run("【竞赛演示报告｜未登录｜未经真人专业复核】")
-        _set_run_font(preview_run)
+        _set_run_font(preview_run, BODY_FONT)
+        preview_run.font.size = Pt(NOTICE_PT)
         preview_run.bold = True
         preview_run.font.color.rgb = RGBColor(176, 35, 35)
     if stored.run.run_completeness != "complete_full_analysis":
         incomplete = document.add_paragraph()
         incomplete.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = incomplete.add_run(f"【不完整运行：{stored.run.run_completeness}】")
-        _set_run_font(run)
+        _set_run_font(run, BODY_FONT)
+        run.font.size = Pt(NOTICE_PT)
         run.bold = True
         run.font.color.rgb = RGBColor(176, 35, 35)
 
