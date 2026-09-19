@@ -288,6 +288,8 @@ _EXECUTION_MODE_TO_BADGE: dict[str, str] = {
 }
 
 
+# 执行徽标的唯一实现点（签字记录 §7.9.3）：回放、备用链与实时三路都从这里取 mode/label，
+# 前端禁止自行推导三态；mode 为 None 表示来源无法判定，前端必须显示「未提供」。
 def execution_badge_for(
     *,
     execution_mode: str | None,

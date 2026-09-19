@@ -40,6 +40,7 @@ KEY_NUMERIC_PATTERNS = (
 
 
 def _is_technical(raw: str) -> bool:
+    """识别工程性数字（页码、附注号、比例分母等），这类数字不参与可追溯校验，避免误杀。"""
     return any(raw.upper().startswith(prefix.upper()) for prefix in _TECHNICAL_PREFIXES)
 
 
@@ -117,6 +118,8 @@ def _metric_sources(rule_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _evidence_sources(evidence_bundle: dict[str, Any]) -> list[dict[str, Any]]:
+    """汇总证据包中全部可绑定来源；只有登记 evidence_id 的年报原文片段进入追溯范围（D4）。"""
+    """汇总证据包中全部可绑定来源；只有登记了 evidence_id 的年报原文片段才进入追溯范围（D4）。"""
     sources: list[dict[str, Any]] = []
     for key, rows in evidence_bundle.items():
         if not isinstance(rows, list):
@@ -193,7 +196,14 @@ def _trace_segment(
     allowed_year_set: set[int],
     tolerance: float,
 ) -> list[dict[str, Any]]:
+    """把一段 AI 文本中的数字逐个对来源做可追溯匹配，返回命中与未命中清单。
+    
+    匹配只接受数值等价（含金额单位换算后的等价），不接受四舍五入近似；
+    找不到来源的数字原样保留进 key_unverified，绝不静默丢弃。
+    """
     """对单段文本逐 token 溯源；来源池由调用方按主张绑定关系给定。"""
+    # 年份只接受「当前案例已登记报告年度」作为上下文，其余年份数字一律按未验证处理；
+    # 金额等价判断允许单位换算（元/万元/亿元），但不允许四舍五入近似冒充命中。
     trace: list[dict[str, Any]] = []
     for token in extract_number_tokens(text):
         if token["normalized"] is None:
@@ -263,6 +273,12 @@ def build_numeric_claim_trace(
     claim_evidence_bindings: list[dict[str, Any]] | None = None,
     tolerance: float = 0.005,
 ) -> list[dict[str, Any]]:
+    """数字闸门主入口：对 AI 草稿中的关键财务数字逐条建立可追溯记录。
+    
+    W01 起改为 claim-aware：只校验「claim 已绑定 evidence_id 的年报原文片段数字」
+    范围外的自称关键数字（队长签字 D4）。passed=false 时运行不得按完整链展示，
+    前端与导出都必须保留未通过数字清单，不得改写为成功。
+    """
     """构建 原数字—规范化值—来源—计算式—验证状态 轨迹。
 
     未传 claim_evidence_bindings 时保持旧口径：整段 text 只用全局结构化来源，

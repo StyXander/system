@@ -271,6 +271,7 @@ def _contract_text(value: Any, attribute: str) -> str:
     return text or MISSING_FIELD_TEXT
 
 
+# 契约字段的展示文本统一走「未提供」占位约定；AI 声明逐字随报告出口，不在导出层弱化。
 def _contract_priority_text(stored: StoredRunResponse) -> str:
     """审计关注优先级一行：级别代号配已签标签；未定级不得写成任何档位。"""
     grade = _contract_text(stored.run.planning_priority, "grade")
@@ -363,6 +364,8 @@ _SUPPORT_STATUS_LABELS = {
 }
 
 
+# Word 报告与 API JSON 共用同一份 RunResponse 载荷：六个契约字段在此逐一透传，
+# 缺失时写「未提供」占位，不得在导出层补算或改写级别（W05/W19 三端一致的第三端）。
 def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_preview: bool = False) -> Path:
     review = stored.human_review
     if review is None or review.status == "未复核" or not review.export_approved:

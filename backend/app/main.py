@@ -3410,6 +3410,8 @@ def _disposition(results: list[RuleResult], ai_recommendation: str) -> Dispositi
     )
 
 
+# 从最终草稿提取 claims/data_gaps/requested_materials 三个文本清单，作为证据闭合判定的输入；
+# 去重保持首次出现顺序，不合并近义表述（合并属于专业判断，不由工程代做）。
 def _draft_text_lists(results: list[RuleResult]) -> tuple[list[dict[str, Any]], list[str], list[str]]:
     """收集草稿里的主张、资料缺口与待索取资料，作为证据闭合的既有控制项输入。"""
     claims: list[dict[str, Any]] = []
@@ -3428,6 +3430,7 @@ def _draft_text_lists(results: list[RuleResult]) -> tuple[list[dict[str, Any]], 
     return claims, data_gaps, requested
 
 
+# §7.7：blocked 行数显式下传给轨 B；台账缺键时返回 None，由轨 B 退回代理判据，0 是真实计数。
 def _prescreen_blocked_count(context: dict[str, Any]) -> int | None:
     """读取预筛阶段的 blocked 行数；0 是真实计数，只有缺键才返回 None。"""
     for key in ("prescreen_plan", "prescreen_summary"):
@@ -3439,6 +3442,8 @@ def _prescreen_blocked_count(context: dict[str, Any]) -> int | None:
     return None
 
 
+# 裁决 R3 的接缝：轨 B 函数输出是 D2 逐字要求的扁平键，schemas 线上模型是嵌套 state；
+# 本函数做一次性归一，两种命名永久并存，任何一侧都不得删除。
 def _normalize_evidence_state_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """把轨 B 的判定载荷归一到 RunResponse 的嵌套契约键。
 
@@ -3620,6 +3625,12 @@ def _execute_run(
     progress_callback: Callable[[str, str, str], None] | None = None,
     agent_step_callback: Callable[[str, str, str], None] | None = None,
 ) -> RunResponse:
+    """运行主链：确定性计算 → RAG → 三 Agent → 硬校验 → 契约字段挂载。
+    
+    顺序不可调换：规则结果先于模型，模型草稿先于数字闸门，闸门结论先于
+    planning_priority/evidence_state 判定。任何一步失败都按既有状态机降级，
+    不伪造成功；旁路观察器（进度/台账回调）失败只留痕、不改主链。
+    """
     progress_observer_failures: list[dict[str, str]] = []
 
     def _note_observer_failure(scope: str, detail_key: str, detail: str, error: Exception) -> None:

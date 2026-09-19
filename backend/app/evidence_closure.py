@@ -67,6 +67,7 @@ def _string_list(value: Any) -> list[str]:
 
 def _read_gate(numeric_gate: Any) -> tuple[str, list[str], int]:
     """读取数字闸门控制项，返回 passed/failed/not_provided 三态与未通过数字清单。"""
+    """读取数字闸门控制项，返回 passed/failed/not_provided 三态与未通过数字清单。"""
 
     if not isinstance(numeric_gate, dict) or not numeric_gate:
         return "not_provided", [], 0
@@ -96,6 +97,7 @@ def _read_fitness(evidence_fitness: Any) -> tuple[list[dict[str, Any]] | None, s
     return None, "evidence_fitness 形态未识别（非列表亦非字典），按未提供处理。"
 
 
+# 「自称 supported 却无 evidence_ids」是 D2 的关键破坏性信号，必须逐条列出主张文本供人工回查。
 def _summarise_claims(claims: Any) -> dict[str, Any]:
     """统计主张的绑定与支持状态，找出「自称已支持却无证据」的关键主张。"""
 
@@ -126,6 +128,7 @@ def _summarise_claims(claims: Any) -> dict[str, Any]:
     }
 
 
+# 覆盖矩阵只统计「当前企业直接证据」行；登记级与行业级证据不推高闭合档位。
 def _summarise_coverage(coverage_matrix: Any) -> dict[str, Any]:
     """从认定—证据—程序矩阵判断是否存在当前企业直接证据。"""
 
@@ -156,6 +159,14 @@ def compute_evidence_state(
     data_gaps: Any,
     requested_materials: Any,
 ) -> dict[str, Any]:
+    """按签字 D2 以 E3→E2→E1 的保守顺序求值，返回扁平键载荷（evidence_state 等）。
+    
+    破坏性条件（闸门未过、supported 却无绑定、适配度违规）任一成立即 E3；
+    E2 要求闸门通过且有直接证据但仍有未闭合因素；E1 是全部控制项齐备的强断言。
+    队长裁决 R3：本函数输出保持扁平键（D2 对函数输出的逐字要求），由
+    main._normalize_evidence_state_payload() 归一为 schemas 的嵌套线上结构，
+    两套键名并存是分层设计，不是缺陷。
+    """
     """按已签字口径 D2 计算证据闭合状态，并返回逐条可复核的理由。
 
     返回字段：
@@ -177,6 +188,8 @@ def compute_evidence_state(
     unbound_supported = claim_summary["supported_without_evidence"]
     violation_count = len(fitness_violations or [])
 
+    # factors 逐条登记四个控制项的读数与来源；「有待取得资料即不得称已闭合」
+    # 直接写进贡献说明，防止呈现层把 E1 误读为「无需再取证」。
     factors = [
         _factor(
             "numeric_gate",

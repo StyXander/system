@@ -78,6 +78,7 @@ def _as_plain_dict(rule: Any) -> dict[str, Any]:
 
 def _rule_status(rule: dict[str, Any]) -> str:
     """读取规则的冻结状态；缺失按空串处理，不猜测。"""
+    """读取规则的冻结状态；缺失按空串处理，不猜测。"""
 
     return str(rule.get("status") or "")
 
@@ -114,6 +115,7 @@ def _metric_value(rule: dict[str, Any], key: str) -> Any:
     return metrics.get(key)
 
 
+# 候选规则是强度与持续期间字段的唯一来源；多条候选时按 rule_id 升序取第一条，保证同输入同输出。
 def _first_candidate_rule(rules: list[dict[str, Any]]) -> dict[str, Any] | None:
     """按 rule_id 升序取第一条 candidate 规则，作为强度与持续性字段的来源。"""
 
@@ -128,6 +130,7 @@ def _first_candidate_rule(rules: list[dict[str, Any]]) -> dict[str, Any] | None:
     return candidates[0]
 
 
+# 处置理由逐字取自复核 Agent 的原文输出，前端不得改写；取不到时如实返回 None。
 def _collect_reason_for_status(rules: list[dict[str, Any]]) -> str | None:
     """取第一条非空的复核理由原文，供处置轴并排显示；不改写、不概括。"""
 
@@ -146,6 +149,7 @@ def _factor(name: str, value: Any, contribution: str, source: str) -> dict[str, 
     return {"factor": name, "value": value, "contribution": contribution, "source": source}
 
 
+# 「数据完整」只认 complete_ 前缀的已冻结完整性状态；incomplete_ 与未知值一律按不完整处理（fail-closed）。
 def _data_complete(run_completeness: Any) -> bool:
     """数据完整性只认运行完整性前缀，不接受任何推断。"""
 
@@ -169,6 +173,13 @@ def compute_planning_priority(
     screening_status: Any,
     blocked_candidate_count: int | None = None,
 ) -> dict[str, Any]:
+    """按签字 D1 的 G→P1→P2→P3→S→P4 顺序短路求值，返回可直接挂载到 RunResponse 的载荷。
+    
+    输入只接受已冻结字段（规则状态、筛查强度、持续期间、复核建议、完整性状态与可选
+    blocked 显式计数），不重新计算任何指标；输出包含 grade/label/factors/reasons/
+    disposition/金额重要性并排轴与边界句。六档充分条件均不成立时 grade 为 None，
+    如实记录未命中原因，不自创第七档。队长裁决 R2：优先级卡在呈现层只展示 factors。
+    """
     """按已签字口径 D1 计算审计关注优先级，并返回可逐条复核的结构化结果。
 
     ``blocked_candidate_count`` 是 §7.7 追加的可选入参：传入 ``context.prescreen_plan``
@@ -211,6 +222,8 @@ def compute_planning_priority(
     blocked_count_given = blocked_count is not None
     no_blocked_rows = blocked_count == 0 if blocked_count_given else not proxy_blocked
 
+    # factors 逐条登记「哪个字段取了什么值、因此贡献了什么、来源字段路径」，
+    # 使最终级别可以被评委和集成方逐条复核，而不是只看到一个结论代号。
     factors = [
         _factor(
             "screening_status",
