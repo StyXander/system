@@ -4453,6 +4453,7 @@ mark {
     .demo-audit-overview[data-tone="focus"] { border-top-color: var(--at-brass); }
     .demo-audit-overview[data-tone="routine"] { border-top-color: var(--at-jade); }
     .demo-audit-overview[data-tone="gap"] { border-top-color: var(--at-brass); }
+    .demo-audit-overview[data-tone="procedure"] { border-top-color: var(--at-info); }
     .demo-audit-overview[data-tone="industry"] { border-top-color: var(--at-info); }
     .demo-audit-overview[data-tone="invalid"] { border-top-color: var(--at-clay); }
     .demo-overview-lead {
@@ -5139,6 +5140,14 @@ mark {
 /* 案例卡：内部节奏对齐，选中态从"几乎看不出"抬到一眼可辨。 */
 .demo-case-grid { gap: 16px; }
 
+/* W18：区分"案例资料已验收"与"本次运行已验证"，并给历史验收运行加边界句。 */
+.demo-case-boundary {
+  margin: -4px 0 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-sub);
+}
+
 .demo-case-card {
   gap: 7px;
   padding: 18px 20px 20px;
@@ -5202,6 +5211,49 @@ mark {
 .demo-console-head { background: var(--at-tint); border-bottom-color: var(--at-rule-soft); }
 .demo-console-head .demo-current-case strong { color: var(--at-ink); }
 .demo-console-head .demo-current-case small { color: var(--at-ink-4); }
+
+/* W12 运行来源徽标：与六阶段条同屏。三态除颜色外还有独立图形前缀与完整文字，
+   满足"不得仅靠颜色区分"（AGENTS.md §7 非颜色编码）。 */
+.demo-execution-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--at-rule-soft);
+  background-color: rgb(255 255 255 / 88%);
+}
+
+.demo-execution-badge {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 4px 10px;
+  border: 1px solid var(--control-line);
+  border-radius: 2px;
+  color: var(--ink-main);
+  background: var(--paper-surface);
+}
+
+.demo-execution-badge::before { content: "□ "; }
+.demo-execution-badge[data-mode="idle"] { color: var(--ink-sub); }
+.demo-execution-badge[data-mode="running"]::before { content: "◇ "; }
+.demo-execution-badge[data-mode="external_live"] { color: var(--state-ok); border-color: rgb(var(--at-line-rgb) / 34%); }
+.demo-execution-badge[data-mode="external_live"]::before { content: "● "; }
+.demo-execution-badge[data-mode="cache_replay"] { color: var(--state-warn); border-color: var(--warning-border); }
+.demo-execution-badge[data-mode="cache_replay"]::before { content: "◐ "; }
+.demo-execution-badge[data-mode="deterministic_backup"] { color: var(--action-blue); border-color: var(--accent-border); }
+.demo-execution-badge[data-mode="deterministic_backup"]::before { content: "▣ "; }
+.demo-execution-badge[data-mode="not_recorded"]::before { content: "? "; }
+
+.demo-execution-hint { font-size: 11.5px; color: var(--ink-sub); }
+
+@media (max-width: 640px) {
+  .demo-execution-line { padding: 10px 14px; gap: 6px 8px; }
+  .demo-execution-hint { flex-basis: 100%; }
+}
 
 .demo-stage-rail { background: var(--at-rule-soft); border-bottom-color: var(--at-rule-soft); }
 
@@ -5275,6 +5327,7 @@ mark {
 .demo-audit-overview[data-tone="focus"] { border-top-color: var(--at-brass); }
 .demo-audit-overview[data-tone="routine"] { border-top-color: var(--at-jade); }
 .demo-audit-overview[data-tone="gap"] { border-top-color: var(--at-brass); }
+.demo-audit-overview[data-tone="procedure"] { border-top-color: var(--at-info); }
 .demo-audit-overview[data-tone="industry"] { border-top-color: var(--at-info); }
 .demo-audit-overview[data-tone="invalid"] { border-top-color: var(--at-clay); }
 .demo-overview-lead { border-bottom-color: var(--at-rule-soft); }
@@ -5314,6 +5367,130 @@ mark {
 .demo-agent-card-model,
 .demo-agent-card-group small { color: var(--at-ink-4); }
 .demo-agent-card-group ul { color: var(--at-ink-2); }
+
+/* W14：逐条主张的证据回链。文字标签承担语义，颜色只做辅助（非颜色编码要求）。 */
+.demo-claim-evidence-wrap { display: block; margin-top: 4px; }
+.demo-claim-evidence {
+  display: block;
+  color: var(--at-ink-4);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .02em;
+  overflow-wrap: anywhere;
+}
+.demo-claim-evidence.is-missing { color: var(--at-brass-ink); }
+.demo-claim-support { color: var(--at-ink-2); font-weight: 700; }
+.demo-evidence-chip {
+  display: block;
+  margin-top: 2px;
+  padding-left: 8px;
+  border-left: 2px solid var(--at-rule-soft);
+  color: var(--at-ink-3, var(--at-ink-4));
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.demo-evidence-chip a { color: var(--action-blue); text-decoration: underline; }
+.demo-claim-nolink { color: var(--at-brass-ink); }
+.demo-item-facts li { margin-top: 6px; }
+
+/* W13 综合审计关注卡：沿用 .demo-evidence-challenge 的边框与表面语言，不新建视觉系统。 */
+.demo-attention-card {
+  margin: 20px 0 24px;
+  padding: clamp(18px, 2.4vw, 30px);
+  background: var(--at-inset);
+  border: 1px solid var(--at-rule);
+  border-top: 3px solid var(--at-thread-bright);
+  box-shadow: var(--at-edge-hi);
+}
+
+.demo-attention-zone { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--at-rule-soft); }
+.demo-attention-zone:first-of-type { border-top: 0; padding-top: 0; }
+.demo-attention-zone h4 { margin: 0 0 10px; color: var(--at-ink); font-size: 15px; line-height: 1.4; }
+.demo-attention-index {
+  display: inline-block;
+  min-width: 20px;
+  margin-right: 6px;
+  color: var(--at-thread);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.demo-attention-dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 18px; margin: 0; }
+.demo-attention-dl div { min-width: 0; }
+.demo-attention-dl dt { color: var(--at-ink-4); font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; }
+.demo-attention-dl dd { margin: 2px 0 0; color: var(--at-ink); font-size: 13.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.demo-attention-zone ul { margin: 0; padding-left: 18px; color: var(--at-ink-2); font-size: 12.5px; line-height: 1.65; }
+.demo-attention-zone li + li { margin-top: 6px; }
+.demo-attention-note { margin: 8px 0 0; color: var(--at-ink-4); font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; }
+.demo-attention-subheading { margin: 10px 0 4px; color: var(--at-ink); font-size: 12.5px; font-weight: 700; }
+.demo-attention-empty { margin: 0; color: var(--at-ink-4); font-size: 12.5px; }
+
+.demo-attention-support {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .03em;
+}
+.demo-attention-support.is-hypothesis { color: var(--at-brass-ink); background: var(--state-warn-bg); }
+.demo-attention-support.is-supported { color: var(--state-ok); }
+
+.demo-attention-zone-badges #demo-attention-badges { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.demo-attention-badge {
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--at-panel);
+  border: 1px solid var(--at-rule);
+  border-left: 3px solid var(--control-line);
+  display: grid;
+  gap: 3px;
+}
+.demo-attention-badge span { color: var(--at-ink-4); font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; }
+.demo-attention-badge strong { color: var(--at-ink); font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.demo-attention-badge small { color: var(--at-ink-4); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.demo-attention-badge[data-state="provided"] { border-left-color: var(--at-jade); }
+.demo-attention-badge[data-state="partial"] { border-left-color: var(--at-info); }
+.demo-attention-badge[data-state="missing"] { border-left-color: var(--at-brass); }
+.demo-attention-badge[data-state="missing"] strong { color: var(--at-brass-ink); }
+.demo-attention-boundary {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  padding: 9px 12px;
+  background: var(--at-inset);
+  border-left: 2px solid var(--control-line);
+  color: var(--at-ink-2);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+/* W16 抽取质量阻断说明：与"资料不足"区分，标题与逐条诊断原文同等权重。 */
+.demo-extraction-notice {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--state-warn-bg);
+  border: 1px solid var(--warning-border);
+  border-left: 3px solid var(--state-warn);
+  display: grid;
+  gap: 5px;
+}
+.demo-extraction-notice strong { color: var(--state-warn); font-size: 13.5px; }
+.demo-extraction-notice small { color: var(--at-ink-4); font-size: 11px; }
+.demo-extraction-notice ul { margin: 2px 0; padding-left: 18px; color: var(--at-ink-2); font-size: 12px; line-height: 1.6; }
+.demo-extraction-boundary { color: var(--at-ink-4); font-size: 11px; line-height: 1.55; }
+
+/* W15 护城河表述：静态逐字句，运行后不被后端文本覆盖。 */
+.demo-moat-verbatim { font-weight: 600; color: var(--at-ink-2) !important; }
+
+@media (max-width: 640px) {
+  .demo-attention-card { padding: 16px 14px; }
+  .demo-attention-dl { grid-template-columns: 1fr; }
+  .demo-attention-zone-badges #demo-attention-badges { grid-template-columns: 1fr; }
+}
 
 .demo-result-visual img { filter: brightness(.84) saturate(.88) contrast(1.04); }
 
@@ -5598,8 +5775,13 @@ textarea {
 .demo-case-card { min-height: 0; padding: 14px 16px; }
 .demo-case-card h4 { font-size: 16px; line-height: 1.45; }
 
-/* §6：结果区约 65:35，证据追踪轴收窄，为结果摘要留出更多空间。 */
-.demo-analysis-layout { grid-template-columns: minmax(0, 65fr) minmax(300px, 35fr); }
+/* §6：结果区约 65:35，证据追踪轴收窄，为结果摘要留出更多空间。
+   这条在源码顺序上晚于 @media (max-width:1024px) 的单列回收规则，
+   未加宽度条件时会让窄屏仍按两列排版，390px 下主列被压到约 30px。
+   故限定为宽屏生效，≤1024px 继续走上面的单列。 */
+@media (min-width: 1025px) {
+  .demo-analysis-layout { grid-template-columns: minmax(0, 65fr) minmax(300px, 35fr); }
+}
 .demo-item-card { border-left: 1px solid var(--at-rule); }
 
 /* §4：首页价值标题最多两行，取消描边大字与实心字的叠压。 */

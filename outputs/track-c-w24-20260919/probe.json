@@ -1,0 +1,220 @@
+[
+  {
+    "supports": [
+      {
+        "cls": "demo-attention-support is-hypothesis",
+        "text": "待验证解释",
+        "visible": true
+      },
+      {
+        "cls": "demo-attention-support is-hypothesis",
+        "text": "待验证解释",
+        "visible": true
+      }
+    ],
+    "cardPresent": true,
+    "cardHiddenAttr": false,
+    "chipTotal": 33,
+    "chipWithEvidenceId": 27,
+    "chipWithAnchor": 22,
+    "chipNoSourceEntry": [
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）"
+    ],
+    "cardHasWaitVerify": true,
+    "cardHasBoundary": true,
+    "cardHasDeterministicNote": true,
+    "bodyHasForbidden": false,
+    "badgeTexts": [
+      "审计关注优先级未提供 · 后端 planning_priority 尚未挂载",
+      "证据闭合状态未提供 · 后端 evidence_state 尚未挂载",
+      "金额重要性未评价金额重要性后端未给出倍数；重要性不折算进优先级"
+    ],
+    "providedBadges": 0,
+    "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+    "state": "incomplete_numeric_claims",
+    "reduced_motion": "no-preference",
+    "stageTransition": "0.24s, 0.24s"
+  },
+  {
+    "supports": [
+      {
+        "cls": "demo-attention-support is-hypothesis",
+        "text": "待验证解释",
+        "visible": true
+      },
+      {
+        "cls": "demo-attention-support is-hypothesis",
+        "text": "待验证解释",
+        "visible": true
+      }
+    ],
+    "cardPresent": true,
+    "cardHiddenAttr": false,
+    "chipTotal": 33,
+    "chipWithEvidenceId": 27,
+    "chipWithAnchor": 22,
+    "chipNoSourceEntry": [
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）"
+    ],
+    "cardHasWaitVerify": true,
+    "cardHasBoundary": true,
+    "cardHasDeterministicNote": true,
+    "bodyHasForbidden": false,
+    "badgeTexts": [
+      "审计关注优先级未提供 · 后端 planning_priority 尚未挂载",
+      "证据闭合状态未提供 · 后端 evidence_state 尚未挂载",
+      "金额重要性未评价金额重要性后端未给出倍数；重要性不折算进优先级"
+    ],
+    "providedBadges": 0,
+    "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+    "state": "incomplete_numeric_claims",
+    "reduced_motion": "reduce",
+    "stageTransition": "1e-05s"
+  },
+  {
+    "supports": [
+      {
+        "cls": "demo-attention-support is-supported",
+        "text": "已由证据支持",
+        "visible": true
+      },
+      {
+        "cls": "demo-attention-support is-hypothesis",
+        "text": "待验证解释",
+        "visible": true
+      }
+    ],
+    "cardPresent": true,
+    "cardHiddenAttr": false,
+    "chipTotal": 31,
+    "chipWithEvidenceId": 29,
+    "chipWithAnchor": 24,
+    "chipNoSourceEntry": [
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）"
+    ],
+    "cardHasWaitVerify": true,
+    "cardHasBoundary": true,
+    "cardHasDeterministicNote": true,
+    "bodyHasForbidden": false,
+    "badgeTexts": [
+      "审计关注优先级未提供 · 后端 planning_priority 尚未挂载",
+      "证据闭合状态未提供 · 后端 evidence_state 尚未挂载",
+      "金额重要性未评价金额重要性后端未给出倍数；重要性不折算进优先级"
+    ],
+    "providedBadges": 0,
+    "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+    "state": "success",
+    "reduced_motion": "no-preference",
+    "stageTransition": "0.24s, 0.24s"
+  },
+  {
+    "supports": [
+      {
+        "cls": "demo-attention-support is-supported",
+        "text": "已由证据支持",
+        "visible": true
+      },
+      {
+        "cls": "demo-attention-support is-hypothesis",
+        "text": "待验证解释",
+        "visible": true
+      }
+    ],
+    "cardPresent": true,
+    "cardHiddenAttr": false,
+    "chipTotal": 31,
+    "chipWithEvidenceId": 29,
+    "chipWithAnchor": 24,
+    "chipNoSourceEntry": [
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）",
+      "Evidence ID PROC-R1-2025 · 来源类型：程序结果卡 · PDF 年度未提供 · PDF 页码未提供 原文入口未提供（接口未给出 document_id 或页码）"
+    ],
+    "cardHasWaitVerify": true,
+    "cardHasBoundary": true,
+    "cardHasDeterministicNote": true,
+    "bodyHasForbidden": false,
+    "badgeTexts": [
+      "审计关注优先级未提供 · 后端 planning_priority 尚未挂载",
+      "证据闭合状态未提供 · 后端 evidence_state 尚未挂载",
+      "金额重要性未评价金额重要性后端未给出倍数；重要性不折算进优先级"
+    ],
+    "providedBadges": 0,
+    "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+    "state": "success",
+    "reduced_motion": "reduce",
+    "stageTransition": "1e-05s"
+  },
+  {
+    "supports": [
+      {
+        "cls": "demo-attention-support is-supported",
+        "text": "已由证据支持",
+        "visible": true
+      }
+    ],
+    "cardPresent": true,
+    "cardHiddenAttr": false,
+    "chipTotal": 33,
+    "chipWithEvidenceId": 22,
+    "chipWithAnchor": 22,
+    "chipNoSourceEntry": [],
+    "cardHasWaitVerify": false,
+    "cardHasBoundary": true,
+    "cardHasDeterministicNote": true,
+    "bodyHasForbidden": false,
+    "badgeTexts": [
+      "审计关注优先级P2 优先核查screening_status=candidate（运行级筛查状态；candidate 才可能进入 P1/P2/P3，RULE_NOT_TRIGGERED 才可能进入 P4） · rule_statuses=candidate（任一被选用规则返回 DATA_GAP 或 DATA_NOT_COMPARABLE 即触发 G；缺口只导致不出级，不参与升级） · screening_strength=strong（strong 进入 P1/P2 判定，standard 进入 P3 判定；缺失按未提供处理，不视为任一档命中） · sustained_periods=1（>=2 是 P1 的必要条件之一；本函数不重新计算期间数） · ai_recommendation=defer（retain 是 P1 的必要条件之一；非 candidate 且 defer 命中 S；本字段同时作为处置轴并排输出） · run_completeness=complete_demo_fallback（数据完整（complete_ 前缀）是 P4 的必要条件之一） · blocked_candidate_count=0（P4 要求无 blocked 行：本次按 context.prescreen_plan.blocked_candidate_count 显式计数判定） · analysis_conclusion=risk_candidate（已签字六档条件均不含本字段，仅登记为上下文，不参与级别计算） · materiality_assessment=未评价金额重要性（金额重要性不折入级别，只作为独立字段并排输出）",
+      "证据闭合状态E2 部分闭合numeric_gate 返回 passed=true，coverage_matrix 有 5 行含当前企业直接证据；但 claims 返回 0 条 unverified_hypothesis、data_gaps 返回 5 项、requested_materials 返回 4 项待取得资料，存在未闭合因素，因此判为部分闭合（E2）。",
+      "金额重要性未评价金额重要性后端未给出倍数；重要性不折算进优先级"
+    ],
+    "providedBadges": 2,
+    "attentionStatePill": "六区均取自本次运行留痕",
+    "state": "deterministic_backup_with_backend_fields",
+    "reduced_motion": "no-preference",
+    "stageTransition": "0.24s, 0.24s"
+  },
+  {
+    "supports": [
+      {
+        "cls": "demo-attention-support is-supported",
+        "text": "已由证据支持",
+        "visible": true
+      }
+    ],
+    "cardPresent": true,
+    "cardHiddenAttr": false,
+    "chipTotal": 33,
+    "chipWithEvidenceId": 22,
+    "chipWithAnchor": 22,
+    "chipNoSourceEntry": [],
+    "cardHasWaitVerify": false,
+    "cardHasBoundary": true,
+    "cardHasDeterministicNote": true,
+    "bodyHasForbidden": false,
+    "badgeTexts": [
+      "审计关注优先级P2 优先核查screening_status=candidate（运行级筛查状态；candidate 才可能进入 P1/P2/P3，RULE_NOT_TRIGGERED 才可能进入 P4） · rule_statuses=candidate（任一被选用规则返回 DATA_GAP 或 DATA_NOT_COMPARABLE 即触发 G；缺口只导致不出级，不参与升级） · screening_strength=strong（strong 进入 P1/P2 判定，standard 进入 P3 判定；缺失按未提供处理，不视为任一档命中） · sustained_periods=1（>=2 是 P1 的必要条件之一；本函数不重新计算期间数） · ai_recommendation=defer（retain 是 P1 的必要条件之一；非 candidate 且 defer 命中 S；本字段同时作为处置轴并排输出） · run_completeness=complete_demo_fallback（数据完整（complete_ 前缀）是 P4 的必要条件之一） · blocked_candidate_count=0（P4 要求无 blocked 行：本次按 context.prescreen_plan.blocked_candidate_count 显式计数判定） · analysis_conclusion=risk_candidate（已签字六档条件均不含本字段，仅登记为上下文，不参与级别计算） · materiality_assessment=未评价金额重要性（金额重要性不折入级别，只作为独立字段并排输出）",
+      "证据闭合状态E2 部分闭合numeric_gate 返回 passed=true，coverage_matrix 有 5 行含当前企业直接证据；但 claims 返回 0 条 unverified_hypothesis、data_gaps 返回 5 项、requested_materials 返回 4 项待取得资料，存在未闭合因素，因此判为部分闭合（E2）。",
+      "金额重要性未评价金额重要性后端未给出倍数；重要性不折算进优先级"
+    ],
+    "providedBadges": 2,
+    "attentionStatePill": "六区均取自本次运行留痕",
+    "state": "deterministic_backup_with_backend_fields",
+    "reduced_motion": "reduce",
+    "stageTransition": "1e-05s"
+  }
+]

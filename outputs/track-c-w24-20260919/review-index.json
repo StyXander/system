@@ -1,0 +1,135 @@
+[
+  {
+    "state": "success",
+    "ok": true,
+    "viewport": "desktop",
+    "first_screen": "review/success__desktop__firstscreen.png",
+    "attention_card": "review/success__desktop__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "success",
+    "ok": true,
+    "viewport": "tablet",
+    "first_screen": "review/success__tablet__firstscreen.png",
+    "attention_card": "review/success__tablet__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "success",
+    "ok": true,
+    "viewport": "portrait",
+    "first_screen": "review/success__portrait__firstscreen.png",
+    "attention_card": "review/success__portrait__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "success",
+    "ok": true,
+    "viewport": "mobile",
+    "first_screen": "review/success__mobile__firstscreen.png",
+    "attention_card": "review/success__mobile__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "gate_rejected",
+    "ok": true,
+    "viewport": "desktop",
+    "first_screen": "review/gate_rejected__desktop__firstscreen.png",
+    "attention_card": "review/gate_rejected__desktop__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "gate_rejected",
+    "ok": true,
+    "viewport": "tablet",
+    "first_screen": "review/gate_rejected__tablet__firstscreen.png",
+    "attention_card": "review/gate_rejected__tablet__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "gate_rejected",
+    "ok": true,
+    "viewport": "portrait",
+    "first_screen": "review/gate_rejected__portrait__firstscreen.png",
+    "attention_card": "review/gate_rejected__portrait__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "gate_rejected",
+    "ok": true,
+    "viewport": "mobile",
+    "first_screen": "review/gate_rejected__mobile__firstscreen.png",
+    "attention_card": "review/gate_rejected__mobile__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "model_failed",
+    "ok": true,
+    "viewport": "desktop",
+    "first_screen": "review/model_failed__desktop__firstscreen.png",
+    "attention_card": "review/model_failed__desktop__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "model_failed",
+    "ok": true,
+    "viewport": "tablet",
+    "first_screen": "review/model_failed__tablet__firstscreen.png",
+    "attention_card": "review/model_failed__tablet__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "model_failed",
+    "ok": true,
+    "viewport": "portrait",
+    "first_screen": "review/model_failed__portrait__firstscreen.png",
+    "attention_card": "review/model_failed__portrait__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "model_failed",
+    "ok": true,
+    "viewport": "mobile",
+    "first_screen": "review/model_failed__mobile__firstscreen.png",
+    "attention_card": "review/model_failed__mobile__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "backup_real_fields",
+    "ok": false,
+    "error": "TimeoutError: Page.wait_for_function: Timeout 60000ms exceeded."
+  },
+  {
+    "state": "data_gap_w16",
+    "ok": true,
+    "viewport": "desktop",
+    "first_screen": "review/data_gap_w16__desktop__firstscreen.png",
+    "attention_card": "review/data_gap_w16__desktop__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "data_gap_w16",
+    "ok": true,
+    "viewport": "tablet",
+    "first_screen": "review/data_gap_w16__tablet__firstscreen.png",
+    "attention_card": "review/data_gap_w16__tablet__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "data_gap_w16",
+    "ok": true,
+    "viewport": "portrait",
+    "first_screen": "review/data_gap_w16__portrait__firstscreen.png",
+    "attention_card": "review/data_gap_w16__portrait__attentioncard.png",
+    "console_errors": []
+  },
+  {
+    "state": "data_gap_w16",
+    "ok": true,
+    "viewport": "mobile",
+    "first_screen": "review/data_gap_w16__mobile__firstscreen.png",
+    "attention_card": "review/data_gap_w16__mobile__attentioncard.png",
+    "console_errors": []
+  }
+]

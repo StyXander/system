@@ -118,6 +118,12 @@
       state: "success",
       procedureIds: ["AP-01", "AP-02", "AP-04"],
     },
+    additional_procedure_required: {
+      label: "需执行额外程序后判断",
+      tone: "procedure",
+      state: "waiting",
+      procedureIds: ["AP-03", "AP-05", "AP-06"],
+    },
     data_gap: {
       label: "现有资料不足，补充材料后判断",
       tone: "gap",
@@ -754,18 +760,52 @@
     return run?.ai_draft || null;
   }
 
-  function sourceBadgeForRun(run) {
+  // W12：运行来源三态判定。徽标、总览卡与降级说明共用同一分类，避免前后端各写一套口径。
+  // 三态文案必须自带文字标识，不得只靠颜色区分（AGENTS.md §7 非颜色编码）。
+  function executionBadgeForRun(run) {
     const modelStatus = String(run?.model_check?.status || "");
     const executionMode = String(run?.execution_mode || run?.model_check?.execution_mode || "");
-    const cacheReplay = executionMode === "cache_replay" || run?.model_check?.cache_hit === true || run?.cache_hit === true;
-    const deterministicFallback = executionMode === "deterministic_backup" || modelStatus === "demo_fallback";
-    if (deterministicFallback) return "来源：确定性备用 · 未调用外部模型";
-    if (cacheReplay || executionMode === "external_cached") return "来源：已复用经校验的 AI 结果";
-    if (modelStatus === "model_success" && executionMode === "external_live" && Number(run?.provider_call_count || 0) > 0) {
-      return "来源：真实模型复核";
+    const calls = Number(run?.provider_call_count || 0);
+    const cacheReplay = executionMode === "cache_replay"
+      || executionMode === "external_cached"
+      || run?.model_check?.cache_hit === true
+      || run?.cache_hit === true;
+    const deterministicBackup = executionMode === "deterministic_backup" || modelStatus === "demo_fallback";
+    if (deterministicBackup) {
+      return { mode: "deterministic_backup", label: "确定性备用链 · 未调用外部模型", calls };
     }
-    if (modelStatus) return `来源：${statusLabel(modelStatus)} · 仅保留已完成程序结果`;
-    return "来源：程序结果 · 模型状态未记录";
+    if (cacheReplay) {
+      return { mode: "cache_replay", label: `已验证历史结果回放 · 本次新增 ${calls} 次调用`, calls };
+    }
+    if (modelStatus === "model_success" && executionMode === "external_live" && calls > 0) {
+      return { mode: "external_live", label: `本次真实模型运行 · ${calls} 次调用`, calls };
+    }
+    if (modelStatus) {
+      return { mode: "other", label: `${statusLabel(modelStatus)} · 仅保留已完成程序结果`, calls };
+    }
+    return { mode: "not_recorded", label: "程序结果 · 模型状态未记录", calls };
+  }
+
+  function renderExecutionBadge(run, phase) {
+    const node = byId("demo-execution-badge");
+    if (!node) return;
+    if (phase === "running") {
+      node.dataset.mode = "running";
+      node.textContent = "运行中 · 来源与调用数以本次终态留痕为准";
+      return;
+    }
+    if (!run) {
+      node.dataset.mode = "idle";
+      node.textContent = "尚未运行 · 未调用外部模型";
+      return;
+    }
+    const badge = executionBadgeForRun(run);
+    node.dataset.mode = badge.mode;
+    node.textContent = `运行来源：${badge.label}`;
+  }
+
+  function sourceBadgeForRun(run) {
+    return `来源：${executionBadgeForRun(run).label}`;
   }
 
   function claimObjects(outputs, field = "claims") {
@@ -791,6 +831,67 @@
     return Array.isArray(records) ? records.filter((item) => item && typeof item === "object") : [];
   }
 
+  // W14：逐条 AI insight 证据回链。凡带 evidence_ids 的主张都要能一眼看到
+  // 【Evidence ID · 来源类型 · PDF 年度 · PDF 页码 · 查看原文】；
+  // 没有 evidence_id 的内容必须显式标注证据状态，不得伪装成已核实事实。
+  const EVIDENCE_KIND_LABELS = {
+    field_evidence: "年报字段证据",
+    rag_evidence: "RAG 检索片段",
+    supplement_evidence: "补充资料证据",
+    procedure_evidence: "程序结果卡",
+    knowledge_evidence: "知识来源条目",
+  };
+  const SUPPORT_STATUS_LABELS = {
+    supported: "已由证据支持",
+    unverified_hypothesis: "待验证解释",
+  };
+
+  function evidenceLookup(run) {
+    const bundle = run?.evidence_bundle || {};
+    const map = new Map();
+    Object.entries(EVIDENCE_KIND_LABELS).forEach(([key, label]) => {
+      const rows = Array.isArray(bundle[key]) ? bundle[key] : [];
+      rows.forEach((row) => {
+        const id = String(row?.evidence_id || "");
+        if (!id || map.has(id)) return;
+        const candidate = row.candidate && typeof row.candidate === "object" ? row.candidate : {};
+        map.set(id, {
+          label,
+          year: row.report_year ?? row.year ?? candidate.report_year ?? null,
+          page: row.pdf_page ?? candidate.pdf_page ?? null,
+          documentId: row.document_id ?? candidate.document_id ?? null,
+        });
+      });
+    });
+    return map;
+  }
+
+  // 返回一段可直接写入 innerHTML 的字符串；所有动态值都经 escapeHtml，链接只走 sourceLink。
+  function evidenceChainHtml(run, lookup, claim) {
+    const support = SUPPORT_STATUS_LABELS[claim?.support_status] || "";
+    const supportHtml = support ? `<strong class="demo-claim-support">${escapeHtml(support)}</strong> · ` : "";
+    const ids = Array.isArray(claim?.evidence_ids) ? claim.evidence_ids.filter(Boolean) : [];
+    if (!ids.length) {
+      return `<span class="demo-claim-evidence is-missing">证据状态：未绑定 Evidence ID · 无法回查原文，不作为已核实事实${support ? ` · 支持状态：${escapeHtml(support)}` : ""}</span>`;
+    }
+    const caseId = run?.context?.case_id || currentCase()?.case_id || "";
+    const chips = ids.slice(0, 2).map((id) => {
+      const found = lookup.get(String(id));
+      const facts = [
+        `Evidence ID ${id}`,
+        found ? `来源类型：${found.label}` : "来源类型：未在本次证据包登记",
+        found?.year ? `PDF 年度 ${found.year}` : "PDF 年度未提供",
+        found?.page ? `PDF 第 ${found.page} 页` : "PDF 页码未提供",
+      ];
+      const entry = found?.documentId && caseId && found.page
+        ? `<a href="${escapeHtml(sourceLink(caseId, found.documentId, found.page))}" target="_blank" rel="noopener noreferrer">查看原文</a>`
+        : `<span class="demo-claim-nolink">原文入口未提供（接口未给出 document_id 或页码）</span>`;
+      return `<span class="demo-evidence-chip">${facts.map((fact) => escapeHtml(fact)).join(" · ")} ${entry}</span>`;
+    }).join("");
+    const more = ids.length > 2 ? `<span class="demo-evidence-chip">另有 ${ids.length - 2} 条证据，见原文证据抽屉</span>` : "";
+    return `<span class="demo-claim-evidence">${supportHtml}可回查证据 ${ids.length} 条：</span>${chips}${more}`;
+  }
+
   function deriveAuditOverview(run, outcome) {
     const context = run?.context || {};
     const ruleResults = Array.isArray(run?.rule_results) ? run.rule_results : [];
@@ -812,12 +913,14 @@
       reviewOutput?.analysis_conclusion,
       run?.ai_draft?.analysis_conclusion,
       ...ruleDrafts.map((draft) => draft.analysis_conclusion),
-    ].find((value) => AUDIT_OVERVIEW_META[value] || value === "additional_procedure_required");
+    ].find((value) => AUDIT_OVERVIEW_META[value]);
     const routeFallback = ROUTE_CONCLUSION_FALLBACKS[route];
     const routeFallbackAllowed = deterministicFallback
       || modelStatus === "model_success"
       || (modelStatus === "not_applicable" && routeFallback === "industry_boundary");
-    let conclusion = explicitConclusion || (routeFallbackAllowed ? routeFallback : null);
+    // additional_procedure_required 不再按 dataGaps/requestedMaterials 被改写成 data_gap：
+    // 系统按设计总会产出待索取资料清单，旧改写会让该结论 107 次全部坍缩成最弱的那句话。
+    const conclusion = explicitConclusion || (routeFallbackAllowed ? routeFallback : null);
     const dataGaps = uniqueText([
       ...outputs.flatMap((output) => output?.data_gaps || []),
       ...(context.prescreen_summary?.missing_fields || []),
@@ -828,9 +931,6 @@
       ...outputs.flatMap((output) => output?.requested_materials || []),
       ...ruleResults.flatMap((result) => result?.risk_card?.requested_materials || []),
     ]);
-    if (conclusion === "additional_procedure_required") {
-      conclusion = dataGaps.length || requestedMaterials.length ? "data_gap" : "risk_candidate";
-    }
     const completeRuleChain = ruleResults.length > 0
       && !sourceIssues.length
       && !completeness.startsWith("incomplete")
@@ -888,7 +988,7 @@
     };
   }
 
-  function appendOverviewGroup(container, title, items, className = "") {
+  function appendOverviewGroup(container, title, items, className = "", evidenceCtx = null) {
     if (!items.length) return;
     const group = document.createElement("section");
     group.className = `demo-overview-evidence-group ${className}`.trim();
@@ -901,7 +1001,12 @@
         li.textContent = item;
       } else {
         li.textContent = item.text;
-        if (item.evidence_ids?.length) {
+        if (evidenceCtx) {
+          const meta = document.createElement("span");
+          meta.className = "demo-claim-evidence-wrap";
+          meta.innerHTML = evidenceChainHtml(evidenceCtx.run, evidenceCtx.lookup, item);
+          li.append(meta);
+        } else if (item.evidence_ids?.length) {
           const meta = document.createElement("small");
           meta.textContent = `支持证据：${item.evidence_ids.join(" / ")}`;
           li.append(meta);
@@ -913,12 +1018,14 @@
     container.append(group);
   }
 
-  function renderOverviewEvidence(container, overview) {
+  function renderOverviewEvidence(container, overview, evidenceCtx) {
     container.replaceChildren();
-    appendOverviewGroup(container, "资料缺口", overview.dataGaps.slice(0, 6));
-    appendOverviewGroup(container, "建议取得材料", overview.requestedMaterials.slice(0, 6));
+    // 待索取资料在"需执行额外程序后判断"下是下一步行动，不是把结论降级为资料不足的理由。
+    const procedureRoute = overview.conclusion === "additional_procedure_required";
+    appendOverviewGroup(container, procedureRoute ? "当前未解决的资料缺口" : "资料缺口", overview.dataGaps.slice(0, 6), "", null);
+    appendOverviewGroup(container, procedureRoute ? "执行以下程序并取得材料后重新判断（下一步行动）" : "建议取得材料", overview.requestedMaterials.slice(0, 6), "", null);
     if (!overview.dataGaps.length && !overview.requestedMaterials.length) {
-      appendOverviewGroup(container, "支持主张", overview.claims.slice(0, 3));
+      appendOverviewGroup(container, "支持主张", overview.claims.slice(0, 3), "", evidenceCtx);
     }
     if (!container.children.length) {
       const empty = document.createElement("p");
@@ -962,9 +1069,292 @@
     conclusion.textContent = overview.label;
     byId("demo-audit-overview-source").textContent = overview.source;
     byId("demo-overview-why").textContent = overview.reason;
-    renderOverviewEvidence(byId("demo-overview-evidence"), overview);
+    renderOverviewEvidence(byId("demo-overview-evidence"), overview, { run, lookup: evidenceLookup(run) });
     renderOverviewProcedures(byId("demo-overview-procedures"), overview);
+    renderAttentionCard(run, overview);
     return overview;
+  }
+
+  // W13：综合审计关注卡。六区顺序固定，全部字段来自本次运行留痕，页面不新增任何 AI 判断。
+  // ⑥ 区三个徽标读后端 W00.1 契约字段；字段缺失时如实显示"未提供"，不推断、不补造。
+  const ATTENTION_GRADE_LABELS = {
+    P1: "P1 立即扩大核查",
+    P2: "P2 优先核查",
+    P3: "P3 常规跟进",
+    P4: "P4 维持常规程序",
+    S: "S 暂缓判断",
+    G: "G 暂不分级（资料或口径受限）",
+  };
+  const ATTENTION_EVIDENCE_LABELS = {
+    E1: "E1 已闭合",
+    E2: "E2 部分闭合",
+    E3: "E3 未闭合",
+  };
+  const PRIORITY_BOUNDARY = "本级别为审计计划阶段的程序筛查信号分级，不是审计认定，不构成审计结论或审计意见。";
+  const ATTENTION_ZONE_IDS = [
+    "demo-attention-signals",
+    "demo-attention-counter",
+    "demo-attention-review",
+    "demo-attention-change",
+    "demo-attention-procedures",
+    "demo-attention-badges",
+  ];
+  const EVIDENCE_BOUNDARY = "证据闭合状态只描述本次证据链的可追溯程度，不构成审计结论或审计意见。";
+  const DETERMINISTIC_NOTE = "确定性计算，非模型生成";
+
+  function contractField(value) {
+    return value === null || value === undefined || value === "" ? null : value;
+  }
+
+  // W16：抽取质量阻断的具体原因。后端把诊断原文登记在 context.prescreen_plan.candidate_quality_issues，
+  // 只要该字段非空就直接透传；字段不存在时返回 null，页面退回原有的泛化文案而不假称已透传。
+  function extractionGateNotice(run) {
+    const ruleResults = Array.isArray(run?.rule_results) ? run.rule_results : [];
+    const hasDataGap = ruleResults.some((item) => item?.status === "DATA_GAP");
+    const plan = run?.context?.prescreen_plan;
+    if (!hasDataGap || !plan || !Array.isArray(plan.candidate_quality_issues)) return null;
+    const issues = plan.candidate_quality_issues.map((item) => String(item || "").trim()).filter(Boolean);
+    if (!issues.length) return null;
+    const blocked = Number(plan.blocked_candidate_count);
+    return {
+      label: "自动抽取字段待人工回页确认，暂不评级",
+      issues,
+      blockedCount: Number.isFinite(blocked) ? blocked : null,
+    };
+  }
+
+  function deriveAttentionCard(run, overview) {
+    const ruleResults = Array.isArray(run?.rule_results) ? run.rule_results : [];
+    const rule = ruleResults.find((item) => (item.rule_id || item.risk_card?.rule_id) === "R1") || ruleResults[0] || null;
+    const metrics = rule?.metrics || {};
+    const reviewOutput = firstReviewOutput(run);
+    const counterStep = normalizeAgentSteps(run?.agent_steps).find((step) => step.role === "counter");
+    const explanations = (Array.isArray(counterStep?.output?.normal_explanations) ? counterStep.output.normal_explanations : [])
+      .filter((item) => item && String(item.text || "").trim())
+      .slice(0, 4);
+    const signals = [
+      { label: "触发规则", value: rule ? `${rule.rule_id || rule.risk_card?.rule_id || "—"} · ${statusLabel(rule.status)}` : "本次无规则结果" },
+      { label: "营业收入增速", value: metrics.revenue_growth === undefined ? "—" : formatMetricValue("revenue_growth", metrics.revenue_growth) },
+      { label: "应收账款增速", value: metrics.ar_growth === undefined ? "—" : formatMetricValue("ar_growth", metrics.ar_growth) },
+      { label: "增速差", value: metrics.growth_gap === undefined ? "—" : formatMetricValue("growth_gap", metrics.growth_gap) },
+      { label: "程序信号强度", value: rule?.risk_card?.screening_strength || "未产出" },
+      { label: "持续期间", value: metrics.sustained_periods === undefined || metrics.sustained_periods === null ? "未评价" : formatMetricValue("sustained_periods", metrics.sustained_periods) },
+    ];
+    const grade = contractField(run?.planning_priority?.grade);
+    const gradeLabel = grade
+      ? (ATTENTION_GRADE_LABELS[grade] || `${grade}（后端标签）`)
+      : null;
+    const evidenceState = contractField(run?.evidence_state?.state);
+    const evidenceLabel = evidenceState
+      ? (ATTENTION_EVIDENCE_LABELS[evidenceState] || `${evidenceState}（后端标签）`)
+      : null;
+    const materiality = contractField(run?.materiality_display?.assessment)
+      || contractField(metrics.materiality_assessment);
+    return {
+      signals,
+      explanations,
+      review: {
+        recommendation: RECOMMENDATION_LABELS[reviewOutput?.ai_recommendation] || statusLabel(reviewOutput?.ai_recommendation || "未形成AI建议"),
+        conclusion: AUDIT_OVERVIEW_META[reviewOutput?.analysis_conclusion]?.label || statusLabel(reviewOutput?.analysis_conclusion || "未记录"),
+        reason: String(reviewOutput?.reason_for_status || "").trim() || "本次运行未写入 reason_for_status 原文。",
+      },
+      changeEvidence: {
+        materials: overview?.requestedMaterials || [],
+        gaps: overview?.dataGaps || [],
+      },
+      // 总览未形成有效结论时（例如闸门拒绝发布、仅计算预检），overview.procedures 是空的，
+      // 但本次运行确实登记了程序映射；此时如实退回"已登记映射"，并标注它不代表系统已选定追加程序。
+      procedures: overview?.valid && overview.procedures?.length
+        ? { items: overview.procedures, mapped: true }
+        : { items: procedureRecords(run).slice(0, 3), mapped: false },
+      badges: {
+        provided: Boolean(gradeLabel && evidenceLabel),
+        grade,
+        gradeLabel: gradeLabel || "未提供 · 后端 planning_priority 尚未挂载",
+        gradeFactors: Array.isArray(run?.planning_priority?.factors) ? run.planning_priority.factors : [],
+        evidenceState,
+        evidenceLabel: evidenceLabel || "未提供 · 后端 evidence_state 尚未挂载",
+        evidenceReasons: Array.isArray(run?.evidence_state?.reasons) ? run.evidence_state.reasons : [],
+        materiality: materiality || "未评价金额重要性",
+        materialityMultiple: contractField(run?.materiality_display?.multiple),
+      },
+    };
+  }
+
+  function appendAttentionList(container, items, render) {
+    if (!items.length) {
+      const empty = document.createElement("p");
+      empty.className = "demo-attention-empty";
+      empty.textContent = "本次运行未形成可展示内容；页面不补造。";
+      container.append(empty);
+      return;
+    }
+    const list = document.createElement("ul");
+    items.forEach((item) => list.append(render(item)));
+    container.append(list);
+  }
+
+  function renderAttentionCard(run, overview) {
+    const card = byId("demo-attention-card");
+    if (!card) return;
+    const data = deriveAttentionCard(run, overview);
+    const lookup = evidenceLookup(run);
+
+    const signals = byId("demo-attention-signals");
+    signals.replaceChildren();
+    const signalGrid = document.createElement("dl");
+    signalGrid.className = "demo-attention-dl";
+    data.signals.forEach(({ label, value }) => {
+      const wrap = document.createElement("div");
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const definition = document.createElement("dd");
+      definition.textContent = value;
+      wrap.append(term, definition);
+      signalGrid.append(wrap);
+    });
+    const signalNote = document.createElement("p");
+    signalNote.className = "demo-attention-note";
+    signalNote.textContent = DETERMINISTIC_NOTE;
+    signals.append(signalGrid, signalNote);
+
+    // W16：DATA_GAP 且已登记抽取质量诊断时，说清"为什么算不出来"，不复用泛化"资料不足"。
+    const extraction = extractionGateNotice(run);
+    if (extraction) {
+      const notice = document.createElement("div");
+      notice.className = "demo-extraction-notice";
+      const title = document.createElement("strong");
+      title.textContent = extraction.label;
+      const meta = document.createElement("small");
+      meta.textContent = `被闸门拦下的字段候选 ${extraction.blockedCount ?? extraction.issues.length} 项；诊断原文逐条如下，须人工回页确认。`;
+      const list = document.createElement("ul");
+      extraction.issues.slice(0, 6).forEach((issue) => {
+        const li = document.createElement("li");
+        li.textContent = issue;
+        list.append(li);
+      });
+      const boundary = document.createElement("small");
+      boundary.className = "demo-extraction-boundary";
+      boundary.textContent = "这是抽取质量待人工确认，不是来源文件校验失败，也不构成级别判断；确认前系统不给出程序信号分级。";
+      notice.append(title, meta, list, boundary);
+      signals.append(notice);
+    }
+
+    const counter = byId("demo-attention-counter");
+    counter.replaceChildren();
+    appendAttentionList(counter, data.explanations, (item) => {
+      const li = document.createElement("li");
+      const text = document.createElement("span");
+      text.textContent = item.text;
+      const status = document.createElement("strong");
+      status.className = `demo-attention-support is-${item.support_status === "supported" ? "supported" : "hypothesis"}`;
+      status.textContent = SUPPORT_STATUS_LABELS[item.support_status] || `证据支持状态未提供（${item.support_status || "—"}）`;
+      const chain = document.createElement("span");
+      chain.className = "demo-claim-evidence-wrap";
+      chain.innerHTML = evidenceChainHtml(run, lookup, item);
+      li.append(status, text, chain);
+      return li;
+    });
+
+    const review = byId("demo-attention-review");
+    review.replaceChildren();
+    const reviewDl = document.createElement("dl");
+    reviewDl.className = "demo-attention-dl";
+    [["复核处置", data.review.recommendation], ["分析结论", data.review.conclusion], ["判断理由原文", data.review.reason]].forEach(([label, value]) => {
+      const wrap = document.createElement("div");
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const definition = document.createElement("dd");
+      definition.textContent = value;
+      wrap.append(term, definition);
+      reviewDl.append(wrap);
+    });
+    review.append(reviewDl);
+
+    const change = byId("demo-attention-change");
+    change.replaceChildren();
+    const changeGroups = [
+      ["待取得资料（取得后可重新判断）", data.changeEvidence.materials],
+      ["当前未解决的资料缺口", data.changeEvidence.gaps],
+    ];
+    let changeHasItems = false;
+    changeGroups.forEach(([label, items]) => {
+      if (!items.length) return;
+      changeHasItems = true;
+      const heading = document.createElement("p");
+      heading.className = "demo-attention-subheading";
+      heading.textContent = label;
+      const list = document.createElement("ul");
+      items.slice(0, 6).forEach((text) => {
+        const li = document.createElement("li");
+        li.textContent = text;
+        list.append(li);
+      });
+      change.append(heading, list);
+    });
+    if (!changeHasItems) {
+      const empty = document.createElement("p");
+      empty.className = "demo-attention-empty";
+      empty.textContent = "本次运行未登记可改变当前判断的待取得资料或缺口。";
+      change.append(empty);
+    }
+
+    const procedures = byId("demo-attention-procedures");
+    procedures.replaceChildren();
+    if (!data.procedures.mapped) {
+      const note = document.createElement("p");
+      note.className = "demo-attention-note";
+      note.textContent = "本次未形成有效结论，以下只是本次运行登记的程序映射，不代表系统已选定追加程序。";
+      procedures.append(note);
+    }
+    appendAttentionList(procedures, data.procedures.items, (item) => {
+      const li = document.createElement("li");
+      li.textContent = `${item.procedure_id || "—"} · ${item.procedure || "审计程序"}｜系统已完成：${item.system_execution || "—"}｜人工保留：${item.human_retained || "—"}`;
+      return li;
+    });
+
+    const badges = byId("demo-attention-badges");
+    badges.replaceChildren();
+    const gradeFactorsCompact = data.badges.gradeFactors
+      .slice(0, 8)
+      .map((factor) => `${factor.factor}=${factor.value ?? "未提供"}`)
+      .join(" · ");
+    const gradeFactorMore = data.badges.gradeFactors.length > 8
+      ? `…共 ${data.badges.gradeFactors.length} 项判定因子，逐条依据见 JSON 导出`
+      : "";
+    const gradeDetail = data.badges.grade ? `${gradeFactorsCompact}${gradeFactorMore}` : "后端未给出判定因子";
+    const evidenceReasonDetail = data.badges.evidenceReasons.length
+      ? data.badges.evidenceReasons.join("；")
+      : "后端未给出闭合理由";
+    [
+      ["审计关注优先级", data.badges.gradeLabel, data.badges.grade ? "provided" : "missing", gradeDetail],
+      ["证据闭合状态", data.badges.evidenceLabel, data.badges.evidenceState ? "provided" : "missing", evidenceReasonDetail],
+      ["金额重要性", data.badges.materiality, data.badges.materialityMultiple ? "provided" : "partial", data.badges.materialityMultiple ? `重要性倍数 ${data.badges.materialityMultiple}` : "后端未给出倍数；重要性不折算进优先级"],
+    ].forEach(([label, value, state, detail]) => {
+      const chip = document.createElement("div");
+      chip.className = "demo-attention-badge";
+      chip.dataset.state = state;
+      const term = document.createElement("span");
+      term.textContent = label;
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      const small = document.createElement("small");
+      small.textContent = detail;
+      chip.append(term, strong, small);
+      badges.append(chip);
+    });
+    const boundary = document.createElement("p");
+    boundary.className = "demo-attention-boundary";
+    boundary.textContent = `${PRIORITY_BOUNDARY}${data.badges.evidenceState ? ` ${EVIDENCE_BOUNDARY}` : ""}`;
+    badges.append(boundary);
+    const stateNode = document.getElementById("demo-attention-state");
+    if (stateNode) {
+      stateNode.className = `state ${data.badges.provided ? "success" : "waiting"}`;
+      stateNode.textContent = data.badges.provided
+        ? "六区均取自本次运行留痕"
+        : "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示";
+    }
+    card.hidden = false;
   }
 
   function traceableChallengeClaim(run) {
@@ -1042,7 +1432,7 @@
     }
   }
 
-  function appendAgentList(card, label, items, limit, includeEvidence = true) {
+  function appendAgentList(card, label, items, limit, evidenceCtx) {
     const visible = (Array.isArray(items) ? items : []).filter((item) => item && (item.text || typeof item === "string")).slice(0, limit);
     if (!visible.length) return;
     const group = document.createElement("div");
@@ -1055,7 +1445,12 @@
       const claim = typeof item === "string" ? { text: item } : item;
       const li = document.createElement("li");
       li.textContent = claim.text || "—";
-      if (includeEvidence && claim.evidence_ids?.length) {
+      if (evidenceCtx) {
+        const evidence = document.createElement("span");
+        evidence.className = "demo-claim-evidence-wrap";
+        evidence.innerHTML = evidenceChainHtml(evidenceCtx.run, evidenceCtx.lookup, claim);
+        li.append(evidence);
+      } else if (claim.evidence_ids?.length) {
         const evidence = document.createElement("small");
         evidence.textContent = `${claim.support_status || "—"} · ${claim.evidence_ids.join(" / ")}`;
         li.append(evidence);
@@ -1066,9 +1461,10 @@
     card.append(group);
   }
 
-  function renderAgentCards(target, steps, { detail = false } = {}) {
+  function renderAgentCards(target, steps, run, { detail = false } = {}) {
     target.replaceChildren();
     const normalized = normalizeAgentSteps(steps);
+    const evidenceCtx = run ? { run, lookup: evidenceLookup(run) } : null;
     const byRole = new Map(normalized.map((step) => [step.role, step]));
     AGENT_ROLE_ORDER.forEach((role) => {
       const step = byRole.get(role) || { role, status: "not_recorded", detail: "本次运行未写入该角色记录。" };
@@ -1123,11 +1519,11 @@
       }
       const claimLimit = detail ? 4 : 2;
       const normalLimit = detail ? 3 : 2;
-      if (role === "challenge") appendAgentList(card, meta.focusLabel, output.claims || [], claimLimit);
-      if (role === "counter") appendAgentList(card, meta.focusLabel, output.normal_explanations || [], normalLimit);
+      if (role === "challenge") appendAgentList(card, meta.focusLabel, output.claims || [], claimLimit, evidenceCtx);
+      if (role === "counter") appendAgentList(card, meta.focusLabel, output.normal_explanations || [], normalLimit, evidenceCtx);
       if (role === "review") {
-        appendAgentList(card, "支持主张", output.claims || [], claimLimit);
-        appendAgentList(card, "正常解释", output.normal_explanations || [], normalLimit);
+        appendAgentList(card, "支持主张", output.claims || [], claimLimit, evidenceCtx);
+        appendAgentList(card, "正常解释", output.normal_explanations || [], normalLimit, evidenceCtx);
       }
       if (output.reason_for_status) {
         const reason = document.createElement("p");
@@ -1151,7 +1547,7 @@
     const state = byId("demo-agent-inline-state");
     state.className = `state ${failed ? "danger" : unresolved ? "waiting" : "success"}`;
     state.textContent = `${completed}/3 已完成 · ${unresolved ? `${unresolved} 个未完成` : "状态已记录"}`;
-    renderAgentCards(byId("demo-agent-inline-cards"), run?.agent_steps, { detail: false });
+    renderAgentCards(byId("demo-agent-inline-cards"), run?.agent_steps, run, { detail: false });
   }
 
   function renderSourceLedger(run) {
@@ -1466,6 +1862,7 @@
       safeSessionSet(DEMO_TASK_STORAGE_KEY, JSON.stringify({ task_id: childTask.task_id, case_id: demoState.caseId }));
       resetStageRail();
       setPhase("running");
+      renderExecutionBadge(null, "running");
       setGate("neutral", "补充资料异步评估中", `父运行 ${run.run_id} 保留；页面将按后端六阶段读取子运行进度。`);
       renderFixedTaskProgress(childTask);
       status.className = "status-banner neutral";
@@ -1547,6 +1944,15 @@
 
   function clearResultDisplay() {
     byId("demo-result").hidden = true;
+    renderExecutionBadge(null);
+    const attention = byId("demo-attention-card");
+    if (attention) {
+      attention.hidden = true;
+      ATTENTION_ZONE_IDS.forEach((id) => {
+        const node = document.getElementById(id);
+        if (node) node.replaceChildren();
+      });
+    }
     const overview = byId("demo-audit-overview");
     overview.dataset.tone = "invalid";
     byId("demo-audit-overview-state").className = "state pending";
@@ -1610,25 +2016,42 @@
     return "degraded";
   }
 
-  // degraded 是五条件合取闸门失败后的统称，至少对应四种事实不同的情形：可信历史回放、
-  // 确定性备用、真实模型失败、字段缺失。展示层若一律写成"本次未完成真实模型调用"，
-  // 就会在回放场景与同屏的"三Agent已通过硬校验 · 3/3 角色完成"直接自相矛盾。
+  // degraded 是五条件合取闸门失败后的统称，至少对应五种事实不同的情形：可信历史回放、
+  // 确定性备用、真实模型失败、数字闸门拒绝发布、字段缺失。展示层若一律写成"本次未完成真实模型调用"，
+  // 就会在回放场景与同屏的"三Agent已通过硬校验 · 3/3 角色完成"直接自相矛盾；
+  // 把"闸门拒绝发布完整结果"写成"没有可核验的调用留痕"，则是对自己系统的假话。
   // 这里只做分类，不取 statusLabel，保持纯函数可被前端合同测试单独提取执行。
+  // agentsDone 在函数内联计算：合同测试只提取本函数体执行，引用外部助手会直接报错。
   function degradedReason(run) {
     const executionMode = String(run?.execution_mode || run?.model_check?.execution_mode || "unavailable");
     const modelStatus = String(run?.model_check?.status || "");
+    const completeness = String(run?.run_completeness || "");
     const calls = Number(run?.provider_call_count || 0);
+    const rawSteps = Array.isArray(run?.agent_steps)
+      ? run.agent_steps
+      : Object.entries(run?.agent_steps || {}).map(([role, step]) => ({ role, ...(step || {}) }));
+    const agentsDone = rawSteps.filter((step) => step && step.status === "completed").length;
     if (executionMode === "cache_replay" || run?.model_check?.cache_hit === true || run?.cache_hit === true) {
-      return { kind: "cache_replay", calls };
+      return { kind: "cache_replay", calls, agentsDone };
     }
     if (executionMode === "deterministic_backup" || modelStatus === "demo_fallback") {
-      return { kind: "deterministic_backup", calls };
+      return { kind: "deterministic_backup", calls, agentsDone };
     }
     if (modelStatus && modelStatus !== "model_success") {
-      return { kind: "model_failed", calls };
+      return { kind: "model_failed", calls, agentsDone };
+    }
+    // 真实模型链已完成、只是关键数字追溯不到：这既不是"没调用"，也不是"证据留痕缺失"。
+    // 后端 W01/W03 落地后优先读 numeric_gate_summary，历史 run 没有该字段时回退读留痕原文。
+    if (completeness === "incomplete_numeric_claims") {
+      const gate = run?.numeric_gate_summary || run?.context?.numeric_claim_trace || {};
+      const unverified = Array.isArray(gate.key_unverified) ? gate.key_unverified.map(String) : [];
+      const unverifiedCount = Number.isFinite(Number(gate.key_unverified_count)) && gate.key_unverified_count !== undefined
+        ? Number(gate.key_unverified_count)
+        : unverified.length;
+      return { kind: "numeric_gate_rejected", calls, agentsDone, unverified, unverifiedCount, gatePassed: gate.passed };
     }
     // 模型自称成功却没有本次可核验调用或完成态：只能记为证据不完整，不得据此断定模型从未执行。
-    return { kind: "evidence_incomplete", calls };
+    return { kind: "evidence_incomplete", calls, agentsDone };
   }
 
   // 每个分支各自说真话；model_failed 保留原有措辞，避免把真实失败改弱。
@@ -1650,6 +2073,12 @@
       pill: () => "降级：确定性结果可见，本次模型调用未完成",
       gateTitle: "本次未完成真实模型调用",
       gateDetail: (_reason, modelLabel) => `确定性计算结果仍可查看（${modelLabel}）；失败码已保留，后续角色如实标记。`,
+    },
+    numeric_gate_rejected: {
+      stage: (reason) => `数字可追溯闸门未通过 · ${reason.calls} 次真实调用 · ${reason.agentsDone}/3 角色完成`,
+      pill: (reason) => `闸门拒绝发布完整结果 · 已完成 ${reason.calls} 次真实模型调用`,
+      gateTitle: "真实模型分析已完成，但未通过数字可追溯闸门",
+      gateDetail: (reason) => `本次已完成 ${reason.calls} 次真实模型调用、${reason.agentsDone}/3 角色结构化输出通过 evidence_id 与禁用词校验；但 AI 草稿中有 ${reason.unverifiedCount} 个关键财务数字无法追溯到已登记来源，按闸门规则不发布为完整结果。未通过数字：${reason.unverified.length ? reason.unverified.join("、") : "本次留痕未给出具体清单"}。确定性计算结果仍可查看。`,
     },
     evidence_incomplete: {
       stage: (_reason, modelLabel, agentsDone) => `运行证据不完整，需核查（${modelLabel}${agentsDone ? ` · ${agentsDone}/3 角色完成` : ""}）`,
@@ -1679,6 +2108,7 @@
     stopFixedTaskPolling();
     resetStageRail();
     setPhase("running");
+    renderExecutionBadge(null, "running");
     setStageState(1, "current");
     setStageNote(1, "正在创建分阶段任务…");
     setStageNote(2, "等待后端执行");
@@ -1929,7 +2359,8 @@
 
   function renderDemoProgress(outcome, run) {
     const modelStatus = run.model_check?.status;
-    const agentsDone = (run.agent_steps || []).filter((step) => step.status === "completed").length;
+    // 任务接口把 agent_steps 记成对象、run 落盘记成数组；两种形态都要数得出真实完成角色数。
+    const agentsDone = normalizeAgentSteps(run?.agent_steps).filter((step) => step.status === "completed").length;
     const knowledgeHits = run.context?.knowledge_retrieval_trace?.length ?? 0;
     resetStageRail();
     setStageState(1, "completed");
@@ -1966,6 +2397,7 @@
 
   function renderDemoResult(run, outcome) {
     renderDemoProgress(outcome, run);
+    renderExecutionBadge(run);
     const caseItem = currentCase();
     const year = Math.max(...(caseItem?.report_years || [0]).map(Number));
     const statePill = byId("demo-result-state");
@@ -2022,6 +2454,7 @@
     renderInlineAgents(run);
     const items = byId("demo-result-items");
     items.replaceChildren();
+    const evidenceLookupForRun = evidenceLookup(run);
     const draftItems = (run.rule_results || [])
       .filter((result) => result.risk_card || result.ai_draft)
       .slice(0, 5);
@@ -2039,12 +2472,17 @@
           <span>${escapeHtml(METRIC_LABELS[key])}</span>
           <strong>${escapeHtml(formatMetricValue(key, value))}</strong>
         </div>`).join("");
+      const observationChain = evidenceChainHtml(run, evidenceLookupForRun, {
+        support_status: null,
+        evidence_ids: result.evidence_ids || result.risk_card?.evidence_ids || [],
+      });
       card.innerHTML = `
         <span class="demo-item-eyebrow">待核查事项 ${String(index + 1).padStart(2, "0")} · ${escapeHtml(result.risk_card?.rule_id || result.rule_id)}</span>
         <h4>${escapeHtml(draft?.draft_title || result.risk_card?.title || result.rule_id)}</h4>
         <p>${escapeHtml(draft?.draft_observation || result.risk_card?.observation || "等待更多证据。")}</p>
+        <span class="demo-claim-evidence-wrap">${observationChain}</span>
         ${metricsHtml ? `<div class="demo-metric-grid" role="group" aria-label="关键指标">${metricsHtml}</div>` : ""}
-        ${claims.length ? `<ul class="demo-item-facts">${claims.map((claim) => `<li>${escapeHtml(claim.text)} <small>(${escapeHtml(claim.support_status)} · ${(claim.evidence_ids || []).map(escapeHtml).join(" / ") || "无引用"})</small></li>`).join("")}</ul>` : ""}
+        ${claims.length ? `<ul class="demo-item-facts">${claims.map((claim) => `<li>${escapeHtml(claim.text)}<span class="demo-claim-evidence-wrap">${evidenceChainHtml(run, evidenceLookupForRun, claim)}</span></li>`).join("")}</ul>` : ""}
         ${gaps.length ? `<p class="demo-item-facts"><strong>缺失资料 / 需人工核查：</strong>${gaps.map(escapeHtml).join("；")}</p>` : ""}
         <small class="demo-ai-notice">${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</small>`;
       items.append(card);
@@ -2140,7 +2578,7 @@
     const cards = document.createElement("div");
     cards.className = "demo-agent-detail-cards";
     body.append(cards);
-    renderAgentCards(cards, run.agent_steps, { detail: true });
+    renderAgentCards(cards, run.agent_steps, run, { detail: true });
   }
 
   function resetEvidenceAxis() {
@@ -2163,7 +2601,7 @@
   function renderEvidenceAxis(run, outcome) {
     const fieldCount = run.evidence_bundle?.field_evidence?.length ?? 0;
     const ragCount = run.evidence_bundle?.rag_evidence?.length ?? 0;
-    const agentsDone = (run.agent_steps || []).filter((step) => step.status === "completed").length;
+    const agentsDone = normalizeAgentSteps(run?.agent_steps).filter((step) => step.status === "completed").length;
     const gapCount = (run.rule_results || []).reduce((total, result) => total + new Set([...(result.risk_card?.data_gaps || []), ...(result.ai_draft?.data_gaps || [])]).size, 0);
     const metricCount = (run.rule_results || []).reduce((total, result) => total + Object.keys(result.metrics || {}).length, 0);
     setAxisItem("screening", `${statusLabel(run.screening_status)} · ${run.rule_results?.length ?? 0} 条规则结果`);
@@ -2414,6 +2852,10 @@
       [demoState.run.run_id, "__meta__", "numeric_claim_trace", "数字主张回查", "", JSON.stringify(demoState.run.context?.numeric_claim_trace || {}), "原数字—来源—验证状态", ""].map(csvCell).join(","),
       [demoState.run.run_id, "__meta__", "anti_confirmation", "反确认偏差搜索", "", JSON.stringify(demoState.run.context?.anti_confirmation || {}), "反向问题、命中与正常解释", ""].map(csvCell).join(","),
       [run.run_id, "__meta__", "supplement_delta", "补充材料差异摘要", "", JSON.stringify(run.context?.supplement_delta || null), "新增证据、建议变化与原字段保护", ""].map(csvCell).join(","),
+      // W12/W13：来源徽标与 ⑥ 区三个状态随表格同源导出，避免"网页一个说法、导出另一个说法"。
+      [run.run_id, "__meta__", "execution_badge", "运行来源", "", executionBadgeForRun(run).label, "本次运行留痕；.docx 备忘录由后端 W05 同步", ""].map(csvCell).join(","),
+      [run.run_id, "__meta__", "planning_priority", "审计关注优先级", "", run.planning_priority?.grade ? `${run.planning_priority.grade} ${ATTENTION_GRADE_LABELS[run.planning_priority.grade] || run.planning_priority.label || ""}`.trim() : "后端未提供该字段", PRIORITY_BOUNDARY, ""].map(csvCell).join(","),
+      [run.run_id, "__meta__", "evidence_state", "证据闭合状态", "", run.evidence_state?.state ? `${run.evidence_state.state} ${run.evidence_state.label || ATTENTION_EVIDENCE_LABELS[run.evidence_state.state] || ""}`.trim() : "后端未提供该字段", JSON.stringify(run.evidence_state?.reasons || []), ""].map(csvCell).join(","),
     ];
     downloadBlob(`${safeDownloadName(demoState.run.run_id)}-metrics.csv`, `\uFEFF${lines.join("\r\n")}`, "text/csv;charset=utf-8");
   }

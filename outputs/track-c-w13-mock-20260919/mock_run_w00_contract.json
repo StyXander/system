@@ -1,0 +1,188 @@
+{
+  "_comment": "轨 C 开发用 mock run：只包含签字记录 §二（D1/D2）与方案 §W00.1 已冻结的字段结构。页面不加载本文件，不作为任何对外展示数据；用于 W19 集成时逐字段比对后端产出。",
+  "schema_expectation": "audittrace_run_output_v2 + W00.1 新增 optional 字段",
+  "expected_grade": "P2",
+  "expected_evidence_state": "E2",
+  "run": {
+    "run_id": "RUN-MOCK-W00-CONTRACT-0001",
+    "schema_version": "run_output_v2",
+    "engine_version": "0.7.1",
+    "run_completeness": "complete_public_prescreen",
+    "execution_mode": "external_live",
+    "provider_call_count": 3,
+    "input_tokens": 36006,
+    "output_tokens": 2133,
+    "screening_status": "candidate",
+    "ai_analysis_route": "risk_candidate",
+    "ai_analysis_conclusion": "risk_candidate",
+    "ai_recommendation": "retain",
+    "model_check": {
+      "status": "model_success",
+      "execution_mode": "external_live",
+      "cache_hit": false,
+      "provider_call_count": 3
+    },
+    "context": {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "宜宾五粮液股份有限公司",
+      "ticker": "000858",
+      "current_year": 2025,
+      "previous_year": 2024,
+      "prior_year": 2023,
+      "t0": "2026-04-30",
+      "prescreen_plan": {
+        "mode": "public_prescreen",
+        "blocked_candidate_count": 0,
+        "candidate_quality_issues": [],
+        "missing_fields": ["2025年operating_cash_flow", "2024年operating_cash_flow"],
+        "skipped_rules": [{ "rule_id": "R2", "reason": "没有连续两年完整字段，无法进行同比计算。" }]
+      },
+      "audit_procedures": [
+        { "procedure_id": "AP-01", "procedure": "初步分析程序", "system_execution": "跨期复算、增速差与周转天数筛查", "human_retained": "判断增速差是否构成重大错报风险" },
+        { "procedure_id": "AP-03", "procedure": "风险评估辅助", "system_execution": "资料缺口清单与进一步程序建议", "human_retained": "决定是否追加程序" },
+        { "procedure_id": "AP-06", "procedure": "补充证据再评估", "system_execution": "补充资料登记与父子运行差异", "human_retained": "判断补充资料是否改变结论" }
+      ]
+    },
+    "rule_results": [
+      {
+        "rule_id": "R1",
+        "status": "candidate",
+        "screening_status": "candidate",
+        "evidence_ids": ["CNINFO_000858_T0_20260430_REVENUE_2025", "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00"],
+        "metrics": {
+          "revenue_growth": -0.545518,
+          "ar_growth": 0.0106799,
+          "growth_gap": 0.556198,
+          "absolute_ar_change": 398857.56,
+          "sustained_periods": 1,
+          "materiality_assessment": "未评价金额重要性",
+          "materiality_multiple": null
+        },
+        "risk_card": {
+          "rule_id": "R1",
+          "screening_strength": "strong",
+          "title": "程序筛查形成R1待核查候选",
+          "observation": "应收账款增速为1.07%，营业收入增速为−54.55%，增速差为55.62%；应收账款绝对变动为398,857.56元。未评价金额重要性。",
+          "data_gaps": ["账龄结构", "期后回款", "信用政策变动", "主要客户合同结算条款"],
+          "requested_materials": ["账龄明细表", "期后回款记录", "信用政策说明", "主要合同关键条款摘要"]
+        }
+      }
+    ],
+    "evidence_bundle": {
+      "field_evidence": [
+        {
+          "evidence_id": "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "field_id": "revenue_current",
+          "year": 2025,
+          "value": 40528509770.23,
+          "unit": "元",
+          "document_id": "CNINFO-000858-2025-09133E1F44B3",
+          "pdf_page": 7,
+          "disclosure_date": "2026-04-30"
+        }
+      ],
+      "rag_evidence": [
+        {
+          "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00",
+          "document_id": "CNINFO-000858-2025-09133E1F44B3",
+          "report_year": 2025,
+          "pdf_page": 89,
+          "source_locator": "PDF 第 89 页"
+        }
+      ],
+      "numeric_claim_trace": {
+        "passed": true,
+        "key_unverified": [],
+        "key_unverified_count": 0,
+        "unverified_count": 0,
+        "trace": []
+      }
+    },
+    "agent_steps": [
+      {
+        "role": "counter",
+        "status": "completed",
+        "provider_call_performed": true,
+        "output": {
+          "role": "counter",
+          "analysis_conclusion": "risk_candidate",
+          "status": "candidate",
+          "normal_explanations": [
+            { "text": "白酒经销以先款后货结算，预收模式可能解释收入下降与应收稳定并存。", "support_status": "unverified_hypothesis", "evidence_ids": ["RAG-CNINFO_000858_T0_20260430-2025-P0089-C00"] },
+            { "text": "应收账款绝对变动仅 398,857.56 元，占营业收入比重低，可能不具重要性。", "support_status": "unverified_hypothesis", "evidence_ids": ["CNINFO_000858_T0_20260430_REVENUE_2025"] }
+          ],
+          "data_gaps": [],
+          "requested_materials": []
+        }
+      },
+      {
+        "role": "review",
+        "status": "completed",
+        "provider_call_performed": true,
+        "output": {
+          "role": "review",
+          "analysis_conclusion": "risk_candidate",
+          "status": "retain",
+          "ai_recommendation": "retain",
+          "reason_for_status": "两条正常解释均为待验证假设，尚不足以撤销程序候选；保留待人工复核并列明需取得资料。",
+          "draft_observation": "程序筛查事实：应收增速1.07%、收入增速-54.55%、增速差55.62%，应收绝对变动398,857.56元，未评价金额重要性。",
+          "claims": [
+            { "text": "收入大幅下降而应收账款基本稳定，需核查销售与收款循环的截止性与回款真实性。", "support_status": "supported", "evidence_ids": ["CNINFO_000858_T0_20260430_REVENUE_2025"] }
+          ],
+          "data_gaps": ["账龄结构", "期后回款", "信用政策变动", "主要客户合同结算条款"],
+          "requested_materials": ["账龄明细表", "期后回款记录", "信用政策说明", "主要合同关键条款摘要"]
+        }
+      }
+    ],
+    "planning_priority": {
+      "grade": "P2",
+      "label": "P2 优先核查",
+      "factors": [
+        { "factor": "screening_status", "value": "candidate", "contribution": "候选成立" },
+        { "factor": "screening_strength", "value": "strong", "contribution": "增速差达强阈值" },
+        { "factor": "sustained_periods", "value": 1, "contribution": "未满足 ≥2，故不升 P1" }
+      ],
+      "boundary": "本级别为审计计划阶段的程序筛查信号分级，不是审计认定，不构成审计结论或审计意见。"
+    },
+    "evidence_state": {
+      "state": "E2",
+      "label": "E2 部分闭合",
+      "reasons": [
+        "numeric_gate.passed=true → 不判 E3",
+        "Counter 两条 normal_explanations 均为 unverified_hypothesis → 不判 E1",
+        "4 项 data_gaps 未解决 → 判 E2"
+      ],
+      "boundary": "证据闭合状态只描述本次证据链的可追溯程度，不构成审计结论或审计意见。"
+    },
+    "disposition": {
+      "ai_recommendation": "retain",
+      "label": "建议保留",
+      "reason_for_status": "两条正常解释均为待验证假设，尚不足以撤销程序候选；保留待人工复核并列明需取得资料。"
+    },
+    "materiality_display": {
+      "assessment": "未评价金额重要性",
+      "multiple": null
+    },
+    "execution_badge": {
+      "mode": "external_live",
+      "label": "本次真实模型运行",
+      "provider_call_count": 3
+    },
+    "numeric_gate_summary": {
+      "passed": true,
+      "key_unverified": [],
+      "unverified_count": 0,
+      "trace_count": 13
+    }
+  },
+  "degraded_variant": {
+    "_comment": "把 run.run_completeness 改为 incomplete_numeric_claims、numeric_gate_summary 改为 passed=false 即得到 W09 的闸门拒绝态；页面文案取 key_unverified。",
+    "run_completeness": "incomplete_numeric_claims",
+    "numeric_gate_summary": {
+      "passed": false,
+      "key_unverified": ["41,813,685.32"],
+      "unverified_count": 3,
+      "trace_count": 13
+    }
+  }
+}

@@ -29,6 +29,10 @@ RAG 片段列出检索编号、页码、原文摘录和待回页状态。
 Word 样式保证中文字体可读，同时保留版本和证据编号的等宽视觉。
 页眉页脚展示报告版本与 AI 边界，不使用过期工程版本。
 表格过长时允许跨页，但不能裁掉证据编号或支持状态。
+报告抬头并排显示审计关注优先级、证据闭合状态、处置与金额重要性四条独立轴。
+待核查事项列出级别与证据编号及页码，读者可逐条回到原文页复核。
+数字闸门未通过时报告写明真实调用次数与未通过的具体数字，不包装成完整结果。
+旧运行缺少契约字段时报告写未提供，不在导出阶段补算级别或证据闭合状态。
 缓存只允许在真人批准后创建，未批准运行不能固化为交付缓存。
 缓存内容保存公开运行结构，不保存环境变量和模型密钥。
 缓存编号采用安全格式，读取时不能转换为任意文件路径。
@@ -84,7 +88,14 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from .schemas import AI_GENERATED_CONTENT_NOTICE, HumanReviewRequest, RunResponse, StoredRunResponse, sanitize_cached_trace
+from .schemas import (
+    AI_GENERATED_CONTENT_NOTICE,
+    HumanReviewRequest,
+    RunResponse,
+    StoredRunResponse,
+    execution_badge_for,
+    sanitize_cached_trace,
+)
 
 
 REPORT_VERSION = "report_v2"
@@ -169,6 +180,12 @@ def replay_cache(workspace_root: Path, cache_id: str) -> RunResponse | None:
     run_data["context"]["external_model_call_performed"] = False
     run_data["run_completeness"] = "cache_replay_not_fresh_analysis"
     run_data["execution_mode"] = "cache_replay"
+    # 回放必须改写来源徽标，不能沿用被缓存运行当时的 live 标记。
+    run_data["execution_badge"] = execution_badge_for(
+        execution_mode="cache_replay",
+        cache_hit=True,
+        provider_call_count=0,
+    ).model_dump(mode="json")
     run_data["cache_hit"] = True
     run_data["input_tokens"] = 0
     run_data["output_tokens"] = 0
@@ -241,6 +258,109 @@ def _add_heading(document: Document, text: str, level: int = 1) -> None:
     for run in paragraph.runs:
         _set_run_font(run)
         run.font.color.rgb = RGBColor(12, 71, 82)
+
+
+MISSING_FIELD_TEXT = "未提供"
+
+
+def _contract_text(value: Any, attribute: str) -> str:
+    """读取 2026-09-19 契约字段；旧运行缺失该卡时如实写未提供，不补算不猜测。"""
+    if value is None:
+        return MISSING_FIELD_TEXT
+    text = str(getattr(value, attribute, None) or "").strip()
+    return text or MISSING_FIELD_TEXT
+
+
+def _contract_priority_text(stored: StoredRunResponse) -> str:
+    """审计关注优先级一行：级别代号配已签标签；未定级不得写成任何档位。"""
+    grade = _contract_text(stored.run.planning_priority, "grade")
+    label = _contract_text(stored.run.planning_priority, "label")
+    if label == MISSING_FIELD_TEXT:
+        return grade
+    return f"{grade} {label}"
+
+
+def _contract_evidence_text(stored: StoredRunResponse) -> str:
+    """证据闭合状态一行：三档代号配标签；三档都不成立时保持未提供。"""
+    state = _contract_text(stored.run.evidence_state, "state")
+    label = _contract_text(stored.run.evidence_state, "label")
+    if state == MISSING_FIELD_TEXT and label == MISSING_FIELD_TEXT:
+        return MISSING_FIELD_TEXT
+    return f"{state} {label}".strip()
+
+
+def _contract_disposition_text(stored: StoredRunResponse) -> str:
+    """处置一行：与优先级并排独立显示，二者互不覆盖。"""
+    label = _contract_text(stored.run.disposition, "label")
+    code = _contract_text(stored.run.disposition, "ai_recommendation")
+    if label == MISSING_FIELD_TEXT and code == MISSING_FIELD_TEXT:
+        return MISSING_FIELD_TEXT
+    return f"{label}（{code}）"
+
+
+def _contract_materiality_text(stored: StoredRunResponse) -> str:
+    """金额重要性一行：结论与倍数并排，不折入优先级也不推断缺失。"""
+    display = stored.run.materiality_display
+    assessment = _contract_text(display, "assessment")
+    multiple = getattr(display, "multiple", None) if display is not None else None
+    if assessment == MISSING_FIELD_TEXT and multiple is None:
+        return MISSING_FIELD_TEXT
+    return f"{assessment}（重要性倍数 {multiple}）" if multiple is not None else assessment
+
+
+def _evidence_page_lookup(evidence_bundle: dict[str, Any]) -> dict[str, str]:
+    """把证据编号映射到"来源类型·PDF 页码"，供待核查事项逐条回查。"""
+    lookup: dict[str, str] = {}
+    kind_labels = {
+        "field_evidence": "结构化字段",
+        "rag_evidence": "年报原文片段",
+        "supplement_evidence": "补充资料",
+        "procedure_evidence": "程序证据",
+        "knowledge_evidence": "知识库来源",
+    }
+    for key, rows in (evidence_bundle or {}).items():
+        if key not in kind_labels or not isinstance(rows, list):
+            continue
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            evidence_id = str(row.get("evidence_id") or "")
+            if not evidence_id or evidence_id in lookup:
+                continue
+            page = row.get("pdf_page")
+            locator = f"第 {page} 页" if str(page or "").isdigit() else "页码未登记"
+            lookup[evidence_id] = f"{kind_labels[key]}·{locator}"
+    return lookup
+
+
+def _grid_table(document: Document, header: list[str], rows: list[list[str]]) -> None:
+    """写入一张多列表格；待核查事项需要级别与证据回链同屏可读。"""
+    table = document.add_table(rows=1, cols=len(header))
+    table.style = "Table Grid"
+    table.autofit = False
+    for index, title in enumerate(header):
+        cell = table.rows[0].cells[index]
+        cell.text = str(title)
+        _set_cell_shading(cell, "DCEFF1")
+        for paragraph in cell.paragraphs:
+            for run in paragraph.runs:
+                _set_run_font(run)
+                run.bold = True
+                run.font.size = Pt(8.5)
+    for row in rows:
+        cells = table.add_row().cells
+        for index, value in enumerate(row):
+            cells[index].text = str(value)
+            for paragraph in cells[index].paragraphs:
+                for run in paragraph.runs:
+                    _set_run_font(run)
+                    run.font.size = Pt(8.5)
+
+
+_SUPPORT_STATUS_LABELS = {
+    "supported": "已有证据支持",
+    "unverified_hypothesis": "待验证解释",
+}
 
 
 def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_preview: bool = False) -> Path:
@@ -330,6 +450,8 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
     context = stored.run.context
     configured_parameters = context.get("configured_parameters") or {}
     r1_signoff_status = str(configured_parameters.get("r1_signoff_status") or "no_signoff_record")
+    numeric_gate = context.get("numeric_claim_trace") or {}
+    evidence_pages = _evidence_page_lookup(stored.run.evidence_bundle)
     _add_heading(document, "一、运行身份与三层状态", 1)
     _table_rows(
         document,
@@ -339,6 +461,11 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             ("分析时点 T0", context.get("t0", "")),
             ("运行编号", stored.run.run_id),
             ("运行完整性", stored.run.run_completeness),
+            # 以下四行是两条独立轴加两项独立控制项，逐字来自已签口径，不得合并成复合分数。
+            ("审计关注优先级", _contract_priority_text(stored)),
+            ("证据闭合状态", _contract_evidence_text(stored)),
+            ("处置", _contract_disposition_text(stored)),
+            ("金额重要性", _contract_materiality_text(stored)),
             ("程序筛查", stored.run.screening_status),
             ("AI建议", stored.run.ai_recommendation),
             ("人工处理", review.status),
@@ -348,6 +475,15 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             ("R1 口径状态", r1_signoff_status),
         ],
     )
+    if stored.run.run_completeness == "incomplete_numeric_claims":
+        # 真实调用已完成与数字可追溯是两件事；报告不得只留一个"不完整"字样。
+        unverified_numbers = ", ".join(str(item) for item in (numeric_gate.get("key_unverified") or [])) or "未登记"
+        document.add_paragraph(
+            f"数字可追溯闸门说明：真实模型调用已完成 {stored.run.provider_call_count} 次，"
+            f"但 {numeric_gate.get('key_unverified_count', 0)} 个关键财务数字未通过可追溯闸门，"
+            f"故不发布为完整结果。未通过数字：{unverified_numbers}。确定性计算结果仍可查看。"
+        )
+        document.add_paragraph(str(numeric_gate.get("boundary") or ""))
 
     _add_heading(document, "二、程序计算与AI待核查草稿", 1)
     for result in stored.run.rule_results:
@@ -367,15 +503,34 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             claims = result.ai_draft.get("claims", [])
             if claims:
                 document.add_paragraph("Top 5 待核查事项与事实依据：")
-                for claim in claims:
-                    _add_bullet(
-                        document,
-                        f"{claim.get('text')}｜证据 {', '.join(claim.get('evidence_ids', []))}｜{claim.get('support_status')}",
-                    )
+                # 级别列承载审计关注优先级，证据列必须能回到编号与页码，
+                # 让导出件与页面一样不存在"看起来像事实但无法回查"的句子。
+                _grid_table(
+                    document,
+                    ["级别", "待核查事项", "证据编号 · 来源与页码", "证据状态"],
+                    [
+                        [
+                            _contract_text(stored.run.planning_priority, "grade"),
+                            str(claim.get("text") or ""),
+                            "；".join(
+                                f"{evidence_id}（{evidence_pages.get(evidence_id) or '未登记来源'}）"
+                                for evidence_id in (claim.get("evidence_ids") or [])
+                            )
+                            or "无证据编号绑定",
+                            _SUPPORT_STATUS_LABELS.get(
+                                str(claim.get("support_status") or ""), str(claim.get("support_status") or "未提供")
+                            ),
+                        ]
+                        for claim in claims
+                        if isinstance(claim, dict)
+                    ],
+                )
             for explanation in result.ai_draft.get("normal_explanations", []):
                 _add_bullet(
                     document,
-                    f"正常解释候选：{explanation.get('text')}｜{explanation.get('support_status')}｜证据 {', '.join(explanation.get('evidence_ids', [])) or '无'}",
+                    f"正常解释候选：{explanation.get('text')}"
+                    f"｜{_SUPPORT_STATUS_LABELS.get(str(explanation.get('support_status') or ''), '未提供')}"
+                    f"｜证据 {', '.join(explanation.get('evidence_ids', [])) or '无'}",
                 )
             gaps = result.ai_draft.get("data_gaps") or []
             if gaps:
@@ -462,12 +617,15 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
     )
     numeric = context.get("numeric_claim_trace") or {}
     document.add_paragraph(
-        f"数字主张回查：共 {len(numeric.get('trace') or [])} 个 token，未验证 {numeric.get('unverified_count', 0)} 个，关键未验证 {numeric.get('key_unverified_count', 0)} 个；状态 {numeric.get('passed', False)}。"
+        f"数字主张回查：校验口径 {numeric.get('validation_mode') or '未登记'}；"
+        f"共 {len(numeric.get('trace') or [])} 个 token，未验证 {numeric.get('unverified_count', 0)} 个，"
+        f"关键未验证 {numeric.get('key_unverified_count', 0)} 个；状态 {numeric.get('passed', False)}。"
     )
     for item in (numeric.get("trace") or [])[:24]:
         _add_bullet(
             document,
-            f"{item.get('raw')}｜{item.get('verification_status')}｜来源 {item.get('source') or '无'}｜{item.get('calculation') or ''}",
+            f"{item.get('raw')}｜{item.get('verification_status')}｜来源 {item.get('source') or '无'}"
+            f"（{item.get('source_type') or '未溯源'}）｜{item.get('calculation') or ''}",
         )
     anti = context.get("anti_confirmation") or {}
     document.add_paragraph(

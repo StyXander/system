@@ -1,9 +1,15 @@
-"""数字主张可回查闸门 v2（创新三）。
+"""数字主张可回查闸门 v3（创新三）。
 
 从 Agent 最终文本与结构化 claims 中提取关键金额、比例、年份、阈值和变化值，
 每个数字必须映射到确定性 metric ID、字段 evidence ID 或知识定位；
 允许配置不参与财务核对的技术数字（run ID、页码、角色序号等）。
 无来源数字标记 unverified_numeric_claim；关键财务数字无来源时禁止完整成功。
+
+v3 起支持 claim-aware 校验：调用方按主张分段传入 (text, evidence_ids) 后，
+每段文本只能使用「该段自己绑定的 evidence_id」所对应的年报原文片段作为来源池。
+未被该主张绑定的片段即使含有同一数字，也仍然是未验证数字。
+严禁把所有 RAG 片段数字并入全局白名单，那等于拆掉本闸门。
+结构化 field/metric value 与配置阈值仍是全局可用来源，旧调用口径不变。
 
 导出展示“原数字—规范化值—来源—计算式—验证状态”。
 """
@@ -131,26 +137,67 @@ def _evidence_sources(evidence_bundle: dict[str, Any]) -> list[dict[str, Any]]:
     return sources
 
 
-def build_numeric_claim_trace(
+# RAG 原文片段行里真正承载年报文字的字段；按优先级取第一个非空字符串。
+_RAG_TEXT_FIELDS = ("excerpt", "raw_excerpt", "content", "text")
+
+
+def _rag_chunk_sources(
+    evidence_bundle: dict[str, Any],
+    allowed_evidence_ids: list[str] | set[str] | tuple[str, ...] | None,
+) -> list[dict[str, Any]]:
+    """只从「本段主张已绑定 evidence_id」的年报原文片段中抽取数字。
+
+    rag_evidence 行的 value 恒为 None，财务数字只存在于原文摘录里；
+    因此必须按 evidence_id 白名单逐段取数，不能整包并入全局来源。
+    """
+    allowed = {str(item) for item in (allowed_evidence_ids or []) if str(item)}
+    if not allowed:
+        return []
+    rows = evidence_bundle.get("rag_evidence")
+    if not isinstance(rows, list):
+        return []
+    sources: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        evidence_id = str(row.get("evidence_id") or "")
+        # 未被本段主张绑定的片段一律跳过：这是 D4 收紧条件 2 的唯一执行点。
+        if not evidence_id or evidence_id not in allowed:
+            continue
+        chunk_text = next(
+            (str(row[field]) for field in _RAG_TEXT_FIELDS if isinstance(row.get(field), str) and row.get(field)),
+            "",
+        )
+        if not chunk_text:
+            continue
+        page = row.get("pdf_page")
+        label = f"年报原文第 {page} 页片段" if str(page or "").isdigit() else "年报原文片段"
+        for token in extract_number_tokens(chunk_text):
+            if token["normalized"] is None:
+                continue
+            sources.append(
+                {
+                    "source_type": "rag_chunk",
+                    "source_ref": evidence_id,
+                    "value": float(token["normalized"]),
+                    "label": label,
+                }
+            )
+    return sources
+
+
+def _trace_segment(
     text: str,
     *,
-    rule_results: list[dict[str, Any]],
-    evidence_bundle: dict[str, Any],
-    knowledge_trace: list[dict[str, Any]] | None = None,
-    allowed_years: set[int] | list[int] | tuple[int, ...] | None = None,
-    additional_sources: list[dict[str, Any]] | None = None,
-    tolerance: float = 0.005,
+    sources: list[dict[str, Any]],
+    allowed_year_set: set[int],
+    tolerance: float,
 ) -> list[dict[str, Any]]:
-    """构建 原数字—规范化值—来源—计算式—验证状态 轨迹。"""
-    sources = _metric_sources(rule_results) + _evidence_sources(evidence_bundle) + [
-        source for source in (additional_sources or []) if isinstance(source, dict)
-    ]
-    allowed_year_set = {int(year) for year in (allowed_years or []) if str(year).isdigit()}
-    knowledge_trace = knowledge_trace or []
+    """对单段文本逐 token 溯源；来源池由调用方按主张绑定关系给定。"""
     trace: list[dict[str, Any]] = []
     for token in extract_number_tokens(text):
         if token["normalized"] is None:
-            trace.append({**token, "source": None, "verification_status": "unparseable"})
+            trace.append({**token, "source": None, "bound_by_claim": False, "verification_status": "unparseable"})
             continue
         # 年份是当前案例的上下文边界，不要求再伪造一个财务字段来源。
         # 只有调用方明确提供的报告年度才可走此分支；其他年份仍然是未验证数字。
@@ -160,6 +207,7 @@ def build_numeric_claim_trace(
                     **token,
                     "source": "case.reporting_years",
                     "source_type": "case_context",
+                    "bound_by_claim": False,
                     "verification_status": "contextual",
                     "calculation": f"{token['raw']} ↔ 当前案例报告年度",
                 }
@@ -185,6 +233,7 @@ def build_numeric_claim_trace(
                 {
                     **token,
                     "source": None,
+                    "bound_by_claim": False,
                     "verification_status": "unverified_numeric_claim",
                 }
             )
@@ -194,10 +243,60 @@ def build_numeric_claim_trace(
                     **token,
                     "source": best["source_ref"],
                     "source_type": best["source_type"],
+                    # 只有来自本段主张自行绑定的年报原文片段，才算“主张内可回查”。
+                    "bound_by_claim": best["source_type"] == "rag_chunk",
                     "verification_status": "traced",
                     "calculation": f"{token['raw']} ↔ {best['label']}={best['value']}",
                 }
             )
+    return trace
+
+
+def build_numeric_claim_trace(
+    text: str,
+    *,
+    rule_results: list[dict[str, Any]],
+    evidence_bundle: dict[str, Any],
+    knowledge_trace: list[dict[str, Any]] | None = None,
+    allowed_years: set[int] | list[int] | tuple[int, ...] | None = None,
+    additional_sources: list[dict[str, Any]] | None = None,
+    claim_evidence_bindings: list[dict[str, Any]] | None = None,
+    tolerance: float = 0.005,
+) -> list[dict[str, Any]]:
+    """构建 原数字—规范化值—来源—计算式—验证状态 轨迹。
+
+    未传 claim_evidence_bindings 时保持旧口径：整段 text 只用全局结构化来源，
+    RAG 原文数字一律不进入白名单。传入后改为逐主张分段，每段额外允许
+    该段自行绑定的 RAG 片段来源；来源池比整段校验更小，而不是更大。
+    """
+    sources = _metric_sources(rule_results) + _evidence_sources(evidence_bundle) + [
+        source for source in (additional_sources or []) if isinstance(source, dict)
+    ]
+    allowed_year_set = {int(year) for year in (allowed_years or []) if str(year).isdigit()}
+    knowledge_trace = knowledge_trace or []
+    bindings = [
+        binding
+        for binding in (claim_evidence_bindings or [])
+        if isinstance(binding, dict) and str(binding.get("text") or "")
+    ]
+    if not bindings:
+        return _trace_segment(
+            text,
+            sources=sources,
+            allowed_year_set=allowed_year_set,
+            tolerance=tolerance,
+        )
+    trace: list[dict[str, Any]] = []
+    for binding in bindings:
+        segment_sources = sources + _rag_chunk_sources(evidence_bundle, binding.get("evidence_ids"))
+        trace.extend(
+            _trace_segment(
+                str(binding.get("text") or ""),
+                sources=segment_sources,
+                allowed_year_set=allowed_year_set,
+                tolerance=tolerance,
+            )
+        )
     return trace
 
 
@@ -209,8 +308,13 @@ def validate_numeric_claims(
     knowledge_trace: list[dict[str, Any]] | None = None,
     allowed_years: set[int] | list[int] | tuple[int, ...] | None = None,
     additional_sources: list[dict[str, Any]] | None = None,
+    claim_evidence_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """数字主张可回查校验：返回轨迹、未验证数字与关键财务数字缺失标记。"""
+    """数字主张可回查校验：返回轨迹、未验证数字与关键财务数字缺失标记。
+
+    传入 claim_evidence_bindings 时以分段文本为准，text 参数不再参与校验；
+    关键财务数字无来源仍然 fail-closed，不因为扩展了原文来源而放宽判定。
+    """
     trace = build_numeric_claim_trace(
         text,
         rule_results=rule_results,
@@ -218,17 +322,29 @@ def validate_numeric_claims(
         knowledge_trace=knowledge_trace,
         allowed_years=allowed_years,
         additional_sources=additional_sources,
+        claim_evidence_bindings=claim_evidence_bindings,
     )
+    bindings = [
+        binding
+        for binding in (claim_evidence_bindings or [])
+        if isinstance(binding, dict) and str(binding.get("text") or "")
+    ]
     unverified = [t for t in trace if t["verification_status"] == "unverified_numeric_claim"]
     key_unverified = [
         t for t in unverified if t["kind"] in {"percentage", "percentage_point", "year"} or (t["kind"] == "number" and t["normalized"] and abs(t["normalized"]) >= 1000)
     ]
     return {
-        "schema_version": "numeric_claim_trace_v2",
+        "schema_version": "numeric_claim_trace_v3",
+        # 记录本次校验口径，便于区分历史 v2 整段结果与 claim-aware 结果。
+        "validation_mode": "claim_scoped" if bindings else "global_structured",
+        "validated_segment_count": len(bindings) if bindings else 1,
         "trace": trace,
         "unverified_count": len(unverified),
         "key_unverified_count": len(key_unverified),
         "key_unverified": [t["raw"] for t in key_unverified],
         "passed": len(key_unverified) == 0,
-        "boundary": "关键财务数字无来源时禁止完整成功；技术数字（run ID、页码、角色序号）不参与核对。",
+        "boundary": (
+            "关键财务数字无来源时禁止完整成功；技术数字（run ID、页码、角色序号）不参与核对。"
+            "按主张分段校验时，年报原文数字只在当前主张确实绑定该 evidence_id 的前提下才算来源。"
+        ),
     }

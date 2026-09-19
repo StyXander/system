@@ -18,6 +18,12 @@ RunMode = Literal["full_analysis", "calculation_only"]
 PipelineAnalysisMode = Literal["rag_only", "full_analysis"]
 CachePolicy = Literal["prefer_cache", "refresh_if_stale", "force_refresh"]
 SupportStatus = Literal["supported", "unverified_hypothesis"]
+# 2026-09-19 签字口径 D1/D2：以下两组代号是展示层分级，不是审计认定。
+PlanningPriorityGrade = Literal["P1", "P2", "P3", "P4", "S", "G"]
+EvidenceStateCode = Literal["E1", "E2", "E3"]
+# 运行来源徽标只允许三态，live 与回放、备用链不得互相冒充。
+ExecutionBadgeMode = Literal["external_live", "cache_replay", "deterministic_backup"]
+DispositionCode = Literal["retain", "downgrade", "defer", "not_applicable"]
 
 
 # 所有对外机器可读结果与人可读草稿共用同一句声明，避免不同出口弱化边界。
@@ -226,6 +232,91 @@ class RuleResult(BaseModel):
     ai_analysis_conclusion: str | None = None
 
 
+class PlanningPriority(BaseModel):
+    """D1 审计关注优先级：只由确定性纯函数产出，模型不得直接给级。"""
+
+    grade: PlanningPriorityGrade | None = None
+    label: str | None = None
+    factors: list[dict[str, Any]] | None = None
+    boundary: str | None = None
+
+
+class EvidenceState(BaseModel):
+    """D2 证据闭合状态：输入只能是既有控制项，不得由模型打分。"""
+
+    state: EvidenceStateCode | None = None
+    label: str | None = None
+    reasons: list[str] | None = None
+    boundary: str | None = None
+
+
+class Disposition(BaseModel):
+    """复核处置轴：与优先级并排独立显示，二者互不覆盖。"""
+
+    ai_recommendation: DispositionCode | None = None
+    label: str | None = None
+    reason_for_status: str | None = None
+
+
+class MaterialityDisplay(BaseModel):
+    """金额重要性独立展示，不折入审计关注优先级。"""
+
+    assessment: str | None = None
+    multiple: float | None = None
+
+
+class ExecutionBadge(BaseModel):
+    """运行来源徽标：本次真实调用、已验证回放与确定性备用链不得混淆。"""
+
+    mode: ExecutionBadgeMode | None = None
+    label: str | None = None
+    provider_call_count: int | None = None
+
+
+# 徽标中文标签与判定表由契约 §六 冻结，前后端只允许这一处实现。
+EXECUTION_BADGE_LABELS: dict[str, str] = {
+    "external_live": "本次真实模型运行",
+    "cache_replay": "已验证历史结果回放",
+    "deterministic_backup": "确定性备用链",
+}
+# 后端内部 execution_mode 到对外三态的归一映射；未列出的模式一律视为来源不可判定。
+_EXECUTION_MODE_TO_BADGE: dict[str, str] = {
+    "deterministic_backup": "deterministic_backup",
+    "cache_replay": "cache_replay",
+    "external_cached": "cache_replay",
+    "external_live": "external_live",
+}
+
+
+def execution_badge_for(
+    *,
+    execution_mode: str | None,
+    cache_hit: bool,
+    provider_call_count: int | None,
+) -> ExecutionBadge:
+    """按契约判定表产出运行来源徽标；不推断任何成功或失败。"""
+
+    calls = int(provider_call_count or 0)
+    mode = _EXECUTION_MODE_TO_BADGE.get(str(execution_mode or ""))
+    if mode is None and cache_hit:
+        mode = "cache_replay"
+    if mode is None:
+        return ExecutionBadge(provider_call_count=calls)
+    if mode == "external_live" and calls <= 0:
+        # 声称 live 却没有调用留痕时不产出徽标，避免把无法判定的来源写成真实运行。
+        return ExecutionBadge(provider_call_count=0)
+    return ExecutionBadge(mode=mode, label=EXECUTION_BADGE_LABELS[mode], provider_call_count=calls)
+
+
+class NumericGateSummary(BaseModel):
+    """数字可追溯闸门的对外摘要；完整轨迹仍保留在 context.numeric_claim_trace。"""
+
+    passed: bool | None = None
+    key_unverified: list[str] | None = None
+    unverified_count: int | None = None
+    trace_count: int | None = None
+
+
 class RunResponse(AiGeneratedContentNotice):
     run_id: str
     status: str
@@ -260,6 +351,13 @@ class RunResponse(AiGeneratedContentNotice):
     ai_execution_requested: bool = False
     ai_execution_completed: bool = False
     agent_steps: list[AgentStep] = Field(default_factory=list)
+    # 2026-09-19 契约字段：全部可选，历史 run JSON 缺失时保持 None 而不是报错。
+    planning_priority: PlanningPriority | None = None
+    evidence_state: EvidenceState | None = None
+    disposition: Disposition | None = None
+    materiality_display: MaterialityDisplay | None = None
+    execution_badge: ExecutionBadge | None = None
+    numeric_gate_summary: NumericGateSummary | None = None
 
 
 def sanitize_cached_trace(run: RunResponse, *, current_run_id: str) -> RunResponse:

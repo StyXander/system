@@ -184,6 +184,16 @@ from .anti_confirmation import build_anti_confirmation_record
 from .coverage_matrix import build_assertion_evidence_procedure_matrix
 from .evidence_fitness import annotate_evidence_bundle, enforce_claim_boundaries, fitness_map_for_evidence
 from .numeric_gate import validate_numeric_claims
+# 轨 B（判定模块）在并行分支上交付这两个纯函数；模块缺失时对应字段保持 None，
+# 本文件不代写分级与证据闭合判定，只负责挂载。见 docs/CONTRACT_2026-09-19.md §五。
+try:
+    from . import evidence_closure as _evidence_closure
+except ImportError:
+    _evidence_closure = None
+try:
+    from . import planning_priority as _planning_priority
+except ImportError:
+    _planning_priority = None
 from .rag import get_retrieval, prepare_index, question_set, retrieve, status as rag_status
 from .run_store import load_run, save_human_review, save_run
 from .seed_catalog import (
@@ -207,14 +217,20 @@ from .schemas import (
     CNInfoFieldConfirmation,
     CNInfoPipelineRequest,
     DemoRunCreateRequest,
+    Disposition,
+    EvidenceState,
     HealthResponse,
     HumanReviewRequest,
+    MaterialityDisplay,
     ModelCheck,
     ModelTransferConsentRequest,
+    NumericGateSummary,
+    PlanningPriority,
     RagRetrieveRequest,
     RuleResult,
     RunRequest,
     RunResponse,
+    execution_badge_for,
     sanitize_cached_trace,
     StoredRunResponse,
     SupplementSampleRequest,
@@ -2859,6 +2875,12 @@ def _cached_run_for_new_request(
             "final_ai_draft": cached_trace.final_ai_draft,
             "model_check": model_check,
             "execution_mode": "external_cached",
+            # 缓存复用必须改写来源徽标，不能沿用被复用运行当时的 live 标记。
+            "execution_badge": execution_badge_for(
+                execution_mode="external_cached",
+                cache_hit=True,
+                provider_call_count=0,
+            ),
             "cache_hit": True,
             "cache_key_hash": cache_key_hash,
             "model_id": model_check.model_id,
@@ -3334,6 +3356,219 @@ def _aggregate_ai_recommendation(results: list[RuleResult]) -> str:
     if "defer" in recommendations:
         return "defer"
     return "not_generated"
+
+
+# 复核处置轴的中文标签与 D1 的级别标签是两条独立轴，互不覆盖。
+_DISPOSITION_LABELS: dict[str, str] = {
+    "retain": "建议保留",
+    "downgrade": "建议降级",
+    "defer": "建议暂缓",
+    "not_applicable": "本角色不作建议",
+}
+
+
+def _numeric_gate_summary(numeric_gate: dict[str, Any]) -> NumericGateSummary:
+    """把闸门结果压成对外摘要；完整轨迹仍保留在 context.numeric_claim_trace。"""
+    return NumericGateSummary(
+        passed=bool(numeric_gate.get("passed")),
+        key_unverified=[str(item) for item in (numeric_gate.get("key_unverified") or [])],
+        unverified_count=int(numeric_gate.get("unverified_count") or 0),
+        trace_count=len(numeric_gate.get("trace") or []),
+    )
+
+
+def _materiality_display(results: list[RuleResult]) -> MaterialityDisplay:
+    """金额重要性独立展示，不折入审计关注优先级。"""
+    for result in results:
+        metrics = result.metrics or {}
+        assessment = metrics.get("materiality_assessment")
+        if assessment:
+            multiple = metrics.get("materiality_multiple")
+            return MaterialityDisplay(
+                assessment=str(assessment),
+                multiple=float(multiple) if isinstance(multiple, (int, float)) else None,
+            )
+    return MaterialityDisplay()
+
+
+def _disposition(results: list[RuleResult], ai_recommendation: str) -> Disposition:
+    """处置轴只搬运复核 Agent 既有字段，不在这里重新判断。"""
+    reason = next(
+        (
+            step.output.reason_for_status
+            for result in results
+            for step in result.agent_steps
+            if step.role == "review" and step.status == "completed" and step.output
+        ),
+        None,
+    )
+    code = ai_recommendation if ai_recommendation in _DISPOSITION_LABELS else None
+    return Disposition(
+        ai_recommendation=code,
+        label=_DISPOSITION_LABELS[code] if code else None,
+        reason_for_status=reason,
+    )
+
+
+def _draft_text_lists(results: list[RuleResult]) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    """收集草稿里的主张、资料缺口与待索取资料，作为证据闭合的既有控制项输入。"""
+    claims: list[dict[str, Any]] = []
+    data_gaps: list[str] = []
+    requested: list[str] = []
+    for result in results:
+        draft = result.ai_draft or {}
+        for key in ("claims", "normal_explanations"):
+            claims.extend(item for item in (draft.get(key) or []) if isinstance(item, dict))
+        for item in draft.get("data_gaps") or []:
+            if str(item) not in data_gaps:
+                data_gaps.append(str(item))
+        for item in draft.get("requested_materials") or []:
+            if str(item) not in requested:
+                requested.append(str(item))
+    return claims, data_gaps, requested
+
+
+def _prescreen_blocked_count(context: dict[str, Any]) -> int | None:
+    """读取预筛阶段的 blocked 行数；0 是真实计数，只有缺键才返回 None。"""
+    for key in ("prescreen_plan", "prescreen_summary"):
+        plan = context.get(key)
+        if isinstance(plan, dict) and isinstance(plan.get("blocked_candidate_count"), int) and not isinstance(
+            plan.get("blocked_candidate_count"), bool
+        ):
+            return int(plan["blocked_candidate_count"])
+    return None
+
+
+def _normalize_evidence_state_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """把轨 B 的判定载荷归一到 RunResponse 的嵌套契约键。
+
+    签字记录 §二 D2 用字段名 evidence_state / evidence_state_reasons /
+    evidence_state_boundary，方案 W00.1 的线上结构则是 evidence_state.{state,
+    reasons, boundary}。两种键名都接受，避免集成期因命名差异把已算好的判定
+    静默丢弃；契约键已存在时以契约键为准。
+    """
+    normalized = dict(payload)
+    aliases = {
+        "state": "evidence_state",
+        "reasons": "evidence_state_reasons",
+        "boundary": "evidence_state_boundary",
+    }
+    for target, source in aliases.items():
+        if normalized.get(target) is None and source in normalized:
+            normalized[target] = normalized[source]
+    return normalized
+
+
+def _mount_track_b_field(
+    module: Any,
+    *,
+    module_name: str,
+    function_name: str,
+    model: Any,
+    field_name: str,
+    failures: list[str],
+    normalizer: Any = None,
+    **kwargs: Any,
+) -> Any:
+    """调用轨 B 的判定纯函数并按契约模型装配。
+
+    模块缺失、签名不符或返回值不合契约时，该字段降级为 None 并在
+    context.contract_field_failures 留痕；不代替轨 B 判定，也不伪造默认级别，
+    更不允许在真实模型调用已完成之后因装配失败而丢掉整次运行。
+    """
+    if module is None:
+        failures.append(f"{field_name}: 模块 backend/app/{module_name}.py 尚未交付，字段保持未提供")
+        return None
+    try:
+        payload = getattr(module, function_name)(**kwargs) or {}
+        if normalizer is not None and isinstance(payload, dict):
+            payload = normalizer(payload)
+        mounted = model.model_validate(payload)
+    except (AttributeError, KeyError, TypeError, ValueError) as error:
+        failures.append(
+            f"{field_name}: {module_name}.{function_name}() 返回值不符合契约"
+            f"（{type(error).__name__}: {str(error)[:200]}），字段降级为未提供"
+        )
+        return None
+    if payload and all(getattr(mounted, name, None) is None for name in type(mounted).model_fields):
+        # 判定模块有输出却一个契约字段都没落地，只能按键名不一致处理并留痕。
+        failures.append(
+            f"{field_name}: {module_name}.{function_name}() 返回了载荷，但没有任何契约字段被填充，"
+            "疑似键名与 docs/CONTRACT_2026-09-19.md §一 不一致"
+        )
+        return None
+    return mounted
+
+
+def _run_contract_fields(
+    *,
+    results: list[RuleResult],
+    rule_result_dicts: list[dict[str, Any]],
+    context: dict[str, Any],
+    numeric_gate: dict[str, Any],
+    ai_recommendation: str,
+    review_conclusion: str | None,
+    run_completeness: str,
+    screening_status: str,
+    execution_mode: str,
+    cache_hit: bool,
+    provider_call_count: int,
+) -> dict[str, Any]:
+    """装配 2026-09-19 契约的六个响应字段。
+
+    分级与证据闭合判定来自轨 B 的两个纯函数，本函数只负责挂载与降级留痕。
+    """
+    claims, data_gaps, requested = _draft_text_lists(results)
+    failures: list[str] = []
+    # §7.7 已签字：blocked 行数作为可选入参下传；预筛台账缺该键时传 None，
+    # 由轨 B 保留 blocked_row_proxy 代理判据。0 是真实计数，不当缺失处理。
+    priority_kwargs: dict[str, Any] = {
+        "rule_results": rule_result_dicts,
+        "ai_recommendation": ai_recommendation,
+        "analysis_conclusion": review_conclusion,
+        "run_completeness": run_completeness,
+        "screening_status": screening_status,
+        "blocked_candidate_count": _prescreen_blocked_count(context),
+    }
+    planning_priority = _mount_track_b_field(
+        _planning_priority,
+        module_name="planning_priority",
+        function_name="compute_planning_priority",
+        model=PlanningPriority,
+        field_name="planning_priority",
+        failures=failures,
+        **priority_kwargs,
+    )
+    evidence_state = _mount_track_b_field(
+        _evidence_closure,
+        module_name="evidence_closure",
+        function_name="compute_evidence_state",
+        model=EvidenceState,
+        field_name="evidence_state",
+        failures=failures,
+        normalizer=_normalize_evidence_state_payload,
+        numeric_gate=numeric_gate,
+        evidence_fitness=context.get("evidence_fitness_violations") or [],
+        coverage_matrix=context.get("assertion_evidence_procedure_matrix") or [],
+        claims=claims,
+        data_gaps=data_gaps,
+        requested_materials=requested,
+    )
+    # 只在确实发生降级时写入，避免给正常运行增加噪声字段。
+    if failures:
+        context["contract_field_failures"] = failures
+    return {
+        "planning_priority": planning_priority,
+        "evidence_state": evidence_state,
+        "disposition": _disposition(results, ai_recommendation),
+        "materiality_display": _materiality_display(results),
+        "execution_badge": execution_badge_for(
+            execution_mode=execution_mode,
+            cache_hit=cache_hit,
+            provider_call_count=provider_call_count,
+        ),
+        "numeric_gate_summary": _numeric_gate_summary(numeric_gate),
+    }
 
 
 def _reconcile_registered_context(
@@ -4267,22 +4502,34 @@ def _execute_run(
 
     # 创新三：仅对 Agent 的自然语言字段做数字主张回查，不把 run_id、哈希和元数据
     # 误当成财务数字。年份使用当前案例已知报告年度作为上下文来源。
-    numeric_text_parts: list[str] = []
+    # D4 签字口径：不再把所有文本拼成一整段，而是逐段带上该段自己绑定的
+    # evidence_id，使模型确实引用过的年报原文数字可以被追溯。
+    numeric_claim_bindings: list[dict[str, Any]] = []
     for result in rule_results:
         draft = result.ai_draft or {}
-        numeric_text_parts.extend(
-            [
-                str(draft.get("draft_title") or ""),
-                str(draft.get("draft_observation") or ""),
-                str(draft.get("reason_for_status") or ""),
-            ]
-        )
-        numeric_text_parts.extend(
-            str(item.get("text") or "")
-            for key in ("claims", "normal_explanations")
-            for item in (draft.get(key) or [])
-            if isinstance(item, dict)
-        )
+        # 草稿级叙述不是主张，没有 evidence_id 绑定；按 D4 收紧条件 4，
+        # 这类文本仍然只能使用结构化 field/metric 与配置阈值来源。
+        for key in ("draft_title", "draft_observation", "reason_for_status"):
+            narrative = str(draft.get(key) or "")
+            if narrative:
+                numeric_claim_bindings.append({"text": narrative, "evidence_ids": []})
+        for key in ("claims", "normal_explanations"):
+            for item in draft.get(key) or []:
+                if not isinstance(item, dict):
+                    continue
+                text = str(item.get("text") or "")
+                if not text:
+                    continue
+                numeric_claim_bindings.append(
+                    {
+                        "text": text,
+                        "evidence_ids": [
+                            str(evidence_id)
+                            for evidence_id in (item.get("evidence_ids") or [])
+                            if str(evidence_id or "")
+                        ],
+                    }
+                )
     configured = context.get("configured_parameters") or {}
     numeric_additional_sources = [
         {
@@ -4295,7 +4542,7 @@ def _execute_run(
         if isinstance(configured.get(key), (int, float))
     ]
     numeric_gate = validate_numeric_claims(
-        "\n".join(text for text in numeric_text_parts if text),
+        "",
         rule_results=rule_result_dicts,
         evidence_bundle=rule_bundle,
         knowledge_trace=knowledge_trace,
@@ -4305,11 +4552,26 @@ def _execute_run(
             if int(context.get("current_year") or 0) - offset > 0
         },
         additional_sources=numeric_additional_sources,
+        claim_evidence_bindings=numeric_claim_bindings,
     )
     context["numeric_claim_trace"] = numeric_gate
     if numeric_gate.get("key_unverified_count") and model_check.status == "model_success":
         # 生成模型成功不等于数字主张可发布；保持真实模型状态，但禁止完整性伪装。
         run_completeness = "incomplete_numeric_claims"
+    # 契约字段在闸门判定之后装配，保证级别与完整性口径读到的是一致的状态。
+    contract_fields = _run_contract_fields(
+        results=rule_results,
+        rule_result_dicts=rule_result_dicts,
+        context=context,
+        numeric_gate=numeric_gate,
+        ai_recommendation=ai_recommendation,
+        review_conclusion=review_conclusion,
+        run_completeness=run_completeness,
+        screening_status=screening_status,
+        execution_mode=model_check.execution_mode,
+        cache_hit=model_check.cache_hit,
+        provider_call_count=model_check.provider_call_count,
+    )
     final_ai_draft = (
         {
             "schema_version": "final_ai_draft_v2",
@@ -4367,6 +4629,8 @@ def _execute_run(
             == {"challenge", "counter", "review"}
         ),
         agent_steps=all_agent_steps,
+        # 2026-09-19 契约的六个字段（含轨 B 纯函数产出）在此一次性挂载。
+        **contract_fields,
     )
     try:
         # 公开演示的运行详情必须引用 Supabase 当前窗口；不能把本地历史
@@ -5799,6 +6063,12 @@ def deterministic_backup_run(run_id: str, http_request: Request) -> RunResponse:
     response.parent_run_id = stored.run.run_id
     response.execution_mode = "deterministic_backup"
     response.model_check = response.model_check.model_copy(update={"execution_mode": "deterministic_backup"})
+    # 备用链由显式入口改写执行方式，来源徽标必须同步改写，不能留着被续跑的 live 标记。
+    response.execution_badge = execution_badge_for(
+        execution_mode="deterministic_backup",
+        cache_hit=response.cache_hit,
+        provider_call_count=0,
+    )
     save_run(WORKSPACE_ROOT, response)
     return response
 

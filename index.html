@@ -9,9 +9,9 @@
   <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.11">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.14">
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.10.21" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.10.24" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -46,8 +46,8 @@
       </div>
       </div>
       <figure class="cinematic-shot">
-        <img src="/assets/official-v4/screenshots/real-run-evidence-challenge-RUN-V7-1A7B085BEEA2.png" width="714" height="640" loading="eager" decoding="async" alt="示例界面：一次真实运行产出的待核查事项，含事项标题、关键数字、证据编号 STD_AR_2025 与打开原文第 59 页入口。">
-        <figcaption><span>示例界面 · 非本次访问的实时结果</span>来自一次真实模型运行 RUN-V7-1A7B085BEEA2：西安标准工业股份有限公司（标准股份）· 600302 · 报告年度 2025/2024/2023 · 结果性质为真实模型复核，仍需人工核查。</figcaption>
+        <img src="/assets/official-v4/screenshots/real-run-evidence-challenge-RUN-V7-1A7B085BEEA2.png" width="714" height="640" loading="eager" decoding="async" alt="示例界面：一次历史验收运行产出的待核查事项，含事项标题、关键数字、证据编号 STD_AR_2025 与打开原文第 59 页入口。">
+        <figcaption><span>示例界面 · 非本次访问的实时结果</span>来自一次历史验收运行 RUN-V7-1A7B085BEEA2：西安标准工业股份有限公司（标准股份）· 600302 · 报告年度 2025/2024/2023。历史验收运行仅作为传输、Schema 与留痕技术证据，不保证当前 HEAD 行为；本次访问的结果以工作台实际运行留痕为准。</figcaption>
       </figure>
     </div>
   </section>
@@ -153,6 +153,10 @@
             <button class="button quiet" type="button" id="demo-reset" hidden>一键重置演示</button>
           </div>
         </div>
+        <p class="demo-execution-line">
+          <span class="demo-execution-badge" id="demo-execution-badge" data-mode="idle">尚未运行 · 未调用外部模型</span>
+          <span class="demo-execution-hint">运行来源与调用次数取自本次运行留痕，不由页面推断。</span>
+        </p>
         <ol class="demo-stage-rail" id="demo-stage-rail" aria-label="演示流程六阶段">
           <li class="demo-stage" data-stage="1"><span class="demo-stage-name">读取证据</span><span class="demo-stage-note" id="demo-stage-1-note">等待开始</span></li>
           <li class="demo-stage" data-stage="2"><span class="demo-stage-name">规则计算</span><span class="demo-stage-note" id="demo-stage-2-note">等待开始</span></li>
@@ -174,6 +178,7 @@
           <h3 id="demo-cases-heading">精选案例</h3>
           <button class="button quiet" type="button" id="demo-open-all-cases">查看全部 15 个案例</button>
         </div>
+        <p class="demo-case-boundary">案例卡片上的“已完成准入验收”只说明案例资料本身的验收状态，不代表本次运行环境已就绪。清单中另登记的历史验收运行（historical_external_model_run）仅作为传输、Schema 与留痕技术证据，不保证当前 HEAD 行为；主演示案例必须以当前 HEAD 的新鲜运行为准。</p>
         <div class="demo-case-grid" id="demo-featured-cases" role="group" aria-label="首页精选案例，可选择一个开始演示">
           <div class="empty-state"><strong>正在读取案例清单</strong><p>案例来自冻结 manifest，读取失败时不会显示模拟案例。</p></div>
         </div>
@@ -215,6 +220,63 @@
               <div><span class="folio">STRUCTURED PRESCREEN OUTPUT</span><h3 id="demo-result-heading">结果摘要</h3></div>
               <span class="state pending" id="demo-result-state">—</span>
             </div>
+            <section class="demo-attention-card" id="demo-attention-card" hidden aria-labelledby="demo-attention-title">
+              <div class="demo-section-heading">
+                <div><span class="folio">COMBINED AUDIT ATTENTION · SIX FIXED ZONES</span><h3 id="demo-attention-title">综合审计关注</h3></div>
+                <span class="state pending" id="demo-attention-state">运行后显示</span>
+              </div>
+              <div class="demo-attention-zone" aria-labelledby="demo-attention-signals-title">
+                <h4 id="demo-attention-signals-title"><span class="demo-attention-index">①</span>程序信号</h4>
+                <div id="demo-attention-signals"></div>
+              </div>
+              <div class="demo-attention-zone" aria-labelledby="demo-attention-counter-title">
+                <h4 id="demo-attention-counter-title"><span class="demo-attention-index">②</span>AI 反证与正常解释</h4>
+                <div id="demo-attention-counter"></div>
+              </div>
+              <div class="demo-attention-zone" aria-labelledby="demo-attention-review-title">
+                <h4 id="demo-attention-review-title"><span class="demo-attention-index">③</span>复核 Agent 判断</h4>
+                <div id="demo-attention-review"></div>
+              </div>
+              <div class="demo-attention-zone" aria-labelledby="demo-attention-change-title">
+                <h4 id="demo-attention-change-title"><span class="demo-attention-index">④</span>什么证据能改变当前判断</h4>
+                <div id="demo-attention-change"></div>
+              </div>
+              <div class="demo-attention-zone" aria-labelledby="demo-attention-procedures-title">
+                <h4 id="demo-attention-procedures-title"><span class="demo-attention-index">⑤</span>下一步审计程序</h4>
+                <div id="demo-attention-procedures"></div>
+              </div>
+              <div class="demo-attention-zone demo-attention-zone-badges" aria-labelledby="demo-attention-badges-title">
+                <h4 id="demo-attention-badges-title"><span class="demo-attention-index">⑥</span>三个并排状态（彼此独立，不合并成一个分数）</h4>
+                <div id="demo-attention-badges"></div>
+              </div>
+            </section>
+            <section class="demo-enhancement-grid" aria-label="审计专属可信增强 · 一级展开">
+              <article class="demo-enhancement-card">
+                <h4>认定—证据—程序覆盖矩阵</h4>
+                <p id="demo-coverage-note">把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。</p>
+                <ul id="demo-coverage-list"></ul>
+                <span class="demo-enhancement-state" id="demo-coverage-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>证据适配度与主张边界</h4>
+                <p id="demo-fitness-note">不同来源只能支持不同类型的主张；监管和行业资料不证明当前企业事实。</p>
+                <ul id="demo-fitness-list"></ul>
+                <span class="demo-enhancement-state" id="demo-fitness-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>反确认偏差搜索</h4>
+                <p class="demo-moat-verbatim">本系统将反向检索与反证记录设计成强制工作流，而不是依赖一次对话中模型是否主动想到。</p>
+                <p id="demo-anti-note">系统记录反向检索问题、命中证据和正常解释，不诱导模型凑结论。</p>
+                <ul id="demo-anti-list"></ul>
+                <span class="demo-enhancement-state" id="demo-anti-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>数字主张可回查</h4>
+                <p id="demo-numeric-note">模型文本中的关键数字必须回到规则、字段证据或当前案例上下文。</p>
+                <ul id="demo-numeric-list"></ul>
+                <span class="demo-enhancement-state" id="demo-numeric-state">运行后生成</span>
+              </article>
+            </section>
             <section class="demo-evidence-challenge" id="demo-evidence-challenge" data-state="empty" aria-labelledby="demo-evidence-challenge-title">
               <div class="demo-section-heading">
                 <div><span class="folio">30-SECOND EVIDENCE CHALLENGE</span><h3 id="demo-evidence-challenge-title">30 秒证据挑战</h3></div>
@@ -295,32 +357,6 @@
                   <tbody id="demo-structured-table-body"></tbody>
                 </table>
               </div>
-            </section>
-            <section class="demo-enhancement-grid" aria-label="审计专属可信增强">
-              <article class="demo-enhancement-card">
-                <h4>认定—证据—程序覆盖矩阵</h4>
-                <p id="demo-coverage-note">把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。</p>
-                <ul id="demo-coverage-list"></ul>
-                <span class="demo-enhancement-state" id="demo-coverage-state">运行后生成</span>
-              </article>
-              <article class="demo-enhancement-card">
-                <h4>证据适配度与主张边界</h4>
-                <p id="demo-fitness-note">不同来源只能支持不同类型的主张；监管和行业资料不证明当前企业事实。</p>
-                <ul id="demo-fitness-list"></ul>
-                <span class="demo-enhancement-state" id="demo-fitness-state">运行后生成</span>
-              </article>
-              <article class="demo-enhancement-card">
-                <h4>数字主张可回查</h4>
-                <p id="demo-numeric-note">模型文本中的关键数字必须回到规则、字段证据或当前案例上下文。</p>
-                <ul id="demo-numeric-list"></ul>
-                <span class="demo-enhancement-state" id="demo-numeric-state">运行后生成</span>
-              </article>
-              <article class="demo-enhancement-card">
-                <h4>反确认偏差搜索</h4>
-                <p id="demo-anti-note">系统记录反向检索问题、命中证据和正常解释，不诱导模型凑结论。</p>
-                <ul id="demo-anti-list"></ul>
-                <span class="demo-enhancement-state" id="demo-anti-state">运行后生成</span>
-              </article>
             </section>
             <div class="action-row demo-result-actions">
               <button class="button quiet" type="button" id="demo-open-evidence">查看原文证据</button>

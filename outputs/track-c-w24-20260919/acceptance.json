@@ -1,0 +1,1294 @@
+{
+  "generated_at": "2026-09-19 17:05:50",
+  "results": [
+    {
+      "state": "success",
+      "base": "http://127.0.0.1:8000",
+      "case_id": "STD_DEV_T0",
+      "task_id": "DEMO-RUN-66A1B0E52840",
+      "viewports": [
+        {
+          "viewport": "desktop-1440x1000",
+          "width": 1440,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 31,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持年报信用风险段落仅列示信用政策与监控安排，未提供账龄、期后回款数据。已由证据支持 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用 · 路线：数据缺口复核",
+            "overviewLabel": "需执行额外程序后判断",
+            "resultState": "真实模型链完成",
+            "resultHidden": false,
+            "gateTitle": "完整分析已完成",
+            "gateDetail": "AI 分析路线：数据缺口复核；AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "三角色完成 · 3 次模型调用",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BODY#",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {
+            "hypotheses": 1,
+            "supported": 1,
+            "missing": 0,
+            "chips": 31,
+            "fiveElementChips": 29,
+            "mentionsWaitVerify": false
+          },
+          "drawers": {
+            "demo-evidence-drawer": 13,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/success__desktop-1440x1000.png"
+        },
+        {
+          "viewport": "tablet-1024x768",
+          "width": 1024,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 31,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持年报信用风险段落仅列示信用政策与监控安排，未提供账龄、期后回款数据。已由证据支持 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用 · 路线：数据缺口复核",
+            "overviewLabel": "需执行额外程序后判断",
+            "resultState": "真实模型链完成",
+            "resultHidden": false,
+            "gateTitle": "完整分析已完成",
+            "gateDetail": "AI 分析路线：数据缺口复核；AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "三角色完成 · 3 次模型调用",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/success__tablet-1024x768.png"
+        },
+        {
+          "viewport": "portrait-768x1024",
+          "width": 768,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 31,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持年报信用风险段落仅列示信用政策与监控安排，未提供账龄、期后回款数据。已由证据支持 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用 · 路线：数据缺口复核",
+            "overviewLabel": "需执行额外程序后判断",
+            "resultState": "真实模型链完成",
+            "resultHidden": false,
+            "gateTitle": "完整分析已完成",
+            "gateDetail": "AI 分析路线：数据缺口复核；AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "三角色完成 · 3 次模型调用",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/success__portrait-768x1024.png"
+        },
+        {
+          "viewport": "mobile-390x844",
+          "width": 390,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 31,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持年报信用风险段落仅列示信用政策与监控安排，未提供账龄、期后回款数据。已由证据支持 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用 · 路线：数据缺口复核",
+            "overviewLabel": "需执行额外程序后判断",
+            "resultState": "真实模型链完成",
+            "resultHidden": false,
+            "gateTitle": "完整分析已完成",
+            "gateDetail": "AI 分析路线：数据缺口复核；AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "三角色完成 · 3 次模型调用",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {
+            "demo-evidence-drawer": 13,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/success__mobile-390x844.png"
+        }
+      ],
+      "restored": true,
+      "diagnostics": {
+        "zones": {
+          "signals": 2,
+          "counter": 1,
+          "review": 1,
+          "change": 4,
+          "procedures": 1,
+          "badges": 3
+        },
+        "attentionVisible": true,
+        "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+        "evidenceChipCount": 31,
+        "chipSample": [
+          "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+          "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+          "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+        ],
+        "chipHasLink": 5,
+        "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+        "executionMode": "external_live",
+        "extractionNotice": [],
+        "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持年报信用风险段落仅列示信用政策与监控安排，未提供账龄、期后回款数据。已由证据支持 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原",
+        "overviewSource": "来源：本次真实模型运行 · 3 次调用 · 路线：数据缺口复核",
+        "overviewLabel": "需执行额外程序后判断",
+        "resultState": "真实模型链完成",
+        "resultHidden": false,
+        "gateTitle": "完整分析已完成",
+        "gateDetail": "AI 分析路线：数据缺口复核；AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+        "stage4": "三角色完成 · 3 次模型调用",
+        "overflowX": 0,
+        "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+        "focusTag": "BODY#",
+        "reducedMotionTransition": "0.24s, 0.24s"
+      },
+      "console_errors": [],
+      "failed_requests": [],
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/runs/DEMO-RUN-66A1B0E52840",
+          "status": 200
+        }
+      ],
+      "final_url": "http://127.0.0.1:8000/?case=STD_DEV_T0"
+    },
+    {
+      "state": "incomplete_numeric_claims",
+      "base": "http://127.0.0.1:8000",
+      "case_id": "CNINFO_000858_T0_20260430",
+      "task_id": "DEMO-RUN-F1330AD8EA8B",
+      "viewports": [
+        {
+          "viewport": "desktop-1440x1000",
+          "width": 1440,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 10 页 查看原文",
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0089-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 89 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 18 页 查看原文"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：公司以经销为主、先款后货，或可解释应收与收入变动不同步，需合同与结算条款验证。待验证解释 · 可回查证据 1 条：Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · ",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "闸门拒绝发布完整结果 · 已完成 3 次真实模型调用",
+            "resultHidden": false,
+            "gateTitle": "真实模型分析已完成，但未通过数字可追溯闸门",
+            "gateDetail": "本次已完成 3 次真实模型调用、3/3 角色结构化输出通过 evidence_id 与禁用词校验；但 AI 草稿中有 1 个关键财务数字无法追溯到已登记来源，按闸门规则不发布为完整结果。未通过数字：41,813,685.32。确定性计算结果仍可查看。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "数字可追溯闸门未通过 · 3 次真实调用 · 3/3 角色完成",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BODY#",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {
+            "hypotheses": 2,
+            "supported": 0,
+            "missing": 0,
+            "chips": 33,
+            "fiveElementChips": 27,
+            "mentionsWaitVerify": false
+          },
+          "drawers": {
+            "demo-evidence-drawer": 12,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/incomplete_numeric_claims__desktop-1440x1000.png"
+        },
+        {
+          "viewport": "tablet-1024x768",
+          "width": 1024,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 10 页 查看原文",
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0089-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 89 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 18 页 查看原文"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：公司以经销为主、先款后货，或可解释应收与收入变动不同步，需合同与结算条款验证。待验证解释 · 可回查证据 1 条：Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · ",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "闸门拒绝发布完整结果 · 已完成 3 次真实模型调用",
+            "resultHidden": false,
+            "gateTitle": "真实模型分析已完成，但未通过数字可追溯闸门",
+            "gateDetail": "本次已完成 3 次真实模型调用、3/3 角色结构化输出通过 evidence_id 与禁用词校验；但 AI 草稿中有 1 个关键财务数字无法追溯到已登记来源，按闸门规则不发布为完整结果。未通过数字：41,813,685.32。确定性计算结果仍可查看。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "数字可追溯闸门未通过 · 3 次真实调用 · 3/3 角色完成",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/incomplete_numeric_claims__tablet-1024x768.png"
+        },
+        {
+          "viewport": "portrait-768x1024",
+          "width": 768,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 10 页 查看原文",
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0089-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 89 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 18 页 查看原文"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：公司以经销为主、先款后货，或可解释应收与收入变动不同步，需合同与结算条款验证。待验证解释 · 可回查证据 1 条：Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · ",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "闸门拒绝发布完整结果 · 已完成 3 次真实模型调用",
+            "resultHidden": false,
+            "gateTitle": "真实模型分析已完成，但未通过数字可追溯闸门",
+            "gateDetail": "本次已完成 3 次真实模型调用、3/3 角色结构化输出通过 evidence_id 与禁用词校验；但 AI 草稿中有 1 个关键财务数字无法追溯到已登记来源，按闸门规则不发布为完整结果。未通过数字：41,813,685.32。确定性计算结果仍可查看。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "数字可追溯闸门未通过 · 3 次真实调用 · 3/3 角色完成",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/incomplete_numeric_claims__portrait-768x1024.png"
+        },
+        {
+          "viewport": "mobile-390x844",
+          "width": 390,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 10 页 查看原文",
+              "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0089-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 89 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 18 页 查看原文"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+            "executionMode": "external_live",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：公司以经销为主、先款后货，或可解释应收与收入变动不同步，需合同与结算条款验证。待验证解释 · 可回查证据 1 条：Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · ",
+            "overviewSource": "来源：本次真实模型运行 · 3 次调用",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "闸门拒绝发布完整结果 · 已完成 3 次真实模型调用",
+            "resultHidden": false,
+            "gateTitle": "真实模型分析已完成，但未通过数字可追溯闸门",
+            "gateDetail": "本次已完成 3 次真实模型调用、3/3 角色结构化输出通过 evidence_id 与禁用词校验；但 AI 草稿中有 1 个关键财务数字无法追溯到已登记来源，按闸门规则不发布为完整结果。未通过数字：41,813,685.32。确定性计算结果仍可查看。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "数字可追溯闸门未通过 · 3 次真实调用 · 3/3 角色完成",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {
+            "demo-evidence-drawer": 12,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/incomplete_numeric_claims__mobile-390x844.png"
+        }
+      ],
+      "restored": true,
+      "diagnostics": {
+        "zones": {
+          "signals": 2,
+          "counter": 1,
+          "review": 1,
+          "change": 4,
+          "procedures": 1,
+          "badges": 3
+        },
+        "attentionVisible": true,
+        "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+        "evidenceChipCount": 33,
+        "chipSample": [
+          "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 10 页 查看原文",
+          "Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0089-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 89 页 查看原文",
+          "Evidence ID CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 18 页 查看原文"
+        ],
+        "chipHasLink": 4,
+        "executionBadge": "运行来源：本次真实模型运行 · 3 次调用",
+        "executionMode": "external_live",
+        "extractionNotice": [],
+        "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：公司以经销为主、先款后货，或可解释应收与收入变动不同步，需合同与结算条款验证。待验证解释 · 可回查证据 1 条：Evidence ID RAG-CNINFO_000858_T0_20260430-2025-P0010-C01 · 来源类型：RAG 检索片段 · ",
+        "overviewSource": "来源：本次真实模型运行 · 3 次调用",
+        "overviewLabel": "本次未形成有效审计计划总览",
+        "resultState": "闸门拒绝发布完整结果 · 已完成 3 次真实模型调用",
+        "resultHidden": false,
+        "gateTitle": "真实模型分析已完成，但未通过数字可追溯闸门",
+        "gateDetail": "本次已完成 3 次真实模型调用、3/3 角色结构化输出通过 evidence_id 与禁用词校验；但 AI 草稿中有 1 个关键财务数字无法追溯到已登记来源，按闸门规则不发布为完整结果。未通过数字：41,813,685.32。确定性计算结果仍可查看。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+        "stage4": "数字可追溯闸门未通过 · 3 次真实调用 · 3/3 角色完成",
+        "overflowX": 0,
+        "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+        "focusTag": "BODY#",
+        "reducedMotionTransition": "0.24s, 0.24s"
+      },
+      "console_errors": [],
+      "failed_requests": [],
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/runs/DEMO-RUN-F1330AD8EA8B",
+          "status": 200
+        }
+      ],
+      "final_url": "http://127.0.0.1:8000/?case=CNINFO_000858_T0_20260430"
+    },
+    {
+      "state": "model_failed_degraded",
+      "base": "http://127.0.0.1:8010",
+      "case_id": "STD_DEV_T0",
+      "task_id": "DEMO-RUN-33AA25E68BD8",
+      "viewports": [
+        {
+          "viewport": "desktop-1440x1000",
+          "width": 1440,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 19,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "executionMode": "other",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：年报信用风险段落称按客户信用资质设额度与信用期，或可解释回款安排，需原文回查。待验证解释 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 ",
+            "overviewSource": "来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "降级：确定性结果可见，本次模型调用未完成",
+            "resultHidden": false,
+            "gateTitle": "本次未完成真实模型调用",
+            "gateDetail": "确定性计算结果仍可查看（模型输出校验失败）；失败码已保留，后续角色如实标记。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "本次未完成真实模型调用（模型输出校验失败 · 2/3 角色完成）",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BODY#",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {
+            "hypotheses": 2,
+            "supported": 0,
+            "missing": 0,
+            "chips": 19,
+            "fiveElementChips": 17,
+            "mentionsWaitVerify": false
+          },
+          "drawers": {
+            "demo-evidence-drawer": 13,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/model_failed_degraded__desktop-1440x1000.png"
+        },
+        {
+          "viewport": "tablet-1024x768",
+          "width": 1024,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 19,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "executionMode": "other",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：年报信用风险段落称按客户信用资质设额度与信用期，或可解释回款安排，需原文回查。待验证解释 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 ",
+            "overviewSource": "来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "降级：确定性结果可见，本次模型调用未完成",
+            "resultHidden": false,
+            "gateTitle": "本次未完成真实模型调用",
+            "gateDetail": "确定性计算结果仍可查看（模型输出校验失败）；失败码已保留，后续角色如实标记。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "本次未完成真实模型调用（模型输出校验失败 · 2/3 角色完成）",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/model_failed_degraded__tablet-1024x768.png"
+        },
+        {
+          "viewport": "portrait-768x1024",
+          "width": 768,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 19,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "executionMode": "other",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：年报信用风险段落称按客户信用资质设额度与信用期，或可解释回款安排，需原文回查。待验证解释 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 ",
+            "overviewSource": "来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "降级：确定性结果可见，本次模型调用未完成",
+            "resultHidden": false,
+            "gateTitle": "本次未完成真实模型调用",
+            "gateDetail": "确定性计算结果仍可查看（模型输出校验失败）；失败码已保留，后续角色如实标记。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "本次未完成真实模型调用（模型输出校验失败 · 2/3 角色完成）",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/model_failed_degraded__portrait-768x1024.png"
+        },
+        {
+          "viewport": "mobile-390x844",
+          "width": 390,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+            "evidenceChipCount": 19,
+            "chipSample": [
+              "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+              "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+              "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+            ],
+            "chipHasLink": 5,
+            "executionBadge": "运行来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "executionMode": "other",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：年报信用风险段落称按客户信用资质设额度与信用期，或可解释回款安排，需原文回查。待验证解释 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 ",
+            "overviewSource": "来源：模型输出校验失败 · 仅保留已完成程序结果",
+            "overviewLabel": "本次未形成有效审计计划总览",
+            "resultState": "降级：确定性结果可见，本次模型调用未完成",
+            "resultHidden": false,
+            "gateTitle": "本次未完成真实模型调用",
+            "gateDetail": "确定性计算结果仍可查看（模型输出校验失败）；失败码已保留，后续角色如实标记。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "本次未完成真实模型调用（模型输出校验失败 · 2/3 角色完成）",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {
+            "demo-evidence-drawer": 13,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/model_failed_degraded__mobile-390x844.png"
+        }
+      ],
+      "restored": true,
+      "diagnostics": {
+        "zones": {
+          "signals": 2,
+          "counter": 1,
+          "review": 1,
+          "change": 4,
+          "procedures": 1,
+          "badges": 3
+        },
+        "attentionVisible": true,
+        "attentionStatePill": "六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示",
+        "evidenceChipCount": 19,
+        "chipSample": [
+          "Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 159 页 查看原文",
+          "Evidence ID STD_REV_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 64 页 查看原文",
+          "Evidence ID STD_AR_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 59 页 查看原文"
+        ],
+        "chipHasLink": 5,
+        "executionBadge": "运行来源：模型输出校验失败 · 仅保留已完成程序结果",
+        "executionMode": "other",
+        "extractionNotice": [],
+        "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区已渲染 · ⑥ 分级字段后端尚未提供，按未提供显示 ①程序信号 触发规则R1 · 程序未触发营业收入增速−24.45%应收账款增速−37.64%增速差−13.20 个百分点程序信号强度none持续期间0 期确定性计算，非模型生成 ②AI 反证与正常解释 待验证解释待验证假设：年报信用风险段落称按客户信用资质设额度与信用期，或可解释回款安排，需原文回查。待验证解释 · 可回查证据 1 条：Evidence ID RAG-STD-2025-P0159-C00 · 来源类型：RAG 检索片段 · PDF 年度 2025 · PDF 第 ",
+        "overviewSource": "来源：模型输出校验失败 · 仅保留已完成程序结果",
+        "overviewLabel": "本次未形成有效审计计划总览",
+        "resultState": "降级：确定性结果可见，本次模型调用未完成",
+        "resultHidden": false,
+        "gateTitle": "本次未完成真实模型调用",
+        "gateDetail": "确定性计算结果仍可查看（模型输出校验失败）；失败码已保留，后续角色如实标记。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+        "stage4": "本次未完成真实模型调用（模型输出校验失败 · 2/3 角色完成）",
+        "overflowX": 0,
+        "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+        "focusTag": "BODY#",
+        "reducedMotionTransition": "0.24s, 0.24s"
+      },
+      "console_errors": [],
+      "failed_requests": [],
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "attempt": 1,
+          "error": "TimeoutError: Page.wait_for_function: Timeout 30000ms exceeded."
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/runs/DEMO-RUN-33AA25E68BD8",
+          "status": 200
+        }
+      ],
+      "final_url": "http://127.0.0.1:8010/?case=STD_DEV_T0"
+    },
+    {
+      "state": "deterministic_backup",
+      "base": "http://127.0.0.1:8010",
+      "case_id": "CNINFO_000858_T0_20260430",
+      "task_id": null,
+      "viewports": [
+        {
+          "viewport": "desktop-1440x1000",
+          "width": 1440,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 7 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持公开年报候选和演示检索片段只能形成待核查提示，不替代专业判断。已由证据支持 · 可回查证据 5 条：Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文Evidence",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：候选风险核查",
+            "overviewLabel": "建议列入重点核查",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BODY#",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {
+            "hypotheses": 0,
+            "supported": 1,
+            "missing": 0,
+            "chips": 33,
+            "fiveElementChips": 22,
+            "mentionsWaitVerify": false
+          },
+          "drawers": {
+            "demo-evidence-drawer": 12,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/deterministic_backup__desktop-1440x1000.png"
+        },
+        {
+          "viewport": "tablet-1024x768",
+          "width": 1024,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 7 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持公开年报候选和演示检索片段只能形成待核查提示，不替代专业判断。已由证据支持 · 可回查证据 5 条：Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文Evidence",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：候选风险核查",
+            "overviewLabel": "建议列入重点核查",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/deterministic_backup__tablet-1024x768.png"
+        },
+        {
+          "viewport": "portrait-768x1024",
+          "width": 768,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 7 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持公开年报候选和演示检索片段只能形成待核查提示，不替代专业判断。已由证据支持 · 可回查证据 5 条：Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文Evidence",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：候选风险核查",
+            "overviewLabel": "建议列入重点核查",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/deterministic_backup__portrait-768x1024.png"
+        },
+        {
+          "viewport": "mobile-390x844",
+          "width": 390,
+          "checks": {
+            "zones": {
+              "signals": 2,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文",
+              "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 7 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持公开年报候选和演示检索片段只能形成待核查提示，不替代专业判断。已由证据支持 · 可回查证据 5 条：Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文Evidence",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：候选风险核查",
+            "overviewLabel": "建议列入重点核查",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {
+            "demo-evidence-drawer": 12,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/deterministic_backup__mobile-390x844.png"
+        }
+      ],
+      "restored": true,
+      "diagnostics": {
+        "zones": {
+          "signals": 2,
+          "counter": 1,
+          "review": 1,
+          "change": 4,
+          "procedures": 1,
+          "badges": 3
+        },
+        "attentionVisible": true,
+        "attentionStatePill": "六区均取自本次运行留痕",
+        "evidenceChipCount": 33,
+        "chipSample": [
+          "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文",
+          "Evidence ID CNINFO_000858_T0_20260430_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 7 页 查看原文",
+          "另有 3 条证据，见原文证据抽屉"
+        ],
+        "chipHasLink": 4,
+        "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+        "executionMode": "deterministic_backup",
+        "extractionNotice": [],
+        "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 程序候选营业收入增速−54.55%应收账款增速1.07%增速差55.62 个百分点程序信号强度strong持续期间1 期确定性计算，非模型生成 ②AI 反证与正常解释 已由证据支持公开年报候选和演示检索片段只能形成待核查提示，不替代专业判断。已由证据支持 · 可回查证据 5 条：Evidence ID CNINFO_000858_T0_20260430_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 7 页 查看原文Evidence",
+        "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：候选风险核查",
+        "overviewLabel": "建议列入重点核查",
+        "resultState": "确定性备用 · 未调用外部模型",
+        "resultHidden": false,
+        "gateTitle": "确定性备用演示已完成",
+        "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+        "stage4": "确定性备用链完成 · 本次未调用外部模型",
+        "overflowX": 0,
+        "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+        "focusTag": "BODY#",
+        "reducedMotionTransition": "0.24s, 0.24s"
+      },
+      "console_errors": [],
+      "failed_requests": [],
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "url": "/api/demo/backup-runs",
+          "status": 202
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/runs/DEMO-BACKUP-D6C83E66F71D",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/runs/DEMO-BACKUP-D6C83E66F71D",
+          "status": 200
+        }
+      ],
+      "final_url": "http://127.0.0.1:8010/?case=CNINFO_000858_T0_20260430"
+    },
+    {
+      "state": "data_gap_extraction",
+      "base": "http://127.0.0.1:8010",
+      "case_id": "CNINFO_600900_T0_20260429",
+      "task_id": "PRIMARY",
+      "viewports": [
+        {
+          "viewport": "desktop-1440x1000",
+          "width": 1440,
+          "checks": {
+            "zones": {
+              "signals": 3,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 6 页 查看原文",
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 5 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [
+              "自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702068792.6 倍，可能存在错列、单位或表内子项误取，须人工回页确认。同字段连续年度金额相差 1714561916.3 倍，可能存"
+            ],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 资料缺口营业收入增速—应收账款增速—增速差—程序信号强度未产出持续期间未评价确定性计算，非模型生成自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：行业口径复核",
+            "overviewLabel": "当前通用口径不适用，转行业专项复核",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BODY#",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {
+            "hypotheses": 0,
+            "supported": 1,
+            "missing": 0,
+            "chips": 33,
+            "fiveElementChips": 22,
+            "mentionsWaitVerify": false
+          },
+          "drawers": {
+            "demo-evidence-drawer": 7,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/data_gap_extraction__desktop-1440x1000.png"
+        },
+        {
+          "viewport": "tablet-1024x768",
+          "width": 1024,
+          "checks": {
+            "zones": {
+              "signals": 3,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 6 页 查看原文",
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 5 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [
+              "自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702068792.6 倍，可能存在错列、单位或表内子项误取，须人工回页确认。同字段连续年度金额相差 1714561916.3 倍，可能存"
+            ],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 资料缺口营业收入增速—应收账款增速—增速差—程序信号强度未产出持续期间未评价确定性计算，非模型生成自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：行业口径复核",
+            "overviewLabel": "当前通用口径不适用，转行业专项复核",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/data_gap_extraction__tablet-1024x768.png"
+        },
+        {
+          "viewport": "portrait-768x1024",
+          "width": 768,
+          "checks": {
+            "zones": {
+              "signals": 3,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 6 页 查看原文",
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 5 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [
+              "自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702068792.6 倍，可能存在错列、单位或表内子项误取，须人工回页确认。同字段连续年度金额相差 1714561916.3 倍，可能存"
+            ],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 资料缺口营业收入增速—应收账款增速—增速差—程序信号强度未产出持续期间未评价确定性计算，非模型生成自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：行业口径复核",
+            "overviewLabel": "当前通用口径不适用，转行业专项复核",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {},
+          "keyboard": {},
+          "screenshot": "screenshots/data_gap_extraction__portrait-768x1024.png"
+        },
+        {
+          "viewport": "mobile-390x844",
+          "width": 390,
+          "checks": {
+            "zones": {
+              "signals": 3,
+              "counter": 1,
+              "review": 1,
+              "change": 4,
+              "procedures": 1,
+              "badges": 3
+            },
+            "attentionVisible": true,
+            "attentionStatePill": "六区均取自本次运行留痕",
+            "evidenceChipCount": 33,
+            "chipSample": [
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 6 页 查看原文",
+              "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 5 页 查看原文",
+              "另有 3 条证据，见原文证据抽屉"
+            ],
+            "chipHasLink": 4,
+            "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+            "executionMode": "deterministic_backup",
+            "extractionNotice": [
+              "自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702068792.6 倍，可能存在错列、单位或表内子项误取，须人工回页确认。同字段连续年度金额相差 1714561916.3 倍，可能存"
+            ],
+            "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 资料缺口营业收入增速—应收账款增速—增速差—程序信号强度未产出持续期间未评价确定性计算，非模型生成自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702",
+            "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：行业口径复核",
+            "overviewLabel": "当前通用口径不适用，转行业专项复核",
+            "resultState": "确定性备用 · 未调用外部模型",
+            "resultHidden": false,
+            "gateTitle": "确定性备用演示已完成",
+            "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+            "stage4": "确定性备用链完成 · 本次未调用外部模型",
+            "overflowX": 0,
+            "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "focusTag": "BUTTON#demo-download-json",
+            "reducedMotionTransition": "0.24s, 0.24s"
+          },
+          "claim_audit": {},
+          "drawers": {
+            "demo-evidence-drawer": 7,
+            "demo-agent-drawer": 3
+          },
+          "keyboard": {
+            "tag": "BUTTON#demo-download-json",
+            "outline": "2px",
+            "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px inset"
+          },
+          "screenshot": "screenshots/data_gap_extraction__mobile-390x844.png"
+        }
+      ],
+      "restored": true,
+      "diagnostics": {
+        "zones": {
+          "signals": 3,
+          "counter": 1,
+          "review": 1,
+          "change": 4,
+          "procedures": 1,
+          "badges": 3
+        },
+        "attentionVisible": true,
+        "attentionStatePill": "六区均取自本次运行留痕",
+        "evidenceChipCount": 33,
+        "chipSample": [
+          "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2025 · 来源类型：年报字段证据 · PDF 年度 2025 · PDF 第 6 页 查看原文",
+          "Evidence ID CNINFO_600900_T0_20260429_REVENUE_2024 · 来源类型：年报字段证据 · PDF 年度 2024 · PDF 第 5 页 查看原文",
+          "另有 3 条证据，见原文证据抽屉"
+        ],
+        "chipHasLink": 4,
+        "executionBadge": "运行来源：确定性备用链 · 未调用外部模型",
+        "executionMode": "deterministic_backup",
+        "extractionNotice": [
+          "自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702068792.6 倍，可能存在错列、单位或表内子项误取，须人工回页确认。同字段连续年度金额相差 1714561916.3 倍，可能存"
+        ],
+        "attentionText": " COMBINED AUDIT ATTENTION · SIX FIXED ZONES综合审计关注 六区均取自本次运行留痕 ①程序信号 触发规则R1 · 资料缺口营业收入增速—应收账款增速—增速差—程序信号强度未产出持续期间未评价确定性计算，非模型生成自动抽取字段待人工回页确认，暂不评级被闸门拦下的字段候选 6 项；诊断原文逐条如下，须人工回页确认。同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。自动提取金额的原始值仅为 5元，疑似附注号、序号或叙述数字，须人工回页确认。同字段连续年度金额相差 1702",
+        "overviewSource": "来源：确定性备用链 · 未调用外部模型 · 路线：行业口径复核",
+        "overviewLabel": "当前通用口径不适用，转行业专项复核",
+        "resultState": "确定性备用 · 未调用外部模型",
+        "resultHidden": false,
+        "gateTitle": "确定性备用演示已完成",
+        "gateDetail": "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+        "stage4": "确定性备用链完成 · 本次未调用外部模型",
+        "overflowX": 0,
+        "bodyFont": "\"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
+        "focusTag": "BODY#",
+        "reducedMotionTransition": "0.24s, 0.24s"
+      },
+      "console_errors": [],
+      "failed_requests": [],
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "/api/demo/bootstrap",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "url": "/api/demo/runs",
+          "status": 202
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/runs/DEMO-RUN-DEA400380695",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "url": "/api/demo/runs/DEMO-RUN-DEA400380695",
+          "status": 200
+        }
+      ],
+      "final_url": "http://127.0.0.1:8010/?case=CNINFO_600900_T0_20260429"
+    }
+  ]
+}

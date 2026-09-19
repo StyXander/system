@@ -255,6 +255,13 @@
 - 拒绝覆盖、保留失败响应与哈希的追加式原始评估账本。
 
 机器可读版本见 `PROJECT_STATUS.json`，网页 `/api/status` 在此基础上叠加实时案例、RAG 和模型配置状态。
+
+## 2026-09-19 队长裁决登记与赛后欠账
+
+- **当日裁决 R1—R5** 全文见 `docs/CONTRACT_2026-09-19.md` §九：R1 分支与检查点提交授权；R2 PlanningPriority 不设 `reasons`；R3 `evidence_state` 扁平/嵌套键名裁定为永久分层；R4（对应开工基线 D6）W11 `no_trigger_confirmed` 可达性选 (a)；R5 授权轨 A 生成 `run_contract_mock_degraded.json`。
+- **赛后欠账（不得遗忘）**：W11 的 (a) 是呈现层措辞兜底，不是根治。R1 正常计算时 `risk_card.data_gaps` 恒含 4 条常设资料缺口，路由选择器因此结构性不进入 `negative_confirmation`。赛后须实施 (b) 路由最小修复，并配完整回归；实施前任何“未触发已确认可达”的表述均不成立。依据：`docs/audit_no_trigger_reachability.md`（轨 C 只读审查）与 2026-09-19 两轮独立磁盘复核。
+- **当日受控评估事实不变**：B0 未执行；B1 `RUN-V7-0BDE5060FBED` 已执行；B2 `EVAL-B2-2F8BE053630D` 校验失败；历史 B3 `RUN-V7-00ED00962F34` 经事实闸门复核失败；人工评分全部空白。本轮工程改造不等于竞赛验收通过。
+
 ## 2026-08-13 全案例 AI 路线收尾更新
 
 - 完整分析模式已取消“只有 candidate 才调用模型”的门槛；四条 AI 路线分别覆盖候选风险、未触发复核、行业口径和数据缺口。
