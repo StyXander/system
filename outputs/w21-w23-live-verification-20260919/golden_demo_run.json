@@ -1,0 +1,273 @@
+{
+  "record_type": "golden_demo_run_baseline",
+  "purpose": "录制前可复核验收基线；不是缓存回放的借口，录制必须现场真实重跑并与此比对",
+  "frozen_at": "2026-09-19T22:00:02.717947+08:00",
+  "git": {
+    "branch": "remediation-2026-09-19",
+    "commit": "13f25549f9b0c8737f6fa94c0dfcb27e1d2e237d"
+  },
+  "case": {
+    "case_id": "CNINFO_000858_T0_20260430",
+    "company": "五粮液",
+    "ticker": "000858",
+    "current_year": 2025,
+    "t0": "2026-04-30",
+    "rule_ids": [
+      "R1"
+    ]
+  },
+  "run": {
+    "run_id": "RUN-V7-901E91444479",
+    "task_id": "DEMO-RUN-9ABA77BB1D68",
+    "execution_mode": "external_live",
+    "cache_hit": false,
+    "provider_call_count": 3,
+    "provider_call_ids": [
+      "CALL-37B3E91D09D08B1D056771D7B4F9358D",
+      "CALL-9B8C5E23E9DA8311685C2A2BEA660551",
+      "CALL-009E032901BB895DA3382547D77F8806"
+    ],
+    "model_id": "deepseek-v4-flash",
+    "prompt_version": "agent_prompt_v3",
+    "engine_version": "0.7.1",
+    "r1_version": "r1_v0.4-draft",
+    "run_completeness": "complete_public_prescreen",
+    "screening_status": "candidate",
+    "ai_analysis_route": "risk_candidate",
+    "ai_analysis_conclusion": "risk_candidate",
+    "ai_recommendation": "retain",
+    "duration_ms": 8563,
+    "input_tokens": 35990,
+    "output_tokens": 2074
+  },
+  "deterministic_facts": {
+    "revenue_growth": -0.5455180406416607,
+    "ar_growth": 0.010679900348899315,
+    "growth_gap": 0.55619794099056,
+    "absolute_ar_change": 398857.55999999493,
+    "sustained_periods": 1,
+    "screening_strength": "strong",
+    "materiality_assessment": "未评价金额重要性",
+    "thresholds": {
+      "planned_materiality": null,
+      "r1_gap_threshold": 0.15,
+      "r1_strong_gap_threshold": 0.3,
+      "r1_absolute_threshold": 0.0,
+      "r2_min_gap": 0.0,
+      "professional_review_status": "draft_pending_professional_signoff",
+      "r1_signoff_status": "signoff_stale_requires_reapproval"
+    }
+  },
+  "agents": {
+    "challenge": {
+      "status": "completed",
+      "provider_call_performed": true,
+      "input_sha256": "58c235e9947aef4c0dcd81f29cc4bcd1d917257c4b4e88c216e57ed3c4c64209",
+      "response_sha256": "9a1e519d75bbb95ff185abdfb1b8cfd0d4ac1eb42f12e3d9531fa736f45b8300",
+      "duration_ms": 2601,
+      "input_tokens": 11425,
+      "output_tokens": 601,
+      "output_status": "candidate",
+      "analysis_conclusion": "risk_candidate",
+      "ai_recommendation": "not_applicable"
+    },
+    "counter": {
+      "status": "completed",
+      "provider_call_performed": true,
+      "input_sha256": "dfddff3d2ff4b11a31e22b244f93f44bc516cd4d7bfa4359a741fe1eae87de85",
+      "response_sha256": "69bea22fe12ce919cf25b96d86b6beebaa5fb5a5ca155da8bd37a04a33912ed4",
+      "duration_ms": 2934,
+      "input_tokens": 11992,
+      "output_tokens": 672,
+      "output_status": "candidate",
+      "analysis_conclusion": "risk_candidate",
+      "ai_recommendation": "not_applicable"
+    },
+    "review": {
+      "status": "completed",
+      "provider_call_performed": true,
+      "input_sha256": "e9543be49ccf662516c39abe6d5d0d46a39d7e59fecb85b0e34fe7ea779b983c",
+      "response_sha256": "10406e3dc1b8d42b1d437864e44a86747182f572bdb2dda32d21cb17741456ec",
+      "duration_ms": 3028,
+      "input_tokens": 12573,
+      "output_tokens": 801,
+      "output_status": "retain",
+      "analysis_conclusion": "risk_candidate",
+      "ai_recommendation": "retain"
+    }
+  },
+  "numeric_gate": {
+    "summary": {
+      "passed": true,
+      "key_unverified": [],
+      "unverified_count": 2,
+      "trace_count": 13
+    },
+    "trace_passed": true,
+    "validation_mode": "claim_scoped",
+    "rag_chunk_traced_numbers": [
+      "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00"
+    ]
+  },
+  "contract_fields": {
+    "planning_priority": {
+      "grade": "P2",
+      "label": "优先核查",
+      "factors": [
+        {
+          "factor": "screening_status",
+          "value": "candidate",
+          "contribution": "运行级筛查状态；candidate 才可能进入 P1/P2/P3，RULE_NOT_TRIGGERED 才可能进入 P4",
+          "source": "RunResponse.screening_status"
+        },
+        {
+          "factor": "rule_statuses",
+          "value": [
+            "candidate"
+          ],
+          "contribution": "任一被选用规则返回 DATA_GAP 或 DATA_NOT_COMPARABLE 即触发 G；缺口只导致不出级，不参与升级",
+          "source": "RuleResult.status"
+        },
+        {
+          "factor": "screening_strength",
+          "value": "strong",
+          "contribution": "strong 进入 P1/P2 判定，standard 进入 P3 判定；缺失按未提供处理，不视为任一档命中",
+          "source": "risk_card.screening_strength（来源 R1；由 main.py 的 >= 阈值产出）"
+        },
+        {
+          "factor": "sustained_periods",
+          "value": 1,
+          "contribution": ">=2 是 P1 的必要条件之一；本函数不重新计算期间数",
+          "source": "metrics.sustained_periods（来源 R1）"
+        },
+        {
+          "factor": "ai_recommendation",
+          "value": "retain",
+          "contribution": "retain 是 P1 的必要条件之一；非 candidate 且 defer 命中 S；本字段同时作为处置轴并排输出",
+          "source": "RunResponse.ai_recommendation"
+        },
+        {
+          "factor": "run_completeness",
+          "value": "complete_public_prescreen",
+          "contribution": "数据完整（complete_ 前缀）是 P4 的必要条件之一",
+          "source": "RunResponse.run_completeness"
+        },
+        {
+          "factor": "blocked_candidate_count",
+          "value": 0,
+          "contribution": "P4 要求无 blocked 行：本次按 context.prescreen_plan.blocked_candidate_count 显式计数判定",
+          "source": "context.prescreen_plan.blocked_candidate_count"
+        },
+        {
+          "factor": "analysis_conclusion",
+          "value": "risk_candidate",
+          "contribution": "已签字六档条件均不含本字段，仅登记为上下文，不参与级别计算",
+          "source": "RunResponse.ai_analysis_conclusion"
+        },
+        {
+          "factor": "materiality_assessment",
+          "value": "未评价金额重要性",
+          "contribution": "金额重要性不折入级别，只作为独立字段并排输出",
+          "source": "metrics.materiality_assessment（来源 R1）"
+        }
+      ],
+      "boundary": "本级别为审计计划阶段的程序筛查信号分级，不是审计认定，不构成审计结论或审计意见。"
+    },
+    "evidence_state": {
+      "state": "E2",
+      "label": "部分闭合",
+      "reasons": [
+        "numeric_gate 返回 passed=true，coverage_matrix 有 5 行含当前企业直接证据；但 claims 返回 2 条 unverified_hypothesis、data_gaps 返回 3 项、requested_materials 返回 3 项待取得资料，存在未闭合因素，因此判为部分闭合（E2）。"
+      ],
+      "boundary": "证据闭合状态只描述本次运行的数字闸门、证据适配度、认定覆盖与主张绑定等控制项是否齐备，不是审计认定，不构成审计结论或审计意见。"
+    },
+    "disposition": {
+      "ai_recommendation": "retain",
+      "label": "建议保留",
+      "reason_for_status": "程序事实与增速差有直接证据支持，但应收账款仅净额口径、账龄与期后回款缺失，正常解释均为待验证假设，故保留候选并需补充程序。"
+    },
+    "materiality_display": {
+      "assessment": "未评价金额重要性",
+      "multiple": null
+    },
+    "execution_badge": {
+      "mode": "external_live",
+      "label": "本次真实模型运行",
+      "provider_call_count": 3
+    }
+  },
+  "counter_explanations": [
+    {
+      "text": "待验证假设：年报载明以经销为主、先款后货结算，或可解释应收账款与收入变动不同步，但未取得合同条款佐证。",
+      "support_status": "unverified_hypothesis",
+      "evidence_ids": [
+        "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01"
+      ]
+    },
+    {
+      "text": "待验证假设：应收账款账面余额41,813,685.32元与报表净额37,745,419.51元存在口径差异，或可部分解释增速差。",
+      "support_status": "unverified_hypothesis",
+      "evidence_ids": [
+        "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00",
+        "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025"
+      ]
+    }
+  ],
+  "requested_materials": [
+    "应收账款账龄明细表",
+    "期后回款记录",
+    "主要合同关键条款摘要"
+  ],
+  "data_gaps": [
+    "账龄结构未取得",
+    "期后回款记录未取得",
+    "信用政策变动说明未取得"
+  ],
+  "review_reason_for_status": "程序事实与增速差有直接证据支持，但应收账款仅净额口径、账龄与期后回款缺失，正常解释均为待验证假设，故保留候选并需补充程序。",
+  "evidence_pages": [
+    {
+      "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01",
+      "pdf_page": 10,
+      "report_year": "2025"
+    },
+    {
+      "evidence_id": "RAG-CNINFO_000858_T0_20260430-2023-P0011-C01",
+      "pdf_page": 11,
+      "report_year": "2023"
+    },
+    {
+      "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00",
+      "pdf_page": 89,
+      "report_year": "2025"
+    },
+    {
+      "evidence_id": "RAG-CNINFO_000858_T0_20260430-2024-P0095-C01",
+      "pdf_page": 95,
+      "report_year": "2024"
+    },
+    {
+      "evidence_id": "RAG-CNINFO_000858_T0_20260430-2024-P0007-C01",
+      "pdf_page": 7,
+      "report_year": "2024"
+    },
+    {
+      "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0007-C01",
+      "pdf_page": 7,
+      "report_year": "2025"
+    }
+  ],
+  "source_run_file": {
+    "path": "backend/runtime/runs/RUN-V7-901E91444479.json",
+    "bytes": 224226,
+    "sha256": "04F5E3E146042685C69754FD15BF61F9084034DBB023BFD2C948494C42BF0AC0"
+  },
+  "browser_verified": {
+    "harness": "outputs/w21-w23-live-verification-20260919/w24_live_acceptance.json",
+    "viewports": 4,
+    "console_errors": 0,
+    "failed_requests": 0,
+    "overflow": 0
+  },
+  "boundary": "本记录是工程验收基线，不构成审计认定、不构成 B0—B3 专业评分、不代表竞赛发布批准。",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

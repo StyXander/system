@@ -1,0 +1,183 @@
+{
+  "records": [
+    {
+      "seq": 1,
+      "task_id": "DEMO-RUN-05D8EC8137A8",
+      "run_id": "RUN-V7-A923212497D0",
+      "execution_mode": "external_live",
+      "cache_hit": false,
+      "provider_call_count": 3,
+      "provider_call_ids": [
+        "CALL-538D0517CAD73508F9F566C3F344803E",
+        "CALL-294D7EB4DB6A5CAAEADE70B7B2034548",
+        "CALL-2AE0342E69250EBB23ED0842ED265208"
+      ],
+      "model_id": "deepseek-v4-flash",
+      "prompt_version": "agent_prompt_v3",
+      "run_completeness": "complete_public_prescreen",
+      "ai_recommendation": "retain",
+      "ai_analysis_conclusion": "additional_procedure_required",
+      "ai_analysis_route": "risk_candidate",
+      "screening_status": "candidate",
+      "duration_ms": 8320,
+      "input_tokens": 35964,
+      "output_tokens": 2089,
+      "completed_at": "2026-09-19T21:45:07.114167+08:00",
+      "numeric_gate_passed": true,
+      "numeric_gate_key_unverified": [],
+      "grade": "P2",
+      "grade_label": "优先核查",
+      "evidence_state": "E2",
+      "evidence_state_label": "部分闭合",
+      "disposition": "retain",
+      "badge_mode": "external_live",
+      "badge_calls": 3,
+      "growth_gap": 0.55619794099056,
+      "ar_growth": 0.010679900348899315,
+      "revenue_growth": -0.5455180406416607,
+      "sustained_periods": 1,
+      "roles": {
+        "challenge": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "7a674876901d266a8b5d45801932de1fa340761cdae2e3431ab3455a714da1bd",
+          "output_status": "candidate"
+        },
+        "counter": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "a4788dfc690299fa11bd9286bda575763952f20c9abc3818d880eee2066e4cc7",
+          "output_status": "candidate"
+        },
+        "review": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "f005db17a5277131fd8a69bfa74afc972941f2dfe9e7e3be00f0b04be40dd1a3",
+          "output_status": "retain"
+        }
+      },
+      "compliant": true,
+      "problems": []
+    },
+    {
+      "seq": 2,
+      "task_id": "DEMO-RUN-F4E79B98C750",
+      "run_id": "RUN-V7-CD12FD56306C",
+      "execution_mode": "external_live",
+      "cache_hit": false,
+      "provider_call_count": 3,
+      "provider_call_ids": [
+        "CALL-921B2398A9DA7BE788031F0B644209A8",
+        "CALL-7291429375B8CEE08B5FE1913CA62DC3",
+        "CALL-572AAD452C825AB1DEE932E2B7C017E3"
+      ],
+      "model_id": "deepseek-v4-flash",
+      "prompt_version": "agent_prompt_v3",
+      "run_completeness": "complete_public_prescreen",
+      "ai_recommendation": "retain",
+      "ai_analysis_conclusion": "additional_procedure_required",
+      "ai_analysis_route": "risk_candidate",
+      "screening_status": "candidate",
+      "duration_ms": 9312,
+      "input_tokens": 35962,
+      "output_tokens": 2115,
+      "completed_at": "2026-09-19T21:45:23.504066+08:00",
+      "numeric_gate_passed": true,
+      "numeric_gate_key_unverified": [],
+      "grade": "P2",
+      "grade_label": "优先核查",
+      "evidence_state": "E2",
+      "evidence_state_label": "部分闭合",
+      "disposition": "retain",
+      "badge_mode": "external_live",
+      "badge_calls": 3,
+      "growth_gap": 0.55619794099056,
+      "ar_growth": 0.010679900348899315,
+      "revenue_growth": -0.5455180406416607,
+      "sustained_periods": 1,
+      "roles": {
+        "challenge": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "51ce7cc080ea5585147ee9a3805d52730fbca84baafd0f72c2924795182033d7",
+          "output_status": "candidate"
+        },
+        "counter": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "b4dfe91250d3441eabe4b74ed6a55e77e3337b39f4fcf3f18a897175e5c6a9aa",
+          "output_status": "candidate"
+        },
+        "review": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "d7a3d9e51e12027584fa1caaefc4e020fece1d5b40950649a02e52c06c91de47",
+          "output_status": "retain"
+        }
+      },
+      "compliant": true,
+      "problems": []
+    },
+    {
+      "seq": 3,
+      "task_id": "DEMO-RUN-9ABA77BB1D68",
+      "run_id": "RUN-V7-901E91444479",
+      "execution_mode": "external_live",
+      "cache_hit": false,
+      "provider_call_count": 3,
+      "provider_call_ids": [
+        "CALL-37B3E91D09D08B1D056771D7B4F9358D",
+        "CALL-9B8C5E23E9DA8311685C2A2BEA660551",
+        "CALL-009E032901BB895DA3382547D77F8806"
+      ],
+      "model_id": "deepseek-v4-flash",
+      "prompt_version": "agent_prompt_v3",
+      "run_completeness": "complete_public_prescreen",
+      "ai_recommendation": "retain",
+      "ai_analysis_conclusion": "risk_candidate",
+      "ai_analysis_route": "risk_candidate",
+      "screening_status": "candidate",
+      "duration_ms": 8563,
+      "input_tokens": 35990,
+      "output_tokens": 2074,
+      "completed_at": "2026-09-19T21:45:39.920714+08:00",
+      "numeric_gate_passed": true,
+      "numeric_gate_key_unverified": [],
+      "grade": "P2",
+      "grade_label": "优先核查",
+      "evidence_state": "E2",
+      "evidence_state_label": "部分闭合",
+      "disposition": "retain",
+      "badge_mode": "external_live",
+      "badge_calls": 3,
+      "growth_gap": 0.55619794099056,
+      "ar_growth": 0.010679900348899315,
+      "revenue_growth": -0.5455180406416607,
+      "sustained_periods": 1,
+      "roles": {
+        "challenge": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "9a1e519d75bbb95ff185abdfb1b8cfd0d4ac1eb42f12e3d9531fa736f45b8300",
+          "output_status": "candidate"
+        },
+        "counter": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "69bea22fe12ce919cf25b96d86b6beebaa5fb5a5ca155da8bd37a04a33912ed4",
+          "output_status": "candidate"
+        },
+        "review": {
+          "status": "completed",
+          "provider_call_performed": true,
+          "response_sha256": "10406e3dc1b8d42b1d437864e44a86747182f572bdb2dda32d21cb17741456ec",
+          "output_status": "retain"
+        }
+      },
+      "compliant": true,
+      "problems": []
+    }
+  ],
+  "aborted": false,
+  "compliant_count": 3
+}

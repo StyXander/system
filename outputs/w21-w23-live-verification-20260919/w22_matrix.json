@@ -1,0 +1,134 @@
+[
+  {
+    "case_id": "STD_DEV_T0",
+    "company": "西安标准工业股份有限公司（标准股份）",
+    "intent": "② 未触发 + 口径不可比",
+    "run_id": "RUN-V7-3F25634550E2",
+    "task_id": "DEMO-RUN-C1B2E63B0A41",
+    "execution_mode": "external_live",
+    "cache_hit": false,
+    "provider_call_count": 3,
+    "run_completeness": "complete_full_analysis",
+    "route": "evidence_gap_review",
+    "conclusion": "additional_procedure_required",
+    "screening_status": "DATA_NOT_COMPARABLE",
+    "disposition": "defer",
+    "disposition_label": "建议暂缓",
+    "grade": "G",
+    "grade_label": "暂不分级（资料/口径受限）",
+    "evidence_state": "E2",
+    "evidence_label": "部分闭合",
+    "badge_mode": "external_live",
+    "gate_passed": true,
+    "gate_key_unverified": [],
+    "rules": [
+      {
+        "rule_id": "R1",
+        "status": "RULE_NOT_TRIGGERED",
+        "growth_gap": -0.13197155685180362,
+        "strength": "none"
+      },
+      {
+        "rule_id": "R2",
+        "status": "DATA_NOT_COMPARABLE",
+        "growth_gap": null,
+        "strength": null
+      }
+    ],
+    "blocked_candidate_count": null,
+    "candidate_quality_issues_count": 0,
+    "candidate_quality_issues_sample": [],
+    "requested_materials": [
+      "账龄明细表",
+      "期后回款记录",
+      "信用政策说明",
+      "主要合同关键条款摘要"
+    ],
+    "data_gaps": [],
+    "captured_at": "2026-09-19T21:46:38.369186+08:00"
+  },
+  {
+    "case_id": "CNINFO_600938_T0_20260326",
+    "company": "中国海油",
+    "intent": "③ 行业口径边界",
+    "run_id": "RUN-V7-D4556858C359",
+    "task_id": "DEMO-RUN-E804F4DEA98C",
+    "execution_mode": "external_live",
+    "cache_hit": false,
+    "provider_call_count": 3,
+    "run_completeness": "complete_public_prescreen",
+    "route": "industry_review",
+    "conclusion": "additional_procedure_required",
+    "screening_status": "RULE_NOT_TRIGGERED",
+    "disposition": "defer",
+    "disposition_label": "建议暂缓",
+    "grade": "S",
+    "grade_label": "暂缓判断",
+    "evidence_state": "E3",
+    "evidence_label": "未闭合",
+    "badge_mode": "external_live",
+    "gate_passed": true,
+    "gate_key_unverified": [],
+    "rules": [
+      {
+        "rule_id": "R1",
+        "status": "RULE_NOT_TRIGGERED",
+        "growth_gap": 0.037717661018974724,
+        "strength": null
+      }
+    ],
+    "blocked_candidate_count": 0,
+    "candidate_quality_issues_count": 0,
+    "candidate_quality_issues_sample": [],
+    "requested_materials": [
+      "应收账款附注明细及坏账准备变动",
+      "收入确认政策与重大客户结算资料"
+    ],
+    "data_gaps": [],
+    "captured_at": "2026-09-19T21:46:53.610536+08:00"
+  },
+  {
+    "case_id": "CNINFO_600900_T0_20260429",
+    "company": "长江电力",
+    "intent": "④ 资料缺口（blocked 字段）",
+    "run_id": "RUN-V7-C1914EDAAD08",
+    "task_id": "DEMO-RUN-DAC58A98E385",
+    "execution_mode": "external_live",
+    "cache_hit": false,
+    "provider_call_count": 3,
+    "run_completeness": "complete_public_prescreen_with_gaps",
+    "route": "industry_review",
+    "conclusion": "additional_procedure_required",
+    "screening_status": "DATA_GAP",
+    "disposition": "defer",
+    "disposition_label": "建议暂缓",
+    "grade": "G",
+    "grade_label": "暂不分级（资料/口径受限）",
+    "evidence_state": "E3",
+    "evidence_label": "未闭合",
+    "badge_mode": "external_live",
+    "gate_passed": true,
+    "gate_key_unverified": [],
+    "rules": [
+      {
+        "rule_id": "R1",
+        "status": "DATA_GAP",
+        "growth_gap": null,
+        "strength": null
+      }
+    ],
+    "blocked_candidate_count": 6,
+    "candidate_quality_issues_count": 5,
+    "candidate_quality_issues_sample": [
+      "同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认。",
+      "自动提取金额的原始值仅为 6元，疑似附注号、序号或叙述数字，须人工回页确认。"
+    ],
+    "requested_materials": [
+      "缺失字段的官方年报原文、PDF页码、单位和报表口径说明",
+      "应收账款附注明细及坏账准备变动",
+      "收入确认政策与重大客户结算资料"
+    ],
+    "data_gaps": [],
+    "captured_at": "2026-09-19T21:47:09.025989+08:00"
+  }
+]

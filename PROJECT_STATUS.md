@@ -262,6 +262,70 @@
 - **赛后欠账（不得遗忘）**：W11 的 (a) 是呈现层措辞兜底，不是根治。R1 正常计算时 `risk_card.data_gaps` 恒含 4 条常设资料缺口，路由选择器因此结构性不进入 `negative_confirmation`。赛后须实施 (b) 路由最小修复，并配完整回归；实施前任何“未触发已确认可达”的表述均不成立。依据：`docs/audit_no_trigger_reachability.md`（轨 C 只读审查）与 2026-09-19 两轮独立磁盘复核。
 - **当日受控评估事实不变**：B0 未执行；B1 `RUN-V7-0BDE5060FBED` 已执行；B2 `EVAL-B2-2F8BE053630D` 校验失败；历史 B3 `RUN-V7-00ED00962F34` 经事实闸门复核失败；人工评分全部空白。本轮工程改造不等于竞赛验收通过。
 
+## 2026-09-19 W19—W25 集成、真实验收与录制基线（当前工作树）
+
+- **W19 三端一致性**：后端 run JSON ↔ Word 导出对五条真实 live 运行逐字段比对，
+  六个契约字段与状态行 **58/60 字面一致**；两处差异经复核为核验脚本的**误报**
+  （中国海油段落含模型自撰的「未形成程序候选不等于企业无风险」，长江电力段落含 RAG 引出的年报原文「风险评级」字样，
+  均非系统自撰标签）。把红线核对范围修正为"系统自撰的标题与行标签"后 **5/5 通过**。
+  前端腿经真实浏览器实测确认（见下）。
+- **W21 稳定性**：五粮液连续 **3 次 fresh `external_live`** 完整分析（`RUN-V7-A923212497D0` /
+  `RUN-V7-CD12FD56306C` / `RUN-V7-901E91444479`），三次全部 `cache_hit=false`、3 次 provider 调用、
+  三角色完成、`numeric_gate.passed=true`、`key_unverified=[]`、`run_completeness=complete_public_prescreen`、
+  `growth_gap=0.55619794099056` 逐位相同、三轴 `P2 / E2 / retain` 三次一致。
+  其中 2 次 `analysis_conclusion=additional_procedure_required`、1 次 `risk_candidate`；
+  自然语言层允许差异，程序事实层稳定。**D1 数字闸门误杀已在真实 live 路径上确认修复**
+  （当日 13:09—13:13 曾三次全败于同一数字）。
+- **W22 Demo Case Matrix**：在当前 HEAD 上取三条 fresh live，四条路线给出**四种不同结果**，
+  全部可回查 `outputs/w21-w23-live-verification-20260919/w22_matrix.json`：
+  五粮液 `P2 优先核查 / E2 / retain`（risk_candidate，+55.62pp strong）；
+  标准股份 `G 暂不分级 / E2 / defer`（R1 未触发 −13.20pp，R2 `DATA_NOT_COMPARABLE`）；
+  中国海油 `S 暂缓判断 / E3 / defer`（industry_review）；
+  长江电力 `G 暂不分级 / E3 / defer`（R1 `DATA_GAP`，`blocked_candidate_count=6`）。
+  **严格落 `P4` 的 live 案例本轮未取到**——`S` 优先于 `P4` 是已裁定的保守顺序，非缺陷。
+- **W17 在 live 路径上再次确认**：长江电力 `growth_gap=null`，不再出现历史 1.45e9 量级；
+  抽取诊断原文（"同字段连续年度金额相差 1450369507.8 倍，可能存在错列、单位或表内子项误取，须人工回页确认"）
+  已在 `prescreen_plan.candidate_quality_issues` 中供前端 W16 直接读取。
+- **W23 Golden Demo Run 已冻结**：`RUN-V7-901E91444479`（task `DEMO-RUN-9ABA77BB1D68`），
+  基线 commit `13f25549f9b0`，原件 224,226 字节、SHA-256 `04F5E3E146042685…`，
+  闸门 `validation_mode=claim_scoped`、已追溯年报原文来源 `RAG-…-2025-P0089-C00`（第 89 页）。
+  记录 `outputs/w21-w23-live-verification-20260919/golden_demo_run.json`。
+  **它是录制前的对照基线，不是缓存回放的借口。**
+- **W24 增量验收**：`3 状态 × 4 视口 = 12 组`在**带契约字段的真实 live 运行**上实测，
+  控制台错误 0、失败请求 0、横向溢出 0、⑥ 三徽标与两条边界句全部在场，390 宽下关注卡 280px 未塌。
+  证据 `outputs/w21-w23-live-verification-20260919/w24_live_acceptance.json`。
+- **发现并如实登记的录制阻塞**：`:8000` 本地实例启动于 12:56:59，早于契约字段挂载落地（20:47—20:52），
+  且启动器默认不带 `--reload`，**该进程冻结在旧代码上**；不重启就录制，三徽标与六区关注卡不会出现。
+  已在台本 §0.1 给出重启与自检步骤。
+- **口播事实修正**：备用链下的五粮液 `ai_recommendation=defer`（`RUN-V7-1FF5B1149044` 实测），
+  故"defer 只出现在标准股份"一句不成立，已改为按运行来源分档表述。角色名统一为
+  质疑 / 反证 / 复核 Agent，系统内无 Arbiter。
+- **W25 台本**：`2026-09-19_演示录制台本与画面清单_V2_实测校准版.md`（含九条口播红线、五幕结构、
+  S01—S14 画面清单、五项已知瑕疵如实登记）。
+- **W05 补齐**：Word 备忘录「运行来源」行此前只写代码未提交、零测试覆盖；
+  已提交 `13f2554`，新增 `backend/tests/test_delivery_contract_fields.py` 9 项，
+  并按 R5 生成 `backend/tests/fixtures/run_contract_mock_degraded.json`
+  （同底座只翻闸门结果 → `incomplete_numeric_claims` + `E3`，而 `P2 / retain / 徽标` 逐字不变，
+  以钉死"闸门不参与定级"的双轴性质）。
+- **实测**：`pytest backend/tests -q` **586 passed / 1 skipped / 0 failed**（142.43s；
+  原基线 577，+9 为 W05 补齐项）；`scripts/check_chinese_comments.py` **2813/26641 = 10.56%** PASS；
+  `node scripts/verify_demo_outcome_judge.mjs` **75 项通过**；`git diff --check` 退出码 0；
+  `scripts/scan_working_tree_secrets.py` `no_secret_hits`。
+- **付费调用**：本轮经队长授权执行 **6 次真实完整链运行 / 18 次 provider 调用**
+  （W21 三次 + W22 三次），全部 `external_live`、`cache_hit=false`；
+  所有测试与只读探针一律前缀 `DEEPSEEK_API_KEY=`，未提交、未推送、未部署。
+- **间歇项触发条件已复现定位**（升级 2026-09-15 段"根因未定位"的登记）：
+  `test_all_seed_cases_enter_three_role_external_route` 在**有第二个 uvicorn 实例运行并写同一份
+  `backend/runtime`** 时全量失败、单独运行时通过；停掉该实例后全量 **586 passed / 1 skipped / 0 failed**（157.77s）。
+  本轮实测两次：`:8011` 在跑时全量 FAILED，`taskkill` 停掉后全量绿。
+  失败现场伴随多条 `ResourceWarning: unclosed database in <sqlite3.Connection>` 指向案例台账 sqlite，
+  说明测试的 `TestClient(app)` 与在线实例共用同一份磁盘台账状态而被干扰。
+  **精确失效路径仍未定位**，但触发条件可复现，故按"跑全量回归前必须停掉所有 uvicorn 实例"作为操作规程执行。
+- **未闭合项**：`cache_replay` 态仍未在真实浏览器实测（本机需 Supabase 缓存行 + 真人 `export_approved`），
+  **不得计入验收通过**；④ 区存在「应收账款账龄明细表 / 账龄明细表」近似重复条目（呈现层瑕疵）；
+  `PROC-R1-*` 程序结果证据无 PDF 页码，回链如实显示"原文入口未提供"；
+  W11 的 (b) 路由根治、128 条被拦截候选的真人回页、B0—B3 真人评分与 R1 重新签字均仍开放。
+
 ## 2026-08-13 全案例 AI 路线收尾更新
 
 - 完整分析模式已取消“只有 candidate 才调用模型”的门槛；四条 AI 路线分别覆盖候选风险、未触发复核、行业口径和数据缺口。
