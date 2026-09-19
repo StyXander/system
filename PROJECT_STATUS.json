@@ -961,5 +961,154 @@
       "未执行系统关机"
     ]
   },
-  "truth_boundary": "已实现与已测试不等于专业定稿、合法样例确认或竞赛效果结论；AI不得代签双人复核、B0基线和B0—B3专业评分。"
+  "truth_boundary": "已实现与已测试不等于专业定稿、合法样例确认或竞赛效果结论；AI不得代签双人复核、B0基线和B0—B3专业评分。",
+  "remediation_20260919": {
+    "branch": "main",
+    "head": "98e296b",
+    "merged_from": "remediation-2026-09-19",
+    "merge_kind": "fast-forward",
+    "commits": [
+      "4f5a5c9",
+      "b5839c4",
+      "13f2554",
+      "381a2bd",
+      "98e296b"
+    ],
+    "paid_calls": {
+      "unit_note": "full_chain_runs 与 provider_calls 双口径；此前未写明单位",
+      "full_chain_runs_total": 8,
+      "provider_calls_total": 24,
+      "acceptance_subset_full_chain_runs": 6,
+      "acceptance_subset_provider_calls": 18,
+      "budget_target_full_chain_runs": 12,
+      "budget_hard_cap_full_chain_runs": 15,
+      "within_budget": true,
+      "breakdown": [
+        {
+          "run_id": "RUN-V7-9F95459E6259",
+          "purpose": "old-8000 diagnostic",
+          "provider_calls": 3
+        },
+        {
+          "run_id": "RUN-V7-A923212497D0",
+          "purpose": "W21",
+          "provider_calls": 3
+        },
+        {
+          "run_id": "RUN-V7-CD12FD56306C",
+          "purpose": "W21",
+          "provider_calls": 3
+        },
+        {
+          "run_id": "RUN-V7-901E91444479",
+          "purpose": "W21 + W23 golden",
+          "provider_calls": 3
+        },
+        {
+          "run_id": "RUN-V7-3F25634550E2",
+          "purpose": "W22",
+          "provider_calls": 3
+        },
+        {
+          "run_id": "RUN-V7-D4556858C359",
+          "purpose": "W22",
+          "provider_calls": 3
+        },
+        {
+          "run_id": "RUN-V7-C1914EDAAD08",
+          "purpose": "W22",
+          "provider_calls": 3
+        },
+        {
+          "run_id": "RUN-V7-8C272297D1EB",
+          "purpose": "cache_replay attempt, miss",
+          "provider_calls": 3
+        }
+      ]
+    },
+    "w21": {
+      "runs": [
+        "RUN-V7-A923212497D0",
+        "RUN-V7-CD12FD56306C",
+        "RUN-V7-901E91444479"
+      ],
+      "all_external_live": true,
+      "all_cache_hit_false": true,
+      "growth_gap_identical": "0.55619794099056",
+      "triple": [
+        "P2",
+        "E2",
+        "retain"
+      ]
+    },
+    "w22": {
+      "statement": "四家公司、三种技术路线、四组不同的优先级/证据/处置组合",
+      "routes": [
+        "risk_candidate",
+        "evidence_gap_review",
+        "industry_review"
+      ],
+      "p4_substituted_by_s": true,
+      "substitution_basis": "开工基线 §7.5 批准的替代方案"
+    },
+    "w23": {
+      "golden_run_id": "RUN-V7-901E91444479",
+      "baseline_commit": "13f25549f9b0",
+      "source_sha256": "04F5E3E146042685C69754FD15BF61F9084034DBB023BFD2C948494C42BF0AC0",
+      "is_replay_excuse": false
+    },
+    "w24": {
+      "live_states_x_viewports": "3 states x 4 viewports = 12",
+      "console_errors": 0,
+      "failed_requests": 0,
+      "overflow": 0,
+      "cache_replay_verified": false,
+      "cache_replay_reason": "public_model_cache only implemented on SupabaseClient; structurally unreachable locally",
+      "cache_replay_status": "exempted_remainder_not_counted_as_passed",
+      "export_approved_fabricated": false
+    },
+    "w19": {
+      "archive": "outputs/w21-w23-live-verification-20260919/w19_docx_comparison.json",
+      "field_checks": "40/40",
+      "redline_violations": 0,
+      "redline_scope": "system-authored headings and row labels only"
+    },
+    "tests": {
+      "backend": "586 passed, 1 skipped, 0 failed",
+      "frontend_contract_items": 75,
+      "comment_ratio": "2819/26658 = 10.57%",
+      "comment_hard_gate_met": true,
+      "comment_p0_target_11_5_met": false,
+      "comment_target_miss_reason": "reaching 11.5% needs ~280 filler comment lines; declined as it lowers readability"
+    },
+    "word_fonts": {
+      "body": "宋体 12pt (小四)",
+      "heading_l1": "黑体 16pt (三号)",
+      "heading_l2_l3": "黑体 14pt / 12pt",
+      "table_exception": "宋体 10.5pt (五号), registered density exception",
+      "locking_test": "test_report_uses_songti_body_and_heiti_headings"
+    },
+    "intermittent_test": {
+      "name": "test_all_seed_cases_enter_three_role_external_route",
+      "trigger_reproducible": "a second uvicorn instance writing the same backend/runtime",
+      "root_cause_proven": false,
+      "operating_rule": "stop all uvicorn instances before a full regression"
+    },
+    "recording_env": {
+      "stale_8000_pid_start": "2026-09-19 12:56:59",
+      "launcher_reload_default": false,
+      "action": "restart before recording; verify a NEW run carries the six contract fields",
+      "restore_of_saved_runs_on_old_code": "still returns the six fields; new runs on old code do not"
+    },
+    "open_items": [
+      "cache_replay browser acceptance (exempted, not counted)",
+      "attention card zone 4 near-duplicate material entries (presentation blemish)",
+      "PROC-R1-* evidence lacks PDF page; link honestly shows no source entry",
+      "W11(b) route fix deferred to post-competition",
+      "128 blocked candidates awaiting human page review",
+      "B0-B3 human scoring and R1 re-signoff remain human-only"
+    ],
+    "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+    "updated_at": "2026-09-19T23:25:14.210442+08:00"
+  }
 }
