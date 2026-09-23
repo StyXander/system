@@ -1083,7 +1083,7 @@
     P3: "P3 常规跟进",
     P4: "P4 维持常规程序",
     S: "S 暂缓判断",
-    G: "G 暂不分级（资料或口径受限）",
+    G: "G 暂不分级（资料/口径受限）",
   };
   const ATTENTION_EVIDENCE_LABELS = {
     E1: "E1 已闭合",
@@ -1099,8 +1099,470 @@
     "demo-attention-procedures",
     "demo-attention-badges",
   ];
-  const EVIDENCE_BOUNDARY = "证据闭合状态只描述本次证据链的可追溯程度，不构成审计结论或审计意见。";
+  // 回退常量必须与签字记录 §7.3 及后端 evidence_closure.EVIDENCE_STATE_BOUNDARY 逐字一致；
+  // 页面优先读 run.evidence_state.boundary，只有旧运行缺该键时才用这里的值。
+  const EVIDENCE_BOUNDARY = "证据闭合状态只描述本次运行的数字闸门、证据适配度、认定覆盖与主张绑定等控制项是否齐备，不是审计认定，不构成审计结论或审计意见。";
   const DETERMINISTIC_NOTE = "确定性计算，非模型生成";
+
+  // ⑥ 区中文解读层：把轨 B 已算好的结构化因子组织成评委可读的说明。
+  // 这一层只做"读字段 → 说中文"，不重算等级、不新增阈值、不调用模型；
+  // 已签字 D1 的判定条件因子与仅作上下文登记的因子必须分组，避免暗示所有字段都会影响级别。
+  const PRIORITY_DECISIVE_FACTORS = new Set([
+    "screening_status",
+    "rule_statuses",
+    "screening_strength",
+    "sustained_periods",
+    "ai_recommendation",
+    "run_completeness",
+    "blocked_candidate_count",
+    "blocked_row_proxy",
+  ]);
+  const EVIDENCE_DECISIVE_FACTORS = new Set([
+    "numeric_gate",
+    "evidence_fitness",
+    "coverage_matrix",
+    "claims",
+    "data_gaps",
+    "requested_materials",
+  ]);
+  // 说明句必须逐档核对的必要控制项；evidence_fitness 允许"未提供"，不进必需集。
+  const EVIDENCE_REQUIRED_CONTROLS = ["numeric_gate", "coverage_matrix", "claims", "data_gaps", "requested_materials"];
+  const EVIDENCE_CONTROL_LABELS = {
+    numeric_gate: "数字校验",
+    coverage_matrix: "认定—证据—程序对应表",
+    claims: "主张绑定统计",
+    data_gaps: "资料缺口清单",
+    requested_materials: "待索取资料清单",
+  };
+  const FACTOR_LABELS = {
+    screening_status: "运行级筛查状态",
+    rule_statuses: "被选用规则返回的状态",
+    screening_strength: "程序信号强度",
+    sustained_periods: "信号持续的比较期间数",
+    ai_recommendation: "系统复核建议",
+    run_completeness: "本次运行完整性",
+    blocked_candidate_count: "因资料或口径被阻断的候选项数",
+    blocked_row_proxy: "被选用规则是否落入受阻状态（缺显式计数时的代理判据）",
+    analysis_conclusion: "分析结论",
+    materiality_assessment: "金额重要性结论",
+    numeric_gate: "数字校验闸门",
+    evidence_fitness: "证据适配度检查",
+    coverage_matrix: "认定—证据—程序对应表",
+    claims: "陈述与证据绑定情况",
+    data_gaps: "资料缺口",
+    requested_materials: "待索取资料",
+  };
+  const UNKNOWN_FACTOR_MEANING = "该项暂缺中文解释，以下保留后端原始字段名与取值，未作任何推断。";
+
+  function factorValue(factors, name) {
+    const list = Array.isArray(factors) ? factors : [];
+    const hit = list.find((item) => item && item.factor === name);
+    return hit ? hit.value : undefined;
+  }
+
+  function hasFactors(factors) {
+    return Array.isArray(factors) && factors.length > 0;
+  }
+
+  // 存在任意因子 ≠ 必要控制项齐全：说明句只能用真正读到读数的控制项拼装。
+  function factorProvided(factors, name) {
+    const list = Array.isArray(factors) ? factors : [];
+    const hit = list.find((item) => item && item.factor === name);
+    if (!hit) return false;
+    return !isUnprovided(hit.value);
+  }
+
+  function missingEvidenceControls(factors) {
+    return EVIDENCE_REQUIRED_CONTROLS.filter((name) => !factorProvided(factors, name));
+  }
+
+  function missingSuffix(missing) {
+    if (!missing.length) return "";
+    const names = missing.map((name) => EVIDENCE_CONTROL_LABELS[name] || name).join("、");
+    return `本次未随状态记录${names}的读数，页面不补造这些计数。`;
+  }
+
+  function joinChinese(items) {
+    if (!items.length) return "";
+    if (items.length === 1) return items[0];
+    return `${items.slice(0, -1).join("、")}，以及 ${items[items.length - 1]}`;
+  }
+
+  function isUnprovided(value) {
+    return value === undefined || value === null || value === "";
+  }
+
+  // 展开区保留后端原始值供逐条复核；字符串不再套一层 JSON 引号。
+  function rawText(value) {
+    if (value === undefined) return "未提供";
+    if (value === null) return "null";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  // 级别与强度理应同源；留痕不一致时把实际记录写出来，不套用该档的默认措辞。
+  function strengthClause(strength, expected, plainText) {
+    if (strength === expected) return `为${plainText}`;
+    return `记录与已签字级别不一致（实际为${isUnprovided(strength) ? "未提供" : String(strength)}，页面按原文显示）`;
+  }
+
+  const GATE_TEXT = {
+    passed: "数字校验已通过（仅说明本次数字可追溯，不代表全部主张已核实）",
+    failed: "数字校验未通过",
+    not_provided: "数字校验未返回可判定状态",
+  };
+  const COMPLETENESS_TEXT = {
+    complete_public_prescreen: ["公开预筛已完成", "公开资料预筛流程已完成，不是完整审计已完成"],
+    complete_public_prescreen_no_candidate: ["公开预筛已完成（无候选）", "公开资料预筛流程已完成且无程序候选，不是完整审计已完成"],
+    complete_full_analysis: ["完整分析已完成", "完整分析流程已完成，仍不含人工复核"],
+    complete_full_analysis_with_gaps: ["完整分析已完成（有缺口）", "完整分析流程已完成，但仍有资料缺口"],
+    complete_full_analysis_no_candidate: ["完整分析已完成（无候选）", "完整分析流程已完成且无程序候选"],
+    complete_demo_fallback: ["演示降级结果", "演示确定性降级结果已完成，不是真实模型运行"],
+  };
+
+  function sustainedClause(sustained) {
+    if (typeof sustained !== "number") return "持续期间数未提供";
+    return sustained >= 2
+      ? `已连续 ${sustained} 个比较期间（达「至少 2 个」条件）`
+      : `目前持续 ${sustained} 个比较期间`;
+  }
+
+  // 单个因子的中文取值与含义。取值一律翻成业务语言，原始英文值只在来源行保留。
+  function translatePriorityFactor(factor) {
+    const name = factor && factor.factor;
+    const value = factor ? factor.value : undefined;
+    switch (name) {
+      case "screening_status":
+        if (value === "candidate") return ["待核查线索", "确定性规则筛查发现待核查线索，等待审计人员进一步核查"];
+        if (value === "RULE_NOT_TRIGGERED") return ["未触发线索", "本次规则筛查未触发待核查线索；这不等于企业不存在风险"];
+        if (value === "DATA_GAP") return ["资料缺口", "该项因资料缺口无法完成筛查判断"];
+        if (value === "DATA_NOT_COMPARABLE") return ["跨期不可比", "该项因跨期数据不可比无法完成筛查判断"];
+        if (isUnprovided(value)) return ["未提供", "本次未记录运行级筛查状态"];
+        return [String(value), `后端返回未登记的筛查状态：${String(value)}`];
+      case "rule_statuses": {
+        // null/缺字段是"未记录"，空数组才是"确实没有选用规则"，两者不得共用一句结论。
+        if (isUnprovided(value) || !Array.isArray(value)) {
+          return ["未提供", "本次未记录被选用规则状态，不视为没有规则，也不视为存在资料缺口"];
+        }
+        const labels = value.map((item) => {
+          if (item === "candidate") return "待核查线索";
+          if (item === "RULE_NOT_TRIGGERED") return "未触发线索";
+          if (item === "DATA_GAP") return "资料缺口";
+          if (item === "DATA_NOT_COMPARABLE") return "跨期不可比";
+          if (item === "SOURCE_INCOMPLETE") return "来源资料不完整";
+          if (item === "UNKNOWN") return "状态未记录";
+          return String(item);
+        });
+        return [
+          labels.length ? labels.join("、") : "无被选用规则",
+          labels.length
+            ? `本次被选用规则共 ${labels.length} 条，状态如上；其中资料缺口或跨期不可比只会压制分级，不参与升级`
+            : "本次登记的被选用规则列表为空（真实为 0 条，不是未记录）",
+        ];
+      }
+      case "screening_strength":
+        if (value === "strong") return ["较强", "异常信号较强；仅指筛查信号强度，不代表证据已证实高风险"];
+        if (value === "standard") return ["常规档", "异常信号强度为常规档"];
+        if (value === "none") return ["未产出强度", "本次规则卡片未产出强度信号"];
+        if (isUnprovided(value)) return ["未提供", "本次未记录程序信号强度，按未命中任一档处理"];
+        return [String(value), `后端返回未登记的强度值：${String(value)}`];
+      case "sustained_periods":
+        if (typeof value === "number") {
+          return [
+            `${value} 个比较期间`,
+            value >= 2
+              ? `增速差超过阈值的比较期间共 ${value} 个，已满足「至少 2 个」这一档条件`
+              : `增速差超过阈值的比较期间只有 ${value} 个，未达「至少 2 个」这一档条件`,
+          ];
+        }
+        if (isUnprovided(value)) return ["未提供", "本次未记录持续期间数，不视为任一档的命中条件"];
+        return [String(value), `后端返回非整数的期间取值：${String(value)}`];
+      case "ai_recommendation":
+        if (value === "retain") return ["建议保留", "系统复核建议保留该待核查事项；这是机器建议，不是审计人员已批准"];
+        if (value === "downgrade") return ["建议降级", "系统复核建议下调该事项的关注程度；仍需人工决定"];
+        if (value === "defer") return ["建议暂缓", "系统复核建议暂缓对该事项下结论"];
+        if (value === "not_applicable") return ["不作建议", "复核角色在当前口径下不作建议"];
+        if (value === "not_generated" || isUnprovided(value)) return ["未提供", "本次未记录系统复核建议"];
+        return [String(value), `后端返回未登记的复核建议：${String(value)}`];
+      case "run_completeness": {
+        const known = COMPLETENESS_TEXT[value];
+        if (known) return [known[0], `${known[1]}；数据完整只影响「维持常规程序」一档的出级资格`];
+        if (isUnprovided(value)) return ["未提供", "本次未记录运行完整性"];
+        if (String(value).startsWith("incomplete")) return ["不完整", `本次运行不完整（原始状态：${String(value)}），只会压制出级或正面结论，不参与升级`];
+        return [String(value), `后端返回未登记的完整性状态：${String(value)}`];
+      }
+      case "blocked_candidate_count":
+        if (typeof value === "number") {
+          return [
+            `${value} 项`,
+            value === 0
+              ? "本次候选项中没有因资料或口径问题被阻断的行；该结论只覆盖本次候选项，不能扩大为所有资料都完整"
+              : `本次候选项中有 ${value} 项因资料或口径问题被阻断，取消"维持常规程序"的出级资格`,
+          ];
+        }
+        return ["未提供", "本次未收到被阻断候选项的显式计数"];
+      case "blocked_row_proxy":
+        // 代理判据本身缺失时只能说"未提供"，不能默认判成"没有受阻规则"。
+        if (!Array.isArray(value)) {
+          return ["未提供", "本次既无显式被阻断计数，也无规则状态代理判据，无法判断是否存在受阻行"];
+        }
+        return [value.join("、") || "无受阻规则", "本次未收到显式计数，改用被选用规则状态作代理判据；代理判据只影响「维持常规程序」一档"];
+      case "analysis_conclusion":
+        if (value === "risk_candidate") return ["形成待核查线索", "本次形成待核查线索，不是认定企业存在风险；该字段不参与级别计算"];
+        if (value === "additional_procedure_required") return ["需补充程序后判断", "需执行额外审计程序后再作判断；该字段不参与级别计算"];
+        if (value === "no_trigger_confirmed") return ["未触发结果已复核", "未触发结果已复核；该字段不参与级别计算，也不构成无风险认定"];
+        if (value === "data_gap") return ["资料缺口待补充", "资料缺口待补充；该字段不参与级别计算"];
+        if (isUnprovided(value)) return ["未提供", "本次未记录分析结论"];
+        return [String(value), `该字段仅登记为上下文，不参与级别计算；原始值：${String(value)}`];
+      case "materiality_assessment":
+        if (isUnprovided(value)) return ["未提供", "金额重要性不折入级别，且缺失原因不作推断"];
+        return [String(value), "金额重要性单独展示，不参与核查优先级分级；该字段不参与级别计算"];
+      default:
+        return [isUnprovided(value) ? "未提供" : String(value), UNKNOWN_FACTOR_MEANING];
+    }
+  }
+
+  function translateEvidenceFactor(factor) {
+    const name = factor && factor.factor;
+    const value = factor ? factor.value : undefined;
+    switch (name) {
+      case "numeric_gate": {
+        // 闸门读数缺失既不等于未通过、也不等于已通过；只有拿到可判定状态才写结论。
+        if (!value || typeof value !== "object") {
+          return ["未提供", "本次未记录数字闸门读数，不能据此断言数字已通过或未通过"];
+        }
+        const text = GATE_TEXT[value.state] || `闸门状态未识别（${String(value.state)}）`;
+        const unverified = typeof value.unverified_count === "number" ? value.unverified_count : null;
+        const detail = value.state === "failed" && unverified
+          ? `${text}；本次未通过可追溯校验的关键数字有 ${unverified} 项`
+          : text;
+        return [value.state === "passed" ? "通过" : value.state === "failed" ? "未通过" : "未提供", detail];
+      }
+      case "evidence_fitness": {
+        if (!value || typeof value !== "object") {
+          return ["未提供", "本次未记录证据适配度检查，不能据此认为已检查且无违规"];
+        }
+        if (!value.provided) {
+          return ["未提供", value.note || "本次未提供证据适配度检查，不能据此认为已检查且无违规"];
+        }
+        if (typeof value.violation_count !== "number") {
+          return ["未提供", "证据适配度检查已执行，但本次未登记越界条数"];
+        }
+        const count = value.violation_count;
+        return [
+          count ? `${count} 条越界` : "未见越界",
+          count ? `证据适配度检查发现 ${count} 条越界主张` : "证据适配度检查已执行，本次未发现越界主张",
+        ];
+      }
+      case "coverage_matrix": {
+        if (!value || typeof value !== "object" || !value.provided) {
+          return ["未提供", "本次没有认定—证据—程序对应表，无法确认是否存在当前企业直接证据"];
+        }
+        const rows = typeof value.rows === "number" ? value.rows : null;
+        const direct = typeof value.rows_with_current_entity_direct_evidence === "number"
+          ? value.rows_with_current_entity_direct_evidence : null;
+        if (direct === null) {
+          return ["未提供", `对应表共 ${rows === null ? "未提供" : rows} 项记录，但含当前企业直接证据的行数未登记`];
+        }
+        return [
+          `${direct} 项含当前企业直接证据`,
+          `对应表共 ${rows === null ? "未提供" : rows} 项记录，其中 ${direct} 项包含当前企业的直接证据；这里是记录条数，不等于 ${direct} 份独立证据`,
+        ];
+      }
+      case "claims": {
+        if (!value || typeof value !== "object") {
+          return ["未提供", "本次未记录主张绑定统计，不视为 0 条主张"];
+        }
+        const total = typeof value.total === "number" ? value.total : null;
+        if (total === null) return ["未提供", "本次未登记主张总条数"];
+        if (!total) return ["0 条主张", "本次登记的主张为 0 条（真实计数，不是未记录）"];
+        const bound = typeof value.supported_with_evidence_binding === "number" ? value.supported_with_evidence_binding : null;
+        const hypotheses = typeof value.unverified_hypothesis === "number" ? value.unverified_hypothesis : null;
+        const unbound = Array.isArray(value.supported_without_evidence) ? value.supported_without_evidence.length : null;
+        const parts = [`共 ${total} 条主张`, bound === null ? "已绑定证据条数未提供" : `${bound} 条已绑定证据`];
+        if (hypotheses) parts.push(`${hypotheses} 条为待验证解释`);
+        else if (hypotheses === 0) parts.push("无待验证解释");
+        if (unbound) parts.push(`${unbound} 条自称已获证据支持却未绑定任何证据编号`);
+        return [`${total} 条主张`, parts.join("，")];
+      }
+      case "data_gaps": {
+        // 空数组是"确实登记为 0 项"，null/缺字段是"未记录"，两者措辞必须不同。
+        if (!Array.isArray(value)) {
+          return ["未提供", "本次未记录资料缺口清单，不能视为没有缺口"];
+        }
+        return [value.length ? `${value.length} 项` : "无",
+          value.length ? `本次登记 ${value.length} 项资料缺口；缺口清单见下方原始依据，与待索取资料可能相关，不相加计缺` : "本次登记的资料缺口为 0 项（真实计数）"];
+      }
+      case "requested_materials": {
+        if (!Array.isArray(value)) {
+          return ["未提供", "本次未记录待索取资料清单，不能视为无需再取证"];
+        }
+        return [value.length ? `${value.length} 项` : "无",
+          value.length ? `本次登记 ${value.length} 项待索取资料，取得后可重新判断；与资料缺口可能相关，不相加计缺` : "本次登记的待索取资料为 0 项（真实计数）"];
+      }
+      default:
+        return [value === undefined || value === null ? "未提供" : String(value), UNKNOWN_FACTOR_MEANING];
+    }
+  }
+
+  // 说明句只由已读到的因子拼装：字段缺失时如实写"未提供"，不补造数字、不改等级。
+  function explainPriority(grade, factors) {
+    if (!hasFactors(factors)) {
+      const label = grade ? `${grade}` : null;
+      return label
+        ? `后端给出级别 ${label}，但本次运行未随级别记录判定因子，页面不补造逐条依据。`
+        : "后端未给出级别，也未记录判定因子；页面不补造说明。";
+    }
+    const strength = factorValue(factors, "screening_strength");
+    const sustained = factorValue(factors, "sustained_periods");
+    const recommendation = factorValue(factors, "ai_recommendation");
+    const completeness = factorValue(factors, "run_completeness");
+    const blocked = factorValue(factors, "blocked_candidate_count");
+    const ruleStatuses = factorValue(factors, "rule_statuses");
+    const sustainedText = sustainedClause(sustained);
+    const recommendText = recommendation === "retain"
+      ? "系统复核建议保留该事项，供审计人员优先核查"
+      : recommendation === "defer"
+        ? "系统复核建议暂缓判断"
+        : recommendation === "downgrade"
+          ? "系统复核建议降级处理"
+          : recommendation === "not_applicable"
+            ? "复核角色在当前口径下不作建议"
+            : "本次未记录系统复核建议";
+    switch (grade) {
+      case "G": {
+        const limited = (Array.isArray(ruleStatuses) ? ruleStatuses : [])
+          .filter((item) => item === "DATA_GAP" || item === "DATA_NOT_COMPARABLE");
+        return `${limited.length ? `本次有 ${limited.length} 条被选用规则返回资料缺口或跨期不可比` : "本次有被选用规则返回资料或口径受限状态"}，系统按已签字口径不出级；需补充资料或调整口径后重跑，未出级不等于没有风险。`;
+      }
+      case "P1":
+        return `规则筛查发现待核查异常线索，信号强度${strengthClause(strength, "strong", "较强")}，${sustainedClause(sustained)}，${recommendText}，四项条件同时成立，因此判为立即扩大核查。`;
+      case "P2":
+        return `规则筛查发现待核查异常线索，信号强度${strengthClause(strength, "strong", "较强")}，${sustainedText}；${recommendText}。`;
+      case "P3":
+        return `规则筛查发现待核查异常线索，信号强度${strengthClause(strength, "standard", "常规档")}，${sustainedText}；${recommendText}，按常规程序跟进即可。`;
+      case "S":
+        return `本次筛查未产出待核查线索，而${recommendText}，因此列为暂缓判断，待资料补充后再评估；暂缓不等于排除风险。`;
+      case "P4": {
+        const completenessText = COMPLETENESS_TEXT[completeness]?.[0] || "运行完整性未记录";
+        const blockedText = typeof blocked === "number" ? `本次被阻断的候选项为 ${blocked} 项` : "被阻断候选项计数未提供";
+        return `规则筛查未触发待核查线索，${completenessText}，${blockedText}，因此维持常规程序。该级别只描述本次筛查信号与公开资料预筛完成度，不等于认定企业没有风险，也不代表已完成完整审计。`;
+      }
+      case null:
+      case undefined:
+        return "已签字的六档排定条件均未命中，本次不出级；系统不自创第七档，也不把资料受限之外的状态并入暂不分级。";
+      default:
+        return `后端返回未登记的级别 ${String(grade)}；页面按原文显示，不折算为已签字的六个级别。`;
+    }
+  }
+
+  function explainEvidence(state, factors) {
+    if (!hasFactors(factors)) {
+      return state
+        ? `后端给出证据闭合状态 ${state}，但本次运行未随状态记录控制项读数值，页面不补造具体计数。`
+        : "后端未提供证据闭合状态；本次不作闭合程度判断。";
+    }
+    // 说明句只由"确实读到读数"的控制项拼装；缺读数就说未提供，不默认 0、不默认通过。
+    const missing = missingEvidenceControls(factors);
+    const suffix = missingSuffix(missing);
+    const gate = factorProvided(factors, "numeric_gate") ? factorValue(factors, "numeric_gate") : null;
+    const coverage = factorProvided(factors, "coverage_matrix") ? factorValue(factors, "coverage_matrix") : null;
+    const claims = factorProvided(factors, "claims") ? factorValue(factors, "claims") : null;
+    const fitness = factorProvided(factors, "evidence_fitness") ? factorValue(factors, "evidence_fitness") : null;
+    const gaps = factorProvided(factors, "data_gaps") && Array.isArray(factorValue(factors, "data_gaps"))
+      ? factorValue(factors, "data_gaps") : null;
+    const materials = factorProvided(factors, "requested_materials") && Array.isArray(factorValue(factors, "requested_materials"))
+      ? factorValue(factors, "requested_materials") : null;
+    const gateClause = gate && gate.state === "passed" ? "数字校验已通过"
+      : gate && gate.state === "failed" ? "数字校验未通过"
+        : "数字校验读数未提供";
+    const direct = coverage && coverage.provided && typeof coverage.rows_with_current_entity_direct_evidence === "number"
+      ? coverage.rows_with_current_entity_direct_evidence : null;
+    const directClause = direct === null
+      ? "含当前企业直接证据的对应表记录数未提供"
+      : `对应表中有 ${direct} 项记录包含当前企业的直接证据`;
+    const total = claims && typeof claims.total === "number" ? claims.total : null;
+    const hypotheses = claims && typeof claims.unverified_hypothesis === "number" ? claims.unverified_hypothesis : null;
+    const residuals = [];
+    if (hypotheses) residuals.push(`${hypotheses} 条解释待验证`);
+    if (gaps && gaps.length) residuals.push(`${gaps.length} 项资料缺口`);
+    if (materials && materials.length) residuals.push(`${materials.length} 项待索取资料`);
+    switch (state) {
+      case "E1":
+        if (missing.length) {
+          return `后端给出证据闭合状态 E1（已闭合）。${suffix}`;
+        }
+        return `${gateClause}，${total} 条主张均已绑定证据，${directClause}，且未登记资料缺口与待索取资料，因此证据已闭合。这只描述可追溯程度，不代表审计结论成立。`;
+      case "E2":
+        return `${gateClause}，${directClause}。${residuals.length ? `但仍有 ${joinChinese(residuals)}，` : ""}因此证据目前仅部分闭合。${suffix}`;
+      case "E3": {
+        const causes = [];
+        if (gate && gate.state === "failed") {
+          causes.push(`数字校验未通过（未通过可追溯校验的关键数字 ${typeof gate.unverified_count === "number" ? gate.unverified_count : "未提供"} 项）`);
+        } else if (gate && gate.state === "not_provided") {
+          causes.push("数字校验未返回可判定状态");
+        } else if (!gate) {
+          causes.push("数字校验读数未提供");
+        }
+        const unbound = claims && Array.isArray(claims.supported_without_evidence) ? claims.supported_without_evidence.length : 0;
+        if (unbound) causes.push(`${unbound} 条主张自称已获证据支持却未绑定任何证据编号`);
+        if (fitness && typeof fitness.violation_count === "number" && fitness.violation_count > 0) {
+          causes.push(`证据适配度检查发现 ${fitness.violation_count} 条越界`);
+        }
+        if (!fitness || !fitness.provided) causes.push("证据适配度检查本次未提供");
+        if (!causes.length) {
+          causes.push(`现有控制项不足以支持任何正面闭合断言（${directClause}、主张 ${total === null ? "未提供" : `${total} 条`}）`);
+        }
+        return `${joinChinese(causes)}，因此证据未闭合。未闭合只说明本次证据链可追溯程度不足，不构成本事项不存在风险的判断。${suffix}`;
+      }
+      case null:
+      case undefined:
+        return "后端未提供证据闭合状态；本次不作闭合程度判断。";
+      default:
+        return `后端返回未登记的证据状态 ${String(state)}；页面按原文显示，不折算为已签字的三档。`;
+    }
+  }
+
+  function explainMateriality(assessment, multiple) {
+    const boundary = "金额重要性单独展示，不参与核查优先级分级。";
+    if (isUnprovided(assessment)) {
+      return `后端未给出金额重要性结论，缺失原因不作推断。${boundary}`;
+    }
+    const multipleText = multiple === null || multiple === undefined ? "" : `本次变动金额约为计划重要性的 ${multiple} 倍。`;
+    if (String(assessment).includes("未评价")) {
+      // 只有接口本身给出"未评价"结论时才这么说；倍数缺失不推断为"缺少重要性水平"。
+      return `本次${assessment}。${multipleText}${boundary}`;
+    }
+    return `本次${assessment}。${multipleText}${boundary}`;
+  }
+
+  function mapFactorRows(factors, translate, decisiveSet) {
+    const list = Array.isArray(factors) ? factors : [];
+    return list.map((factor) => {
+      const [displayValue, meaning] = translate(factor);
+      return {
+        name: FACTOR_LABELS[factor && factor.factor] || (factor && factor.factor) || "未命名字段",
+        rawName: (factor && factor.factor) || "—",
+        displayValue,
+        meaning,
+        source: (factor && factor.source) || "后端未登记来源",
+        rawValue: rawText(factor ? factor.value : undefined),
+        participates: decisiveSet.has(factor && factor.factor),
+      };
+    });
+  }
+
+  function priorityFactorRows(factors) {
+    return mapFactorRows(factors, translatePriorityFactor, PRIORITY_DECISIVE_FACTORS);
+  }
+
+  function evidenceFactorRows(factors) {
+    return mapFactorRows(factors, translateEvidenceFactor, EVIDENCE_DECISIVE_FACTORS);
+  }
 
   function contractField(value) {
     return value === null || value === undefined || value === "" ? null : value;
@@ -1121,6 +1583,117 @@
       issues,
       blockedCount: Number.isFinite(blocked) ? blocked : null,
     };
+  }
+
+  // 旧运行（2026-09-19 契约挂载前）没有 evidence_state.factors。这里只读地把该运行自身
+  // 已留痕的结构化控制项重建成展示依据：不回写运行记录、不改哈希、不解析 reasons 文本猜数量，
+  // 也不补算契约字段本身——契约 factors 仍为"未提供"，页面另标"派生展示依据"。
+  // 取数口径逐条对齐后端 evidence_closure 的 _read_gate / _summarise_coverage / _summarise_claims。
+  function deriveEvidenceBasisFactors(run) {
+    const ctx = (run && run.context) || {};
+    const bundle = (run && run.evidence_bundle) || {};
+    const factors = [];
+    const trace = ctx.numeric_claim_trace || bundle.numeric_claim_trace || null;
+    if (trace && typeof trace === "object") {
+      factors.push({
+        factor: "numeric_gate",
+        value: {
+          state: trace.passed === true ? "passed" : trace.passed === false ? "failed" : "not_provided",
+          key_unverified: Array.isArray(trace.key_unverified) ? trace.key_unverified : [],
+          unverified_count: typeof trace.unverified_count === "number" ? trace.unverified_count : 0,
+        },
+        contribution: "由本次运行留痕的数字回查结果重建；passed=true 是 E1 与 E2 的共同前提",
+        source: "context.numeric_claim_trace（展示层重建，未改写原始运行）",
+        derived: true,
+      });
+    }
+    const violations = ctx.evidence_fitness_violations ?? bundle.evidence_fitness_violations ?? null;
+    factors.push({
+      factor: "evidence_fitness",
+      value: {
+        provided: Array.isArray(violations),
+        violation_count: Array.isArray(violations) ? violations.length : null,
+        note: Array.isArray(violations) ? "" : "本次运行未留痕证据适配度越界清单",
+      },
+      contribution: "存在越界违规即判 E3；未提供时不升格为任何正面结论",
+      source: "context.evidence_fitness_violations（展示层重建）",
+      derived: true,
+    });
+    const matrix = ctx.assertion_evidence_procedure_matrix || bundle.assertion_evidence_procedure_matrix || null;
+    if (Array.isArray(matrix)) {
+      const rows = matrix.filter((row) => row && typeof row === "object");
+      const withDirect = rows.filter((row) => {
+        const listed = Array.isArray(row.current_entity_direct_evidence)
+          ? row.current_entity_direct_evidence
+          : (row.current_entity_direct_evidence ? [row.current_entity_direct_evidence] : []);
+        return listed.filter(Boolean).length > 0;
+      }).length;
+      factors.push({
+        factor: "coverage_matrix",
+        value: { provided: rows.length > 0, rows: rows.length, rows_with_current_entity_direct_evidence: withDirect },
+        contribution: "至少一行含 current_entity_direct_evidence 才算「有直接证据」，是 E1 与 E2 的必要条件",
+        source: "context.assertion_evidence_procedure_matrix（展示层重建）",
+        derived: true,
+      });
+    }
+    const claimRows = [];
+    const gapList = [];
+    const materialList = [];
+    (Array.isArray(run && run.rule_results) ? run.rule_results : []).forEach((result) => {
+      const draft = result && result.ai_draft;
+      if (!draft || typeof draft !== "object") return;
+      (draft.claims || []).concat(draft.normal_explanations || []).forEach((row) => {
+        if (row && typeof row === "object") claimRows.push(row);
+      });
+      (draft.data_gaps || []).forEach((item) => {
+        const text = String(item || "");
+        if (text && !gapList.includes(text)) gapList.push(text);
+      });
+      (draft.requested_materials || []).forEach((item) => {
+        const text = String(item || "");
+        if (text && !materialList.includes(text)) materialList.push(text);
+      });
+    });
+    let bound = 0;
+    let hypotheses = 0;
+    const unbound = [];
+    claimRows.forEach((row) => {
+      const status = String(row.support_status || "");
+      const ids = Array.isArray(row.evidence_ids) ? row.evidence_ids.filter(Boolean) : [];
+      if (status === "supported") {
+        if (ids.length) bound += 1;
+        else unbound.push(String(row.text || "").slice(0, 60) || "（空文本主张）");
+      } else if (status === "unverified_hypothesis") {
+        hypotheses += 1;
+      }
+    });
+    factors.push({
+      factor: "claims",
+      value: {
+        total: claimRows.length,
+        supported_with_evidence_binding: bound,
+        unverified_hypothesis: hypotheses,
+        supported_without_evidence: unbound,
+      },
+      contribution: "全部 supported 才可能 E1；存在 unverified_hypothesis 只能 E2；supported 却无 evidence 绑定判 E3",
+      source: "rule_results[].ai_draft.claims 与 normal_explanations（展示层重建）",
+      derived: true,
+    });
+    factors.push({
+      factor: "data_gaps",
+      value: gapList,
+      contribution: "有未解决资料缺口即不得称已闭合；资料受限只压制闭合性，不影响优先级",
+      source: "rule_results[].ai_draft.data_gaps（展示层重建）",
+      derived: true,
+    });
+    factors.push({
+      factor: "requested_materials",
+      value: materialList,
+      contribution: "有待取得资料即不得称已闭合",
+      source: "rule_results[].ai_draft.requested_materials（展示层重建）",
+      derived: true,
+    });
+    return factors;
   }
 
   function deriveAttentionCard(run, overview) {
@@ -1150,6 +1723,10 @@
       : null;
     const materiality = contractField(run?.materiality_display?.assessment)
       || contractField(metrics.materiality_assessment);
+    // 契约 factors 优先；旧运行没有该字段时退回展示层重建依据，并单独打派生标记。
+    const backendEvidenceFactors = Array.isArray(run?.evidence_state?.factors) ? run.evidence_state.factors : [];
+    const derivedEvidenceFactors = backendEvidenceFactors.length || !evidenceState
+      ? [] : deriveEvidenceBasisFactors(run);
     return {
       signals,
       explanations,
@@ -1175,7 +1752,11 @@
         evidenceState,
         evidenceLabel: evidenceLabel || "未提供 · 后端 evidence_state 尚未挂载",
         evidenceReasons: Array.isArray(run?.evidence_state?.reasons) ? run.evidence_state.reasons : [],
-        materiality: materiality || "未评价金额重要性",
+        evidenceFactors: backendEvidenceFactors.length ? backendEvidenceFactors : derivedEvidenceFactors,
+        evidenceFactorsDerived: !backendEvidenceFactors.length && derivedEvidenceFactors.length > 0,
+        evidenceBoundary: contractField(run?.evidence_state?.boundary) || EVIDENCE_BOUNDARY,
+        materiality: materiality || "未提供 · 后端 materiality_display 尚未给出结论",
+        materialityProvided: Boolean(materiality),
         materialityMultiple: contractField(run?.materiality_display?.multiple),
       },
     };
@@ -1192,6 +1773,56 @@
     const list = document.createElement("ul");
     items.forEach((item) => list.append(render(item)));
     container.append(list);
+  }
+
+  // 判定依据展开区：中文名称、中文取值、含义、来源与后端原始值同级并列，
+  // 参与判定的因子与仅供参考的运行信息分组显示，避免暗示所有字段都会影响级别。
+  function attentionBasisDetails(label, groups, rawReasons) {
+    const details = document.createElement("details");
+    details.className = "demo-attention-basis";
+    const summary = document.createElement("summary");
+    const total = groups.reduce((sum, group) => sum + group.rows.length, 0);
+    summary.textContent = total
+      ? `查看${label}的判定依据（共 ${total} 项）`
+      : `查看${label}的判定依据`;
+    const body = document.createElement("div");
+    body.className = "demo-attention-basis-body";
+    groups.forEach((group) => {
+      if (!group.rows.length) return;
+      const heading = document.createElement("p");
+      heading.className = "demo-attention-basis-heading";
+      heading.textContent = group.heading;
+      const list = document.createElement("ul");
+      group.rows.forEach((row) => {
+        const item = document.createElement("li");
+        const name = document.createElement("strong");
+        name.textContent = row.name;
+        const value = document.createElement("span");
+        value.textContent = `取值：${row.displayValue}`;
+        const meaning = document.createElement("span");
+        meaning.textContent = row.meaning;
+        const source = document.createElement("small");
+        source.textContent = `来源：${row.source} · 原始值：${row.rawValue}`;
+        item.append(name, value, meaning, source);
+        list.append(item);
+      });
+      body.append(heading, list);
+    });
+    if (rawReasons.length) {
+      const heading = document.createElement("p");
+      heading.className = "demo-attention-basis-heading";
+      heading.textContent = "后端判定说明原文（技术表述，逐字保留）";
+      const list = document.createElement("ul");
+      rawReasons.forEach((text) => {
+        const item = document.createElement("li");
+        item.className = "demo-attention-basis-verbatim";
+        item.textContent = text;
+        list.append(item);
+      });
+      body.append(heading, list);
+    }
+    details.append(summary, body);
+    return details;
   }
 
   function renderAttentionCard(run, overview) {
@@ -1315,37 +1946,91 @@
 
     const badges = byId("demo-attention-badges");
     badges.replaceChildren();
-    const gradeFactorsCompact = data.badges.gradeFactors
-      .slice(0, 8)
-      .map((factor) => `${factor.factor}=${factor.value ?? "未提供"}`)
-      .join(" · ");
-    const gradeFactorMore = data.badges.gradeFactors.length > 8
-      ? `…共 ${data.badges.gradeFactors.length} 项判定因子，逐条依据见 JSON 导出`
-      : "";
-    const gradeDetail = data.badges.grade ? `${gradeFactorsCompact}${gradeFactorMore}` : "后端未给出判定因子";
-    const evidenceReasonDetail = data.badges.evidenceReasons.length
-      ? data.badges.evidenceReasons.join("；")
-      : "后端未给出闭合理由";
+    const priorityRows = priorityFactorRows(data.badges.gradeFactors);
+    const evidenceRows = evidenceFactorRows(data.badges.evidenceFactors);
+    const materialityRows = [
+      {
+        name: "金额重要性结论",
+        displayValue: data.badges.materialityProvided ? String(data.badges.materiality) : "未提供",
+        meaning: data.badges.materialityProvided
+          ? "该结论由确定性计算给出，独立成轴，不参与核查优先级分级"
+          : "后端未给出金额重要性结论；缺失本身不等于已评价，也不等于不重要",
+        source: "RunResponse.materiality_display.assessment",
+        rawValue: rawText(data.badges.materialityProvided ? data.badges.materiality : null),
+      },
+      {
+        name: "计划重要性倍数",
+        displayValue: data.badges.materialityMultiple === null
+          ? "未提供"
+          : `相对计划重要性 ${data.badges.materialityMultiple} 倍`,
+        meaning: data.badges.materialityMultiple === null
+          ? "后端未给出倍数；页面不只凭倍数缺失推断未评价的原因"
+          : "本次变动金额相对计划重要性水平的倍数，由确定性计算给出，不改变核查优先级",
+        source: "metrics.materiality_multiple",
+        rawValue: rawText(data.badges.materialityMultiple),
+      },
+    ];
     [
-      ["审计关注优先级", data.badges.gradeLabel, data.badges.grade ? "provided" : "missing", gradeDetail],
-      ["证据闭合状态", data.badges.evidenceLabel, data.badges.evidenceState ? "provided" : "missing", evidenceReasonDetail],
-      ["金额重要性", data.badges.materiality, data.badges.materialityMultiple ? "provided" : "partial", data.badges.materialityMultiple ? `重要性倍数 ${data.badges.materialityMultiple}` : "后端未给出倍数；重要性不折算进优先级"],
-    ].forEach(([label, value, state, detail]) => {
+      {
+        label: "审计关注优先级",
+        value: data.badges.gradeLabel,
+        state: data.badges.grade ? "provided" : "missing",
+        plain: explainPriority(data.badges.grade, data.badges.gradeFactors),
+        groups: [
+          { heading: "参与判定的因素", rows: priorityRows.filter((row) => row.participates) },
+          { heading: "仅供参考的运行信息（不参与级别计算）", rows: priorityRows.filter((row) => !row.participates) },
+        ],
+        reasons: [],
+      },
+      {
+        label: "证据闭合状态",
+        value: data.badges.evidenceLabel,
+        state: data.badges.evidenceState ? "provided" : "missing",
+        plain: explainEvidence(data.badges.evidenceState, data.badges.evidenceFactors),
+        groups: [
+          { heading: "参与判定的控制项", rows: evidenceRows.filter((row) => row.participates) },
+          { heading: "其余读数（未登记为判定控制项）", rows: evidenceRows.filter((row) => !row.participates) },
+        ],
+        reasons: data.badges.evidenceReasons,
+        note: data.badges.evidenceFactorsDerived
+          ? "判定依据由页面按本次运行已留痕的结构化控制项重建，属派生展示；原始运行记录与契约字段 factors 均未改写，契约字段仍记为未提供。"
+          : "",
+      },
+      {
+        label: "金额重要性",
+        value: data.badges.materiality,
+        state: data.badges.materialityProvided ? "provided" : "missing",
+        plain: explainMateriality(
+          data.badges.materialityProvided ? data.badges.materiality : null,
+          data.badges.materialityMultiple,
+        ),
+        groups: [{ heading: "独立轴的读数（不参与任何分级）", rows: materialityRows }],
+        reasons: [],
+      },
+    ].forEach((item) => {
       const chip = document.createElement("div");
       chip.className = "demo-attention-badge";
-      chip.dataset.state = state;
+      chip.dataset.state = item.state;
       const term = document.createElement("span");
-      term.textContent = label;
+      term.textContent = item.label;
       const strong = document.createElement("strong");
-      strong.textContent = value;
-      const small = document.createElement("small");
-      small.textContent = detail;
-      chip.append(term, strong, small);
+      strong.textContent = item.value;
+      const plain = document.createElement("p");
+      plain.className = "demo-attention-badge-plain";
+      plain.textContent = item.plain;
+      chip.append(term, strong, plain);
+      if (item.note) {
+        const provenance = document.createElement("p");
+        provenance.className = "demo-attention-badge-provenance";
+        provenance.textContent = item.note;
+        chip.append(provenance);
+      }
+      chip.append(attentionBasisDetails(item.label, item.groups, item.reasons));
       badges.append(chip);
     });
     const boundary = document.createElement("p");
     boundary.className = "demo-attention-boundary";
-    boundary.textContent = `${PRIORITY_BOUNDARY}${data.badges.evidenceState ? ` ${EVIDENCE_BOUNDARY}` : ""}`;
+    boundary.textContent = `${PRIORITY_BOUNDARY}${data.badges.evidenceState ? ` ${data.badges.evidenceBoundary}` : ""}`;
     badges.append(boundary);
     const stateNode = document.getElementById("demo-attention-state");
     if (stateNode) {
@@ -1653,6 +2338,7 @@
   }
 
   let printCollapsibleState = null;
+  let printBasisState = null;
 
   function expandCollapsiblesForPrint() {
     printCollapsibleState = COLLAPSIBLE_SECTIONS.map((section) => ({
@@ -1660,12 +2346,25 @@
       expanded: document.getElementById(section.buttonId)?.getAttribute("aria-expanded") === "true",
     }));
     COLLAPSIBLE_SECTIONS.forEach((section) => setCollapsible(section, true));
+    // ⑥ 区的判定依据默认折叠；打印件必须与屏幕上的中文说明同等完整，否则评委拿到的 PDF 少一层依据。
+    printBasisState = [...document.querySelectorAll(".demo-attention-basis")].map((details) => ({
+      details,
+      open: details.open,
+    }));
+    printBasisState.forEach(({ details }) => {
+      details.open = true;
+    });
   }
 
   function restoreCollapsiblesAfterPrint() {
     if (!printCollapsibleState) return;
     printCollapsibleState.forEach(({ section, expanded }) => setCollapsible(section, expanded));
     printCollapsibleState = null;
+    if (!printBasisState) return;
+    printBasisState.forEach(({ details, open }) => {
+      details.open = open;
+    });
+    printBasisState = null;
   }
 
   function renderInnovationControls(run) {
@@ -3224,6 +3923,18 @@
     await loadBootstrap();
     await restoreFixedTaskSession();
   }
+
+  // ⑥ 区中文解读层是纯函数：挂到 window 后，真实浏览器验收脚本可以直接喂留痕夹具复现说明，
+  // 不必为测试再引入第二份实现。只读不改状态。
+  window.AuditTraceReaderCopy = {
+    explainPriority,
+    explainEvidence,
+    explainMateriality,
+    priorityFactorRows,
+    evidenceFactorRows,
+    strengthClause,
+    sustainedClause,
+  };
 
   initialize();
 }());

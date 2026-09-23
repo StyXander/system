@@ -248,6 +248,9 @@ class EvidenceState(BaseModel):
     label: str | None = None
     reasons: list[str] | None = None
     boundary: str | None = None
+    # 与 PlanningPriority.factors 对称的只读依据：轨 B 本就已算好并返回，挂载前被模型丢弃，
+    # 导致呈现层只能 reprint 技术文本。加入的是已存在判定的读数透传，不新增任何计算。
+    factors: list[dict[str, Any]] | None = None
 
 
 class Disposition(BaseModel):

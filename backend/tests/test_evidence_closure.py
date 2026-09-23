@@ -296,6 +296,32 @@ def test_purity_same_input_same_output_and_no_mutation() -> None:
     assert json.dumps(claims, ensure_ascii=False, sort_keys=True) == before
 
 
+def test_factors_mount_onto_the_wire_without_changing_the_verdict() -> None:
+    """计划三：呈现层要能读到同源控制项，因此 EvidenceState 必须挂上轨 B 已算好的 factors。
+
+    这里锁的是两件事：挂载只搬运，state/label/reasons/boundary 必须逐字不变；
+    早于该字段的历史载荷缺 factors 时仍要按未提供通过校验，不得报错或补算。
+    """
+
+    from backend.app.main import _normalize_evidence_state_payload
+    from backend.app.schemas import EvidenceState
+
+    for state in ("E1", "E2", "E3"):
+        payload = _normalize_evidence_state_payload(_payload_for(state))
+        mounted = EvidenceState.model_validate(payload)
+        assert mounted.state == payload["state"]
+        assert mounted.label == payload["label"]
+        assert mounted.reasons == payload["reasons"]
+        assert mounted.boundary == payload["boundary"]
+        assert [row["factor"] for row in mounted.factors or []] == [row["factor"] for row in payload["factors"]]
+        assert mounted.model_dump(mode="json")["factors"] == payload["factors"]
+
+    legacy = EvidenceState.model_validate(
+        {"state": "E2", "label": "部分闭合", "reasons": ["历史留痕"], "boundary": "边界句"}
+    )
+    assert legacy.factors is None
+
+
 def _load_sealed_run(run_id: str) -> dict[str, Any]:
     """读取已封存的历史运行原件；本机没有 runtime 时跳过，不改写任何文件。"""
 

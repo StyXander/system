@@ -55,6 +55,33 @@ function extractObject(name) {
   return new Function(`return (${match[1]})`)();
 }
 
+function extractString(name) {
+  const match = source.match(new RegExp(`const ${name} = "([^"]+)";`));
+  if (!match) {
+    console.error(`无法从 demo-app.js 提取字符串常量 ${name}`);
+    process.exit(1);
+  }
+  return match[1];
+}
+
+function extractArray(name) {
+  const match = source.match(new RegExp(`const ${name} = (\\[[^\\]]*\\]);`));
+  if (!match) {
+    console.error(`无法从 demo-app.js 提取数组常量 ${name}`);
+    process.exit(1);
+  }
+  return new Function(`return (${match[1]})`)();
+}
+
+function extractSet(name) {
+  const match = source.match(new RegExp(`const ${name} = new Set\\(\\[([^\\]]*)\\]\\)`));
+  if (!match) {
+    console.error(`无法从 demo-app.js 提取集合常量 ${name}`);
+    process.exit(1);
+  }
+  return new Function(`return new Set([${match[1]}])`)();
+}
+
 const outcomeFromRun = extract("outcomeFromRun");
 const degradedReason = extract("degradedReason");
 const executionBadgeForRun = extract("executionBadgeForRun");
@@ -257,7 +284,7 @@ const gradeExpect = {
   P3: "P3 常规跟进",
   P4: "P4 维持常规程序",
   S: "S 暂缓判断",
-  G: "G 暂不分级（资料或口径受限）",
+  G: "G 暂不分级（资料/口径受限）",
 };
 Object.entries(gradeExpect).forEach(([key, label]) => {
   const ok = ATTENTION_GRADE_LABELS[key] === label;
@@ -329,12 +356,162 @@ w15_18Checks.forEach(([label, ok]) => {
   console.log(`${ok ? "PASS" : "FAIL"}  W15/W16/W18 文案合同  ${label}`);
 });
 
-// 命名红线：新增呈现层不得出现被禁止的评级话术。
+// ===== 任务三返工向量：缺失值不得被读成"已通过/无缺口"，旧运行须给出可读依据 =====
+const isUnprovided = extract("isUnprovided");
+const rawText = extract("rawText");
+const factorValue = extract("factorValue");
+const hasFactors = extract("hasFactors");
+const joinChinese = extract("joinChinese");
+const deriveEvidenceBasisFactors = extract("deriveEvidenceBasisFactors");
+const GATE_TEXT = extractObject("GATE_TEXT");
+const FACTOR_LABELS = extractObject("FACTOR_LABELS");
+const COMPLETENESS_TEXT = extractObject("COMPLETENESS_TEXT");
+const EVIDENCE_CONTROL_LABELS = extractObject("EVIDENCE_CONTROL_LABELS");
+const UNKNOWN_FACTOR_MEANING = extractString("UNKNOWN_FACTOR_MEANING");
+const EVIDENCE_REQUIRED_CONTROLS = extractArray("EVIDENCE_REQUIRED_CONTROLS");
+const EVIDENCE_DECISIVE_FACTORS = extractSet("EVIDENCE_DECISIVE_FACTORS");
+const PRIORITY_DECISIVE_FACTORS = extractSet("PRIORITY_DECISIVE_FACTORS");
+const factorProvided = extractWithDeps("factorProvided", { isUnprovided });
+const missingEvidenceControls = extractWithDeps("missingEvidenceControls", { EVIDENCE_REQUIRED_CONTROLS, factorProvided });
+const missingSuffix = extractWithDeps("missingSuffix", { EVIDENCE_CONTROL_LABELS });
+const explainEvidence = extractWithDeps("explainEvidence", {
+  hasFactors, factorProvided, factorValue, missingEvidenceControls, missingSuffix, joinChinese,
+});
+const translateEvidenceFactor = extractWithDeps("translateEvidenceFactor", { GATE_TEXT, isUnprovided, UNKNOWN_FACTOR_MEANING });
+const translatePriorityFactor = extractWithDeps("translatePriorityFactor", { COMPLETENESS_TEXT, isUnprovided, UNKNOWN_FACTOR_MEANING });
+const mapFactorRows = extractWithDeps("mapFactorRows", { FACTOR_LABELS, rawText });
+const evidenceFactorRows = extractWithDeps("evidenceFactorRows", { mapFactorRows, translateEvidenceFactor, EVIDENCE_DECISIVE_FACTORS });
+const priorityFactorRows = extractWithDeps("priorityFactorRows", { mapFactorRows, translatePriorityFactor, PRIORITY_DECISIVE_FACTORS });
+const EVIDENCE_BOUNDARY = extractString("EVIDENCE_BOUNDARY");
+
+// C2：null / 缺字段是"未记录"，空集合才是"真实为 0"，两者措辞与结论都必须不同。
+const partialE2 = explainEvidence("E2", [{ factor: "data_gaps", value: ["缺客户回款资料"] }]);
+const nullGapRow = evidenceFactorRows([{ factor: "data_gaps", value: null }])[0];
+const zeroGapRow = evidenceFactorRows([{ factor: "data_gaps", value: [] }])[0];
+const nullMaterialRow = evidenceFactorRows([{ factor: "requested_materials", value: null }])[0];
+const nullProxyRow = priorityFactorRows([{ factor: "blocked_row_proxy", value: null }])[0];
+const nullStatusRow = priorityFactorRows([{ factor: "rule_statuses", value: null }])[0];
+const claimsMissingRow = evidenceFactorRows([{ factor: "claims", value: {} }])[0];
+const claimsZeroRow = evidenceFactorRows([{ factor: "claims", value: { total: 0 } }])[0];
+const coveragePartialRow = evidenceFactorRows([{ factor: "coverage_matrix", value: { provided: true, rows: 5 } }])[0];
+const gateMissingRow = evidenceFactorRows([{ factor: "numeric_gate" }])[0];
+const e1Partial = explainEvidence("E1", [{ factor: "data_gaps", value: [] }]);
+const c2Checks = [
+  ["E2 缺闸门读数时不断言数字已通过", !partialE2.includes("数字校验已通过")],
+  ["E2 缺读数时点名未提供", partialE2.includes("未提供")],
+  ["E2 缺对应表时不写 0 项记录", !partialE2.includes("0 项记录包含当前企业")],
+  ["data_gaps=null 显示未提供", nullGapRow.displayValue === "未提供" && nullGapRow.meaning.includes("不能视为没有缺口")],
+  ["data_gaps=[] 才是真实 0 项", zeroGapRow.displayValue === "无" && zeroGapRow.meaning.includes("真实计数")],
+  ["requested_materials=null 显示未提供", nullMaterialRow.displayValue === "未提供"],
+  ["blocked_row_proxy=null 不得判成无受阻规则", nullProxyRow.displayValue === "未提供"],
+  ["rule_statuses=null 不得判成无选用规则", nullStatusRow.displayValue === "未提供"],
+  ["claims 缺 total 显示未提供", claimsMissingRow.displayValue === "未提供"],
+  ["claims total=0 为真实 0 条", claimsZeroRow.displayValue === "0 条主张"],
+  ["对应表缺直接证据行数显示未提供", coveragePartialRow.displayValue === "未提供"],
+  ["闸门无读数既不判通过也不判未通过", gateMissingRow.displayValue === "未提供" && gateMissingRow.meaning.includes("不能据此断言")],
+  ["E1 缺控制项时不断言主张均已绑定", !e1Partial.includes("均已绑定证据")],
+  ["证据边界句与签字 §7.3 逐字一致", EVIDENCE_BOUNDARY === "证据闭合状态只描述本次运行的数字闸门、证据适配度、认定覆盖与主张绑定等控制项是否齐备，不是审计认定，不构成审计结论或审计意见。"],
+];
+c2Checks.forEach(([label, ok]) => {
+  if (!ok) failed += 1;
+  console.log(`${ok ? "PASS" : "FAIL"}  C2 缺失值合同  ${label}`);
+});
+
+// C1：旧运行没有 evidence_state.factors，页面须从自身留痕重建依据，且不得改动原始对象。
+const oldRunFixture = {
+  context: {
+    numeric_claim_trace: { passed: true, unverified_count: 0, key_unverified: [], key_unverified_count: 0 },
+    evidence_fitness_violations: [],
+    assertion_evidence_procedure_matrix: [
+      { current_entity_direct_evidence: ["RAG-A" ] },
+      { current_entity_direct_evidence: ["RAG-B"] },
+      { current_entity_direct_evidence: ["RAG-C"] },
+      { current_entity_direct_evidence: ["RAG-D"] },
+      { current_entity_direct_evidence: [] },
+    ],
+  },
+  rule_results: [{
+    ai_draft: {
+      claims: [{ text: "程序事实：收入增速与应收增速背离。", support_status: "supported", evidence_ids: ["PROC-R1-2025"] }],
+      normal_explanations: [
+        { text: "解释甲", support_status: "unverified_hypothesis", evidence_ids: [] },
+        { text: "解释乙", support_status: "unverified_hypothesis", evidence_ids: [] },
+      ],
+      data_gaps: ["账龄结构", "期后回款", "信用政策变动", "主要客户合同结算条款"],
+      requested_materials: ["账龄明细表", "期后回款记录", "信用政策说明", "主要合同关键条款摘要"],
+    },
+  }],
+};
+const fixtureBefore = JSON.stringify(oldRunFixture);
+const derivedFactors = deriveEvidenceBasisFactors(oldRunFixture);
+const derivedE2 = explainEvidence("E2", derivedFactors);
+const c1Checks = [
+  ["派生依据覆盖 6 个控制项", derivedFactors.length === 6],
+  ["派生依据逐条标 derived", derivedFactors.every((item) => item.derived === true)],
+  ["派生依据读出 4 项含直接证据的记录", derivedE2.includes("4 项记录包含当前企业的直接证据")],
+  ["派生依据给出资料缺口条数", derivedE2.includes("4 项资料缺口")],
+  ["派生依据给出待索取资料条数", derivedE2.includes("4 项待索取资料")],
+  ["派生依据给出待验证解释条数", derivedE2.includes("2 条解释待验证")],
+  ["派生依据不改动原始运行对象", JSON.stringify(oldRunFixture) === fixtureBefore],
+  ["无因子时仍走未提供分支", explainEvidence("E2", []).includes("未随状态记录控制项读数值")],
+];
+c1Checks.forEach(([label, ok]) => {
+  if (!ok) failed += 1;
+  console.log(`${ok ? "PASS" : "FAIL"}  C1 派生展示依据  ${label}`);
+});
+
+// 真实旧运行交叉核对：本机留痕存在时按它验一次，不存在则显式记 SKIPPED，不混进通过数。
+let realRunChecks = 0;
+const realOldRunPath = join(root, "outputs", "w21-w23-live-verification-20260919", "run_1_RUN-V7-A923212497D0.json");
+if (existsSync(realOldRunPath)) {
+  const realRun = JSON.parse(readFileSync(realOldRunPath, "utf-8")).result;
+  const realFactors = deriveEvidenceBasisFactors(realRun);
+  const realE2 = explainEvidence(realRun.evidence_state?.state, realFactors);
+  const realChecks = [
+    ["真实旧运行 闸门读数为 passed", (factorValue(realFactors, "numeric_gate") || {}).state === "passed"],
+    ["真实旧运行 5 项含直接证据记录", realE2.includes("5 项记录包含当前企业的直接证据")],
+    ["真实旧运行 2 条待验证解释", realE2.includes("2 条解释待验证")],
+    ["真实旧运行 4 项资料缺口与 4 项待索取资料", realE2.includes("4 项资料缺口") && realE2.includes("4 项待索取资料")],
+    ["真实旧运行 不再出现「未随状态记录控制项读数值」", !realE2.includes("未随状态记录控制项读数值")],
+  ];
+  realChecks.forEach(([label, ok]) => {
+    if (!ok) failed += 1;
+    console.log(`${ok ? "PASS" : "FAIL"}  C1 真实旧运行  ${label}`);
+  });
+  realRunChecks = realChecks.length;
+} else {
+  skipped += 1;
+  console.log("SKIPPED  真实旧运行向量未执行：outputs/w21-w23-live-verification-20260919 不在本机。");
+}
+
+// 命名红线：呈现层不得出现被禁止的评级话术。简单字符串扫描会把"不构成无风险认定"这类
+// 保护性否定边界句误判成违规，反而逼着页面删掉更严格的措辞；改为语义判定：
+// 命中词只有在紧跟否定线索时才算合法，裸露使用一律违规。红线本身由自检兜底。
 const forbidden = ["无风险", "风险评级", "信用等级", "企业风险等级", "Arbiter"];
+const NEGATION_CUES = ["不构成", "不等于", "不代表", "不得", "并非", "没有", "不是", "不宣称", "未形成"];
+function unguardedHits(text, term) {
+  const hits = [];
+  let index = text.indexOf(term);
+  while (index !== -1) {
+    const before = text.slice(Math.max(0, index - 8), index);
+    if (!NEGATION_CUES.some((cue) => before.endsWith(cue))) hits.push(before + term);
+    index = text.indexOf(term, index + term.length);
+  }
+  return hits;
+}
 forbidden.forEach((term) => {
-  const hit = source.includes(term) || html.includes(term);
-  if (hit) failed += 1;
-  console.log(`${hit ? "FAIL" : "PASS"}  命名红线  未出现「${term}」`);
+  const hits = [...unguardedHits(source, term), ...unguardedHits(html, term)];
+  if (hits.length) failed += 1;
+  console.log(`${hits.length ? "FAIL" : "PASS"}  命名红线  无裸露「${term}」${hits.length ? ` → ${hits[0]}` : ""}`);
+});
+const redlineSelfChecks = [
+  ["红线自检 肯定式「该企业无风险」必须判违规", unguardedHits("该企业无风险", "无风险").length === 1],
+  ["红线自检 否定式「不构成无风险认定」必须放行", unguardedHits("也不构成无风险认定", "无风险").length === 0],
+  ["红线自检 肯定式「风险评级」必须判违规", unguardedHits("本系统给出风险评级", "风险评级").length === 1],
+];
+redlineSelfChecks.forEach(([label, ok]) => {
+  if (!ok) failed += 1;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${label}`);
 });
 
 // 真实产物向量：本机有就跑，没有就显式记 SKIPPED，不计入通过。
@@ -354,8 +531,10 @@ if (existsSync(realRunPath) && existsSync(summaryPath)) {
 
 const contractCount = w10Checks.length + badgeVectors.length + Object.keys(gradeExpect).length + 3
   + w13Checks.length + w14Checks.length + w15_18Checks.length + forbidden.length + gateChecks.length;
+// 本轮返工新增的合同数：真实旧运行向量只在留痕存在时才计数，不把"没跑"混进通过数。
+const reworkCount = c2Checks.length + c1Checks.length + redlineSelfChecks.length + realRunChecks;
 if (failed) {
   console.error(`${failed} vector(s) failed; ${skipped} group(s) skipped`);
   process.exit(1);
 }
-console.log(`判定与前端状态合同全部通过（${vectors.length + reasonVectors.length + copyAssertions.length + contractCount} 项；跳过 ${skipped} 组本机产物向量）`);
+console.log(`判定与前端状态合同全部通过（${vectors.length + reasonVectors.length + copyAssertions.length + contractCount + reworkCount} 项；跳过 ${skipped} 组本机产物向量）`);

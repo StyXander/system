@@ -292,6 +292,31 @@
           "sha256": "2c7a802127e61d087e045e97f00773c5467dd0405337b2d837fa38206209e818"
         }
       ]
+    },
+    {
+      "asset_name": "knowledge-evidence-neutral-v3",
+      "usage": "knowledge-base-illustration",
+      "source_file": "exec-12bf162b-9f91-4fd2-8204-d76656c9a8fb.png",
+      "source_sha256": "65f8b74687d52b1def21b134cdd63db89262d804b3fb2ac1f110bd0070ba57aa",
+      "source_dimensions": [
+        1448,
+        1086
+      ],
+      "source_bytes": 1688351,
+      "background": "#F5F6F7",
+      "generation": {
+        "mode": "built-in-imagegen",
+        "prompt_summary": "无字审计知识底座：白灰档案、纸张、银色放大镜，少量低饱和蓝色索引节点。轻俯视三分之四视角，完整主体，浅灰背景；禁盾牌、奖章、霓虹、文字、数字与标识。"
+      },
+      "outputs": [
+        {
+          "file": "knowledge-evidence-neutral-v3.webp",
+          "width": 1448,
+          "height": 1086,
+          "bytes": 73918,
+          "sha256": "65510c8f772222f21d40e92039a01ab3008eb308f754e86343aaf8b50d57ecd8"
+        }
+      ]
     }
   ]
 }
