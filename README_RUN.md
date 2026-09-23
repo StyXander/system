@@ -62,7 +62,7 @@ backend/.venv/bin/python -m uvicorn backend.app.main:app --host 127.0.0.1 --port
 
 1. **主链路一律本机演示**：录视频与现场演示都用 `启动审迹智链.bat` 启动的本机实例（Render 共享站只作备份通道）。免费 Web 实例可能休眠或被回收，任务运行中实例重启会如实结算 `interrupted`，页面不会自动重放模型调用。
 2. **启动后三条预检**：`GET /api/health`、`GET /api/status`、`GET /api/demo/bootstrap`。核对 `bootstrap_ready=true`、`model_readiness.full_analysis_ready` 与原因码、`task_continuity.availability=ready`、3 个精选案例 `rag.status=ready`、`model_quality` 窗口读数。任一不满足时页面会如实降级，先处理再演示。
-3. **每 IP 额度**：公开模型额度默认每访客每 15 分钟 2 次完整链、全局 10 次、并发 2（`render.yaml`）。彩排与正式演示共用同一出口 IP 会互相消耗；如需临时放宽，演示前在 Render 环境变量调整 `AUDITTRACE_MODEL_RUN_LIMIT`/`AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT`，演示结束后回滚为 `render.yaml` 登记值。
+3. **每 IP 额度**：`render.yaml` 现为评委试用放宽档（2026-09-23 按队长决定）：每来源每 15 分钟 100 次完整链、全局 500 次、并发 6、日 1000 次、日 4000 万输入 token；受控默认档为每来源 2 次、全局 10 次、并发 2、日 60 次与 140 万输入 token。彩排与正式演示共用同一出口 IP 会互相消耗；试用窗口结束后应通过 Render 同步把 `AUDITTRACE_MODEL_RUN_LIMIT`/`AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT`/`AUDITTRACE_MODEL_DAILY_*` 调回默认档。
 4. **缓存命中语义**：模型结果缓存 24 小时（`AUDITTRACE_MODEL_CACHE_SECONDS=86400`）。前一天预热过的案例当天再跑可能命中缓存，页面会如实显示“已复用经校验的 AI 结果”（degraded 展示语义，不计新的 provider 调用）。讲解词必须能接住这一状态，不得口头升级成“现场真实调用”。
 5. **失败预案（不现场改配置）**：任务失败或降级终态出现后，页面同时提供“重新演示”“一键重置演示”与“启动确定性备用演示”（2026-09-02 修复后在模型链失败/额度受限时可见）；备用链不调用外部模型、结果只保留在当前实例、标注“确定性备用 · 未调用外部模型”。供应商 401/402/区域限制按页面中文指引处理；额度用尽显示“等待上一条分析完成/今日额度”时改走备用或换案例，不反复点击。
 6. **Render 备份通道检查**：演示日提前至少 30 分钟访问共享站唤醒实例，实测一次冷启动等待并记录；确认 `/api/status.deployment.commit` 与本机演示所用代码版本一致。

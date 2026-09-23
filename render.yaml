@@ -30,20 +30,23 @@ services:
         value: "true"
       - key: AUDITTRACE_DEMO_USE_EXTERNAL_MODEL
         value: "true"
+      # 2026-09-23：评委公开试用窗口，按队长决定放宽演示上限。受控默认档为
+      # 每来源 2 / 全局 10 / 并发 2 / 日 60 次 / 日 140 万入 15 万出 token；
+      # 试用窗口结束后应调回该默认档，费用兜底始终是 DeepSeek 账户本身。
       - key: AUDITTRACE_MODEL_RUN_WINDOW_SECONDS
         value: "900"
       - key: AUDITTRACE_MODEL_RUN_LIMIT
-        value: "2"
+        value: "100"
       - key: AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT
-        value: "10"
+        value: "500"
       - key: AUDITTRACE_MODEL_MAX_CONCURRENT
-        value: "2"
+        value: "6"
       - key: AUDITTRACE_MODEL_DAILY_RUN_LIMIT
-        value: "60"
+        value: "1000"
       - key: AUDITTRACE_MODEL_DAILY_INPUT_TOKENS
-        value: "1400000"
+        value: "40000000"
       - key: AUDITTRACE_MODEL_DAILY_OUTPUT_TOKENS
-        value: "150000"
+        value: "4000000"
       - key: AUDITTRACE_MODEL_CACHE_SECONDS
         value: "86400"
       - key: DEEPSEEK_API_KEY
