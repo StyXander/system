@@ -87,6 +87,7 @@ import subprocess
 import threading
 import time
 import uuid
+from datetime import date
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
@@ -97,7 +98,9 @@ from urllib.parse import urlsplit
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile
+from . import company_discovery
+from .cninfo import CNInfoError, china_today, normalize_company_query
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -2909,7 +2912,14 @@ def _model_privacy_scan_payload(
     """扫描模型会收到的证据与分析上下文，排除纯服务端技术标识。"""
 
     payload = [
-        {key: value for key, value in row.items() if key != "evidence_id"}
+        {
+            key: value for key, value in row.items()
+            if key != "evidence_id" and not (
+                # 服务端随机检索编号偶尔包含11位数字，不能按手机号阻断年报分析。
+                # 只排除固定格式技术编号；其他编号文本与所有证据原文仍完整扫描。
+                key == "retrieval_id" and re.fullmatch(r"RET-(?:DEMO-)?[0-9A-F]{12}", str(value or ""))
+            )
+        }
         for row in compact_evidence_bundle(evidence_bundle)
     ]
     # 补充资料的结构化详情和说明可能参与本地重算或后续提示词扩展，
@@ -5337,6 +5347,79 @@ def _demo_bootstrap_rag_status(case_id: str) -> dict[str, Any]:
         return {"status": "unknown", "reason_code": "rag_status_read_failed"}
 
 
+def _discovery_failure(error: CNInfoError) -> HTTPException:
+    """只公开稳定错误码和提示，不向匿名访客泄露网络或本机细节。"""
+    code = error.code
+    status = 429 if code in {"DISCOVERY_RATE_LIMITED", "DISCOVERY_BUSY"} else (
+        404 if code == "COMPANY_NOT_FOUND" else 422 if code.startswith("COMPANY_") or code == "REPORT_YEAR_INVALID" else 503
+    )
+    return HTTPException(status_code=status, detail={"code": code, "message": error.message}, headers={"Retry-After": "60"} if status == 429 else None)
+
+
+@app.get("/api/companies/search")
+def search_public_companies(http_request: Request, q: str = Query(min_length=1, max_length=120)) -> dict[str, Any]:
+    """任何访客都可发现官方企业身份；不触发下载、解析或模型费用。"""
+    try:
+        company_discovery.enforce_discovery_quota(_client_identity(http_request))
+        return _with_ai_notice(company_discovery.search(WORKSPACE_ROOT, q))
+    except CNInfoError as error:
+        raise _discovery_failure(error) from error
+
+
+@app.get("/api/companies/{ticker}/reports")
+def search_public_reports(
+    ticker: str,
+    http_request: Request,
+    year: int = Query(ge=2000, le=2100),
+    source_cutoff_date: date | None = None,
+) -> dict[str, Any]:
+    """匿名查询单年度公告元数据；只接受官方身份，不接受任意URL。"""
+    cutoff = source_cutoff_date or china_today()
+    if cutoff > china_today():
+        raise HTTPException(status_code=422, detail={"code": "SOURCE_CUTOFF_INVALID", "message": "资料截止日不能晚于今天。"})
+    try:
+        company_discovery.enforce_discovery_quota(_client_identity(http_request))
+        return _with_ai_notice(company_discovery.annual_reports(WORKSPACE_ROOT, ticker, year, cutoff))
+    except CNInfoError as error:
+        raise _discovery_failure(error) from error
+
+
+@app.get("/api/demo/expanded-cases")
+def get_expanded_cases() -> dict[str, Any]:
+    """提供可体验扩展样例，与原十五案冻结清单分别展示。"""
+    cases = company_discovery.expanded_cases(WORKSPACE_ROOT)
+    return _with_ai_notice({"cases": cases, "case_count": len(cases), "professional_review": "pending"})
+
+
+@app.post("/api/demo/expanded-cases/{ticker}/preview")
+def preview_expanded_case(ticker: str, http_request: Request) -> dict[str, Any]:
+    """匿名同步预检只复用八案公开快照，不创建导入任务或调用模型。"""
+    if not _competition_demo_enabled():
+        raise HTTPException(status_code=403, detail="扩展体验仅在竞赛模式启用。")
+    item = next((case for case in company_discovery.expanded_cases(WORKSPACE_ROOT) if case["ticker"] == ticker), None)
+    if item is None:
+        raise HTTPException(status_code=404, detail="未找到登记的扩展体验案例。")
+    try:
+        company_discovery.enforce_discovery_quota(_client_identity(http_request))
+    except CNInfoError as error:
+        raise _discovery_failure(error) from error
+    seed = get_seed_case(WORKSPACE_ROOT, item["case_id"])
+    if seed is None:
+        raise HTTPException(status_code=503, detail="扩展案例快照暂时不可用。")
+    # 年度、规则和运行方式由登记快照固定；请求不能扩大到下载或付费链。
+    run = run_rules(RunRequest(case_id=item["case_id"], current_year=max(item["report_years"]), rule_ids=["R1"], run_mode="calculation_only"), http_request)
+    return _with_ai_notice({
+        "task_id": run.run_id, "status": "needs_human", "steps": {},
+        "request": {"analysis_mode": "rag_only", "company_query": ticker},
+        "persistence": {"backend": "synchronous_preview", "resume_supported": False},
+        "boundary": "已完成登记快照确定性预检；编号为真实运行编号。未创建持久化接入任务，未检索新公告，未调用模型，正式采用前需人工复核。",
+        "result": {"case_id": item["case_id"], "company": {"ticker": ticker, "company_name": item["company_name"]},
+            "report_years": item["report_years"], "documents": deepcopy(seed.get("documents") or []),
+            "rag": seed_rag_status(seed), "field_extraction": {"status": seed.get("financial_fields_status"), "row_count": len(seed.get("financial_fields") or []), "issues": deepcopy(seed.get("material_gaps") or [])},
+            "human_review_recommended": True, "analysis": run.model_dump(mode="json")},
+    })
+
+
 @app.get("/api/demo/bootstrap")
 def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
     """竞赛演示启动快照：15 案白名单、精选顺序、就绪状态一次返回。
@@ -5365,6 +5448,11 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
         _onsite_live_sample_enabled() and not _public_demo_enabled() and not supabase_enabled()
     )
     payload["capabilities"]["structured_exports"] = ["json", "table", "print_pdf"]
+    payload["capabilities"]["public_company_search"] = True
+    payload["capabilities"]["public_report_metadata"] = True
+    payload["capabilities"]["registered_sample_pipeline"] = bool(_competition_demo_enabled() and not supabase_enabled() and not _public_demo_enabled())
+    payload["capabilities"]["expanded_case_preview"] = bool(_competition_demo_enabled())
+    payload["expanded_cases"] = company_discovery.expanded_cases(WORKSPACE_ROOT)
     # 多源审计知识底座：只汇总来源台账的登记事实，不返回正文。
     knowledge_entries, _knowledge_failure = load_knowledge_manifest(
         WORKSPACE_ROOT / "backend" / "knowledge_sources.manifest.json"
@@ -6204,11 +6292,10 @@ def _execute_cninfo_batch(
 def _find_demo_seed_case(company_query: str) -> dict[str, Any] | None:
     """按股票代码或公司名定位比赛目录中的公开样例。"""
 
-    query = str(company_query or "").strip().lower()
+    query = normalize_company_query(company_query).lower()
     if not query:
         return None
     exact: list[dict[str, Any]] = []
-    partial: list[dict[str, Any]] = []
     for case in load_seed_cases(WORKSPACE_ROOT):
         values = {
             str(case.get("ticker") or "").strip().lower(),
@@ -6218,12 +6305,9 @@ def _find_demo_seed_case(company_query: str) -> dict[str, Any] | None:
         values.discard("")
         if query in values:
             exact.append(case)
-        elif any(query in value or value in query for value in values):
-            partial.append(case)
     if len(exact) == 1:
         return exact[0]
-    if len(partial) == 1:
-        return partial[0]
+    # 种子子集中的唯一片段不代表全市场唯一，模糊名称必须走官方候选确认。
     return None
 
 
@@ -6319,16 +6403,22 @@ def create_cninfo_pipeline(
 ) -> dict[str, Any]:
     """输入企业后创建巨潮年报、校验、RAG和可选完整分析任务。"""
 
+    seed_case = _find_demo_seed_case(request.company_query) if _competition_demo_enabled() else None
+    seed_compatible = bool(seed_case and not request.source_cutoff_date and not request.force_refresh and request.cache_policy != "force_refresh")
+    if seed_compatible:
+        seed_years = sorted({int(document["report_year"]) for document in seed_case.get("documents", []) if str(document.get("report_year") or "").isdigit()}, reverse=True)
+        # 快照只可复用其实际年度窗口，不能把2024样例冒充2025新公告。
+        seed_compatible = bool(seed_years and (request.latest_year is None or request.latest_year == max(seed_years)) and request.years == len(seed_years))
     if _competition_demo_enabled() and _public_demo_enabled() and not supabase_enabled():
         # 共享站只允许命中已冻结的公开种子；任意新企业会触发外网、PDF 解析和共享磁盘写入。
-        if _find_demo_seed_case(request.company_query) is None:
+        if not seed_compatible:
             _reject_shared_demo_mutation("抓取或导入非内置企业")
     # 公网下载、解析和建库会消耗网络、CPU 与存储，必须绑定真实任务所有者；私有本地行为不变。
     require_authenticated(http_request) if supabase_enabled() else optional_authenticated(http_request)
     # 比赛模式优先命中 50 家公开种子，现场不因网络、下载或 PDF 解析波动失去
     # 主链；不在种子中的新企业仍保留原有巨潮实时搜索路径。
     task = create_task(WORKSPACE_ROOT, request.model_dump(mode="json"))
-    if _competition_demo_enabled() and _find_demo_seed_case(request.company_query) is not None:
+    if seed_compatible:
         background_tasks.add_task(_execute_demo_seed_pipeline, task["task_id"], task["request"], http_request)
         return _with_ai_notice(
             {

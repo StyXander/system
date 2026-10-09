@@ -821,7 +821,7 @@ def run_ingestion(
         request = task["request"]
         requested_years = prepare_report_years(request.get("latest_year"), int(request.get("years", 3)))
         cache_policy = str(request.get("cache_policy") or ("force_refresh" if request.get("force_refresh") else "prefer_cache"))
-        if cache_policy != "force_refresh":
+        if cache_policy != "force_refresh" and not request.get("source_cutoff_date"):
             # 目录是加速索引而非来源真相。版本不匹配可回到实时官方流程；
             # 异常类型会保留在 task.cache，不能再伪装成一次正常缓存未命中。
             try:
@@ -885,6 +885,7 @@ def run_ingestion(
                 candidates_by_year[str(year)],
                 year,
                 query_status=query_status_by_year.get(str(year)),
+                **({"source_cutoff_date": request["source_cutoff_date"]} if request.get("source_cutoff_date") else {}),
             )
             for year in years
         ]

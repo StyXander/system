@@ -39,6 +39,7 @@
     complete_full_analysis_no_candidate: "完整分析完成，无程序候选",
     complete_public_prescreen: "公开预筛已完成",
     complete_public_prescreen_no_candidate: "公开预筛完成，无程序候选",
+    complete_public_prescreen_with_gaps: "公开预筛已完成（有资料缺口）",
     complete_demo_fallback: "演示降级结果已完成",
     incomplete_calculation_only: "不完整：仅计算预检",
     incomplete_model_chain_failed: "不完整：模型链未完成",
@@ -236,6 +237,9 @@
       pollTimer: null,
       pollToken: 0,
       submitting: false,
+      selectedCompany: null,
+      discoveryToken: 0,
+      reportToken: 0,
     },
   };
 
@@ -592,6 +596,11 @@
     liveCapability.className = `form-message ${liveEnabled ? "success" : "warning"}`;
     byId("demo-live-submit").disabled = !liveEnabled;
     byId("demo-live-submit").title = liveEnabled ? "创建真实巨潮现场任务" : "共享演示只读，请在团队本机现场模式使用";
+    liveCapability.textContent = liveEnabled
+      ? "企业搜索与公告查询已开放。新企业可在本机接入；资料准备与完整模型分析分别选择，缺口和失败如实保留。"
+      : "企业搜索与公告查询已开放。登记快照按站点权限体验；新企业下载、建库与分析需使用已授权本机或账户。";
+    renderExpandedCases(bootstrap.expanded_cases || []);
+    updateLiveSubmit();
   }
 
   function notifyModelQuality(snapshot) {
@@ -3594,7 +3603,7 @@
     const state = byId("demo-live-task-state");
     state.className = `state ${liveStatusKind(task.status)}`;
     state.textContent = statusLabel(task.status);
-    byId("demo-live-submit").disabled = liveTaskIsActive(task) || !Boolean(demoState.bootstrap?.capabilities?.onsite_live_sample);
+    updateLiveSubmit();
     const steps = byId("demo-live-steps");
     steps.replaceChildren();
     Object.entries(task.steps || {}).forEach(([name, step], index) => {
@@ -3606,7 +3615,7 @@
     const message = byId("demo-live-message");
     const error = task.error || {};
     const reviewDetail = task.status === "needs_human" && task.result
-      ? `自动处理已完成；${task.result.next_action?.label || "字段候选需要人工确认"}。这不是任务失败，正式采用前请回查年报页码与口径。`
+      ? task.persistence?.backend === "synchronous_preview" ? task.boundary : `${task.result.next_action?.requires_human_decision === false ? "本次技术链尚未完整" : "本次处理已到达终态"}；${task.result.next_action?.label || "字段候选需要人工确认"}。${task.request?.analysis_mode === "rag_only" ? "当前为资料准备与计算预检，未执行完整模型分析。" : "正式采用前请回查年报页码与口径。"}`
       : "";
     const completionDetail = task.status === "completed"
       ? "现场处理已完成；结构化结果可下载，正式采用前仍需人工复核原文、页码与口径。"
@@ -3636,8 +3645,19 @@
     const structuredRows = structuredMetricRows(analysis);
     const hasStructuredAnalysis = Boolean(analysis.run_id) && structuredRows.length > 0;
     const reportYears = [...new Set([...(result.report_years || []), ...(result.documents || []).map((item) => item.report_year).filter(Boolean)])].sort((a, b) => Number(b) - Number(a));
+    const preparationOnly = task.request?.analysis_mode === "rag_only";
+    const resultHeading = hasStructuredAnalysis ? "现场样例已形成可验证结构化结果" : preparationOnly && task.status === "completed" ? "资料准备已完成，未请求完整模型分析" : "正在准备资料与结构化结果";
+    const model = analysis.model_check || {};
+    const modelSummary = analysis.run_id ? `${statusLabel(model.status || "not_recorded")} · 本次 ${model.provider_call_count ?? "未提供"} 次调用${model.execution_mode ? ` · ${statusLabel(model.execution_mode)}` : ""}` : "未请求";
     container.hidden = false;
-    container.innerHTML = `<strong>${hasStructuredAnalysis ? "现场样例已形成可验证结构化结果" : "现场资料已就绪，分析主链仍在执行"}</strong><dl><div><dt>企业</dt><dd>${escapeHtml(company.company_name || "—")} · ${escapeHtml(company.ticker || "—")}</dd></div><div><dt>案例编号</dt><dd>${escapeHtml(result.case_id || task.case_id || "—")}</dd></div><div><dt>报告年度</dt><dd>${escapeHtml(reportYears.join(" / ") || "—")}</dd></div><div><dt>官方文档</dt><dd>${escapeHtml((result.documents || []).length)} 份</dd></div><div><dt>RAG</dt><dd>${escapeHtml(rag.status || "—")} · ${escapeHtml(rag.chunk_count ?? "—")} 块</dd></div><div><dt>字段提取</dt><dd>${escapeHtml(statusLabel(extraction.status || "—"))} · ${escapeHtml(extraction.row_count ?? "—")} 条</dd></div><div><dt>分析运行</dt><dd>${escapeHtml(analysis.run_id || "执行中")}</dd></div><div><dt>完整性</dt><dd>${escapeHtml(hasStructuredAnalysis ? statusLabel(analysis.run_completeness || "not_requested") : "等待分析终态")}</dd></div></dl><p>${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</p>`;
+    container.innerHTML = `<strong>${resultHeading}</strong><dl><div><dt>企业</dt><dd>${escapeHtml(company.company_name || "—")} · ${escapeHtml(company.ticker || "—")}</dd></div><div><dt>案例编号</dt><dd>${escapeHtml(result.case_id || task.case_id || "—")}</dd></div><div><dt>报告年度</dt><dd>${escapeHtml(reportYears.join(" / ") || "—")}</dd></div><div><dt>官方文档</dt><dd>${escapeHtml((result.documents || []).length)} 份</dd></div><div><dt>RAG</dt><dd>${escapeHtml(rag.status || "—")} · ${escapeHtml(rag.chunk_count ?? "—")} 块</dd></div><div><dt>字段提取</dt><dd>${escapeHtml(statusLabel(extraction.status || "not_requested"))} · ${escapeHtml(extraction.row_count ?? "—")} 条</dd></div><div><dt>分析运行</dt><dd>${escapeHtml(analysis.run_id || (preparationOnly ? "未请求" : "尚未形成运行"))}</dd></div><div><dt>完整性</dt><dd>${escapeHtml(hasStructuredAnalysis ? statusLabel(analysis.run_completeness || "not_requested") : preparationOnly ? "未请求完整模型分析" : "等待分析终态")}</dd></div></dl><p>${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</p>`;
+    const modelRow = document.createElement("div");
+    const modelLabel = document.createElement("dt");
+    modelLabel.textContent = "模型执行";
+    const modelValue = document.createElement("dd");
+    modelValue.textContent = modelSummary;
+    modelRow.append(modelLabel, modelValue);
+    container.querySelector("dl").append(modelRow);
     tableBody.replaceChildren();
     if (hasStructuredAnalysis) {
       structuredRows.forEach((row) => {
@@ -3681,21 +3701,34 @@
     const form = event.currentTarget;
     const companyQuery = form.elements.company_query.value.trim();
     if (!companyQuery) return;
+    if (!demoState.liveSample.selectedCompany) {
+      await searchCompanies();
+      byId("demo-company-search-status").textContent += " 请点击候选确认身份后再开始处理。";
+      return;
+    }
+    if (!liveAnalysisAllowed()) return;
     demoState.liveSample.submitting = true;
     byId("demo-live-submit").disabled = true;
     byId("demo-live-task").hidden = false;
     byId("demo-live-message").className = "status-banner neutral";
     byId("demo-live-message").innerHTML = "<strong>正在创建真实任务</strong><span>不会生成模拟进度。</span>";
     try {
+      if (publicExpandedPreview()) {
+        const response = await fetch(`${API_BASE}/api/demo/expanded-cases/${encodeURIComponent(demoState.liveSample.selectedCompany.ticker)}/preview`, { method: "POST", credentials: "include", signal: AbortSignal.timeout(45000) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(discoveryError(payload, response.status));
+        renderLiveTask(payload);
+        return;
+      }
       const latest = form.elements.latest_year.value.trim();
       const response = await fetch(`${API_BASE}/api/pipelines/cninfo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ company_query: companyQuery, years: Number(form.elements.years.value), latest_year: latest ? Number(latest) : null, analysis_mode: "full_analysis", rule_ids: ["R1"], force_refresh: false, cache_policy: "prefer_cache", planned_materiality: null }),
+        body: JSON.stringify({ company_query: demoState.liveSample.selectedCompany.ticker, years: Number(form.elements.years.value), latest_year: latest ? Number(latest) : null, source_cutoff_date: form.elements.source_cutoff_date.value || null, analysis_mode: form.elements.analysis_mode.value, rule_ids: ["R1"], force_refresh: false, cache_policy: "prefer_cache", planned_materiality: null }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+      if (!response.ok) throw new Error(discoveryError(payload, response.status));
       renderLiveTask(payload);
       demoState.liveSample.pollToken += 1;
       void pollLiveTask(payload.task_id, demoState.liveSample.pollToken);
@@ -3705,8 +3738,157 @@
       message.innerHTML = `<strong>现场样例任务未创建</strong><span>${escapeHtml(error.message)}。共享站只读时，请切换到团队本机现场模式。</span>`;
     } finally {
       demoState.liveSample.submitting = false;
-      const active = liveTaskIsActive(demoState.liveSample.task);
-      byId("demo-live-submit").disabled = active || !Boolean(demoState.bootstrap?.capabilities?.onsite_live_sample);
+      updateLiveSubmit();
+    }
+  }
+
+  function discoveryError(payload, status) {
+    const detail = payload?.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) return detail.map((item) => item.msg || "输入无效").join("；");
+    return detail?.message || payload?.message || `请求未完成（HTTP ${status}）`;
+  }
+
+  function liveAnalysisAllowed() {
+    const capability = demoState.bootstrap?.capabilities || {};
+    const selected = demoState.liveSample.selectedCompany;
+    return Boolean(selected && (publicExpandedPreview() || capability.onsite_live_sample || (
+      capability.registered_sample_pipeline && selected.seed_case_id && !byId("demo-live-cutoff").value
+    )));
+  }
+
+  function publicExpandedPreview() {
+    const capability = demoState.bootstrap?.capabilities || {};
+    const selected = demoState.liveSample.selectedCompany;
+    const item = (demoState.bootstrap?.expanded_cases || []).find((entry) => entry.ticker === selected?.ticker);
+    return Boolean(capability.expanded_case_preview && !capability.onsite_live_sample && !capability.registered_sample_pipeline && item
+      && byId("demo-live-mode").value === "rag_only" && !byId("demo-live-cutoff").value
+      && Number(byId("demo-live-years").value) === item.report_years.length
+      && Number(byId("demo-live-latest-year").value) === Math.max(...item.report_years));
+  }
+
+  function invalidateReportSearch() {
+    demoState.liveSample.reportToken += 1;
+    byId("demo-report-search").disabled = false;
+    byId("demo-report-results").replaceChildren();
+    byId("demo-report-status").textContent = "查询条件已更新，请重新查询所选年度和截止日的官方公告。";
+    updateLiveSubmit();
+  }
+
+  function updateLiveSubmit() {
+    byId("demo-live-submit").disabled = demoState.liveSample.submitting || liveTaskIsActive(demoState.liveSample.task) || !liveAnalysisAllowed();
+    byId("demo-live-submit").textContent = publicExpandedPreview() ? "运行登记快照预检（不调用模型）" : "开始处理";
+    byId("demo-live-submit").title = liveAnalysisAllowed() ? "按所选处理方式运行" : "请确认企业及年度；当前站点可能只允许登记快照预检";
+  }
+
+  function confirmDiscoveredCompany(company, registered = false) {
+    demoState.liveSample.discoveryToken += 1;
+    demoState.liveSample.selectedCompany = company;
+    invalidateReportSearch();
+    byId("demo-live-company").value = company.ticker;
+    byId("demo-report-discovery").hidden = false;
+    byId("demo-report-company").textContent = `${company.company_name} · ${company.ticker}`;
+    byId("demo-report-results").replaceChildren();
+    byId("demo-report-status").textContent = "点击查询所选年度的官方公告；仅查元数据，不下载或调用模型。";
+    byId("demo-company-search-status").textContent = `${registered ? "已选择登记公开快照" : "已确认官方目录身份"}：${company.company_name}（${company.ticker}）。${company.seed_case_id ? "可按权限体验登记快照；其年度与当前新公告可能不同。" : "新企业接入能力由站点权限决定。"}`;
+    document.querySelectorAll("#demo-company-candidates button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.ticker === company.ticker)));
+    updateLiveSubmit();
+  }
+
+  function renderExpandedCases(cases) {
+    const container = byId("demo-expanded-cases");
+    container.replaceChildren();
+    cases.forEach((item) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "button quiet";
+      button.textContent = `${item.company_name} · ${item.ticker} · ${item.document_count}份登记年报`;
+      button.addEventListener("click", () => {
+        const years = item.report_years || [];
+        if (years.length) {
+          byId("demo-live-latest-year").value = String(Math.max(...years));
+          byId("demo-live-years").value = String(years.length);
+        }
+        byId("demo-live-cutoff").value = "";
+        byId("demo-company-candidates").replaceChildren();
+        confirmDiscoveredCompany({ ...item, seed_case_id: item.case_id }, true);
+      });
+      container.append(button);
+    });
+  }
+
+  async function searchCompanies() {
+    const query = byId("demo-live-company").value.trim();
+    if (!query) {
+      byId("demo-company-search-status").textContent = "请输入企业名称或完整六位股票代码。";
+      byId("demo-live-company").focus();
+      return;
+    }
+    const token = ++demoState.liveSample.discoveryToken;
+    demoState.liveSample.selectedCompany = null;
+    updateLiveSubmit();
+    byId("demo-company-candidates").replaceChildren();
+    byId("demo-report-discovery").hidden = true;
+    byId("demo-company-search").disabled = true;
+    byId("demo-company-search-status").textContent = "正在查询巨潮官方企业目录…";
+    try {
+      const response = await fetch(`${API_BASE}/api/companies/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(15000) });
+      const payload = await response.json();
+      if (token !== demoState.liveSample.discoveryToken) return;
+      if (!response.ok) throw new Error(discoveryError(payload, response.status));
+      byId("demo-company-search-status").textContent = payload.match_count
+        ? `找到 ${payload.match_count} 个候选${payload.truncated ? "，仅显示前20个，请补全名称" : ""}，请点击确认。${payload.directory?.status === "stale_official_cache" ? "正在使用过期官方清单，来源当前不可用。" : ""}`
+        : `未找到匹配企业。请尝试股票代码或当前简称。${payload.boundary || ""}`;
+      (payload.candidates || []).forEach((company) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "button quiet";
+        button.dataset.ticker = company.ticker;
+        button.setAttribute("aria-pressed", "false");
+        button.textContent = `${company.company_name} · ${company.ticker} · ${{ sse: "沪市", szse: "深市", bjse: "北交所" }[company.market] || company.market}`;
+        button.addEventListener("click", () => confirmDiscoveredCompany(company));
+        byId("demo-company-candidates").append(button);
+      });
+    } catch (error) {
+      if (token === demoState.liveSample.discoveryToken) byId("demo-company-search-status").textContent = `企业查询未完成：${error.message}。可稍后重试；这不表示企业不存在。`;
+    } finally {
+      byId("demo-company-search").disabled = false;
+    }
+  }
+
+  async function searchCompanyReports() {
+    const company = demoState.liveSample.selectedCompany;
+    if (!company) return;
+    const identityToken = demoState.liveSample.discoveryToken;
+    const token = ++demoState.liveSample.reportToken;
+    const year = byId("demo-live-latest-year").value || String(new Date().getFullYear() - 1);
+    const cutoff = byId("demo-live-cutoff").value;
+    byId("demo-report-search").disabled = true;
+    byId("demo-report-results").replaceChildren();
+    byId("demo-report-status").textContent = `正在查询 ${year} 年报告公告…`;
+    try {
+      const parameters = new URLSearchParams({ year });
+      if (cutoff) parameters.set("source_cutoff_date", cutoff);
+      const response = await fetch(`${API_BASE}/api/companies/${encodeURIComponent(company.ticker)}/reports?${parameters}`, { signal: AbortSignal.timeout(30000) });
+      const payload = await response.json();
+      if (token !== demoState.liveSample.reportToken || identityToken !== demoState.liveSample.discoveryToken) return;
+      if (!response.ok) throw new Error(discoveryError(payload, response.status));
+      byId("demo-report-status").textContent = `${payload.selected ? "找到有效全文公告" : "截止日前未找到可用全文公告"}；资料截止日 ${payload.source_cutoff_date}。${payload.query_status?.truncated ? "分页达到上限，版本核验不完整。" : ""}${payload.boundary}`;
+      (payload.candidates || []).forEach((report) => {
+        const link = document.createElement("a");
+        // 来源即使来自后端，也只接受巨潮静态HTTPS原件，避免链接协议注入。
+        const url = new URL(report.source_url);
+        if (url.protocol !== "https:" || url.hostname !== "static.cninfo.com.cn") return;
+        link.href = url.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = `${report.announcement_title} · ${report.announcement_date}${report.announcement_id === payload.selected?.announcement_id ? " · 当前选定版本" : ""}`;
+        byId("demo-report-results").append(link);
+      });
+    } catch (error) {
+      if (token === demoState.liveSample.reportToken && identityToken === demoState.liveSample.discoveryToken) byId("demo-report-status").textContent = `官方公告查询未完成：${error.message}。尚未下载、建库或分析。`;
+    } finally {
+      if (token === demoState.liveSample.reportToken) byId("demo-report-search").disabled = false;
     }
   }
 
@@ -3887,6 +4069,22 @@
       byId("demo-live-sample-drawer").showModal();
     });
     byId("demo-live-sample-form").addEventListener("submit", (event) => { void startLiveSample(event); });
+    byId("demo-company-search").addEventListener("click", () => { void searchCompanies(); });
+    byId("demo-report-search").addEventListener("click", () => { void searchCompanyReports(); });
+    byId("demo-live-company").addEventListener("input", () => {
+      demoState.liveSample.discoveryToken += 1;
+      demoState.liveSample.selectedCompany = null;
+      invalidateReportSearch();
+      byId("demo-report-discovery").hidden = true;
+      byId("demo-company-candidates").replaceChildren();
+      updateLiveSubmit();
+    });
+    ["demo-live-cutoff", "demo-live-latest-year", "demo-live-years"].forEach((id) => byId(id).addEventListener("input", invalidateReportSearch));
+    byId("demo-live-cutoff").addEventListener("change", invalidateReportSearch);
+    byId("demo-live-mode").addEventListener("change", updateLiveSubmit);
+    byId("demo-live-sample-drawer").addEventListener("close", () => {
+      byId("demo-secondary-menu").querySelector("summary").focus();
+    });
     byId("demo-live-download-json").addEventListener("click", downloadLiveSampleJson);
     byId("demo-live-download-csv").addEventListener("click", downloadLiveSampleCsv);
     byId("demo-live-print-report").addEventListener("click", printLiveSampleReport);

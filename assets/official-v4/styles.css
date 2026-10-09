@@ -6691,3 +6691,12 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .demo-knowledge-base::before { animation: none !important; }
 }
+/* 企业身份与扩展案例沿用证据抽屉，窄屏单列并保持触控及焦点可见。 */
+.demo-discovery-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.demo-expanded-section summary { min-height: 44px; display: list-item; cursor: pointer; font-weight: 600; padding: 12px 0; }
+.demo-discovery-grid button { min-height: 44px; text-align: left; white-space: normal; overflow-wrap: anywhere; padding: 12px 16px; }
+.demo-discovery-grid button[aria-pressed="true"] { outline: 2px solid #2563eb; outline-offset: 2px; }
+.demo-discovery-grid button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+#demo-report-results { overflow-wrap: anywhere; }
+#demo-report-results a { display: block; padding: 12px 0; }
+@media (max-width: 640px) { .demo-discovery-grid { grid-template-columns: 1fr; } }

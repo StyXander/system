@@ -22,7 +22,7 @@ def _rows(count: int) -> list[dict[str, object]]:
     return [
         {
             "announcementId": f"DOC-{index}",
-            "announcementTitle": f"测试科技2024年年度报告{index}",
+            "announcementTitle": f"测试科技2024年年度报告（修订版{index}）",
             "announcementTime": 1745856000000 + index,
             "adjunctUrl": f"static/DISC_{index}.PDF",
             "adjunctType": "PDF",

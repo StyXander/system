@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
@@ -479,6 +479,7 @@ class CNInfoPipelineRequest(BaseModel):
     company_query: str = Field(min_length=1, max_length=120)
     years: int = Field(default=3, ge=2, le=5)
     latest_year: int | None = Field(default=None, ge=2000, le=2100)
+    source_cutoff_date: date | None = None
     # 新企业默认只下载、校验和建库；调用者必须显式选择 full_analysis。
     analysis_mode: PipelineAnalysisMode = "rag_only"
     # R1 是当前项目最稳定的演示规则，其他规则仍沿用已有字段校验。
@@ -490,7 +491,24 @@ class CNInfoPipelineRequest(BaseModel):
     @field_validator("company_query")
     @classmethod
     def normalize_company_query(cls, value: str) -> str:
-        return value.strip()
+        from .cninfo import CNInfoError, normalize_company_query
+
+        try:
+            normalized = normalize_company_query(value)
+        except CNInfoError as error:
+            raise ValueError(error.message) from error
+        if not normalized:
+            raise ValueError("企业名称或股票代码不能为空。")
+        return normalized
+
+    @field_validator("source_cutoff_date")
+    @classmethod
+    def cutoff_must_not_be_future(cls, value: date | None) -> date | None:
+        """资料时点只能选择已经发生的日期，防止未来公告进入当前任务。"""
+        from .cninfo import china_today
+        if value and value > china_today():
+            raise ValueError("资料截止日不能晚于今天。")
+        return value
 
     @field_validator("rule_ids")
     @classmethod

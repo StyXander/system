@@ -9,9 +9,9 @@
   <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.16">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.17">
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.10.26" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.10.28" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -127,7 +127,7 @@
         <summary>次级入口</summary>
         <div>
           <button class="button quiet" type="button" id="demo-open-tech-drawer" aria-label="打开技术说明">技术说明</button>
-          <button class="button quiet" type="button" id="demo-open-live-sample" aria-label="打开现场样例">现场样例</button>
+          <button class="button quiet" type="button" id="demo-open-live-sample" aria-label="打开企业搜索与现场样例">企业搜索 / 现场样例</button>
         </div>
       </details>
     </div>
@@ -530,20 +530,36 @@
 
   <dialog class="detail-drawer" id="demo-live-sample-drawer" aria-labelledby="demo-live-sample-title">
     <div class="dialog-head">
-      <div><span class="folio">ONSITE SAMPLE · CNINFO OFFICIAL</span><h2 id="demo-live-sample-title">评审现场样例接入</h2></div>
+      <div><span class="folio">COMPANY DISCOVERY · CNINFO OFFICIAL</span><h2 id="demo-live-sample-title">企业搜索与样例接入</h2></div>
       <button class="icon-button" type="button" aria-label="关闭现场样例接入" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭现场样例接入</span></button>
     </div>
     <div class="demo-drawer-body">
       <section class="demo-tech-section">
-        <h4>这不是手册强制的“企业搜索”，而是现场处理真实新样例的证明入口</h4>
-        <p>输入上市公司名称或股票代码，系统从巨潮官方来源确认企业、检索并校验年报、提取字段并建立案例隔离 RAG。共享站保持只读；团队本机现场模式才允许接入非内置企业。</p>
+        <h4>确认企业身份，回查官方年报，再开始分析</h4>
+        <p>所有访客均可查询巨潮沪深北企业目录和官方年报公告。模糊名称请先选择准确企业；下载、建库和模型分析按当前站点权限开放。非上市及境外企业可能不在查询范围内。</p>
       </section>
+      <details class="demo-tech-section demo-expanded-section">
+        <summary id="demo-expanded-toggle"><span id="demo-expanded-title">新增 8 个扩展体验案例</span></summary>
+        <p>来自已登记公开快照，专业复核待完成；原 15 案冻结清单保持独立。</p>
+        <div id="demo-expanded-cases" class="demo-discovery-grid"></div>
+      </details>
       <form class="demo-live-form" id="demo-live-sample-form">
         <label for="demo-live-company"><span>企业名称或股票代码</span><input id="demo-live-company" name="company_query" required maxlength="120" autocomplete="organization" placeholder="例如 000333 或 美的集团"></label>
         <label for="demo-live-years"><span>年报数量</span><select id="demo-live-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
         <label for="demo-live-latest-year"><span>最新报告年度（可留空）</span><input id="demo-live-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
+        <label for="demo-live-cutoff"><span>资料截止日（可留空）</span><input id="demo-live-cutoff" name="source_cutoff_date" type="date"><small>填写后重新查询来源，不复用登记快照。</small></label>
+        <label for="demo-live-mode"><span>处理方式</span><select id="demo-live-mode" name="analysis_mode"><option value="rag_only" selected>准备资料（不调用模型）</option><option value="full_analysis">完整分析（调用模型）</option></select></label>
+        <button class="button quiet" id="demo-company-search" type="button">搜索企业</button>
         <button class="button quiet" id="demo-live-submit" type="submit">开始现场样例分析</button>
       </form>
+      <p id="demo-company-search-status" class="form-message" role="status" aria-live="polite">输入名称、简称、拼音或六位代码，点击搜索后确认企业。</p>
+      <div id="demo-company-candidates" class="demo-discovery-grid" role="group" aria-label="企业候选"></div>
+      <section class="demo-tech-section" id="demo-report-discovery" hidden>
+        <h4 id="demo-report-company">官方年报公告</h4>
+        <button class="button quiet" id="demo-report-search" type="button">查询指定年度年报</button>
+        <p id="demo-report-status" class="form-message" role="status" aria-live="polite">企业已确认，点击查询官方公告；不会下载或调用模型。</p>
+        <div id="demo-report-results"></div>
+      </section>
       <p class="form-message" id="demo-live-capability" role="status" aria-live="polite">正在读取现场模式能力。</p>
       <section class="demo-live-task" id="demo-live-task" hidden aria-labelledby="demo-live-task-title">
         <div class="demo-section-heading"><div><span class="folio">LIVE PIPELINE TASK</span><h3 id="demo-live-task-title">实时处理进度</h3></div><span class="state pending" id="demo-live-task-state">等待提交</span></div>

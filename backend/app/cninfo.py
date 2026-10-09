@@ -33,12 +33,14 @@ PDF 下载完成后先核验文件头，再用解析器确认页数和可读取�
 from __future__ import annotations
 
 import hashlib
+import html
 import re
 import tempfile
 import time
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import httpx
@@ -50,6 +52,12 @@ from .secure_download import SecureDownloadError, download_bounded
 CNINFO_HOME = "https://www.cninfo.com.cn"
 CNINFO_STATIC = "https://static.cninfo.com.cn"
 ANNOUNCEMENT_QUERY_URL = f"{CNINFO_HOME}/new/hisAnnouncement/query"
+
+
+def china_today() -> date:
+    """公告日期采用北京时间，避免UTC部署在凌晨拒绝当天截止日。"""
+    return datetime.now(timezone(timedelta(hours=8))).date()
+
 # 主页接口负责发现公告，静态域名负责保存公告原件。
 # 两个域名都属于巨潮官方来源，其他跳转地址一律不接受。
 # 巨潮当前公告列表页对沪、深、北均加载统一的 szse_stock.json。
@@ -98,9 +106,49 @@ def _safe_text(value: Any) -> str:
 def _normalize_name(value: str) -> str:
     """名称比较忽略空格、括号和常见公司后缀差异，但不忽略股票代码。"""
 
-    text = _safe_text(value).lower()
+    text = _safe_text(unicodedata.normalize("NFKC", value)).lower()
     text = re.sub(r"[（）()\[\]【】·,，。\-—_\s]", "", text)
     return text
+
+
+def normalize_company_query(value: str) -> str:
+    """统一全角、空格及沪深北代码格式；不把短代码补零或猜测市场。"""
+
+    text = unicodedata.normalize("NFKC", str(value or "")).strip()
+    compact = re.sub(r"\s+", "", text).upper()
+    match = re.fullmatch(r"(?:(SH|SZ|BJ))?(\d{6})(?:\.(SH|SZ|BJ))?", compact)
+    if match:
+        prefix, code, suffix = match.groups()
+        market = {"sse": "SH", "szse": "SZ", "bjse": "BJ"}[_market_for_code(code)]
+        if any(tag and tag != market for tag in (prefix, suffix)):
+            raise CNInfoError("COMPANY_MARKET_MISMATCH", "股票代码与市场后缀不一致，请核对沪、深、北市场。")
+        return code
+    return text
+
+
+def match_companies(companies: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:
+    """优先精确代码、全名和简称；模糊候选留待调用方展示并由用户确认。"""
+
+    query = normalize_company_query(query)
+    if not query:
+        raise CNInfoError("COMPANY_QUERY_EMPTY", "企业名称或股票代码不能为空。")
+    if STOCK_CODE_PATTERN.fullmatch(query):
+        return [company for company in companies if company["ticker"] == query]
+    normalized = _normalize_name(query)
+    if len(normalized) < 2:
+        raise CNInfoError("COMPANY_QUERY_TOO_SHORT", "请至少输入两个字符，或输入完整六位股票代码。")
+    exact = [company for company in companies if normalized in {
+        _normalize_name(company.get("company_name") or ""),
+        _normalize_name(company.get("company_alias") or ""),
+    }]
+    if exact:
+        return exact
+    # 长全名去除法定后缀后可回到简称比较；保留地区和行业词，不伪造别名。
+    short = re.sub(r"(?:股份有限公司|有限责任公司|有限公司)$", "", normalized)
+    return [company for company in companies if any(
+        value and (short in value or (len(value) >= 2 and re.search(r"[\u4e00-\u9fff]", short) and value in short))
+        for value in (_normalize_name(company.get(key) or "") for key in ("company_name", "company_alias"))
+    ) or (bool(company.get("pinyin")) and short == _normalize_name(company["pinyin"]))]
 
 
 def _timestamp_date(value: int | float | str) -> str:
@@ -152,9 +200,9 @@ def _is_trusted_url(value: str, *, static_only: bool = False) -> bool:
 def _market_for_code(code: str) -> str:
     """根据股票代码选择巨潮公告栏目；未知市场不猜测，交给清单解析。"""
 
-    if code.startswith("6"):
+    if code.startswith(("6", "900")):
         return "sse"
-    if code.startswith(("4", "8")):
+    if code.startswith(("4", "8", "920")):
         return "bjse"
     return "szse"
 
@@ -229,7 +277,7 @@ def _company_from_row(row: dict[str, Any], market: str) -> dict[str, Any] | None
     code = _safe_text(row.get("code") or row.get("secCode"))
     name = _safe_text(row.get("zwjc") or row.get("secName") or row.get("name"))
     org_id = _safe_text(row.get("orgId") or row.get("orgID"))
-    if not code or not name or not org_id:
+    if not STOCK_CODE_PATTERN.fullmatch(code) or code[0] not in "034689" or not name or not org_id:
         return None
     # 巨潮目前给沪、深、北市场返回的是同一份统一股票清单。名称查询会先读取
     # szse_stock.json，不能把“从哪个循环读取”误当成证券所属市场；应以代码
@@ -400,39 +448,35 @@ class CNInfoClient:
     def resolve_company(self, company_query: str) -> dict[str, Any]:
         """用代码或名称解析唯一公司；名称多匹配时返回人工确认状态。"""
 
-        query = _safe_text(company_query)
+        query = normalize_company_query(company_query)
         if not query:
             raise CNInfoError("COMPANY_QUERY_EMPTY", "企业名称或股票代码不能为空。")
-        target_code = query if STOCK_CODE_PATTERN.fullmatch(query) else None
-        # 代码可以先按市场缩小范围，名称则需要遍历官方清单后再判定。
-        markets: Iterable[str] = (_market_for_code(target_code),) if target_code else ("szse", "sse", "bjse")
-        matches: list[dict[str, Any]] = []
-        seen: set[str] = set()
-        for market in markets:
-            list_url = STOCK_LIST_URLS[market]
-            response = self._request("GET", list_url, source="股票清单")
-            rows = _stock_rows(_response_json(response, source="股票清单"))
-            for raw in rows:
-                company = _company_from_row(raw, market)
-                if company is None or company["ticker"] in seen:
-                    continue
-                matched = company["ticker"] == target_code if target_code else (
-                    _normalize_name(query) in _normalize_name(company["company_name"])
-                    or _normalize_name(query) in _normalize_name(company["company_alias"])
-                )
-                if matched:
-                    matches.append(company)
-                    seen.add(company["ticker"])
+        matches = match_companies(self.stock_directory(), query)
         # 名称匹配可能产生多个候选，必须把选择权交给人工而不是猜测。
         if not matches:
             raise CNInfoError("COMPANY_NOT_FOUND", f"巨潮股票清单中未找到：{query}")
         if len(matches) > 1:
-            raise CNInfoError(
-                "COMPANY_AMBIGUOUS",
-                "企业名称对应多个巨潮公司候选，需要人工确认。",
-                detail={"candidates": matches},
-            )
+            raise CNInfoError("COMPANY_AMBIGUOUS", "企业名称对应多个巨潮公司候选，需要人工确认。", detail={"candidates": matches})
         return matches[0]
+
+    def stock_directory(self) -> list[dict[str, Any]]:
+        """同一官方清单只请求一次，避免名称查询对相同网址重复请求三次。"""
+
+        companies: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for list_url in dict.fromkeys(STOCK_LIST_URLS.values()):
+            response = self._request("GET", list_url, source="股票清单")
+            rows = _stock_rows(_response_json(response, source="股票清单"))
+            for raw in rows:
+                company = _company_from_row(raw, "szse")
+                if company is None or company["ticker"] in seen:
+                    continue
+                company["pinyin"] = _safe_text(raw.get("pinyin"))
+                companies.append(company)
+                seen.add(company["ticker"])
+        if not companies:
+            raise CNInfoError("CNINFO_DIRECTORY_EMPTY", "官方企业目录为空，无法确认企业身份。")
+        return companies
 
     def search_annual_reports(self, company: dict[str, Any], report_year: int) -> list[dict[str, Any]]:
         """查询一个报告年度的年度报告公告，只返回候选列表。"""
@@ -454,9 +498,10 @@ class CNInfoClient:
             "tabName": "fulltext",
             "plate": plate,
             "stock": f"{company['ticker']},{company['org_id']}",
-            "searchkey": "",
+            "searchkey": f"{report_year}年年度报告" if company["market"] == "bjse" else "",
             "secid": "",
-            "category": ANNUAL_CATEGORY,
+            # 沪深年报分类在北交所会过滤掉全部公告，北交所按年度标题查询再本地校验。
+            "category": "" if company["market"] == "bjse" else ANNUAL_CATEGORY,
             "trade": "",
             "seDate": f"{report_year + 1}-01-01~{report_year + 2}-12-31",
             "sortName": "",
@@ -503,12 +548,17 @@ class CNInfoClient:
     ) -> dict[str, Any] | None:
         """筛掉摘要、勘误公告和非 PDF 附件，只保留候选全文。"""
 
-        title = _safe_text(row.get("announcementTitle") or row.get("title"))
+        title = html.unescape(re.sub(r"<[^>]*>", "", _safe_text(row.get("announcementTitle") or row.get("title"))))
         inferred_year = _report_year_from_title(title)
+        if row.get("secCode") and _safe_text(row["secCode"]) != company["ticker"]:
+            return None
         adjunct_url = _safe_text(row.get("adjunctUrl") or row.get("adjunctURL"))
-        if not title or inferred_year != report_year or not adjunct_url:
+        if not title or inferred_year != report_year or not adjunct_url or not any(term in title for term in ("年度报告", "年报")):
             return None
         title_compact = re.sub(r"\s+", "", title)
+        # 标题检索也会返回“年报业绩说明会预告”，不能把这些附件当成年报全文。
+        if not re.search(r"(?:年度报告|年报)(?:全文)?(?:[（(][^（）()]*[）)])?$", title_compact):
+            return None
         excluded_terms = ("摘要", "英文版", "英文", "更正公告", "勘误公告", "提示性公告", "摘要版")
         if any(term in title_compact for term in excluded_terms):
             return None
@@ -543,6 +593,7 @@ class CNInfoClient:
         report_year: int,
         *,
         query_status: dict[str, Any] | None = None,
+        source_cutoff_date: str | None = None,
     ) -> dict[str, Any]:
         """选择最新有效全文；同日期以修订版优先，选择依据写入结果。"""
 
@@ -563,7 +614,9 @@ class CNInfoClient:
                 "ANNOUNCEMENT_DATE_INVALID",
                 f"{report_year} 年年度报告候选缺少可验证公告日期。",
             )
-        valid = dated
+        valid = [item for item in dated if not source_cutoff_date or item["announcement_date"] <= source_cutoff_date]
+        if not valid:
+            raise CNInfoError("ANNUAL_REPORT_AFTER_CUTOFF", f"{report_year} 年报告没有资料截止日前的有效全文。")
         valid.sort(
             key=lambda item: (
                 item.get("announcement_date") or "0000-00-00",
@@ -576,6 +629,9 @@ class CNInfoClient:
         # 同一年度可能同时存在摘要、正文和修订件，选择依据必须可解释并写入日志。
         chosen["selection_reason"] = "同年度候选按公告日期倒序选择；同日修订版优先。"
         chosen["candidate_count"] = len(valid)
+        if source_cutoff_date:
+            chosen["source_cutoff_date"] = source_cutoff_date
+            chosen["selection_reason"] += f"仅采用 {source_cutoff_date} 及以前的公告。"
         if query_status and query_status.get("truncated"):
             # 翻页触顶时无法证明已取得最新版本，必须在记录里显式说明。
             chosen["selection_reason"] += "候选列表已被分页上限截断，未完整核验最新版本。"
