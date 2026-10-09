@@ -3776,6 +3776,8 @@
   }
 
   function updateLiveSubmit() {
+    const capability = demoState.bootstrap?.capabilities || {};
+    byId("demo-live-mode").querySelector('[value="full_analysis"]').disabled = !capability.onsite_live_sample && !capability.registered_sample_pipeline;
     byId("demo-live-submit").disabled = demoState.liveSample.submitting || liveTaskIsActive(demoState.liveSample.task) || !liveAnalysisAllowed();
     byId("demo-live-submit").textContent = publicExpandedPreview() ? "运行登记快照预检（不调用模型）" : "开始处理";
     byId("demo-live-submit").title = liveAnalysisAllowed() ? "按所选处理方式运行" : "请确认企业及年度；当前站点可能只允许登记快照预检";
@@ -3810,6 +3812,7 @@
           byId("demo-live-years").value = String(years.length);
         }
         byId("demo-live-cutoff").value = "";
+        if (!demoState.bootstrap?.capabilities?.onsite_live_sample && !demoState.bootstrap?.capabilities?.registered_sample_pipeline) byId("demo-live-mode").value = "rag_only";
         byId("demo-company-candidates").replaceChildren();
         confirmDiscoveredCompany({ ...item, seed_case_id: item.case_id }, true);
       });
@@ -3837,7 +3840,7 @@
       if (token !== demoState.liveSample.discoveryToken) return;
       if (!response.ok) throw new Error(discoveryError(payload, response.status));
       byId("demo-company-search-status").textContent = payload.match_count
-        ? `找到 ${payload.match_count} 个候选${payload.truncated ? "，仅显示前20个，请补全名称" : ""}，请点击确认。${payload.directory?.status === "stale_official_cache" ? "正在使用过期官方清单，来源当前不可用。" : ""}`
+        ? `找到 ${payload.match_count} 个候选${payload.truncated ? "，仅显示前20个，请补全名称" : ""}，请点击确认。来源：巨潮官方目录；目录获取时间 ${payload.directory?.fetched_at || "未提供"}。${payload.directory?.status === "stale_official_cache" ? "正在使用过期官方清单，来源当前不可用。" : ""}`
         : `未找到匹配企业。请尝试股票代码或当前简称。${payload.boundary || ""}`;
       (payload.candidates || []).forEach((company) => {
         const button = document.createElement("button");
