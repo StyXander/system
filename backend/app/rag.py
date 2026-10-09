@@ -750,6 +750,10 @@ def _retrieve_candidates(
         ORDER BY id""",
         (case_id, company_name, t0),
     ).fetchall()
+    from .source_corrections import apply_public_corrections, source_document_date
+    # 每次召回核对当前原件日期；无需改写不可变的历史 SQLite 版本。
+    current_case = apply_public_corrections(workspace_root, get_case(workspace_root, case_id) or {})
+    rows = [row for row in rows if source_document_date(current_case, str(row["document_id"]), str(row["disclosure_date"])) <= t0]
     if not rows:
         return []
 
@@ -805,7 +809,7 @@ def _retrieve_candidates(
                 "anchor_score": round(anchor_score, 6),
                 "source_file": row["source_file"],
                 "source_sha256": row["source_sha256"],
-                "disclosure_date": row["disclosure_date"],
+                "disclosure_date": source_document_date(current_case, str(row["document_id"]), str(row["disclosure_date"])),
                 "report_year": row["report_year"],
                 "pdf_page": row["page"],
                 "print_page": page_metadata["print_page"],

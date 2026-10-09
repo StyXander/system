@@ -32,6 +32,8 @@ _request_windows: OrderedDict[str, deque[float]] = OrderedDict()
 _network_slots = threading.BoundedSemaphore(2)
 _report_lock = threading.Lock()
 _report_cache: OrderedDict[tuple[str, int, str], tuple[float, dict[str, Any]]] = OrderedDict()
+_report_failures: OrderedDict[tuple[str, int, str], tuple[float, str, str]] = OrderedDict()
+_report_inflight: set[tuple[str, int, str]] = set()
 
 
 def enforce_discovery_quota(identity: str) -> None:
@@ -62,6 +64,7 @@ def _client() -> CNInfoClient:
 def _fetch_directory() -> list[dict[str, Any]]:
     client = _client()
     try:
+        client.set_operation_deadline(12)
         return client.stock_directory()
     finally:
         client.client.close()
@@ -168,10 +171,21 @@ def annual_reports(root: Path, ticker: str, year: int, cutoff: date) -> dict[str
         cached = _report_cache.get(key)
         if cached and time.monotonic() - cached[0] < 600:
             return {**cached[1], "metadata_cache": "hit"}
-    if not _network_slots.acquire(blocking=False):
-        raise CNInfoError("DISCOVERY_BUSY", "官方公告查询繁忙，请稍后重试。")
-    client = _client()
+        failure = _report_failures.get(key)
+        if failure and time.monotonic() < failure[0]:
+            raise CNInfoError(failure[1], failure[2] + " 同条件失败查询短暂冷却，请20秒后再试。")
+        if key in _report_inflight:
+            raise CNInfoError("DISCOVERY_BUSY", "相同企业、年度和截止日的公告正在查询，请稍后重试。")
+        # 同条件并发不重复访问官方来源；失败也必须在finally释放标记。
+        _report_inflight.add(key)
+    client = None
+    acquired = False
     try:
+        acquired = _network_slots.acquire(blocking=False)
+        if not acquired:
+            raise CNInfoError("DISCOVERY_BUSY", "官方公告查询繁忙，请稍后重试。")
+        client = _client()
+        client.set_operation_deadline(18)
         candidates, query_status = client.search_annual_reports_detailed(matches[0], year)
         eligible = [item for item in candidates if item.get("announcement_date") and item["announcement_date"] <= cutoff.isoformat()]
         selected = None
@@ -179,16 +193,28 @@ def annual_reports(root: Path, ticker: str, year: int, cutoff: date) -> dict[str
             selected = client.select_annual_report(eligible, year, query_status=query_status, source_cutoff_date=cutoff.isoformat())
         # 原始公告体无需出现在公开接口；PDF 仅提供官方链接，不在此下载。
         public = lambda item: {key: value for key, value in item.items() if key != "raw"}
-        result = {"company": matches[0], "report_year": year, "source_cutoff_date": cutoff.isoformat(), "status": "available" if selected else "not_found_before_cutoff", "candidates": [public(item) for item in eligible], "selected": public(selected) if selected else None, "excluded_after_cutoff_or_undated": len(candidates) - len(eligible), "query_status": query_status, "directory": provenance, "fetched_at": datetime.now(timezone.utc).isoformat(), "metadata_cache": "miss", "boundary": "仅完成官方公告元数据查询；尚未下载或校验 PDF 正文，也未执行模型分析。"}
+        result = {"company": matches[0], "report_year": year, "source_cutoff_date": cutoff.isoformat(), "status": "available_partial" if selected and query_status.get("truncated") else "available" if selected else "query_incomplete" if query_status.get("truncated") else "not_found_before_cutoff", "candidates": [public(item) for item in eligible], "selected": public(selected) if selected else None, "excluded_after_cutoff_or_undated": len(candidates) - len(eligible), "query_status": query_status, "directory": provenance, "fetched_at": datetime.now(timezone.utc).isoformat(), "metadata_cache": "miss", "boundary": "仅完成官方公告元数据查询；尚未下载或校验 PDF 正文，也未执行模型分析。"}
         with _report_lock:
             _report_cache[key] = (time.monotonic(), result)
             _report_cache.move_to_end(key)
             while len(_report_cache) > 128:
                 _report_cache.popitem(last=False)
         return result
+    except CNInfoError as error:
+        if error.code != "DISCOVERY_BUSY":
+            with _report_lock:
+                _report_failures[key] = (time.monotonic() + 20, error.code, error.message)
+                _report_failures.move_to_end(key)
+                while len(_report_failures) > 128:
+                    _report_failures.popitem(last=False)
+        raise
     finally:
-        client.client.close()
-        _network_slots.release()
+        if client is not None:
+            client.client.close()
+        if acquired:
+            _network_slots.release()
+        with _report_lock:
+            _report_inflight.discard(key)
 
 
 def expanded_cases(root: Path) -> list[dict[str, Any]]:

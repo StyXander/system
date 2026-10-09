@@ -357,7 +357,7 @@ def sync_case_to_catalog(
     rows: Iterable[dict[str, Any]] | None = None,
     rag_manifest: dict[str, Any] | None = None,
     industry_gate: dict[str, Any] | None = None,
-    extractor_version: str = "field_extraction_v1",
+    extractor_version: str | None = None,
     rule_version: str = DEFAULT_RULE_VERSION,
     refresh_verified_at: bool = True,
 ) -> dict[str, Any]:
@@ -370,6 +370,10 @@ def sync_case_to_catalog(
         raise ValueError("缓存目录同步需要案例编号和证券代码。")
     documents = list(case.get("documents") or [])
     rows = list(rows or [])
+    if extractor_version is None:
+        # 启动补录旧字段不能替它们冒领新抽取器版本；只有实际新抽取行携带版本。
+        versions = {str(row.get("extractor_version") or "field_extraction_v1") for row in rows}
+        extractor_version = next(iter(versions)) if len(versions) == 1 else "field_extraction_v1"
     rag_manifest = rag_manifest or {}
     updated_at = _now()
     report_years = sorted({int(item["report_year"]) for item in documents}, reverse=True)

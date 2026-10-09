@@ -349,6 +349,22 @@ class CNInfoClient:
         self._retry_stop_reason = "not_needed"
         self._last_request_at = 0.0
         self.today = today or date.today()
+        self.operation_deadline: float | None = None
+
+    def set_operation_deadline(self, seconds: float) -> None:
+        """给目录或整次公告翻页设置共享期限，不能每翻一页重新计时。"""
+
+        self.operation_deadline = time.monotonic() + max(0.0, seconds)
+
+    def _remaining_operation_time(self) -> float | None:
+        """来源慢时停止后续翻页，失败不得改写为“没有年报”。"""
+
+        if self.operation_deadline is None:
+            return None
+        remaining = self.operation_deadline - time.monotonic()
+        if remaining <= 0:
+            raise CNInfoError("DISCOVERY_TIMEOUT", "官方查询达到时间上限，版本核验未完成，请稍后重试；这不表示企业或年报不存在。")
+        return remaining
 
     def close(self) -> None:
         """释放本客户端拥有的网络连接。"""
@@ -380,8 +396,15 @@ class CNInfoClient:
         last_error: Exception | None = None
         for attempt in range(self.max_retries + 1):
             try:
+                remaining = self._remaining_operation_time()
                 self._wait_before_request()
-                response = self.client.request(method, url, **kwargs)
+                request_kwargs = dict(kwargs)
+                if remaining is not None:
+                    # 四个网络阶段共用剩余预算，翻页与重试不重置整次查询期限。
+                    remaining = self._remaining_operation_time()
+                    request_kwargs["timeout"] = httpx.Timeout(min(4.0, remaining / 4), connect=min(3.0, remaining / 4))
+                response = self.client.request(method, url, **request_kwargs)
+                self._remaining_operation_time()
                 if response.status_code in ACCESS_DENIED_STATUS_CODES:
                     self._record_retry(attempt, response.status_code, 0.0, "access_denied")
                     self._retry_stop_reason = "access_denied"

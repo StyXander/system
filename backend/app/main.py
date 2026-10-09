@@ -1044,7 +1044,9 @@ def _merge_public_seed_material(case: dict[str, Any]) -> dict[str, Any]:
         if merged.get(key) in (None, "", []):
             merged[key] = deepcopy(seed.get(key))
     merged["seed_materialization"] = "verified_metadata_and_fields_no_pdf"
-    return merged
+    # 只将原字段与原件指纹一致的工程更正合入公开bundle；不覆盖租户真人overlay。
+    from .source_corrections import apply_public_corrections
+    return apply_public_corrections(WORKSPACE_ROOT, merged)
 
 
 def _identity_tenant(http_request: Request, *, required: bool = False) -> str | None:
@@ -1262,7 +1264,9 @@ def _case_record(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any
         # 登录租户读取公开案例时，adapter 已把该租户 field_review_overlays 合入
         # bundle；若此处换回本机 base，会悄悄丢掉真人修正。匿名公开读取才可整包回退。
         case = _merge_public_seed_material(case)
-        return (_confirmed_public_local_case(case_id, case) if not tenant_id else None) or case
+        resolved = (_confirmed_public_local_case(case_id, case) if not tenant_id else None) or case
+        # 本机加速副本也要带当前来源闸门，不能丢掉远端公开资料的日期冲突。
+        return _merge_public_seed_material(resolved) if is_public_case(resolved) else resolved
     except SupabaseError as error:
         # 同上：仅公开、已锁定的 CNINFO seed 可以降级；租户私有数据必须
         # 继续失败关闭，防止把跨租户数据当作公开案例返回。
@@ -1335,6 +1339,9 @@ def _materialized_financial_rows(
 ) -> list[dict[str, Any]] | None:
     """从与已解析案例同 scope 的目录读取字段；缺失时由调用者使用远端 bundle。"""
 
+    if case.get("engineering_snapshot"):
+        # 重新抽取或日期冲突的新快照不能被旧runtime字段悄悄遮蔽。
+        return None
     if supabase_enabled() and is_public_case(case) and str(tenant_id or "").strip():
         # 认证租户的公开字段可能包含私有 overlay；其权威结果只存在于远端 bundle。
         return None
@@ -1719,6 +1726,7 @@ def _remote_period_sources(
         "model_transfer_allowed": bool(case.get("model_transfer_allowed")),
         "source_snapshot_id": case.get("source_snapshot_id"),
         "source_review_status": case.get("source_review_status"),
+        "engineering_snapshot": deepcopy(case.get("engineering_snapshot")),
         "three_year_r1_ready": bool(case.get("three_year_r1_ready")),
         "requested_current_year": requested_current_year,
         "analysis_cutoff_year": current_year if sources else None,
@@ -1748,6 +1756,8 @@ def _remote_rag_retrieve(
 ) -> dict[str, Any]:
     """对活动 Postgres 快照做确定性词项召回，保持证据定位与无命中合同。"""
 
+    from .source_corrections import source_document_date
+
     questions_payload = question_set()
     question = next(
         (item for item in questions_payload.get("questions", []) if item.get("question_id") == question_id),
@@ -1774,7 +1784,8 @@ def _remote_rag_retrieve(
     candidates: list[dict[str, Any]] = []
     for row in rows:
         metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
-        disclosure_date = str(metadata.get("disclosure_date") or "")
+        # 活动索引可能来自修正前的公告日期，当前原件核验结果优先。
+        disclosure_date = source_document_date(case, str(row.get("document_id") or ""), str(metadata.get("disclosure_date") or ""))
         company_name = str(metadata.get("company_name") or case.get("company_name") or "")
         if disclosure_date and disclosure_date > t0:
             continue
@@ -5407,16 +5418,16 @@ def preview_expanded_case(ticker: str, http_request: Request) -> dict[str, Any]:
     if seed is None:
         raise HTTPException(status_code=503, detail="扩展案例快照暂时不可用。")
     # 年度、规则和运行方式由登记快照固定；请求不能扩大到下载或付费链。
-    run = run_rules(RunRequest(case_id=item["case_id"], current_year=max(item["report_years"]), rule_ids=["R1"], run_mode="calculation_only"), http_request)
+    run = _run_rules_impl(RunRequest(case_id=item["case_id"], current_year=max(item["report_years"]), rule_ids=["R1"], run_mode="calculation_only"), http_request, source_case_override=seed)
     return _with_ai_notice({
         "task_id": run.run_id, "status": "needs_human", "steps": {},
-        "request": {"analysis_mode": "rag_only", "company_query": ticker},
+        "request": {"analysis_mode": "snapshot_preview", "company_query": ticker},
         "persistence": {"backend": "synchronous_preview", "resume_supported": False},
         "boundary": "已完成登记快照确定性预检；编号为真实运行编号。未创建持久化接入任务，未检索新公告，未调用模型，正式采用前需人工复核。",
         "result": {"case_id": item["case_id"], "company": {"ticker": ticker, "company_name": item["company_name"]},
             "report_years": item["report_years"], "documents": deepcopy(seed.get("documents") or []),
             "rag": seed_rag_status(seed), "field_extraction": {"status": seed.get("financial_fields_status"), "row_count": len(seed.get("financial_fields") or []), "issues": deepcopy(seed.get("material_gaps") or [])},
-            "human_review_recommended": True, "analysis": run.model_dump(mode="json")},
+            "human_review_recommended": True, "engineering_snapshot": deepcopy(seed.get("engineering_snapshot")), "analysis": run.model_dump(mode="json")},
     })
 
 
@@ -6007,10 +6018,14 @@ def run_rules(request: RunRequest, http_request: Request) -> RunResponse:
     return _run_rules_impl(request, http_request)
 
 
-def _run_rules_impl(request: RunRequest, http_request: Request, *, progress_callback: Callable[[str, str, str], None] | None = None, agent_step_callback: Callable[[str, str, str], None] | None = None) -> RunResponse:
+def _run_rules_impl(request: RunRequest, http_request: Request, *, progress_callback: Callable[[str, str, str], None] | None = None, agent_step_callback: Callable[[str, str, str], None] | None = None, source_case_override: dict[str, Any] | None = None) -> RunResponse:
     _ensure_public_standard_sources(request.case_id)
     tenant_id = _identity_tenant(http_request)
-    case = _case_record(request.case_id, tenant_id=tenant_id)
+    # 同步扩展预检绑定服务端登记快照，不与旧本机字段或远端人改副本混算。
+    # 该参数不是HTTP输入；只接受同编号公开案例，正式入口继续使用授权scope。
+    if source_case_override is not None and (source_case_override.get("case_id") != request.case_id or not is_public_case(source_case_override)):
+        raise ValueError("工程预检只能绑定同编号公开快照。")
+    case = deepcopy(source_case_override) if source_case_override is not None else _case_record(request.case_id, tenant_id=tenant_id)
     if case is None:
         raise HTTPException(status_code=404, detail="案例未登记。")
     authorize_case_access(http_request, case)

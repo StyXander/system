@@ -1,0 +1,4222 @@
+{
+  "schema_version": "public_engineering_corrections_v1",
+  "revision_id": "SOURCE-CORRECTION-20261009-R3",
+  "extractor_version": "field_extraction_v2_statement_rows_20261009",
+  "source": "registered_pdf_reextraction",
+  "professional_review": "pending",
+  "frozen_seed_unchanged": true,
+  "frozen_t0_unchanged": true,
+  "entries": [
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2025",
+      "previous_row_sha256": "17af885b40a4a96e73335bbedabe03f0840ebd9b0be7e3eb34e7d1a562d4af10",
+      "document_sha256": "b2befc9da2a9e09c798702c351e6af65a4b148e32baa07737b941edc2caf1eba",
+      "replacement": {
+        "case_id": "CNINFO_000002_T0_20260331",
+        "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2025",
+        "field_id": "revenue_2025",
+        "field_kind": "revenue",
+        "year": 2025,
+        "value": 233432768960.43,
+        "candidate": {
+          "page": 155,
+          "raw_value": 233432768960.43,
+          "value": 233432768960.43,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 155 页：合并利润表 / 营业收入 / 2025年列",
+          "raw_excerpt": "其中：营业收入 233,432,768,960.43 343,176,440,712.96",
+          "adopted_line": "其中：营业收入 233,432,768,960.43 343,176,440,712.96",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            233432768960.43,
+            343176440712.96
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            76.94400024414062,
+            174.52098083496094,
+            553.3930053710938,
+            184.48397827148438
+          ],
+          "amount_bbox": [
+            386.95001220703125,
+            174.52098083496094,
+            458.9229736328125,
+            184.48397827148438
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+        "disclosure_date": "2026-03-31",
+        "announcement_title": "2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225067794.PDF",
+        "pdf_page": 155,
+        "print_page": null,
+        "locator": "PDF 第 155 页：合并利润表 / 营业收入 / 2025年列",
+        "file_sha256": "B2BEFC9DA2A9E09C798702C351E6AF65A4B148E32BAA07737B941EDC2CAF1EBA",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 233,432,768,960.43 343,176,440,712.96",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          233432768960.43,
+          343176440712.96
+        ],
+        "row_bbox": [
+          76.94400024414062,
+          174.52098083496094,
+          553.3930053710938,
+          184.48397827148438
+        ],
+        "amount_bbox": [
+          386.95001220703125,
+          174.52098083496094,
+          458.9229736328125,
+          184.48397827148438
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+      "previous_row_sha256": "3b8e40c19cab3878a8f2a6d09e47b109f5ca368fb2cf04e3ccef93bdd6aacaf1",
+      "document_sha256": "b2befc9da2a9e09c798702c351e6af65a4b148e32baa07737b941edc2caf1eba",
+      "replacement": {
+        "case_id": "CNINFO_000002_T0_20260331",
+        "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2025",
+        "field_id": "accounts_receivable_2025",
+        "field_kind": "accounts_receivable",
+        "year": 2025,
+        "value": 9519075011.05,
+        "candidate": {
+          "page": 152,
+          "raw_value": 9519075011.05,
+          "value": 9519075011.05,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 152 页：合并资产负债表 / 应收账款 / 2025年列",
+          "raw_excerpt": "应收账款 (五)3 9,519,075,011.05 8,110,758,258.05",
+          "adopted_line": "应收账款 (五)3 9,519,075,011.05 8,110,758,258.05",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            9519075011.05,
+            8110758258.05
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            56.52000045776367,
+            217.70565795898438,
+            553.609130859375,
+            228.73138427734375
+          ],
+          "amount_bbox": [
+            375.6700134277344,
+            217.70565795898438,
+            445.5794372558594,
+            228.73138427734375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+        "disclosure_date": "2026-03-31",
+        "announcement_title": "2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225067794.PDF",
+        "pdf_page": 152,
+        "print_page": null,
+        "locator": "PDF 第 152 页：合并资产负债表 / 应收账款 / 2025年列",
+        "file_sha256": "B2BEFC9DA2A9E09C798702C351E6AF65A4B148E32BAA07737B941EDC2CAF1EBA",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 (五)3 9,519,075,011.05 8,110,758,258.05",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "blocked_pending_human_confirmation",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          9519075011.05,
+          8110758258.05
+        ],
+        "row_bbox": [
+          56.52000045776367,
+          217.70565795898438,
+          553.609130859375,
+          228.73138427734375
+        ],
+        "amount_bbox": [
+          375.6700134277344,
+          217.70565795898438,
+          445.5794372558594,
+          228.73138427734375
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2024",
+      "previous_row_sha256": "1ae23d0af0faab98b5d08b41105209283de9d894bafd5774a75c83cbae8adc78",
+      "document_sha256": "734370d32036c1a18716e42f2e96c0f6ffd8a48c1fe115ecda945a09eb416ac0",
+      "replacement": {
+        "case_id": "CNINFO_000002_T0_20260331",
+        "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2024",
+        "field_id": "revenue_2024",
+        "field_kind": "revenue",
+        "year": 2024,
+        "value": 343176440712.96,
+        "candidate": {
+          "page": 11,
+          "raw_value": 343176440712.96,
+          "value": 343176440712.96,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 11 页：主要会计数据 / 营业收入 / 2024年列",
+          "raw_excerpt": "营业收入 343,176,440,712.96 465,739,076,702.23 -26.32% 503,838,367,358.76",
+          "adopted_line": "营业收入 343,176,440,712.96 465,739,076,702.23 -26.32% 503,838,367,358.76",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            343176440712.96,
+            465739076702.23,
+            503838367358.76
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            62.42399978637695,
+            131.80101013183594,
+            533.113037109375,
+            141.76400756835938
+          ],
+          "amount_bbox": [
+            195.77000427246094,
+            131.80101013183594,
+            267.7430114746094,
+            141.76400756835938
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-000002-2024-734370D32036",
+        "disclosure_date": "2025-03-31",
+        "announcement_title": "2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-01/1222974139.PDF",
+        "pdf_page": 11,
+        "print_page": null,
+        "locator": "PDF 第 11 页：主要会计数据 / 营业收入 / 2024年列",
+        "file_sha256": "734370D32036C1A18716E42F2E96C0F6FFD8A48C1FE115ECDA945A09EB416AC0",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入 343,176,440,712.96 465,739,076,702.23 -26.32% 503,838,367,358.76",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          343176440712.96,
+          465739076702.23,
+          503838367358.76
+        ],
+        "row_bbox": [
+          62.42399978637695,
+          131.80101013183594,
+          533.113037109375,
+          141.76400756835938
+        ],
+        "amount_bbox": [
+          195.77000427246094,
+          131.80101013183594,
+          267.7430114746094,
+          141.76400756835938
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024",
+      "previous_row_sha256": "e1c58acd5661b230caf7c95528f008c7bd0a2535f7f04d3291a7bd8024e7d93c",
+      "document_sha256": "734370d32036c1a18716e42f2e96c0f6ffd8a48c1fe115ecda945a09eb416ac0",
+      "replacement": {
+        "case_id": "CNINFO_000002_T0_20260331",
+        "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2024",
+        "field_id": "accounts_receivable_2024",
+        "field_kind": "accounts_receivable",
+        "year": 2024,
+        "value": 8110758258.05,
+        "candidate": {
+          "page": 151,
+          "raw_value": 8110758258.05,
+          "value": 8110758258.05,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 151 页：合并资产负债表 / 应收账款 / 2024年列",
+          "raw_excerpt": "应收账款 4 8,110,758,258.05 7,293,628,386.69",
+          "adopted_line": "应收账款 4 8,110,758,258.05 7,293,628,386.69",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            8110758258.05,
+            7293628386.69
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            86.78399658203125,
+            225.63363647460938,
+            533.0101928710938,
+            236.174072265625
+          ],
+          "amount_bbox": [
+            367.3900146484375,
+            226.50376892089844,
+            429.1853942871094,
+            235.46836853027344
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-000002-2024-734370D32036",
+        "disclosure_date": "2025-03-31",
+        "announcement_title": "2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-01/1222974139.PDF",
+        "pdf_page": 151,
+        "print_page": null,
+        "locator": "PDF 第 151 页：合并资产负债表 / 应收账款 / 2024年列",
+        "file_sha256": "734370D32036C1A18716E42F2E96C0F6FFD8A48C1FE115ECDA945A09EB416AC0",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 4 8,110,758,258.05 7,293,628,386.69",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "blocked_pending_human_confirmation",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          8110758258.05,
+          7293628386.69
+        ],
+        "row_bbox": [
+          86.78399658203125,
+          225.63363647460938,
+          533.0101928710938,
+          236.174072265625
+        ],
+        "amount_bbox": [
+          367.3900146484375,
+          226.50376892089844,
+          429.1853942871094,
+          235.46836853027344
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2023",
+      "previous_row_sha256": "e44408241657f6a3c2977fd271e32bfd94fb0a79c012e417d61f97604becfb9a",
+      "document_sha256": "511a089558610e86605841f39b98f67993bd444c1e23018a204e704706882d0d",
+      "replacement": {
+        "case_id": "CNINFO_000002_T0_20260331",
+        "evidence_id": "CNINFO_000002_T0_20260331_REVENUE_2023",
+        "field_id": "revenue_2023",
+        "field_kind": "revenue",
+        "year": 2023,
+        "value": 465739076702.23,
+        "candidate": {
+          "page": 10,
+          "raw_value": 465739076702.23,
+          "value": 465739076702.23,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 10 页：主要会计数据 / 营业收入 / 2023年列",
+          "raw_excerpt": "营业收入 465,739,076,702.23 503,838,367,358.76 503,838,367,358.76 -7.56%",
+          "adopted_line": "营业收入 465,739,076,702.23 503,838,367,358.76 503,838,367,358.76 -7.56%",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            465739076702.23,
+            503838367358.76
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            37.91999816894531,
+            539.6110229492188,
+            557.530029296875,
+            549.573974609375
+          ],
+          "amount_bbox": [
+            199.25,
+            539.6110229492188,
+            271.2229919433594,
+            549.573974609375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-000002-2023-511A08955861",
+        "disclosure_date": "2024-03-28",
+        "announcement_title": "2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219487237.PDF",
+        "pdf_page": 10,
+        "print_page": null,
+        "locator": "PDF 第 10 页：主要会计数据 / 营业收入 / 2023年列",
+        "file_sha256": "511A089558610E86605841F39B98F67993BD444C1E23018A204E704706882D0D",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入 465,739,076,702.23 503,838,367,358.76 503,838,367,358.76 -7.56%",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          465739076702.23,
+          503838367358.76
+        ],
+        "row_bbox": [
+          37.91999816894531,
+          539.6110229492188,
+          557.530029296875,
+          549.573974609375
+        ],
+        "amount_bbox": [
+          199.25,
+          539.6110229492188,
+          271.2229919433594,
+          549.573974609375
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2023",
+      "previous_row_sha256": "a3e3a0659246b7f7a22eab5ac5b0e79cc4356873b91917b7b8efdd18b5728240",
+      "document_sha256": "511a089558610e86605841f39b98f67993bd444c1e23018a204e704706882d0d",
+      "replacement": {
+        "case_id": "CNINFO_000002_T0_20260331",
+        "evidence_id": "CNINFO_000002_T0_20260331_ACCOUNTS_RECEIVABLE_2023",
+        "field_id": "accounts_receivable_2023",
+        "field_kind": "accounts_receivable",
+        "year": 2023,
+        "value": 7293628386.69,
+        "candidate": {
+          "page": 138,
+          "raw_value": 7293628386.69,
+          "value": 7293628386.69,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 138 页：合并资产负债表 / 应收账款 / 2023年列",
+          "raw_excerpt": "应收账款 4 7,293,628,386.69 7,504,692,133.25",
+          "adopted_line": "应收账款 4 7,293,628,386.69 7,504,692,133.25",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            7293628386.69,
+            7504692133.25
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            86.78399658203125,
+            225.66366577148438,
+            533.0101928710938,
+            236.2041015625
+          ],
+          "amount_bbox": [
+            366.6700134277344,
+            226.53379821777344,
+            429.0603332519531,
+            235.49839782714844
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-000002-2023-511A08955861",
+        "disclosure_date": "2024-03-28",
+        "announcement_title": "2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219487237.PDF",
+        "pdf_page": 138,
+        "print_page": null,
+        "locator": "PDF 第 138 页：合并资产负债表 / 应收账款 / 2023年列",
+        "file_sha256": "511A089558610E86605841F39B98F67993BD444C1E23018A204E704706882D0D",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 4 7,293,628,386.69 7,504,692,133.25",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "blocked_pending_human_confirmation",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          7293628386.69,
+          7504692133.25
+        ],
+        "row_bbox": [
+          86.78399658203125,
+          225.66366577148438,
+          533.0101928710938,
+          236.2041015625
+        ],
+        "amount_bbox": [
+          366.6700134277344,
+          226.53379821777344,
+          429.0603332519531,
+          235.49839782714844
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2025",
+      "previous_row_sha256": "2223ed9fb740177e4e514c527926365b6a7eea51badcda3c0570a1e44c7bc7ce",
+      "document_sha256": "be7c5a9a87af23f0f08405942c4159aac7be9dbb72c6979da56b81e69f588815",
+      "replacement": {
+        "case_id": "CNINFO_601668_T0_20260417",
+        "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2025",
+        "field_id": "revenue_2025",
+        "field_kind": "revenue",
+        "year": 2025,
+        "value": 2082141811000.0,
+        "candidate": {
+          "page": 13,
+          "raw_value": 2082141811.0,
+          "value": 2082141811000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 13 页：主要会计数据 / 营业收入 / 2025年列",
+          "raw_excerpt": "营业收入 2,082,141,811 2,187,334,286 2,187,147,839 -4.8 2,265,529,244",
+          "adopted_line": "营业收入 2,082,141,811 2,187,334,286 2,187,147,839 -4.8 2,265,529,244",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            2082141811.0,
+            2187147839.0,
+            2265529244.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            76.52438354492188,
+            267.4810791015625,
+            532.9163818359375,
+            290.3450622558594
+          ],
+          "amount_bbox": [
+            229.63638305664062,
+            274.153076171875,
+            283.4763488769531,
+            283.6970520019531
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+        "disclosure_date": "2026-04-17",
+        "announcement_title": "中国建筑股份有限公司2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123321.PDF",
+        "pdf_page": 13,
+        "print_page": null,
+        "locator": "PDF 第 13 页：主要会计数据 / 营业收入 / 2025年列",
+        "file_sha256": "BE7C5A9A87AF23F0F08405942C4159AAC7BE9DBB72C6979DA56B81E69F588815",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入 2,082,141,811 2,187,334,286 2,187,147,839 -4.8 2,265,529,244",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          2082141811.0,
+          2187147839.0,
+          2265529244.0
+        ],
+        "row_bbox": [
+          76.52438354492188,
+          267.4810791015625,
+          532.9163818359375,
+          290.3450622558594
+        ],
+        "amount_bbox": [
+          229.63638305664062,
+          274.153076171875,
+          283.4763488769531,
+          283.6970520019531
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2025",
+      "previous_row_sha256": "ad97d64bd56c8418a2ba59e23d48273014ede597bd1cef6eebfed7ca3679224a",
+      "document_sha256": "be7c5a9a87af23f0f08405942c4159aac7be9dbb72c6979da56b81e69f588815",
+      "replacement": {
+        "case_id": "CNINFO_601668_T0_20260417",
+        "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2025",
+        "field_id": "accounts_receivable_2025",
+        "field_kind": "accounts_receivable",
+        "year": 2025,
+        "value": 415558761000.0,
+        "candidate": {
+          "page": 53,
+          "raw_value": 415558761.0,
+          "value": 415558761000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 53 页：资产及负债状况 / 应收账款 / 2025年列",
+          "raw_excerpt": "应收账款 415,558,761 11.67 317,144,080 9.94 31.03 应收账款本年增加984亿元，主要是回款放缓所致。",
+          "adopted_line": "应收账款 415,558,761 11.67 317,144,080 9.94 31.03 应收账款本年增加984亿元，主要是回款放缓所致。",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            415558761.0,
+            317144080.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "资产及负债状况"
+          ],
+          "statement_title": "资产及负债状况",
+          "coordinate_orientation": "clockwise_90",
+          "row_bbox": [
+            77.228759765625,
+            279.26068115234375,
+            654.8527221679688,
+            302.1246643066406
+          ],
+          "amount_bbox": [
+            137.564697265625,
+            285.93267822265625,
+            184.28466796875,
+            295.4766540527344
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+        "disclosure_date": "2026-04-17",
+        "announcement_title": "中国建筑股份有限公司2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123321.PDF",
+        "pdf_page": 53,
+        "print_page": null,
+        "locator": "PDF 第 53 页：资产及负债状况 / 应收账款 / 2025年列",
+        "file_sha256": "BE7C5A9A87AF23F0F08405942C4159AAC7BE9DBB72C6979DA56B81E69F588815",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 415,558,761 11.67 317,144,080 9.94 31.03 应收账款本年增加984亿元，主要是回款放缓所致。",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "blocked_pending_human_confirmation",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          415558761.0,
+          317144080.0
+        ],
+        "row_bbox": [
+          77.228759765625,
+          279.26068115234375,
+          654.8527221679688,
+          302.1246643066406
+        ],
+        "amount_bbox": [
+          137.564697265625,
+          285.93267822265625,
+          184.28466796875,
+          295.4766540527344
+        ],
+        "statement_title": "资产及负债状况"
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2024",
+      "previous_row_sha256": "085236c02dcd5673db341d095daf7c446dc429857dd772469421798613548587",
+      "document_sha256": "fb6f713453da7dc53c12cb53653ceef590e5cf503d721faf16d9d9b3cdaf090d",
+      "replacement": {
+        "case_id": "CNINFO_601668_T0_20260417",
+        "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2024",
+        "field_id": "revenue_2024",
+        "field_kind": "revenue",
+        "year": 2024,
+        "value": 2187147839000.0,
+        "candidate": {
+          "page": 13,
+          "raw_value": 2187147839.0,
+          "value": 2187147839000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 13 页：主要会计数据 / 营业收入 / 2024年列",
+          "raw_excerpt": "营业收入 2,187,147,839 2,265,529,244 -3.5 2,055,052,070",
+          "adopted_line": "营业收入 2,187,147,839 2,265,529,244 -3.5 2,055,052,070",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            2187147839.0,
+            2265529244.0,
+            2055052070.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            76.52154541015625,
+            282.39471435546875,
+            532.9135131835938,
+            305.25872802734375
+          ],
+          "amount_bbox": [
+            291.9935302734375,
+            289.0667419433594,
+            345.83349609375,
+            298.6107177734375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-601668-2024-FB6F713453DA",
+        "disclosure_date": "2025-04-15",
+        "announcement_title": "中国建筑股份有限公司2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-16/1223102350.PDF",
+        "pdf_page": 13,
+        "print_page": null,
+        "locator": "PDF 第 13 页：主要会计数据 / 营业收入 / 2024年列",
+        "file_sha256": "FB6F713453DA7DC53C12CB53653CEEF590E5CF503D721FAF16D9D9B3CDAF090D",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入 2,187,147,839 2,265,529,244 -3.5 2,055,052,070",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          2187147839.0,
+          2265529244.0,
+          2055052070.0
+        ],
+        "row_bbox": [
+          76.52154541015625,
+          282.39471435546875,
+          532.9135131835938,
+          305.25872802734375
+        ],
+        "amount_bbox": [
+          291.9935302734375,
+          289.0667419433594,
+          345.83349609375,
+          298.6107177734375
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2024",
+      "previous_row_sha256": "e2bb64854cb543b24fb7f6a83a509be0c51e0e21fd483deab0fc6c980883e29d",
+      "document_sha256": "fb6f713453da7dc53c12cb53653ceef590e5cf503d721faf16d9d9b3cdaf090d",
+      "replacement": {
+        "case_id": "CNINFO_601668_T0_20260417",
+        "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2024",
+        "field_id": "accounts_receivable_2024",
+        "field_kind": "accounts_receivable",
+        "year": 2024,
+        "value": 317094483000.0,
+        "candidate": {
+          "page": 52,
+          "raw_value": 317094483.0,
+          "value": 317094483000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 52 页：资产及负债状况 / 应收账款 / 2024年列",
+          "raw_excerpt": "应收账款 317,094,483 9.94 257,698,659 8.88 23.05 应收账款本年增加594亿元，主要是回款放缓所致。",
+          "adopted_line": "应收账款 317,094,483 9.94 257,698,659 8.88 23.05 应收账款本年增加594亿元，主要是回款放缓所致。",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            317094483.0,
+            257698659.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "资产及负债状况"
+          ],
+          "statement_title": "资产及负债状况",
+          "coordinate_orientation": "clockwise_90",
+          "row_bbox": [
+            91.3538818359375,
+            306.4580078125,
+            697.3218994140625,
+            329.3219909667969
+          ],
+          "amount_bbox": [
+            165.8658447265625,
+            313.1300048828125,
+            212.5858154296875,
+            322.6739807128906
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-601668-2024-FB6F713453DA",
+        "disclosure_date": "2025-04-15",
+        "announcement_title": "中国建筑股份有限公司2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-16/1223102350.PDF",
+        "pdf_page": 52,
+        "print_page": null,
+        "locator": "PDF 第 52 页：资产及负债状况 / 应收账款 / 2024年列",
+        "file_sha256": "FB6F713453DA7DC53C12CB53653CEEF590E5CF503D721FAF16D9D9B3CDAF090D",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 317,094,483 9.94 257,698,659 8.88 23.05 应收账款本年增加594亿元，主要是回款放缓所致。",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "blocked_pending_human_confirmation",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          317094483.0,
+          257698659.0
+        ],
+        "row_bbox": [
+          91.3538818359375,
+          306.4580078125,
+          697.3218994140625,
+          329.3219909667969
+        ],
+        "amount_bbox": [
+          165.8658447265625,
+          313.1300048828125,
+          212.5858154296875,
+          322.6739807128906
+        ],
+        "statement_title": "资产及负债状况"
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2023",
+      "previous_row_sha256": "8bc65f2ac3337f6b913f0a4b38461c1059704b018057691b65fa4cbc60a93dad",
+      "document_sha256": "5e4e7e5dcf13b1e4d20ee52fd0f05872729f9bc9d86d08f49785f9400ea82da8",
+      "replacement": {
+        "case_id": "CNINFO_601668_T0_20260417",
+        "evidence_id": "CNINFO_601668_T0_20260417_REVENUE_2023",
+        "field_id": "revenue_2023",
+        "field_kind": "revenue",
+        "year": 2023,
+        "value": 2265529244000.0,
+        "candidate": {
+          "page": 13,
+          "raw_value": 2265529244.0,
+          "value": 2265529244000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 13 页：主要会计数据 / 营业收入 / 2023年列",
+          "raw_excerpt": "营业收入 2,265,529,244 2,055,052,070 10.2 1,892,706,307",
+          "adopted_line": "营业收入 2,265,529,244 2,055,052,070 10.2 1,892,706,307",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年",
+            "2021年"
+          ],
+          "cell_values": [
+            2265529244.0,
+            2055052070.0,
+            1892706307.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            76.52691650390625,
+            282.39471435546875,
+            532.9188842773438,
+            305.25872802734375
+          ],
+          "amount_bbox": [
+            291.9989013671875,
+            289.0667419433594,
+            345.8388671875,
+            298.6107177734375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+        "disclosure_date": "2024-04-18",
+        "announcement_title": "中国建筑股份有限公司2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-19/1219674825.PDF",
+        "pdf_page": 13,
+        "print_page": null,
+        "locator": "PDF 第 13 页：主要会计数据 / 营业收入 / 2023年列",
+        "file_sha256": "5E4E7E5DCF13B1E4D20EE52FD0F05872729F9BC9D86D08F49785F9400EA82DA8",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入 2,265,529,244 2,055,052,070 10.2 1,892,706,307",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年",
+          "2021年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          2265529244.0,
+          2055052070.0,
+          1892706307.0
+        ],
+        "row_bbox": [
+          76.52691650390625,
+          282.39471435546875,
+          532.9188842773438,
+          305.25872802734375
+        ],
+        "amount_bbox": [
+          291.9989013671875,
+          289.0667419433594,
+          345.8388671875,
+          298.6107177734375
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2023",
+      "previous_row_sha256": "16dc6c2d7fe87b791a8e7ba8d9c8aa8c19254193b6fa449d57db4a83d0825c34",
+      "document_sha256": "5e4e7e5dcf13b1e4d20ee52fd0f05872729f9bc9d86d08f49785f9400ea82da8",
+      "replacement": {
+        "case_id": "CNINFO_601668_T0_20260417",
+        "evidence_id": "CNINFO_601668_T0_20260417_ACCOUNTS_RECEIVABLE_2023",
+        "field_id": "accounts_receivable_2023",
+        "field_kind": "accounts_receivable",
+        "year": 2023,
+        "value": 257698659000.0,
+        "candidate": {
+          "page": 50,
+          "raw_value": 257698659.0,
+          "value": 257698659000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "locator": "PDF 第 50 页：应收账款",
+          "raw_excerpt": "应收票据本年减少38亿元，主要是本年客户使用商 | 业承兑汇票支付的款项比例减少所致。 | 应收账款 | 257,698,659 | 8.88 | 210,431,620 | 7.93 | 22.46 | 应收账款本年增加473亿元，主要是业务总体规模有 | 所增长，应收账款规模上涨。",
+          "term": "应收账款",
+          "score": 19,
+          "column_identity": "unresolved_report_year_not_in_header",
+          "period_labels": [
+            "本年",
+            "本年"
+          ],
+          "cell_values": [
+            257698659.0,
+            8.88,
+            210431620.0,
+            7.93,
+            22.46
+          ],
+          "adopted_cell_index": null,
+          "adopted_line": "257,698,659",
+          "page_hints": [
+            "资产及负债状况"
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+        "disclosure_date": "2024-04-18",
+        "announcement_title": "中国建筑股份有限公司2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-19/1219674825.PDF",
+        "pdf_page": 50,
+        "print_page": null,
+        "locator": "PDF 第 50 页：应收账款",
+        "file_sha256": "5E4E7E5DCF13B1E4D20EE52FD0F05872729F9BC9D86D08F49785F9400EA82DA8",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收票据本年减少38亿元，主要是本年客户使用商 | 业承兑汇票支付的款项比例减少所致。 | 应收账款 | 257,698,659 | 8.88 | 210,431,620 | 7.93 | 22.46 | 应收账款本年增加473亿元，主要是业务总体规模有 | 所增长，应收账款规模上涨。",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "unresolved_report_year_not_in_header",
+        "period_labels": [
+          "本年",
+          "本年"
+        ],
+        "adopted_cell_index": null,
+        "cell_values": [
+          257698659.0,
+          8.88,
+          210431620.0,
+          7.93,
+          22.46
+        ],
+        "row_bbox": null,
+        "amount_bbox": null,
+        "statement_title": null
+      }
+    },
+    {
+      "case_id": "CNINFO_600276_T0_20260325",
+      "evidence_id": "CNINFO_600276_T0_20260325_REVENUE_2025",
+      "previous_row_sha256": "0120cf82df5c814292679f1c801a81d2527459875b7a485cdf1f14763356558f",
+      "document_sha256": "fae80e2d132f5b6f2bfbb8bcdfd40e1267edb91d689389d63c8e291b0856ace6",
+      "replacement": {
+        "case_id": "CNINFO_600276_T0_20260325",
+        "evidence_id": "CNINFO_600276_T0_20260325_REVENUE_2025",
+        "field_id": "revenue_2025",
+        "field_kind": "revenue",
+        "year": 2025,
+        "value": 31629416193.83,
+        "candidate": {
+          "page": 135,
+          "raw_value": 31629416193.83,
+          "value": 31629416193.83,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 135 页：合并利润表 / 营业收入 / 2025年列",
+          "raw_excerpt": "其中：营业收入 七、61 31,629,416,193.83 27,984,605,342.06",
+          "adopted_line": "其中：营业收入 七、61 31,629,416,193.83 27,984,605,342.06",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            31629416193.83,
+            27984605342.06
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            89.87999725341797,
+            458.0173034667969,
+            531.4185791015625,
+            471.7276916503906
+          ],
+          "amount_bbox": [
+            345.8399963378906,
+            458.0173034667969,
+            424.49957275390625,
+            471.7276916503906
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-600276-2025-FAE80E2D132F",
+        "disclosure_date": "2026-03-25",
+        "announcement_title": "恒瑞医药2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032585.PDF",
+        "pdf_page": 135,
+        "print_page": null,
+        "locator": "PDF 第 135 页：合并利润表 / 营业收入 / 2025年列",
+        "file_sha256": "FAE80E2D132F5B6F2BFBB8BCDFD40E1267EDB91D689389D63C8E291B0856ACE6",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 31,629,416,193.83 27,984,605,342.06",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          31629416193.83,
+          27984605342.06
+        ],
+        "row_bbox": [
+          89.87999725341797,
+          458.0173034667969,
+          531.4185791015625,
+          471.7276916503906
+        ],
+        "amount_bbox": [
+          345.8399963378906,
+          458.0173034667969,
+          424.49957275390625,
+          471.7276916503906
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600276_T0_20260325",
+      "evidence_id": "CNINFO_600276_T0_20260325_ACCOUNTS_RECEIVABLE_2025",
+      "previous_row_sha256": "30b2637d5fe3f3981354b94c010f2c05a24d86c729b59ee28e27c28537893bb3",
+      "document_sha256": "fae80e2d132f5b6f2bfbb8bcdfd40e1267edb91d689389d63c8e291b0856ace6",
+      "replacement": {
+        "case_id": "CNINFO_600276_T0_20260325",
+        "evidence_id": "CNINFO_600276_T0_20260325_ACCOUNTS_RECEIVABLE_2025",
+        "field_id": "accounts_receivable_2025",
+        "field_kind": "accounts_receivable",
+        "year": 2025,
+        "value": 5146562124.0,
+        "candidate": {
+          "page": 133,
+          "raw_value": 5146562124.0,
+          "value": 5146562124.0,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 133 页：合并资产负债表 / 应收账款 / 2025年列",
+          "raw_excerpt": "应收账款 七、5 5,146,562,124.00 4,914,872,611.28",
+          "adopted_line": "应收账款 七、5 5,146,562,124.00 4,914,872,611.28",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            5146562124.0,
+            4914872611.28
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            100.31999969482422,
+            233.49630737304688,
+            530.8198852539062,
+            247.20669555664062
+          ],
+          "amount_bbox": [
+            351.1199951171875,
+            233.49630737304688,
+            424.4998779296875,
+            247.20669555664062
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-600276-2025-FAE80E2D132F",
+        "disclosure_date": "2026-03-25",
+        "announcement_title": "恒瑞医药2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032585.PDF",
+        "pdf_page": 133,
+        "print_page": null,
+        "locator": "PDF 第 133 页：合并资产负债表 / 应收账款 / 2025年列",
+        "file_sha256": "FAE80E2D132F5B6F2BFBB8BCDFD40E1267EDB91D689389D63C8E291B0856ACE6",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 5,146,562,124.00 4,914,872,611.28",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          5146562124.0,
+          4914872611.28
+        ],
+        "row_bbox": [
+          100.31999969482422,
+          233.49630737304688,
+          530.8198852539062,
+          247.20669555664062
+        ],
+        "amount_bbox": [
+          351.1199951171875,
+          233.49630737304688,
+          424.4998779296875,
+          247.20669555664062
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600276_T0_20260325",
+      "evidence_id": "CNINFO_600276_T0_20260325_REVENUE_2024",
+      "previous_row_sha256": "bb93b635e35510f6ea07e00efe99c35fb9436b10cf2d41bd5aef883cf0aef3f8",
+      "document_sha256": "7fad40fef23755f81ce5322f45483ea257ef026ebf1f7f5655c8d5998d7049fc",
+      "replacement": {
+        "case_id": "CNINFO_600276_T0_20260325",
+        "evidence_id": "CNINFO_600276_T0_20260325_REVENUE_2024",
+        "field_id": "revenue_2024",
+        "field_kind": "revenue",
+        "year": 2024,
+        "value": 27984605342.06,
+        "candidate": {
+          "page": 146,
+          "raw_value": 27984605342.06,
+          "value": 27984605342.06,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 146 页：合并利润表 / 营业收入 / 2024年列",
+          "raw_excerpt": "其中：营业收入 七、61 27,984,605,342.06 22,819,784,741.31",
+          "adopted_line": "其中：营业收入 七、61 27,984,605,342.06 22,819,784,741.31",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            27984605342.06,
+            22819784741.31
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            69.50399780273438,
+            458.041015625,
+            500.0015869140625,
+            469.73095703125
+          ],
+          "amount_bbox": [
+            313.010009765625,
+            458.041015625,
+            391.8616027832031,
+            469.73095703125
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-600276-2024-7FAD40FEF237",
+        "disclosure_date": "2025-03-30",
+        "announcement_title": "恒瑞医药2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-31/1222961962.PDF",
+        "pdf_page": 146,
+        "print_page": null,
+        "locator": "PDF 第 146 页：合并利润表 / 营业收入 / 2024年列",
+        "file_sha256": "7FAD40FEF23755F81CE5322F45483EA257EF026EBF1F7F5655C8D5998D7049FC",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 27,984,605,342.06 22,819,784,741.31",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          27984605342.06,
+          22819784741.31
+        ],
+        "row_bbox": [
+          69.50399780273438,
+          458.041015625,
+          500.0015869140625,
+          469.73095703125
+        ],
+        "amount_bbox": [
+          313.010009765625,
+          458.041015625,
+          391.8616027832031,
+          469.73095703125
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600276_T0_20260325",
+      "evidence_id": "CNINFO_600276_T0_20260325_ACCOUNTS_RECEIVABLE_2024",
+      "previous_row_sha256": "8ce725bce7f6c2272544ac034c8e694dd3f08a5a97bacabc8428856f6af4fef9",
+      "document_sha256": "7fad40fef23755f81ce5322f45483ea257ef026ebf1f7f5655c8d5998d7049fc",
+      "replacement": {
+        "case_id": "CNINFO_600276_T0_20260325",
+        "evidence_id": "CNINFO_600276_T0_20260325_ACCOUNTS_RECEIVABLE_2024",
+        "field_id": "accounts_receivable_2024",
+        "field_kind": "accounts_receivable",
+        "year": 2024,
+        "value": 4914872611.28,
+        "candidate": {
+          "page": 144,
+          "raw_value": 4914872611.28,
+          "value": 4914872611.28,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 144 页：合并资产负债表 / 应收账款 / 2024年列",
+          "raw_excerpt": "应收账款 七、5 4,914,872,611.28 5,194,493,562.58",
+          "adopted_line": "应收账款 七、5 4,914,872,611.28 5,194,493,562.58",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            4914872611.28,
+            5194493562.58
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            80.18399810791016,
+            230.49099731445312,
+            499.2777404785156,
+            242.18092346191406
+          ],
+          "amount_bbox": [
+            296.69000244140625,
+            230.49099731445312,
+            370.37774658203125,
+            242.18092346191406
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-600276-2024-7FAD40FEF237",
+        "disclosure_date": "2025-03-30",
+        "announcement_title": "恒瑞医药2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-31/1222961962.PDF",
+        "pdf_page": 144,
+        "print_page": null,
+        "locator": "PDF 第 144 页：合并资产负债表 / 应收账款 / 2024年列",
+        "file_sha256": "7FAD40FEF23755F81CE5322F45483EA257EF026EBF1F7F5655C8D5998D7049FC",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 4,914,872,611.28 5,194,493,562.58",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "blocked_pending_human_confirmation",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          4914872611.28,
+          5194493562.58
+        ],
+        "row_bbox": [
+          80.18399810791016,
+          230.49099731445312,
+          499.2777404785156,
+          242.18092346191406
+        ],
+        "amount_bbox": [
+          296.69000244140625,
+          230.49099731445312,
+          370.37774658203125,
+          242.18092346191406
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600276_T0_20260325",
+      "evidence_id": "CNINFO_600276_T0_20260325_REVENUE_2023",
+      "previous_row_sha256": "6b1b5a6f712b25c34b3a272a650d59c8791c1c9a5224775e851ce043434dcf8a",
+      "document_sha256": "4fe601137654acbb46898486bb61501678ba952426e66e7b0efbbd8fa48639cc",
+      "replacement": {
+        "case_id": "CNINFO_600276_T0_20260325",
+        "evidence_id": "CNINFO_600276_T0_20260325_REVENUE_2023",
+        "field_id": "revenue_2023",
+        "field_kind": "revenue",
+        "year": 2023,
+        "value": 22819784741.31,
+        "candidate": {
+          "page": 147,
+          "raw_value": 22819784741.31,
+          "value": 22819784741.31,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 147 页：合并利润表 / 营业收入 / 2023年列",
+          "raw_excerpt": "其中：营业收入 七、61 22,819,784,741.31 21,275,270,681.52",
+          "adopted_line": "其中：营业收入 七、61 22,819,784,741.31 21,275,270,681.52",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            22819784741.31,
+            21275270681.52
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            69.50399780273438,
+            519.0210571289062,
+            500.0015869140625,
+            531.0709228515625
+          ],
+          "amount_bbox": [
+            327.07000732421875,
+            519.0210571289062,
+            405.9216003417969,
+            530.7109375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-600276-2023-4FE601137654",
+        "disclosure_date": "2024-04-17",
+        "announcement_title": "恒瑞医药2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-18/1219650115.PDF",
+        "pdf_page": 147,
+        "print_page": null,
+        "locator": "PDF 第 147 页：合并利润表 / 营业收入 / 2023年列",
+        "file_sha256": "4FE601137654ACBB46898486BB61501678BA952426E66E7B0EFBBD8FA48639CC",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 22,819,784,741.31 21,275,270,681.52",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          22819784741.31,
+          21275270681.52
+        ],
+        "row_bbox": [
+          69.50399780273438,
+          519.0210571289062,
+          500.0015869140625,
+          531.0709228515625
+        ],
+        "amount_bbox": [
+          327.07000732421875,
+          519.0210571289062,
+          405.9216003417969,
+          530.7109375
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600276_T0_20260325",
+      "evidence_id": "CNINFO_600276_T0_20260325_ACCOUNTS_RECEIVABLE_2023",
+      "previous_row_sha256": "470d8767cd9b6a18f768d2ac5d29f00c83442cf8d9322f62631a466f494aef06",
+      "document_sha256": "4fe601137654acbb46898486bb61501678ba952426e66e7b0efbbd8fa48639cc",
+      "replacement": {
+        "case_id": "CNINFO_600276_T0_20260325",
+        "evidence_id": "CNINFO_600276_T0_20260325_ACCOUNTS_RECEIVABLE_2023",
+        "field_id": "accounts_receivable_2023",
+        "field_kind": "accounts_receivable",
+        "year": 2023,
+        "value": 5194493562.58,
+        "candidate": {
+          "page": 145,
+          "raw_value": 5194493562.58,
+          "value": 5194493562.58,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 145 页：合并资产负债表 / 应收账款 / 2023年列",
+          "raw_excerpt": "应收账款 七、5 5,194,493,562.58 5,891,397,327.62",
+          "adopted_line": "应收账款 七、5 5,194,493,562.58 5,891,397,327.62",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            5194493562.58,
+            5891397327.62
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            80.18399810791016,
+            219.57101440429688,
+            499.3977355957031,
+            231.2609405517578
+          ],
+          "amount_bbox": [
+            257.3299865722656,
+            219.57101440429688,
+            331.0177307128906,
+            231.2609405517578
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-600276-2023-4FE601137654",
+        "disclosure_date": "2024-04-17",
+        "announcement_title": "恒瑞医药2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-18/1219650115.PDF",
+        "pdf_page": 145,
+        "print_page": null,
+        "locator": "PDF 第 145 页：合并资产负债表 / 应收账款 / 2023年列",
+        "file_sha256": "4FE601137654ACBB46898486BB61501678BA952426E66E7B0EFBBD8FA48639CC",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 5,194,493,562.58 5,891,397,327.62",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "blocked_pending_human_confirmation",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          5194493562.58,
+          5891397327.62
+        ],
+        "row_bbox": [
+          80.18399810791016,
+          219.57101440429688,
+          499.3977355957031,
+          231.2609405517578
+        ],
+        "amount_bbox": [
+          257.3299865722656,
+          219.57101440429688,
+          331.0177307128906,
+          231.2609405517578
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_300015_T0_20260423",
+      "evidence_id": "CNINFO_300015_T0_20260423_REVENUE_2025",
+      "previous_row_sha256": "02916cf8547f34b224b1d8579ddf7bf6cc38fee99916d7d511ca7cb36bc175a0",
+      "document_sha256": "8aa8857331cfc403e60e19e005a94aa67defcba28451b586741dc3757373d41e",
+      "replacement": {
+        "case_id": "CNINFO_300015_T0_20260423",
+        "evidence_id": "CNINFO_300015_T0_20260423_REVENUE_2025",
+        "field_id": "revenue_2025",
+        "field_kind": "revenue",
+        "year": 2025,
+        "value": 22352604724.87,
+        "candidate": {
+          "page": 148,
+          "raw_value": 22352604724.87,
+          "value": 22352604724.87,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 148 页：合并利润表 / 营业收入 / 2025年列",
+          "raw_excerpt": "其中：营业收入 22,352,604,724.87 20,982,894,148.50",
+          "adopted_line": "其中：营业收入 22,352,604,724.87 20,982,894,148.50",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            22352604724.87,
+            20982894148.5
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            71.04000091552734,
+            332.3389892578125,
+            533.2139892578125,
+            344.4440002441406
+          ],
+          "amount_bbox": [
+            305.0400085449219,
+            332.3389892578125,
+            372.5339050292969,
+            344.4440002441406
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-300015-2025-8AA8857331CF",
+        "disclosure_date": "2026-04-23",
+        "announcement_title": "2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-24/1225174505.PDF",
+        "pdf_page": 148,
+        "print_page": null,
+        "locator": "PDF 第 148 页：合并利润表 / 营业收入 / 2025年列",
+        "file_sha256": "8AA8857331CFC403E60E19E005A94AA67DEFCBA28451B586741DC3757373D41E",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 22,352,604,724.87 20,982,894,148.50",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          22352604724.87,
+          20982894148.5
+        ],
+        "row_bbox": [
+          71.04000091552734,
+          332.3389892578125,
+          533.2139892578125,
+          344.4440002441406
+        ],
+        "amount_bbox": [
+          305.0400085449219,
+          332.3389892578125,
+          372.5339050292969,
+          344.4440002441406
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_300015_T0_20260423",
+      "evidence_id": "CNINFO_300015_T0_20260423_ACCOUNTS_RECEIVABLE_2025",
+      "previous_row_sha256": "f991ad989f41a9b380d968d5b71b8bca4e98c3ae494b1812f5f9c1d524f0ed55",
+      "document_sha256": "8aa8857331cfc403e60e19e005a94aa67defcba28451b586741dc3757373d41e",
+      "replacement": {
+        "case_id": "CNINFO_300015_T0_20260423",
+        "evidence_id": "CNINFO_300015_T0_20260423_ACCOUNTS_RECEIVABLE_2025",
+        "field_id": "accounts_receivable_2025",
+        "field_kind": "accounts_receivable",
+        "year": 2025,
+        "value": 1848938513.18,
+        "candidate": {
+          "page": 143,
+          "raw_value": 1848938513.18,
+          "value": 1848938513.18,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 143 页：合并资产负债表（跨页） / 应收账款 / 2025年列",
+          "raw_excerpt": "应收账款 1,848,938,513.18 1,993,032,493.11",
+          "adopted_line": "应收账款 1,848,938,513.18 1,993,032,493.11",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            1848938513.18,
+            1993032493.11
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表（跨页）"
+          ],
+          "statement_title": "合并资产负债表（跨页）",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            71.04000091552734,
+            266.8179931640625,
+            533.4542846679688,
+            278.9230041503906
+          ],
+          "amount_bbox": [
+            309.6000061035156,
+            266.8179931640625,
+            372.654052734375,
+            278.9230041503906
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-300015-2025-8AA8857331CF",
+        "disclosure_date": "2026-04-23",
+        "announcement_title": "2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-24/1225174505.PDF",
+        "pdf_page": 143,
+        "print_page": null,
+        "locator": "PDF 第 143 页：合并资产负债表（跨页） / 应收账款 / 2025年列",
+        "file_sha256": "8AA8857331CFC403E60E19E005A94AA67DEFCBA28451B586741DC3757373D41E",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 1,848,938,513.18 1,993,032,493.11",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          1848938513.18,
+          1993032493.11
+        ],
+        "row_bbox": [
+          71.04000091552734,
+          266.8179931640625,
+          533.4542846679688,
+          278.9230041503906
+        ],
+        "amount_bbox": [
+          309.6000061035156,
+          266.8179931640625,
+          372.654052734375,
+          278.9230041503906
+        ],
+        "statement_title": "合并资产负债表（跨页）"
+      }
+    },
+    {
+      "case_id": "CNINFO_300015_T0_20260423",
+      "evidence_id": "CNINFO_300015_T0_20260423_REVENUE_2024",
+      "previous_row_sha256": "248cccf6aa2d3668870472a300778af5a88af7d254876f30bdaedd6207104b36",
+      "document_sha256": "1f377f2fba711b4aa2468541da889bf7fc406c464ef034477ba78986496c8abd",
+      "replacement": {
+        "case_id": "CNINFO_300015_T0_20260423",
+        "evidence_id": "CNINFO_300015_T0_20260423_REVENUE_2024",
+        "field_id": "revenue_2024",
+        "field_kind": "revenue",
+        "year": 2024,
+        "value": 20982894148.5,
+        "candidate": {
+          "page": 151,
+          "raw_value": 20982894148.5,
+          "value": 20982894148.5,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 151 页：合并利润表 / 营业收入 / 2024年列",
+          "raw_excerpt": "其中：营业收入 20,982,894,148.50 20,367,156,738.96",
+          "adopted_line": "其中：营业收入 20,982,894,148.50 20,367,156,738.96",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            20982894148.5,
+            20367156738.96
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            72.74400329589844,
+            366.84100341796875,
+            533.51171875,
+            378.53094482421875
+          ],
+          "amount_bbox": [
+            341.2300109863281,
+            366.84100341796875,
+            420.08160400390625,
+            378.53094482421875
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-300015-2024-1F377F2FBA71",
+        "disclosure_date": "2025-04-24",
+        "announcement_title": "2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-25/1223271221.PDF",
+        "pdf_page": 151,
+        "print_page": null,
+        "locator": "PDF 第 151 页：合并利润表 / 营业收入 / 2024年列",
+        "file_sha256": "1F377F2FBA711B4AA2468541DA889BF7FC406C464EF034477BA78986496C8ABD",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 20,982,894,148.50 20,367,156,738.96",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          20982894148.5,
+          20367156738.96
+        ],
+        "row_bbox": [
+          72.74400329589844,
+          366.84100341796875,
+          533.51171875,
+          378.53094482421875
+        ],
+        "amount_bbox": [
+          341.2300109863281,
+          366.84100341796875,
+          420.08160400390625,
+          378.53094482421875
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_300015_T0_20260423",
+      "evidence_id": "CNINFO_300015_T0_20260423_ACCOUNTS_RECEIVABLE_2024",
+      "previous_row_sha256": "4fd6a59d081225625280f61ac6cec1c93c8cdcac7ae05e998d903503a690541f",
+      "document_sha256": "1f377f2fba711b4aa2468541da889bf7fc406c464ef034477ba78986496c8abd",
+      "replacement": {
+        "case_id": "CNINFO_300015_T0_20260423",
+        "evidence_id": "CNINFO_300015_T0_20260423_ACCOUNTS_RECEIVABLE_2024",
+        "field_id": "accounts_receivable_2024",
+        "field_kind": "accounts_receivable",
+        "year": 2024,
+        "value": 1993032493.11,
+        "candidate": {
+          "page": 146,
+          "raw_value": 1993032493.11,
+          "value": 1993032493.11,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 146 页：合并资产负债表 / 应收账款 / 2024年列",
+          "raw_excerpt": "应收账款 1,993,032,493.11 1,899,196,193.66",
+          "adopted_line": "应收账款 1,993,032,493.11 1,899,196,193.66",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            1993032493.11,
+            1899196193.66
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            72.74400329589844,
+            402.0010070800781,
+            533.5078735351562,
+            413.69091796875
+          ],
+          "amount_bbox": [
+            346.8699951171875,
+            402.0010070800781,
+            420.0825500488281,
+            413.69091796875
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-300015-2024-1F377F2FBA71",
+        "disclosure_date": "2025-04-24",
+        "announcement_title": "2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-25/1223271221.PDF",
+        "pdf_page": 146,
+        "print_page": null,
+        "locator": "PDF 第 146 页：合并资产负债表 / 应收账款 / 2024年列",
+        "file_sha256": "1F377F2FBA711B4AA2468541DA889BF7FC406C464EF034477BA78986496C8ABD",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 1,993,032,493.11 1,899,196,193.66",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          1993032493.11,
+          1899196193.66
+        ],
+        "row_bbox": [
+          72.74400329589844,
+          402.0010070800781,
+          533.5078735351562,
+          413.69091796875
+        ],
+        "amount_bbox": [
+          346.8699951171875,
+          402.0010070800781,
+          420.0825500488281,
+          413.69091796875
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_300015_T0_20260423",
+      "evidence_id": "CNINFO_300015_T0_20260423_REVENUE_2023",
+      "previous_row_sha256": "8579e1c1da66fea5e95972e62a52fcfa4baf4b580b9f5237c302a173deb95aa1",
+      "document_sha256": "6c5126d972ff52b2518e6b8ea238ac49d22ae7c9c66587df15c4a172cc58e8ad",
+      "replacement": {
+        "case_id": "CNINFO_300015_T0_20260423",
+        "evidence_id": "CNINFO_300015_T0_20260423_REVENUE_2023",
+        "field_id": "revenue_2023",
+        "field_kind": "revenue",
+        "year": 2023,
+        "value": 20367156738.96,
+        "candidate": {
+          "page": 139,
+          "raw_value": 20367156738.96,
+          "value": 20367156738.96,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 139 页：合并利润表 / 营业收入 / 2023年列",
+          "raw_excerpt": "其中：营业收入 20,367,156,738.96 16,109,946,687.31",
+          "adopted_line": "其中：营业收入 20,367,156,738.96 16,109,946,687.31",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            20367156738.96,
+            16109946687.31
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            72.74400329589844,
+            161.85098266601562,
+            533.481689453125,
+            173.54090881347656
+          ],
+          "amount_bbox": [
+            355.3900146484375,
+            161.85098266601562,
+            434.2416076660156,
+            173.54090881347656
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-300015-2023-6C5126D972FF",
+        "disclosure_date": "2024-04-25",
+        "announcement_title": "2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-26/1219826392.PDF",
+        "pdf_page": 139,
+        "print_page": null,
+        "locator": "PDF 第 139 页：合并利润表 / 营业收入 / 2023年列",
+        "file_sha256": "6C5126D972FF52B2518E6B8EA238AC49D22AE7C9C66587DF15C4A172CC58E8AD",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 20,367,156,738.96 16,109,946,687.31",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          20367156738.96,
+          16109946687.31
+        ],
+        "row_bbox": [
+          72.74400329589844,
+          161.85098266601562,
+          533.481689453125,
+          173.54090881347656
+        ],
+        "amount_bbox": [
+          355.3900146484375,
+          161.85098266601562,
+          434.2416076660156,
+          173.54090881347656
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_300015_T0_20260423",
+      "evidence_id": "CNINFO_300015_T0_20260423_ACCOUNTS_RECEIVABLE_2023",
+      "previous_row_sha256": "7d7f5a9ff4b15340cf73e67a8d345ce18d5b6d5fd5c61b2ca96e5ecc7c045c01",
+      "document_sha256": "6c5126d972ff52b2518e6b8ea238ac49d22ae7c9c66587df15c4a172cc58e8ad",
+      "replacement": {
+        "case_id": "CNINFO_300015_T0_20260423",
+        "evidence_id": "CNINFO_300015_T0_20260423_ACCOUNTS_RECEIVABLE_2023",
+        "field_id": "accounts_receivable_2023",
+        "field_kind": "accounts_receivable",
+        "year": 2023,
+        "value": 1899196193.66,
+        "candidate": {
+          "page": 43,
+          "raw_value": 1899196193.66,
+          "value": 1899196193.66,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 43 页：资产及负债状况 / 应收账款 / 2023年列",
+          "raw_excerpt": "应收账款 1,899,196,193.66 6.29% 1,583,103,086.31 5.96% 0.33% 主要系报告期内公司经营规",
+          "adopted_line": "应收账款 1,899,196,193.66 6.29% 1,583,103,086.31 5.96% 0.33% 主要系报告期内公司经营规",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            1899196193.66,
+            1583103086.31
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "资产及负债状况"
+          ],
+          "statement_title": "资产及负债状况",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            62.15999984741211,
+            311.9989929199219,
+            524.5899658203125,
+            327.6739807128906
+          ],
+          "amount_bbox": [
+            137.17999267578125,
+            317.7109680175781,
+            200.16200256347656,
+            327.6739807128906
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-300015-2023-6C5126D972FF",
+        "disclosure_date": "2024-04-25",
+        "announcement_title": "2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-26/1219826392.PDF",
+        "pdf_page": 43,
+        "print_page": null,
+        "locator": "PDF 第 43 页：资产及负债状况 / 应收账款 / 2023年列",
+        "file_sha256": "6C5126D972FF52B2518E6B8EA238AC49D22AE7C9C66587DF15C4A172CC58E8AD",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 1,899,196,193.66 6.29% 1,583,103,086.31 5.96% 0.33% 主要系报告期内公司经营规",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          1899196193.66,
+          1583103086.31
+        ],
+        "row_bbox": [
+          62.15999984741211,
+          311.9989929199219,
+          524.5899658203125,
+          327.6739807128906
+        ],
+        "amount_bbox": [
+          137.17999267578125,
+          317.7109680175781,
+          200.16200256347656,
+          327.6739807128906
+        ],
+        "statement_title": "资产及负债状况"
+      }
+    },
+    {
+      "case_id": "CNINFO_600588_T0_20260417",
+      "evidence_id": "CNINFO_600588_T0_20260417_REVENUE_2025",
+      "previous_row_sha256": "437b7d1991b34cb59fbabe05fd58d66f08b6e863187f1051cebd43f4d65beeba",
+      "document_sha256": "04af3511b61d5c22cad4cfcca68bc9da88eb5144d6c22c6ee87e79c32f5c1052",
+      "replacement": {
+        "case_id": "CNINFO_600588_T0_20260417",
+        "evidence_id": "CNINFO_600588_T0_20260417_REVENUE_2025",
+        "field_id": "revenue_2025",
+        "field_kind": "revenue",
+        "year": 2025,
+        "value": 9181696358.0,
+        "candidate": {
+          "page": 93,
+          "raw_value": 9181696358.0,
+          "value": 9181696358.0,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 93 页：合并利润表 / 营业收入 / 2025年列",
+          "raw_excerpt": "其中：营业收入 七、61 9,181,696,358 9,152,729,443",
+          "adopted_line": "其中：营业收入 七、61 9,181,696,358 9,152,729,443",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            9181696358.0,
+            9152729443.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            89.87999725341797,
+            451.2962951660156,
+            531.4209594726562,
+            465.0066833496094
+          ],
+          "amount_bbox": [
+            370.20001220703125,
+            451.2962951660156,
+            430.5009460449219,
+            465.0066833496094
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-600588-2025-04AF3511B61D",
+        "disclosure_date": "2026-04-17",
+        "announcement_title": "用友网络2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225120765.PDF",
+        "pdf_page": 93,
+        "print_page": null,
+        "locator": "PDF 第 93 页：合并利润表 / 营业收入 / 2025年列",
+        "file_sha256": "04AF3511B61D5C22CAD4CFCCA68BC9DA88EB5144D6C22C6EE87E79C32F5C1052",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 9,181,696,358 9,152,729,443",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          9181696358.0,
+          9152729443.0
+        ],
+        "row_bbox": [
+          89.87999725341797,
+          451.2962951660156,
+          531.4209594726562,
+          465.0066833496094
+        ],
+        "amount_bbox": [
+          370.20001220703125,
+          451.2962951660156,
+          430.5009460449219,
+          465.0066833496094
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600588_T0_20260417",
+      "evidence_id": "CNINFO_600588_T0_20260417_ACCOUNTS_RECEIVABLE_2025",
+      "previous_row_sha256": "afaf07065bb33cb523a9919874155b5729ac8562bec5b8f5e4b04059bd2601de",
+      "document_sha256": "04af3511b61d5c22cad4cfcca68bc9da88eb5144d6c22c6ee87e79c32f5c1052",
+      "replacement": {
+        "case_id": "CNINFO_600588_T0_20260417",
+        "evidence_id": "CNINFO_600588_T0_20260417_ACCOUNTS_RECEIVABLE_2025",
+        "field_id": "accounts_receivable_2025",
+        "field_kind": "accounts_receivable",
+        "year": 2025,
+        "value": 2280020657.0,
+        "candidate": {
+          "page": 89,
+          "raw_value": 2280020657.0,
+          "value": 2280020657.0,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 89 页：合并资产负债表 / 应收账款 / 2025年列",
+          "raw_excerpt": "应收账款 七、5 2,280,020,657 2,421,774,457",
+          "adopted_line": "应收账款 七、5 2,280,020,657 2,421,774,457",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            2280020657.0,
+            2421774457.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            100.31999969482422,
+            291.6963195800781,
+            530.8209228515625,
+            305.4067077636719
+          ],
+          "amount_bbox": [
+            350.0400085449219,
+            291.6963195800781,
+            410.3409423828125,
+            305.4067077636719
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-600588-2025-04AF3511B61D",
+        "disclosure_date": "2026-04-17",
+        "announcement_title": "用友网络2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225120765.PDF",
+        "pdf_page": 89,
+        "print_page": null,
+        "locator": "PDF 第 89 页：合并资产负债表 / 应收账款 / 2025年列",
+        "file_sha256": "04AF3511B61D5C22CAD4CFCCA68BC9DA88EB5144D6C22C6EE87E79C32F5C1052",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 2,280,020,657 2,421,774,457",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          2280020657.0,
+          2421774457.0
+        ],
+        "row_bbox": [
+          100.31999969482422,
+          291.6963195800781,
+          530.8209228515625,
+          305.4067077636719
+        ],
+        "amount_bbox": [
+          350.0400085449219,
+          291.6963195800781,
+          410.3409423828125,
+          305.4067077636719
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600588_T0_20260417",
+      "evidence_id": "CNINFO_600588_T0_20260417_REVENUE_2024",
+      "previous_row_sha256": "3bd7131f44da8700efcd57be95a1852d986bbabb421e0d6eafcb2123ad8b79d9",
+      "document_sha256": "3d057dc1334f65dbc18c34501eb0145df75a2b9d86fb8f49d9075b657b8e3c66",
+      "replacement": {
+        "case_id": "CNINFO_600588_T0_20260417",
+        "evidence_id": "CNINFO_600588_T0_20260417_REVENUE_2024",
+        "field_id": "revenue_2024",
+        "field_kind": "revenue",
+        "year": 2024,
+        "value": 9152729443.0,
+        "candidate": {
+          "page": 89,
+          "raw_value": 9152729443.0,
+          "value": 9152729443.0,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 89 页：合并利润表 / 营业收入 / 2024年列",
+          "raw_excerpt": "其中：营业收入 七、61 9,152,729,443 9,796,071,603",
+          "adopted_line": "其中：营业收入 七、61 9,152,729,443 9,796,071,603",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            9152729443.0,
+            9796071603.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            95.54399871826172,
+            487.7989501953125,
+            526.0677490234375,
+            498.35894775390625
+          ],
+          "amount_bbox": [
+            373.2699890136719,
+            487.7989501953125,
+            441.67767333984375,
+            498.35894775390625
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-600588-2024-3D057DC1334F",
+        "disclosure_date": "2025-03-28",
+        "announcement_title": "用友网络2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222946316.PDF",
+        "pdf_page": 89,
+        "print_page": null,
+        "locator": "PDF 第 89 页：合并利润表 / 营业收入 / 2024年列",
+        "file_sha256": "3D057DC1334F65DBC18C34501EB0145DF75A2B9D86FB8F49D9075B657B8E3C66",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 9,152,729,443 9,796,071,603",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          9152729443.0,
+          9796071603.0
+        ],
+        "row_bbox": [
+          95.54399871826172,
+          487.7989501953125,
+          526.0677490234375,
+          498.35894775390625
+        ],
+        "amount_bbox": [
+          373.2699890136719,
+          487.7989501953125,
+          441.67767333984375,
+          498.35894775390625
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600588_T0_20260417",
+      "evidence_id": "CNINFO_600588_T0_20260417_ACCOUNTS_RECEIVABLE_2024",
+      "previous_row_sha256": "2869bbef46e5eeee6343bba1c18a484da278e8d3b97effee1600b3cc5a1699b1",
+      "document_sha256": "3d057dc1334f65dbc18c34501eb0145df75a2b9d86fb8f49d9075b657b8e3c66",
+      "replacement": {
+        "case_id": "CNINFO_600588_T0_20260417",
+        "evidence_id": "CNINFO_600588_T0_20260417_ACCOUNTS_RECEIVABLE_2024",
+        "field_id": "accounts_receivable_2024",
+        "field_kind": "accounts_receivable",
+        "year": 2024,
+        "value": 2421774457.0,
+        "candidate": {
+          "page": 85,
+          "raw_value": 2421774457.0,
+          "value": 2421774457.0,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 85 页：合并资产负债表 / 应收账款 / 2024年列",
+          "raw_excerpt": "应收账款 七、5 2,421,774,457 2,515,167,097",
+          "adopted_line": "应收账款 七、5 2,421,774,457 2,515,167,097",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            2421774457.0,
+            2515167097.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            106.22000122070312,
+            301.658935546875,
+            525.3477783203125,
+            312.21893310546875
+          ],
+          "amount_bbox": [
+            339.54998779296875,
+            301.658935546875,
+            407.9576721191406,
+            312.21893310546875
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-600588-2024-3D057DC1334F",
+        "disclosure_date": "2025-03-28",
+        "announcement_title": "用友网络2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222946316.PDF",
+        "pdf_page": 85,
+        "print_page": null,
+        "locator": "PDF 第 85 页：合并资产负债表 / 应收账款 / 2024年列",
+        "file_sha256": "3D057DC1334F65DBC18C34501EB0145DF75A2B9D86FB8F49D9075B657B8E3C66",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 2,421,774,457 2,515,167,097",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          2421774457.0,
+          2515167097.0
+        ],
+        "row_bbox": [
+          106.22000122070312,
+          301.658935546875,
+          525.3477783203125,
+          312.21893310546875
+        ],
+        "amount_bbox": [
+          339.54998779296875,
+          301.658935546875,
+          407.9576721191406,
+          312.21893310546875
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600588_T0_20260417",
+      "evidence_id": "CNINFO_600588_T0_20260417_REVENUE_2023",
+      "previous_row_sha256": "3b2acb857105f90d6926a80df349fd6f724ad431f417d73df10ac31a2e11774b",
+      "document_sha256": "0a78f501c4d3ab8ee6c78ca4c0adc936613f3df5eb3326696a0c2feeb10d5749",
+      "replacement": {
+        "case_id": "CNINFO_600588_T0_20260417",
+        "evidence_id": "CNINFO_600588_T0_20260417_REVENUE_2023",
+        "field_id": "revenue_2023",
+        "field_kind": "revenue",
+        "year": 2023,
+        "value": 9796071603.0,
+        "candidate": {
+          "page": 100,
+          "raw_value": 9796071603.0,
+          "value": 9796071603.0,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 100 页：合并利润表 / 营业收入 / 2023年列",
+          "raw_excerpt": "其中：营业收入 七、61 9,796,071,603 9,261,744,112",
+          "adopted_line": "其中：营业收入 七、61 9,796,071,603 9,261,744,112",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            9796071603.0,
+            9261744112.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            95.54399871826172,
+            621.5089111328125,
+            526.0677490234375,
+            632.0689086914062
+          ],
+          "amount_bbox": [
+            310.3699951171875,
+            621.5089111328125,
+            378.7776794433594,
+            632.0689086914062
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-600588-2023-0A78F501C4D3",
+        "disclosure_date": "2024-03-29",
+        "announcement_title": "用友网络2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-30/1219465845.PDF",
+        "pdf_page": 100,
+        "print_page": null,
+        "locator": "PDF 第 100 页：合并利润表 / 营业收入 / 2023年列",
+        "file_sha256": "0A78F501C4D3AB8EE6C78CA4C0ADC936613F3DF5EB3326696A0C2FEEB10D5749",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 9,796,071,603 9,261,744,112",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          9796071603.0,
+          9261744112.0
+        ],
+        "row_bbox": [
+          95.54399871826172,
+          621.5089111328125,
+          526.0677490234375,
+          632.0689086914062
+        ],
+        "amount_bbox": [
+          310.3699951171875,
+          621.5089111328125,
+          378.7776794433594,
+          632.0689086914062
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_600588_T0_20260417",
+      "evidence_id": "CNINFO_600588_T0_20260417_ACCOUNTS_RECEIVABLE_2023",
+      "previous_row_sha256": "f8ff8b88404a7dbf022246c9252c2ffdcaff08c68b812cf79389de11984a1b39",
+      "document_sha256": "0a78f501c4d3ab8ee6c78ca4c0adc936613f3df5eb3326696a0c2feeb10d5749",
+      "replacement": {
+        "case_id": "CNINFO_600588_T0_20260417",
+        "evidence_id": "CNINFO_600588_T0_20260417_ACCOUNTS_RECEIVABLE_2023",
+        "field_id": "accounts_receivable_2023",
+        "field_kind": "accounts_receivable",
+        "year": 2023,
+        "value": 2515167097.0,
+        "candidate": {
+          "page": 96,
+          "raw_value": 2515167097.0,
+          "value": 2515167097.0,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 96 页：合并资产负债表 / 应收账款 / 2023年列",
+          "raw_excerpt": "应收账款 七、5 2,515,167,097 2,125,608,454",
+          "adopted_line": "应收账款 七、5 2,515,167,097 2,125,608,454",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            2515167097.0,
+            2125608454.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            106.22000122070312,
+            307.4189453125,
+            525.227783203125,
+            317.97894287109375
+          ],
+          "amount_bbox": [
+            324.9100036621094,
+            307.4189453125,
+            393.31768798828125,
+            317.97894287109375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-600588-2023-0A78F501C4D3",
+        "disclosure_date": "2024-03-29",
+        "announcement_title": "用友网络2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-30/1219465845.PDF",
+        "pdf_page": 96,
+        "print_page": null,
+        "locator": "PDF 第 96 页：合并资产负债表 / 应收账款 / 2023年列",
+        "file_sha256": "0A78F501C4D3AB8EE6C78CA4C0ADC936613F3DF5EB3326696A0C2FEEB10D5749",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 2,515,167,097 2,125,608,454",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          2515167097.0,
+          2125608454.0
+        ],
+        "row_bbox": [
+          106.22000122070312,
+          307.4189453125,
+          525.227783203125,
+          317.97894287109375
+        ],
+        "amount_bbox": [
+          324.9100036621094,
+          307.4189453125,
+          393.31768798828125,
+          317.97894287109375
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_000333_T0_20260330",
+      "evidence_id": "CNINFO_000333_T0_20260330_REVENUE_2025",
+      "previous_row_sha256": "cb29e25dd7481420aa67715db4b51bf79bfa30f173f624d5a2ddd8d24cd9ac57",
+      "document_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+      "replacement": {
+        "case_id": "CNINFO_000333_T0_20260330",
+        "evidence_id": "CNINFO_000333_T0_20260330_REVENUE_2025",
+        "field_id": "revenue_2025",
+        "field_kind": "revenue",
+        "year": 2025,
+        "value": 456451731000.0,
+        "candidate": {
+          "page": 9,
+          "raw_value": 456451731.0,
+          "value": 456451731000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 9 页：主要会计数据 / 营业收入 / 2025年列",
+          "raw_excerpt": "营业收入（千元） 456,451,731 407,149,600 12.11% 372,037,280",
+          "adopted_line": "营业收入（千元） 456,451,731 407,149,600 12.11% 372,037,280",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            456451731.0,
+            407149600.0,
+            372037280.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            62.30400085449219,
+            622.2009887695312,
+            531.8290405273438,
+            632.1639404296875
+          ],
+          "amount_bbox": [
+            253.00999450683594,
+            622.2009887695312,
+            298.01898193359375,
+            632.1639404296875
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-000333-2025-16F95F70527D",
+        "disclosure_date": "2026-03-30",
+        "announcement_title": "2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+        "pdf_page": 9,
+        "print_page": null,
+        "locator": "PDF 第 9 页：主要会计数据 / 营业收入 / 2025年列",
+        "file_sha256": "16F95F70527DB59DCF2736F276A9479CF7EE917E5F71E4F6CBBE83ACBAD9F4B6",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入（千元） 456,451,731 407,149,600 12.11% 372,037,280",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          456451731.0,
+          407149600.0,
+          372037280.0
+        ],
+        "row_bbox": [
+          62.30400085449219,
+          622.2009887695312,
+          531.8290405273438,
+          632.1639404296875
+        ],
+        "amount_bbox": [
+          253.00999450683594,
+          622.2009887695312,
+          298.01898193359375,
+          632.1639404296875
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_000333_T0_20260330",
+      "evidence_id": "CNINFO_000333_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+      "previous_row_sha256": "0950453e6c315c7961285826e829494fd8dff154eae56f1a0f45c18b99c6e466",
+      "document_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+      "replacement": {
+        "case_id": "CNINFO_000333_T0_20260330",
+        "evidence_id": "CNINFO_000333_T0_20260330_ACCOUNTS_RECEIVABLE_2025",
+        "field_id": "accounts_receivable_2025",
+        "field_kind": "accounts_receivable",
+        "year": 2025,
+        "value": 40450097000.0,
+        "candidate": {
+          "page": 54,
+          "raw_value": 40450097.0,
+          "value": 40450097000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 54 页：资产及负债状况 / 应收账款 / 2025年列",
+          "raw_excerpt": "应收账款 40,450,097 6.64% 35,798,974 5.92% 0.72%",
+          "adopted_line": "应收账款 40,450,097 6.64% 35,798,974 5.92% 0.72%",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            40450097.0,
+            35798974.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "资产及负债状况"
+          ],
+          "statement_title": "资产及负债状况",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            59.784000396728516,
+            521.2510375976562,
+            418.5400085449219,
+            531.2139892578125
+          ],
+          "amount_bbox": [
+            143.05999755859375,
+            521.2510375976562,
+            183.6320037841797,
+            531.2139892578125
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-000333-2025-16F95F70527D",
+        "disclosure_date": "2026-03-30",
+        "announcement_title": "2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+        "pdf_page": 54,
+        "print_page": null,
+        "locator": "PDF 第 54 页：资产及负债状况 / 应收账款 / 2025年列",
+        "file_sha256": "16F95F70527DB59DCF2736F276A9479CF7EE917E5F71E4F6CBBE83ACBAD9F4B6",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 40,450,097 6.64% 35,798,974 5.92% 0.72%",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          40450097.0,
+          35798974.0
+        ],
+        "row_bbox": [
+          59.784000396728516,
+          521.2510375976562,
+          418.5400085449219,
+          531.2139892578125
+        ],
+        "amount_bbox": [
+          143.05999755859375,
+          521.2510375976562,
+          183.6320037841797,
+          531.2139892578125
+        ],
+        "statement_title": "资产及负债状况"
+      }
+    },
+    {
+      "case_id": "CNINFO_000333_T0_20260330",
+      "evidence_id": "CNINFO_000333_T0_20260330_REVENUE_2024",
+      "previous_row_sha256": "300a77c6ce41791ee4b5d13bcaf16722d9e4f42a79d4cd405b6b44380aaab5ab",
+      "document_sha256": "b17a9b9b84bca1d2a4e4a3cadc5dd5ba5c85e3f1fd2d758acd3315b5b040ecd9",
+      "replacement": {
+        "case_id": "CNINFO_000333_T0_20260330",
+        "evidence_id": "CNINFO_000333_T0_20260330_REVENUE_2024",
+        "field_id": "revenue_2024",
+        "field_kind": "revenue",
+        "year": 2024,
+        "value": 407149600000.0,
+        "candidate": {
+          "page": 9,
+          "raw_value": 407149600.0,
+          "value": 407149600000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 9 页：主要会计数据 / 营业收入 / 2024年列",
+          "raw_excerpt": "营业收入（千元） 407,149,600 372,037,280 9.44% 343,917,531",
+          "adopted_line": "营业收入（千元） 407,149,600 372,037,280 9.44% 343,917,531",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            407149600.0,
+            372037280.0,
+            343917531.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            56.7599983215332,
+            564.6189575195312,
+            526.3089599609375,
+            574.77392578125
+          ],
+          "amount_bbox": [
+            247.3699951171875,
+            564.8109741210938,
+            292.3789978027344,
+            574.77392578125
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-000333-2024-B17A9B9B84BC",
+        "disclosure_date": "2025-03-28",
+        "announcement_title": "2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222951181.PDF",
+        "pdf_page": 9,
+        "print_page": null,
+        "locator": "PDF 第 9 页：主要会计数据 / 营业收入 / 2024年列",
+        "file_sha256": "B17A9B9B84BCA1D2A4E4A3CADC5DD5BA5C85E3F1FD2D758ACD3315B5B040ECD9",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入（千元） 407,149,600 372,037,280 9.44% 343,917,531",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          407149600.0,
+          372037280.0,
+          343917531.0
+        ],
+        "row_bbox": [
+          56.7599983215332,
+          564.6189575195312,
+          526.3089599609375,
+          574.77392578125
+        ],
+        "amount_bbox": [
+          247.3699951171875,
+          564.8109741210938,
+          292.3789978027344,
+          574.77392578125
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_000333_T0_20260330",
+      "evidence_id": "CNINFO_000333_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+      "previous_row_sha256": "57ba4e0303ecc3a6c7aaf2f5e117ec5645018ad00fb9a6a717cb0fc97998bcfc",
+      "document_sha256": "b17a9b9b84bca1d2a4e4a3cadc5dd5ba5c85e3f1fd2d758acd3315b5b040ecd9",
+      "replacement": {
+        "case_id": "CNINFO_000333_T0_20260330",
+        "evidence_id": "CNINFO_000333_T0_20260330_ACCOUNTS_RECEIVABLE_2024",
+        "field_id": "accounts_receivable_2024",
+        "field_kind": "accounts_receivable",
+        "year": 2024,
+        "value": 35798974000.0,
+        "candidate": {
+          "page": 54,
+          "raw_value": 35798974.0,
+          "value": 35798974000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 54 页：资产及负债状况 / 应收账款 / 2024年列",
+          "raw_excerpt": "应收账款 35,798,974 5.92% 32,884,739 6.77% -0.85%",
+          "adopted_line": "应收账款 35,798,974 5.92% 32,884,739 6.77% -0.85%",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            35798974.0,
+            32884739.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "资产及负债状况"
+          ],
+          "statement_title": "资产及负债状况",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            58.08000183105469,
+            404.5909729003906,
+            416.8599853515625,
+            414.5539855957031
+          ],
+          "amount_bbox": [
+            141.3800048828125,
+            404.5909729003906,
+            181.95201110839844,
+            414.5539855957031
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-000333-2024-B17A9B9B84BC",
+        "disclosure_date": "2025-03-28",
+        "announcement_title": "2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222951181.PDF",
+        "pdf_page": 54,
+        "print_page": null,
+        "locator": "PDF 第 54 页：资产及负债状况 / 应收账款 / 2024年列",
+        "file_sha256": "B17A9B9B84BCA1D2A4E4A3CADC5DD5BA5C85E3F1FD2D758ACD3315B5B040ECD9",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 35,798,974 5.92% 32,884,739 6.77% -0.85%",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          35798974.0,
+          32884739.0
+        ],
+        "row_bbox": [
+          58.08000183105469,
+          404.5909729003906,
+          416.8599853515625,
+          414.5539855957031
+        ],
+        "amount_bbox": [
+          141.3800048828125,
+          404.5909729003906,
+          181.95201110839844,
+          414.5539855957031
+        ],
+        "statement_title": "资产及负债状况"
+      }
+    },
+    {
+      "case_id": "CNINFO_000333_T0_20260330",
+      "evidence_id": "CNINFO_000333_T0_20260330_REVENUE_2023",
+      "previous_row_sha256": "29e2b90554b51c836c75f2e178a01dae2f6b9cfa3c9dcf20847bebeec7516413",
+      "document_sha256": "22f4915d91ada74a37eab8d074aef4c15420f3b1a8b5f5bd5777c00f97d58b86",
+      "replacement": {
+        "case_id": "CNINFO_000333_T0_20260330",
+        "evidence_id": "CNINFO_000333_T0_20260330_REVENUE_2023",
+        "field_id": "revenue_2023",
+        "field_kind": "revenue",
+        "year": 2023,
+        "value": 372037280000.0,
+        "candidate": {
+          "page": 10,
+          "raw_value": 372037280.0,
+          "value": 372037280000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 10 页：主要会计数据 / 营业收入 / 2023年列",
+          "raw_excerpt": "营业收入（千元） 372,037,280 343,917,531 8.18% 341,233,208",
+          "adopted_line": "营业收入（千元） 372,037,280 343,917,531 8.18% 341,233,208",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年",
+            "2021年"
+          ],
+          "cell_values": [
+            372037280.0,
+            343917531.0,
+            341233208.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "主要会计数据"
+          ],
+          "statement_title": "主要会计数据",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            62.30400085449219,
+            497.4189758300781,
+            531.8290405273438,
+            507.573974609375
+          ],
+          "amount_bbox": [
+            253.00999450683594,
+            497.6109619140625,
+            298.01898193359375,
+            507.573974609375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-000333-2023-22F4915D91AD",
+        "disclosure_date": "2024-03-27",
+        "announcement_title": "2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219429374.PDF",
+        "pdf_page": 10,
+        "print_page": null,
+        "locator": "PDF 第 10 页：主要会计数据 / 营业收入 / 2023年列",
+        "file_sha256": "22F4915D91ADA74A37EAB8D074AEF4C15420F3B1A8B5F5BD5777C00F97D58B86",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "营业收入（千元） 372,037,280 343,917,531 8.18% 341,233,208",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年",
+          "2021年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          372037280.0,
+          343917531.0,
+          341233208.0
+        ],
+        "row_bbox": [
+          62.30400085449219,
+          497.4189758300781,
+          531.8290405273438,
+          507.573974609375
+        ],
+        "amount_bbox": [
+          253.00999450683594,
+          497.6109619140625,
+          298.01898193359375,
+          507.573974609375
+        ],
+        "statement_title": "主要会计数据"
+      }
+    },
+    {
+      "case_id": "CNINFO_000333_T0_20260330",
+      "evidence_id": "CNINFO_000333_T0_20260330_ACCOUNTS_RECEIVABLE_2023",
+      "previous_row_sha256": "7b873089a06ed7392ad5e72e21431a7c53e7a0589f108d3fb1f2f060d92069b9",
+      "document_sha256": "22f4915d91ada74a37eab8d074aef4c15420f3b1a8b5f5bd5777c00f97d58b86",
+      "replacement": {
+        "case_id": "CNINFO_000333_T0_20260330",
+        "evidence_id": "CNINFO_000333_T0_20260330_ACCOUNTS_RECEIVABLE_2023",
+        "field_id": "accounts_receivable_2023",
+        "field_kind": "accounts_receivable",
+        "year": 2023,
+        "value": 32884739000.0,
+        "candidate": {
+          "page": 56,
+          "raw_value": 32884739.0,
+          "value": 32884739000.0,
+          "unit": "千元",
+          "source_unit": "千元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 56 页：资产及负债状况 / 应收账款 / 2023年列",
+          "raw_excerpt": "应收账款 32,884,739 6.77% 28,237,973 6.68% 0.09%",
+          "adopted_line": "应收账款 32,884,739 6.77% 28,237,973 6.68% 0.09%",
+          "column_identity": "resolved_by_management_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            32884739.0,
+            28237973.0
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "资产及负债状况"
+          ],
+          "statement_title": "资产及负债状况",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            59.784000396728516,
+            452.8509521484375,
+            418.57000732421875,
+            462.81396484375
+          ],
+          "amount_bbox": [
+            143.05999755859375,
+            452.8509521484375,
+            183.6320037841797,
+            462.81396484375
+          ]
+        },
+        "unit": "元",
+        "source_unit": "千元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-000333-2023-22F4915D91AD",
+        "disclosure_date": "2024-03-27",
+        "announcement_title": "2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219429374.PDF",
+        "pdf_page": 56,
+        "print_page": null,
+        "locator": "PDF 第 56 页：资产及负债状况 / 应收账款 / 2023年列",
+        "file_sha256": "22F4915D91ADA74A37EAB8D074AEF4C15420F3B1A8B5F5BD5777C00F97D58B86",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 32,884,739 6.77% 28,237,973 6.68% 0.09%",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_management_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          32884739.0,
+          28237973.0
+        ],
+        "row_bbox": [
+          59.784000396728516,
+          452.8509521484375,
+          418.57000732421875,
+          462.81396484375
+        ],
+        "amount_bbox": [
+          143.05999755859375,
+          452.8509521484375,
+          183.6320037841797,
+          462.81396484375
+        ],
+        "statement_title": "资产及负债状况"
+      }
+    },
+    {
+      "case_id": "CNINFO_688111_T0_20260325",
+      "evidence_id": "CNINFO_688111_T0_20260325_REVENUE_2025",
+      "previous_row_sha256": "1c2b921349c89c7c99cd75ac9d2cae339e5e6eaeb01c035f76e753b8f25b9f7b",
+      "document_sha256": "bf6ade124527896edb1c1be6af04a7d6b4c0eb964de42a96a77db7dbc6cee281",
+      "replacement": {
+        "case_id": "CNINFO_688111_T0_20260325",
+        "evidence_id": "CNINFO_688111_T0_20260325_REVENUE_2025",
+        "field_id": "revenue_2025",
+        "field_kind": "revenue",
+        "year": 2025,
+        "value": 5928744673.06,
+        "candidate": {
+          "page": 109,
+          "raw_value": 5928744673.06,
+          "value": 5928744673.06,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 109 页：合并利润表 / 营业收入 / 2025年列",
+          "raw_excerpt": "其中：营业收入 七、61 5,928,744,673.06 5,120,838,798.82",
+          "adopted_line": "其中：营业收入 七、61 5,928,744,673.06 5,120,838,798.82",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            5928744673.06,
+            5120838798.82
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            89.63999938964844,
+            463.2962951660156,
+            531.1798706054688,
+            477.0066833496094
+          ],
+          "amount_bbox": [
+            357.0,
+            463.2962951660156,
+            430.3798828125,
+            477.0066833496094
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-688111-2025-BF6ADE124527",
+        "disclosure_date": "2026-03-25",
+        "announcement_title": "金山办公2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032227.PDF",
+        "pdf_page": 109,
+        "print_page": null,
+        "locator": "PDF 第 109 页：合并利润表 / 营业收入 / 2025年列",
+        "file_sha256": "BF6ADE124527896EDB1C1BE6AF04A7D6B4C0EB964DE42A96A77DB7DBC6CEE281",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 5,928,744,673.06 5,120,838,798.82",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          5928744673.06,
+          5120838798.82
+        ],
+        "row_bbox": [
+          89.63999938964844,
+          463.2962951660156,
+          531.1798706054688,
+          477.0066833496094
+        ],
+        "amount_bbox": [
+          357.0,
+          463.2962951660156,
+          430.3798828125,
+          477.0066833496094
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_688111_T0_20260325",
+      "evidence_id": "CNINFO_688111_T0_20260325_ACCOUNTS_RECEIVABLE_2025",
+      "previous_row_sha256": "03092c399919dd40db4c5fbf640c918dc4e1e0e89195cf489d86782646ccc48f",
+      "document_sha256": "bf6ade124527896edb1c1be6af04a7d6b4c0eb964de42a96a77db7dbc6cee281",
+      "replacement": {
+        "case_id": "CNINFO_688111_T0_20260325",
+        "evidence_id": "CNINFO_688111_T0_20260325_ACCOUNTS_RECEIVABLE_2025",
+        "field_id": "accounts_receivable_2025",
+        "field_kind": "accounts_receivable",
+        "year": 2025,
+        "value": 636321758.99,
+        "candidate": {
+          "page": 105,
+          "raw_value": 636321758.99,
+          "value": 636321758.99,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 105 页：合并资产负债表 / 应收账款 / 2025年列",
+          "raw_excerpt": "应收账款 七、5 636,321,758.99 504,567,059.92",
+          "adopted_line": "应收账款 七、5 636,321,758.99 504,567,059.92",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2025年",
+            "2024年"
+          ],
+          "cell_values": [
+            636321758.99,
+            504567059.92
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            100.31999969482422,
+            279.5773010253906,
+            530.8206176757812,
+            293.2876892089844
+          ],
+          "amount_bbox": [
+            344.7590026855469,
+            279.5773010253906,
+            410.3396301269531,
+            293.2876892089844
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-688111-2025-BF6ADE124527",
+        "disclosure_date": "2026-03-25",
+        "announcement_title": "金山办公2025年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032227.PDF",
+        "pdf_page": 105,
+        "print_page": null,
+        "locator": "PDF 第 105 页：合并资产负债表 / 应收账款 / 2025年列",
+        "file_sha256": "BF6ADE124527896EDB1C1BE6AF04A7D6B4C0EB964DE42A96A77DB7DBC6CEE281",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 636,321,758.99 504,567,059.92",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2025年",
+          "2024年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          636321758.99,
+          504567059.92
+        ],
+        "row_bbox": [
+          100.31999969482422,
+          279.5773010253906,
+          530.8206176757812,
+          293.2876892089844
+        ],
+        "amount_bbox": [
+          344.7590026855469,
+          279.5773010253906,
+          410.3396301269531,
+          293.2876892089844
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_688111_T0_20260325",
+      "evidence_id": "CNINFO_688111_T0_20260325_REVENUE_2024",
+      "previous_row_sha256": "9f3578238116e0df2e2f3b513fc44cb490c7b6dd0cab7fefbb4a8ead2a784603",
+      "document_sha256": "168fb9dcaaedb27756391912837ddb96098726829305d251a8f8bd64ee908848",
+      "replacement": {
+        "case_id": "CNINFO_688111_T0_20260325",
+        "evidence_id": "CNINFO_688111_T0_20260325_REVENUE_2024",
+        "field_id": "revenue_2024",
+        "field_kind": "revenue",
+        "year": 2024,
+        "value": 5120838798.82,
+        "candidate": {
+          "page": 130,
+          "raw_value": 5120838798.82,
+          "value": 5120838798.82,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 130 页：合并利润表 / 营业收入 / 2024年列",
+          "raw_excerpt": "其中：营业收入 七、61 5,120,838,798.82 4,555,968,287.39",
+          "adopted_line": "其中：营业收入 七、61 5,120,838,798.82 4,555,968,287.39",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            5120838798.82,
+            4555968287.39
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            95.54399871826172,
+            409.2989501953125,
+            526.0715942382812,
+            419.85894775390625
+          ],
+          "amount_bbox": [
+            343.6300048828125,
+            409.2989501953125,
+            427.76153564453125,
+            419.85894775390625
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-688111-2024-168FB9DCAAED",
+        "disclosure_date": "2025-03-19",
+        "announcement_title": "金山办公2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-20/1222847501.PDF",
+        "pdf_page": 130,
+        "print_page": null,
+        "locator": "PDF 第 130 页：合并利润表 / 营业收入 / 2024年列",
+        "file_sha256": "168FB9DCAAEDB27756391912837DDB96098726829305D251A8F8BD64EE908848",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 5,120,838,798.82 4,555,968,287.39",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          5120838798.82,
+          4555968287.39
+        ],
+        "row_bbox": [
+          95.54399871826172,
+          409.2989501953125,
+          526.0715942382812,
+          419.85894775390625
+        ],
+        "amount_bbox": [
+          343.6300048828125,
+          409.2989501953125,
+          427.76153564453125,
+          419.85894775390625
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_688111_T0_20260325",
+      "evidence_id": "CNINFO_688111_T0_20260325_ACCOUNTS_RECEIVABLE_2024",
+      "previous_row_sha256": "550674dd96095d777a0610aedf2b2590a732b3be7ca5d6bbc94b919db7f5761f",
+      "document_sha256": "168fb9dcaaedb27756391912837ddb96098726829305d251a8f8bd64ee908848",
+      "replacement": {
+        "case_id": "CNINFO_688111_T0_20260325",
+        "evidence_id": "CNINFO_688111_T0_20260325_ACCOUNTS_RECEIVABLE_2024",
+        "field_id": "accounts_receivable_2024",
+        "field_kind": "accounts_receivable",
+        "year": 2024,
+        "value": 504567059.92,
+        "candidate": {
+          "page": 126,
+          "raw_value": 504567059.92,
+          "value": 504567059.92,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 126 页：合并资产负债表 / 应收账款 / 2024年列",
+          "raw_excerpt": "应收账款 七、5 504,567,059.92 566,940,348.12",
+          "adopted_line": "应收账款 七、5 504,567,059.92 566,940,348.12",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2024年",
+            "2023年"
+          ],
+          "cell_values": [
+            504567059.92,
+            566940348.12
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            106.0999984741211,
+            278.97894287109375,
+            525.5877685546875,
+            289.5389404296875
+          ],
+          "amount_bbox": [
+            334.3900146484375,
+            278.97894287109375,
+            408.07769775390625,
+            289.5389404296875
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-688111-2024-168FB9DCAAED",
+        "disclosure_date": "2025-03-19",
+        "announcement_title": "金山办公2024年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-20/1222847501.PDF",
+        "pdf_page": 126,
+        "print_page": null,
+        "locator": "PDF 第 126 页：合并资产负债表 / 应收账款 / 2024年列",
+        "file_sha256": "168FB9DCAAEDB27756391912837DDB96098726829305D251A8F8BD64EE908848",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 504,567,059.92 566,940,348.12",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2024年",
+          "2023年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          504567059.92,
+          566940348.12
+        ],
+        "row_bbox": [
+          106.0999984741211,
+          278.97894287109375,
+          525.5877685546875,
+          289.5389404296875
+        ],
+        "amount_bbox": [
+          334.3900146484375,
+          278.97894287109375,
+          408.07769775390625,
+          289.5389404296875
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    },
+    {
+      "case_id": "CNINFO_688111_T0_20260325",
+      "evidence_id": "CNINFO_688111_T0_20260325_REVENUE_2023",
+      "previous_row_sha256": "d3d9493a288c0220c6d7dd42d4a2b95922c9315490946671fd017b36ca3e7903",
+      "document_sha256": "e07701bbf871a58308efc05126c25377e37f8cc917fbec6ab52530c557829dce",
+      "replacement": {
+        "case_id": "CNINFO_688111_T0_20260325",
+        "evidence_id": "CNINFO_688111_T0_20260325_REVENUE_2023",
+        "field_id": "revenue_2023",
+        "field_kind": "revenue",
+        "year": 2023,
+        "value": 4555968287.39,
+        "candidate": {
+          "page": 121,
+          "raw_value": 4555968287.39,
+          "value": 4555968287.39,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "营业收入",
+          "score": 100,
+          "locator": "PDF 第 121 页：合并利润表 / 营业收入 / 2023年列",
+          "raw_excerpt": "其中：营业收入 七、61 4,555,968,287.39 3,884,959,481.38",
+          "adopted_line": "其中：营业收入 七、61 4,555,968,287.39 3,884,959,481.38",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            4555968287.39,
+            3884959481.38
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并利润表"
+          ],
+          "statement_title": "合并利润表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            95.54399871826172,
+            630.62890625,
+            510.321533203125,
+            648.0289306640625
+          ],
+          "amount_bbox": [
+            315.6700134277344,
+            637.4689331054688,
+            399.8015441894531,
+            648.0289306640625
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "reported",
+        "document_id": "CNINFO-688111-2023-E07701BBF871",
+        "disclosure_date": "2024-03-20",
+        "announcement_title": "金山办公2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-21/1219361803.PDF",
+        "pdf_page": 121,
+        "print_page": null,
+        "locator": "PDF 第 121 页：合并利润表 / 营业收入 / 2023年列",
+        "file_sha256": "E07701BBF871A58308EFC05126C25377E37F8CC917FBEC6AB52530C557829DCE",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "其中：营业收入 七、61 4,555,968,287.39 3,884,959,481.38",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          4555968287.39,
+          3884959481.38
+        ],
+        "row_bbox": [
+          95.54399871826172,
+          630.62890625,
+          510.321533203125,
+          648.0289306640625
+        ],
+        "amount_bbox": [
+          315.6700134277344,
+          637.4689331054688,
+          399.8015441894531,
+          648.0289306640625
+        ],
+        "statement_title": "合并利润表"
+      }
+    },
+    {
+      "case_id": "CNINFO_688111_T0_20260325",
+      "evidence_id": "CNINFO_688111_T0_20260325_ACCOUNTS_RECEIVABLE_2023",
+      "previous_row_sha256": "392b6c2b5ce35eb41ca52480aa9dbce1c35c79d3d0d095ea3bea0ce32ee1f29d",
+      "document_sha256": "e07701bbf871a58308efc05126c25377e37f8cc917fbec6ab52530c557829dce",
+      "replacement": {
+        "case_id": "CNINFO_688111_T0_20260325",
+        "evidence_id": "CNINFO_688111_T0_20260325_ACCOUNTS_RECEIVABLE_2023",
+        "field_id": "accounts_receivable_2023",
+        "field_kind": "accounts_receivable",
+        "year": 2023,
+        "value": 566940348.12,
+        "candidate": {
+          "page": 117,
+          "raw_value": 566940348.12,
+          "value": 566940348.12,
+          "unit": "元",
+          "source_unit": "元",
+          "term": "应收账款",
+          "score": 100,
+          "locator": "PDF 第 117 页：合并资产负债表 / 应收账款 / 2023年列",
+          "raw_excerpt": "应收账款 七、5 566,940,348.12 496,791,515.39",
+          "adopted_line": "应收账款 七、5 566,940,348.12 496,791,515.39",
+          "column_identity": "resolved_by_statement_row_geometry",
+          "period_labels": [
+            "2023年",
+            "2022年"
+          ],
+          "cell_values": [
+            566940348.12,
+            496791515.39
+          ],
+          "adopted_cell_index": 0,
+          "page_hints": [
+            "合并资产负债表"
+          ],
+          "statement_title": "合并资产负债表",
+          "coordinate_orientation": "original",
+          "row_bbox": [
+            95.66400146484375,
+            486.1189270019531,
+            492.07769775390625,
+            496.6789245605469
+          ],
+          "amount_bbox": [
+            294.1700134277344,
+            486.1189270019531,
+            367.8576965332031,
+            496.6789245605469
+          ]
+        },
+        "unit": "元",
+        "source_unit": "元",
+        "currency": "CNY",
+        "statement_scope": "合并",
+        "field_basis": "net",
+        "document_id": "CNINFO-688111-2023-E07701BBF871",
+        "disclosure_date": "2024-03-20",
+        "announcement_title": "金山办公2023年年度报告",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-21/1219361803.PDF",
+        "pdf_page": 117,
+        "print_page": null,
+        "locator": "PDF 第 117 页：合并资产负债表 / 应收账款 / 2023年列",
+        "file_sha256": "E07701BBF871A58308EFC05126C25377E37F8CC917FBEC6AB52530C557829DCE",
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "raw_excerpt": "应收账款 七、5 566,940,348.12 496,791,515.39",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "human_review_history": [],
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate",
+        "extractor_version": "field_extraction_v2_statement_rows_20261009",
+        "column_identity": "resolved_by_statement_row_geometry",
+        "period_labels": [
+          "2023年",
+          "2022年"
+        ],
+        "adopted_cell_index": 0,
+        "cell_values": [
+          566940348.12,
+          496791515.39
+        ],
+        "row_bbox": [
+          95.66400146484375,
+          486.1189270019531,
+          492.07769775390625,
+          496.6789245605469
+        ],
+        "amount_bbox": [
+          294.1700134277344,
+          486.1189270019531,
+          367.8576965332031,
+          496.6789245605469
+        ],
+        "statement_title": "合并资产负债表"
+      }
+    }
+  ],
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

@@ -76,7 +76,7 @@ from .catalog import (
     sync_case_to_catalog,
 )
 from .cninfo import CNInfoClient, CNInfoError, prepare_report_years
-from .field_extraction import extract_cninfo_fields
+from .field_extraction import FIELD_EXTRACTION_VERSION, extract_cninfo_fields
 from .industry_gate import evaluate_industry_gate
 from .rag import export_chunks, prepare_index, retrieve, status as rag_status
 from .supabase_adapter import SupabaseError, get_supabase_client, supabase_enabled
@@ -516,8 +516,8 @@ def _cached_result(
         raise ValueError("缓存案例的 RAG 索引已过期，已关闭缓存复用。")
     if manifest.get("source_fingerprint") != cached.get("source_fingerprint"):
         raise ValueError("缓存来源指纹与当前 RAG 索引不一致，已关闭缓存复用。")
-    if cache_key.get("extractor_version") != "field_extraction_v1":
-        raise ValueError("缓存字段提取器版本不一致，已关闭缓存复用。")
+    fields_need_refresh = cache_key.get("extractor_version") != FIELD_EXTRACTION_VERSION
+    # 字段抽取升级不使已校验PDF与同指纹RAG失效；只重新扫描字段，禁止复用旧值。
     if cache_key.get("industry_gate_version") != gate.get("gate_version"):
         raise ValueError("缓存行业闸门版本不一致，已关闭缓存复用。")
     if cache_key.get("industry_rule_version") != gate.get("industry_rule_version"):
@@ -616,16 +616,11 @@ def _cached_result(
             "skipped_by_industry_gate": True,
         }
     else:
-        extraction = _cached_field_extraction(
-            workspace_root,
-            case_id,
-            rule_ids=list(request.get("rule_ids") or ["R1"]),
-            requested_years=years,
-            industry_family=specialized_rule,
-        )
+        extraction_reader = extract_cninfo_fields if fields_need_refresh else _cached_field_extraction
+        extraction = extraction_reader(workspace_root, case_id, rule_ids=list(request.get("rule_ids") or ["R1"]), requested_years=years, industry_family=specialized_rule)
     # 旧预热案例可能已经有专用字段和 specialized_available_years，但案例清单的
     # 通用 available_years 仍是空列表。缓存命中也要把同一份候选重新计算一次元数据，
-    # 否则页面年度筛选和后续运行会继续看见旧状态；这一步不重新读取 PDF。
+    # 否则页面年度筛选和后续运行会继续看见旧状态；版本一致时不用重读PDF，升级时重抽字段。
     if (
         specialized_rule
         and extraction.get("available_years") != case.get("available_years")

@@ -1351,6 +1351,8 @@ def update_cninfo_financial_fields(
             and previous_value == value
             and int(previous.get("candidate", {}).get("pdf_page", previous.get("pdf_page"))) == pdf_page
             and str(previous.get("document_id")) == document_id
+            and str(previous.get("source_unit") or previous.get("unit") or "") == str(row.get("source_unit") or row.get("unit") or "")
+            and str(previous.get("field_basis") or "") == str(row.get("field_basis") or "")
         )
         # 来源发生变化时必须重新待确认，不能把旧年报的签字带到新版本。
         human_review = (
@@ -1384,9 +1386,12 @@ def update_cninfo_financial_fields(
         # 历史记录追加保存，便于评审回看每次确认、修正和拒绝。
         human_review_history = (
             deepcopy(previous.get("human_review_history"))
-            if same_candidate and isinstance(previous.get("human_review_history"), list)
+            if previous and isinstance(previous.get("human_review_history"), list)
             else []
         )
+        if previous and not same_candidate:
+            # 新候选使本次决定回到待确认，但旧真人决定与旧金额必须仍可追溯。
+            human_review_history.append({"event": "source_candidate_changed", "previous_value": previous.get("value"), "previous_pdf_page": previous.get("pdf_page"), "previous_source_unit": previous.get("source_unit"), "previous_field_basis": previous.get("field_basis"), "previous_human_review": deepcopy(previous.get("human_review")), "new_candidate_requires_human_review": True})
         normalized.append(
             {
                 "case_id": case_id,
@@ -1418,6 +1423,16 @@ def update_cninfo_financial_fields(
                 "file_sha256": document["sha256"],
                 "source_review_status": accepted_review_status,
                 "extraction_method": str(row.get("extraction_method") or "pdf_text_heuristic_candidate")[:100],
+                "extractor_version": row.get("extractor_version") or "field_extraction_v1",
+                "column_identity": row.get("column_identity"),
+                "period_labels": deepcopy(row.get("period_labels") or []),
+                "cell_values": deepcopy(row.get("cell_values") or []),
+                "adopted_cell_index": row.get("adopted_cell_index"),
+                "row_bbox": deepcopy(row.get("row_bbox")),
+                "amount_bbox": deepcopy(row.get("amount_bbox")),
+                "statement_title": row.get("statement_title"),
+                "candidate_quality_issues": deepcopy(row.get("candidate_quality_issues") or []),
+                "source_conflicts": deepcopy(row.get("source_conflicts") or []),
                 "raw_excerpt": str(row.get("raw_excerpt") or "")[:1000],
                 "human_review": human_review,
                 "human_review_history": human_review_history,
@@ -1829,6 +1844,10 @@ _HUMAN_ACCEPTED_REVIEW_STATUSES = {
 def financial_field_candidate_quality_issues(row: dict[str, Any]) -> list[str]:
     """识别不能直接进入计算的自动候选；真人确认或更正可显式解除闸门。"""
 
+    # 来源版本冲突独立于旧人工状态，历史确认不能替代新发现冲突的处理。
+    conflicts = [str(item) for item in row.get("source_conflicts") or [] if str(item).strip()]
+    if conflicts:
+        return conflicts
     review_status = str(row.get("source_review_status") or "").strip()
     if review_status in _HUMAN_ACCEPTED_REVIEW_STATUSES:
         return []
@@ -1849,6 +1868,8 @@ def financial_field_candidate_quality_issues(row: dict[str, Any]) -> list[str]:
     excerpt = re.sub(r"\s+", "", str(row.get("raw_excerpt") or row.get("excerpt") or ""))
 
     is_ratio = field_kind in _RATIO_FIELD_KINDS or str(row.get("unit") or "") == "%"
+    if source_unit not in _SOURCE_UNIT_MULTIPLIERS:
+        issues.append("自动候选的来源单位未明确，不能按默认单位进入计算。")
     column_identity = str(row.get("column_identity") or "")
     identity_resolved = column_identity.startswith("resolved")
     if is_automatic_candidate and not is_ratio and column_identity and not identity_resolved:

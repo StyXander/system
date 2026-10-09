@@ -21,6 +21,7 @@ fs.mkdirSync(out, { recursive: true });
     try {
       await page.goto(base, { waitUntil: 'networkidle' });
       await page.locator('#demo-enter-workspace').click();
+      await page.screenshot({ path: path.join(out, `工作台首屏_${width}x${height}.png`) });
       await page.locator('#demo-secondary-menu summary').click();
       await page.locator('#demo-open-live-sample').click();
       await page.waitForFunction(() => document.querySelectorAll('#demo-expanded-cases button').length === 8);
@@ -94,7 +95,13 @@ fs.mkdirSync(out, { recursive: true });
       await page.keyboard.press('Escape');
       record.escapeClosed = await page.locator('#demo-live-sample-drawer').evaluate(el => !el.open);
       record.focusRestored = await page.locator('#demo-secondary-menu summary').evaluate(el => document.activeElement === el);
-      record.passed = !record.overflow.page && !record.overflow.drawer && errors.length === 0 && failedRequests.length === 0 && httpErrors.length === 0 && record.metricLabelWidth >= 100 && record.structuredRows > 0 && record.oldReportsCleared && record.expandedCount === 8 && record.ambiguousCount > 1 && record.unconfirmedDisabled && record.snapshotEnabled && record.sharedCutoffBlocked && record.escapeClosed && record.focusRestored && record.keyboardConfirmed && record.reportLinks.length > 0 && !(record.axe.violations || []).length;
+      if (!record.axe.unavailable) {
+        record.workbenchAxe = await page.evaluate(async () => {
+          const result = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } });
+          return { violations: result.violations.map(v => ({ id: v.id, impact: v.impact, targets: v.nodes.map(n => n.target) })), incomplete: result.incomplete.map(v => v.id) };
+        });
+      }
+      record.passed = !record.overflow.page && !record.overflow.drawer && errors.length === 0 && failedRequests.length === 0 && httpErrors.length === 0 && record.metricLabelWidth >= 100 && record.structuredRows > 0 && record.oldReportsCleared && record.expandedCount === 8 && record.ambiguousCount > 1 && record.unconfirmedDisabled && record.snapshotEnabled && record.sharedCutoffBlocked && record.escapeClosed && record.focusRestored && record.keyboardConfirmed && record.reportLinks.length > 0 && !(record.axe.violations || []).length && !(record.workbenchAxe?.violations || []).length;
     } catch (error) { record.failure = error.message; record.passed = false; await page.screenshot({ path: path.join(out, `失败_${width}.png`) }); }
     results.push(record);
     await context.close();

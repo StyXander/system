@@ -71,6 +71,7 @@ FIELD_CONFIG: dict[str, dict[str, Any]] = {
     },
 }
 FIELD_CONFIG.update(SPECIALIZED_FIELD_CONFIG)
+FIELD_EXTRACTION_VERSION = "field_extraction_v2_statement_rows_20261009"
 # 数字解析只服务于候选生成，任何候选都必须带原文窗口和 PDF 页码。
 NUMBER_PATTERN = re.compile(r"(?<![\d.])[-−]?(?:\(?\d[\d,]*(?:\.\d+)?\)?)(?![\d.])")
 # 兼容“单位：亿元”“单位：人民币亿元”“单位：百万元”和“人民币百万元”等常见表头。
@@ -132,6 +133,9 @@ def _scan_number_cells(
     candidates: list[tuple[float, str]] = []
     for offset, original_line in enumerate(window_lines):
         line = original_line
+        # 新科目意味着本行结束，不能借下一行金额补齐当前字段的期间列。
+        if offset and re.search(r"[\u4e00-\u9fff]", line) and not NOTE_REFERENCE_PATTERN.fullmatch(re.sub(r"\s+", "", line)):
+            break
         # 关键词前的同行金额属于上一行，关键词后的附注编号也不是字段金额。
         if offset == 0 and term and term in line:
             line = line[line.find(term) + len(term) :]
@@ -244,6 +248,10 @@ def _find_page_candidate(
             for line_index, line in enumerate(lines):
                 if term not in line:
                     continue
+                if not is_ratio and not _is_field_label(line, term):
+                    # “应收账款增加594亿元”属于叙述；“偿还应收账款保理融资款”
+                    # 也不是应收账款科目。关键词出现不能替代同一报表行的绑定。
+                    continue
                 scanned = _scan_number_cells(lines, line_index, term=term, allow_percent=is_ratio)
                 if not scanned:
                     continue
@@ -297,6 +305,128 @@ def _find_page_candidate(
         return None
     ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
     return ranked[0][2]
+
+
+def _is_field_label(line: str, term: str) -> bool:
+    """仅接受科目标题及其数字单元格，拒绝包含关键词的说明句。"""
+
+    compact = re.sub(r"\s+", "", line)
+    compact = re.sub(r"^(?:[一二三四五六七八九十]+[、.．]|其中[:：]|[（(]\d+[）)])", "", compact)
+    if not compact.startswith(term):
+        return False
+    tail = compact[len(term):]
+    tail = re.sub(r"[（(](?:人民币)?(?:亿元|百万元|万元|千元|元)[）)]", "", tail)
+    tail = re.sub(r"(?:[一二三四五六七八九十百千万]+[、.．]\d{1,3}|[（(][一二三四五六七八九十百千万]+[）)]\d{1,3})", "", tail)
+    return not re.search(r"[\u4e00-\u9fff]", tail.replace("附注", ""))
+
+
+def _find_statement_candidate(pdf: Any, config: dict[str, Any], report_year: int, *, management: bool = False) -> dict[str, Any] | None:
+    """按真实报表行坐标与期间列取值，合并报表优先，母公司表不混入。
+
+    只处理本次已校验PDF的文本层；坐标、列身份与单位不完整时交回候选缺口，
+    不用企业规模、金额大小或人工状态代替来源判断。
+    """
+
+    terms = config["terms"]
+    title = "合并资产负债表" if "应收账款" in terms else "合并利润表" if terms == ["营业收入"] else None
+    if title is None:
+        return None
+    for page_index, page in enumerate(pdf):
+        text = page.get_text("text")
+        compact = re.sub(r"\s+", "", text)
+        titles = (["资产及负债状况", "资产构成重大变动"] if "应收账款" in terms else ["主要会计数据", "主要财务指标"]) if management else [title]
+        active_title = next((t for t in titles if t in compact), None)
+        if not active_title and not management and page_index and title in re.sub(r"\s+", "", pdf[page_index - 1].get_text("text")[-600:]) and "母公司" not in compact:
+            active_title = title + "（跨页）"
+        if not active_title:
+            continue
+        statement_start = text.find(title)
+        unit_name, multiplier = _unit(text[statement_start:] if statement_start >= 0 and not management else text)
+        if not unit_name:
+            continue
+        words = page.get_text("words")
+        # 少数年报把横表以旋转文字嵌入竖页，按文本方向统一行列坐标。
+        directions = [line.get("dir", (1, 0)) for block in page.get_text("dict")["blocks"] if "lines" in block for line in block["lines"]]
+        rotated = sum(d[1] < -0.9 for d in directions) > len(directions) / 2
+        if rotated:
+            matrix = fitz.Matrix(0, 1, -1, 0, page.rect.height, 0)
+            words = [(*tuple(fitz.Rect(w[:4]) * matrix), *w[4:]) for w in words]
+        # 同一视觉行的文字合并后检查科目；单位标题与段落不能成为字段行。
+        lines: list[list[Any]] = []
+        for word in sorted(words, key=lambda w: ((w[1] + w[3]) / 2, w[0])):
+            center = (word[1] + word[3]) / 2
+            group = next((row for row in reversed(lines[-4:]) if abs(center - (row[0][1] + row[0][3]) / 2) <= 8), None)
+            if group is None:
+                lines.append([word])
+            else:
+                group.append(word)
+        for row in lines:
+            row.sort(key=lambda w: w[0])
+            row_text = " ".join(w[4] for w in row)
+            label_text = " ".join(w[4] for w in row if w[0] < next((n[0] for n in row if NUMBER_PATTERN.fullmatch(n[4])), float("inf")))
+            term = next((t for t in terms if _is_field_label(label_text if management else row_text, t)), None)
+            if not term:
+                continue
+            y = (row[0][1] + row[0][3]) / 2
+            header_rows = []
+            for header in lines:
+                hy = (header[0][1] + header[0][3]) / 2
+                years = []
+                for position, w in enumerate(sorted(header, key=lambda w: w[0])):
+                    if re.fullmatch(r"(?:20\d{2})(?:年(?:度|末|初)?)?", w[4]):
+                        following = sorted(header, key=lambda w: w[0])[position + 1:position + 2]
+                        suffix = following[0][4] if following and following[0][4] in {"年初", "年末"} else ""
+                        years.append((*w[:4], w[4] + suffix, *w[5:]))
+                if hy < y and len(years) >= 2 and (len({re.search(r"20\d{2}", w[4])[0] for w in years}) >= 2 or (any("年初" in w[4] for w in years) and any("年末" in w[4] for w in years))):
+                    header_rows.append((hy, sorted(years, key=lambda w: w[0])))
+                elif hy < y and (management or re.search(fr"{report_year}年(?:12月31日|1[—\-至]12月|度)", compact)):
+                    # 报表日期明确且列头写“期末/期初”“本年/上年”时采用相对期间身份。
+                    relative = [w for w in header if re.fullmatch(r"(?:期末余额|期初余额|本年年末余额|上年年末余额|本年发生额|上年发生额|本期金额|上期金额|本期期末数|上期期末数)", w[4])]
+                    if len(relative) == 2 and any(w[4].startswith(("期末", "本年", "本期")) for w in relative) and any(w[4].startswith(("期初", "上年", "上期")) for w in relative):
+                        header_rows.append((hy, sorted(relative, key=lambda w: w[0])))
+            if not header_rows:
+                continue
+            columns = max(header_rows, key=lambda item: item[0])[1]
+            identities = [int(re.search(r"20\d{2}", w[4])[0]) - (1 if "年初" in w[4] else 0) if re.search(r"20\d{2}", w[4]) else report_year if w[4].startswith(("期末", "本年", "本期")) else report_year - 1 for w in columns]
+            if identities.count(report_year) != 1:
+                continue
+            amounts = [w for w in row if NUMBER_PATTERN.fullmatch(w[4]) and _number(w[4]) is not None]
+            # 期间列与金额一一对应；额外数字通常是附注号，不能猜着剔除。
+            centers = [(w[0] + w[2]) / 2 for w in columns]
+            first_column = centers[0] - (centers[1] - centers[0]) / 2
+            amounts = [w for w in amounts if (w[0] + w[2]) / 2 >= first_column]
+            if management and len(amounts) > len(columns):
+                # 管理表中间常夹占比、变动率；只有与年度金额列中心对齐的数可采用。
+                tolerance = max(20, min(b - a for a, b in zip(centers, centers[1:])) / 3)
+                aligned = []
+                for center in centers:
+                    matches = [w for w in amounts if abs((w[0] + w[2]) / 2 - center) <= tolerance]
+                    if len(matches) != 1:
+                        aligned = []
+                        break
+                    aligned.append(matches[0])
+                amounts = aligned
+            if len(amounts) != len(columns):
+                continue
+            selected = identities.index(report_year)
+            raw_value = _number(amounts[selected][4])
+            return {"page": page_index + 1, "raw_value": raw_value, "value": raw_value * multiplier,
+                    "unit": unit_name, "source_unit": unit_name, "term": term, "score": 100,
+                    "locator": f"PDF 第 {page_index + 1} 页：{active_title} / {term} / {report_year}年列",
+                    "raw_excerpt": row_text, "adopted_line": row_text,
+                    "column_identity": "resolved_by_management_row_geometry" if management else "resolved_by_statement_row_geometry", "period_labels": [str(v) + "年" for v in identities],
+                    "cell_values": [_number(w[4]) for w in amounts], "adopted_cell_index": selected,
+                    "page_hints": [active_title], "statement_title": active_title, "coordinate_orientation": "clockwise_90" if rotated else "original",
+                    "row_bbox": [min(w[0] for w in row), min(w[1] for w in row), max(w[2] for w in row), max(w[3] for w in row)],
+                    "amount_bbox": list(amounts[selected][:4])}
+    return None
+
+
+def find_financial_candidate(pdf: Any, pages: list[str], config: dict[str, Any], report_year: int) -> dict[str, Any] | None:
+    """合并原表优先，其次同年度管理表；仍不确定的候选保留缺口。"""
+    return (_find_statement_candidate(pdf, config, report_year)
+            or _find_statement_candidate(pdf, config, report_year, management=True)
+            or _find_page_candidate(pages, config, report_year=report_year))
 
 
 def _required_kinds(rule_ids: list[str], industry_family: str | None = None) -> tuple[set[str], set[str]]:
@@ -355,6 +485,7 @@ def extract_cninfo_fields(
             continue
         try:
             pages = [page.get_text("text") for page in pdf]
+            statement_candidates = {kind: find_financial_candidate(pdf, pages, FIELD_CONFIG[kind], report_year) for kind in sorted(required | optional) if kind in FIELD_CONFIG}
         finally:
             pdf.close()
         if sum(len(text.strip()) for text in pages) < 500:
@@ -372,7 +503,7 @@ def extract_cninfo_fields(
                 else:
                     optional_missing.append(message)
                 continue
-            candidate = _find_page_candidate(pages, config, report_year=report_year)
+            candidate = statement_candidates.get(kind) or _find_page_candidate(pages, config, report_year=report_year)
             if candidate is None:
                 if kind in required:
                     issues.append(f"{report_year}年缺少{kind}字段候选。")
@@ -407,7 +538,11 @@ def extract_cninfo_fields(
                     "period_labels": candidate["period_labels"],
                     "cell_values": candidate["cell_values"],
                     "adopted_cell_index": candidate["adopted_cell_index"],
+                    "row_bbox": candidate.get("row_bbox"),
+                    "amount_bbox": candidate.get("amount_bbox"),
+                    "statement_title": candidate.get("statement_title"),
                     "extraction_method": "pdf_text_heuristic_candidate",
+                    "extractor_version": FIELD_EXTRACTION_VERSION,
                     "source_review_status": "auto_extracted_pending_human_page_confirmation",
                     }
                 )

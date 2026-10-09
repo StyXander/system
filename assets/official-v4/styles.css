@@ -106,6 +106,14 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
 
+/* 决赛整改：首屏交付价值和金额背景采用既有纸面语言，不改变操作颜色。 */
+.demo-business-intro { padding: 16px 0; max-width: 72ch; }
+.demo-business-intro h3 { margin: 8px 0; font-size: clamp(19px, 2.1vw, 25px); line-height: 1.4; }
+.demo-business-intro p, .demo-quality-boundary { line-height: 1.7; }
+.demo-quality-boundary { font-size: 13px; color: var(--text-secondary, #495568); }
+.demo-business-context { padding: 16px; border-left: 3px solid var(--cobalt, #2458c8); background: #f3f6fb; line-height: 1.8; overflow-wrap: anywhere; }
+.demo-case-boundary summary { cursor: pointer; padding: 8px 0; }
+
 *,
 *::before,
 *::after {

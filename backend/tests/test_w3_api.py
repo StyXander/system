@@ -95,6 +95,8 @@ def test_public_demo_limits_only_anonymous_model_calls(monkeypatch: pytest.Monke
     monkeypatch.setenv("AUDITTRACE_MODEL_RUN_LIMIT", "1")
     monkeypatch.setenv("AUDITTRACE_MODEL_RUN_GLOBAL_LIMIT", "10")
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    # 本测试只验证缺Key下的限额分支；套件禁止真实外部连接，不依赖操作者运行开关。
+    monkeypatch.setenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true")
     with main_module._PUBLIC_MODEL_REQUEST_LOCK:
         main_module._PUBLIC_MODEL_REQUESTS_BY_IP.clear()
         main_module._PUBLIC_MODEL_REQUESTS_GLOBAL.clear()

@@ -580,8 +580,8 @@
     } else if (typeof quality.success_rate === "number") {
       qualityFact.textContent = `${Math.round(quality.success_rate * 100)}%（${quality.success_count}/${quality.sample_count}）`;
       qualityFact.title = quality.alert
-        ? `警告：最近 ${quality.sample_count} 次真实外部三 Agent 完整运行成功率低于 80%。`
-        : `最近 ${quality.sample_count} 次真实外部三 Agent 完整运行成功率。`;
+        ? `警告：最近 ${quality.sample_count} 次模型链完成率低于 80%；含内部修正，业务正确性另行评价。`
+        : `最近 ${quality.sample_count} 次模型链最终完成率；${quality.includes_retries === false ? "台账不含修正重试" : "含内部修正，首次通过率另计"}；小样本，不能代表业务准确率或长期稳定性。`;
     } else {
       qualityFact.textContent = "不可读";
       qualityFact.title = quality.boundary || "真实模型成功率暂不可读取。";
@@ -600,6 +600,7 @@
       ? "企业搜索与公告查询已开放。新企业可在本机接入；资料准备与完整模型分析分别选择，缺口和失败如实保留。"
       : "企业搜索与公告查询已开放。登记快照按站点权限体验；新企业下载、建库与分析需使用已授权本机或账户。";
     renderExpandedCases(bootstrap.expanded_cases || []);
+    byId("demo-quality-boundary").textContent = `仅统计真实三角色模型链最终完成；${quality.includes_retries === false ? "不含修正重试" : "含内部修正"}，不含预检、缓存与探测。业务正确性、人工采用和正式评分另行评价。${quality.model_id ? `模型：${quality.model_id}。` : ""}`;
     updateLiveSubmit();
   }
 
@@ -2378,6 +2379,12 @@
 
   function renderInnovationControls(run) {
     const context = run.context || {};
+    const r1 = (run.rule_results || []).find(row => row.rule_id === "R1");
+    const businessContext = byId("demo-r1-business-context");
+    businessContext.hidden = !r1;
+    businessContext.textContent = typeof r1?.metrics?.absolute_ar_change === "number"
+      ? `金额背景：应收账款绝对变动 ${formatMetricValue("absolute_ar_change", r1.metrics.absolute_ar_change)}；本年应收／收入 ${typeof r1.metrics.ar_to_revenue_current === "number" ? (r1.metrics.ar_to_revenue_current * 100).toFixed(3) + "%" : "缺口"}。${r1.metrics.materiality_assessment || "重要性尚未评定"}。增速信号需结合余额、口径与后续程序判断；年报金额仅支持披露事实，不能独立证实交易真实或款项可收回。`
+      : "当前字段或来源存在缺口，不能据此评价增速关系。先回查原表科目、年度、单位和截止日，再决定是否采用。";
     const bundle = run.evidence_bundle || {};
     const matrix = context.assertion_evidence_procedure_matrix || bundle.assertion_evidence_procedure_matrix || [];
     const coverageList = byId("demo-coverage-list");
@@ -2388,7 +2395,7 @@
       return counts;
     }, {});
     byId("demo-coverage-note").textContent = matrix.length
-      ? `共 ${matrix.length} 个认定格：${coverageCounts.covered || 0} 已覆盖、${coverageCounts.partially_covered || 0} 部分覆盖、${coverageCounts.gap || 0} 存在缺口。`
+      ? `共 ${matrix.length} 个认定格：${coverageCounts.covered || 0} 已映射资料与程序、${coverageCounts.partially_covered || 0} 部分映射、${coverageCounts.gap || 0} 存在缺口。映射不代表已执行程序或已证实认定。`
       : "本次运行尚未形成认定—证据—程序矩阵。";
     matrix.slice(0, 6).forEach((row) => {
       const li = document.createElement("li");
@@ -3645,8 +3652,9 @@
     const structuredRows = structuredMetricRows(analysis);
     const hasStructuredAnalysis = Boolean(analysis.run_id) && structuredRows.length > 0;
     const reportYears = [...new Set([...(result.report_years || []), ...(result.documents || []).map((item) => item.report_year).filter(Boolean)])].sort((a, b) => Number(b) - Number(a));
-    const preparationOnly = task.request?.analysis_mode === "rag_only";
-    const resultHeading = hasStructuredAnalysis ? "现场样例已形成可验证结构化结果" : preparationOnly && task.status === "completed" ? "资料准备已完成，未请求完整模型分析" : "正在准备资料与结构化结果";
+    const snapshotPreview = task.persistence?.backend === "synchronous_preview";
+    const preparationOnly = snapshotPreview || task.request?.analysis_mode === "rag_only";
+    const resultHeading = snapshotPreview ? "登记快照预检完成 · 请查看数值或明确缺口" : hasStructuredAnalysis ? "现场样例已形成可验证结构化结果" : preparationOnly && task.status === "completed" ? "资料准备已完成，未请求完整模型分析" : "正在准备资料与结构化结果";
     const model = analysis.model_check || {};
     const modelSummary = analysis.run_id ? `${statusLabel(model.status || "not_recorded")} · 本次 ${model.provider_call_count ?? "未提供"} 次调用${model.execution_mode ? ` · ${statusLabel(model.execution_mode)}` : ""}` : "未请求";
     container.hidden = false;
@@ -3658,6 +3666,31 @@
     modelValue.textContent = modelSummary;
     modelRow.append(modelLabel, modelValue);
     container.querySelector("dl").append(modelRow);
+    if (analysis.run_id) {
+      const yearRow = document.createElement("div");
+      const label = document.createElement("dt");
+      label.textContent = "实际计算年度";
+      const value = document.createElement("dd");
+      value.textContent = `请求 ${analysis.context?.requested_current_year || analysis.context?.current_year || "—"}；实际 ${analysis.context?.analysis_cutoff_year || (r1HasNumbers(analysis) ? analysis.context?.current_year : null) || "尚无完整年度组合"}；资料截止日 ${analysis.context?.t0 || "—"}`;
+      yearRow.append(label, value);
+      container.querySelector("dl").append(yearRow);
+    }
+    if (snapshotPreview) {
+      const ragValue = container.querySelector("dl div:nth-child(5) dd");
+      if (ragValue) ragValue.textContent = "本次未执行检索；快照中的索引状态仅为历史登记";
+    }
+    const corrections = result.engineering_snapshot;
+    if (corrections) {
+      const note = document.createElement("p");
+      note.textContent = `工程更正版本 ${corrections.revision_id}；本次 ${corrections.corrected_fields?.length || 0} 条重新抽取候选，${corrections.source_date_conflicts?.length || 0} 份来源日期冲突。旧快照与截止日保留，专业采用仍待确认。`;
+      container.append(note);
+    }
+    const r1 = (analysis.rule_results || []).find(row => row.rule_id === "R1");
+    if (r1?.metrics && typeof r1.metrics.absolute_ar_change === "number") {
+      const note = document.createElement("p");
+      note.textContent = `金额背景：应收账款绝对变动 ${formatMetricValue("absolute_ar_change", r1.metrics.absolute_ar_change)}；本年应收／收入 ${typeof r1.metrics.ar_to_revenue_current === "number" ? (r1.metrics.ar_to_revenue_current * 100).toFixed(3) + "%" : "缺口"}。${r1.metrics.materiality_assessment || "重要性尚未评定"}。增速信号需结合金额、口径与后续程序判断。`;
+      container.append(note);
+    }
     tableBody.replaceChildren();
     if (hasStructuredAnalysis) {
       structuredRows.forEach((row) => {
@@ -3693,6 +3726,10 @@
       message.className = "status-banner danger";
       message.innerHTML = `<strong>任务状态读取失败</strong><span>${escapeHtml(error.message)}；任务没有被页面删除。</span>`;
     }
+  }
+
+  function r1HasNumbers(analysis) {
+    return (analysis.rule_results || []).some(row => row.rule_id === "R1" && typeof row.metrics?.growth_gap === "number");
   }
 
   async function startLiveSample(event) {
@@ -3777,10 +3814,15 @@
 
   function updateLiveSubmit() {
     const capability = demoState.bootstrap?.capabilities || {};
-    byId("demo-live-mode").querySelector('[value="full_analysis"]').disabled = !capability.onsite_live_sample && !capability.registered_sample_pipeline;
+    const selected = demoState.liveSample.selectedCompany;
+    const fullAllowed = Boolean(capability.onsite_live_sample || (capability.registered_sample_pipeline && selected?.seed_case_id && !byId("demo-live-cutoff").value));
+    byId("demo-live-mode").querySelector('[value="full_analysis"]').disabled = !fullAllowed;
+    if (!fullAllowed) byId("demo-live-mode").value = "rag_only";
+    byId("demo-live-mode").querySelector('[value="rag_only"]').textContent = !capability.onsite_live_sample && !capability.registered_sample_pipeline ? "登记快照预检（不下载、不检索、不调用模型）" : "准备资料与检索（不调用模型）";
     byId("demo-live-submit").disabled = demoState.liveSample.submitting || liveTaskIsActive(demoState.liveSample.task) || !liveAnalysisAllowed();
     byId("demo-live-submit").textContent = publicExpandedPreview() ? "运行登记快照预检（不调用模型）" : "开始处理";
     byId("demo-live-submit").title = liveAnalysisAllowed() ? "按所选处理方式运行" : "请确认企业及年度；当前站点可能只允许登记快照预检";
+    byId("demo-live-action-boundary").textContent = !selected ? "先搜索并点击候选确认企业；随后可查询官方公告。" : liveAnalysisAllowed() ? (publicExpandedPreview() ? "当前可运行登记快照预检。查询到的新公告不会自动替换快照；采用前需回查字段和截止日。" : "当前权限允许按所选方式处理；字段确认、事项采用和交付批准是不同操作。") : "当前可查询这家企业的官方公告。下载、建库和完整分析需在授权本机或账户进行；也可选择下方扩展快照体验。";
   }
 
   function confirmDiscoveredCompany(company, registered = false) {
@@ -3868,7 +3910,7 @@
     const cutoff = byId("demo-live-cutoff").value;
     byId("demo-report-search").disabled = true;
     byId("demo-report-results").replaceChildren();
-    byId("demo-report-status").textContent = `正在查询 ${year} 年报告公告…`;
+    byId("demo-report-status").textContent = `正在查询 ${year} 年报告公告…来源慢时会停止查询并保留未完成状态。`;
     try {
       const parameters = new URLSearchParams({ year });
       if (cutoff) parameters.set("source_cutoff_date", cutoff);
@@ -3876,7 +3918,7 @@
       const payload = await response.json();
       if (token !== demoState.liveSample.reportToken || identityToken !== demoState.liveSample.discoveryToken) return;
       if (!response.ok) throw new Error(discoveryError(payload, response.status));
-      byId("demo-report-status").textContent = `${payload.selected ? "找到有效全文公告" : "截止日前未找到可用全文公告"}；资料截止日 ${payload.source_cutoff_date}。${payload.query_status?.truncated ? "分页达到上限，版本核验不完整。" : ""}${payload.boundary}`;
+      byId("demo-report-status").textContent = `${payload.selected ? "找到有效全文公告" : payload.query_status?.truncated ? "查询不完整，不能判断是否有全文" : "截止日前未找到可用全文公告"}；资料截止日 ${payload.source_cutoff_date}。${payload.query_status?.truncated ? "分页达到上限，版本核验不完整。" : ""}${payload.boundary}`;
       (payload.candidates || []).forEach((report) => {
         const link = document.createElement("a");
         // 来源即使来自后端，也只接受巨潮静态HTTPS原件，避免链接协议注入。
@@ -4024,7 +4066,7 @@
       const release = bootstrap.release || {};
       const releaseBoundary = release.competition_release_ready
         ? "当前发布事实已通过自动门禁；正式发布仍以最终人工批准为准。"
-        : `发布候选尚未完全放行（${release.release_status || "remediation_in_progress"}）；页面不会把历史评估或配置状态写成正式通过。`;
+        : "当前为整改候选，正式评分和最终人工批准仍待完成；可查看技术状态与实际运行结果。";
       if (!taskStoreReady) {
         setGate("warning", "正式任务台账暂不可用", `${continuity.boundary || "Supabase 演示任务台账暂不可读取。"} ${readiness.deterministic_backup_available ? "可以选择“启动确定性备用演示”继续展示完整流程。" : "请先恢复任务台账配置。"}`);
       } else if (!featuredReady) {

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from .rag import QUESTION_SET_VERSION, RETRIEVAL_VERSION, _get_question, _keyword_score, _tokens
+from .source_corrections import apply_public_corrections, source_document_date
 
 
 SEED_FILENAME = "cache_seed.materialized.json"
@@ -60,7 +61,7 @@ def load_seed_cases(workspace_root: Path) -> list[dict[str, Any]]:
         case.setdefault("financial_fields", [])
         case.setdefault("documents", [])
         case["seed_materialization"] = "verified_metadata_and_fields_no_pdf"
-        result.append(case)
+        result.append(apply_public_corrections(workspace_root, case))
     return result
 
 
@@ -126,7 +127,7 @@ def retrieve_seed_rag(
         deepcopy(item)
         for item in (case.get("demo_rag_evidence") or [])
         if isinstance(item, dict)
-        and str(item.get("disclosure_date") or "") <= t0
+        and source_document_date(case, str(item.get("document_id") or ""), str(item.get("disclosure_date") or "")) <= t0
         and (not question_id or item.get("question_id") == question_id)
     ]
     if not question_id:
@@ -135,6 +136,8 @@ def retrieve_seed_rag(
             item["score"] = round(_keyword_score(query_tokens, f"{item.get('title', '')} {item.get('excerpt', '')}"), 6)
         rows = [item for item in rows if float(item.get("score") or 0) > 0]
     for item in rows:
+        # 返回和过滤使用同一日期，避免旧演示片段冒充修正后的原件元数据。
+        item["disclosure_date"] = source_document_date(case, str(item.get("document_id") or ""), str(item.get("disclosure_date") or ""))
         score = float(item.get("score") or 0)
         item["low_confidence"] = score < 0.50
         item["confidence_note"] = "低置信候选，必须回原页复核。" if score < 0.50 else "候选片段仍须回原页复核。"

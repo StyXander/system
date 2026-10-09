@@ -130,7 +130,7 @@ def test_production_expanded_preview_cannot_start_import_or_model(monkeypatch):
         run_id = "RUN-TEST-PREVIEW"
         def model_dump(self, **kwargs):
             return {"run_id": self.run_id, "model_check": {"provider_call_count": 0}}
-    monkeypatch.setattr(main, "run_rules", lambda request, _: observed.append(request) or Result())
+    monkeypatch.setattr(main, "_run_rules_impl", lambda request, _, **kwargs: observed.append(request) or Result())
     def forbidden(*args, **kwargs):
         raise AssertionError("预检不得创建接入任务或要求登录")
     monkeypatch.setattr(main, "create_task", forbidden)
