@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from .rag import QUESTION_SET_VERSION, RETRIEVAL_VERSION, _get_question, _keyword_score, _tokens
-from .source_corrections import apply_public_corrections, source_document_date
+from .source_corrections import apply_public_corrections, source_document_date, read_versioned_public_json
 
 
 SEED_FILENAME = "cache_seed.materialized.json"
@@ -29,45 +29,61 @@ def _seed_path(workspace_root: Path) -> Path:
     return workspace_root / "backend" / SEED_FILENAME
 
 
-def load_seed_cases(workspace_root: Path) -> list[dict[str, Any]]:
+def _seed_items(workspace_root: Path) -> list[dict[str, Any]]:
     path = _seed_path(workspace_root)
     if not path.is_file():
         return []
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload, _ = read_versioned_public_json(path)
     except (OSError, json.JSONDecodeError):
         return []
     cases = payload.get("cases") if isinstance(payload, dict) else None
     if not isinstance(cases, list):
         return []
-    result: list[dict[str, Any]] = []
-    for item in cases:
+    return cases
+
+
+def _normalize_seed_case(workspace_root: Path, item: dict[str, Any]) -> dict[str, Any] | None:
+    """只复制调用方所需公开案例，缓存中的原始文件对象保持只读。"""
+    if not isinstance(item, dict):
+        return None
+    case_id = str(item.get("case_id") or "").strip().upper()
+    if not case_id.startswith("CNINFO_") or item.get("sample_type") != "public":
+        return None
+    if str(item.get("registry_mode") or "") != "cninfo_official_auto":
+        return None
+    case = deepcopy(item)
+    case["case_id"] = case_id
+    case["tenant_id"] = None
+    case.pop("owner_org_id", None)
+    case.pop("owner_user_id", None)
+    case.setdefault("case_scope", f"PUBLIC:{case_id}")
+    case.setdefault("source_review_status", "cninfo_fields_candidate_pending_human_professional_confirmation")
+    case.setdefault("financial_fields", [])
+    case.setdefault("documents", [])
+    case["seed_materialization"] = "verified_metadata_and_fields_no_pdf"
+    return apply_public_corrections(workspace_root, case)
+
+
+def load_seed_cases(workspace_root: Path) -> list[dict[str, Any]]:
+    result = []
+    for item in _seed_items(workspace_root):
         if not isinstance(item, dict):
             continue
-        case_id = str(item.get("case_id") or "").strip().upper()
-        if not case_id.startswith("CNINFO_") or item.get("sample_type") != "public":
-            continue
-        if str(item.get("registry_mode") or "") != "cninfo_official_auto":
-            continue
-        case = deepcopy(item)
-        # The seed is a global public scope.  Never let a copied JSON value turn
-        # it into a tenant-owned record or expose an old local owner.
-        case["case_id"] = case_id
-        case["tenant_id"] = None
-        case.pop("owner_org_id", None)
-        case.pop("owner_user_id", None)
-        case.setdefault("case_scope", f"PUBLIC:{case_id}")
-        case.setdefault("source_review_status", "cninfo_fields_candidate_pending_human_professional_confirmation")
-        case.setdefault("financial_fields", [])
-        case.setdefault("documents", [])
-        case["seed_materialization"] = "verified_metadata_and_fields_no_pdf"
-        result.append(apply_public_corrections(workspace_root, case))
+        case = _normalize_seed_case(workspace_root, item)
+        if case is not None:
+            result.append(case)
     return result
 
 
 def get_seed_case(workspace_root: Path, case_id: str) -> dict[str, Any] | None:
     normalized = str(case_id or "").strip().upper()
-    return next((case for case in load_seed_cases(workspace_root) if case.get("case_id") == normalized), None)
+    for item in _seed_items(workspace_root):
+        if isinstance(item, dict) and str(item.get("case_id") or "").strip().upper() == normalized:
+            case = _normalize_seed_case(workspace_root, item)
+            if case is not None:
+                return case
+    return None
 
 
 def seed_catalog_summary(workspace_root: Path) -> dict[str, Any]:

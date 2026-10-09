@@ -42,6 +42,39 @@ def test_retrieval_date_guard_blocks_stale_chunk_metadata():
     assert record["results"] == []
 
 
+def test_seed_single_lookup_does_not_correct_every_company(tmp_path, monkeypatch):
+    from backend.app import seed_catalog
+    case = base_case()
+    other = {**case, "case_id": "CNINFO_OTHER"}
+    (tmp_path / "backend").mkdir()
+    private = {**case, "sample_type": "private", "tenant_id": "other-tenant"}
+    (tmp_path / "backend/cache_seed.materialized.json").write_text(json.dumps({"cases": [private, other, case]}), encoding="utf-8")
+    seen = []
+    def correction(root, item):
+        seen.append(item["case_id"])
+        return item
+    monkeypatch.setattr(seed_catalog, "apply_public_corrections", correction)
+    found = seed_catalog.get_seed_case(tmp_path, case["case_id"])
+    assert found["case_id"] == case["case_id"]
+    assert seen == [case["case_id"]]
+    found["financial_fields"][0]["value"] = 999
+    assert seed_catalog.get_seed_case(tmp_path, case["case_id"])["financial_fields"][0]["value"] == 1
+
+
+def test_public_file_cache_invalidates_when_file_version_changes(tmp_path):
+    import os
+    from backend.app.source_corrections import read_versioned_public_json
+    path = tmp_path / "public.json"
+    path.write_text('{"version":1}', encoding="utf-8")
+    first, _ = read_versioned_public_json(path)
+    previous = path.stat().st_mtime_ns
+    path.write_text('{"version":2}', encoding="utf-8")
+    os.utime(path, ns=(previous + 1_000_000_000, previous + 1_000_000_000))
+    second, _ = read_versioned_public_json(path)
+    assert first == {"version": 1}
+    assert second == {"version": 2}
+
+
 def test_confirmed_official_date_replaces_metadata_without_moving_t0(tmp_path):
     case = base_case()
     (tmp_path / "backend").mkdir()

@@ -19,7 +19,8 @@ fs.mkdirSync(out, { recursive: true });
     page.on('response', res => { if (res.status() >= 400) httpErrors.push({ url: res.url(), status: res.status() }); });
     const record = { width, height, errors, failedRequests, httpErrors };
     try {
-      await page.goto(base, { waitUntil: 'networkidle' });
+      // 页面能操作后以真实业务控件判定准备完成，图片加载不作为企业搜索的前置条件。
+      await page.goto(base, { waitUntil: 'domcontentloaded' });
       await page.locator('#demo-enter-workspace').click();
       await page.screenshot({ path: path.join(out, `工作台首屏_${width}x${height}.png`) });
       await page.locator('#demo-secondary-menu summary').click();

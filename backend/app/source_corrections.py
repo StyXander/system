@@ -10,8 +10,27 @@ import hashlib
 import json
 import re
 from copy import deepcopy
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+
+@lru_cache(maxsize=16)
+def _read_public_json_version(path: Path, modified_ns: int, size: int) -> tuple[Any, bytes]:
+    """只缓存部署中的只读公开文件；调用方不修改返回对象。
+
+    文件版本作为键，更正文件换版立即重新读取；字段及原件的哈希绑定仍照常校验。
+    此缓存不接受用户上传、私有案例或真人写回记录，不能跨租户复用运行材料。
+    """
+    raw = path.read_bytes()
+    return json.loads(raw), raw
+
+
+def read_versioned_public_json(path: Path) -> tuple[Any, bytes]:
+    """避免每次取一个案例都反复解析全量台账，缺失或损坏仍由调用方处理。"""
+    path = path.resolve()
+    stat = path.stat()
+    return _read_public_json_version(path, stat.st_mtime_ns, stat.st_size)
 
 
 def row_fingerprint(row: dict[str, Any]) -> str:
@@ -43,14 +62,17 @@ def apply_public_corrections(root: Path, case: dict[str, Any]) -> dict[str, Any]
     corrected = deepcopy(case)
     corrections_path = root / "backend" / "source_corrections_20261009.json"
     try:
-        ledger_bytes = corrections_path.read_bytes()
-        ledger = json.loads(ledger_bytes)
+        ledger, ledger_bytes = read_versioned_public_json(corrections_path)
+        if not isinstance(ledger, dict):
+            raise ValueError("工程更正台账格式不正确")
     except (OSError, ValueError):
         ledger, ledger_bytes = {}, b""
     entries = [e for e in ledger.get("entries", []) if e.get("case_id") == case.get("case_id")]
     try:
-        date_bytes = (root / "backend/source_date_verifications_20261009.json").read_bytes()
-        date_records = json.loads(date_bytes).get("verifications", [])
+        date_payload, date_bytes = read_versioned_public_json(root / "backend/source_date_verifications_20261009.json")
+        if not isinstance(date_payload, dict):
+            raise ValueError("日期核验台账格式不正确")
+        date_records = date_payload.get("verifications", [])
     except (OSError, ValueError):
         date_records, date_bytes = [], b""
     documents = {d["document_id"]: d for d in corrected.get("documents", [])}
