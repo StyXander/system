@@ -2618,6 +2618,9 @@
 
   function selectDemoCase(caseId, { fromHistory = false } = {}) {
     if (demoState.phase === "running") return;
+    // 启动快照尚未返回时，历史事件不能把“目录加载中”误报为未知案例。
+    // loadBootstrap完成后会按当前URL选择案例，期间保留用户请求和等待状态。
+    if (!demoState.bootstrap || !demoState.caseIndex.size) return;
     if (!demoState.caseIndex.has(caseId)) {
       showToast("未知案例，已回退默认案例。", "warning");
       caseId = demoState.bootstrap?.featured_case_ids?.[0] || demoState.cases[0]?.case_id;

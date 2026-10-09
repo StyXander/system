@@ -22,6 +22,8 @@ fs.mkdirSync(out, { recursive: true });
       // 页面能操作后以真实业务控件判定准备完成，图片加载不作为企业搜索的前置条件。
       await page.goto(base, { waitUntil: 'domcontentloaded' });
       await page.locator('#demo-enter-workspace').click();
+      await page.waitForFunction(() => document.querySelectorAll('#demo-featured-cases button').length >= 3);
+      record.earlyEntryUnknownCaseNotice = (await page.locator('body').innerText()).includes('未知案例，已回退默认案例');
       await page.screenshot({ path: path.join(out, `工作台首屏_${width}x${height}.png`) });
       await page.locator('#demo-secondary-menu summary').click();
       await page.locator('#demo-open-live-sample').click();
@@ -102,7 +104,7 @@ fs.mkdirSync(out, { recursive: true });
           return { violations: result.violations.map(v => ({ id: v.id, impact: v.impact, targets: v.nodes.map(n => n.target) })), incomplete: result.incomplete.map(v => v.id) };
         });
       }
-      record.passed = !record.overflow.page && !record.overflow.drawer && errors.length === 0 && failedRequests.length === 0 && httpErrors.length === 0 && record.metricLabelWidth >= 100 && record.structuredRows > 0 && record.oldReportsCleared && record.expandedCount === 8 && record.ambiguousCount > 1 && record.unconfirmedDisabled && record.snapshotEnabled && record.sharedCutoffBlocked && record.escapeClosed && record.focusRestored && record.keyboardConfirmed && record.reportLinks.length > 0 && !(record.axe.violations || []).length && !(record.workbenchAxe?.violations || []).length;
+      record.passed = !record.earlyEntryUnknownCaseNotice && !record.overflow.page && !record.overflow.drawer && errors.length === 0 && failedRequests.length === 0 && httpErrors.length === 0 && record.metricLabelWidth >= 100 && record.structuredRows > 0 && record.oldReportsCleared && record.expandedCount === 8 && record.ambiguousCount > 1 && record.unconfirmedDisabled && record.snapshotEnabled && record.sharedCutoffBlocked && record.escapeClosed && record.focusRestored && record.keyboardConfirmed && record.reportLinks.length > 0 && !(record.axe.violations || []).length && !(record.workbenchAxe?.violations || []).length;
     } catch (error) { record.failure = error.message; record.passed = false; await page.screenshot({ path: path.join(out, `失败_${width}.png`) }); }
     results.push(record);
     await context.close();
