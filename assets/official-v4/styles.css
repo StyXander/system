@@ -5593,6 +5593,14 @@ mark {
 .demo-structured-table tbody tr { transition: background-color var(--at-fast) var(--at-ease); }
 .demo-structured-table tbody tr:hover { background: rgb(var(--at-line-rgb) / 6%); }
 
+/* 现场结果保留可读列宽；窄屏在表格容器内横向查看，指标名不挤成竖排。 */
+#demo-live-table-wrap .demo-structured-table { min-width: 960px; table-layout: fixed; }
+#demo-live-table-wrap th:nth-child(1) { width: 60px; }
+#demo-live-table-wrap th:nth-child(2) { width: 140px; }
+#demo-live-table-wrap th:nth-child(3) { width: 120px; }
+#demo-live-table-wrap th:nth-child(4) { width: 260px; }
+#demo-live-table-wrap th:nth-child(5) { width: 380px; }
+
 .demo-procedure-map,
 .demo-source-ledger,
 .demo-run-trace { border-top-color: var(--at-rule-soft); }

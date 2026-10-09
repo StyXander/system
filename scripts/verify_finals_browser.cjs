@@ -73,23 +73,28 @@ fs.mkdirSync(out, { recursive: true });
       record.sharedCutoffBlocked = await page.locator('#demo-live-submit').isDisabled();
       await page.locator('#demo-live-cutoff').fill('');
       await page.locator('#demo-live-cutoff').dispatchEvent('change');
-      if (width === 1440) {
+      {
         await page.locator('#demo-live-submit').click();
         await page.waitForFunction(() => ['需要人工确认', '处理完成', '处理失败'].some(label => document.querySelector('#demo-live-task-state').textContent.includes(label)), null, { timeout: 45000 });
         record.taskState = await page.locator('#demo-live-task-state').innerText();
         record.taskId = await page.locator('#demo-live-task-id').innerText();
         record.taskMessage = await page.locator('#demo-live-message').innerText();
         record.structuredRows = await page.locator('#demo-live-structured-table-body tr').count();
+        record.metricLabelWidth = (await page.locator('#demo-live-structured-table-body tr').first().locator('td').nth(1).boundingBox()).width;
+        await page.locator('#demo-live-task-state').scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(out, `真实预检_${width}x${height}.png`) });
+        await page.locator('#demo-live-table-wrap thead').scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(out, `结构化指标_${width}x${height}.png`) });
         const downloadPromise = page.waitForEvent('download');
         await page.locator('#demo-live-download-json').click();
         const download = await downloadPromise;
-        await download.saveAs(path.join(out, '浏览器扩展案例导出.json'));
+        await download.saveAs(path.join(out, width === 1440 ? '浏览器扩展案例导出.json' : `浏览器扩展案例导出_${width}.json`));
         record.downloaded = true;
       }
       await page.keyboard.press('Escape');
       record.escapeClosed = await page.locator('#demo-live-sample-drawer').evaluate(el => !el.open);
       record.focusRestored = await page.locator('#demo-secondary-menu summary').evaluate(el => document.activeElement === el);
-      record.passed = !record.overflow.page && !record.overflow.drawer && errors.length === 0 && failedRequests.length === 0 && httpErrors.length === 0 && record.oldReportsCleared && record.expandedCount === 8 && record.ambiguousCount > 1 && record.unconfirmedDisabled && record.snapshotEnabled && record.sharedCutoffBlocked && record.escapeClosed && record.focusRestored && record.keyboardConfirmed && record.reportLinks.length > 0 && !(record.axe.violations || []).length;
+      record.passed = !record.overflow.page && !record.overflow.drawer && errors.length === 0 && failedRequests.length === 0 && httpErrors.length === 0 && record.metricLabelWidth >= 100 && record.structuredRows > 0 && record.oldReportsCleared && record.expandedCount === 8 && record.ambiguousCount > 1 && record.unconfirmedDisabled && record.snapshotEnabled && record.sharedCutoffBlocked && record.escapeClosed && record.focusRestored && record.keyboardConfirmed && record.reportLinks.length > 0 && !(record.axe.violations || []).length;
     } catch (error) { record.failure = error.message; record.passed = false; await page.screenshot({ path: path.join(out, `失败_${width}.png`) }); }
     results.push(record);
     await context.close();
