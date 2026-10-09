@@ -5420,7 +5420,7 @@ def preview_expanded_case(ticker: str, http_request: Request) -> dict[str, Any]:
     # 年度、规则和运行方式由登记快照固定；请求不能扩大到下载或付费链。
     run = _run_rules_impl(RunRequest(case_id=item["case_id"], current_year=max(item["report_years"]), rule_ids=["R1"], run_mode="calculation_only"), http_request, source_case_override=seed)
     return _with_ai_notice({
-        "task_id": run.run_id, "status": "needs_human", "steps": {},
+        "task_id": run.run_id, "status": "completed", "steps": {},
         "request": {"analysis_mode": "snapshot_preview", "company_query": ticker},
         "persistence": {"backend": "synchronous_preview", "resume_supported": False},
         "boundary": "已完成登记快照确定性预检；编号为真实运行编号。未创建持久化接入任务，未检索新公告，未调用模型，正式采用前需人工复核。",
@@ -6404,8 +6404,7 @@ def _execute_demo_seed_pipeline(task_id: str, payload: dict[str, Any], http_requ
         task["result"] = result
         _save_task(WORKSPACE_ROOT, task)
         update_analysis_result(WORKSPACE_ROOT, task_id, run.model_dump(mode="json"))
-        task = load_task(WORKSPACE_ROOT, task_id) or task
-        _set_step(WORKSPACE_ROOT, task, "analysis_run", "passed", "公开样例已完成规则、RAG 和演示分析。", run_id=run.run_id, run_completeness=run.run_completeness)
+        # 终态和步骤由同一结果映射派生，不能把失败或计算预检覆盖成模型分析通过。
     except Exception as error:
         mark_analysis_failure(WORKSPACE_ROOT, task_id, error)
 

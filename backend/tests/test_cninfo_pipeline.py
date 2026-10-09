@@ -77,14 +77,14 @@ def test_pipeline_next_action_separates_incomplete_analysis_from_human_review(tm
             "run_completeness": "incomplete_model_transfer_not_allowed",
         },
     )
-    assert incomplete["status"] == "needs_human"
+    assert incomplete["status"] == "failed"
     assert incomplete["result"]["next_action"] == {
         "type": "inspect_incomplete_analysis",
         "label": "查看分析未完整原因",
         "target": "analysis",
         "requires_human_decision": False,
     }
-    assert incomplete["steps"]["analysis_run"]["status"] == "needs_human"
+    assert incomplete["steps"]["analysis_run"]["status"] == "failed"
     assert "不要求填写人工专业结论" in incomplete["steps"]["analysis_run"]["detail"]
 
     completed = update_analysis_result(
@@ -102,6 +102,28 @@ def test_pipeline_next_action_separates_incomplete_analysis_from_human_review(tm
         "target": "delivery_review",
         "requires_human_decision": True,
     }
+
+
+def test_requested_calculation_completes_without_model_or_human_confirmation(tmp_path: Path) -> None:
+    """复现美的默认资料模式：已有计算结果不应因未请求模型而等待真人。"""
+    for mode, expected in [("rag_only", "completed"), ("full_analysis", "failed")]:
+        task = create_task(tmp_path, {"company_query": "000333", "analysis_mode": mode})
+        result = update_analysis_result(tmp_path, task["task_id"], {
+            "run_id": "RUN-CALCULATION", "run_completeness": "incomplete_calculation_only",
+        })
+        assert result["status"] == expected
+        assert result["result"]["human_review_required"] is False
+        assert result["result"]["analysis"]["run_completeness"] == "incomplete_calculation_only"
+        assert result["steps"]["analysis_run"]["status"] == ("passed" if expected == "completed" else "failed")
+
+
+def test_analysis_orchestration_exception_is_retryable_failure(tmp_path: Path) -> None:
+    from backend.app.pipeline import mark_analysis_failure
+    task = create_task(tmp_path, {"company_query": "000333", "analysis_mode": "full_analysis"})
+    result = mark_analysis_failure(tmp_path, task["task_id"], RuntimeError("offline test"))
+    assert result["status"] == "failed"
+    assert result["steps"]["analysis_run"]["status"] == "failed"
+    assert queue_retry(tmp_path, task["task_id"])["status"] == "queued"
 
 
 def test_cninfo_client_filters_summary_and_validates_pdf() -> None:

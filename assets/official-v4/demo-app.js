@@ -86,6 +86,12 @@
     extracting_fields: "提取字段",
     analyzing: "执行分析",
     completed: "处理完成",
+    passed: "已完成",
+    passed_with_gaps: "已完成，有资料缺口",
+    pending: "等待执行",
+    none: "无程序信号",
+    ready: "已就绪",
+    passed_technical_with_gaps: "提取完成，有资料缺口",
     failed: "处理失败",
     cancelled: "已取消",
     expired: "任务结果已过期",
@@ -95,7 +101,7 @@
     cached_ready: "缓存资料已就绪",
     passed_technical_pending_human: "技术校验通过，建议人工复核",
     needs_human: "需要人工确认",
-    ready_for_analysis: "资料与分析已就绪",
+    ready_for_analysis: "资料已就绪，正在进入分析",
     rag_ready: "RAG 已就绪",
   };
 
@@ -240,6 +246,7 @@
       selectedCompany: null,
       discoveryToken: 0,
       reportToken: 0,
+      modeChosenByUser: false,
     },
   };
 
@@ -609,7 +616,8 @@
     if (snapshot.alert_kind && snapshot.alert_kind !== "threshold_breach") return;
     if (typeof snapshot.success_rate !== "number" || !Number.isFinite(snapshot.success_rate) || !(snapshot.sample_count > 0)) return;
     const rate = `${Math.round(snapshot.success_rate * 100)}%`;
-    showToast(`模型成功率告警：最近 ${snapshot.sample_count ?? 0} 次真实外部三 Agent 完整运行仅 ${rate}，低于 80%。失败码已保留，请暂停盲目重试并检查供应商。`, "error");
+    // 历史完成率持续显示在运行事实区，不用失败弹层遮住当前已完成的结果。
+    byId("demo-quality-boundary").textContent += ` 近期 ${snapshot.sample_count} 次模型链完成率 ${rate}，低于 80% 监测阈值；这是历史窗口统计，与当前任务是否完成分别记录。`;
   }
 
   function renderTechVersions() {
@@ -3595,7 +3603,8 @@
   function liveStatusKind(status) {
     if (["failed", "cancelled"].includes(status)) return "danger";
     if (["needs_human"].includes(status)) return "waiting";
-    if (["completed", "ready", "rag_ready", "ready_for_analysis"].includes(status)) return "success";
+    if (["completed", "passed", "ready", "rag_ready", "ready_for_analysis"].includes(status)) return "success";
+    if (status === "passed_with_gaps") return "waiting";
     return "pending";
   }
 
@@ -3624,14 +3633,19 @@
     });
     const message = byId("demo-live-message");
     const error = task.error || {};
-    const reviewDetail = task.status === "needs_human" && task.result
+    const analysis = task.result?.analysis;
+    const failedStep = (analysis?.agent_steps || []).find(step => step.status === "failed");
+    const failureDetail = task.status === "failed" && analysis
+      ? `${statusLabel(analysis.run_completeness)}${failedStep ? `；${failedStep.failure_code || "模型执行失败"}：${failedStep.detail || "请重试"}` : ""}。已有计算结果保留，可重新运行。`
+      : "";
+    const reviewDetail = ["needs_human", "failed"].includes(task.status) && task.result
       ? task.persistence?.backend === "synchronous_preview" ? task.boundary : `${task.result.next_action?.requires_human_decision === false ? "本次技术链尚未完整" : "本次处理已到达终态"}；${task.result.next_action?.label || "字段候选需要人工确认"}。${task.request?.analysis_mode === "rag_only" ? "当前为资料准备与计算预检，未执行完整模型分析。" : "正式采用前请回查年报页码与口径。"}`
       : "";
     const completionDetail = task.status === "completed"
-      ? "现场处理已完成；结构化结果可下载，正式采用前仍需人工复核原文、页码与口径。"
+      ? task.request?.analysis_mode === "rag_only" && !task.result?.analysis?.run_id ? "资料与检索准备完成。选择完整分析后再次运行即可自动进入分析。" : "本次处理已完成，结果可查看和下载。"
       : "";
     message.className = `status-banner ${liveStatusKind(task.status) === "danger" ? "danger" : liveStatusKind(task.status) === "waiting" ? "warning" : liveStatusKind(task.status) === "success" ? "success" : "neutral"}`;
-    message.innerHTML = `<strong>${escapeHtml(statusLabel(task.status))}</strong><span>${escapeHtml(error.message || reviewDetail || completionDetail || task.boundary || "正在处理真实公开样例；页面只展示后端返回的实际状态。")}</span>`;
+    message.innerHTML = `<strong>${escapeHtml(statusLabel(task.status))}</strong><span>${escapeHtml(error.message || failureDetail || reviewDetail || completionDetail || task.boundary || "正在处理真实公开样例；页面只展示后端返回的实际状态。")}</span>`;
     renderLiveResult(task);
   }
 
@@ -3693,6 +3707,32 @@
       const note = document.createElement("p");
       note.textContent = `金额背景：应收账款绝对变动 ${formatMetricValue("absolute_ar_change", r1.metrics.absolute_ar_change)}；本年应收／收入 ${typeof r1.metrics.ar_to_revenue_current === "number" ? (r1.metrics.ar_to_revenue_current * 100).toFixed(3) + "%" : "缺口"}。${r1.metrics.materiality_assessment || "重要性尚未评定"}。增速信号需结合金额、口径与后续程序判断。`;
       container.append(note);
+    }
+    // 现场任务已有真实模型正文时直接展示，避免只看到技术状态和数值而误以为没有结果。
+    const review = (analysis.agent_steps || []).find(step => step.role === "review" && step.status === "completed" && step.output)?.output;
+    if (review) {
+      const report = document.createElement("section");
+      report.className = "demo-live-analysis";
+      const title = document.createElement("h3");
+      title.textContent = review.draft_title || "本次分析结果";
+      const observation = document.createElement("p");
+      observation.textContent = review.draft_observation || review.reason_for_status || "";
+      report.append(title, observation);
+      if (review.requested_materials?.length) {
+        const heading = document.createElement("h4");
+        heading.textContent = "建议补充的资料";
+        const list = document.createElement("ul");
+        review.requested_materials.forEach(text => { const item = document.createElement("li"); item.textContent = text; list.append(item); });
+        report.append(heading, list);
+      }
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "查看质疑、反证、复核的实际过程";
+      const roles = document.createElement("div");
+      renderAgentCards(roles, analysis.agent_steps, analysis, { detail: false });
+      details.append(summary, roles);
+      report.append(details);
+      container.append(report);
     }
     tableBody.replaceChildren();
     if (hasStructuredAnalysis) {
@@ -3821,9 +3861,10 @@
     const fullAllowed = Boolean(capability.onsite_live_sample || (capability.registered_sample_pipeline && selected?.seed_case_id && !byId("demo-live-cutoff").value));
     byId("demo-live-mode").querySelector('[value="full_analysis"]').disabled = !fullAllowed;
     if (!fullAllowed) byId("demo-live-mode").value = "rag_only";
+    else if (!demoState.liveSample.modeChosenByUser && demoState.bootstrap?.model_readiness?.full_analysis_ready) byId("demo-live-mode").value = "full_analysis";
     byId("demo-live-mode").querySelector('[value="rag_only"]').textContent = !capability.onsite_live_sample && !capability.registered_sample_pipeline ? "登记快照预检（不下载、不检索、不调用模型）" : "准备资料与检索（不调用模型）";
     byId("demo-live-submit").disabled = demoState.liveSample.submitting || liveTaskIsActive(demoState.liveSample.task) || !liveAnalysisAllowed();
-    byId("demo-live-submit").textContent = publicExpandedPreview() ? "运行登记快照预检（不调用模型）" : "开始处理";
+    byId("demo-live-submit").textContent = publicExpandedPreview() ? "运行登记快照预检（不调用模型）" : byId("demo-live-mode").value === "full_analysis" ? "开始完整分析" : "准备资料与检索";
     byId("demo-live-submit").title = liveAnalysisAllowed() ? "按所选处理方式运行" : "请确认企业及年度；当前站点可能只允许登记快照预检";
     byId("demo-live-action-boundary").textContent = !selected ? "先搜索并点击候选确认企业；随后可查询官方公告。" : liveAnalysisAllowed() ? (publicExpandedPreview() ? "当前可运行登记快照预检。查询到的新公告不会自动替换快照；采用前需回查字段和截止日。" : "当前权限允许按所选方式处理；字段确认、事项采用和交付批准是不同操作。") : "当前可查询这家企业的官方公告。下载、建库和完整分析需在授权本机或账户进行；也可选择下方扩展快照体验。";
   }
@@ -4129,7 +4170,7 @@
     });
     ["demo-live-cutoff", "demo-live-latest-year", "demo-live-years"].forEach((id) => byId(id).addEventListener("input", invalidateReportSearch));
     byId("demo-live-cutoff").addEventListener("change", invalidateReportSearch);
-    byId("demo-live-mode").addEventListener("change", updateLiveSubmit);
+    byId("demo-live-mode").addEventListener("change", () => { demoState.liveSample.modeChosenByUser = true; updateLiveSubmit(); });
     byId("demo-live-sample-drawer").addEventListener("close", () => {
       byId("demo-secondary-menu").querySelector("summary").focus();
     });

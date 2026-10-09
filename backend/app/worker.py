@@ -38,7 +38,7 @@ from typing import Any, Callable
 
 from .auth import UserIdentity, attach_identity
 from .main import _execute_cninfo_task
-from .pipeline import load_task, materialize_task
+from .pipeline import analysis_task_status, load_task, materialize_task
 from .supabase_adapter import (
     SupabaseError,
     SupabaseLeaseLost,
@@ -245,13 +245,14 @@ def _analysis_checkpoint(
     if str(context.get("pipeline_task_id") or "").strip() != task_id:
         raise SupabaseError("分析 checkpoint 上下文未绑定当前任务。")
     run_completeness = str(analysis.get("run_completeness") or "")
-    terminal_status = "completed" if run_completeness.startswith("complete_") else "needs_human"
+    terminal_status = analysis_task_status(analysis, str(payload.get("analysis_mode") or "full_analysis"))
     pipeline_result = {
         "task_id": task_id,
         "status": terminal_status,
         "case_id": context.get("case_id"),
         "analysis": analysis,
-        "human_review_required": True,
+        "human_review_required": False,
+        "formal_adoption_requires_human_review": True,
         "checkpoint_recovered": True,
         "checkpoint_boundary": "分析运行已按 task_id 持久化；本次只修复队列终态，未重复调用模型。",
     }

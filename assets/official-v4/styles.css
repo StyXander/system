@@ -6716,3 +6716,22 @@ textarea {
 #demo-report-results { overflow-wrap: anywhere; }
 #demo-report-results a { display: block; padding: 12px 0; }
 @media (max-width: 640px) { .demo-discovery-grid { grid-template-columns: 1fr; } }
+/* 现场分析正文优先读结论，长角色过程按需展开；保留真实模型原文。 */
+.demo-live-analysis { border-top: 1px solid var(--at-rule); padding-top: 20px; }
+.demo-live-analysis h3 { margin: 0 0 12px; font-size: 21px; line-height: 1.45; }
+.demo-live-analysis h4 { margin: 18px 0 8px; font-size: 16px; }
+.demo-live-analysis p, .demo-live-analysis li { font-size: 16px; line-height: 1.8; overflow-wrap: anywhere; }
+.demo-live-analysis details { margin-top: 18px; }
+.demo-live-analysis summary { min-height: 44px; padding: 12px 0; font-size: 15px; cursor: pointer; }
+.demo-live-analysis details > div { display: grid; gap: 14px; }
+.demo-live-analysis details .demo-agent-card { min-width: 0; }
+/* 证据轴是辅助阅读栏，宽屏靠右收窄，让分析正文获得固定可用空间。 */
+@media (min-width: 1025px) {
+  .demo-analysis-layout { grid-template-columns: minmax(0, 1fr) 260px; }
+  .demo-evidence-axis { width: 260px; justify-self: end; padding: 24px 18px; }
+  .demo-evidence-axis h3 { margin-bottom: 22px; font-size: 21px; }
+  .demo-evidence-axis li { min-height: 88px; padding-left: 43px; }
+  .demo-evidence-axis li > span { width: 30px; height: 30px; }
+  .demo-evidence-axis li:not(:last-child)::after { top: 30px; left: 14px; }
+}
+.demo-evidence-axis li small { font-size: 14px; line-height: 1.65; }

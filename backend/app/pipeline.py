@@ -337,12 +337,12 @@ def mark_analysis_failure(workspace_root: Path, task_id: str, error: Exception) 
         raise ValueError("巨潮任务不存在。")
     payload = _error_payload(error)
     result = dict(task.get("result") or {})
-    result["status"] = "needs_human"
+    result["status"] = "failed"
     result["analysis"] = {"status": "failed", "error": payload, "run_completeness": "incomplete_analysis_orchestration"}
     task["result"] = result
     task["errors"] = list(task.get("errors") or []) + [{"at": _now(), **payload}]
     _set_step(workspace_root, task, "analysis_run", "failed", "完整分析 API 编排失败，未生成完成报告。", error=payload)
-    _set_status(workspace_root, task, "needs_human", result=result, error=payload)
+    _set_status(workspace_root, task, "failed", result=result, error=payload)
     return task
 
 
@@ -384,23 +384,17 @@ def _error_payload(error: Exception) -> dict[str, Any]:
 
 
 def _needs_human(error: Exception) -> bool:
-    """企业多候选、缺报、内容不符和字段不确定都由人工接管。"""
+    """只有需要选择企业或确认文档身份的分支要求用户作出选择。"""
 
     # 这些状态不是程序崩溃，而是需要人工确认来源或目标企业的业务分支。
     if not isinstance(error, CNInfoError):
         return False
     return error.code in {
         "COMPANY_AMBIGUOUS",
-        "COMPANY_NOT_FOUND",
-        "ANNUAL_REPORT_NOT_FOUND",
-        "ANNOUNCEMENT_DATE_INVALID",
-        "CNINFO_ACCESS_DENIED",
         "PDF_IDENTITY_MISMATCH",
         "PDF_NOT_ANNUAL_REPORT",
         "PDF_REPORT_YEAR_UNCONFIRMED",
         "PDF_IDENTITY_UNRESOLVED",
-        "PDF_PAGE_COUNT_INVALID",
-        "PDF_PARSE_FAILED",
     }
 
 
@@ -593,7 +587,8 @@ def _cached_result(
                 "documents": _cached_document_cards(case),
             },
             "analysis": None,
-            "human_review_required": True,
+            "human_review_required": False,
+            "formal_adoption_requires_human_review": True,
         }
         _set_status(workspace_root, task, "completed", result=result)
         return result
@@ -1130,7 +1125,8 @@ def run_ingestion(
                 "industry_gate": industry_gate,
                 "cache": cache_info,
                 "analysis": None,
-                "human_review_required": True,
+                "human_review_required": False,
+                "formal_adoption_requires_human_review": True,
             }
             _set_status(workspace_root, task, "completed", result=result)
             return result
@@ -1256,8 +1252,6 @@ def run_ingestion(
         payload = _error_payload(error)
         task["errors"] = list(task.get("errors") or []) + [{"at": _now(), **payload}]
         status = "needs_human" if _needs_human(error) else "failed"
-        if isinstance(error, CNInfoError) and error.code.startswith("FIELD_"):
-            status = "needs_human"
         _close_running_step_after_error(
             workspace_root,
             task,
@@ -1271,6 +1265,17 @@ def run_ingestion(
             cninfo.close()
 
 
+def analysis_task_status(analysis: dict[str, Any], analysis_mode: str) -> str:
+    """按用户请求判断任务是否完成，预检不以付费模型链为成功前提。"""
+    completeness = str(analysis.get("run_completeness") or "")
+    if completeness.startswith("complete_"):
+        return "completed"
+    # 保留原运行完整性，任务完成只表示所请求的确定性计算已返回。
+    if analysis_mode in {"rag_only", "snapshot_preview"} and completeness == "incomplete_calculation_only":
+        return "completed"
+    return "failed"
+
+
 def update_analysis_result(workspace_root: Path, task_id: str, analysis: dict[str, Any]) -> dict[str, Any]:
     """把现有 /api/runs 的真实结果挂回任务，不重新解释模型状态。"""
 
@@ -1281,8 +1286,11 @@ def update_analysis_result(workspace_root: Path, task_id: str, analysis: dict[st
     result = dict(task.get("result") or {})
     result["analysis"] = analysis
     run_completeness = str(analysis.get("run_completeness") or "")
-    if run_completeness.startswith("complete_"):
-        status = "completed"
+    status = analysis_task_status(analysis, str((task.get("request") or {}).get("analysis_mode") or "full_analysis"))
+    if status == "completed" and run_completeness == "incomplete_calculation_only":
+        detail = "已完成所请求的确定性计算预检，结果可查看和下载；未请求模型分析。"
+        next_action = {"type": "view_analysis_result", "label": "查看计算结果", "target": "analysis", "requires_human_decision": False}
+    elif status == "completed":
         detail = "完整分析 API 已返回真实运行记录；人工复核仍未替代。"
         next_action = {
             "type": "review_analysis_result",
@@ -1291,8 +1299,7 @@ def update_analysis_result(workspace_root: Path, task_id: str, analysis: dict[st
             "requires_human_decision": True,
         }
     else:
-        status = "needs_human"
-        detail = "分析 API 已返回，但完整性未通过或模型传输仍关闭；这是技术/许可状态，不要求填写人工专业结论。"
+        detail = "分析未完成：请查看运行失败原因并重试，不要求填写人工专业结论。"
         next_action = {
             "type": "inspect_incomplete_analysis",
             "label": "查看分析未完整原因",
@@ -1300,8 +1307,10 @@ def update_analysis_result(workspace_root: Path, task_id: str, analysis: dict[st
             "requires_human_decision": False,
         }
     result["status"] = status
+    result["human_review_required"] = False
+    result["formal_adoption_requires_human_review"] = True
     result["next_action"] = next_action
     task["result"] = result
-    _set_step(workspace_root, task, "analysis_run", "passed" if run_completeness.startswith("complete_") else "needs_human", detail, run_id=analysis.get("run_id"), run_completeness=run_completeness)
+    _set_step(workspace_root, task, "analysis_run", "passed" if status == "completed" else "failed", detail, run_id=analysis.get("run_id"), run_completeness=run_completeness)
     _set_status(workspace_root, task, status, result=result)
     return task
