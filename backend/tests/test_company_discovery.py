@@ -91,6 +91,35 @@ def test_seed_subset_never_resolves_fuzzy_identity():
     assert main._find_demo_seed_case("美的") is None
 
 
+def test_directory_failure_backoff_does_not_repeat_network(tmp_path, monkeypatch):
+    calls = []
+    def failure():
+        calls.append(1)
+        raise CNInfoError("CNINFO_NETWORK_ERROR", "来源不可用")
+    monkeypatch.setattr(discovery, "_fetch_directory", failure)
+    monkeypatch.setattr(discovery, "_directory_failures", OrderedDict())
+    clock = [100.0]
+    monkeypatch.setattr(discovery.time, "monotonic", lambda: clock[0])
+    for _ in range(2):
+        with pytest.raises(CNInfoError):
+            discovery.directory(tmp_path)
+    assert len(calls) == 1
+    clock[0] += 60
+    with pytest.raises(CNInfoError):
+        discovery.directory(tmp_path)
+    assert len(calls) == 2
+
+
+def test_directory_busy_is_bounded_instead_of_waiting_forever(tmp_path):
+    discovery._directory_lock.acquire()
+    try:
+        with pytest.raises(CNInfoError) as error:
+            discovery.directory(tmp_path)
+        assert error.value.code == "DISCOVERY_BUSY"
+    finally:
+        discovery._directory_lock.release()
+
+
 def test_production_expanded_preview_cannot_start_import_or_model(monkeypatch):
     """生产持久化模式也开放快照预检，不能借参数扩大为付费链或新企业导入。"""
     monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")

@@ -13,6 +13,7 @@ import re
 import threading
 import time
 from collections import OrderedDict, deque
+from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,7 @@ from .seed_catalog import load_seed_cases
 DIRECTORY_TTL = 86400
 EXPANDED_TICKERS = ("600276", "000333", "600588", "300015", "601668", "000002", "601398", "688111")
 _directory_lock = threading.Lock()
+_directory_failures: OrderedDict[str, tuple[float, str, str]] = OrderedDict()
 _rate_lock = threading.Lock()
 _request_windows: OrderedDict[str, deque[float]] = OrderedDict()
 _network_slots = threading.BoundedSemaphore(2)
@@ -70,11 +72,22 @@ def _snapshot_path(root: Path) -> Path:
     return root / "backend" / "runtime" / namespace / "company_discovery" / "directory.json"
 
 
+@contextmanager
+def _directory_refresh_guard():
+    """官方来源慢或失败时不让全部请求无限排队占满服务线程。"""
+    if not _directory_lock.acquire(timeout=1):
+        raise CNInfoError("DISCOVERY_BUSY", "官方企业目录正在更新，请稍后再试。")
+    try:
+        yield
+    finally:
+        _directory_lock.release()
+
+
 def directory(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """串行刷新目录，原子保存官方清单；过期快照最多降级使用七天。"""
 
     path = _snapshot_path(root)
-    with _directory_lock:
+    with _directory_refresh_guard():
         snapshot: dict[str, Any] = {}
         try:
             snapshot = json.loads(path.read_text(encoding="utf-8"))
@@ -100,11 +113,21 @@ def directory(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         if rows and age < DIRECTORY_TTL:
             return rows, {"status": "official_cache", "fetched_at": snapshot.get("fetched_at"), "age_seconds": round(age), "source_url": STOCK_LIST_URLS["szse"]}
         try:
+            recent_failure = _directory_failures.get(str(path))
+            if recent_failure and time.monotonic() < recent_failure[0]:
+                raise CNInfoError(recent_failure[1], recent_failure[2])
             companies = _fetch_directory()
         except CNInfoError as error:
+            # 失败退避固定六十秒，不因后续失败请求滑动延长；台账有界。
+            if not recent_failure or time.monotonic() >= recent_failure[0]:
+                _directory_failures[str(path)] = (time.monotonic() + 60, error.code, error.message)
+                _directory_failures.move_to_end(str(path))
+                while len(_directory_failures) > 32:
+                    _directory_failures.popitem(last=False)
             if rows and age < 7 * DIRECTORY_TTL:
                 return rows, {"status": "stale_official_cache", "fetched_at": snapshot.get("fetched_at"), "age_seconds": round(age), "source_url": STOCK_LIST_URLS["szse"], "failure_code": error.code, "boundary": "官方来源当前不可用，正在使用过期身份清单；年报可用性需重新核验。"}
             raise
+        _directory_failures.pop(str(path), None)
         snapshot = {"fetched_at_epoch": time.time(), "fetched_at": datetime.now(timezone.utc).isoformat(), "companies": companies}
         persistence = "saved"
         try:
