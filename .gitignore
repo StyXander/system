@@ -72,6 +72,9 @@ artifacts/
 !/scripts/check_chinese_comments.py
 !/scripts/verify_finals_company_search.py
 !/scripts/verify_finals_browser.cjs
+!/scripts/verify_review_workbench.cjs
+!/scripts/verify_review_search.cjs
+!/scripts/verify_review_runtime.py
 !/scripts/build_finals_handoff.py
 !/scripts/record_finals_backup.cjs
 !/scripts/freeze_evaluation_v3.py

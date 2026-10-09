@@ -166,7 +166,7 @@ def test_badge_model_keeps_provider_call_count_field() -> None:
 def test_report_uses_songti_body_and_heiti_headings(tmp_path: Path) -> None:
     """用户口径：正文宋体小四(12pt)、标题黑体三号(16pt)。
 
-    表格因密度用五号(10.5pt)，是对"正文小四"的登记例外，不在此断言。
+    最新口径无表格或次级标题字号例外。
     """
     from docx.shared import Pt as _Pt
 
@@ -187,3 +187,10 @@ def test_report_uses_songti_body_and_heiti_headings(tmp_path: Path) -> None:
     first = headings[0].runs[0]
     assert first.font.name == "黑体"
     assert first.font.size == _Pt(16)
+    assert all(run.font.name == "黑体" and run.font.size == _Pt(16) for p in headings for run in p.runs)
+    assert [p.text for p in headings if p.text.startswith("九、")] == ["九、人工复核说明"]
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    assert all(run.font.name == "宋体" and run.font.size == _Pt(12) for run in paragraph.runs)

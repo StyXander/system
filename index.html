@@ -9,9 +9,9 @@
   <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.13.20">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.14.1">
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.10.32" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.11.1" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -37,7 +37,7 @@
       <div class="cinematic-en-name" lang="en">AuditTrace</div>
       <p class="cinematic-tagline">
         面向会计师事务所<strong>审计计划阶段</strong>，交付预审风险备忘录、
-        <strong>Top 5 待核查事项</strong>与待索取资料清单；每项主张都绑定原文证据，再交由人作最终处理。
+        <strong>最多五项待核查事项</strong>与待索取资料清单；每项主张都绑定原文证据，再交由人作最终处理。
       </p>
       <div class="cinematic-actions">
         <a class="cinematic-enter" id="demo-enter-workspace" href="#workspace-root">进入评委演示</a>
@@ -62,7 +62,7 @@
           <span class="demo-positioning-outline">销售收款预审</span>
           <span class="demo-positioning-serif">审迹智链</span>
         </h2>
-        <p class="demo-positioning-summary">从冻结公开年报案例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿。评委可直接看到风险备忘录、Top 5 待核查事项、待索取资料清单，以及每条主张对应的证据编号和人工下一步。</p>
+        <p class="demo-positioning-summary">从冻结公开年报案例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿。评委可直接看到风险备忘录、最多五项待核查事项、待索取资料清单，以及每条主张对应的证据编号和人工下一步。</p>
         <div class="demo-positioning-actions">
           <a class="demo-positioning-enter" href="#workspace-root">进入证据工作台</a>
           <button class="demo-positioning-boundary" type="button" id="demo-positioning-boundary">查看方法与边界</button>
@@ -72,7 +72,7 @@
         <p class="folio">JUDGE CHECKLIST · 同源结构化交付</p>
         <ol>
           <li><span>01</span><div><strong>预审风险备忘录</strong><small>结论、理由与适用边界同屏呈现</small></div></li>
-          <li><span>02</span><div><strong>Top 5 待核查事项</strong><small>主张、关键数字与反证状态逐项留痕</small></div></li>
+          <li><span>02</span><div><strong>最多五项待核查事项</strong><small>主张、关键数字与反证状态逐项留痕</small></div></li>
           <li><span>03</span><div><strong>待索取资料清单</strong><small>明确哪些步骤必须由审计人员继续完成</small></div></li>
         </ol>
       </aside>
@@ -142,6 +142,62 @@
         <h3>先定位需核查的变化，再回到原文安排下一步</h3>
         <p>选择案例并开始预筛，获得风险备忘录、待核查事项和资料清单。金额与证据可回查，项目组决定是否采用及执行哪些程序。</p>
       </section>
+      <section class="demo-discovery-workbench" id="demo-live-sample-drawer" aria-labelledby="demo-live-sample-title">
+    <div class="dialog-head">
+      <div><h2 id="demo-live-sample-title">搜索企业，开始年报预筛</h2></div>
+    </div>
+    <div class="demo-drawer-body">
+      <p>输入企业名称或代码，确认身份后查看可运行的分析方式。</p>
+      <details class="demo-tech-section demo-expanded-section">
+        <summary id="demo-expanded-toggle"><span id="demo-expanded-title">新增 8 个扩展体验案例</span></summary>
+        <p>来自已登记公开快照，专业复核待完成；原 15 案冻结清单保持独立。</p>
+        <div id="demo-expanded-cases" class="demo-discovery-grid"></div>
+      </details>
+      <form class="demo-live-form" id="demo-live-sample-form">
+        <div class="demo-company-search-line"><label for="demo-live-company"><span>企业名称或股票代码</span><input id="demo-live-company" name="company_query" required maxlength="120" autocomplete="organization" placeholder="例如 000333 或 美的集团"></label><button class="button quiet" id="demo-company-search" type="button">搜索企业</button></div>
+        <details class="demo-analysis-settings"><summary>资料年度与分析设置</summary><div class="demo-settings-grid"><label for="demo-live-years"><span>年报数量</span><select id="demo-live-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
+        <label for="demo-live-latest-year"><span>最新报告年度（可留空）</span><input id="demo-live-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
+        <label for="demo-live-cutoff"><span>资料截止日（可留空）</span><input id="demo-live-cutoff" name="source_cutoff_date" type="date"><small>填写后重新查询来源，不复用登记快照。</small></label>
+        <label for="demo-live-mode"><span>处理方式</span><select id="demo-live-mode" name="analysis_mode"><option value="rag_only" selected>准备资料（不调用模型）</option><option value="full_analysis" disabled>完整分析（调用模型）</option></select></label>
+
+        </div></details>
+<button class="button quiet" id="demo-live-submit" type="submit">开始现场样例分析</button>
+      </form>
+      <p id="demo-live-action-boundary" class="form-message" role="status" aria-live="polite">先确认企业身份，再查询官方公告；处理能力按当前权限显示。</p>
+      <p id="demo-company-search-status" class="form-message" role="status" aria-live="polite">输入名称、简称、拼音或六位代码，点击搜索后确认企业。</p>
+      <div id="demo-company-candidates" class="demo-discovery-grid" role="group" aria-label="企业候选"></div>
+      <section class="demo-tech-section" id="demo-report-discovery" hidden>
+        <h4 id="demo-report-company">官方年报公告</h4>
+        <button class="button quiet" id="demo-report-search" type="button">查询指定年度年报</button>
+        <p id="demo-report-status" class="form-message" role="status" aria-live="polite">企业已确认，点击查询官方公告；不会下载或调用模型。</p>
+        <div id="demo-report-results"></div>
+      </section>
+      <details class="demo-analysis-settings"><summary>查询范围与本站处理能力</summary><p>查询巨潮沪深北企业目录和官方年报公告；非上市及境外企业可能不在查询范围内。下载、建库和模型分析按当前权限开放。</p><p class="form-message" id="demo-live-capability" role="status" aria-live="polite">正在读取现场模式能力。</p></details>
+      <details class="demo-result-detail" id="demo-live-records" hidden><summary>接入进度、来源与完整资料记录</summary>
+      <section class="demo-live-task" id="demo-live-task" hidden aria-labelledby="demo-live-task-title">
+        <div class="demo-section-heading"><div><span class="folio">LIVE PIPELINE TASK</span><h3 id="demo-live-task-title">实时处理进度</h3></div><span class="state pending" id="demo-live-task-state">等待提交</span></div>
+        <p class="mono" id="demo-live-task-id">—</p>
+        <ol class="demo-live-steps" id="demo-live-steps"></ol>
+        <div class="status-banner neutral" id="demo-live-message" role="status" aria-live="polite"><strong>尚未提交</strong><span>任务将显示真实进度、失败或人工确认状态。</span></div>
+        <button class="button quiet" type="button" id="demo-live-read-result" hidden>重新读取原任务</button>
+        <div class="demo-live-result" id="demo-live-result" hidden></div>
+        <div class="demo-table-wrap" id="demo-live-table-wrap" hidden>
+          <table class="demo-structured-table">
+            <caption>现场样例规则指标结构化明细</caption>
+             <thead><tr><th scope="col">指标</th><th scope="col">数值</th><th scope="col">口径与计算</th></tr></thead>
+            <tbody id="demo-live-structured-table-body"></tbody>
+          </table>
+        </div>
+        <div class="action-row demo-live-output-actions" id="demo-live-output-actions" hidden>
+          <button class="button quiet" id="demo-live-download-json" type="button">下载现场样例 JSON</button>
+          <button class="button quiet" id="demo-live-download-csv" type="button">下载现场样例 CSV</button>
+          <button class="button quiet" id="demo-live-print-report" type="button">打印 / 保存 PDF</button>
+        </div>
+      </section>
+      </details>
+    </div>
+  </section>
+
       <section class="demo-console" aria-labelledby="demo-console-heading">
         <div class="demo-console-panorama" aria-hidden="true"></div>
         <div class="demo-console-head">
@@ -155,6 +211,7 @@
             <button class="button quiet" type="button" id="demo-backup" hidden>启动确定性备用演示</button>
             <button class="button quiet" type="button" id="demo-recheck" hidden>重新检测台账</button>
             <button class="button quiet" type="button" id="demo-cancel" hidden>请求取消</button>
+            <button class="button primary" type="button" id="demo-read-result" hidden>重新读取已完成结果</button>
             <button class="button quiet" type="button" id="demo-reset" hidden>一键重置演示</button>
           </div>
         </div>
@@ -189,16 +246,16 @@
         </div>
       </section>
 
-      <section class="demo-hero" aria-labelledby="demo-hero-heading">
+      <details class="demo-project-background"><summary>项目范围、交付物与运行信息</summary><section class="demo-hero" aria-labelledby="demo-hero-heading">
               <p class="kicker">PUBLIC ANNUAL REPORT PRESCREEN · EVIDENCE-BOUND</p>
               <h2 id="demo-hero-heading"><span>上市公司年报</span><span>风险预筛</span></h2>
               <p class="demo-tagline">
-                默认冻结案例已经选好。点击一次即可生成预审风险备忘录、Top 5 待核查事项和待索取资料清单，
+                默认冻结案例已经选好。点击一次即可生成预审风险备忘录、最多五项待核查事项和待索取资料清单，
                 并把每条主张连回本次运行的原文证据。结果仅供审计计划阶段进一步核查。
               </p>
               <ul class="demo-deliverables" aria-label="本次演示将生成的三类交付物">
                 <li><strong>风险备忘录</strong><span>先看结论和边界</span></li>
-                <li><strong>Top 5 待核查事项</strong><span>再看主张、数字与反证</span></li>
+                <li><strong>最多五项待核查事项</strong><span>按实际结果显示，不凑满数量</span></li>
                 <li><strong>待索取资料清单</strong><span>最后交给人工继续执行</span></li>
               </ul>
               <div class="demo-facts" id="demo-facts">
@@ -214,7 +271,7 @@
                 <img class="demo-workbench-illustration" src="/assets/official-v4/illustrations/agent-evidence-review-v1.webp" width="1200" height="1200" alt="" loading="lazy" decoding="async">
                 <figcaption><span>THREE AGENTS · ONE EVIDENCE BUNDLE</span><strong>质疑、反证、复核围绕同一证据包协作</strong>模型只生成受约束的待核查草稿，确定性事实和最终判断仍由程序与人控制。</figcaption>
               </figure>
-            </section>
+            </section></details>
 
 
 
@@ -226,7 +283,15 @@
               <div><span class="folio">STRUCTURED PRESCREEN OUTPUT</span><h3 id="demo-result-heading">结果摘要</h3></div>
               <span class="state pending" id="demo-result-state">—</span>
             </div>
-            <section class="demo-attention-card" id="demo-attention-card" hidden aria-labelledby="demo-attention-title">
+            <div class="demo-result-summary" id="demo-result-summary"></div>
+<section class="demo-primary-reading" id="demo-primary-reading" aria-label="本次事实、判断与下一步">
+  <section aria-labelledby="demo-facts-title"><h4 id="demo-facts-title">本次已经确定的事实</h4><div id="demo-established-facts"></div></section>
+  <section aria-labelledby="demo-decision-title"><h4 id="demo-decision-title">当前判断与未解决的问题</h4><div id="demo-decision-copy"></div></section>
+  <section aria-labelledby="demo-handoff-title"><h4 id="demo-handoff-title">质疑、反证、复核如何处理这条事项</h4><ol id="demo-agent-handoff"></ol></section>
+  <section aria-labelledby="demo-next-title"><h4 id="demo-next-title">下一步准备什么</h4><div id="demo-next-materials"></div></section>
+  <p class="demo-reading-notice">AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</p>
+</section>
+            <details class="demo-result-detail"><summary>完整关注依据与独立状态</summary><section class="demo-attention-card" id="demo-attention-card" hidden aria-labelledby="demo-attention-title">
               <p id="demo-r1-business-context" class="demo-business-context" hidden></p>
               <div class="demo-section-heading">
                 <div><span class="folio">COMBINED AUDIT ATTENTION · SIX FIXED ZONES</span><h3 id="demo-attention-title">综合审计关注</h3></div>
@@ -256,8 +321,8 @@
                 <h4 id="demo-attention-badges-title"><span class="demo-attention-index">⑥</span>三个并排状态（彼此独立，不合并成一个分数）</h4>
                 <div id="demo-attention-badges"></div>
               </div>
-            </section>
-            <section class="demo-enhancement-grid" aria-label="审计专属可信增强 · 一级展开">
+            </section></details>
+            <details class="demo-result-detail"><summary>认定覆盖、证据边界与可信控制</summary><section class="demo-enhancement-grid" aria-label="审计专属可信增强 · 一级展开">
               <article class="demo-enhancement-card">
                 <h4>认定—证据—程序覆盖矩阵</h4>
                 <p id="demo-coverage-note">把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。</p>
@@ -283,8 +348,8 @@
                 <ul id="demo-numeric-list"></ul>
                 <span class="demo-enhancement-state" id="demo-numeric-state">运行后生成</span>
               </article>
-            </section>
-            <section class="demo-evidence-challenge" id="demo-evidence-challenge" data-state="empty" aria-labelledby="demo-evidence-challenge-title">
+            </section></details>
+            <details class="demo-result-detail"><summary>核验一条主张与关键数字</summary><section class="demo-evidence-challenge" id="demo-evidence-challenge" data-state="empty" aria-labelledby="demo-evidence-challenge-title">
               <div class="demo-section-heading">
                 <div><span class="folio">30-SECOND EVIDENCE CHALLENGE</span><h3 id="demo-evidence-challenge-title">30 秒证据挑战</h3></div>
                 <span class="state pending" id="demo-challenge-state">等待运行</span>
@@ -308,8 +373,8 @@
                 <button class="button quiet" type="button" id="demo-challenge-open-drawer">查看本次全部证据</button>
                 <small id="demo-challenge-source-meta">页码与原文入口必须来自本次运行证据。</small>
               </div>
-            </section>
-            <section class="demo-audit-overview" id="demo-audit-overview" aria-labelledby="demo-audit-overview-title">
+            </section></details>
+            <details class="demo-result-detail"><summary>完整审计计划总览</summary><section class="demo-audit-overview" id="demo-audit-overview" aria-labelledby="demo-audit-overview-title">
               <div class="demo-section-heading">
                 <div><span class="folio">AUDIT PLANNING OVERVIEW</span><h3 id="demo-audit-overview-title">本次审计计划总览</h3></div>
                 <span class="state pending" id="demo-audit-overview-state">等待运行</span>
@@ -336,9 +401,9 @@
                   <div id="demo-overview-procedures"><p>运行后根据程序映射确定性选取。</p></div>
                 </article>
               </div>
-            </section>
-            <div class="demo-result-summary" id="demo-result-summary"></div>
-            <section class="demo-agent-inline" aria-labelledby="demo-agent-inline-title">
+            </section></details>
+
+            <details class="demo-result-detail"><summary>三个角色的完整输出</summary><section class="demo-agent-inline" aria-labelledby="demo-agent-inline-title">
               <div class="demo-section-heading">
                 <div><span class="folio">MULTI-AGENT REVIEW · INLINE SUMMARY</span><h3 id="demo-agent-inline-title">三 Agent 协作结论</h3></div>
                 <span class="state pending" id="demo-agent-inline-state">运行后显示</span>
@@ -346,11 +411,11 @@
               <div class="demo-agent-inline-cards" id="demo-agent-inline-cards">
                 <div class="empty-state"><strong>尚无运行结果</strong><p>完成运行后显示质疑、反证、复核三个角色的真实状态。</p></div>
               </div>
-            </section>
+            </section></details>
             <figure class="demo-result-visual" aria-label="从原文资料到可追溯结论的证据链视觉示意">
               <figcaption><strong>原文 → 证据编号 → 结构化结果</strong>页面中的每项主张都必须回到当前运行的证据编号；插图仅作视觉示意，不替代真实来源定位。</figcaption>
             </figure>
-            <div id="demo-result-items" class="demo-result-items"></div>
+            <details class="demo-result-detail"><summary>查看各项完整待核查草稿</summary><div id="demo-result-items" class="demo-result-items"></div></details>
             <section class="demo-supplement-summary" id="demo-supplement-summary" hidden aria-labelledby="demo-supplement-summary-title"></section>
             <section class="demo-structured-output" aria-labelledby="demo-structured-heading">
               <div class="demo-section-heading">
@@ -360,7 +425,7 @@
               <div class="demo-table-wrap" role="region" aria-label="本次运行结构化指标表格（可横向滚动）" tabindex="0">
                 <table class="demo-structured-table" id="demo-structured-table">
                   <caption>本次运行规则指标结构化明细</caption>
-                   <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th><th scope="col">计算过程</th></tr></thead>
+                   <thead><tr><th scope="col">指标</th><th scope="col">数值</th><th scope="col">口径与计算</th></tr></thead>
                   <tbody id="demo-structured-table-body"></tbody>
                 </table>
               </div>
@@ -374,7 +439,7 @@
               <button class="button quiet" type="button" id="demo-print-report">打印 / 保存 PDF</button>
               <button class="button primary" type="button" id="demo-rerun">重新演示</button>
             </div>
-            <section class="demo-procedure-map" aria-labelledby="demo-procedure-title">
+            <details class="demo-result-detail"><summary>系统已完成的程序与人工保留项</summary><section class="demo-procedure-map" aria-labelledby="demo-procedure-title">
               <header>
                 <h3 id="demo-procedure-title">系统替你完成什么</h3>
                 <p class="demo-procedure-note" id="demo-procedure-note"></p>
@@ -394,7 +459,7 @@
                 </section>
               </div>
               <p class="demo-procedure-version" id="demo-procedure-version"></p>
-            </section>
+            </section></details>
             <section class="demo-source-ledger" aria-labelledby="demo-source-ledger-title">
               <div class="demo-section-heading">
                 <div><span class="folio">SOURCE LEDGER · OFFICIAL ORIGINALS</span><h3 id="demo-source-ledger-title"><button class="demo-collapse-toggle" id="demo-source-ledger-toggle" type="button" aria-expanded="false" aria-controls="demo-source-ledger-body"><span class="demo-collapse-chevron" aria-hidden="true"></span><span>来源说明与监管证据</span></button></h3></div>
@@ -535,61 +600,7 @@
     </div>
   </dialog>
 
-  <dialog class="detail-drawer" id="demo-live-sample-drawer" aria-labelledby="demo-live-sample-title">
-    <div class="dialog-head">
-      <div><span class="folio">COMPANY DISCOVERY · CNINFO OFFICIAL</span><h2 id="demo-live-sample-title">企业搜索与样例接入</h2></div>
-      <button class="icon-button" type="button" aria-label="关闭现场样例接入" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭现场样例接入</span></button>
-    </div>
-    <div class="demo-drawer-body">
-      <section class="demo-tech-section">
-        <h4>确认企业身份，回查官方年报，再开始分析</h4>
-        <p>所有访客均可查询巨潮沪深北企业目录和官方年报公告。模糊名称请先选择准确企业；下载、建库和模型分析按当前站点权限开放。非上市及境外企业可能不在查询范围内。</p>
-      </section>
-      <details class="demo-tech-section demo-expanded-section">
-        <summary id="demo-expanded-toggle"><span id="demo-expanded-title">新增 8 个扩展体验案例</span></summary>
-        <p>来自已登记公开快照，专业复核待完成；原 15 案冻结清单保持独立。</p>
-        <div id="demo-expanded-cases" class="demo-discovery-grid"></div>
-      </details>
-      <form class="demo-live-form" id="demo-live-sample-form">
-        <label for="demo-live-company"><span>企业名称或股票代码</span><input id="demo-live-company" name="company_query" required maxlength="120" autocomplete="organization" placeholder="例如 000333 或 美的集团"></label>
-        <label for="demo-live-years"><span>年报数量</span><select id="demo-live-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
-        <label for="demo-live-latest-year"><span>最新报告年度（可留空）</span><input id="demo-live-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
-        <label for="demo-live-cutoff"><span>资料截止日（可留空）</span><input id="demo-live-cutoff" name="source_cutoff_date" type="date"><small>填写后重新查询来源，不复用登记快照。</small></label>
-        <label for="demo-live-mode"><span>处理方式</span><select id="demo-live-mode" name="analysis_mode"><option value="rag_only" selected>准备资料（不调用模型）</option><option value="full_analysis" disabled>完整分析（调用模型）</option></select></label>
-        <button class="button quiet" id="demo-company-search" type="button">搜索企业</button>
-        <button class="button quiet" id="demo-live-submit" type="submit">开始现场样例分析</button>
-      </form>
-      <p id="demo-live-action-boundary" class="form-message" role="status" aria-live="polite">先确认企业身份，再查询官方公告；处理能力按当前权限显示。</p>
-      <p id="demo-company-search-status" class="form-message" role="status" aria-live="polite">输入名称、简称、拼音或六位代码，点击搜索后确认企业。</p>
-      <div id="demo-company-candidates" class="demo-discovery-grid" role="group" aria-label="企业候选"></div>
-      <section class="demo-tech-section" id="demo-report-discovery" hidden>
-        <h4 id="demo-report-company">官方年报公告</h4>
-        <button class="button quiet" id="demo-report-search" type="button">查询指定年度年报</button>
-        <p id="demo-report-status" class="form-message" role="status" aria-live="polite">企业已确认，点击查询官方公告；不会下载或调用模型。</p>
-        <div id="demo-report-results"></div>
-      </section>
-      <p class="form-message" id="demo-live-capability" role="status" aria-live="polite">正在读取现场模式能力。</p>
-      <section class="demo-live-task" id="demo-live-task" hidden aria-labelledby="demo-live-task-title">
-        <div class="demo-section-heading"><div><span class="folio">LIVE PIPELINE TASK</span><h3 id="demo-live-task-title">实时处理进度</h3></div><span class="state pending" id="demo-live-task-state">等待提交</span></div>
-        <p class="mono" id="demo-live-task-id">—</p>
-        <ol class="demo-live-steps" id="demo-live-steps"></ol>
-        <div class="status-banner neutral" id="demo-live-message" role="status" aria-live="polite"><strong>尚未提交</strong><span>任务将显示真实进度、失败或人工确认状态。</span></div>
-        <div class="demo-live-result" id="demo-live-result" hidden></div>
-        <div class="demo-table-wrap" id="demo-live-table-wrap" hidden>
-          <table class="demo-structured-table">
-            <caption>现场样例规则指标结构化明细</caption>
-             <thead><tr><th scope="col">规则</th><th scope="col">指标</th><th scope="col">结构化值</th><th scope="col">原始值 / 口径</th><th scope="col">计算过程</th></tr></thead>
-            <tbody id="demo-live-structured-table-body"></tbody>
-          </table>
-        </div>
-        <div class="action-row demo-live-output-actions" id="demo-live-output-actions" hidden>
-          <button class="button quiet" id="demo-live-download-json" type="button">下载现场样例 JSON</button>
-          <button class="button quiet" id="demo-live-download-csv" type="button">下载现场样例 CSV</button>
-          <button class="button quiet" id="demo-live-print-report" type="button">打印 / 保存 PDF</button>
-        </div>
-      </section>
-    </div>
-  </dialog>
+
 
   <div class="global-toast" id="demo-toast" role="status" aria-live="polite" hidden></div>
 </body>

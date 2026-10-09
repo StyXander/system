@@ -87,6 +87,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
+from .agents import format_growth_gap_text
 
 from .schemas import (
     AI_GENERATED_CONTENT_NOTICE,
@@ -219,18 +220,17 @@ def _set_cell_shading(cell: Any, fill: str) -> None:
 
 
 # 用户口径（2026-09-19）：正文宋体小四、标题黑体三号。
-# 三号=16pt 用于主标题与一级标题；下级标题沿用黑体但按层级递减，避免整篇同号失去结构。
-# 表格密度高于正文，用五号 10.5pt；这是对"正文小四"的表格例外，已在 PROJECT_STATUS 登记。
+# 用户最新要求严格一致：标题均为三号；表格、声明也按正文小四呈现。
 BODY_FONT = "宋体"
 HEADING_FONT = "黑体"
 BODY_PT = 12          # 小四
-TABLE_PT = 10.5       # 五号，表格密度例外
-NOTICE_PT = 10.5      # 顶部横幅与声明行
-_HEADING_PT = {1: 16, 2: 14, 3: 12}   # 三号 / 四号 / 小四
+TABLE_PT = 12         # 小四
+NOTICE_PT = 12        # 小四
+_HEADING_PT = {1: 16, 2: 16, 3: 16}   # 标题统一三号
 
 
 def _heading_pt(level: int) -> float:
-    return float(_HEADING_PT.get(level, 12))
+    return float(_HEADING_PT.get(level, 16))
 
 
 def _set_run_font(run: Any, name: str = BODY_FONT) -> None:
@@ -250,6 +250,7 @@ def _table_rows(document: Document, entries: list[tuple[str, Any]]) -> None:
     table = document.add_table(rows=0, cols=2)
     table.style = "Table Grid"
     table.autofit = False
+    _set_table_borders(table)
     for label, value in entries:
         cells = table.add_row().cells
         cells[0].width = Cm(4.2)
@@ -273,7 +274,7 @@ def _add_heading(document: Document, text: str, level: int = 1) -> None:
     for run in paragraph.runs:
         _set_run_font(run, HEADING_FONT)
         run.font.size = Pt(_heading_pt(level))
-        run.font.color.rgb = RGBColor(12, 71, 82)
+        run.font.color.rgb = RGBColor(0, 0, 0)
 
 
 MISSING_FIELD_TEXT = "未提供"
@@ -373,8 +374,15 @@ def _grid_table(document: Document, header: list[str], rows: list[list[str]]) ->
     table = document.add_table(rows=1, cols=len(header))
     table.style = "Table Grid"
     table.autofit = False
+    _set_table_borders(table)
+    # 跨页继续显示列名；长事项占主要宽度，级别和状态留紧凑列。
+    repeat = OxmlElement("w:tblHeader")
+    table.rows[0]._tr.get_or_add_trPr().append(repeat)
+    widths = [1.5, 6.3, 5.5, 2.1] if len(header) == 4 else []
     for index, title in enumerate(header):
         cell = table.rows[0].cells[index]
+        if widths:
+            cell.width = Cm(widths[index])
         cell.text = str(title)
         _set_cell_shading(cell, "DCEFF1")
         for paragraph in cell.paragraphs:
@@ -385,11 +393,24 @@ def _grid_table(document: Document, header: list[str], rows: list[list[str]]) ->
     for row in rows:
         cells = table.add_row().cells
         for index, value in enumerate(row):
+            if widths:
+                cells[index].width = Cm(widths[index])
             cells[index].text = str(value)
             for paragraph in cells[index].paragraphs:
                 for run in paragraph.runs:
                     _set_run_font(run, BODY_FONT)
                     run.font.size = Pt(TABLE_PT)
+
+
+def _set_table_borders(table: Any) -> None:
+    """两类报告表格共用轻灰网格，不依赖 Word 默认黑色边框。"""
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        element = OxmlElement(f"w:{edge}")
+        for key, value in (("val", "single"), ("sz", "4"), ("color", "D9D9D9")):
+            element.set(qn(f"w:{key}"), value)
+        borders.append(element)
+    table._tbl.tblPr.append(borders)
 
 
 _SUPPORT_STATUS_LABELS = {
@@ -433,21 +454,29 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
     normal.font.name = BODY_FONT
     normal._element.rPr.rFonts.set(qn("w:eastAsia"), BODY_FONT)
     normal.font.size = Pt(BODY_PT)
+    # Word 默认 Title 样式可能附带蓝色底线；清除样式边框，标题保持黑体三号纯文本。
+    for style_name in ("Title", "Subtitle", "Heading 1", "Heading 2", "Heading 3"):
+        style = document.styles[style_name]
+        style.font.color.rgb = RGBColor(0, 0, 0)
+        paragraph_properties = style._element.find(qn("w:pPr"))
+        if paragraph_properties is not None:
+            for border in list(paragraph_properties.findall(qn("w:pBdr"))):
+                paragraph_properties.remove(border)
 
-    title = document.add_paragraph()
+    title = document.add_paragraph(style="Title")
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title_run = title.add_run("审迹智链 · 预审风险备忘录")
     _set_run_font(title_run, HEADING_FONT)
     title_run.bold = True
     title_run.font.size = Pt(16)
-    title_run.font.color.rgb = RGBColor(8, 87, 104)
+    title_run.font.color.rgb = RGBColor(0, 0, 0)
     subtitle = document.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     subtitle_run = subtitle.add_run(f"{REPORT_VERSION}｜AI生成内容｜审计计划阶段")
-    _set_run_font(subtitle_run, HEADING_FONT)
+    _set_run_font(subtitle_run, BODY_FONT)
     subtitle_run.font.size = Pt(BODY_PT)
     subtitle_run.bold = True
-    subtitle_run.font.color.rgb = RGBColor(22, 124, 142)
+    subtitle_run.font.color.rgb = RGBColor(0, 0, 0)
 
     warning = document.add_paragraph()
     warning.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -490,6 +519,22 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
         "边界：本报告不构成舞弊认定、重大错报认定、审计意见或投资建议；来源真实性、专业口径、正式认定和发布均由人负责。"
     )
     context = stored.run.context
+    # 摘要只摘录本次已有事实与缺口；历史单位更正仅作用于导出文本，原运行不被覆盖。
+    primary = next((item for item in stored.run.rule_results if item.rule_id == "R1"), None)
+    if primary is None and stored.run.rule_results:
+        primary = stored.run.rule_results[0]
+    if primary:
+        document.add_paragraph(
+            f"阅读摘要：{context.get('company_name') or context.get('case_id')}；"
+            f"实际计算年度 {context.get('current_year') or '未记录'} / {context.get('previous_year') or '未记录'}；"
+            f"来源截止日 {context.get('t0') or '未记录'}。"
+        )
+        document.add_paragraph(format_growth_gap_text(str((primary.risk_card or {}).get("observation") or "本次未形成计算说明。")))
+        draft = primary.ai_draft or {}
+        if draft.get("reason_for_status"):
+            document.add_paragraph(f"模型草稿判断：{format_growth_gap_text(str(draft['reason_for_status']))}")
+        if draft.get("data_gaps"):
+            document.add_paragraph("未解决问题：" + "；".join(str(value) for value in draft["data_gaps"]))
     configured_parameters = context.get("configured_parameters") or {}
     r1_signoff_status = str(configured_parameters.get("r1_signoff_status") or "no_signoff_record")
     numeric_gate = context.get("numeric_claim_trace") or {}
@@ -535,7 +580,7 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
         card = result.risk_card or {}
         document.add_paragraph(str(card.get("title", "未形成程序筛查摘要")))
         if card.get("observation"):
-            document.add_paragraph(str(card["observation"]))
+            document.add_paragraph(format_growth_gap_text(str(card["observation"])))
         document.add_paragraph("计算指标：")
         for key, value in result.metrics.items():
             _add_bullet(document, f"{key}: {value}")
@@ -543,10 +588,10 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
         if result.ai_draft:
             document.add_paragraph(AI_GENERATED_CONTENT_NOTICE)
             document.add_paragraph(str(result.ai_draft.get("draft_title") or "AI待核查草稿"))
-            document.add_paragraph(str(result.ai_draft.get("draft_observation") or ""))
+            document.add_paragraph(format_growth_gap_text(str(result.ai_draft.get("draft_observation") or "")))
             claims = result.ai_draft.get("claims", [])
             if claims:
-                document.add_paragraph("Top 5 待核查事项与事实依据：")
+                document.add_paragraph("最多五项待核查事项与事实依据（按实际生成数量）：")
                 # 级别列承载审计关注优先级，证据列必须能回到编号与页码，
                 # 让导出件与页面一样不存在"看起来像事实但无法回查"的句子。
                 _grid_table(
@@ -555,7 +600,7 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
                     [
                         [
                             _contract_text(stored.run.planning_priority, "grade"),
-                            str(claim.get("text") or ""),
+                            format_growth_gap_text(str(claim.get("text") or "")),
                             "；".join(
                                 f"{evidence_id}（{evidence_pages.get(evidence_id) or '未登记来源'}）"
                                 for evidence_id in (claim.get("evidence_ids") or [])
@@ -717,7 +762,7 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             f"知识库快照：{knowledge_snapshot or '未配置'}；来源覆盖状态：{str((source_summary or {}).get('draft_mode'))}（截止日 {str((source_summary or {}).get('cutoff_date')) or '未确认'}，未确认前为草案）"
         )
 
-    _add_heading(document, "六、人工复核说明", 1)
+    _add_heading(document, "九、人工复核说明", 1)
     document.add_paragraph(review.note or "未填写补充说明。")
     document.add_paragraph(
         f"AI生成内容声明：{AI_GENERATED_CONTENT_NOTICE} AI只参与受证据编号约束的待核查语义草稿。程序计算、来源哈希、T0过滤、人工处理及正式发布均不由模型决定。"

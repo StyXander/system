@@ -2171,7 +2171,9 @@ def get_period_sources(
         "model_transfer_allowed": case["model_transfer_allowed"],
         "source_snapshot_id": case["source_snapshot_id"],
         "source_review_status": case["source_review_status"],
-        "three_year_r1_ready": case["three_year_r1_ready"],
+        # 本次选用字段必须同时覆盖三年的收入和应收；案例登记标记另外保留。
+        "three_year_r1_ready": {"ar_current", "ar_previous", "ar_prior", "revenue_current", "revenue_previous", "revenue_prior"}.issubset(seen),
+        "case_three_year_r1_ready": case["three_year_r1_ready"],
         "requested_current_year": requested_current_year,
         "analysis_cutoff_year": None if no_calculable_public_period else current_year,
         "public_prescreen": prescreen_plan is not None,

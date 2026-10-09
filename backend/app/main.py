@@ -1727,7 +1727,9 @@ def _remote_period_sources(
         "source_snapshot_id": case.get("source_snapshot_id"),
         "source_review_status": case.get("source_review_status"),
         "engineering_snapshot": deepcopy(case.get("engineering_snapshot")),
-        "three_year_r1_ready": bool(case.get("three_year_r1_ready")),
+        # 本次完整三年字段与案例库总体就绪状态分开，避免两年预筛显示三年就绪。
+        "three_year_r1_ready": {"ar_current", "ar_previous", "ar_prior", "revenue_current", "revenue_previous", "revenue_prior"}.issubset(seen),
+        "case_three_year_r1_ready": bool(case.get("three_year_r1_ready")),
         "requested_current_year": requested_current_year,
         "analysis_cutoff_year": current_year if sources else None,
         "public_prescreen": prescreen_plan is not None,
@@ -2393,7 +2395,7 @@ def _r1_result(
             "status": "candidate_pending_ai_and_human_review" if candidate else "rule_not_triggered",
             "title": "程序筛查形成R1待核查候选" if candidate else "程序筛查未形成R1方向候选",
             "observation": (
-                f"应收账款增速为{ar_growth:.2%}，营业收入增速为{revenue_growth:.2%}，增速差为{growth_gap:.2%}；"
+                f"应收账款增速为{ar_growth:.2%}，营业收入增速为{revenue_growth:.2%}，增速差为{growth_gap * 100:.2f}个百分点；"
                 f"应收账款绝对变动为{absolute_change:,.2f}{rows[0].get('unit', '')}。{materiality_assessment}。"
             ),
             "basis_limitation": basis_limitation,
@@ -2518,7 +2520,7 @@ def _r2_result(rows: list[dict[str, Any]], source_issues: list[str], min_gap: fl
             "engineering_version": R2_VERSION,
             "configured_min_gap": min_gap,
             "title": "R2辅助筛查形成待核查候选" if candidate else "R2辅助筛查未形成方向候选",
-            "observation": f"营业收入增速为{revenue_growth:.2%}，经营现金流增速为{cashflow_growth:.2%}，差额为{growth_gap:.2%}。",
+            "observation": f"营业收入增速为{revenue_growth:.2%}，经营现金流增速为{cashflow_growth:.2%}，增速差为{growth_gap * 100:.2f}个百分点。",
             "boundary": "R2不抢占R1主演示，结果须人工复核。",
         },
     )
@@ -7629,7 +7631,7 @@ def _rerun_with_supplement_impl(
             if parent.run.ai_recommendation == response.ai_recommendation
             else "建议发生变化"
         ),
-        "boundary": "变化由新增证据参与本次链路后产生，仍须真人复核。",
+        "boundary": "新增证据参与本次重新评估；模型生成差异也可能影响表述，不能把全部变化归因于新增证据。",
     }
     if isinstance(response.context.get("supplement_delta"), dict):
         response.context["supplement_delta"]["recommendation_change"] = response.context["recommendation_change"]

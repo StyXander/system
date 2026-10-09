@@ -120,6 +120,37 @@ def test_directory_busy_is_bounded_instead_of_waiting_forever(tmp_path):
         discovery._directory_lock.release()
 
 
+def test_new_instance_reads_deployment_snapshot_without_upstream(tmp_path, monkeypatch):
+    """新实例没有运行目录时也能读部署快照；刷新锁不能阻塞有效缓存。"""
+    path = tmp_path / "backend/company_directory.snapshot.json"
+    path.parent.mkdir()
+    path.write_text(json.dumps({"fetched_at_epoch": time.time(), "fetched_at": "2026-10-09", "companies": companies()}), encoding="utf-8")
+    monkeypatch.setattr(discovery, "_fetch_directory", lambda: pytest.fail("有效快照不应访问上游"))
+    discovery._directory_lock.acquire()
+    try:
+        rows, provenance = discovery.directory(tmp_path)
+        assert len(rows) == 4
+        assert provenance["cache_location"] == "deployment"
+        assert provenance["status"] == "official_cache"
+    finally:
+        discovery._directory_lock.release()
+
+
+def test_updating_directory_keeps_usable_stale_snapshot(tmp_path):
+    path = discovery._snapshot_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"fetched_at_epoch": time.time() - 2 * discovery.DIRECTORY_TTL, "fetched_at": "2026-10-07", "companies": companies()}), encoding="utf-8")
+    discovery._directory_lock.acquire()
+    try:
+        rows, provenance = discovery.directory(tmp_path)
+        assert len(rows) == 4
+        assert provenance["failure_code"] == "DISCOVERY_BUSY"
+        assert provenance["status"] == "stale_official_cache"
+        assert provenance["fetched_at"] == "2026-10-07"
+    finally:
+        discovery._directory_lock.release()
+
+
 def test_production_expanded_preview_cannot_start_import_or_model(monkeypatch):
     """生产持久化模式也开放快照预检，不能借参数扩大为付费链或新企业导入。"""
     monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")

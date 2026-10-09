@@ -17,6 +17,15 @@
   const AI_GENERATED_CONTENT_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。";
   const CASE_STORAGE_KEY = "audittrace_demo_case_v1";
   const DEMO_TASK_STORAGE_KEY = "audittrace_demo_task_v1";
+  const LIVE_TASK_STORAGE_KEY = "audittrace_live_task_v1";
+  let pendingResultReadTask = null;
+  let resultOrigin = "fixed";
+  let restoredHistoricalResult = false;
+
+  // 旧运行的原文和响应哈希保持不动；阅读层只明确更正增速差的单位。
+  function formatGrowthGapText(text) {
+    return String(text || "").replace(/((?:增速差|增长率差|增长差)(?:为|是|约|达到|：|:)?\s*[+\-−]?\d+(?:\.\d+)?\s*)[%％]/g, "$1个百分点");
+  }
   const LIVE_POLL_INTERVAL_MS = 1400;
   const DEMO_POLL_INTERVAL_MS = 1500;
   const LIVE_ACTIVE_STATUSES = new Set(["queued", "running", "resolving_company", "searching", "downloading", "validating", "registering", "rag_building", "indexing", "extracting_fields", "analyzing"]);
@@ -489,9 +498,10 @@
       : `<span class="demo-case-focus demo-case-readiness">来源或索引未就绪 · 本次运行会如实降级，需团队重建后重验</span>`;
     return `<button type="button" class="demo-case-card" data-demo-case="${escapeHtml(caseItem.case_id)}" aria-pressed="${selected ? "true" : "false"}">
       <span class="demo-case-index">CASE ${String(index + 1).padStart(2, "0")} · ${escapeHtml(caseItem.ticker || "")}</span>
+      <span class="demo-case-purpose">可演示：${escapeHtml(caseItem.demo_focus || "规则计算与原文回查")}</span>
       <h4>${escapeHtml(caseItem.company_name)}</h4>
       <span class="demo-case-meta">${escapeHtml(categoryLabel)} · ${escapeHtml(years)}</span>
-      <span class="demo-case-focus">${escapeHtml(caseItem.demo_focus || "")} · ${escapeHtml(admission)}</span>
+      <span class="demo-case-focus">${escapeHtml(admission)} · 实际规则结果以本次运行为准</span>
       ${readinessLine}
     </button>`;
   }
@@ -818,6 +828,11 @@
       return;
     }
     const badge = executionBadgeForRun(run);
+    if (restoredHistoricalResult) {
+      node.dataset.mode = "history_restore";
+      node.textContent = `已恢复历史运行结果 · 本次新增 0 次模型调用；原运行 ${run.run_id}：${badge.label.replace("本次", "当时")}`;
+      return;
+    }
     node.dataset.mode = badge.mode;
     node.textContent = `运行来源：${badge.label}`;
   }
@@ -1728,7 +1743,7 @@
       { label: "营业收入增速", value: metrics.revenue_growth === undefined ? "—" : formatMetricValue("revenue_growth", metrics.revenue_growth) },
       { label: "应收账款增速", value: metrics.ar_growth === undefined ? "—" : formatMetricValue("ar_growth", metrics.ar_growth) },
       { label: "增速差", value: metrics.growth_gap === undefined ? "—" : formatMetricValue("growth_gap", metrics.growth_gap) },
-      { label: "程序信号强度", value: rule?.risk_card?.screening_strength || "未产出" },
+      { label: "程序信号强度", value: statusLabel(rule?.risk_card?.screening_strength || "未产出") },
       { label: "持续期间", value: metrics.sustained_periods === undefined || metrics.sustained_periods === null ? "未评价" : formatMetricValue("sustained_periods", metrics.sustained_periods) },
     ];
     const grade = contractField(run?.planning_priority?.grade);
@@ -2359,13 +2374,14 @@
   let printBasisState = null;
 
   function expandCollapsiblesForPrint() {
+    if (printCollapsibleState !== null) return;
     printCollapsibleState = COLLAPSIBLE_SECTIONS.map((section) => ({
       section,
       expanded: document.getElementById(section.buttonId)?.getAttribute("aria-expanded") === "true",
     }));
     COLLAPSIBLE_SECTIONS.forEach((section) => setCollapsible(section, true));
     // ⑥ 区的判定依据默认折叠；打印件必须与屏幕上的中文说明同等完整，否则评委拿到的 PDF 少一层依据。
-    printBasisState = [...document.querySelectorAll(".demo-attention-basis")].map((details) => ({
+    printBasisState = [...document.querySelectorAll("#demo-result details, #demo-live-records details, #demo-live-records")].map((details) => ({
       details,
       open: details.open,
     }));
@@ -2542,6 +2558,7 @@
   }
 
   async function startSupplementRerun() {
+    restoredHistoricalResult = false;
     const run = demoState.run;
     const sampleId = SUPPLEMENT_STATE.selected;
     if (!run || !sampleId || SUPPLEMENT_STATE.busy) return;
@@ -2612,16 +2629,34 @@
     const fields = [
       ["父运行 ID", parentRun?.run_id || "—"],
       ["补充后运行 ID", childRun?.run_id || "—"],
-      ["新增证据数量", `${supplement?.supplement_evidence_count ?? 1} 份`],
+      ["新增证据数量", `${supplement?.supplement_evidence_count ?? 0} 份`],
+      ["新增证据编号", (childRun.evidence_bundle?.supplement_evidence || []).map(row => row.evidence_id).filter(Boolean).join("、") || "本次未登记"],
+      ["补充前建议", statusLabel(before)],
       ["建议判断", `${recommended}（${label}）`],
       ["原始字段", "未被覆盖；补充资料进入当前案例证据空间"],
-      ["边界", "变化由新增证据产生，仍须真人复核后再决定是否追加程序。"],
+      ["边界", "新增证据参与本次重新评估；模型生成差异也可能影响表述，不能把全部变化归因于新增证据。"],
     ];
-    diff.innerHTML = `<h4>补充前后差异</h4><dl>${fields.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join("")}</dl>`;
+    const reviewDraft = run => normalizeAgentSteps(run.agent_steps).find(step => step.role === "review")?.output || run.rule_results?.[0]?.ai_draft || {};
+    const beforeDraft = reviewDraft(parentRun || {});
+    const afterDraft = reviewDraft(childRun);
+    const textList = items => (items || []).map(value => typeof value === "string" ? value : value?.text || "").filter(Boolean);
+    const differences = [
+      ["支持主张", textList(beforeDraft.claims), textList(afterDraft.claims)],
+      ["正常解释", textList(beforeDraft.normal_explanations), textList(afterDraft.normal_explanations)],
+      ["待索取资料", textList(beforeDraft.requested_materials), textList(afterDraft.requested_materials)],
+      ["未解决问题", textList(beforeDraft.data_gaps), textList(afterDraft.data_gaps)],
+    ];
+    const deltaHtml = differences.map(([name, previous, current]) => {
+      const added = current.filter(text => !previous.includes(text));
+      const removed = previous.filter(text => !current.includes(text));
+      return `<section><h5>${escapeHtml(name)}</h5>${added.length || removed.length ? `<p>新增：${escapeHtml(added.join("；") || "无")}</p><p>不再列出：${escapeHtml(removed.join("；") || "无")}</p>` : "<p>两次记录相同；没有该类变化。</p>"}</section>`;
+    }).join("");
+    const content = `<dl>${fields.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join("")}</dl>${deltaHtml}`;
+    diff.innerHTML = `<h4>补充前后差异</h4>${content}`;
     // 同源摘要进入结果区，参与打印/保存 PDF 的可追溯输出。
     const summary = byId("demo-supplement-summary");
     summary.hidden = false;
-    summary.innerHTML = `<h4 id="demo-supplement-summary-title">补充证据前后差异（父运行 → 子运行）</h4><dl>${fields.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join("")}</dl>`;
+    summary.innerHTML = `<h4 id="demo-supplement-summary-title">补充证据前后差异（父运行 → 子运行）</h4>${content}`;
   }
 
   function selectDemoCase(caseId, { fromHistory = false } = {}) {
@@ -2815,10 +2850,14 @@
   };
 
   async function startDemoRun({ backup = false } = {}) {
+    restoredHistoricalResult = false;
+    resultOrigin = "fixed";
+    pendingResultReadTask = null;
     const allowedPhase = backup
       ? new Set(["ready", "failed_run", "failed", "degraded", "expired", "interrupted", "cancelled"])
       : new Set(["ready"]);
     if (!allowedPhase.has(demoState.phase) || !demoState.caseId) return;
+    safeSessionRemove(LIVE_TASK_STORAGE_KEY);
     const caseItem = currentCase();
     if (!caseItem) return;
     const year = Math.max(...(caseItem.report_years || [2025]).map(Number));
@@ -3010,7 +3049,11 @@
         SUPPLEMENT_STATE.parentRun = null;
       }
     } catch (error) {
-      renderDemoFailure("result_read_error", "结果读取失败", error.message, { retry: true });
+      // 读取失败不会把已完成的六阶段涂成失败，也不重新调用模型。
+      pendingResultReadTask = task;
+      byId("demo-read-result").hidden = false;
+      setGate("warning", "已完成结果暂未读到", `${error.message}；点击重新读取会读取原任务，不会重新分析或增加模型调用。`);
+      setPhase("failed_run");
     }
   }
 
@@ -3031,8 +3074,9 @@
     updateUrl();
     try {
       const response = await fetch(`${API_BASE}/api/demo/runs/${encodeURIComponent(taskId)}`, { credentials: "include" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) { const error = new Error(`HTTP ${response.status}`); error.status = response.status; throw error; }
       let task = await response.json();
+      restoredHistoricalResult = !TASK_ACTIVE_STATUSES.has(task.status);
       // queued 表示后台尚未开始任何阶段。若创建任务的 Web 实例恰好在
       // 领取前重启，刷新时显式重发同一案例请求；后端通过活动任务唯一键
       // 与原子租约复用原 task_id，不会重复执行已经 running 的模型调用。
@@ -3074,6 +3118,14 @@
         await renderFixedTaskFinal(task);
       }
     } catch (_error) {
+      if (![404, 410].includes(_error.status)) {
+        // 暂时无法读台账仍保留恢复标记，用户可以重读相同任务。
+        pendingResultReadTask = { task_id: taskId };
+        byId("demo-read-result").hidden = false;
+        setGate("warning", "上次任务暂时无法读取", `${_error.message}；任务标记已保留，可以重新读取，不会重新创建已完成任务。`);
+        setPhase("failed_run");
+        return;
+      }
       safeSessionRemove(DEMO_TASK_STORAGE_KEY);
       demoState.fixedTask.taskId = null;
       setPhase("ready");
@@ -3121,11 +3173,83 @@
     }
   }
 
+  function renderPrimaryReading(run) {
+    const rules = run.rule_results || [];
+    const primary = rules.find(row => row.rule_id === "R1") || rules[0];
+    const steps = normalizeAgentSteps(run.agent_steps);
+    const review = steps.find(step => step.role === "review")?.output || primary?.ai_draft || run.final_ai_draft?.items?.[0];
+    const textOf = value => typeof value === "string" ? value : value?.message || value?.label || value?.text || value?.type || "";
+    const paragraph = (target, text) => { if (text) target.append(Object.assign(document.createElement("p"), { textContent: formatGrowthGapText(text) })); };
+    const facts = byId("demo-established-facts");
+    facts.replaceChildren();
+    paragraph(facts, primary?.risk_card?.observation || "本次所选规则未提供可展示的计算说明；各条规则状态见上方。");
+    const fieldRows = run.evidence_bundle?.field_evidence || [];
+    const factSources = fieldRows.filter(row => ["revenue_current", "ar_current"].includes(row.field_id)).slice(0, 2);
+    if (factSources.length) {
+      const originals = document.createElement("details");
+      originals.className = "demo-inline-evidence";
+      originals.innerHTML = "<summary>回查这些数字的原表证据</summary>";
+      factSources.forEach(row => {
+        const node = document.createElement("div");
+        paragraph(node, `${row.field_label || row.field_id}：${row.excerpt || row.source_locator || row.locator || "原表定位见来源"}`);
+        if (row.document_id && run.context?.case_id) {
+          const link = document.createElement("a");
+          link.href = sourceLink(run.context.case_id, row.document_id, row.pdf_page);
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = `查看原文 · ${row.year || ""} 年 · PDF 第 ${row.pdf_page || "未记录"} 页`;
+          node.append(link);
+        }
+        originals.append(node);
+      });
+      facts.append(originals);
+    }
+    const decision = byId("demo-decision-copy");
+    decision.replaceChildren();
+    paragraph(decision, review?.reason_for_status || primary?.risk_card?.basis_limitation || "当前未生成模型判断，已有计算事实和资料边界可以回查。");
+    const gaps = [...new Set((review?.data_gaps || primary?.risk_card?.data_gaps || []).map(textOf).filter(Boolean))];
+    if (gaps.length) paragraph(decision, `仍需核查：${gaps.join("、")}。`);
+    const rawDraft = review?.draft_observation || "";
+    if (formatGrowthGapText(rawDraft) !== rawDraft || formatGrowthGapText(primary?.risk_card?.observation || "") !== (primary?.risk_card?.observation || "")) {
+      paragraph(decision, "单位更正：本页增速差按百分点呈现；旧运行原文及响应哈希保留在完整记录中。");
+    }
+    const handoff = byId("demo-agent-handoff");
+    handoff.replaceChildren();
+    AGENT_ROLE_ORDER.forEach(role => {
+      const step = steps.find(item => item.role === role);
+      const output = step?.output;
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${escapeHtml(AGENT_ROLE_META[role].name)} · ${escapeHtml(statusLabel(step?.status || "not_requested"))}</strong>`;
+      paragraph(li, output?.reason_for_status || step?.detail || "本次没有该角色的执行记录。");
+      if (output) {
+        const details = document.createElement("details");
+        details.innerHTML = "<summary>对应主张、解释与证据</summary>";
+        appendAgentList(details, role === "counter" ? "反证与正常解释" : "支持主张", role === "counter" ? output.normal_explanations || [] : output.claims || [], 2, { run, lookup: evidenceLookup(run) });
+        li.append(details);
+      }
+      handoff.append(li);
+    });
+    const materials = byId("demo-next-materials");
+    materials.replaceChildren();
+    const requested = [...new Set((review?.requested_materials || primary?.risk_card?.requested_materials || []).map(textOf).filter(Boolean))];
+    const relatedTerms = ["账龄", "回款", "信用政策", "合同"];
+    requested.forEach(name => {
+      const card = document.createElement("div");
+      card.className = "demo-material-line";
+      const matching = gaps.filter(gap => relatedTerms.some(term => name.includes(term) && gap.includes(term)));
+      card.innerHTML = `<strong>${escapeHtml(name)}</strong><span>${escapeHtml(matching.length ? `对应未解决问题：${matching.join("、")}` : "依据：本次草稿列为待索取资料，原始要求见完整输出")}<br>所需内容：${escapeHtml(name)}；本次草稿未另行规定字段范围，具体期间及明细由执行程序确定。</span>`;
+      materials.append(card);
+    });
+    if (!requested.length) paragraph(materials, "本次未登记待索取资料；后续程序依据见完整审计计划总览。");
+  }
+
   function renderDemoResult(run, outcome) {
+    byId("demo-read-result").hidden = true;
+    pendingResultReadTask = null;
     renderDemoProgress(outcome, run);
     renderExecutionBadge(run);
     const caseItem = currentCase();
-    const year = Math.max(...(caseItem?.report_years || [0]).map(Number));
+    const year = run.context?.current_year || Math.max(...(caseItem?.report_years || [0]).map(Number));
     const statePill = byId("demo-result-state");
     statePill.className = `state ${outcome === "success" ? "success" : outcome === "degraded" ? "waiting" : "danger"}`;
     const degradedOutcome = outcome === "degraded" ? degradedReason(run) : null;
@@ -3141,8 +3265,8 @@
     const rows = [
       {
         label: "分析对象",
-        value: caseItem?.company_name || run.context?.case_id,
-        detail: `报告年度 ${year}`,
+        value: run.context?.company_name || caseItem?.company_name || run.context?.case_id,
+        detail: `实际计算 ${year}${run.context?.previous_year ? ` / ${run.context.previous_year}` : ""} 年 · 来源截止 ${run.context?.t0 || "未记录"}${run.context?.requested_current_year && run.context.requested_current_year !== year ? `（请求 ${run.context.requested_current_year} 年，按可用资料计算）` : ""}`,
         tone: "is-primary",
       },
       { label: "运行编号", value: run.run_id, detail: "本次运行唯一标识", tone: "is-run" },
@@ -3152,14 +3276,17 @@
         detail: outcome === "success" ? "模型链与结果均已完成" : "请结合上方状态说明复核",
         tone: outcome === "success" ? "is-success" : "",
       },
-      { label: "程序筛查", value: statusLabel(run.screening_status), detail: "固定规则先于模型执行", tone: "" },
+      { label: "各条规则结果", value: (run.rule_results || []).map(row => `${row.rule_id}：${statusLabel(row.status)}`).join("；"), detail: "各条规则独立解释，未触发不等于企业没有风险", tone: "" },
       {
         label: "执行方式",
         value: statusLabel(executionMode),
         detail: `${(run.provider_call_count ?? 0).toLocaleString("zh-CN")} 次模型调用 · ${(run.input_tokens ?? 0).toLocaleString("zh-CN")} / ${(run.output_tokens ?? 0).toLocaleString("zh-CN")} tokens`,
-        tone: "",
+        tone: "is-run",
       },
     ];
+    const record = document.createElement("details");
+    record.className = "demo-summary-record";
+    record.innerHTML = "<summary>运行编号、来源与调用用量</summary>";
     rows.forEach(({ label, value, detail, tone }) => {
       const cell = document.createElement("div");
       cell.className = `demo-summary-cell ${tone}`.trim();
@@ -3173,8 +3300,12 @@
       small.className = "demo-summary-detail";
       small.textContent = detail;
       cell.append(span, strong, small);
-      summary.append(cell);
+      if (tone === "is-run") {
+        record.append(cell);
+      } else summary.append(cell);
     });
+    summary.append(record);
+    renderPrimaryReading(run);
     renderAuditOverview(run, outcome);
     renderEvidenceChallenge(run, outcome);
     renderInlineAgents(run);
@@ -3225,7 +3356,7 @@
     } else if (outcome === "degraded") {
       setGate("warning", degradedCopy.gateTitle, `${degradedCopy.gateDetail(degradedOutcome, statusLabel(run.model_check?.status))}${AI_GENERATED_CONTENT_NOTICE}`);
     } else {
-      setGate("danger", "本次分析失败", `${statusLabel(run.model_check?.status || run.run_completeness)}；可一键重置演示后重试，或联系团队处理。`);
+      setGate("danger", "本次分析未完成", `${statusLabel(run.model_check?.status || run.run_completeness)}；已有字段与规则结果保留。可重新分析；具体失败阶段见运行记录。`);
     }
     renderEvidenceDrawer(run);
     renderAgentDrawer(run);
@@ -3236,6 +3367,12 @@
     renderInnovationControls(run);
     notifyModelQuality(run.context?.model_quality_snapshot);
     setPhase(outcome === "failed_run" ? "failed_run" : outcome);
+    if (!restoredHistoricalResult) {
+      byId("demo-result").scrollIntoView({block:"start"});
+      const heading = byId("demo-result-heading");
+      heading.tabIndex = -1;
+      heading.focus({preventScroll:true});
+    }
   }
 
   function renderDemoFailure(code, title, detail, options) {
@@ -3260,7 +3397,7 @@
   function renderEvidenceDrawer(run) {
     const body = byId("demo-evidence-drawer-body");
     body.replaceChildren();
-    const caseId = currentCase()?.case_id || run.context?.case_id;
+    const caseId = run.context?.case_id || currentCase()?.case_id;
     const fieldEvidence = run.evidence_bundle?.field_evidence || [];
     const ragEvidence = run.evidence_bundle?.rag_evidence || [];
     const section = (title, list, kind) => {
@@ -3481,7 +3618,7 @@
       badge.className = "state waiting";
       badge.textContent = "本次未形成结构化指标";
       const tr = document.createElement("tr");
-      tr.innerHTML = '<td colspan="5">本次运行没有可展示的结构化指标；系统不会补造数值。</td>';
+      tr.innerHTML = '<td colspan="3">本次运行没有可展示的结构化指标；系统不会补造数值。</td>';
       body.append(tr);
       return;
     }
@@ -3489,11 +3626,14 @@
     badge.textContent = "同源生成";
     rows.forEach((row) => {
       const tr = document.createElement("tr");
-      [row.rule_id, row.metric_label, row.formatted_value, `${String(row.raw_value)} · ${row.basis}`, row.calculation_process].forEach((value) => {
+      [`${row.rule_id} · ${row.metric_label}`, row.formatted_value].forEach((value) => {
         const td = document.createElement("td");
         td.textContent = value;
         tr.append(td);
       });
+      const calculation = document.createElement("td");
+      calculation.innerHTML = `<details><summary>查看口径与计算</summary><p>原值：${escapeHtml(String(row.raw_value))} · ${escapeHtml(row.basis)}</p><p>${escapeHtml(row.calculation_process)}</p></details>`;
+      tr.append(calculation);
       body.append(tr);
     });
   }
@@ -3647,6 +3787,14 @@
     message.className = `status-banner ${liveStatusKind(task.status) === "danger" ? "danger" : liveStatusKind(task.status) === "waiting" ? "warning" : liveStatusKind(task.status) === "success" ? "success" : "neutral"}`;
     message.innerHTML = `<strong>${escapeHtml(statusLabel(task.status))}</strong><span>${escapeHtml(error.message || failureDetail || reviewDetail || completionDetail || task.boundary || "正在处理真实公开样例；页面只展示后端返回的实际状态。")}</span>`;
     renderLiveResult(task);
+    // 现场与登记预检使用同一结果读者；来源详情仍保留在接入记录中。
+    if (task.result?.analysis?.run_id && !liveTaskIsActive(task)) {
+      resultOrigin = "live";
+      demoState.run = task.result.analysis;
+      demoState.outcome = outcomeFromRun(demoState.run);
+      renderDemoResult(demoState.run, demoState.outcome);
+      byId("demo-live-records").open = false;
+    }
   }
 
   function renderLiveResult(task) {
@@ -3738,11 +3886,14 @@
     if (hasStructuredAnalysis) {
       structuredRows.forEach((row) => {
         const tr = document.createElement("tr");
-        [row.rule_id, row.metric_label, row.formatted_value, `${String(row.raw_value)} · ${row.basis}`, row.calculation_process].forEach((value) => {
+        [`${row.rule_id} · ${row.metric_label}`, row.formatted_value].forEach((value) => {
           const td = document.createElement("td");
           td.textContent = value;
           tr.append(td);
         });
+        const calculation = document.createElement("td");
+        calculation.innerHTML = `<details><summary>查看口径与计算</summary><p>原值：${escapeHtml(String(row.raw_value))} · ${escapeHtml(row.basis)}</p><p>${escapeHtml(row.calculation_process)}</p></details>`;
+        tr.append(calculation);
         tableBody.append(tr);
       });
     }
@@ -3757,6 +3908,7 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const task = await response.json();
       if (token !== demoState.liveSample.pollToken) return;
+      byId("demo-live-read-result").hidden = true;
       renderLiveTask(task);
       if (liveTaskIsActive(task)) {
         demoState.liveSample.pollTimer = window.setTimeout(() => { void pollLiveTask(taskId, token); }, LIVE_POLL_INTERVAL_MS);
@@ -3768,6 +3920,7 @@
       const message = byId("demo-live-message");
       message.className = "status-banner danger";
       message.innerHTML = `<strong>任务状态读取失败</strong><span>${escapeHtml(error.message)}；任务没有被页面删除。</span>`;
+      byId("demo-live-read-result").hidden = false;
     }
   }
 
@@ -3776,6 +3929,7 @@
   }
 
   async function startLiveSample(event) {
+    restoredHistoricalResult = false;
     event.preventDefault();
     if (demoState.liveSample.submitting) return;
     const form = event.currentTarget;
@@ -3787,6 +3941,10 @@
       return;
     }
     if (!liveAnalysisAllowed()) return;
+    resultOrigin = "live";
+    clearResultDisplay();
+    byId("demo-live-records").hidden = false;
+    byId("demo-live-records").open = true;
     demoState.liveSample.submitting = true;
     byId("demo-live-submit").disabled = true;
     byId("demo-live-task").hidden = false;
@@ -3809,6 +3967,8 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(discoveryError(payload, response.status));
+      safeSessionSet(LIVE_TASK_STORAGE_KEY, JSON.stringify({task_id: payload.task_id}));
+      safeSessionRemove(DEMO_TASK_STORAGE_KEY);
       renderLiveTask(payload);
       demoState.liveSample.pollToken += 1;
       void pollLiveTask(payload.task_id, demoState.liveSample.pollToken);
@@ -3881,6 +4041,14 @@
     byId("demo-company-search-status").textContent = `${registered ? "已选择登记公开快照" : "已确认官方目录身份"}：${company.company_name}（${company.ticker}）。${company.seed_case_id ? "可按权限体验登记快照；其年度与当前新公告可能不同。" : "新企业接入能力由站点权限决定。"}`;
     document.querySelectorAll("#demo-company-candidates button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.ticker === company.ticker)));
     updateLiveSubmit();
+    const expanded = (demoState.bootstrap?.expanded_cases || []).find(item => item.ticker === company.ticker);
+    const capability = demoState.bootstrap?.capabilities || {};
+    if (expanded && !capability.onsite_live_sample && !capability.registered_sample_pipeline) {
+      // 云端的登记快照条件自动对齐；仍明示其年度，不让用户手调年报数量才能体验。
+      byId("demo-live-years").value = String(expanded.report_years.length);
+      byId("demo-live-latest-year").value = String(Math.max(...expanded.report_years));
+      updateLiveSubmit();
+    }
   }
 
   function renderExpandedCases(cases) {
@@ -4127,6 +4295,34 @@
   }
 
   function bindEvents() {
+    // 辅助轴定位到事实、角色处理、资料缺口和交付内容，不再重复模拟执行进度。
+    const axisTargets = { screening: "demo-facts-title", rag: "demo-handoff-title", evidence: "demo-next-title", output: "demo-structured-heading" };
+    const axisButtons = [];
+    document.querySelectorAll("#demo-evidence-axis-list li").forEach(item => {
+      const target = byId(axisTargets[item.dataset.axis]);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "demo-axis-nav";
+      button.textContent = "定位";
+      button.setAttribute("aria-label", `定位到${target.textContent}`);
+      button.addEventListener("click", () => {
+        for (let parent = target.parentElement; parent; parent = parent.parentElement) if (parent.tagName === "DETAILS") parent.open = true;
+        target.scrollIntoView({ block: "start" });
+        target.tabIndex = -1;
+        target.focus({ preventScroll: true });
+        axisButtons.forEach(entry => entry.button.removeAttribute("aria-current"));
+        button.setAttribute("aria-current", "location");
+      });
+      item.querySelector("div").append(button);
+      axisButtons.push({ target, button });
+    });
+    const axisObserver = new IntersectionObserver(entries => {
+      const current = entries.find(entry => entry.isIntersecting);
+      if (!current) return;
+      axisButtons.forEach(entry => entry.button.toggleAttribute("data-current", entry.target === current.target));
+      axisButtons.forEach(entry => entry.target === current.target ? entry.button.setAttribute("aria-current", "location") : entry.button.removeAttribute("aria-current"));
+    }, { rootMargin: "-90px 0px -55% 0px", threshold: 0 });
+    axisButtons.forEach(entry => axisObserver.observe(entry.target));
     bindCollapsibleSections();
     window.addEventListener("beforeprint", expandCollapsiblesForPrint);
     window.addEventListener("afterprint", restoreCollapsiblesAfterPrint);
@@ -4135,7 +4331,19 @@
     byId("demo-recheck").addEventListener("click", () => { void loadBootstrap(); });
     byId("demo-cancel").addEventListener("click", () => { void requestDemoCancel(); });
     byId("demo-reset").addEventListener("click", resetDemo);
-    byId("demo-rerun").addEventListener("click", () => { resetDemo(); void startDemoRun(); });
+    byId("demo-rerun").addEventListener("click", () => {
+      if (resultOrigin === "live" && demoState.liveSample.selectedCompany) byId("demo-live-sample-form").requestSubmit();
+      else if (resultOrigin === "live") {
+        byId("demo-live-sample-drawer").scrollIntoView({block:"start"});
+        byId("demo-live-company").focus({preventScroll:true});
+        showToast("先确认企业及资料年度，再创建新的分析。", "info");
+      }
+      else { resetDemo(); void startDemoRun(); }
+    });
+    byId("demo-read-result").addEventListener("click", () => {
+      if (pendingResultReadTask?.status) void renderFixedTaskFinal(pendingResultReadTask);
+      else void restoreFixedTaskSession();
+    });
     byId("demo-open-all-cases").addEventListener("click", () => { byId("demo-cases-drawer").showModal(); });
     byId("demo-open-evidence").addEventListener("click", () => { byId("demo-evidence-drawer").showModal(); });
     byId("demo-challenge-open-drawer").addEventListener("click", () => { byId("demo-evidence-drawer").showModal(); });
@@ -4155,9 +4363,14 @@
     });
     byId("demo-open-live-sample").addEventListener("click", () => {
       byId("demo-secondary-menu").open = false;
-      byId("demo-live-sample-drawer").showModal();
+      byId("demo-live-sample-drawer").scrollIntoView({ block: "start" });
+      byId("demo-live-company").focus({ preventScroll: true });
     });
     byId("demo-live-sample-form").addEventListener("submit", (event) => { void startLiveSample(event); });
+    byId("demo-live-read-result").addEventListener("click", () => {
+      const taskId = demoState.liveSample.task?.task_id;
+      if (taskId) void pollLiveTask(taskId, demoState.liveSample.pollToken);
+    });
     byId("demo-company-search").addEventListener("click", () => { void searchCompanies(); });
     byId("demo-report-search").addEventListener("click", () => { void searchCompanyReports(); });
     byId("demo-live-company").addEventListener("input", () => {
@@ -4171,9 +4384,6 @@
     ["demo-live-cutoff", "demo-live-latest-year", "demo-live-years"].forEach((id) => byId(id).addEventListener("input", invalidateReportSearch));
     byId("demo-live-cutoff").addEventListener("change", invalidateReportSearch);
     byId("demo-live-mode").addEventListener("change", () => { demoState.liveSample.modeChosenByUser = true; updateLiveSubmit(); });
-    byId("demo-live-sample-drawer").addEventListener("close", () => {
-      byId("demo-secondary-menu").querySelector("summary").focus();
-    });
     byId("demo-live-download-json").addEventListener("click", downloadLiveSampleJson);
     byId("demo-live-download-csv").addEventListener("click", downloadLiveSampleCsv);
     byId("demo-live-print-report").addEventListener("click", printLiveSampleReport);
@@ -4188,12 +4398,14 @@
         if (dialog?.open) dialog.close();
       });
     });
-    ["demo-cases-drawer", "demo-evidence-drawer", "demo-agent-drawer", "demo-tech-drawer", "demo-live-sample-drawer", "demo-supplement-drawer"].forEach((id) => {
+    ["demo-cases-drawer", "demo-evidence-drawer", "demo-agent-drawer", "demo-tech-drawer", "demo-supplement-drawer"].forEach((id) => {
       const dialog = document.getElementById(id);
       dialog?.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
     });
     window.addEventListener("popstate", () => {
       const requested = new URLSearchParams(window.location.search).get("case");
+      // 同页锚点也会触发历史事件；只有案例改变才清理结果，进入工作台不能抹掉刚恢复的运行。
+      if (requested === demoState.caseId) return;
       if (demoState.phase === "running") {
         // 运行中历史切换不能让旧 task 的结果覆盖当前案例；把 URL 校正回任务案例。
         updateUrl({ replace: true });
@@ -4209,6 +4421,18 @@
     renderControls();
     await loadBootstrap();
     await restoreFixedTaskSession();
+    const liveRaw = safeSessionGet(LIVE_TASK_STORAGE_KEY);
+    if (liveRaw && !safeSessionGet(DEMO_TASK_STORAGE_KEY)) {
+      let saved = null;
+      try { saved = JSON.parse(liveRaw); } catch (_error) { safeSessionRemove(LIVE_TASK_STORAGE_KEY); }
+      if (saved?.task_id) {
+        demoState.liveSample.task = {task_id:saved.task_id};
+        byId("demo-live-records").hidden = false;
+        byId("demo-live-records").open = true;
+        restoredHistoricalResult = true;
+        await pollLiveTask(saved.task_id, demoState.liveSample.pollToken);
+      }
+    }
   }
 
   // ⑥ 区中文解读层是纯函数：挂到 window 后，真实浏览器验收脚本可以直接喂留痕夹具复现说明，

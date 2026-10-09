@@ -6735,3 +6735,88 @@ textarea {
   .demo-evidence-axis li:not(:last-child)::after { top: 30px; left: 14px; }
 }
 .demo-evidence-axis li small { font-size: 14px; line-height: 1.65; }
+
+/* 决赛复审：单一工作台与连贯阅读，完整原文在就地详情中保留。 */
+.demo-discovery-workbench { padding: 28px; background: #fff; border: 1px solid var(--at-rule); scroll-margin-top: 96px; }
+.demo-discovery-workbench .dialog-head { padding: 0 0 16px; margin: 0; border: 0; }
+.demo-discovery-workbench .demo-drawer-body { padding: 0; max-height: none; overflow: visible; }
+.demo-discovery-workbench h2 { font-size: 26px; font-family: var(--font-sans); }
+.demo-discovery-workbench .demo-live-form { display: flex; flex-direction: column; gap: 16px; }
+.demo-company-search-line { display: flex; align-items: end; gap: 12px; }
+.demo-company-search-line label { flex: 1; min-width: 0; }
+.demo-company-search-line input { min-height: 48px; font-size: 17px; }
+.demo-company-search-line button { min-height: 48px; flex-shrink: 0; }
+.demo-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; padding: 16px 0; }
+.demo-project-background, .demo-analysis-settings, .demo-result-detail { border-top: 1px solid var(--at-rule); }
+.demo-project-background > summary, .demo-analysis-settings > summary, .demo-result-detail > summary { min-height: 48px; padding: 16px 0; cursor: pointer; font-size: 16px; font-weight: 600; }
+.demo-project-background .demo-hero { padding-top: 16px; }
+#demo-result { padding: 28px; content-visibility: visible; contain-intrinsic-size: auto; }
+#demo-result .folio, #demo-result .demo-result-visual { display: none; }
+#demo-result .demo-analysis-main { min-width: 0; padding: 0 24px 0 0; }
+#demo-result h3 { font-family: var(--font-sans); font-size: 23px; }
+#demo-result h4 { font-family: var(--font-sans); font-size: 18px; line-height: 1.5; }
+#demo-result p, #demo-result li, #demo-result dd { font-family: var(--font-sans); font-size: 16px; line-height: 1.75; }
+#demo-result small, #demo-result .demo-summary-label, #demo-result .demo-attention-label { font-size: 14px; line-height: 1.6; }
+#demo-result code { font-size: 14px; overflow-wrap: anywhere; }
+.demo-result-summary { grid-template-columns: repeat(2, minmax(0,1fr)); margin: 0 0 24px; }
+.demo-result-summary > .is-primary { grid-column: 1 / -1; }
+.demo-summary-value { font-size: 18px; font-variant-numeric: tabular-nums; }
+.demo-case-purpose { display: block; color: #204aae; font-size: 15px; line-height: 1.65; margin-block: 10px; }
+.demo-summary-record { grid-column: 1 / -1; font-size: 14px; }
+.demo-summary-record > summary { min-height: 44px; cursor: pointer; padding: 10px 0; }
+.demo-result-summary > .demo-summary-cell { min-height: 0; grid-column: auto; padding: 14px 16px; }
+.demo-result-summary > .demo-summary-cell.is-primary { grid-column: 1 / -1; }
+.demo-summary-record .demo-summary-cell { min-height: 0; padding: 12px 16px; }
+.demo-summary-record { padding-inline: 16px; }
+.demo-discovery-workbench .demo-tech-section { margin: 0; padding: 8px 0; }
+.demo-discovery-workbench .form-message { margin: 8px 0; font-size: 14px; }
+.demo-discovery-grid:empty { display: none; }
+.demo-primary-reading > section { padding: 20px 0; border-top: 1px solid var(--at-rule); scroll-margin-top: 100px; }
+.demo-primary-reading h4 { margin: 0 0 12px; }
+.demo-primary-reading p { margin: 10px 0; max-width: 72ch; }
+.demo-inline-evidence, #demo-agent-handoff details { margin: 12px 0; }
+.demo-inline-evidence > summary, #demo-agent-handoff summary { padding: 12px 0; min-height: 44px; color: #204aae; font-size: 15px; cursor: pointer; }
+.demo-inline-evidence > div { padding: 12px 16px; margin: 8px 0; border-left: 2px solid #2456cb; background: #f6f8fc; overflow-wrap: anywhere; }
+#demo-agent-handoff { margin: 0; padding-left: 24px; }
+#demo-agent-handoff > li { padding: 12px 0; border-bottom: 1px solid var(--at-rule); }
+#demo-agent-handoff > li > strong { font-size: 16px; }
+.demo-material-line { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--at-rule); }
+.demo-material-line span { font-size: 15px; color: #4d5b70; }
+#demo-result .demo-reading-notice { font-size: 14px; color: #556276; padding: 16px 0; }
+.demo-result-detail { margin: 12px 0; }
+.demo-result-detail > section { margin: 0; }
+.demo-attention-card { background: #fff; padding: 16px 0; }
+.demo-attention-zone { padding: 20px 0; }
+.demo-agent-inline-cards { grid-template-columns: 1fr; }
+.demo-structured-table { min-width: 0; width: 100%; table-layout: fixed; }
+.demo-structured-table th, .demo-structured-table td { font-size: 15px; white-space: normal; overflow-wrap: anywhere; }
+.demo-structured-table th:nth-child(1) { width: 36%; }
+.demo-structured-table th:nth-child(2) { width: 24%; }
+.demo-structured-table details > summary { min-height: 44px; cursor: pointer; }
+.demo-structured-table details p { margin: 12px 0; }
+.demo-evidence-axis { align-self: start; position: sticky; top: 94px; }
+.demo-axis-nav { border: 0; background: transparent; width: 100%; text-align: left; font: inherit; padding: 0; color: inherit; cursor: pointer; }
+.demo-axis-nav:focus-visible { outline: 2px solid #2456cb; outline-offset: 5px; }
+.demo-axis-nav[aria-current="location"] strong { color: #2456cb; }
+#demo-result [id], #demo-result details { scroll-margin-top: 100px; }
+@media (max-width: 1024px) { .demo-evidence-axis { position: static; } #demo-result .demo-analysis-main { padding: 0; } }
+@media (max-width: 640px) {
+  #main-content { padding: 12px; }
+  .demo-shell { width: auto; margin: 0; padding: 0; }
+  .demo-discovery-workbench, #demo-result { padding: 16px; }
+  .demo-discovery-workbench h2 { font-size: 23px; }
+  .demo-company-search-line { align-items: stretch; flex-direction: column; }
+  .demo-settings-grid, .demo-result-summary { grid-template-columns: 1fr; }
+  .demo-result-summary > .is-primary { grid-column: auto; }
+  .demo-result-heading, .demo-section-heading { align-items: start; flex-direction: column; gap: 10px; }
+  .demo-material-line { grid-template-columns: 1fr; gap: 6px; }
+  #demo-result h3 { font-size: 21px; }
+  .demo-attention-card { padding: 12px 0; }
+  .demo-evidence-axis { width: 100%; padding: 16px 0; }
+}
+@media print {
+  .demo-discovery-workbench, .demo-project-background, .demo-axis-nav { display: none !important; }
+  #demo-result { padding: 0; }
+  .demo-result-detail { break-inside: auto; }
+  .demo-primary-reading > section { break-inside: avoid; }
+}

@@ -688,6 +688,7 @@ def test_public_prescreen_uses_latest_complete_pair_and_reports_third_year_gap(t
     context, sources = get_period_sources(tmp_path, case_id, 2024, ("R1",))
     assert context["public_prescreen"] is True
     assert context["analysis_cutoff_year"] == 2024
+    assert context["three_year_r1_ready"] is False
     assert {item["field_id"] for item in sources} == {
         "revenue_current",
         "revenue_previous",

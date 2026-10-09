@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import threading
@@ -86,18 +87,12 @@ def _directory_refresh_guard():
         _directory_lock.release()
 
 
-def directory(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """串行刷新目录，原子保存官方清单；过期快照最多降级使用七天。"""
-
-    path = _snapshot_path(root)
-    with _directory_refresh_guard():
-        snapshot: dict[str, Any] = {}
+def _read_directory_snapshot(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]], float, str]:
+    """运行缓存与部署自带的官方快照取较新者；损坏快照不会进入身份候选。"""
+    selected: tuple[dict[str, Any], list[dict[str, Any]], float, str] = ({}, [], 7 * DIRECTORY_TTL, "none")
+    for path, location in ((_snapshot_path(root), "runtime"), (root / "backend" / "company_directory.snapshot.json", "deployment")):
         try:
             snapshot = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            pass
-        # 损坏或旧格式缓存不能把公开入口变成500，重新从官方目录恢复。
-        try:
             if not isinstance(snapshot, dict):
                 raise ValueError("invalid snapshot")
             epoch = float(snapshot.get("fetched_at_epoch") or 0)
@@ -107,40 +102,80 @@ def directory(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
             if not 0 < epoch <= time.time() + 60:
                 raise ValueError("invalid timestamp")
             age = max(0, time.time() - epoch)
-        except (ValueError, TypeError):
-            snapshot, rows, age = {}, [], 7 * DIRECTORY_TTL
-        # 市场标签是代码派生字段，升级后修正旧缓存中的920北交所标签。
-        for company in rows:
-            company["market"] = _market_for_code(company["ticker"])
-            company["column"], company["plate"] = _column_and_plate(company["market"])
-        if rows and age < DIRECTORY_TTL:
-            return rows, {"status": "official_cache", "fetched_at": snapshot.get("fetched_at"), "age_seconds": round(age), "source_url": STOCK_LIST_URLS["szse"]}
-        try:
+        except (OSError, ValueError, TypeError):
+            continue
+        if rows and age < selected[2]:
+            # 市场标签由股票代码派生，不沿用旧快照的错误市场信息。
+            for company in rows:
+                company["market"] = _market_for_code(company["ticker"])
+                company["column"], company["plate"] = _column_and_plate(company["market"])
+            selected = snapshot, rows, age, location
+    return selected
+
+
+def directory(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """有效快照直接读取；更新互斥只保护网络刷新，不阻塞已有身份检索。"""
+    path = _snapshot_path(root)
+    snapshot, rows, age, location = _read_directory_snapshot(root)
+
+    def provenance(status: str, **extra: Any) -> dict[str, Any]:
+        return {"status": status, "cache_location": location, "fetched_at": snapshot.get("fetched_at"), "age_seconds": round(age), "source_url": snapshot.get("source_url") or STOCK_LIST_URLS["szse"], **extra}
+
+    if rows and age < DIRECTORY_TTL:
+        return rows, provenance("official_cache")
+    try:
+        with _directory_refresh_guard():
+            # 等待锁时另一个请求可能已经刷新；重新检查避免重复上游调用。
+            snapshot, rows, age, location = _read_directory_snapshot(root)
+            if rows and age < DIRECTORY_TTL:
+                return rows, provenance("official_cache")
             recent_failure = _directory_failures.get(str(path))
             if recent_failure and time.monotonic() < recent_failure[0]:
                 raise CNInfoError(recent_failure[1], recent_failure[2])
             companies = _fetch_directory()
-        except CNInfoError as error:
-            # 失败退避固定六十秒，不因后续失败请求滑动延长；台账有界。
+            _directory_failures.pop(str(path), None)
+            snapshot = {"fetched_at_epoch": time.time(), "fetched_at": datetime.now(timezone.utc).isoformat(), "source_url": STOCK_LIST_URLS["szse"], "companies": companies}
+            persistence = "saved"
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                temporary = path.with_suffix(".tmp")
+                temporary.write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
+                temporary.replace(path)
+            except OSError:
+                persistence = "unavailable"
+            return companies, {"status": "official_live", "cache_location": "runtime", "cache_persistence": persistence, "fetched_at": snapshot["fetched_at"], "age_seconds": 0, "source_url": STOCK_LIST_URLS["szse"]}
+    except CNInfoError as error:
+        # 锁繁忙不记成来源失败；有可用快照时仍可查询，日期与降级原因可见。
+        if error.code != "DISCOVERY_BUSY":
+            recent_failure = _directory_failures.get(str(path))
             if not recent_failure or time.monotonic() >= recent_failure[0]:
                 _directory_failures[str(path)] = (time.monotonic() + 60, error.code, error.message)
                 _directory_failures.move_to_end(str(path))
                 while len(_directory_failures) > 32:
                     _directory_failures.popitem(last=False)
-            if rows and age < 7 * DIRECTORY_TTL:
-                return rows, {"status": "stale_official_cache", "fetched_at": snapshot.get("fetched_at"), "age_seconds": round(age), "source_url": STOCK_LIST_URLS["szse"], "failure_code": error.code, "boundary": "官方来源当前不可用，正在使用过期身份清单；年报可用性需重新核验。"}
-            raise
-        _directory_failures.pop(str(path), None)
-        snapshot = {"fetched_at_epoch": time.time(), "fetched_at": datetime.now(timezone.utc).isoformat(), "companies": companies}
-        persistence = "saved"
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            temporary = path.with_suffix(".tmp")
-            temporary.write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
-            temporary.replace(path)
-        except OSError:
-            persistence = "unavailable"
-        return companies, {"status": "official_live", "cache_persistence": persistence, "fetched_at": snapshot["fetched_at"], "age_seconds": 0, "source_url": STOCK_LIST_URLS["szse"]}
+        if rows and age < 7 * DIRECTORY_TTL:
+            return rows, provenance("stale_official_cache", failure_code=error.code, boundary="目录正在更新或官方来源暂不可用，当前使用标明日期的官方身份快照；年报可用性仍需核验。")
+        raise
+
+
+def refresh_deployment_snapshot(root: Path) -> dict[str, Any]:
+    """构建时携带官方目录元数据；新实例无需先访问上游才能找到企业身份。"""
+    try:
+        rows = _fetch_directory()
+        # 部署全市场快照不能被单市场/截断响应替代，保留已核验的旧快照。
+        if len(rows) < 1000 or not {"sse", "szse"}.issubset({item.get("market") for item in rows}):
+            raise CNInfoError("DIRECTORY_INCOMPLETE", "官方企业目录覆盖不足，保留已有快照。")
+    except CNInfoError as error:
+        snapshot, rows, age, _ = _read_directory_snapshot(root)
+        return {"status": "retained_snapshot" if rows and age < 7 * DIRECTORY_TTL else "unavailable", "failure_code": error.code, "fetched_at": snapshot.get("fetched_at"), "company_count": len(rows)}
+    encoded = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    snapshot = {"schema_version": "official_company_directory_v1", "fetched_at_epoch": time.time(), "fetched_at": datetime.now(timezone.utc).isoformat(), "source_url": STOCK_LIST_URLS["szse"], "companies_sha256": hashlib.sha256(encoded).hexdigest(), "company_count": len(rows), "companies": rows}
+    path = root / "backend" / "company_directory.snapshot.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(path)
+    return {key: snapshot[key] for key in ("fetched_at", "source_url", "companies_sha256", "company_count")} | {"status": "ready"}
 
 
 def search(root: Path, query: str) -> dict[str, Any]:
@@ -228,3 +263,8 @@ def expanded_cases(root: Path) -> list[dict[str, Any]]:
             years = sorted({int(document["report_year"]) for document in case.get("documents", []) if str(document.get("report_year") or "").isdigit()}, reverse=True)
             result.append({"ticker": ticker, "case_id": case["case_id"], "company_name": case.get("company_alias") or case.get("company_name"), "report_years": years, "document_count": len(case.get("documents") or []), "field_count": len(case.get("financial_fields") or []), "professional_review": "pending", "source_mode": "registered_public_snapshot", "boundary": "扩展体验案例，未计入原15案专业冻结清单。"})
     return result
+
+
+if __name__ == "__main__":
+    # Render 构建命令只刷新公开身份元数据，不下载 PDF 或执行分析。
+    print(json.dumps(refresh_deployment_snapshot(Path(__file__).resolve().parents[2]), ensure_ascii=False))

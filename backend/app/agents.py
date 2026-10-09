@@ -153,7 +153,7 @@ ROUTE_ALLOWED_CONCLUSIONS = {
     "industry_review": ["industry_boundary", "additional_procedure_required", "data_gap"],
     "evidence_gap_review": ["data_gap", "additional_procedure_required"],
 }
-PROMPT_VERSION = "agent_prompt_v3"
+PROMPT_VERSION = "agent_prompt_v4_units"
 ROLE_MAX_OUTPUT_TOKENS: dict[AgentRole, int] = {"challenge": 1400, "counter": 1400, "review": 1600}
 
 
@@ -547,6 +547,7 @@ turnover_trend_available=false 时不得写周转或回款周期较上年延长/
 如果 evidence_bundle 为空，仍必须调用 submit_agent_output 完成三角色链；此时 claims 和 normal_explanations 必须为空，
 只能填写 data_gaps/requested_materials、路线允许的 analysis_conclusion 以及 review 的缺口草稿，绝不编造事实或 evidence_id。
 不得改写程序计算的数字、公式、页码、原文定位或规则触发结论。
+增长率使用百分比（%）；两个增长率相减的增速差必须使用“个百分点”，不能写成百分比或相对变化。金额同时保留程序给出的单位和净额/账面余额口径。
 evidence_bundle 中的 fitness_class 和 allowed_claim_types 是程序编译的证据适配度边界：
 current_entity_primary_evidence 才能支持当前企业事实；authoritative_normative_basis 只能支持规范/程序依据；
 analogous_regulatory_or_industry_background 只能支持类比或待验证背景；unverified_background 不得进入 supported 主张。
@@ -596,6 +597,12 @@ def _user_payload(
         # 把程序已经确定的真假条件单列出来，避免模型把 26.84% 写成超过
         # 30% 强阈值，或在缺少可比期间时擅自声称周转天数“显著延长”。
         "deterministic_constraints": {
+            "growth_rate_unit": "%",
+            "growth_gap_unit": "个百分点",
+            "growth_gap_display": (
+                f"{float(rule_result.metrics['growth_gap']) * 100:.2f}个百分点"
+                if rule_result.metrics.get("growth_gap") is not None else None
+            ),
             "strong_threshold_met": (
                 bool(rule_result.risk_card)
                 and rule_result.risk_card.get("screening_strength") == "strong"
@@ -731,6 +738,26 @@ def _normalize_unverified_explanations(output: AgentOutput) -> AgentOutput:
             changed = True
         explanations.append(explanation)
     return output.model_copy(update={"normal_explanations": explanations}) if changed else output
+
+
+def format_growth_gap_text(text: str) -> str:
+    """增速差的百分号统一为百分点；只更正明确标签的单位，不改数值或增长率。"""
+    return re.sub(
+        r"((?:增速差|增长率差|增长差)(?:为|是|约|达到|：|:)?\s*[+\-−]?\d+(?:\.\d+)?\s*)[%％]",
+        r"\1个百分点",
+        text,
+    )
+
+
+def _normalize_growth_gap_units(output: AgentOutput) -> AgentOutput:
+    """对模型业务字段执行可逆单位格式更正，原始响应哈希继续指向模型原件。"""
+    updates = {
+        key: format_growth_gap_text(getattr(output, key))
+        for key in ("reason_for_status", "draft_title", "draft_observation")
+    }
+    for key in ("claims", "normal_explanations"):
+        updates[key] = [item.model_copy(update={"text": format_growth_gap_text(item.text)}) for item in getattr(output, key)]
+    return output.model_copy(update=updates)
 
 
 def _semantic_failure_code(message: str) -> str:
@@ -917,6 +944,8 @@ def validate_agent_output(
             raise ValueError("复核Agent的ai_recommendation必须与status一致")
         output = _with_review_boundaries(output, rule_result)
     output = _normalize_unverified_explanations(output)
+    # 单位显示错误由确定性的格式更正解决，不额外重试模型或要求人工确认。
+    output = _normalize_growth_gap_units(output)
 
     for claim in output.claims:
         if not claim.evidence_ids or claim.support_status != "supported":
@@ -1740,11 +1769,15 @@ def run_agent_chain(
             break
         previous_outputs[role] = output
         attempt_history[-1]["validation"] = "passed"
+        # 响应原件不覆盖；格式更正明确登记在同一次调用留痕中。
+        unit_corrected = format_growth_gap_text(json.dumps(raw_output, ensure_ascii=False)) != json.dumps(raw_output, ensure_ascii=False)
+        if unit_corrected:
+            attempt_history[-1]["display_unit_correction"] = "growth_gap_percentage_points_v1"
         push(
             AgentStep(
                 role=role,
                 status="completed",
-                detail="已完成结构化输出并通过evidence_id与禁用词校验。",
+                detail="已完成结构化输出并通过evidence_id与禁用词校验。" + ("增速差单位已统一为百分点；原始响应哈希保留。" if unit_corrected else ""),
                 model_id=model_id,
                 prompt_version=PROMPT_VERSION,
                 input_sha256=input_sha256,
