@@ -22,14 +22,22 @@ fs.mkdirSync(out,{recursive:true});
    r.settings=await p.locator('#demo-live-action-boundary').textContent();r.mode=await p.locator('#demo-live-mode').inputValue();assert.equal(r.mode,'rag_only');
    await p.locator('#demo-live-sample-title').scrollIntoViewIfNeeded();await p.screenshot({path:path.join(out,`企业入口_${width}.png`)});
    if(width===1440){
-    await p.locator('#demo-live-submit').click();await p.waitForFunction(()=>['处理完成','处理失败','需要人工确认'].some(t=>document.querySelector('#demo-live-task-state').textContent.includes(t)),null,{timeout:180000});
+    const submission=p.waitForResponse(res=>res.request().method()==='POST' && (/\/api\/pipelines\/cninfo$/.test(res.url()) || /\/api\/demo\/expanded-cases\/.+\/preview$/.test(res.url())));
+    await p.locator('#demo-live-submit').click();const created=await (await submission).json();await p.waitForFunction(()=>['处理完成','处理失败','需要人工确认'].some(t=>document.querySelector('#demo-live-task-state').textContent.includes(t)),null,{timeout:180000});
     r.taskState=await p.locator('#demo-live-task-state').textContent();assert.match(r.taskState,/处理完成/);await p.locator('#demo-result').waitFor({state:'visible'});
     r.identity=await p.locator('#demo-result-summary').textContent();assert.match(r.identity,/美的/);r.badge=await p.locator('#demo-execution-badge').textContent();
-    const taskId=(await p.locator('#demo-live-task-id').textContent()).trim();const response=await p.request.get(base+'/api/pipelines/'+encodeURIComponent(taskId));r.task=await response.json();assert.equal(r.task.result.analysis.provider_call_count,0);
+    const taskId=(await p.locator('#demo-live-task-id').textContent()).trim();r.task=created.request?.analysis_mode==='snapshot_preview'?created:await (await p.request.get(base+'/api/pipelines/'+encodeURIComponent(taskId))).json();assert.equal(r.task.result.analysis.provider_call_count,0);
     assert.equal(r.task.result.analysis.context.three_year_r1_ready,false);
     await p.locator('#demo-established-facts').scrollIntoViewIfNeeded();await p.screenshot({path:path.join(out,'美的统一结果.png')});
     const download=p.waitForEvent('download');await p.locator('#demo-download-json').click();const d=await download;await d.saveAs(path.join(out,'实际预检导出.json'));
+    const csvDownload=p.waitForEvent('download');await p.locator('#demo-download-csv').click();const csv=await csvDownload;await csv.saveAs(path.join(out,'实际预检指标.csv'));assert.match(fs.readFileSync(path.join(out,'实际预检指标.csv'),'utf8'),/百分点/);
     await p.reload();await p.locator('#demo-result').waitFor({state:'visible'});r.reloadIdentity=await p.locator('#demo-result-summary').textContent();assert.match(r.reloadIdentity,/美的/);
+   }
+   if(width===390){
+    await p.route('**/api/companies/*/reports?*',route=>route.fulfill({status:503,contentType:'text/html',body:'<!DOCTYPE html><title>Deploy switching</title>'}));
+    await p.locator('#demo-report-search').click();await p.waitForFunction(()=>!document.querySelector('#demo-report-search').disabled);
+    r.injectedHtml503=await p.locator('#demo-report-status').textContent();assert.match(r.injectedHtml503,/HTTP 503/);assert.ok(!r.injectedHtml503.includes('Unexpected token'));
+    await p.unroute('**/api/companies/*/reports?*');await p.locator('#demo-report-search').click();await p.waitForFunction(()=>!document.querySelector('#demo-report-search').disabled);assert.ok(await p.locator('#demo-report-results a').count());
    }
    r.overflow=await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.equal(r.overflow,false);assert.equal(errors.length,0);r.passed=true;
   }catch(e){r.failure=e.message;}

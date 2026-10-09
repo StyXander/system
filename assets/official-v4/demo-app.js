@@ -828,6 +828,11 @@
       return;
     }
     const badge = executionBadgeForRun(run);
+    if (restoredHistoricalResult && demoState.liveSample.task?.request?.analysis_mode === "snapshot_preview") {
+      node.dataset.mode = "history_restore";
+      node.textContent = `已恢复本标签页公开预检 · 本次新增 0 次模型调用；原运行 ${run.run_id}。服务器未创建持久化接入任务。`;
+      return;
+    }
     if (restoredHistoricalResult) {
       node.dataset.mode = "history_restore";
       node.textContent = `已恢复历史运行结果 · 本次新增 0 次模型调用；原运行 ${run.run_id}：${badge.label.replace("本次", "当时")}`;
@@ -3191,13 +3196,13 @@
       originals.innerHTML = "<summary>回查这些数字的原表证据</summary>";
       factSources.forEach(row => {
         const node = document.createElement("div");
-        paragraph(node, `${row.field_label || row.field_id}：${row.excerpt || row.source_locator || row.locator || "原表定位见来源"}`);
+        paragraph(node, `${row.field_label || row.field_id}：${row.excerpt || row.raw_excerpt || row.candidate?.raw_excerpt || row.source_locator || row.locator || "原表定位见来源"}`);
         if (row.document_id && run.context?.case_id) {
           const link = document.createElement("a");
           link.href = sourceLink(run.context.case_id, row.document_id, row.pdf_page);
           link.target = "_blank";
           link.rel = "noopener noreferrer";
-          link.textContent = `查看原文 · ${row.year || ""} 年 · PDF 第 ${row.pdf_page || "未记录"} 页`;
+          link.textContent = `查看原文 · ${row.year || ""} 年 · PDF 第 ${row.pdf_page || "未记录"} 页${row.print_page ? ` · 印刷第 ${row.print_page} 页` : "（印刷页未登记）"}`;
           node.append(link);
         }
         originals.append(node);
@@ -3955,6 +3960,9 @@
         const response = await fetch(`${API_BASE}/api/demo/expanded-cases/${encodeURIComponent(demoState.liveSample.selectedCompany.ticker)}/preview`, { method: "POST", credentials: "include", signal: AbortSignal.timeout(45000) });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(discoveryError(payload, response.status));
+        // 公开预检不创建服务端接入任务；当前标签页只保存实际返回内容，刷新不重新提交。
+        safeSessionSet(LIVE_TASK_STORAGE_KEY, JSON.stringify({preview:payload}));
+        safeSessionRemove(DEMO_TASK_STORAGE_KEY);
         renderLiveTask(payload);
         return;
       }
@@ -4090,7 +4098,7 @@
     byId("demo-company-search-status").textContent = "正在查询巨潮官方企业目录…";
     try {
       const response = await fetch(`${API_BASE}/api/companies/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(15000) });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => { throw new Error(`查询服务暂未返回结构化数据（HTTP ${response.status}），请稍后重试`); });
       if (token !== demoState.liveSample.discoveryToken) return;
       if (!response.ok) throw new Error(discoveryError(payload, response.status));
       byId("demo-company-search-status").textContent = payload.match_count
@@ -4127,7 +4135,7 @@
       const parameters = new URLSearchParams({ year });
       if (cutoff) parameters.set("source_cutoff_date", cutoff);
       const response = await fetch(`${API_BASE}/api/companies/${encodeURIComponent(company.ticker)}/reports?${parameters}`, { signal: AbortSignal.timeout(30000) });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => { throw new Error(`公告查询服务暂未返回结构化数据（HTTP ${response.status}），请稍后重试`); });
       if (token !== demoState.liveSample.reportToken || identityToken !== demoState.liveSample.discoveryToken) return;
       if (!response.ok) throw new Error(discoveryError(payload, response.status));
       byId("demo-report-status").textContent = `${payload.selected ? "找到有效全文公告" : payload.query_status?.truncated ? "查询不完整，不能判断是否有全文" : "截止日前未找到可用全文公告"}；资料截止日 ${payload.source_cutoff_date}。${payload.query_status?.truncated ? "分页达到上限，版本核验不完整。" : ""}${payload.boundary}`;
@@ -4425,7 +4433,11 @@
     if (liveRaw && !safeSessionGet(DEMO_TASK_STORAGE_KEY)) {
       let saved = null;
       try { saved = JSON.parse(liveRaw); } catch (_error) { safeSessionRemove(LIVE_TASK_STORAGE_KEY); }
-      if (saved?.task_id) {
+      if (saved?.preview?.request?.analysis_mode === "snapshot_preview") {
+        restoredHistoricalResult = true;
+        byId("demo-live-records").hidden = false;
+        renderLiveTask(saved.preview);
+      } else if (saved?.task_id) {
         demoState.liveSample.task = {task_id:saved.task_id};
         byId("demo-live-records").hidden = false;
         byId("demo-live-records").open = true;
