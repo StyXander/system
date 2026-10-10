@@ -6750,9 +6750,9 @@ textarea {
 .demo-project-background, .demo-analysis-settings, .demo-result-detail { border-top: 1px solid var(--at-rule); }
 .demo-project-background > summary, .demo-analysis-settings > summary, .demo-result-detail > summary { min-height: 48px; padding: 16px 0; cursor: pointer; font-size: 16px; font-weight: 600; }
 .demo-project-background .demo-hero { padding-top: 16px; }
-#demo-result { padding: 28px; content-visibility: visible; contain-intrinsic-size: auto; }
+#demo-result { padding: 28px 0; content-visibility: visible; contain-intrinsic-size: auto; }
 #demo-result .folio, #demo-result .demo-result-visual { display: none; }
-#demo-result .demo-analysis-main { min-width: 0; padding: 0 24px 0 0; }
+#demo-result .demo-analysis-main { min-width: 0; padding: 28px; }
 #demo-result h3 { font-family: var(--font-sans); font-size: 23px; }
 #demo-result h4 { font-family: var(--font-sans); font-size: 18px; line-height: 1.5; }
 #demo-result p, #demo-result li, #demo-result dd { font-family: var(--font-sans); font-size: 16px; line-height: 1.75; }
@@ -6794,16 +6794,27 @@ textarea {
 .demo-structured-table th:nth-child(2) { width: 24%; }
 .demo-structured-table details > summary { min-height: 44px; cursor: pointer; }
 .demo-structured-table details p { margin: 12px 0; }
+.demo-growth-evidence { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 15px; }
+.demo-growth-evidence caption { text-align: left; padding: 16px 0; font-weight: 600; }
+.demo-growth-evidence th, .demo-growth-evidence td { padding: 12px; border: 1px solid var(--at-rule); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.demo-growth-evidence th:first-child { width: 18%; }
+#demo-result .demo-growth-evidence p { font-size: 15px; margin: 0 0 8px; }
+#demo-live-submit[hidden] { display: none !important; }
+#demo-company-search-status:empty, #demo-company-candidates:empty { display: none; }
+.demo-console .demo-analysis-settings { margin: 16px 22px 0; }
+.demo-growth-evidence a { display: block; min-height: 44px; }
 .demo-evidence-axis { align-self: start; position: sticky; top: 94px; }
 .demo-axis-nav { border: 0; background: transparent; width: 100%; text-align: left; font: inherit; padding: 0; color: inherit; cursor: pointer; }
 .demo-axis-nav:focus-visible { outline: 2px solid #2456cb; outline-offset: 5px; }
 .demo-axis-nav[aria-current="location"] strong { color: #2456cb; }
 #demo-result [id], #demo-result details { scroll-margin-top: 100px; }
-@media (max-width: 1024px) { .demo-evidence-axis { position: static; } #demo-result .demo-analysis-main { padding: 0; } }
+@media (max-width: 1024px) { .demo-evidence-axis { position: static; } #demo-result .demo-analysis-main { padding: 24px; } }
 @media (max-width: 640px) {
   #main-content { padding: 12px; }
   .demo-shell { width: auto; margin: 0; padding: 0; }
-  .demo-discovery-workbench, #demo-result { padding: 16px; }
+  .demo-discovery-workbench { padding: 16px; }
+  #demo-result { padding: 16px 0; }
+  #demo-result .demo-analysis-main { padding: 16px; }
   .demo-discovery-workbench h2 { font-size: 23px; }
   .demo-company-search-line { align-items: stretch; flex-direction: column; }
   .demo-settings-grid, .demo-result-summary { grid-template-columns: 1fr; }
@@ -6813,10 +6824,18 @@ textarea {
   #demo-result h3 { font-size: 21px; }
   .demo-attention-card { padding: 12px 0; }
   .demo-evidence-axis { width: 100%; padding: 16px 0; }
+  /* 手机把年份数值依次排列，避免金额被窄列拆成两行；正文与表格字号不缩小。 */
+  .demo-growth-evidence thead { display: none; }
+  .demo-growth-evidence tbody, .demo-growth-evidence tr, .demo-growth-evidence td, .demo-growth-evidence th { display: block; width: auto !important; }
+  .demo-growth-evidence th { background: var(--at-paper-soft, #f5f7fa); }
 }
 @media print {
   .demo-discovery-workbench, .demo-project-background, .demo-axis-nav { display: none !important; }
   #demo-result { padding: 0; }
   .demo-result-detail { break-inside: auto; }
   .demo-primary-reading > section { break-inside: avoid; }
+  .demo-growth-evidence thead { display: table-header-group; }
+  .demo-growth-evidence tbody { display: table-row-group; }
+  .demo-growth-evidence tr { display: table-row; }
+  .demo-growth-evidence td, .demo-growth-evidence th { display: table-cell; }
 }

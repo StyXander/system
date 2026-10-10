@@ -9,9 +9,9 @@
   <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.14.1">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.0">
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.11.2" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.12.0" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -148,20 +148,11 @@
     </div>
     <div class="demo-drawer-body">
       <p>输入企业名称或代码，确认身份后查看可运行的分析方式。</p>
-      <details class="demo-tech-section demo-expanded-section">
-        <summary id="demo-expanded-toggle"><span id="demo-expanded-title">新增 8 个扩展体验案例</span></summary>
-        <p>来自已登记公开快照，专业复核待完成；原 15 案冻结清单保持独立。</p>
-        <div id="demo-expanded-cases" class="demo-discovery-grid"></div>
-      </details>
+
       <form class="demo-live-form" id="demo-live-sample-form">
         <div class="demo-company-search-line"><label for="demo-live-company"><span>企业名称或股票代码</span><input id="demo-live-company" name="company_query" required maxlength="120" autocomplete="organization" placeholder="例如 000333 或 美的集团"></label><button class="button quiet" id="demo-company-search" type="button">搜索企业</button></div>
-        <details class="demo-analysis-settings"><summary>资料年度与分析设置</summary><div class="demo-settings-grid"><label for="demo-live-years"><span>年报数量</span><select id="demo-live-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
-        <label for="demo-live-latest-year"><span>最新报告年度（可留空）</span><input id="demo-live-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
-        <label for="demo-live-cutoff"><span>资料截止日（可留空）</span><input id="demo-live-cutoff" name="source_cutoff_date" type="date"><small>填写后重新查询来源，不复用登记快照。</small></label>
-        <label for="demo-live-mode"><span>处理方式</span><select id="demo-live-mode" name="analysis_mode"><option value="rag_only" selected>准备资料（不调用模型）</option><option value="full_analysis" disabled>完整分析（调用模型）</option></select></label>
 
-        </div></details>
-<button class="button quiet" id="demo-live-submit" type="submit">开始现场样例分析</button>
+<button class="button quiet" id="demo-live-submit" type="submit" hidden aria-hidden="true" tabindex="-1">开始现场样例分析</button>
       </form>
       <p id="demo-live-action-boundary" class="form-message" role="status" aria-live="polite">先确认企业身份，再查询官方公告；处理能力按当前权限显示。</p>
       <p id="demo-company-search-status" class="form-message" role="status" aria-live="polite">输入名称、简称、拼音或六位代码，点击搜索后确认企业。</p>
@@ -198,6 +189,16 @@
     </div>
   </section>
 
+      <section aria-labelledby="demo-cases-heading">
+        <div class="demo-section-heading">
+          <h3 id="demo-cases-heading">精选案例</h3>
+          <button class="button quiet" type="button" id="demo-open-all-cases">浏览案例库</button>
+        </div>
+        <details class="demo-case-boundary"><summary>案例与版本说明</summary><p>案例卡片上的“已完成准入验收”只说明案例资料本身的验收状态，不代表本次运行环境已就绪。清单中另登记的历史验收运行（historical_external_model_run）仅作为传输、Schema 与留痕技术证据，不保证当前 HEAD 行为；主演示案例必须以当前 HEAD 的新鲜运行为准。来源日期冲突和重新抽取候选按当前更正记录显示，专业采用仍待确认。</p></details>
+        <div class="demo-case-grid" id="demo-featured-cases" role="group" aria-label="首页精选案例，可选择一个开始演示">
+          <div class="empty-state"><strong>正在读取案例清单</strong><p>案例来自冻结 manifest，读取失败时不会显示模拟案例。</p></div>
+        </div>
+      </section>
       <section class="demo-console" aria-labelledby="demo-console-heading">
         <div class="demo-console-panorama" aria-hidden="true"></div>
         <div class="demo-console-head">
@@ -215,6 +216,12 @@
             <button class="button quiet" type="button" id="demo-reset" hidden>一键重置演示</button>
           </div>
         </div>
+        <details class="demo-analysis-settings"><summary>资料年度与分析设置</summary><div class="demo-settings-grid"><label for="demo-live-years"><span>年报数量</span><select form="demo-live-sample-form" id="demo-live-years" name="years"><option value="3" selected>3 份（推荐）</option><option value="2">2 份</option><option value="4">4 份</option><option value="5">5 份</option></select></label>
+        <label for="demo-live-latest-year"><span>最新报告年度（可留空）</span><input form="demo-live-sample-form" id="demo-live-latest-year" name="latest_year" type="number" min="2000" max="2100" inputmode="numeric" placeholder="自动取最新"></label>
+        <label for="demo-live-cutoff"><span>资料截止日（可留空）</span><input form="demo-live-sample-form" id="demo-live-cutoff" name="source_cutoff_date" type="date"><small>填写后重新查询来源，不复用登记快照。</small></label>
+        <label for="demo-live-mode"><span>处理方式</span><select form="demo-live-sample-form" id="demo-live-mode" name="analysis_mode"><option value="rag_only" selected>准备资料（不调用模型）</option><option value="full_analysis" disabled>完整分析（调用模型）</option></select></label>
+
+        </div></details>
         <p class="demo-execution-line">
           <span class="demo-execution-badge" id="demo-execution-badge" data-mode="idle">尚未运行 · 未调用外部模型</span>
           <span class="demo-execution-hint">运行来源与调用次数取自本次运行留痕，不由页面推断。</span>
@@ -235,16 +242,7 @@
 
 
 
-      <section aria-labelledby="demo-cases-heading">
-        <div class="demo-section-heading">
-          <h3 id="demo-cases-heading">精选案例</h3>
-          <button class="button quiet" type="button" id="demo-open-all-cases">查看全部 15 个案例</button>
-        </div>
-        <details class="demo-case-boundary"><summary>案例与版本说明</summary><p>案例卡片上的“已完成准入验收”只说明案例资料本身的验收状态，不代表本次运行环境已就绪。清单中另登记的历史验收运行（historical_external_model_run）仅作为传输、Schema 与留痕技术证据，不保证当前 HEAD 行为；主演示案例必须以当前 HEAD 的新鲜运行为准。来源日期冲突和重新抽取候选按当前更正记录显示，专业采用仍待确认。</p></details>
-        <div class="demo-case-grid" id="demo-featured-cases" role="group" aria-label="首页精选案例，可选择一个开始演示">
-          <div class="empty-state"><strong>正在读取案例清单</strong><p>案例来自冻结 manifest，读取失败时不会显示模拟案例。</p></div>
-        </div>
-      </section>
+
 
       <details class="demo-project-background"><summary>项目范围、交付物与运行信息</summary><section class="demo-hero" aria-labelledby="demo-hero-heading">
               <p class="kicker">PUBLIC ANNUAL REPORT PRESCREEN · EVIDENCE-BOUND</p>
@@ -503,10 +501,15 @@
 
   <dialog class="detail-drawer" id="demo-cases-drawer" aria-labelledby="demo-cases-drawer-title">
     <div class="dialog-head">
-      <div><span class="folio">FROZEN DEMO CASES · 15</span><h2 id="demo-cases-drawer-title">全部案例</h2></div>
+      <div><span class="folio">REGISTERED CASES · 15 + 8</span><h2 id="demo-cases-drawer-title">企业案例库</h2></div>
       <button class="icon-button" type="button" aria-label="关闭全部案例" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭全部案例</span></button>
     </div>
     <div class="demo-drawer-body" id="demo-cases-drawer-body">
+      <details class="demo-tech-section demo-expanded-section">
+        <summary id="demo-expanded-toggle"><span id="demo-expanded-title">新增 8 个扩展体验案例</span></summary>
+        <p>来自已登记公开快照，专业复核待完成；原 15 案冻结清单保持独立。</p>
+        <div id="demo-expanded-cases" class="demo-discovery-grid"></div>
+      </details>
       <div class="empty-state"><strong>正在读取案例</strong><p>案例清单来自冻结 manifest。</p></div>
     </div>
   </dialog>

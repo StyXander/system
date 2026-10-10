@@ -18,6 +18,7 @@
   const CASE_STORAGE_KEY = "audittrace_demo_case_v1";
   const DEMO_TASK_STORAGE_KEY = "audittrace_demo_task_v1";
   const LIVE_TASK_STORAGE_KEY = "audittrace_live_task_v1";
+  const WORKSPACE_STORAGE_KEY = "audittrace_workspace_session_v2";
   let pendingResultReadTask = null;
   let resultOrigin = "fixed";
   let restoredHistoricalResult = false;
@@ -233,6 +234,8 @@
     cases: [],
     caseIndex: new Map(),
     caseId: null,
+    selection: null,
+    workspaceTask: null,
     run: null,
     outcome: null,
     taskCreationBlocked: false,
@@ -378,6 +381,7 @@
   }
 
   function renderFixedTaskProgress(task) {
+    demoState.workspaceTask = {origin: "fixed", task};
     const steps = task?.steps || {};
     const agentSteps = task?.agent_steps || {};
     const signature = JSON.stringify({
@@ -418,6 +422,148 @@
     }
   }
 
+  // 企业选择和运行归属只有一个；两种后端接口仍按原合同调用。
+  function workspaceBusy() {
+    const task = demoState.workspaceTask?.task;
+    return demoState.phase === "running" || demoState.liveSample.submitting || (task && (TASK_ACTIVE_STATUSES.has(task.status) || liveTaskIsActive(task)));
+  }
+
+  function stopLivePolling() {
+    demoState.liveSample.pollToken += 1;
+    window.clearTimeout(demoState.liveSample.pollTimer);
+    demoState.liveSample.pollTimer = null;
+  }
+
+  function clearWorkspaceResult() {
+    stopFixedTaskPolling();
+    stopLivePolling();
+    demoState.liveSample.discoveryToken += 1;
+    demoState.liveSample.reportToken += 1;
+    byId("demo-company-candidates").replaceChildren();
+    byId("demo-company-search-status").textContent = "";
+    byId("demo-report-discovery").hidden = true;
+    byId("demo-report-results").replaceChildren();
+    demoState.workspaceTask = null;
+    demoState.fixedTask.task = null;
+    demoState.fixedTask.taskId = null;
+    demoState.liveSample.task = null;
+    demoState.liveSample.taskId = null;
+    demoState.run = null;
+    pendingResultReadTask = null;
+    safeSessionRemove(WORKSPACE_STORAGE_KEY);
+    safeSessionRemove(DEMO_TASK_STORAGE_KEY);
+    safeSessionRemove(LIVE_TASK_STORAGE_KEY);
+    clearResultDisplay();
+    byId("demo-live-records").hidden = true;
+    resetStageRail();
+  }
+
+  function rememberWorkspace(origin, task) {
+    demoState.workspaceTask = {origin, task};
+    safeSessionSet(WORKSPACE_STORAGE_KEY, JSON.stringify({
+      origin, task_id: task.task_id, selection: demoState.selection,
+      created_at: task.created_at || new Date().toISOString(),
+      ...(task.request?.analysis_mode === "snapshot_preview" ? {preview: task} : {}),
+    }));
+  }
+
+  function adoptRunIdentity(run) {
+    const context = run.context || {};
+    demoState.selection = {
+      origin: resultOrigin, case_id: context.case_id,
+      company_name: context.company_name, ticker: context.ticker,
+      report_years: [context.current_year, context.previous_year].filter(Boolean),
+      t0: context.t0,
+    };
+    if (resultOrigin === "live") {
+      demoState.caseId = null;
+      demoState.liveSample.selectedCompany = {...demoState.selection, seed_case_id: context.case_id};
+    } else {
+      demoState.caseId = context.case_id;
+    }
+    renderCurrentCase();
+    renderFeaturedCases();
+    renderAllCasesDrawer();
+    updateUrl();
+  }
+
+  async function startWorkspaceRun() {
+    if (workspaceBusy()) return;
+    if (demoState.selection?.origin === "fixed") {
+      if (demoState.phase !== "ready") resetDemo();
+      await startDemoRun();
+    } else if (liveAnalysisAllowed()) {
+      await startLiveSample({preventDefault() {}, currentTarget: byId("demo-live-sample-form")});
+    } else if (demoState.liveSample.selectedCompany) {
+      byId("demo-report-discovery").hidden = false;
+      await searchCompanyReports();
+      byId("demo-report-discovery").scrollIntoView({block: "start"});
+    } else {
+      await searchCompanies();
+    }
+  }
+
+  async function restoreWorkspaceSession() {
+    const parse = key => { try { return JSON.parse(safeSessionGet(key) || "null"); } catch (_) { return null; } };
+    const current = parse(WORKSPACE_STORAGE_KEY);
+    const oldFixed = parse(DEMO_TASK_STORAGE_KEY);
+    const oldLive = parse(LIVE_TASK_STORAGE_KEY);
+    const records = current ? [current] : [oldFixed && {...oldFixed, origin: "fixed"}, oldLive && {...oldLive, origin: "live"}].filter(Boolean);
+    if (!records.length) return;
+    const loaded = await Promise.all(records.map(async record => {
+      if (record.preview) return {...record, task: record.preview};
+      const endpoint = record.origin === "fixed" ? "/api/demo/runs/" : "/api/pipelines/";
+      try {
+        const response = await fetch(API_BASE + endpoint + encodeURIComponent(record.task_id), {credentials: "include"});
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return {...record, task: await response.json()};
+      } catch (error) { return {...record, error}; }
+    }));
+    loaded.sort((a,b) => Date.parse(b.task?.created_at || b.created_at || 0) - Date.parse(a.task?.created_at || a.created_at || 0));
+    const chosen = loaded[0];
+    resultOrigin = chosen.selection?.origin || chosen.origin;
+    demoState.selection = chosen.selection || (chosen.origin === "fixed" ? {...demoState.caseIndex.get(chosen.task?.case_id || chosen.task?.request?.case_id || chosen.case_id), origin: "fixed"} : {origin: "live", ...(chosen.task?.company || chosen.task?.result?.company || {})});
+    demoState.caseId = resultOrigin === "fixed" ? demoState.selection.case_id : null;
+    if (resultOrigin === "live") demoState.liveSample.selectedCompany = {...demoState.selection, seed_case_id: chosen.task?.case_id || demoState.selection.case_id};
+    const request = chosen.task?.request;
+    if (chosen.origin === "live" && request) {
+      if (request.latest_year) byId("demo-live-latest-year").value = String(request.latest_year);
+      if (request.years) byId("demo-live-years").value = String(request.years);
+      byId("demo-live-cutoff").value = request.source_cutoff_date || "";
+      if (["full_analysis", "rag_only"].includes(request.analysis_mode)) {
+        byId("demo-live-mode").value = request.analysis_mode;
+        demoState.liveSample.modeChosenByUser = true;
+      }
+    }
+    renderCurrentCase();
+    renderFeaturedCases();
+    renderAllCasesDrawer();
+    updateUrl();
+    if (chosen.error) {
+      setPhase("failed_run");
+      byId("demo-read-result").hidden = false;
+      setGate("warning", "原任务暂时无法读取", `${chosen.error.message}；重读原任务不会重新分析。`);
+      return;
+    }
+    restoredHistoricalResult = !TASK_ACTIVE_STATUSES.has(chosen.task.status) && !liveTaskIsActive(chosen.task);
+    rememberWorkspace(chosen.origin, chosen.task);
+    // 迁移成功后只保留统一标记，刷新不再并行恢复两条不同企业任务。
+    safeSessionRemove(DEMO_TASK_STORAGE_KEY);
+    safeSessionRemove(LIVE_TASK_STORAGE_KEY);
+    if (chosen.origin === "live") {
+      renderLiveTask(chosen.task);
+      if (liveTaskIsActive(chosen.task)) void pollLiveTask(chosen.task.task_id, ++demoState.liveSample.pollToken);
+    } else {
+      demoState.fixedTask.taskId = chosen.task.task_id;
+      demoState.fixedTask.task = chosen.task;
+      if (TASK_ACTIVE_STATUSES.has(chosen.task.status)) {
+        setPhase("running");
+        renderFixedTaskProgress(chosen.task);
+        void pollFixedRun(chosen.task.task_id, ++demoState.fixedTask.pollToken);
+      } else await renderFixedTaskFinal(chosen.task);
+    }
+  }
+
   function updateUrl({ replace = true } = {}) {
     const url = new URL(window.location.href);
     url.search = "";
@@ -436,47 +582,27 @@
   }
 
   function renderControls() {
-    const start = byId("demo-start");
-    const backup = byId("demo-backup");
-    const recheck = byId("demo-recheck");
-    const cancel = byId("demo-cancel");
-    const reset = byId("demo-reset");
-    const phase = demoState.phase;
+    const busy = workspaceBusy();
+    const fixed = demoState.selection?.origin === "fixed";
+    const name = demoState.selection?.company_name || "所选企业";
     const continuity = demoState.bootstrap?.task_continuity || {};
-    // Older local snapshots have no availability field; retain their historical
-    // behavior while making a current explicit "unavailable" state fail closed.
-    const taskStoreReady = continuity.availability ? continuity.availability === "ready" : true;
-    const deterministicAvailable = Boolean(demoState.bootstrap?.model_readiness?.deterministic_backup_available);
-    const modelReady = Boolean(demoState.bootstrap?.model_readiness?.full_analysis_ready);
-    // 供应商链失败后任务已进终态，但台账可用、创建未受阻：后端就绪合同此时
-    // 给出 use_deterministic_backup，前端必须同步露出备用入口，否则演示会
-    // 卡在“只能反复重试真实模型”的死路上（并发/额度受限时尤其致命）。
-    const outcomeFailed = ["failed_run", "failed", "degraded", "expired", "interrupted", "cancelled"].includes(phase);
-    const canStartBackup = deterministicAvailable
-      && (phase === "ready" || outcomeFailed)
-      && (!taskStoreReady || demoState.taskCreationBlocked || outcomeFailed || !modelReady)
-      && Boolean(demoState.caseId);
-    start.disabled = !(phase === "ready") || !demoState.caseId || !taskStoreReady || demoState.taskCreationBlocked;
-    start.title = !taskStoreReady
-      ? "正式演示任务台账不可用；请重新检测，或选择确定性备用演示。"
-      : demoState.taskCreationBlocked
-        ? "上次任务尚未创建成功；请重新检测台账或选择确定性备用演示。"
-        : "创建一份正式演示任务并读取后端真实进度。";
-    start.textContent = phase === "running" ? "正在分析…" : "开始审计预筛";
-    backup.hidden = !canStartBackup;
-    backup.disabled = !canStartBackup;
-    backup.title = "确定性备用不调用外部模型，结果只保留在当前 Web 实例。";
-    recheck.hidden = !(phase === "ready" || phase === "failed_run") || taskStoreReady;
-    recheck.disabled = phase === "running";
-    recheck.title = "重新读取 Supabase 演示任务台账可用性。";
-    cancel.hidden = phase !== "running" || !demoState.fixedTask.taskId;
-    cancel.disabled = Boolean(cancel.dataset.busy === "true");
-    reset.hidden = !(phase === "success" || phase === "degraded" || phase === "failed_run" || phase === "failed" || phase === "interrupted" || phase === "cancelled" || phase === "expired");
-    const locked = phase === "running";
-    document.querySelectorAll("#demo-featured-cases .demo-case-card").forEach((card) => {
-      card.disabled = locked;
-    });
-    byId("demo-open-all-cases").disabled = locked;
+    const storeReady = !continuity.availability || continuity.availability === "ready";
+    const start = byId("demo-start");
+    start.disabled = busy || !demoState.selection || (fixed && (!storeReady || demoState.taskCreationBlocked));
+    start.textContent = busy ? `正在处理${name}…` : fixed ? `完整分析${name}` : publicExpandedPreview() ? `运行${name}快照预检` : liveAnalysisAllowed() ? `${byId("demo-live-mode").value === "full_analysis" ? "完整分析" : "准备资料："}${name}` : `查询${name}官方年报`;
+    start.title = busy ? "当前任务结束后才能切换分析对象" : "按当前对象和处理方式运行";
+    const backup = byId("demo-backup");
+    backup.hidden = !(fixed && !busy && demoState.bootstrap?.model_readiness?.deterministic_backup_available && (!storeReady || !demoState.bootstrap?.model_readiness?.full_analysis_ready || ["degraded","failed_run","interrupted","expired"].includes(demoState.phase)));
+    backup.disabled = busy;
+    byId("demo-recheck").hidden = !fixed || storeReady;
+    byId("demo-cancel").hidden = !busy || !fixed || !demoState.fixedTask.taskId;
+    byId("demo-cancel").disabled = byId("demo-cancel").dataset.busy === "true";
+    byId("demo-reset").hidden = busy || !demoState.run;
+    byId("demo-rerun").disabled = busy;
+    byId("demo-supplement-rerun").disabled = busy;
+    document.querySelectorAll("[data-demo-case], #demo-expanded-cases button, #demo-company-candidates button").forEach(button => { button.disabled = busy; });
+    document.querySelectorAll(".demo-settings-grid input, .demo-settings-grid select").forEach(input => { input.disabled = busy || fixed; });
+    byId("demo-open-all-cases").disabled = false;
   }
 
   const CATEGORY_LABELS = {
@@ -521,6 +647,7 @@
 
   function renderAllCasesDrawer() {
     const body = byId("demo-cases-drawer-body");
+    const expandedCards = byId("demo-expanded-cases");
     const groups = new Map();
     demoState.cases.forEach((caseItem, index) => {
       const group = caseItem.category === "featured" ? "featured" : caseItem.category;
@@ -556,15 +683,24 @@
       section.append(grid);
       body.append(section);
     });
+    const expanded = document.createElement("section");
+    expanded.className = "demo-drawer-group";
+    expanded.innerHTML = '<h4>扩展体验 · 8 个登记公开快照</h4><p>登记类型及年度独立保留，按当前权限处理。</p>';
+    expanded.append(expandedCards);
+    body.append(expanded);
+    renderControls();
   }
 
   function renderCurrentCase() {
-    const caseItem = currentCase();
-    byId("demo-current-case-name").textContent = caseItem ? caseItem.company_name : "未选择案例";
-    const years = caseItem ? (caseItem.report_years || []).join("/") : "—";
-    byId("demo-current-case-meta").textContent = caseItem
-      ? `${caseItem.case_id} · ${caseItem.ticker || ""} · 报告年度 ${years}${caseItem.t0 ? ` · T0 ${caseItem.t0}` : ""}`
-      : "—";
+    const item = demoState.selection || currentCase();
+    byId("demo-current-case-name").textContent = item?.company_name || "请选择企业";
+    const requested = item?.origin === "live" && !demoState.run && !publicExpandedPreview();
+    const latest = Number(byId("demo-live-latest-year").value);
+    const years = requested && latest ? Array.from({length: Number(byId("demo-live-years").value)}, (_, index) => latest-index).join("/") : item?.report_years?.join("/") || "按可用公告确定";
+    const cutoff = requested ? byId("demo-live-cutoff").value : item?.t0;
+    const mode = item?.origin === "fixed" ? "完整分析 · 登记案例" : publicExpandedPreview() ? "登记快照预检" : liveAnalysisAllowed() ? byId("demo-live-mode").selectedOptions[0].textContent : "官方年报查询";
+    byId("demo-current-case-meta").textContent = item ? `${item.ticker || ""} · ${requested ? "请求年度" : "资料年度"} ${years}${cutoff ? ` · 截止 ${cutoff}` : ""} · ${mode}` : "搜索企业或从案例库选择";
+    renderControls();
   }
 
   function renderFacts() {
@@ -828,7 +964,7 @@
       return;
     }
     const badge = executionBadgeForRun(run);
-    if (restoredHistoricalResult && demoState.liveSample.task?.request?.analysis_mode === "snapshot_preview") {
+    if (restoredHistoricalResult && resultOrigin === "live" && demoState.liveSample.task?.request?.analysis_mode === "snapshot_preview") {
       node.dataset.mode = "history_restore";
       node.textContent = `已恢复本标签页公开预检 · 本次新增 0 次模型调用；原运行 ${run.run_id}。服务器未创建持久化接入任务。`;
       return;
@@ -2315,7 +2451,7 @@
   function renderRunTrace(run) {
     const list = byId("demo-run-trace-list");
     list.replaceChildren();
-    const timeline = demoState.fixedTask.task?.steps || {};
+    const timeline = demoState.workspaceTask?.task?.steps || {};
     const stageLabels = {
       evidence_load: "证据载入",
       rule_calculation: "规则计算",
@@ -2600,6 +2736,7 @@
         throw new Error(body.detail || `HTTP ${rerun.status}`);
       }
       const childTask = await rerun.json();
+      rememberWorkspace("fixed", childTask);
       SUPPLEMENT_STATE.parentRun = run;
       demoState.fixedTask.taskId = childTask.task_id;
       demoState.fixedTask.task = childTask;
@@ -2665,7 +2802,7 @@
   }
 
   function selectDemoCase(caseId, { fromHistory = false } = {}) {
-    if (demoState.phase === "running") return;
+    if (workspaceBusy()) return;
     // 启动快照尚未返回时，历史事件不能把“目录加载中”误报为未知案例。
     // loadBootstrap完成后会按当前URL选择案例，期间保留用户请求和等待状态。
     if (!demoState.bootstrap || !demoState.caseIndex.size) return;
@@ -2674,9 +2811,12 @@
       caseId = demoState.bootstrap?.featured_case_ids?.[0] || demoState.cases[0]?.case_id;
       if (!caseId) return;
     }
-    if (demoState.caseId === caseId && demoState.phase === "ready") return;
+    if (demoState.caseId === caseId && demoState.phase === "ready" && demoState.selection?.origin === "fixed") return;
     // 切换案例前清空上一案例的结果、证据与错误状态，避免跨案例串线。
-    abortActiveRun();
+    clearWorkspaceResult();
+    resultOrigin = "fixed";
+    demoState.selection = {...demoState.caseIndex.get(caseId), origin: "fixed"};
+    demoState.liveSample.selectedCompany = null;
     demoState.caseId = caseId;
     demoState.fixedTask.retryOfTaskId = null;
     demoState.run = null;
@@ -2804,7 +2944,7 @@
       return { kind: "deterministic_backup", calls, agentsDone };
     }
     if (modelStatus && modelStatus !== "model_success") {
-      return { kind: "model_failed", calls, agentsDone };
+      return { kind: "model_failed", calls, agentsDone, failedStep: rawSteps.find(step => step.failure_code || step.failure_stage) };
     }
     // 真实模型链已完成、只是关键数字追溯不到：这既不是"没调用"，也不是"证据留痕缺失"。
     // 后端 W01/W03 落地后优先读 numeric_gate_summary，历史 run 没有该字段时回退读留痕原文。
@@ -2820,7 +2960,7 @@
     return { kind: "evidence_incomplete", calls, agentsDone };
   }
 
-  // 每个分支各自说真话；model_failed 保留原有措辞，避免把真实失败改弱。
+  // 每个分支如实说明实际调用与完成度，输出校验失败不能写成没有调用。
   const DEGRADED_COPY = {
     cache_replay: {
       stage: (reason) => `已复用历史分析结果 · 本次新增 ${reason.calls} 次模型调用`,
@@ -2835,10 +2975,10 @@
       gateDetail: () => "本次未调用外部模型，因此不显示三 Agent 本次成功；结果只保留在当前 Web 实例。",
     },
     model_failed: {
-      stage: (_reason, modelLabel, agentsDone) => `本次未完成真实模型调用（${modelLabel}${agentsDone ? ` · ${agentsDone}/3 角色完成` : ""}）`,
-      pill: () => "降级：确定性结果可见，本次模型调用未完成",
-      gateTitle: "本次未完成真实模型调用",
-      gateDetail: (_reason, modelLabel) => `确定性计算结果仍可查看（${modelLabel}）；失败码已保留，后续角色如实标记。`,
+      stage: (reason) => `已调用 ${reason.calls} 次 · ${reason.agentsDone}/3 角色完成；${ROLE_SHORT_LABELS[reason.failedStep?.role] || "模型链"}未完成`,
+      pill: (reason) => `模型链未全部完成 · ${reason.agentsDone}/3 角色完成`,
+      gateTitle: "模型链未全部完成",
+      gateDetail: (reason) => `已执行 ${reason.calls} 次真实调用，${reason.agentsDone}/3 角色完成；${ROLE_SHORT_LABELS[reason.failedStep?.role] || "模型"}：${reason.failedStep?.failure_code || "输出未通过校验"}。${reason.failedStep?.detail || "请查看运行记录。"}确定性计算结果保留。`,
     },
     numeric_gate_rejected: {
       stage: (reason) => `数字可追溯闸门未通过 · ${reason.calls} 次真实调用 · ${reason.agentsDone}/3 角色完成`,
@@ -2912,6 +3052,7 @@
         throw Object.assign(new Error(body.detail || `HTTP ${response.status}`), { statusCode: response.status });
       }
       const payload = await response.json();
+      rememberWorkspace("fixed", payload);
       const taskId = payload.task_id;
       demoState.fixedTask.taskId = taskId;
       demoState.fixedTask.retryOfTaskId = null;
@@ -2993,6 +3134,7 @@
   }
 
   async function renderFixedTaskFinal(task) {
+    demoState.workspaceTask = {origin: "fixed", task};
     try {
       let run = task?.result;
       if (["cancelled", "interrupted", "failed", "expired"].includes(task?.status)) {
@@ -3042,6 +3184,7 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         run = await response.json();
       }
+      if (demoState.workspaceTask?.task?.task_id !== task.task_id) return;
       demoState.run = run;
       demoState.outcome = outcomeFromRun(run);
       renderDemoResult(run, demoState.outcome);
@@ -3059,84 +3202,6 @@
       byId("demo-read-result").hidden = false;
       setGate("warning", "已完成结果暂未读到", `${error.message}；点击重新读取会读取原任务，不会重新分析或增加模型调用。`);
       setPhase("failed_run");
-    }
-  }
-
-  async function restoreFixedTaskSession() {
-    const raw = safeSessionGet(DEMO_TASK_STORAGE_KEY);
-    if (!raw) return;
-    let stored = null;
-    try { stored = JSON.parse(raw); } catch (_error) { safeSessionRemove(DEMO_TASK_STORAGE_KEY); return; }
-    const taskId = stored?.task_id;
-    const storedCase = stored?.case_id;
-    if (!taskId || !storedCase || !demoState.caseIndex.has(storedCase)) {
-      safeSessionRemove(DEMO_TASK_STORAGE_KEY);
-      return;
-    }
-    demoState.caseId = storedCase;
-    renderCurrentCase();
-    renderFeaturedCases();
-    updateUrl();
-    try {
-      const response = await fetch(`${API_BASE}/api/demo/runs/${encodeURIComponent(taskId)}`, { credentials: "include" });
-      if (!response.ok) { const error = new Error(`HTTP ${response.status}`); error.status = response.status; throw error; }
-      let task = await response.json();
-      restoredHistoricalResult = !TASK_ACTIVE_STATUSES.has(task.status);
-      // queued 表示后台尚未开始任何阶段。若创建任务的 Web 实例恰好在
-      // 领取前重启，刷新时显式重发同一案例请求；后端通过活动任务唯一键
-      // 与原子租约复用原 task_id，不会重复执行已经 running 的模型调用。
-      if (task.status === "queued" && stored.mode === "primary") {
-        const caseItem = currentCase();
-        const year = Math.max(...(caseItem?.report_years || [2025]).map(Number));
-        const resumeResponse = await fetch(`${API_BASE}/api/demo/runs`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "Idempotency-Key": window.crypto?.randomUUID ? window.crypto.randomUUID() : `demo-resume-${Date.now()}`,
-          },
-          body: JSON.stringify({
-            case_id: storedCase,
-            current_year: year,
-            scene: "审计计划",
-            rule_ids: caseItem?.rule_ids?.length ? caseItem.rule_ids : ["R1"],
-            run_mode: "full_analysis",
-          }),
-        });
-        if (resumeResponse.ok) task = await resumeResponse.json();
-      }
-      const restoredTaskId = task.task_id || taskId;
-      demoState.fixedTask.taskId = restoredTaskId;
-      demoState.fixedTask.task = task;
-      setPhase("running");
-      clearResultDisplay();
-      resetStageRail();
-      setGate("neutral", "已恢复上次演示任务", task.status === "queued"
-        ? "任务仍在排队，页面继续读取后端同一任务的真实进度。"
-        : "页面未重复创建任务，正在读取后端同一任务的真实进度。");
-      renderFixedTaskProgress(task);
-      if (TASK_ACTIVE_STATUSES.has(task.status)) {
-        demoState.fixedTask.pollToken += 1;
-        void pollFixedRun(restoredTaskId, demoState.fixedTask.pollToken);
-      } else {
-        demoState.fixedTask.pollToken += 1;
-        await renderFixedTaskFinal(task);
-      }
-    } catch (_error) {
-      if (![404, 410].includes(_error.status)) {
-        // 暂时无法读台账仍保留恢复标记，用户可以重读相同任务。
-        pendingResultReadTask = { task_id: taskId };
-        byId("demo-read-result").hidden = false;
-        setGate("warning", "上次任务暂时无法读取", `${_error.message}；任务标记已保留，可以重新读取，不会重新创建已完成任务。`);
-        setPhase("failed_run");
-        return;
-      }
-      safeSessionRemove(DEMO_TASK_STORAGE_KEY);
-      demoState.fixedTask.taskId = null;
-      setPhase("ready");
-      if (String(taskId).startsWith("DEMO-BACKUP-")) {
-        setGate("warning", "备用任务已随实例结束", "确定性备用只保留在当前 Web 实例；请重新检测台账，或重新启动备用演示。页面没有自动重放任何调用。");
-      }
     }
   }
 
@@ -3189,24 +3254,56 @@
     facts.replaceChildren();
     paragraph(facts, primary?.risk_card?.observation || "本次所选规则未提供可展示的计算说明；各条规则状态见上方。");
     const fieldRows = run.evidence_bundle?.field_evidence || [];
-    const factSources = fieldRows.filter(row => ["revenue_current", "ar_current"].includes(row.field_id)).slice(0, 2);
+    const factSources = fieldRows.filter(row => ["revenue_current", "revenue_previous", "ar_current", "ar_previous"].includes(row.field_id));
     if (factSources.length) {
       const originals = document.createElement("details");
       originals.className = "demo-inline-evidence";
       originals.innerHTML = "<summary>回查这些数字的原表证据</summary>";
-      factSources.forEach(row => {
-        const node = document.createElement("div");
-        paragraph(node, `${row.field_label || row.field_id}：${row.excerpt || row.raw_excerpt || row.candidate?.raw_excerpt || row.source_locator || row.locator || "原表定位见来源"}`);
-        if (row.document_id && run.context?.case_id) {
-          const link = document.createElement("a");
-          link.href = sourceLink(run.context.case_id, row.document_id, row.pdf_page);
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.textContent = `查看原文 · ${row.year || ""} 年 · PDF 第 ${row.pdf_page || "未记录"} 页${row.print_page ? ` · 印刷第 ${row.print_page} 页` : "（印刷页未登记）"}`;
-          node.append(link);
+      const table = document.createElement("table");
+      table.className = "demo-growth-evidence";
+      table.innerHTML = `<caption>本次增长率的四个基础数值 · ${escapeHtml(run.context?.amount_unit || "元")}</caption><thead><tr><th scope="col">指标</th><th scope="col">上年 ${escapeHtml(run.context?.previous_year || "")}</th><th scope="col">本年 ${escapeHtml(run.context?.current_year || "")}</th></tr></thead>`;
+      const body = document.createElement("tbody");
+      for (const [prefix, label] of [["revenue", "营业收入"], ["ar", "应收账款"]]) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<th scope="row">${label}</th>`;
+        for (const period of ["previous", "current"]) {
+          const row = factSources.find(item => item.field_id === `${prefix}_${period}`);
+          const cell = document.createElement("td");
+          paragraph(cell, typeof row?.value === "number" ? row.value.toLocaleString("zh-CN", {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "本次字段缺失");
+          if (row) {
+            paragraph(cell, `${row.year} 年 · ${row.evidence_id || "证据编号未登记"}`);
+            if (row.document_id && run.context?.case_id && row.pdf_page) {
+              const link = document.createElement("a");
+              link.href = sourceLink(run.context.case_id, row.document_id, row.pdf_page);
+              link.target = "_blank";
+              link.rel = "noopener noreferrer";
+              link.textContent = `查看原表 · PDF 第 ${row.pdf_page} 页${row.print_page ? ` / 印刷第 ${row.print_page} 页` : ""}`;
+              cell.append(link);
+            }
+            const excerpt = document.createElement("details");
+            excerpt.innerHTML = "<summary>来源摘录与口径</summary>";
+            paragraph(excerpt, row.excerpt || row.raw_excerpt || row.candidate?.raw_excerpt || row.source_locator || row.locator || "本次未记录原表摘录");
+            paragraph(excerpt, prefix === "ar" ? primary?.risk_card?.basis_limitation || "采用本次登记应收口径" : "采用本次登记营业收入口径");
+            cell.append(excerpt);
+          }
+          tr.append(cell);
         }
-        originals.append(node);
-      });
+        body.append(tr);
+      }
+      table.append(body);
+      originals.append(table);
+      for (const [prefix, label, metric] of [["revenue", "营业收入", "revenue_growth"], ["ar", "应收账款", "ar_growth"]]) {
+        const current = factSources.find(row => row.field_id === `${prefix}_current`);
+        const previous = factSources.find(row => row.field_id === `${prefix}_previous`);
+        const rate = primary?.metrics?.[metric];
+        paragraph(originals, typeof rate === "number" && typeof current?.value === "number" && typeof previous?.value === "number" && previous.value !== 0
+          ? `${label}增长率＝（${current.value.toLocaleString("zh-CN")} ÷ ${previous.value.toLocaleString("zh-CN")} − 1）×100%＝${(rate*100).toFixed(2)}%`
+          : `${label}增长率：本次不可复算，请查看字段缺口、零分母或口径限制。`);
+      }
+      const metrics = primary?.metrics || {};
+      if ([metrics.growth_gap, metrics.ar_growth, metrics.revenue_growth].every(value => typeof value === "number")) {
+        paragraph(originals, `增速差＝${(metrics.ar_growth*100).toFixed(2)}% − (${(metrics.revenue_growth*100).toFixed(2)}%)＝${(metrics.growth_gap*100).toFixed(2)}个百分点。按未舍入原值计算，展示值取两位小数。`);
+      }
       facts.append(originals);
     }
     const decision = byId("demo-decision-copy");
@@ -3225,13 +3322,26 @@
       const output = step?.output;
       const li = document.createElement("li");
       li.innerHTML = `<strong>${escapeHtml(AGENT_ROLE_META[role].name)} · ${escapeHtml(statusLabel(step?.status || "not_requested"))}</strong>`;
-      paragraph(li, output?.reason_for_status || step?.detail || "本次没有该角色的执行记录。");
-      if (output) {
+      if (step?.status === "completed" && output) {
+        appendAgentList(li, role === "challenge" ? "提出的核心主张" : role === "counter" ? "检查的正常解释与限制" : "最终保留的主张", role === "counter" ? output.normal_explanations || [] : output.claims || [], role === "counter" ? 2 : 1, {run, lookup: evidenceLookup(run)});
+        if (role === "counter" && !output.normal_explanations?.length) paragraph(li, "本次未形成可展示的正常解释；不据此认定风险已排除。");
+        if (role === "review") paragraph(li, `最终建议：${statusLabel(output.ai_recommendation || output.status)}。${output.reason_for_status || ""}`);
+        const previous = steps.find(item => item.role === (role === "counter" ? "challenge" : "counter"));
+        if (role !== "challenge" && previous?.status === "completed" && previous.output) {
+          const ids = value => new Set([...(value.claims || []), ...(value.normal_explanations || [])].flatMap(claim => claim.evidence_ids || []));
+          const before = ids(previous.output), after = ids(output);
+          const added = [...after].filter(id => !before.has(id));
+          paragraph(li, added.length ? `相对前一角色新增 ${added.length} 个证据引用：${added.join("、")}` : "相对前一角色未新增证据引用；措辞变化不代表判断改进。");
+          const recommendations = [previous.output.ai_recommendation, output.ai_recommendation];
+          if (recommendations.every(value => ["retain", "downgrade", "defer"].includes(value))) paragraph(li, recommendations[0] === recommendations[1] ? "处置建议保持一致。" : `处置建议：${statusLabel(recommendations[0])} → ${statusLabel(recommendations[1])}`);
+          else if (role === "review") paragraph(li, "前两角色不作最终处置建议，因此不将复核建议描述为建议升级。");
+        }
         const details = document.createElement("details");
-        details.innerHTML = "<summary>对应主张、解释与证据</summary>";
+        details.innerHTML = "<summary>完整理由与角色输出</summary>";
+        paragraph(details, output.reason_for_status);
         appendAgentList(details, role === "counter" ? "反证与正常解释" : "支持主张", role === "counter" ? output.normal_explanations || [] : output.claims || [], 2, { run, lookup: evidenceLookup(run) });
         li.append(details);
-      }
+      } else paragraph(li, `本次未形成有效输出。${step?.failure_code || ""} ${step?.detail || "未执行该角色。"}`);
       handoff.append(li);
     });
     const materials = byId("demo-next-materials");
@@ -3251,9 +3361,10 @@
   function renderDemoResult(run, outcome) {
     byId("demo-read-result").hidden = true;
     pendingResultReadTask = null;
+    adoptRunIdentity(run);
     renderDemoProgress(outcome, run);
     renderExecutionBadge(run);
-    const caseItem = currentCase();
+      const caseItem = currentCase();
     const year = run.context?.current_year || Math.max(...(caseItem?.report_years || [0]).map(Number));
     const statePill = byId("demo-result-state");
     statePill.className = `state ${outcome === "success" ? "success" : outcome === "degraded" ? "waiting" : "danger"}`;
@@ -3760,6 +3871,7 @@
   }
 
   function renderLiveTask(task) {
+    demoState.workspaceTask = {origin: "live", task};
     demoState.liveSample.task = task;
     demoState.liveSample.taskId = task.task_id || demoState.liveSample.taskId;
     byId("demo-live-task").hidden = false;
@@ -3779,7 +3891,7 @@
     const message = byId("demo-live-message");
     const error = task.error || {};
     const analysis = task.result?.analysis;
-    const failedStep = (analysis?.agent_steps || []).find(step => step.status === "failed");
+    const failedStep = normalizeAgentSteps(analysis?.agent_steps).find(step => step.failure_code || step.failure_stage);
     const failureDetail = task.status === "failed" && analysis
       ? `${statusLabel(analysis.run_completeness)}${failedStep ? `；${failedStep.failure_code || "模型执行失败"}：${failedStep.detail || "请重试"}` : ""}。已有计算结果保留，可重新运行。`
       : "";
@@ -3792,6 +3904,20 @@
     message.className = `status-banner ${liveStatusKind(task.status) === "danger" ? "danger" : liveStatusKind(task.status) === "waiting" ? "warning" : liveStatusKind(task.status) === "success" ? "success" : "neutral"}`;
     message.innerHTML = `<strong>${escapeHtml(statusLabel(task.status))}</strong><span>${escapeHtml(error.message || failureDetail || reviewDetail || completionDetail || task.boundary || "正在处理真实公开样例；页面只展示后端返回的实际状态。")}</span>`;
     renderLiveResult(task);
+    if (liveTaskIsActive(task)) {
+      setPhase("running");
+      const groups = [["company_resolve","announcement_search","document_select","download","document_validate","case_register"],["field_extract","field_validate"],["rag_prepare","rag_smoke_test"],["analysis_run"]];
+      groups.forEach((names,index) => {
+        const rows = names.map(name => task.steps?.[name]).filter(Boolean);
+        const status = rows.find(row => row.status === "running") || rows.find(row => row.status === "failed") || rows.find(row => !["completed", "passed"].includes(row.status));
+        setStageState(index+1, status?.status === "running" ? "current" : status?.status === "failed" ? "failed" : rows.length && !status ? "completed" : null);
+        setStageNote(index+1, status?.detail || rows.at(-1)?.detail || "等待后端执行");
+      });
+      setGate("neutral", `正在处理${demoState.selection?.company_name || "当前企业"}`, "进度来自本次接入任务，当前任务结束后可切换企业。");
+    } else if (!task.result?.analysis?.run_id) {
+      setPhase(task.status === "failed" ? "failed_run" : "ready");
+      setGate(task.status === "failed" ? "danger" : "neutral", statusLabel(task.status), error.message || reviewDetail || completionDetail || task.boundary || "请查看资料记录。");
+    }
     // 现场与登记预检使用同一结果读者；来源详情仍保留在接入记录中。
     if (task.result?.analysis?.run_id && !liveTaskIsActive(task)) {
       resultOrigin = "live";
@@ -3926,6 +4052,8 @@
       message.className = "status-banner danger";
       message.innerHTML = `<strong>任务状态读取失败</strong><span>${escapeHtml(error.message)}；任务没有被页面删除。</span>`;
       byId("demo-live-read-result").hidden = false;
+      byId("demo-read-result").hidden = false;
+      setGate("warning", "原任务暂时无法读取", `${error.message}；点击重读原任务，不重新分析。`);
     }
   }
 
@@ -3936,21 +4064,22 @@
   async function startLiveSample(event) {
     restoredHistoricalResult = false;
     event.preventDefault();
-    if (demoState.liveSample.submitting) return;
+    if (workspaceBusy()) return;
     const form = event.currentTarget;
-    const companyQuery = form.elements.company_query.value.trim();
-    if (!companyQuery) return;
     if (!demoState.liveSample.selectedCompany) {
       await searchCompanies();
       byId("demo-company-search-status").textContent += " 请点击候选确认身份后再开始处理。";
       return;
     }
     if (!liveAnalysisAllowed()) return;
+    clearWorkspaceResult();
     resultOrigin = "live";
     clearResultDisplay();
     byId("demo-live-records").hidden = false;
     byId("demo-live-records").open = true;
     demoState.liveSample.submitting = true;
+    setPhase("running");
+    renderCurrentCase();
     byId("demo-live-submit").disabled = true;
     byId("demo-live-task").hidden = false;
     byId("demo-live-message").className = "status-banner neutral";
@@ -3961,6 +4090,7 @@
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(discoveryError(payload, response.status));
         // 公开预检不创建服务端接入任务；当前标签页只保存实际返回内容，刷新不重新提交。
+        rememberWorkspace("live", payload);
         safeSessionSet(LIVE_TASK_STORAGE_KEY, JSON.stringify({preview:payload}));
         safeSessionRemove(DEMO_TASK_STORAGE_KEY);
         renderLiveTask(payload);
@@ -3975,6 +4105,7 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(discoveryError(payload, response.status));
+      rememberWorkspace("live", payload);
       safeSessionSet(LIVE_TASK_STORAGE_KEY, JSON.stringify({task_id: payload.task_id}));
       safeSessionRemove(DEMO_TASK_STORAGE_KEY);
       renderLiveTask(payload);
@@ -3983,7 +4114,9 @@
     } catch (error) {
       const message = byId("demo-live-message");
       message.className = "status-banner danger";
-      message.innerHTML = `<strong>现场样例任务未创建</strong><span>${escapeHtml(error.message)}。共享站只读时，请切换到团队本机现场模式。</span>`;
+      message.innerHTML = `<strong>任务未创建</strong><span>${escapeHtml(error.message)}</span>`;
+      setPhase("failed_run");
+      setGate("danger", "任务未创建", error.message);
     } finally {
       demoState.liveSample.submitting = false;
       updateLiveSubmit();
@@ -4017,10 +4150,16 @@
 
   function invalidateReportSearch() {
     demoState.liveSample.reportToken += 1;
+    if (!workspaceBusy() && demoState.run) {
+      clearWorkspaceResult();
+      setPhase("ready");
+      setGate("neutral", "分析条件已更新", "旧结果已收起；再次开始将按当前企业和资料条件创建任务。");
+    }
     byId("demo-report-search").disabled = false;
     byId("demo-report-results").replaceChildren();
     byId("demo-report-status").textContent = "查询条件已更新，请重新查询所选年度和截止日的官方公告。";
     updateLiveSubmit();
+    renderCurrentCase();
   }
 
   function updateLiveSubmit() {
@@ -4034,29 +4173,44 @@
     byId("demo-live-submit").disabled = demoState.liveSample.submitting || liveTaskIsActive(demoState.liveSample.task) || !liveAnalysisAllowed();
     byId("demo-live-submit").textContent = publicExpandedPreview() ? "运行登记快照预检（不调用模型）" : byId("demo-live-mode").value === "full_analysis" ? "开始完整分析" : "准备资料与检索";
     byId("demo-live-submit").title = liveAnalysisAllowed() ? "按所选处理方式运行" : "请确认企业及年度；当前站点可能只允许登记快照预检";
-    byId("demo-live-action-boundary").textContent = !selected ? "先搜索并点击候选确认企业；随后可查询官方公告。" : liveAnalysisAllowed() ? (publicExpandedPreview() ? "当前可运行登记快照预检。查询到的新公告不会自动替换快照；采用前需回查字段和截止日。" : "当前权限允许按所选方式处理；字段确认、事项采用和交付批准是不同操作。") : "当前可查询这家企业的官方公告。下载、建库和完整分析需在授权本机或账户进行；也可选择下方扩展快照体验。";
+    renderCurrentCase();
+    byId("demo-live-action-boundary").textContent = !selected ? "先搜索并点击候选确认企业；随后可查询官方公告。" : liveAnalysisAllowed() ? (publicExpandedPreview() ? "当前可运行登记快照预检。查询到的新公告不会自动替换快照；采用前需回查字段和截止日。" : "当前权限允许按所选方式处理；字段确认、事项采用和交付批准是不同操作。") : "当前可查询官方年报；分析能力按本站权限开放。";
   }
 
   function confirmDiscoveredCompany(company, registered = false) {
-    demoState.liveSample.discoveryToken += 1;
-    demoState.liveSample.selectedCompany = company;
-    invalidateReportSearch();
-    byId("demo-live-company").value = company.ticker;
-    byId("demo-report-discovery").hidden = false;
-    byId("demo-report-company").textContent = `${company.company_name} · ${company.ticker}`;
-    byId("demo-report-results").replaceChildren();
-    byId("demo-report-status").textContent = "点击查询所选年度的官方公告；仅查元数据，不下载或调用模型。";
-    byId("demo-company-search-status").textContent = `${registered ? "已选择登记公开快照" : "已确认官方目录身份"}：${company.company_name}（${company.ticker}）。${company.seed_case_id ? "可按权限体验登记快照；其年度与当前新公告可能不同。" : "新企业接入能力由站点权限决定。"}`;
-    document.querySelectorAll("#demo-company-candidates button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.ticker === company.ticker)));
-    updateLiveSubmit();
-    const expanded = (demoState.bootstrap?.expanded_cases || []).find(item => item.ticker === company.ticker);
-    const capability = demoState.bootstrap?.capabilities || {};
-    if (expanded && !capability.onsite_live_sample && !capability.registered_sample_pipeline) {
-      // 云端的登记快照条件自动对齐；仍明示其年度，不让用户手调年报数量才能体验。
-      byId("demo-live-years").value = String(expanded.report_years.length);
-      byId("demo-live-latest-year").value = String(Math.max(...expanded.report_years));
-      updateLiveSubmit();
+    if (workspaceBusy()) return;
+    const fixed = demoState.cases.find(item => item.ticker === company.ticker);
+    if (fixed) {
+      selectDemoCase(fixed.case_id);
+    } else {
+      clearWorkspaceResult();
+      resultOrigin = "live";
+      demoState.caseId = null;
+      demoState.selection = {...company, origin: "live"};
+      demoState.liveSample.selectedCompany = company;
+      const expanded = (demoState.bootstrap?.expanded_cases || []).find(item => item.ticker === company.ticker);
+      if (expanded) {
+        byId("demo-live-years").value = String(expanded.report_years.length);
+        byId("demo-live-latest-year").value = String(Math.max(...expanded.report_years));
+        demoState.selection.report_years = expanded.report_years;
+        demoState.selection.t0 = expanded.t0;
+      }
+      byId("demo-live-cutoff").value = "";
+      setPhase("ready");
+      setGate("neutral", "企业已选择", "开始前可调整资料条件；仅查询公告不会调用模型。");
     }
+    demoState.liveSample.discoveryToken += 1;
+    byId("demo-live-company").value = company.ticker;
+    byId("demo-company-candidates").replaceChildren();
+    byId("demo-company-search-status").textContent = "";
+    byId("demo-report-company").textContent = `${company.company_name} · ${company.ticker}`;
+    byId("demo-report-discovery").hidden = true;
+    invalidateReportSearch();
+    updateLiveSubmit();
+    renderCurrentCase();
+    renderFeaturedCases();
+    renderAllCasesDrawer();
+    updateUrl();
   }
 
   function renderExpandedCases(cases) {
@@ -4067,7 +4221,9 @@
       button.type = "button";
       button.className = "button quiet";
       button.textContent = `${item.company_name} · ${item.ticker} · ${item.document_count}份登记年报`;
+      button.disabled = workspaceBusy();
       button.addEventListener("click", () => {
+        if (workspaceBusy()) return;
         const years = item.report_years || [];
         if (years.length) {
           byId("demo-live-latest-year").value = String(Math.max(...years));
@@ -4090,8 +4246,6 @@
       return;
     }
     const token = ++demoState.liveSample.discoveryToken;
-    demoState.liveSample.selectedCompany = null;
-    updateLiveSubmit();
     byId("demo-company-candidates").replaceChildren();
     byId("demo-report-discovery").hidden = true;
     byId("demo-company-search").disabled = true;
@@ -4111,6 +4265,7 @@
         button.dataset.ticker = company.ticker;
         button.setAttribute("aria-pressed", "false");
         button.textContent = `${company.company_name} · ${company.ticker} · ${{ sse: "沪市", szse: "深市", bjse: "北交所" }[company.market] || company.market}`;
+        button.disabled = workspaceBusy();
         button.addEventListener("click", () => confirmDiscoveredCompany(company));
         byId("demo-company-candidates").append(button);
       });
@@ -4208,7 +4363,8 @@
   }
 
   function resetDemo() {
-    abortActiveRun();
+    if (workspaceBusy()) return;
+    clearWorkspaceResult();
     demoState.run = null;
     demoState.outcome = null;
     demoState.taskCreationBlocked = false;
@@ -4257,7 +4413,10 @@
       const preferred = demoState.cases.some((item) => item.case_id === urlCase)
         ? urlCase
         : bootstrap.featured_case_ids[0];
-      demoState.caseId = preferred || null;
+      if (!demoState.selection) {
+        demoState.caseId = preferred || null;
+        demoState.selection = {...demoState.caseIndex.get(preferred), origin: "fixed"};
+      }
       renderFacts();
       notifyModelQuality(bootstrap.model_quality);
       renderTechVersions();
@@ -4334,23 +4493,16 @@
     bindCollapsibleSections();
     window.addEventListener("beforeprint", expandCollapsiblesForPrint);
     window.addEventListener("afterprint", restoreCollapsiblesAfterPrint);
-    byId("demo-start").addEventListener("click", () => { void startDemoRun(); });
+    byId("demo-start").addEventListener("click", () => { void startWorkspaceRun(); });
     byId("demo-backup").addEventListener("click", () => { void startDemoRun({ backup: true }); });
     byId("demo-recheck").addEventListener("click", () => { void loadBootstrap(); });
     byId("demo-cancel").addEventListener("click", () => { void requestDemoCancel(); });
     byId("demo-reset").addEventListener("click", resetDemo);
-    byId("demo-rerun").addEventListener("click", () => {
-      if (resultOrigin === "live" && demoState.liveSample.selectedCompany) byId("demo-live-sample-form").requestSubmit();
-      else if (resultOrigin === "live") {
-        byId("demo-live-sample-drawer").scrollIntoView({block:"start"});
-        byId("demo-live-company").focus({preventScroll:true});
-        showToast("先确认企业及资料年度，再创建新的分析。", "info");
-      }
-      else { resetDemo(); void startDemoRun(); }
-    });
+    byId("demo-rerun").addEventListener("click", () => { void startWorkspaceRun(); });
     byId("demo-read-result").addEventListener("click", () => {
       if (pendingResultReadTask?.status) void renderFixedTaskFinal(pendingResultReadTask);
-      else void restoreFixedTaskSession();
+      else if (demoState.workspaceTask?.origin === "live" && demoState.liveSample.taskId) void pollLiveTask(demoState.liveSample.taskId, demoState.liveSample.pollToken);
+      else void restoreWorkspaceSession();
     });
     byId("demo-open-all-cases").addEventListener("click", () => { byId("demo-cases-drawer").showModal(); });
     byId("demo-open-evidence").addEventListener("click", () => { byId("demo-evidence-drawer").showModal(); });
@@ -4374,7 +4526,7 @@
       byId("demo-live-sample-drawer").scrollIntoView({ block: "start" });
       byId("demo-live-company").focus({ preventScroll: true });
     });
-    byId("demo-live-sample-form").addEventListener("submit", (event) => { void startLiveSample(event); });
+    byId("demo-live-sample-form").addEventListener("submit", (event) => { event.preventDefault(); void searchCompanies(); });
     byId("demo-live-read-result").addEventListener("click", () => {
       const taskId = demoState.liveSample.task?.task_id;
       if (taskId) void pollLiveTask(taskId, demoState.liveSample.pollToken);
@@ -4383,15 +4535,11 @@
     byId("demo-report-search").addEventListener("click", () => { void searchCompanyReports(); });
     byId("demo-live-company").addEventListener("input", () => {
       demoState.liveSample.discoveryToken += 1;
-      demoState.liveSample.selectedCompany = null;
-      invalidateReportSearch();
-      byId("demo-report-discovery").hidden = true;
       byId("demo-company-candidates").replaceChildren();
-      updateLiveSubmit();
     });
     ["demo-live-cutoff", "demo-live-latest-year", "demo-live-years"].forEach((id) => byId(id).addEventListener("input", invalidateReportSearch));
     byId("demo-live-cutoff").addEventListener("change", invalidateReportSearch);
-    byId("demo-live-mode").addEventListener("change", () => { demoState.liveSample.modeChosenByUser = true; updateLiveSubmit(); });
+    byId("demo-live-mode").addEventListener("change", () => { demoState.liveSample.modeChosenByUser = true; invalidateReportSearch(); });
     byId("demo-live-download-json").addEventListener("click", downloadLiveSampleJson);
     byId("demo-live-download-csv").addEventListener("click", downloadLiveSampleCsv);
     byId("demo-live-print-report").addEventListener("click", printLiveSampleReport);
@@ -4428,23 +4576,7 @@
     bindEvents();
     renderControls();
     await loadBootstrap();
-    await restoreFixedTaskSession();
-    const liveRaw = safeSessionGet(LIVE_TASK_STORAGE_KEY);
-    if (liveRaw && !safeSessionGet(DEMO_TASK_STORAGE_KEY)) {
-      let saved = null;
-      try { saved = JSON.parse(liveRaw); } catch (_error) { safeSessionRemove(LIVE_TASK_STORAGE_KEY); }
-      if (saved?.preview?.request?.analysis_mode === "snapshot_preview") {
-        restoredHistoricalResult = true;
-        byId("demo-live-records").hidden = false;
-        renderLiveTask(saved.preview);
-      } else if (saved?.task_id) {
-        demoState.liveSample.task = {task_id:saved.task_id};
-        byId("demo-live-records").hidden = false;
-        byId("demo-live-records").open = true;
-        restoredHistoricalResult = true;
-        await pollLiveTask(saved.task_id, demoState.liveSample.pollToken);
-      }
-    }
+    await restoreWorkspaceSession();
   }
 
   // ⑥ 区中文解读层是纯函数：挂到 window 后，真实浏览器验收脚本可以直接喂留痕夹具复现说明，

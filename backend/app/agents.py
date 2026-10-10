@@ -713,7 +713,7 @@ def _with_review_boundaries(output: AgentOutput, rule_result: RuleResult | None)
             additions.append(f"程序边界（口径）：{basis_limitation}")
     trend_limitation = str(risk_card.get("trend_limitation") or "").strip()
     if trend_limitation and not any(token in joined for token in ("趋势不可评价", "无法评价趋势", "缺少第三年")):
-        additions.append(f"程序边界（趋势）：{trend_limitation}")
+        additions.append(f"程序边界（趋势）：趋势不可评价；{trend_limitation}")
     if not additions:
         return output
     suffix = "\n".join(additions)
@@ -1673,7 +1673,8 @@ def run_agent_chain(
                     correction_detail = (
                         _evidence_failure_detail(correction_raw, allowed_evidence_ids)
                         if correction_stage == "evidence"
-                        else "模型语义修正后仍未通过硬校验，未放宽原始约束。"
+                        else (f"模型语义修正后仍未通过硬校验：{correction_error}。未放宽原始约束。"
+                              if type(correction_error) is ValueError else "模型语义修正后仍未通过结构校验，未放宽原始约束。")
                     )
                     push(
                         AgentStep(

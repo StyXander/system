@@ -230,7 +230,7 @@ gateChecks.forEach(([label, ok]) => {
 const copyAssertions = [
   { kind: "cache_replay", must: "已复用历史分析结果", mustNot: "本次未完成真实模型调用" },
   { kind: "deterministic_backup", must: "未调用外部模型", mustNot: "三Agent已通过硬校验" },
-  { kind: "model_failed", must: "本次未完成真实模型调用", mustNot: "已复用历史" },
+  { kind: "model_failed", must: "模型链未全部完成", mustNot: "本次未完成真实模型调用" },
   { kind: "evidence_incomplete", must: "运行证据不完整", mustNot: "本次未完成真实模型调用" },
   { kind: "numeric_gate_rejected", must: "未通过数字可追溯闸门", mustNot: "没有可核验的调用留痕" },
 ];
@@ -248,6 +248,15 @@ for (const c of copyAssertions) {
   if (!ok) failed += 1;
   console.log(`${ok ? "PASS" : "FAIL"}  DEGRADED_COPY ${c.kind}  含"${c.must}"=${hasMust} 不含"${c.mustNot}"=${lacksMustNot}`);
 }
+
+// 2/3完成并不等于没有调用；失败角色可能用MODEL_OUTPUT_INVALID而不是failed。
+const partial = degradedReason({execution_mode:"external_live", provider_call_count:4,
+  run_completeness:"incomplete_model_chain_failed", model_check:{status:"MODEL_OUTPUT_INVALID"},
+  agent_steps:[{role:"challenge",status:"completed"},{role:"counter",status:"completed"},
+    {role:"review",status:"MODEL_OUTPUT_INVALID",failure_code:"MODEL_TREND_CONTRADICTION",failure_stage:"schema",detail:"趋势判断矛盾"}]});
+const partialOk = partial.kind === "model_failed" && partial.calls === 4 && partial.agentsDone === 2 && partial.failedStep?.role === "review" && partial.failedStep?.detail === "趋势判断矛盾";
+if (!partialOk) failed += 1;
+console.log(`${partialOk ? "PASS" : "FAIL"}  部分失败保持4次调用、2/3角色完成、复核角色及具体原因`);
 
 // W10：additional_procedure_required 必须是独立结论，且坍缩逻辑不得残留。
 const procedureMeta = AUDIT_OVERVIEW_META.additional_procedure_required;

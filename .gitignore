@@ -72,6 +72,7 @@ artifacts/
 !/scripts/check_chinese_comments.py
 !/scripts/verify_finals_company_search.py
 !/scripts/verify_finals_browser.cjs
+!/scripts/verify_unified_workspace.cjs
 !/scripts/verify_review_workbench.cjs
 !/scripts/verify_review_search.cjs
 !/scripts/verify_review_runtime.py
@@ -151,3 +152,4 @@ artifacts/
 !/outputs/evaluation_v4/
 /outputs/evaluation_v4/sealed-ai-reference/
 /outputs/evaluation_v4/**/coordinator/
+!/docs/2026-10-10_*.md
