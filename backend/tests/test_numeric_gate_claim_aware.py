@@ -41,6 +41,25 @@ RULE_RESULTS = [
 ]
 
 
+def test_registered_stock_code_is_identity_but_same_number_amount_is_not():
+    identity = {"ticker": "601857", "company_name": "中国石油"}
+    result = validate_numeric_claims(
+        "中国石油601857 能源行业预筛；证券代码：601857。",
+        rule_results=[], evidence_bundle={}, company_identity=identity,
+    )
+    assert result["passed"] is True
+    assert all(row["source"] == "case.ticker" for row in result["trace"])
+    for text in ["应收账款601857元", "中国石油601857元", "证券代码：601857元", "其他公司601857", "中国石油600900"]:
+        assert validate_numeric_claims(text, rule_results=[], evidence_bundle={}, company_identity=identity)["passed"] is False
+
+
+def test_prompt_explains_existing_narrative_number_binding_contract():
+    from backend.app.agents import _system_prompt
+    prompt = _system_prompt("review")
+    assert "draft_title、draft_observation、reason_for_status没有单独的证据编号绑定" in prompt
+    assert "不要再把这些数字重复到无绑定的草稿叙述中" in prompt
+
+
 def _find(trace: list[dict], raw: str) -> dict:
     matched = [item for item in trace if item["raw"] == raw]
     assert matched, f"轨迹中缺少数字 {raw}"

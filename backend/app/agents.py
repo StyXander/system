@@ -153,7 +153,7 @@ ROUTE_ALLOWED_CONCLUSIONS = {
     "industry_review": ["industry_boundary", "additional_procedure_required", "data_gap"],
     "evidence_gap_review": ["data_gap", "additional_procedure_required"],
 }
-PROMPT_VERSION = "agent_prompt_v4_units"
+PROMPT_VERSION = "agent_prompt_v5_claim_scoped_numbers"
 ROLE_MAX_OUTPUT_TOKENS: dict[AgentRole, int] = {"challenge": 1400, "counter": 1400, "review": 1600}
 
 
@@ -547,6 +547,8 @@ turnover_trend_available=false 时不得写周转或回款周期较上年延长/
 如果 evidence_bundle 为空，仍必须调用 submit_agent_output 完成三角色链；此时 claims 和 normal_explanations 必须为空，
 只能填写 data_gaps/requested_materials、路线允许的 analysis_conclusion 以及 review 的缺口草稿，绝不编造事实或 evidence_id。
 不得改写程序计算的数字、公式、页码、原文定位或规则触发结论。
+draft_title、draft_observation、reason_for_status没有单独的证据编号绑定：这些字段中的数字只能来自程序给定的结构化字段值、规则指标、配置阈值和当前报告年度。
+仅出现在RAG原文片段的金额或比例，请写入claims或normal_explanations并绑定含该数字的原文evidence_id；不要再把这些数字重复到无绑定的草稿叙述中。草稿叙述用定性文字总结，具体数字留在对应证据主张中。
 增长率使用百分比（%）；两个增长率相减的增速差必须使用“个百分点”，不能写成百分比或相对变化。金额同时保留程序给出的单位和净额/账面余额口径。
 evidence_bundle 中的 fitness_class 和 allowed_claim_types 是程序编译的证据适配度边界：
 current_entity_primary_evidence 才能支持当前企业事实；authoritative_normative_basis 只能支持规范/程序依据；

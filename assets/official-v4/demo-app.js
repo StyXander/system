@@ -4238,6 +4238,7 @@
         byId("demo-live-cutoff").value = "";
         if (!demoState.bootstrap?.capabilities?.onsite_live_sample && !demoState.bootstrap?.capabilities?.registered_sample_pipeline) byId("demo-live-mode").value = "rag_only";
         byId("demo-company-candidates").replaceChildren();
+        closeDrawer("demo-cases-drawer");
         confirmDiscoveredCompany({ ...item, seed_case_id: item.case_id }, true);
       });
       container.append(button);

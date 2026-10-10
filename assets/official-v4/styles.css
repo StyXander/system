@@ -6807,7 +6807,7 @@ textarea {
 .demo-axis-nav { border: 0; background: transparent; width: 100%; text-align: left; font: inherit; padding: 0; color: inherit; cursor: pointer; }
 .demo-axis-nav:focus-visible { outline: 2px solid #2456cb; outline-offset: 5px; }
 .demo-axis-nav[aria-current="location"] strong { color: #2456cb; }
-#demo-result [id], #demo-result details { scroll-margin-top: 100px; }
+#demo-result, #demo-report-discovery, #demo-result [id], #demo-result details { scroll-margin-top: 100px; }
 @media (max-width: 1024px) { .demo-evidence-axis { position: static; } #demo-result .demo-analysis-main { padding: 24px; } }
 @media (max-width: 640px) {
   #main-content { padding: 12px; }

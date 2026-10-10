@@ -195,6 +195,7 @@ def _trace_segment(
     sources: list[dict[str, Any]],
     allowed_year_set: set[int],
     tolerance: float,
+    company_identity: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """把一段 AI 文本中的数字逐个对来源做可追溯匹配，返回命中与未命中清单。
     
@@ -205,7 +206,29 @@ def _trace_segment(
     # 年份只接受「当前案例已登记报告年度」作为上下文，其余年份数字一律按未验证处理；
     # 金额等价判断允许单位换算（元/万元/亿元），但不允许四舍五入近似冒充命中。
     trace: list[dict[str, Any]] = []
+    token_cursor = 0
     for token in extract_number_tokens(text):
+        token_start = text.find(token["raw"], token_cursor)
+        token_cursor = token_start + len(token["raw"])
+        identity = company_identity or {}
+        ticker = str(identity.get("ticker") or "")
+        prefix = text[:token_start].rstrip()
+        suffix = text[token_cursor:].lstrip()
+        names = [str(identity.get(key) or "") for key in ("company_name", "company_alias")]
+        # 股票代码仅在登记企业身份的位置作上下文匹配；不能把同值金额放入白名单。
+        # 金额/比例/年份后缀继续走财务核验，其他公司或其他六位数也不会因此放行。
+        identity_prefix = any(name and prefix.endswith(name) for name in names) or bool(
+            re.search(r"(?:股票代码|证券代码|股票代碼|證券代碼)\s*[:：]?\s*$", prefix)
+        )
+        if (
+            re.fullmatch(r"\d{6}", ticker)
+            and token["raw"] == ticker
+            and identity_prefix
+            and not re.match(r"(?:元|万元|亿元|万|亿|%|％|年|个百分点|倍|股)", suffix)
+        ):
+            trace.append({**token, "source": "case.ticker", "source_type": "case_context", "bound_by_claim": False,
+                          "verification_status": "contextual", "calculation": f"{ticker} ↔ 当前登记企业股票代码"})
+            continue
         if token["normalized"] is None:
             trace.append({**token, "source": None, "bound_by_claim": False, "verification_status": "unparseable"})
             continue
@@ -272,6 +295,7 @@ def build_numeric_claim_trace(
     additional_sources: list[dict[str, Any]] | None = None,
     claim_evidence_bindings: list[dict[str, Any]] | None = None,
     tolerance: float = 0.005,
+    company_identity: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """数字闸门主入口：对 AI 草稿中的关键财务数字逐条建立可追溯记录。
     
@@ -301,6 +325,7 @@ def build_numeric_claim_trace(
             sources=sources,
             allowed_year_set=allowed_year_set,
             tolerance=tolerance,
+            company_identity=company_identity,
         )
     trace: list[dict[str, Any]] = []
     for binding in bindings:
@@ -311,6 +336,7 @@ def build_numeric_claim_trace(
                 sources=segment_sources,
                 allowed_year_set=allowed_year_set,
                 tolerance=tolerance,
+                company_identity=company_identity,
             )
         )
     return trace
@@ -325,6 +351,7 @@ def validate_numeric_claims(
     allowed_years: set[int] | list[int] | tuple[int, ...] | None = None,
     additional_sources: list[dict[str, Any]] | None = None,
     claim_evidence_bindings: list[dict[str, Any]] | None = None,
+    company_identity: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """数字主张可回查校验：返回轨迹、未验证数字与关键财务数字缺失标记。
 
@@ -339,6 +366,7 @@ def validate_numeric_claims(
         allowed_years=allowed_years,
         additional_sources=additional_sources,
         claim_evidence_bindings=claim_evidence_bindings,
+        company_identity=company_identity,
     )
     bindings = [
         binding

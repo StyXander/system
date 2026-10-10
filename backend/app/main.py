@@ -4587,6 +4587,7 @@ def _execute_run(
         },
         additional_sources=numeric_additional_sources,
         claim_evidence_bindings=numeric_claim_bindings,
+        company_identity={key: str(context.get(key) or "") for key in ("ticker", "company_name", "company_alias")},
     )
     context["numeric_claim_trace"] = numeric_gate
     if numeric_gate.get("key_unverified_count") and model_check.status == "model_success":
