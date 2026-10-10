@@ -6830,7 +6830,7 @@ textarea {
   .demo-growth-evidence th { background: var(--at-paper-soft, #f5f7fa); }
 }
 @media print {
-  .demo-discovery-workbench, .demo-project-background, .demo-axis-nav { display: none !important; }
+  .skip-link, .demo-business-intro, .demo-case-boundary, .demo-discovery-workbench, .demo-project-background, .demo-axis-nav { display: none !important; }
   #demo-result { padding: 0; }
   .demo-result-detail { break-inside: auto; }
   .demo-primary-reading > section { break-inside: avoid; }
