@@ -504,6 +504,7 @@
   }
 
   async function restoreWorkspaceSession() {
+    const selectionToken = demoState.liveSample.discoveryToken;
     const parse = key => { try { return JSON.parse(safeSessionGet(key) || "null"); } catch (_) { return null; } };
     const current = parse(WORKSPACE_STORAGE_KEY);
     const oldFixed = parse(DEMO_TASK_STORAGE_KEY);
@@ -519,10 +520,13 @@
         return {...record, task: await response.json()};
       } catch (error) { return {...record, error}; }
     }));
+    if (selectionToken !== demoState.liveSample.discoveryToken) return;
     loaded.sort((a,b) => Date.parse(b.task?.created_at || b.created_at || 0) - Date.parse(a.task?.created_at || a.created_at || 0));
     const chosen = loaded[0];
     resultOrigin = chosen.selection?.origin || chosen.origin;
     demoState.selection = chosen.selection || (chosen.origin === "fixed" ? {...demoState.caseIndex.get(chosen.task?.case_id || chosen.task?.request?.case_id || chosen.case_id), origin: "fixed"} : {origin: "live", ...(chosen.task?.company || chosen.task?.result?.company || {})});
+    const actualCompany = chosen.task?.company || chosen.task?.result?.company;
+    if (actualCompany) demoState.selection = {...demoState.selection, ...actualCompany};
     demoState.caseId = resultOrigin === "fixed" ? demoState.selection.case_id : null;
     if (resultOrigin === "live") demoState.liveSample.selectedCompany = {...demoState.selection, seed_case_id: chosen.task?.case_id || demoState.selection.case_id};
     const request = chosen.task?.request;
@@ -3167,6 +3171,7 @@
       }
       if (!run) {
         const response = await fetch(`${API_BASE}/api/demo/runs/${encodeURIComponent(task.task_id)}/result`, { credentials: "include" });
+        if (demoState.workspaceTask?.task?.task_id !== task.task_id) return;
         if (response.status === 404) {
           safeSessionRemove(DEMO_TASK_STORAGE_KEY);
           renderDemoFailure("TASK_NOT_FOUND", "任务已不存在", "后端没有找到该任务；页面已停止轮询，请重新创建演示任务。", { retry: true });
@@ -3198,6 +3203,7 @@
       }
     } catch (error) {
       // 读取失败不会把已完成的六阶段涂成失败，也不重新调用模型。
+      if (demoState.workspaceTask?.task?.task_id !== task.task_id) return;
       pendingResultReadTask = task;
       byId("demo-read-result").hidden = false;
       setGate("warning", "已完成结果暂未读到", `${error.message}；点击重新读取会读取原任务，不会重新分析或增加模型调用。`);
