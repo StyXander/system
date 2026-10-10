@@ -6833,7 +6833,8 @@ textarea {
   .skip-link, .demo-business-intro, .demo-case-boundary, .demo-discovery-workbench, .demo-project-background, .demo-axis-nav { display: none !important; }
   #demo-result { padding: 0; }
   .demo-result-detail { break-inside: auto; }
-  .demo-primary-reading > section { break-inside: avoid; }
+  .demo-primary-reading > section, .demo-item-card, .demo-table-wrap { break-inside: auto; }
+  #demo-result h3, #demo-result h4 { break-after: avoid; }
   .demo-growth-evidence thead { display: table-header-group; }
   .demo-growth-evidence tbody { display: table-row-group; }
   .demo-growth-evidence tr { display: table-row; }

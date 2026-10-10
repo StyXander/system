@@ -494,6 +494,16 @@ class SupabaseClient:
         )
         return rows[0] if rows else None
 
+    def find_completed_demo_run(self, run_id: str) -> dict[str, Any] | None:
+        """只读未过期的公开演示结果，用于实例重启后的原运行续接。"""
+        rows = self.select_table(
+            "demo_run_tasks", service=True,
+            filters={"run_id": f"eq.{run_id}", "status": "in.(completed,degraded)",
+                     "result_expires_at": f"gt.{datetime.now(timezone.utc).isoformat()}"},
+            select="case_id,run_id,result,result_expires_at",
+        )
+        return rows[0] if rows else None
+
     def find_demo_run_task_by_idempotency(self, *, idempotency_key_sha256: str) -> dict[str, Any] | None:
         """按服务端哈希查找幂等键，重复请求始终返回同一公开任务。"""
 

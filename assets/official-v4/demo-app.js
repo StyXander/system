@@ -51,7 +51,7 @@
     complete_public_prescreen_no_candidate: "公开预筛完成，无程序候选",
     complete_public_prescreen_with_gaps: "公开预筛已完成（有资料缺口）",
     complete_demo_fallback: "演示降级结果已完成",
-    incomplete_calculation_only: "不完整：仅计算预检",
+    incomplete_calculation_only: "预检计算已完成（未请求完整模型分析）",
     incomplete_model_chain_failed: "不完整：模型链未完成",
     incomplete_model_quota: "不完整：模型额度不足",
     incomplete_rag_failure: "不完整：RAG失败",
@@ -2399,6 +2399,15 @@
   }
 
   function renderInlineAgents(run) {
+    if (degradedReason(run).kind === "model_not_requested") {
+      const state = byId("demo-agent-inline-state");
+      state.className = "state pending";
+      state.textContent = "本次未请求三 Agent";
+      byId("demo-agent-inline-cards").replaceChildren(Object.assign(document.createElement("p"), {
+        textContent: "本次执行登记快照预检，结果来自程序计算。完整分析会生成三角色的主张、反证与复核记录。",
+      }));
+      return;
+    }
     const steps = normalizeAgentSteps(run?.agent_steps);
     const byRole = new Map(steps.map((step) => [step.role, step]));
     const completed = AGENT_ROLE_ORDER.filter((role) => byRole.get(role)?.status === "completed").length;
@@ -2947,6 +2956,9 @@
     if (executionMode === "deterministic_backup" || modelStatus === "demo_fallback") {
       return { kind: "deterministic_backup", calls, agentsDone };
     }
+    if (modelStatus === "not_requested" && calls === 0 && run?.ai_execution_requested !== true) {
+      return { kind: "model_not_requested", calls, agentsDone };
+    }
     if (modelStatus && modelStatus !== "model_success") {
       return { kind: "model_failed", calls, agentsDone, failedStep: rawSteps.find(step => step.failure_code || step.failure_stage) };
     }
@@ -2966,6 +2978,12 @@
 
   // 每个分支如实说明实际调用与完成度，输出校验失败不能写成没有调用。
   const DEGRADED_COPY = {
+    model_not_requested: {
+      stage: () => "预检计算已完成 · 本次未请求模型",
+      pill: () => "快照预检完成 · 未请求模型",
+      gateTitle: "预检计算已完成",
+      gateDetail: () => "本次选择仅计算预检，未请求 RAG 和三 Agent；已有计算事实、字段来源及资料缺口均可回查。",
+    },
     cache_replay: {
       stage: (reason) => `已复用历史分析结果 · 本次新增 ${reason.calls} 次模型调用`,
       pill: (reason) => `复用历史分析结果 · 本次新增 ${reason.calls} 次模型调用`,
@@ -3322,6 +3340,7 @@
       paragraph(decision, "单位更正：本页增速差按百分点呈现；旧运行原文及响应哈希保留在完整记录中。");
     }
     const handoff = byId("demo-agent-handoff");
+    handoff.parentElement.hidden = degradedReason(run).kind === "model_not_requested";
     handoff.replaceChildren();
     AGENT_ROLE_ORDER.forEach(role => {
       const step = steps.find(item => item.role === role);
@@ -3376,6 +3395,7 @@
     statePill.className = `state ${outcome === "success" ? "success" : outcome === "degraded" ? "waiting" : "danger"}`;
     const degradedOutcome = outcome === "degraded" ? degradedReason(run) : null;
     const degradedCopy = degradedOutcome ? (DEGRADED_COPY[degradedOutcome.kind] || DEGRADED_COPY.evidence_incomplete) : null;
+    if (degradedOutcome?.kind === "model_not_requested") statePill.className = "state pending";
     statePill.textContent = outcome === "success"
       ? "真实模型链完成"
       : outcome === "degraded"
@@ -3395,7 +3415,7 @@
       {
         label: "运行完整性",
         value: statusLabel(run.run_completeness),
-        detail: outcome === "success" ? "模型链与结果均已完成" : "请结合上方状态说明复核",
+        detail: outcome === "success" ? "模型链与结果均已完成" : degradedOutcome?.kind === "model_not_requested" ? "本次未请求完整模型分析" : "请结合上方状态说明复核",
         tone: outcome === "success" ? "is-success" : "",
       },
       { label: "各条规则结果", value: (run.rule_results || []).map(row => `${row.rule_id}：${statusLabel(row.status)}`).join("；"), detail: "各条规则独立解释，未触发不等于企业没有风险", tone: "" },
@@ -3476,7 +3496,7 @@
     if (outcome === "success") {
       setGate("success", statusLabel(run.run_completeness), `AI 分析路线：${ROUTE_LABELS[run.ai_analysis_route] || "三Agent协同复核"}；${AI_GENERATED_CONTENT_NOTICE}`);
     } else if (outcome === "degraded") {
-      setGate("warning", degradedCopy.gateTitle, `${degradedCopy.gateDetail(degradedOutcome, statusLabel(run.model_check?.status))}${AI_GENERATED_CONTENT_NOTICE}`);
+      setGate(degradedOutcome.kind === "model_not_requested" ? "neutral" : "warning", degradedCopy.gateTitle, `${degradedCopy.gateDetail(degradedOutcome, statusLabel(run.model_check?.status))}${AI_GENERATED_CONTENT_NOTICE}`);
     } else {
       setGate("danger", "本次分析未完成", `${statusLabel(run.model_check?.status || run.run_completeness)}；已有字段与规则结果保留。可重新分析；具体失败阶段见运行记录。`);
     }
@@ -3578,7 +3598,7 @@
     const item = document.querySelector(`#demo-evidence-axis-list [data-axis="${name}"]`);
     if (!item) return;
     item.classList.remove("complete", "warning");
-    item.classList.add(kind);
+    if (kind) item.classList.add(kind);
     const note = item.querySelector("small");
     if (note) note.textContent = detail;
   }
@@ -3591,6 +3611,7 @@
     const metricCount = (run.rule_results || []).reduce((total, result) => total + Object.keys(result.metrics || {}).length, 0);
     setAxisItem("screening", `${statusLabel(run.screening_status)} · ${run.rule_results?.length ?? 0} 条规则结果`);
     setAxisItem("rag", `${ragCount} 次检索片段 · ${agentsDone}/3 角色完成`, outcome === "success" ? "complete" : "warning");
+    if (degradedReason(run).kind === "model_not_requested") setAxisItem("rag", "本次未请求检索与三 Agent", null);
     setAxisItem("evidence", `${fieldCount} 条字段证据 · ${gapCount} 项资料缺口`, gapCount ? "warning" : "complete");
     setAxisItem("output", `${metricCount} 个结构化指标 · JSON / 表格 / PDF`, outcome === "success" && metricCount ? "complete" : "warning");
   }
@@ -4210,7 +4231,7 @@
     byId("demo-company-candidates").replaceChildren();
     byId("demo-company-search-status").textContent = "";
     byId("demo-report-company").textContent = `${company.company_name} · ${company.ticker}`;
-    byId("demo-report-discovery").hidden = true;
+    byId("demo-report-discovery").hidden = false;
     invalidateReportSearch();
     updateLiveSubmit();
     renderCurrentCase();
@@ -4284,8 +4305,8 @@
   }
 
   async function searchCompanyReports() {
-    const company = demoState.liveSample.selectedCompany;
-    if (!company) return;
+    const company = demoState.selection;
+    if (!company?.ticker) return;
     const identityToken = demoState.liveSample.discoveryToken;
     const token = ++demoState.liveSample.reportToken;
     const year = byId("demo-live-latest-year").value || String(new Date().getFullYear() - 1);

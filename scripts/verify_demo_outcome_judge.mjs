@@ -133,6 +133,8 @@ const vectors = [
 // degraded 内部必须再分四类：一律写成"本次未完成真实模型调用"会在回放时
 // 与同屏的"三Agent已通过硬校验 · 3/3 角色完成"直接互斥。
 const reasonVectors = [
+  { name: "用户选择预检未请求模型，不冒充模型失败", run: { model_check: {status:"not_requested"}, ai_execution_requested:false, provider_call_count:0 }, expect: "model_not_requested" },
+  { name: "请求了模型却未执行，仍保留失败", run: { model_check: {status:"not_requested"}, ai_execution_requested:true, provider_call_count:0 }, expect: "model_failed" },
   { name: "可信历史回放", run: { ...liveSuccess, execution_mode: "cache_replay", provider_call_count: 0 }, expect: "cache_replay" },
   { name: "model_check.cache_hit 为真也算回放", run: { ...liveSuccess, model_check: { status: "model_success", cache_hit: true } }, expect: "cache_replay" },
   { name: "确定性备用", run: { ...liveSuccess, execution_mode: "deterministic_backup", provider_call_count: 0 }, expect: "deterministic_backup" },
@@ -228,6 +230,7 @@ gateChecks.forEach(([label, ok]) => {
 
 // 每个 degraded 分支必须给出与该分支一致的文字，且不得把回放写成模型未调用。
 const copyAssertions = [
+  { kind: "model_not_requested", must: "预检计算已完成", mustNot: "输出未通过校验" },
   { kind: "cache_replay", must: "已复用历史分析结果", mustNot: "本次未完成真实模型调用" },
   { kind: "deterministic_backup", must: "未调用外部模型", mustNot: "三Agent已通过硬校验" },
   { kind: "model_failed", must: "模型链未全部完成", mustNot: "本次未完成真实模型调用" },

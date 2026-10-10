@@ -1391,6 +1391,33 @@ def _load_stored_run_record(
 
     if not supabase_enabled():
         stored = load_run(WORKSPACE_ROOT, run_id)
+        if (
+            stored is None and owner_tenant_id is None
+            and _public_demo_enabled() and _competition_demo_enabled()
+            and demo_task_supabase_enabled()
+            and re.fullmatch(r"RUN-V7-[0-9A-F]{12}", run_id)
+        ):
+            try:
+                task = get_demo_task_client().find_completed_demo_run(run_id)
+            except SupabaseError as error:
+                raise HTTPException(status_code=503, detail="公开历史运行暂时不可读取，请重读原任务。") from error
+            if task and isinstance(task.get("result"), dict):
+                try:
+                    recovered = RunResponse.model_validate(task["result"])
+                except (TypeError, ValueError) as error:
+                    raise HTTPException(status_code=503, detail="公开历史运行格式无法恢复。") from error
+                case_id = str(recovered.context.get("case_id") or "")
+                case = _case_record(case_id)
+                expected_task_case = {case_id, f"SUPPLEMENT:{recovered.context.get('supplement_id')}"}
+                # 只从公开任务台账恢复同一编号、同一公开案例，不触及私有运行与人工签字。
+                # 补充资料服务仍使用本机工作副本；回填持久化原结果，不重新分析或改历史输出。
+                if (
+                    recovered.run_id == run_id and task.get("case_id") in expected_task_case
+                    and case and is_public_case(case)
+                    and not _run_context_tenant(StoredRunResponse(run=recovered))
+                ):
+                    save_run(WORKSPACE_ROOT, recovered)
+                    stored = StoredRunResponse(run=recovered)
         return (stored, _run_context_tenant(stored)) if stored is not None else None
     try:
         remote_row = get_supabase_client().get_analysis_run(run_id, tenant_id=owner_tenant_id)

@@ -60,6 +60,14 @@ def test_prompt_explains_existing_narrative_number_binding_contract():
     assert "不要再把这些数字重复到无绑定的草稿叙述中" in prompt
 
 
+def test_two_close_percentages_bind_to_the_exact_value_in_own_chunk():
+    bundle = {"rag_evidence": [{"evidence_id": "CONCENTRATION", "excerpt": "本年26.12%，上年25.91%。", "pdf_page": 210}]}
+    result = validate_numeric_claims("", rule_results=[], evidence_bundle=bundle,
+                                    claim_evidence_bindings=[{"text": "上年集中度25.91%。", "evidence_ids": ["CONCENTRATION"]}])
+    assert result["passed"] is True
+    assert "=0.2591" in result["trace"][0]["calculation"]
+
+
 def _find(trace: list[dict], raw: str) -> dict:
     matched = [item for item in trace if item["raw"] == raw]
     assert matched, f"轨迹中缺少数字 {raw}"

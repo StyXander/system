@@ -247,6 +247,7 @@ def _trace_segment(
             )
             continue
         best = None
+        best_distance = float("inf")
         comparison_value = token["normalized"]
         if token.get("sign_hint") == "negative" and comparison_value >= 0:
             # 中文“下降 54.55%”常省略负号，按文字方向与确定性负增长指标比较。
@@ -258,9 +259,12 @@ def _trace_segment(
             elif token["kind"] == "percentage_point" and abs(source_value) <= 2:
                 # 规则配置和确定性指标通常以小数保存，文本中的“百分点”以 100 倍展示。
                 source_value = source_value * 100
-            if abs(comparison_value - source_value) <= max(tolerance, abs(source_value) * tolerance):
+            distance = abs(comparison_value - source_value)
+            # 同片段包含两个相近比例时，不能先命中近似值再忽略后面的准确值。
+            # 保持既有容差，优先最近来源；不扩大可用证据或改写原始数字。
+            if distance <= max(tolerance, abs(source_value) * tolerance) and distance < best_distance:
                 best = source
-                break
+                best_distance = distance
         if best is None:
             trace.append(
                 {
