@@ -221,7 +221,7 @@
       if (Math.abs(value) >= 10000) return `${signed(value / 10000)} 万元`;
       return `${signed(value)} 元`;
     }
-    if (key === "turnover_days_current" || key === "turnover_trend_days") return `${signed(value, 1)} 天`;
+    if (["turnover_days_current", "turnover_days_previous", "turnover_trend_days"].includes(key)) return `${signed(value, 1)} 天`;
     if (key === "sustained_periods") return `${Math.round(value)} 期`;
     return signed(value);
   }

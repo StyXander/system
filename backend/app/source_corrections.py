@@ -15,6 +15,24 @@ from pathlib import Path
 from typing import Any
 
 
+def public_source_access_url(document: dict[str, Any]) -> str:
+    """修复已实测失效的公开访问地址，不改冻结原件、披露日期或历史输出。
+
+    2026-10-10 官网查询返回紫金矿业2025年报公告1225550242。
+    完整下载79,925,886字节，SHA256与登记原件一致，原页码可继续使用。
+    仅对该原件及原错误地址生效；其他版本沿用自身登记地址。
+    """
+    original = str(document.get("source_url") or "")
+    if (
+        document.get("document_id") == "CNINFO-601899-2025-01819E1C7DAA"
+        and str(document.get("file_sha256") or document.get("sha256") or "").lower()
+        == "01819e1c7daad939d1779a8aa729f50f02151192e609cb28c2c405634a8f343d"
+        and original == "https://static.cninfo.com.cn/finalpage/2026-03-21/1225023658.PDF"
+    ):
+        return "https://static.cninfo.com.cn/finalpage/2026-03-21/1225550242.PDF"
+    return original
+
+
 @lru_cache(maxsize=16)
 def _read_public_json_version(path: Path, modified_ns: int, size: int) -> tuple[Any, bytes]:
     """只缓存部署中的只读公开文件；调用方不修改返回对象。

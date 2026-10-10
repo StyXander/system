@@ -5853,7 +5853,9 @@ def open_case_source(case_id: str, document_id: str, http_request: Request) -> R
             (item for item in case.get("documents", []) if str(item.get("document_id") or "").upper() == normalized_document_id),
             None,
         )
-        remote_url = str((remote_document or {}).get("source_url") or "")
+        from .source_corrections import public_source_access_url
+
+        remote_url = public_source_access_url(remote_document or {})
         if is_public_case(case) and remote_url.startswith("https://static.cninfo.com.cn/finalpage/"):
             return RedirectResponse(remote_url, status_code=307)
         if normalized_case_id == CASE_ID:

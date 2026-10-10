@@ -149,6 +149,21 @@ def test_description_cannot_be_receivable_row():
     assert "594" not in candidate["adopted_line"]
 
 
+def test_broken_public_source_repair_preserves_frozen_document_and_binds_hash():
+    from backend.app.source_corrections import public_source_access_url
+    document = {
+        "document_id": "CNINFO-601899-2025-01819E1C7DAA",
+        "sha256": "01819e1c7daad939d1779a8aa729f50f02151192e609cb28c2c405634a8f343d",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-21/1225023658.PDF",
+    }
+    original = deepcopy(document)
+    assert public_source_access_url(document).endswith("/1225550242.PDF")
+    assert document == original
+    assert public_source_access_url({**document, "sha256": "different"}) == document["source_url"]
+    assert public_source_access_url({**document, "source_url": "https://example.com/another.pdf"}).endswith("another.pdf")
+    assert public_source_access_url({}) == ""
+
+
 def test_next_subject_cannot_supply_missing_current_cell():
     lines = ["应收账款", "120", "应交税费", "218969327.68"]
     assert _scan_number_cells(lines, 0, term="应收账款") == [(120.0, "120")]
