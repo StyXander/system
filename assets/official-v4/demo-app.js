@@ -4573,6 +4573,7 @@
     byId("demo-live-print-report").addEventListener("click", printLiveSampleReport);
     byId("demo-open-tech-drawer").addEventListener("click", () => {
       byId("demo-secondary-menu").open = false;
+      byId("demo-secondary-menu").querySelector("summary").focus();
       byId("demo-tech-drawer").showModal();
       void loadTechEvaluation();
     });
