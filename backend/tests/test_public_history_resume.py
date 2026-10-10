@@ -48,6 +48,18 @@ def test_public_web_legacy_operator_restores_without_changing_identity(history):
     assert stored.run.context["request_identity"] == row["result"]["context"]["request_identity"]
 
 
+def test_completed_public_supplement_child_can_resume(history):
+    row, calls, saved = history
+    child_id = "RUN-SUP-EEEEEEEEEEEE"
+    row["result"]["run_id"] = child_id
+    row["result"]["context"]["supplement_id"] = "SUP-PUBLIC-EXAMPLE"
+    row["result"]["context"]["parent_run_id"] = RUN_ID
+    row["case_id"] = "SUPPLEMENT:SUP-PUBLIC-EXAMPLE"
+    stored, _ = main._load_stored_run_record(child_id)
+    assert calls == [child_id] and saved == [stored.run]
+    assert stored.run.context["parent_run_id"] == RUN_ID
+
+
 @pytest.mark.parametrize("invalid", ["run_id", "case_id", "tenant", "private_case"])
 def test_history_resume_rejects_foreign_result(history, monkeypatch, invalid):
     row, _, saved = history

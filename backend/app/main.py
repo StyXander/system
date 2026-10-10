@@ -1395,7 +1395,7 @@ def _load_stored_run_record(
             stored is None and owner_tenant_id is None
             and _public_demo_enabled() and _competition_demo_enabled()
             and demo_task_supabase_enabled()
-            and re.fullmatch(r"RUN-V7-[0-9A-F]{12}", run_id)
+            and re.fullmatch(r"RUN-(?:V7|SUP)-[0-9A-F]{12}", run_id)
         ):
             try:
                 task = get_demo_task_client().find_completed_demo_run(run_id)
