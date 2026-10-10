@@ -39,6 +39,15 @@ def test_completed_public_result_restores_exact_parent(history):
     assert saved == [stored.run]
 
 
+def test_public_web_legacy_operator_restores_without_changing_identity(history):
+    row, _, saved = history
+    row["result"]["context"]["request_identity"] = {
+        "source": "local", "tenant_id": "local-dev", "user_id": "local-dev", "role": "local_operator"}
+    stored, owner = main._load_stored_run_record(RUN_ID)
+    assert owner == "local-dev" and saved == [stored.run]
+    assert stored.run.context["request_identity"] == row["result"]["context"]["request_identity"]
+
+
 @pytest.mark.parametrize("invalid", ["run_id", "case_id", "tenant", "private_case"])
 def test_history_resume_rejects_foreign_result(history, monkeypatch, invalid):
     row, _, saved = history

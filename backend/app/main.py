@@ -1409,12 +1409,20 @@ def _load_stored_run_record(
                 case_id = str(recovered.context.get("case_id") or "")
                 case = _case_record(case_id)
                 expected_task_case = {case_id, f"SUPPLEMENT:{recovered.context.get('supplement_id')}"}
+                legacy_identity = recovered.context.get("request_identity") or {}
+                legacy_public_operator = (
+                    isinstance(legacy_identity, dict)
+                    and legacy_identity.get("source") == "local"
+                    and legacy_identity.get("tenant_id") == "local-dev"
+                    and legacy_identity.get("user_id") == "local-dev"
+                )
                 # 只从公开任务台账恢复同一编号、同一公开案例，不触及私有运行与人工签字。
                 # 补充资料服务仍使用本机工作副本；回填持久化原结果，不重新分析或改历史输出。
                 if (
                     recovered.run_id == run_id and task.get("case_id") in expected_task_case
                     and case and is_public_case(case)
-                    and not _run_context_tenant(StoredRunResponse(run=recovered))
+                    # 免费公开 Web 沿用 local-dev 执行身份；它不代表私有租户。
+                    and (legacy_public_operator or not _run_context_tenant(StoredRunResponse(run=recovered)))
                 ):
                     save_run(WORKSPACE_ROOT, recovered)
                     stored = StoredRunResponse(run=recovered)
