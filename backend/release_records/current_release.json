@@ -10,13 +10,13 @@
   },
   "demo": {
     "case_manifest": "backend/competition_demo_cases.json",
-    "case_count": 15,
+    "case_count": 23,
     "featured_case_ids": [
       "STD_DEV_T0",
       "CNINFO_000858_T0_20260430",
       "CNINFO_600938_T0_20260326"
     ],
-    "manifest_sha256": "e3f4e39929b55ad15db728744854ee3ec542c8787bf916f5f03340485e7e9c86",
+    "manifest_sha256": "741a7d669a98f3d2c4fef300464810797afa8a9844386cd15d022886fd3968fe",
     "manifest_hash_algorithm": "canonical_json_v1",
     "materialized_source_head": "be9839947bbeb2acc9596d349afbabc53b91f922"
   },

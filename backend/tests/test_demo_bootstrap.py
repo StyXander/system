@@ -16,16 +16,16 @@ FEATURED_ORDER = ["STD_DEV_T0", "CNINFO_000858_T0_20260430", "CNINFO_600938_T0_2
 
 
 def test_demo_bootstrap_serves_frozen_manifest_contract(monkeypatch: pytest.MonkeyPatch) -> None:
-    """启动快照一次返回 15 案白名单、精选顺序与统一 AI 声明。"""
+    """启动快照一次返回 23 案白名单、精选顺序与统一 AI 声明。"""
 
     # 竞赛演示部署始终以演示模式运行；种子案例目录只在该模式下可见。
     monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
     payload = TestClient(app).get("/api/demo/bootstrap").json()
     assert payload["schema_version"] == "demo_bootstrap_v1"
     assert payload["bootstrap_ready"] is True
-    assert payload["case_count"] == len(payload["cases"]) == 15
+    assert payload["case_count"] == len(payload["cases"]) == 23
     ids = [case["case_id"] for case in payload["cases"]]
-    assert len(set(ids)) == 15
+    assert len(set(ids)) == 23
     assert payload["featured_case_ids"] == FEATURED_ORDER
     assert set(FEATURED_ORDER) <= set(ids)
     assert payload["ai_generated_content_notice"] == AI_NOTICE
@@ -127,7 +127,7 @@ def test_demo_bootstrap_leaks_no_secrets_or_local_paths() -> None:
 
 
 def test_demo_bootstrap_whitelist_matches_registry_cases(monkeypatch: pytest.MonkeyPatch) -> None:
-    """15 案白名单必须是真实注册案例的子集，不得出现未登记案例。"""
+    """23 案白名单必须是真实注册案例的子集，不得出现未登记案例。"""
 
     monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
     client = TestClient(app)

@@ -454,7 +454,7 @@ def test_demo_readonly_contracts_are_available() -> None:
 
 
 def test_public_demo_prefers_frozen_seed_rag_in_a_fresh_namespace(monkeypatch: pytest.MonkeyPatch) -> None:
-    """15 案新命名空间也必须走冻结片段，不依赖开发机旧 FAISS 目录。"""
+    """23 案新命名空间也必须走冻结片段，不依赖开发机旧 FAISS 目录。"""
 
     monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
     monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
@@ -862,7 +862,7 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
     # 冻结演示清单裁剪，所以案例编号取自路由自身使用的同一权威来源。
     public_listing = client.get("/api/cases?summary=true")
     assert public_listing.status_code == 200
-    assert len(public_listing.json()["cases"]) == 15
+    assert len(public_listing.json()["cases"]) == 23
     cases = [{"case_id": main_module.CASE_ID}] + [
         {"case_id": str(case["case_id"])}
         for case in main_module.load_seed_cases(main_module.WORKSPACE_ROOT)

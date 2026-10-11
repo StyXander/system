@@ -11,7 +11,7 @@
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
   <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.6">
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.12.9" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.13.1" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -78,8 +78,8 @@
       </aside>
     </div>
     <dl class="demo-positioning-facts" aria-label="演示能力摘要">
-      <div><dt>已登记案例</dt><dd><span id="demo-positioning-case-count">15</span><small>个冻结样例</small></dd></div>
-      <div><dt>本地原文索引</dt><dd><span id="demo-positioning-report-count">45</span><small>份公开年报</small></dd></div>
+      <div><dt>已登记案例</dt><dd><span id="demo-positioning-case-count">23</span><small>个冻结样例</small></dd></div>
+      <div><dt>本地原文索引</dt><dd><span id="demo-positioning-report-count">69</span><small>份公开年报</small></dd></div>
       <div><dt>工程与模型</dt><dd><span>R1/R2 + 3A</span><small>确定性规则 · 三 Agent</small></dd></div>
       <div><dt>结构化交付</dt><dd><span>JSON / 表 / PDF</span><small>同源输出 · 证据可追溯</small></dd></div>
     </dl>
@@ -514,15 +514,10 @@
 
   <dialog class="detail-drawer" id="demo-cases-drawer" aria-labelledby="demo-cases-drawer-title">
     <div class="dialog-head">
-      <div><span class="folio">REGISTERED CASES · 15 + 8</span><h2 id="demo-cases-drawer-title">企业案例库</h2></div>
+      <div><span class="folio">REGISTERED CASES · 23</span><h2 id="demo-cases-drawer-title">企业案例库</h2></div>
       <button class="icon-button" type="button" aria-label="关闭全部案例" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭全部案例</span></button>
     </div>
     <div class="demo-drawer-body" id="demo-cases-drawer-body">
-      <details class="demo-tech-section demo-expanded-section">
-        <summary id="demo-expanded-toggle"><span id="demo-expanded-title">新增 8 个扩展体验案例</span></summary>
-        <p>来自已登记公开快照，专业复核待完成；原 15 案冻结清单保持独立。</p>
-        <div id="demo-expanded-cases" class="demo-discovery-grid"></div>
-      </details>
       <div class="empty-state"><strong>正在读取案例</strong><p>案例清单来自冻结 manifest。</p></div>
     </div>
   </dialog>

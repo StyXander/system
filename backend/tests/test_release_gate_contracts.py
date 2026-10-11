@@ -111,7 +111,7 @@ def test_release_manifest_and_evaluation_pointers_are_traceable() -> None:
     actual_manifest_sha = _canonical_json_sha256(manifest_data)
     expected_manifest_sha = release_data["demo"]["manifest_sha256"]
     assert actual_manifest_sha == expected_manifest_sha, "Manifest 哈希与 release 快照不符"
-    assert len(manifest_data.get("cases", [])) == 15, "演示案例数应为 15 案"
+    assert len(manifest_data.get("cases", [])) == 23, "演示案例数应为 23 案"
 
     # 评估指针核验
     eval_pointer_path = REPO_ROOT / release_data["evaluation"]["pointer"]
@@ -328,7 +328,7 @@ def test_release_ready_stays_false_without_human_approval() -> None:
     release_data = {
         "release_status": "release_candidate",
         "model": {"model_id": "deepseek-v4-flash"},
-        "demo": {"materialized_source_head": commit, "manifest_sha256": manifest, "case_count": 15},
+        "demo": {"materialized_source_head": commit, "manifest_sha256": manifest, "case_count": 23},
         "evaluation": {"evaluation_id": "EVAL-X", "human_scoring_status": "completed"},
     }
     evaluation_data = {
@@ -394,7 +394,7 @@ def test_release_ready_rejects_boolean_without_verified_b3_evidence() -> None:
     release_data = {
         "release_status": "release_candidate",
         "model": {"model_id": "deepseek-v4-flash"},
-        "demo": {"materialized_source_head": commit, "manifest_sha256": manifest, "case_count": 15},
+        "demo": {"materialized_source_head": commit, "manifest_sha256": manifest, "case_count": 23},
         "evaluation": {"evaluation_id": "EVAL-X", "human_scoring_status": "completed"},
         "release_readiness": {"fresh_production_b3_completed": True},
     }

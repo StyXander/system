@@ -3,23 +3,22 @@
   "frozen_at": "2026-08-24T10:16:15.108963+08:00",
   "source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
   "generated_at": "2026-08-24T10:16:15.108963+08:00",
-  "case_count": 15,
+  "case_count": 23,
   "featured_case_ids": [
     "STD_DEV_T0",
     "CNINFO_000858_T0_20260430",
     "CNINFO_600938_T0_20260326"
   ],
   "backup_candidate_case_ids": [
-    "CNINFO_600276_T0_20260325",
     "CNINFO_601985_T0_20260429",
-    "CNINFO_000333_T0_20260330",
     "CNINFO_000651_T0_20260428",
     "CNINFO_600690_T0_20260326"
   ],
   "notes": [
     "admission_status 仅允许在最终 HEAD 十项门槛全部复验后写为 passed。",
     "historical_external_model_run 只是传输、Schema 与 Agent 技术链证据，不代表字段正确或专业效果已批准。",
-    "demo_focus 只说明讲解重点，不预写任何运行结论。"
+    "demo_focus 只说明讲解重点，不预写任何运行结论。",
+    "2026-10-11：案例库由15案扩为23案，统一完整分析入口；原15案冻结验收与新增8案的历史预检不混记。"
   ],
   "cases": [
     {
@@ -1774,7 +1773,672 @@
         ],
         "final_qa": "passed_batch7"
       }
+    },
+    {
+      "case_id": "CNINFO_600276_T0_20260325",
+      "ticker": "600276",
+      "company_name": "恒瑞医药",
+      "category": "医药与医疗",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-25",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "7de9ede1260383453ed1498c1505fd41ecc00c6116febfe8dc2cb755ba2a6c7e",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "恒瑞医药2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032585.PDF",
+          "page_count": 236,
+          "byte_count": 3457175,
+          "sha256": "FAE80E2D132F5B6F2BFBB8BCDFD40E1267EDB91D689389D63C8E291B0856ACE6",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-03-25",
+          "source_date_conflict": {
+            "document_id": "CNINFO-600276-2025-FAE80E2D132F",
+            "registered_disclosure_date": "2026-03-25",
+            "url_path_date": "2026-03-26",
+            "official_announcement_date": "2026-03-26",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "恒瑞医药2024年年度报告",
+          "disclosure_date": "2025-03-31",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-31/1222961962.PDF",
+          "page_count": 249,
+          "byte_count": 7710195,
+          "sha256": "7FAD40FEF23755F81CE5322F45483EA257EF026EBF1F7F5655C8D5998D7049FC",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-03-30",
+          "source_date_conflict": {
+            "document_id": "CNINFO-600276-2024-7FAD40FEF237",
+            "registered_disclosure_date": "2025-03-30",
+            "url_path_date": "2025-03-31",
+            "official_announcement_date": "2025-03-31",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "恒瑞医药2023年年度报告",
+          "disclosure_date": "2024-04-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-18/1219650115.PDF",
+          "page_count": 246,
+          "byte_count": 6014937,
+          "sha256": "4FE601137654ACBB46898486BB61501678BA952426E66E7B0EFBBD8FA48639CC",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-04-17",
+          "source_date_conflict": {
+            "document_id": "CNINFO-600276-2023-4FE601137654",
+            "registered_disclosure_date": "2024-04-17",
+            "url_path_date": "2024-04-18",
+            "official_announcement_date": "2024-04-18",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
+    },
+    {
+      "case_id": "CNINFO_000333_T0_20260330",
+      "ticker": "000333",
+      "company_name": "美的集团",
+      "category": "消费、家电与科技制造",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-30",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "b7409ee3abba4f165385cf1a9ecdb109465ca724955306b8f04221b8dad61a34",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-03-31",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+          "page_count": 276,
+          "byte_count": 5942399,
+          "sha256": "16F95F70527DB59DCF2736F276A9479CF7EE917E5F71E4F6CBBE83ACBAD9F4B6",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-03-30",
+          "source_date_conflict": {
+            "document_id": "CNINFO-000333-2025-16F95F70527D",
+            "registered_disclosure_date": "2026-03-30",
+            "url_path_date": "2026-03-31",
+            "official_announcement_date": "2026-03-31",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222951181.PDF",
+          "page_count": 295,
+          "byte_count": 6737887,
+          "sha256": "B17A9B9B84BCA1D2A4E4A3CADC5DD5BA5C85E3F1FD2D758ACD3315B5B040ECD9",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-03-28",
+          "source_date_conflict": {
+            "document_id": "CNINFO-000333-2024-B17A9B9B84BC",
+            "registered_disclosure_date": "2025-03-28",
+            "url_path_date": "2025-03-29",
+            "official_announcement_date": "2025-03-29",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219429374.PDF",
+          "page_count": 291,
+          "byte_count": 6617110,
+          "sha256": "22F4915D91ADA74A37EAB8D074AEF4C15420F3B1A8B5F5BD5777C00F97D58B86",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-03-27",
+          "source_date_conflict": {
+            "document_id": "CNINFO-000333-2023-22F4915D91AD",
+            "registered_disclosure_date": "2024-03-27",
+            "url_path_date": "2024-03-28",
+            "official_announcement_date": "2024-03-28",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
+    },
+    {
+      "case_id": "CNINFO_600588_T0_20260417",
+      "ticker": "600588",
+      "company_name": "用友网络",
+      "category": "软件与信息服务",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-17",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "7de5271fcb2faf0682773152ec31dfe63a360f6ebfb7f15df892207b02897a00",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "用友网络2025年年度报告",
+          "disclosure_date": "2026-04-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225120765.PDF",
+          "page_count": 261,
+          "byte_count": 1648221,
+          "sha256": "04AF3511B61D5C22CAD4CFCCA68BC9DA88EB5144D6C22C6EE87E79C32F5C1052",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-04-17",
+          "source_date_conflict": {
+            "document_id": "CNINFO-600588-2025-04AF3511B61D",
+            "registered_disclosure_date": "2026-04-17",
+            "url_path_date": "2026-04-18",
+            "official_announcement_date": "2026-04-18",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "用友网络2024年年度报告",
+          "disclosure_date": "2025-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222946316.PDF",
+          "page_count": 261,
+          "byte_count": 4729534,
+          "sha256": "3D057DC1334F65DBC18C34501EB0145DF75A2B9D86FB8F49D9075B657B8E3C66",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-03-28",
+          "source_date_conflict": {
+            "document_id": "CNINFO-600588-2024-3D057DC1334F",
+            "registered_disclosure_date": "2025-03-28",
+            "url_path_date": "2025-03-29",
+            "official_announcement_date": "2025-03-29",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "用友网络2023年年度报告",
+          "disclosure_date": "2024-03-30",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-30/1219465845.PDF",
+          "page_count": 279,
+          "byte_count": 4814950,
+          "sha256": "0A78F501C4D3AB8EE6C78CA4C0ADC936613F3DF5EB3326696A0C2FEEB10D5749",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-03-29",
+          "source_date_conflict": {
+            "document_id": "CNINFO-600588-2023-0A78F501C4D3",
+            "registered_disclosure_date": "2024-03-29",
+            "url_path_date": "2024-03-30",
+            "official_announcement_date": "2024-03-30",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
+    },
+    {
+      "case_id": "CNINFO_300015_T0_20260423",
+      "ticker": "300015",
+      "company_name": "爱尔眼科",
+      "category": "医药与医疗",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-23",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "fd2f35c44e2830f3d63a3b9263dd328dd43a7842fca8c685b14121bede6cd59c",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-24",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-24/1225174505.PDF",
+          "page_count": 498,
+          "byte_count": 2438977,
+          "sha256": "8AA8857331CFC403E60E19E005A94AA67DEFCBA28451B586741DC3757373D41E",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-04-23",
+          "source_date_conflict": {
+            "document_id": "CNINFO-300015-2025-8AA8857331CF",
+            "registered_disclosure_date": "2026-04-23",
+            "url_path_date": "2026-04-24",
+            "official_announcement_date": "2026-04-24",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-25",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-25/1223271221.PDF",
+          "page_count": 439,
+          "byte_count": 10638910,
+          "sha256": "1F377F2FBA711B4AA2468541DA889BF7FC406C464EF034477BA78986496C8ABD",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-04-24",
+          "source_date_conflict": {
+            "document_id": "CNINFO-300015-2024-1F377F2FBA71",
+            "registered_disclosure_date": "2025-04-24",
+            "url_path_date": "2025-04-25",
+            "official_announcement_date": "2025-04-25",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-04-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-26/1219826392.PDF",
+          "page_count": 367,
+          "byte_count": 8590903,
+          "sha256": "6C5126D972FF52B2518E6B8EA238AC49D22AE7C9C66587DF15C4A172CC58E8AD",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-04-25",
+          "source_date_conflict": {
+            "document_id": "CNINFO-300015-2023-6C5126D972FF",
+            "registered_disclosure_date": "2024-04-25",
+            "url_path_date": "2024-04-26",
+            "official_announcement_date": "2024-04-26",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "ticker": "601668",
+      "company_name": "中国建筑",
+      "category": "建筑与房地产",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-04-17",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "conditional_business",
+      "source_fingerprint": "359d214c6af692ca24b199a475930f77674db271f80f454ed0bc70353bfb3cc0",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "中国建筑股份有限公司2025年年度报告",
+          "disclosure_date": "2026-04-18",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225123321.PDF",
+          "page_count": 370,
+          "byte_count": 21957373,
+          "sha256": "BE7C5A9A87AF23F0F08405942C4159AAC7BE9DBB72C6979DA56B81E69F588815",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-04-17",
+          "source_date_conflict": {
+            "document_id": "CNINFO-601668-2025-BE7C5A9A87AF",
+            "registered_disclosure_date": "2026-04-17",
+            "url_path_date": "2026-04-18",
+            "official_announcement_date": "2026-04-18",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "中国建筑股份有限公司2024年年度报告",
+          "disclosure_date": "2025-04-16",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-16/1223102350.PDF",
+          "page_count": 392,
+          "byte_count": 18321926,
+          "sha256": "FB6F713453DA7DC53C12CB53653CEEF590E5CF503D721FAF16D9D9B3CDAF090D",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-04-15",
+          "source_date_conflict": {
+            "document_id": "CNINFO-601668-2024-FB6F713453DA",
+            "registered_disclosure_date": "2025-04-15",
+            "url_path_date": "2025-04-16",
+            "official_announcement_date": "2025-04-16",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "中国建筑股份有限公司2023年年度报告",
+          "disclosure_date": "2024-04-19",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-19/1219674825.PDF",
+          "page_count": 390,
+          "byte_count": 14758994,
+          "sha256": "5E4E7E5DCF13B1E4D20EE52FD0F05872729F9BC9D86D08F49785F9400EA82DA8",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-04-18",
+          "source_date_conflict": {
+            "document_id": "CNINFO-601668-2023-5E4E7E5DCF13",
+            "registered_disclosure_date": "2024-04-18",
+            "url_path_date": "2024-04-19",
+            "official_announcement_date": "2024-04-19",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
+    },
+    {
+      "case_id": "CNINFO_000002_T0_20260331",
+      "ticker": "000002",
+      "company_name": "万科A",
+      "category": "建筑与房地产",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-31",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "82f731cd3e8291d5db83565ce1f75db2cefce33c9c8da7bae7c0d10b48fe3778",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "2025年年度报告",
+          "disclosure_date": "2026-04-01",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225067794.PDF",
+          "page_count": 298,
+          "byte_count": 6696262,
+          "sha256": "B2BEFC9DA2A9E09C798702C351E6AF65A4B148E32BAA07737B941EDC2CAF1EBA",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-03-31",
+          "source_date_conflict": {
+            "document_id": "CNINFO-000002-2025-B2BEFC9DA2A9",
+            "registered_disclosure_date": "2026-03-31",
+            "url_path_date": "2026-04-01",
+            "official_announcement_date": "2026-04-01",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "2024年年度报告",
+          "disclosure_date": "2025-04-01",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-01/1222974139.PDF",
+          "page_count": 327,
+          "byte_count": 9908485,
+          "sha256": "734370D32036C1A18716E42F2E96C0F6FFD8A48C1FE115ECDA945A09EB416AC0",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-03-31",
+          "source_date_conflict": {
+            "document_id": "CNINFO-000002-2024-734370D32036",
+            "registered_disclosure_date": "2025-03-31",
+            "url_path_date": "2025-04-01",
+            "official_announcement_date": "2025-04-01",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "2023年年度报告",
+          "disclosure_date": "2024-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-29/1219487237.PDF",
+          "page_count": 324,
+          "byte_count": 10999883,
+          "sha256": "511A089558610E86605841F39B98F67993BD444C1E23018A204E704706882D0D",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-03-28",
+          "source_date_conflict": {
+            "document_id": "CNINFO-000002-2023-511A08955861",
+            "registered_disclosure_date": "2024-03-28",
+            "url_path_date": "2024-03-29",
+            "official_announcement_date": "2024-03-29",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
+    },
+    {
+      "case_id": "CNINFO_601398_T0_20260327",
+      "ticker": "601398",
+      "company_name": "工商银行",
+      "category": "金融",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-27",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "financial",
+      "source_fingerprint": "800bba7b59804fcb4eb67951c9fc147803d6c67125b5ce5590079e3cf70bddff",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "工商银行2025年度报告",
+          "disclosure_date": "2026-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047240.PDF",
+          "page_count": 408,
+          "byte_count": 9289165,
+          "sha256": "E2EDAB73032F143AAD881F612382BC613C8B96B424BB197B125D64A0EF23C78B",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-03-27",
+          "source_date_conflict": {
+            "document_id": "CNINFO-601398-2025-E2EDAB73032F",
+            "registered_disclosure_date": "2026-03-27",
+            "url_path_date": "2026-03-28",
+            "official_announcement_date": "2026-03-28",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "工商银行2024年度报告",
+          "disclosure_date": "2025-03-29",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-29/1222948914.PDF",
+          "page_count": 410,
+          "byte_count": 9880426,
+          "sha256": "27B9C08E81061722AB4166AD23D4F90366A3F075AF1422543FA6DCB8C7D1A03C",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-03-28",
+          "source_date_conflict": {
+            "document_id": "CNINFO-601398-2024-27B9C08E8106",
+            "registered_disclosure_date": "2025-03-28",
+            "url_path_date": "2025-03-29",
+            "official_announcement_date": "2025-03-29",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "工商银行2023年度报告",
+          "disclosure_date": "2024-03-28",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-28/1219429144.PDF",
+          "page_count": 394,
+          "byte_count": 9493877,
+          "sha256": "E310E8A55FF8F057782C6C70B003FA220CA5A2E484334BFFBF308BDC39B3434D",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-03-27",
+          "source_date_conflict": {
+            "document_id": "CNINFO-601398-2023-E310E8A55FF8",
+            "registered_disclosure_date": "2024-03-27",
+            "url_path_date": "2024-03-28",
+            "official_announcement_date": "2024-03-28",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
+    },
+    {
+      "case_id": "CNINFO_688111_T0_20260325",
+      "ticker": "688111",
+      "company_name": "金山办公",
+      "category": "软件与信息服务",
+      "demo_focus": "登记资料完整分析",
+      "report_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "t0": "2026-03-25",
+      "rule_ids": [
+        "R1"
+      ],
+      "industry_family": "general_business",
+      "source_fingerprint": "d328b93b71821348e1420ecbfe3c42aacd5a59d756c2c6935c429ec40a06f918",
+      "rag_index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+      "documents": [
+        {
+          "report_year": 2025,
+          "announcement_title": "金山办公2025年年度报告",
+          "disclosure_date": "2026-03-26",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-26/1225032227.PDF",
+          "page_count": 262,
+          "byte_count": 1867850,
+          "sha256": "BF6ADE124527896EDB1C1BE6AF04A7D6B4C0EB964DE42A96A77DB7DBC6CEE281",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2026-03-25",
+          "source_date_conflict": {
+            "document_id": "CNINFO-688111-2025-BF6ADE124527",
+            "registered_disclosure_date": "2026-03-25",
+            "url_path_date": "2026-03-26",
+            "official_announcement_date": "2026-03-26",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": true
+          }
+        },
+        {
+          "report_year": 2024,
+          "announcement_title": "金山办公2024年年度报告",
+          "disclosure_date": "2025-03-20",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2025-03-20/1222847501.PDF",
+          "page_count": 296,
+          "byte_count": 5081954,
+          "sha256": "168FB9DCAAEDB27756391912837DDB96098726829305D251A8F8BD64EE908848",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2025-03-19",
+          "source_date_conflict": {
+            "document_id": "CNINFO-688111-2024-168FB9DCAAED",
+            "registered_disclosure_date": "2025-03-19",
+            "url_path_date": "2025-03-20",
+            "official_announcement_date": "2025-03-20",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        },
+        {
+          "report_year": 2023,
+          "announcement_title": "金山办公2023年年度报告",
+          "disclosure_date": "2024-03-21",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2024-03-21/1219361803.PDF",
+          "page_count": 305,
+          "byte_count": 5997926,
+          "sha256": "E07701BBF871A58308EFC05126C25377E37F8CC917FBEC6AB52530C557829DCE",
+          "validation_status": "passed",
+          "registered_disclosure_date": "2024-03-20",
+          "source_date_conflict": {
+            "document_id": "CNINFO-688111-2023-E07701BBF871",
+            "registered_disclosure_date": "2024-03-20",
+            "url_path_date": "2024-03-21",
+            "official_announcement_date": "2024-03-21",
+            "status": "official_date_confirmed_t0_adoption_pending",
+            "cutoff_conflict": false
+          }
+        }
+      ],
+      "admission_status": "pending",
+      "admission_evidence": null,
+      "historical_external_model_run": null,
+      "registered_at": "2026-10-11",
+      "registration_note": "由原扩展快照并入统一案例库；未新增模型成功或专业批准记录。"
     }
   ],
-  "source_worktree_sha256": "6737CD41AE4072470669F6D90A21C5738FDF7C7028EFF4CB7B84868A0D668833"
+  "source_worktree_sha256": "6737CD41AE4072470669F6D90A21C5738FDF7C7028EFF4CB7B84868A0D668833",
+  "roster_updated_at": "2026-10-11"
 }

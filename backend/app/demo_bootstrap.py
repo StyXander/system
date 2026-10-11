@@ -1,4 +1,4 @@
-"""竞赛演示版启动快照：把 15 案 manifest 聚合成一次只读 bootstrap。
+"""竞赛演示版启动快照：把 23 案 manifest 聚合成一次只读 bootstrap。
 
 启动快照只汇总既有登记事实，不复制规则、RAG 或 Agent 实现；
 正式运行仍走 /api/runs 业务链，原文回查仍走受保护案例接口。
@@ -86,7 +86,7 @@ def _manifest_failure_reason(manifest: Any) -> str | None:
     if not isinstance(manifest, dict) or manifest.get("schema_version") != MANIFEST_SCHEMA_VERSION:
         return "demo_manifest_schema_mismatch"
     cases = manifest.get("cases")
-    if not isinstance(cases, list) or len(cases) != 15:
+    if not isinstance(cases, list) or len(cases) != 23:
         return "demo_manifest_case_count_mismatch"
     if manifest.get("case_count") != len(cases):
         return "demo_manifest_case_count_mismatch"

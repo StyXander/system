@@ -152,7 +152,7 @@ def test_updating_directory_keeps_usable_stale_snapshot(tmp_path):
 
 
 def test_production_expanded_preview_cannot_start_import_or_model(monkeypatch):
-    """生产持久化模式也开放快照预检，不能借参数扩大为付费链或新企业导入。"""
+    """八案已合并，旧预检入口关闭且不得创建导入任务。"""
     monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
     monkeypatch.setattr(main, "supabase_enabled", lambda: True)
     monkeypatch.setattr(discovery, "enforce_discovery_quota", lambda _: None)
@@ -168,11 +168,9 @@ def test_production_expanded_preview_cannot_start_import_or_model(monkeypatch):
     monkeypatch.setattr(main, "require_authenticated", forbidden)
     with TestClient(main.app) as client:
         result = client.post("/api/demo/expanded-cases/000333/preview", json={"run_mode": "full_analysis", "latest_year": 2099})
-        assert result.status_code == 200
-        assert result.json()["persistence"]["resume_supported"] is False
+        assert result.status_code == 404
         assert client.post("/api/demo/expanded-cases/920106/preview").status_code == 404
-    assert len(observed) == 1 and observed[0].run_mode == "calculation_only"
-    assert observed[0].current_year == 2025
+    assert observed == []
 
 
 def test_cutoff_uses_china_day_instead_of_server_day(monkeypatch):
@@ -265,12 +263,43 @@ def test_anonymous_new_company_import_still_blocked(monkeypatch):
     assert response.status_code == 403
 
 
-def test_extended_cases_have_real_documents_and_no_fabricated_signoff():
-    cases = discovery.expanded_cases(main.WORKSPACE_ROOT)
-    assert len(cases) == 8
-    assert len({case["ticker"] for case in cases}) == 8
-    assert all(case["document_count"] >= 3 and case["field_count"] > 0 for case in cases)
-    assert all(case["professional_review"] == "pending" for case in cases)
+def test_promoted_cases_share_manifest_without_fabricated_signoff():
+    """八案进入统一运行清单，历史预检入口不重复展示。"""
+    from backend.app.demo_bootstrap import load_demo_manifest
+    manifest, error = load_demo_manifest()
+    assert error is None
+    promoted = [case for case in manifest["cases"] if case["ticker"] in discovery.EXPANDED_TICKERS]
+    assert len(promoted) == 8
+    assert all(len(case["documents"]) >= 3 for case in promoted)
+    assert all(case["admission_status"] == "pending" for case in promoted)
+    assert all(case["historical_external_model_run"] is None for case in promoted)
+    assert discovery.expanded_cases(main.WORKSPACE_ROOT) == []
+
+
+@pytest.mark.parametrize("ticker", discovery.EXPANDED_TICKERS)
+def test_promoted_case_accepts_full_analysis_on_public_endpoint(monkeypatch, ticker):
+    """真实公共入口接收八案完整模式；任务执行替身避免测试付费外发。"""
+    from backend.app.demo_bootstrap import load_demo_manifest
+    manifest, _ = load_demo_manifest()
+    case = next(item for item in manifest["cases"] if item["ticker"] == ticker)
+    captured = []
+
+    class Store:
+        def create(self, case_id, payload, executor, **kwargs):
+            captured.append(payload)
+            return {"task_id": "DEMO-TEST-CASE23", "status": "queued"}
+
+    monkeypatch.setenv("AUDITTRACE_DEMO_MODE", "true")
+    monkeypatch.setenv("AUDITTRACE_PUBLIC_DEMO", "true")
+    monkeypatch.setattr(main, "_get_demo_run_store", lambda: Store())
+    monkeypatch.setattr(main, "_demo_task_continuity", lambda: {"availability": "ready"})
+    with TestClient(main.app) as client:
+        response = client.post("/api/demo/runs", json={
+            "case_id": case["case_id"], "current_year": max(case["report_years"]),
+            "rule_ids": case["rule_ids"], "run_mode": "full_analysis",
+        })
+    assert response.status_code == 202, response.text
+    assert captured[0]["run_mode"] == "full_analysis"
 
 
 def test_random_retrieval_identifier_cannot_be_misread_as_phone_but_excerpt_still_blocks():

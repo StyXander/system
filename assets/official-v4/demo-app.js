@@ -607,7 +607,7 @@
     byId("demo-reset").hidden = busy || !demoState.run;
     byId("demo-rerun").disabled = busy;
     byId("demo-supplement-rerun").disabled = busy;
-    document.querySelectorAll("[data-demo-case], #demo-expanded-cases button, #demo-company-candidates button").forEach(button => { button.disabled = busy; });
+    document.querySelectorAll("[data-demo-case], #demo-company-candidates button").forEach(button => { button.disabled = busy; });
     document.querySelectorAll(".demo-settings-grid input, .demo-settings-grid select").forEach(input => { input.disabled = busy || fixed; });
     byId("demo-open-all-cases").disabled = false;
   }
@@ -621,7 +621,7 @@
 
   function renderCaseCard(caseItem, index, selected) {
     const years = (caseItem.report_years || []).join(" / ");
-    const admission = caseItem.admission_status === "passed" ? "已完成准入验收" : "候选案例 · 准入验收进行中";
+    const admission = caseItem.admission_status === "passed" ? "已完成准入验收" : "已登记 · 专业复核待完成";
     const categoryLabel = CATEGORY_LABELS[caseItem.category] || caseItem.category;
     // 准入验收说的是案例数据，不代表本次运行环境已备好原件与索引；两者必须分开显示，
     // 否则未就绪案例仍顶着"完整主链"，点下去只会撞来源失败。
@@ -654,7 +654,6 @@
 
   function renderAllCasesDrawer() {
     const body = byId("demo-cases-drawer-body");
-    const expandedCards = byId("demo-expanded-cases");
     const groups = new Map();
     demoState.cases.forEach((caseItem, index) => {
       const group = caseItem.category === "featured" ? "featured" : caseItem.category;
@@ -667,6 +666,8 @@
       ["汽车与装备制造", "汽车与装备制造"],
       ["消费、家电与科技制造", "消费、家电与科技制造"],
     ];
+    // 统一清单中的新增行业直接使用同一案例卡和完整分析入口。
+    groups.forEach((_, key) => { if (!ordered.some(([group]) => group === key)) ordered.push([key, key]); });
     body.replaceChildren();
     ordered.forEach(([key, label]) => {
       const members = groups.get(key) || [];
@@ -690,11 +691,6 @@
       section.append(grid);
       body.append(section);
     });
-    const expanded = document.createElement("section");
-    expanded.className = "demo-drawer-group";
-    expanded.innerHTML = '<h4>扩展体验 · 8 个登记公开快照</h4><p>登记类型及年度独立保留，按当前权限处理。</p>';
-    expanded.append(expandedCards);
-    body.append(expanded);
     renderControls();
   }
 
@@ -751,15 +747,14 @@
     const liveEnabled = Boolean(bootstrap.capabilities?.onsite_live_sample);
     const liveCapability = byId("demo-live-capability");
     liveCapability.textContent = liveEnabled
-      ? "本机现场模式已启用：可处理不在 15 案中的巨潮公开年报样例，并继续执行规则与三 Agent；模型未就绪时会如实降级。"
-      : "共享演示保持只读：可用内置 15 案演示；处理新企业请用团队本机现场模式。";
+      ? "本机现场模式已启用：可处理不在 23 案中的巨潮公开年报样例，并继续执行规则与三 Agent；模型未就绪时会如实降级。"
+      : "共享演示保持只读：可用内置 23 案演示；处理新企业请用团队本机现场模式。";
     liveCapability.className = `form-message ${liveEnabled ? "success" : "warning"}`;
     byId("demo-live-submit").disabled = !liveEnabled;
     byId("demo-live-submit").title = liveEnabled ? "创建真实巨潮现场任务" : "共享演示只读，请在团队本机现场模式使用";
     liveCapability.textContent = liveEnabled
       ? "企业搜索与公告查询已开放。新企业可在本机接入；资料准备与完整模型分析分别选择，缺口和失败如实保留。"
-      : "企业搜索与公告查询已开放。登记快照按站点权限体验；新企业下载、建库与分析需使用已授权本机或账户。";
-    renderExpandedCases(bootstrap.expanded_cases || []);
+      : "企业搜索与公告查询已开放。23个登记案例可直接完整分析；新企业下载、建库与分析需使用已授权本机或账户。";
     byId("demo-quality-boundary").textContent = `仅统计真实三角色模型链最终完成；${quality.includes_retries === false ? "不含修正重试" : "含内部修正"}，不含预检、缓存与探测。业务正确性、人工采用和正式评分另行评价。${quality.model_id ? `模型：${quality.model_id}。` : ""}`;
     updateLiveSubmit();
   }
@@ -4297,11 +4292,13 @@
   function updateLiveSubmit() {
     const capability = demoState.bootstrap?.capabilities || {};
     const selected = demoState.liveSample.selectedCompany;
-    const fullAllowed = Boolean(capability.onsite_live_sample || (capability.registered_sample_pipeline && selected?.seed_case_id && !byId("demo-live-cutoff").value));
+    const fixed = demoState.selection?.origin === "fixed";
+    const fullAllowed = Boolean(fixed || capability.onsite_live_sample || (capability.registered_sample_pipeline && selected?.seed_case_id && !byId("demo-live-cutoff").value));
     byId("demo-live-mode").querySelector('[value="full_analysis"]').disabled = !fullAllowed;
-    if (!fullAllowed) byId("demo-live-mode").value = "rag_only";
+    if (fixed) byId("demo-live-mode").value = "full_analysis";
+    else if (!fullAllowed) byId("demo-live-mode").value = "rag_only";
     else if (!demoState.liveSample.modeChosenByUser && demoState.bootstrap?.model_readiness?.full_analysis_ready) byId("demo-live-mode").value = "full_analysis";
-    byId("demo-live-mode").querySelector('[value="rag_only"]').textContent = !capability.onsite_live_sample && !capability.registered_sample_pipeline ? "登记快照预检（不下载、不检索、不调用模型）" : "准备资料与检索（不调用模型）";
+    byId("demo-live-mode").querySelector('[value="rag_only"]').textContent = "准备资料与检索（不调用模型）";
     byId("demo-live-submit").disabled = demoState.liveSample.submitting || liveTaskIsActive(demoState.liveSample.task) || !liveAnalysisAllowed();
     byId("demo-live-submit").textContent = publicExpandedPreview() ? "运行登记快照预检（不调用模型）" : byId("demo-live-mode").value === "full_analysis" ? "开始完整分析" : "准备资料与检索";
     byId("demo-live-submit").title = liveAnalysisAllowed() ? "按所选处理方式运行" : "请确认企业及年度；当前站点可能只允许登记快照预检";
@@ -4345,31 +4342,6 @@
     updateUrl();
   }
 
-  function renderExpandedCases(cases) {
-    const container = byId("demo-expanded-cases");
-    container.replaceChildren();
-    cases.forEach((item) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "button quiet";
-      button.textContent = `${item.company_name} · ${item.ticker} · ${item.document_count}份登记年报`;
-      button.disabled = workspaceBusy();
-      button.addEventListener("click", () => {
-        if (workspaceBusy()) return;
-        const years = item.report_years || [];
-        if (years.length) {
-          byId("demo-live-latest-year").value = String(Math.max(...years));
-          byId("demo-live-years").value = String(years.length);
-        }
-        byId("demo-live-cutoff").value = "";
-        if (!demoState.bootstrap?.capabilities?.onsite_live_sample && !demoState.bootstrap?.capabilities?.registered_sample_pipeline) byId("demo-live-mode").value = "rag_only";
-        byId("demo-company-candidates").replaceChildren();
-        closeDrawer("demo-cases-drawer");
-        confirmDiscoveredCompany({ ...item, seed_case_id: item.case_id }, true);
-      });
-      container.append(button);
-    });
-  }
 
   async function searchCompanies() {
     const query = byId("demo-live-company").value.trim();

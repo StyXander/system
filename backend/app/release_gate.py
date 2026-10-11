@@ -216,8 +216,8 @@ def evaluate_release_ready(
         return False, "manifest SHA-256 缺失或格式无效"
     if expected_manifest.lower() != _text(manifest_sha256).lower():
         return False, "manifest 实际哈希与发布快照不一致"
-    if _as_int(demo.get("case_count")) != 15:
-        return False, "发布清单案例数不是冻结的 15 案"
+    if _as_int(demo.get("case_count")) != 23:
+        return False, "发布清单案例数不是登记的 23 案"
 
     release_evaluation = release_data.get("evaluation") or {}
     release_evaluation_id = _text(release_evaluation.get("evaluation_id"))

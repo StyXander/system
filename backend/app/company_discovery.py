@@ -253,16 +253,9 @@ def annual_reports(root: Path, ticker: str, year: int, cutoff: date) -> dict[str
 
 
 def expanded_cases(root: Path) -> list[dict[str, Any]]:
-    """扩展工程样例来自已有公开快照，不能冒充新的冻结或真人签字案例。"""
+    """兼容旧客户端：八案已进入统一案例清单，不再单列预检。"""
 
-    seeds = {case["ticker"]: case for case in load_seed_cases(root)}
-    result = []
-    for ticker in EXPANDED_TICKERS:
-        case = seeds.get(ticker)
-        if case:
-            years = sorted({int(document["report_year"]) for document in case.get("documents", []) if str(document.get("report_year") or "").isdigit()}, reverse=True)
-            result.append({"ticker": ticker, "case_id": case["case_id"], "company_name": case.get("company_alias") or case.get("company_name"), "report_years": years, "document_count": len(case.get("documents") or []), "field_count": len(case.get("financial_fields") or []), "professional_review": "pending", "source_mode": "registered_public_snapshot", "boundary": "扩展体验案例，未计入原15案专业冻结清单。"})
-    return result
+    return []
 
 
 if __name__ == "__main__":

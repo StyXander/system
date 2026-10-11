@@ -8,7 +8,7 @@
     "release_status": "remediation_in_progress",
     "model_id": "deepseek-v4-flash",
     "provider_channel": "deepseek_direct",
-    "demo_case_count": 15,
+    "demo_case_count": 23,
     "demo_manifest": "backend/competition_demo_cases.json",
     "demo_task_persistence": "supabase",
     "demo_executor_mode": "web",

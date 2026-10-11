@@ -1242,7 +1242,7 @@ def _case_record(case_id: str, *, tenant_id: str | None = None) -> dict[str, Any
     if not supabase_enabled():
         if _competition_demo_enabled():
             # 与 RAG 和 demo run 共用冻结 seed，避免本机旧案例记录缺少
-            # demo_rag_evidence 时把公开 15 案误判为未登记或未就绪。
+            # demo_rag_evidence 时把公开 23 案误判为未登记或未就绪。
             seed = get_seed_case(WORKSPACE_ROOT, case_id)
             if seed is not None:
                 return seed
@@ -3271,7 +3271,7 @@ def _run_rag_for_analysis(
         # Supabase 模式下 active RAG snapshot 是跨实例唯一权威；本机 SQLite
         # 可能仍停留在旧版本，不能把旧片段混进当前运行或把远端 snapshot ID
         # 写到本机结果上。只有完全离线的 local 模式才读取本机索引。
-        # 15 案竞赛发布优先使用随清单冻结的 seed snapshot；本机若残留旧
+        # 23 案竞赛发布优先使用随清单冻结的 seed snapshot；本机若残留旧
         # FAISS 目录也不能改变公开运行的证据版本。完整本地/内部案例仍走
         # 本机索引和 singleflight prepare_index。
         use_seed_snapshot = bool(_competition_demo_enabled() and remote_case.get("demo_rag_evidence"))
@@ -5008,7 +5008,7 @@ def _release_fact_snapshot(
         release_binding=binding_snapshot,
     )
     ready_checks = {
-        "manifest_hash": manifest_status == "verified" and manifest_count == 15,
+        "manifest_hash": manifest_status == "verified" and manifest_count == 23,
         "model_id": str(readiness.get("model_id") or ((state.get("model") or {}).get("model_id") or "")) == configured_model_id,
         # provider probe 是无 Token 的 /models 或 /user/balance 检查，不能与
         # paid_probe_performed（真实三 Agent 业务调用）混为一谈；新的生产 B3
@@ -5355,12 +5355,12 @@ def _project_status_payload(http_request: Request) -> dict[str, Any]:
 def _local_rag_status_for(case: dict[str, Any], *, tenant_id: str | None) -> dict[str, Any]:
     """本地持久化下的 RAG 状态统一解析：竞赛种子优先于本机旧索引。"""
 
-    # 15 案公开演示的冻结片段是发布事实源；即使工作区恰好留有旧 FAISS
+    # 23 案公开演示的冻结片段是发布事实源；即使工作区恰好留有旧 FAISS
     # 目录，也不能让命名空间或历史缓存改变 bootstrap 的发布状态。
     if _competition_demo_enabled() and case.get("demo_rag_evidence"):
         return seed_rag_status(case)
     # 评委代码包不分发标准股份年报全文。此时标准案例仍可出现在
-    # 15 案启动清单，但只能如实显示“未构建”，不能把一次缺文件建库
+    # 23 案启动清单，但只能如实显示“未构建”，不能把一次缺文件建库
     # 失败污染为 failed，进而让整个 bootstrap 看起来像程序故障。
     if str(case.get("case_id") or "").strip().upper() == CASE_ID and not is_local_corpus_available(WORKSPACE_ROOT):
         return {
@@ -5471,7 +5471,7 @@ def preview_expanded_case(ticker: str, http_request: Request) -> dict[str, Any]:
 
 @app.get("/api/demo/bootstrap")
 def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
-    """竞赛演示启动快照：15 案白名单、精选顺序、就绪状态一次返回。
+    """竞赛演示启动快照：23 案白名单、精选顺序、就绪状态一次返回。
 
     只读聚合既有登记事实；manifest 缺失或不一致时返回发布阻断
     原因码，前端据此停留在“演示资源未就绪”，不进入 ready。
@@ -5500,7 +5500,7 @@ def get_demo_bootstrap(http_request: Request) -> dict[str, Any]:
     payload["capabilities"]["public_company_search"] = True
     payload["capabilities"]["public_report_metadata"] = True
     payload["capabilities"]["registered_sample_pipeline"] = bool(_competition_demo_enabled() and not supabase_enabled() and not _public_demo_enabled())
-    payload["capabilities"]["expanded_case_preview"] = bool(_competition_demo_enabled())
+    payload["capabilities"]["expanded_case_preview"] = False
     payload["expanded_cases"] = company_discovery.expanded_cases(WORKSPACE_ROOT)
     # 多源审计知识底座：只汇总来源台账的登记事实，不返回正文。
     knowledge_entries, _knowledge_failure = load_knowledge_manifest(
@@ -7240,7 +7240,7 @@ def rag_retrieve(request: RagRetrieveRequest, http_request: Request) -> dict[str
     authorize_case_access(http_request, case)
     try:
         if not supabase_enabled():
-            # 公开 15 案始终以冻结 seed snapshot 为准；不能因为本机恰好有旧
+            # 公开 23 案始终以冻结 seed snapshot 为准；不能因为本机恰好有旧
             # 索引，就把 fresh namespace 的检索误判为“索引尚未构建”。
             if _competition_demo_enabled() and case.get("demo_rag_evidence"):
                 record = retrieve_seed_rag(
@@ -8211,7 +8211,7 @@ def _create_demo_run_task(
             "force_deterministic_backup": True,
             "retry_of_task_id": None,
         })
-    # 公开模式的允许集合只来自受跟踪的 15 案发布 manifest，不因核心
+    # 公开模式的允许集合只来自受跟踪的 23 案发布 manifest，不因核心
     # 案例切换到 Supabase 或远端目录而扩大。清单损坏/缺失是发布材料问题，
     # 用 503 与“非清单案例”403 分开，避免页面已展示但运行入口偷偷放行别的案例。
     manifest, manifest_failure = load_demo_manifest()
@@ -8225,7 +8225,7 @@ def _create_demo_run_task(
             None,
         )
         if manifest_case is None:
-            raise HTTPException(status_code=403, detail="该案例不在当前公开演示的 15 案发布清单中。")
+            raise HTTPException(status_code=403, detail="该案例不在当前公开演示的 23 案发布清单中。")
     store = _get_demo_backup_store() if backup else _get_demo_run_store()
     if request.retry_of_task_id:
         previous = store.snapshot(request.retry_of_task_id)
@@ -8244,7 +8244,7 @@ def _create_demo_run_task(
         raise HTTPException(status_code=404, detail="案例未登记。")
     if manifest_case is None:
         # 非公开开发模式仍保留旧的 seed 年度/规则合同；它不扩大公开接口的
-        # 15 案白名单，只用于本地调试和兼容既有请求。
+        # 23 案白名单，只用于本地调试和兼容既有请求。
         manifest_case = next(
             (item for item in load_seed_cases(WORKSPACE_ROOT)
              if str(item.get("case_id") or "").upper() == request.case_id.upper()),
