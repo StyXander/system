@@ -1,0 +1,67 @@
+{
+  "source_baseline_sha": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+  "branch": "remediation/finals-20261011",
+  "local_modified_not_deployed": true,
+  "main_case": {
+    "run_id": "RUN-V7-DCF895BC5377",
+    "run_code": "e29c175",
+    "years": [
+      2025,
+      2024
+    ],
+    "values_changed": false,
+    "basis": "合并应收净额与营业收入",
+    "professional_confirmation": "pending"
+  },
+  "historical_oct10": {
+    "case_outputs": 15,
+    "provider_calls": 48,
+    "additional_previews": 8,
+    "preview_calls": 0,
+    "source_links": 70,
+    "source": "docs/2026-10-10_公网真人演示全流程验收.md",
+    "raw_directory_available": true,
+    "full_raw_audit_this_round": false
+  },
+  "experiment": "探索对照/manifest.json",
+  "ppt_source": "not_found_in_workspace",
+  "script_source": "not_found_in_workspace",
+  "rehearsal": "not_performed",
+  "deployment_live": {
+    "read_only_observation": "2026-10-11",
+    "deployment": {
+      "commit": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+      "deployment_commit": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+      "release_evidence_head": null,
+      "materialized_source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+      "demo_manifest_sha256": "e3f4e39929b55ad15db728744854ee3ec542c8787bf916f5f03340485e7e9c86",
+      "branch": "main",
+      "service": "audittrace-demo",
+      "source": "render_runtime_environment"
+    },
+    "local_changes_deployed": false
+  },
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "checks": {
+    "focused_pytest_passed": 31,
+    "warnings": 1,
+    "browser_record": "outputs/finals-20261011-browser/browser-record.json",
+    "source_check": "outputs/finals-20261011-browser/source-check.json",
+    "external_model_calls_this_round": 0,
+    "word_pages_rendered_and_reviewed": 3,
+    "chinese_comment_ratio": "2931/27547=10.64%",
+    "diff_check": "passed",
+    "python_compile": "passed",
+    "frontend_syntax": "passed"
+  },
+  "sensitivity": {
+    "included": 20,
+    "excluded": 30,
+    "candidate_counts_10_15_20pp": [
+      7,
+      5,
+      4
+    ],
+    "scope": "本机有效可比期间，一般销售与收款；混合金融东方财富单列排除"
+  }
+}

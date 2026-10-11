@@ -1,0 +1,109 @@
+{
+  "experiment_id": "EXP-FINALS-20261011-AB-01",
+  "status": "prepared_not_executed",
+  "formal_evaluation_pointer_changed": false,
+  "model_id": "从获批授权文件冻结，不猜测供应商实际ID",
+  "cases": [
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "reason": "规则触发",
+      "path": "探索对照/inputs/CNINFO_000858_T0_20260430.json",
+      "input_hash": "b932a1317f917fcbd2fd38d9629f2864cfc34a56f28842ffdc7bcfcedf265084",
+      "rule_status": "candidate"
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "reason": "规则未触发",
+      "path": "探索对照/inputs/CNINFO_600938_T0_20260326.json",
+      "input_hash": "9eec8efe99053ccf922a59bb93d053e5509a8d5f42a8ac25c72dad1cf1af6239",
+      "rule_status": "RULE_NOT_TRIGGERED"
+    },
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "reason": "原登记资料缺口",
+      "path": "探索对照/inputs/CNINFO_600309_T0_20260420.json",
+      "input_hash": "64a1d4dec8b379c80c244f8ce8ee2f3b5f91c5a55bd950926d1956d08cf42464",
+      "rule_status": "DATA_GAP"
+    }
+  ],
+  "order": [
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "condition": "A",
+      "repeat": 1
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "condition": "B",
+      "repeat": 1
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "condition": "B",
+      "repeat": 1
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "condition": "A",
+      "repeat": 1
+    },
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "condition": "A",
+      "repeat": 1
+    },
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "condition": "B",
+      "repeat": 1
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "condition": "B",
+      "repeat": 2
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "condition": "A",
+      "repeat": 2
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "condition": "A",
+      "repeat": 2
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "condition": "B",
+      "repeat": 2
+    },
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "condition": "B",
+      "repeat": 2
+    },
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "condition": "A",
+      "repeat": 2
+    }
+  ],
+  "planned_outputs": 12,
+  "base_calls": 24,
+  "repeats": 2,
+  "gap_case_available": true,
+  "conditions": {
+    "A": "确定性计算+同证据包+一次review完整草稿+相同最终硬校验",
+    "B": "确定性计算+同证据包+当前三角色链+相同最终硬校验"
+  },
+  "limitations": [
+    "角色合同和调用数不同，成本实测",
+    "已登记真实非金融缺口案找不到时只完成两类，不人工制造第三类",
+    "字段和原文专业评价未执行"
+  ],
+  "provider_calls": 0,
+  "attempts": 0,
+  "failures": 0,
+  "human_scoring": "not_performed",
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

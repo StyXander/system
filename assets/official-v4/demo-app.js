@@ -1020,7 +1020,7 @@
     knowledge_evidence: "知识来源条目",
   };
   const SUPPORT_STATUS_LABELS = {
-    supported: "已由证据支持",
+    supported: "已绑定引用，支持关系待复核",
     unverified_hypothesis: "待验证解释",
   };
 
@@ -3852,6 +3852,7 @@
       [run.run_id, "__meta__", "task_status", "任务终态", "", task.status || demoState.outcome || "", "后端任务台账", ""].map(csvCell).join(","),
       [run.run_id, "__meta__", "parent_run_id", "父运行编号", "", parentRunId, "补充材料父子链", ""].map(csvCell).join(","),
       [run.run_id, "__meta__", "supplement_id", "补充资料编号", "", supplementId, "补充材料父子链", ""].map(csvCell).join(","),
+      [run.run_id, "__meta__", "semantic_support_status", "原文支持关系", "支持关系待复核", "not_verified", "引用归属与数字校验不等于语义验证", ""].map(csvCell).join(","),
       [run.run_id, "__meta__", "task_timeline", "六阶段时间线", "", JSON.stringify(task.steps || {}), "后端任务台账", ""].map(csvCell).join(","),
       [demoState.run.run_id, "__meta__", "knowledge_retrieval_trace", "知识检索轨迹", "", JSON.stringify(demoState.run.context?.knowledge_retrieval_trace || []), "来源、定位、快照与主张边界", ""].map(csvCell).join(","),
       [demoState.run.run_id, "__meta__", "model_attempt_history", "模型调用留痕", "", JSON.stringify(demoState.run.context?.model_attempt_history || []), "响应哈希、校验、失败码", ""].map(csvCell).join(","),

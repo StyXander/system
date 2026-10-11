@@ -1,0 +1,84 @@
+{
+  "run_id": "RUN-V7-DCF895BC5377",
+  "recomputed_on": "2026-10-11",
+  "rules": {
+    "rule_id": "R1",
+    "status": "candidate",
+    "source_validation": {
+      "status": "passed",
+      "issues": [],
+      "review_boundary": "程序只完成来源存在性、哈希、日期与结构检查；专业口径仍待人工确认。"
+    },
+    "metrics": {
+      "revenue_growth": -0.5455180406416607,
+      "ar_growth": 0.010679900348899315,
+      "growth_gap": 0.55619794099056,
+      "absolute_ar_change": 398857.55999999493,
+      "ar_to_revenue_current": 0.0009313300618254089,
+      "ar_to_revenue_previous": 0.0004187999693687548,
+      "turnover_days_current": 0.338139415787659,
+      "turnover_days_previous": 0.16371045789385066,
+      "turnover_trend_days": 0.17442895789380833,
+      "sustained_periods": 1,
+      "materiality_multiple": null,
+      "materiality_assessment": "未评价金额重要性",
+      "three_year_trend_available": true
+    },
+    "risk_card": {
+      "card_type": "screening_only",
+      "rule_id": "R1",
+      "engineering_version": "r1_v0.4-draft",
+      "screening_strength": "strong",
+      "configured_thresholds": {
+        "gap_threshold": 0.15,
+        "strong_gap_threshold": 0.3,
+        "absolute_threshold": 0.0,
+        "planned_materiality": null,
+        "review_status": "draft_pending_professional_signoff"
+      },
+      "status": "candidate_pending_ai_and_human_review",
+      "title": "程序筛查形成R1待核查候选",
+      "observation": "应收账款增速为1.07%，营业收入增速为-54.55%，增速差为55.62个百分点；应收账款绝对变动为398,857.56元。未评价金额重要性。",
+      "basis_limitation": "应收账款仅有净额/报表列示额，未达到专业目标的账面余额口径。",
+      "trend_limitation": null,
+      "data_gaps": [
+        "账龄结构",
+        "期后回款",
+        "信用政策变动",
+        "主要客户合同结算条款"
+      ],
+      "requested_materials": [
+        "账龄明细表",
+        "期后回款记录",
+        "信用政策说明",
+        "主要合同关键条款摘要"
+      ],
+      "boundary": "这是工程草案筛查状态，不是审计认定；需经RAG、三Agent和人工复核。"
+    },
+    "agent_steps": [],
+    "screening_status": "candidate",
+    "ai_recommendation": "not_generated",
+    "ai_draft": null,
+    "evidence_ids": [
+      "CNINFO_000858_T0_20260430_REVENUE_2025",
+      "CNINFO_000858_T0_20260430_REVENUE_2024",
+      "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+      "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024",
+      "CNINFO_000858_T0_20260430_REVENUE_2023",
+      "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2023"
+    ],
+    "ai_analysis_route": null,
+    "ai_analysis_conclusion": null
+  },
+  "ar_note": {
+    "page": 88,
+    "gross_current": 44901936.12,
+    "allowance_current": 7156516.61,
+    "net_current": 37745419.51,
+    "gross_previous": 43604028.89,
+    "allowance_previous": 6257466.94,
+    "net_previous": 37346561.95
+  },
+  "adoption": "保持历史净额口径，未替换为账面余额",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

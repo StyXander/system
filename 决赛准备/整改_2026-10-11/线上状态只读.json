@@ -1,0 +1,687 @@
+{
+  "engine_version": "0.7.1",
+  "run_schema_version": "run_output_v2",
+  "readiness_contract_version": "model_readiness_v1",
+  "full_analysis_ready": true,
+  "full_analysis_reason_code": "ready",
+  "full_analysis_message": "真实模型（DeepSeek 官方直连）、公开额度密钥、额度账本和当前额度均可用。",
+  "deterministic_backup_available": true,
+  "formal_scope": "审计计划阶段—销售与收款循环",
+  "case_count": 15,
+  "cases": [
+    {
+      "case_id": "STD_DEV_T0",
+      "company_name": "西安标准工业股份有限公司（标准股份）",
+      "available_years": [
+        2025,
+        2024,
+        2023
+      ],
+      "source_count": 4,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "company_name": "万华化学",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_600031_T0_20260330",
+      "company_name": "三一重工",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_600104_T0_20260401",
+      "company_name": "上汽集团",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_600938_T0_20260326",
+      "company_name": "中国海油",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_600028_T0_20260322",
+      "company_name": "中国石化",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_601857_T0_20260329",
+      "company_name": "中国石油",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_000858_T0_20260430",
+      "company_name": "五粮液",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_300750_T0_20260309",
+      "company_name": "宁德时代",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_002594_T0_20260327",
+      "company_name": "比亚迪",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_002415_T0_20260417",
+      "company_name": "海康威视",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_002475_T0_20260414",
+      "company_name": "立讯精密",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_601899_T0_20260320",
+      "company_name": "紫金矿业",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_600519_T0_20260416",
+      "company_name": "贵州茅台",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    },
+    {
+      "case_id": "CNINFO_600900_T0_20260429",
+      "company_name": "长江电力",
+      "available_years": [
+        2025,
+        2024
+      ],
+      "source_count": 3,
+      "model_transfer_allowed": true
+    }
+  ],
+  "rag": {
+    "ready_cases": 15,
+    "chunk_count": 19101,
+    "cases": [
+      {
+        "status": "ready",
+        "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+        "rebuilt": true,
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "embedding": "deterministic-char-ngram-hashing-v1",
+        "vector_backend": "faiss.IndexFlatIP",
+        "case_id": "STD_DEV_T0",
+        "company_name": "西安标准工业股份有限公司（标准股份）",
+        "source_fingerprint": "6b08b633679dc62dc7fa1d79aba4c9ae3725ab242bb33d966e734732d192e753",
+        "rag_snapshot_id": "RAG-SNAPSHOT-956B3ABB3E7DA31035A38E46",
+        "source_count": 4,
+        "chunk_count": 1167,
+        "built_at": "2026-10-10T21:53:02+08:00",
+        "source_status": "source_available",
+        "index_status": "ready",
+        "runtime_ready": true
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_600309_T0_20260420",
+        "company_name": "万华化学",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "3c113f2f7be3197285fc9405d698ad4b3dd178c3be81d990b2333a0ede1028c4",
+        "chunk_count": 1219,
+        "demo_excerpt_count": 5,
+        "built_at": "2026-08-07T21:21:23+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_600031_T0_20260330",
+        "company_name": "三一重工",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "f05ad6293593c4253718c939ab23eeef5ed9d805ad3e23c1cdac6a2fa2b423fa",
+        "chunk_count": 1259,
+        "demo_excerpt_count": 4,
+        "built_at": "2026-08-07T21:19:27+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_600104_T0_20260401",
+        "company_name": "上汽集团",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "afcd99b4654520f2ad09a1261c394e40e9e900a310c282f1de4aed9b431e28d0",
+        "chunk_count": 1225,
+        "demo_excerpt_count": 4,
+        "built_at": "2026-08-07T21:21:23+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_600938_T0_20260326",
+        "company_name": "中国海油",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "067812deae33db4916cc9be959052acd45e730306982912dedc073974dbe7021",
+        "chunk_count": 904,
+        "demo_excerpt_count": 6,
+        "built_at": "2026-08-07T16:41:21+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_600028_T0_20260322",
+        "company_name": "中国石化",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "9d1960bcb53537690c64e85a2cdcfe6e26350ca9f80afb7b6e981975bad63f23",
+        "chunk_count": 1417,
+        "demo_excerpt_count": 3,
+        "built_at": "2026-08-07T20:57:18+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_601857_T0_20260329",
+        "company_name": "中国石油",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "ee3403f125fd6d9e7b35be987cc7d4762943151c79fdd8a2d85d35070232318e",
+        "chunk_count": 1372,
+        "demo_excerpt_count": 6,
+        "built_at": "2026-08-07T20:56:42+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_000858_T0_20260430",
+        "company_name": "五粮液",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "23e8c47641812cfc231f33efb08e10239b2e3749c41b8fcd4c7f1e9d83dc910b",
+        "chunk_count": 848,
+        "demo_excerpt_count": 10,
+        "built_at": "2026-08-07T21:16:28+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_300750_T0_20260309",
+        "company_name": "宁德时代",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "7c12b25c04d44dc9a6a5259c8c9b3317efbf8452d9a827e4fd6057eb8d67f035",
+        "chunk_count": 1210,
+        "demo_excerpt_count": 3,
+        "built_at": "2026-08-07T14:38:47+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_002594_T0_20260327",
+        "company_name": "比亚迪",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "021d8ed32488c39152428b85a4e23a078d7f84678c203b98d3c26f2cc3d4a807",
+        "chunk_count": 1442,
+        "demo_excerpt_count": 3,
+        "built_at": "2026-08-07T20:39:55+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_002415_T0_20260417",
+        "company_name": "海康威视",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "30c9a651754a50122fbf67309119cddce3550d612feaf7a07f3a3fe8d23b46c7",
+        "chunk_count": 1384,
+        "demo_excerpt_count": 4,
+        "built_at": "2026-08-07T21:20:47+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_002475_T0_20260414",
+        "company_name": "立讯精密",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "af44bddbf5be53b3c2ca66f081d106e41900aaf06ef1df5a1b1623a5253377d2",
+        "chunk_count": 1632,
+        "demo_excerpt_count": 4,
+        "built_at": "2026-08-07T21:20:31+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_601899_T0_20260320",
+        "company_name": "紫金矿业",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "37f22e7ada422e230b70385ac0ddc5f4b8b41b463755b954651aaf4c0eaa9164",
+        "chunk_count": 1969,
+        "demo_excerpt_count": 5,
+        "built_at": "2026-08-07T20:42:37+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_600519_T0_20260416",
+        "company_name": "贵州茅台",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "424cbf8aa99ea466c4243476667f6b2d25428dcbdc8c08ff747cd8986e2abf0d",
+        "chunk_count": 800,
+        "demo_excerpt_count": 4,
+        "built_at": "2026-08-07T20:39:13+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      },
+      {
+        "status": "ready",
+        "source_status": "source_available",
+        "index_status": "seed_snapshot",
+        "runtime_ready": true,
+        "case_id": "CNINFO_600900_T0_20260429",
+        "company_name": "长江电力",
+        "index_version": "rag-v1.2-case-isolated-hash-ngram-faiss-20260728",
+        "source_fingerprint": "00bd66776c993a64bb5eb29c539af56704ccc85017921559eb7b71fcef15b1bc",
+        "chunk_count": 1253,
+        "demo_excerpt_count": 3,
+        "built_at": "2026-08-07T20:58:11+08:00",
+        "retrieval_mode": "tracked_demo_excerpts",
+        "boundary": "竞赛演示使用冻结索引中预先筛选的少量可回页片段；不是整本年报全文检索服务。"
+      }
+    ]
+  },
+  "model": {
+    "status": "configured",
+    "model_id": "deepseek-v4-flash",
+    "provider_kind": "deepseek_direct",
+    "provider_label": "DeepSeek 官方直连",
+    "provider_host": "api.deepseek.com",
+    "execution_mode": "external_live",
+    "full_analysis_ready": true,
+    "full_analysis_reason_code": "ready",
+    "full_analysis_message": "真实模型（DeepSeek 官方直连）、公开额度密钥、额度账本和当前额度均可用。",
+    "next_action_code": "ready",
+    "paid_probe_performed": false,
+    "last_runtime_failure_code": null,
+    "deterministic_backup_available": true,
+    "public_access": true,
+    "quota": {
+      "global_remaining_15m": 500,
+      "daily_runs_remaining": 999,
+      "active": 0,
+      "max_concurrent": 6,
+      "reset_at": "2026-10-11 16:00:00+00"
+    },
+    "last_verified_live_run": {
+      "run_id": "RUN-V7-CBF3D7A07C37",
+      "model_id": "deepseek-v4-flash",
+      "completed_at": "2026-08-12T20:26:27+08:00",
+      "completed_roles": 3
+    },
+    "runtime_quality_window": {
+      "status": "meets_threshold",
+      "window_id": "RUNTIME-DEEPSEEK-V4-FLASH-LAST10",
+      "model_id": "deepseek-v4-flash",
+      "sample_count": 10,
+      "success_count": 10,
+      "success_rate": 1.0,
+      "threshold": 0.8,
+      "alert": false,
+      "alert_kind": null,
+      "source": "supabase_model_quality_events",
+      "includes_retries": true,
+      "boundary": "仅统计最近10次真实 deepseek-v4-flash 三 Agent 完整尝试；不含 B1、B2、缓存回放、确定性备用或 provider probe。"
+    },
+    "boundary": "配置存在不代表真实完整运行已经验收。"
+  },
+  "demo_mode": {
+    "enabled": true,
+    "shared_public": true,
+    "login_required": false,
+    "supplement_policy": "public_sample_material",
+    "boundary": "竞赛演示仅展示产品思路；账号、多租户和生产保密流程未启用。"
+  },
+  "persistence": {
+    "mode": "local",
+    "demo_task_mode": "supabase",
+    "demo_executor_mode": "web",
+    "demo_task_configured": true,
+    "demo_quota_mode": "supabase",
+    "demo_quota_configured": true,
+    "demo_completed_result_durable": true,
+    "demo_running_resume": false,
+    "auth_required_for_internal": false,
+    "public_anonymous": true
+  },
+  "release": {
+    "schema_version": "audittrace_release_record_v1",
+    "release_id": "RELEASE-CANDIDATE-20260828-V1",
+    "release_status": "remediation_in_progress",
+    "model": {
+      "model_id": "deepseek-v4-flash",
+      "provider_label": "DeepSeek 官方直连"
+    },
+    "heads": {
+      "git_head": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+      "deployment_commit": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+      "release_evidence_head": null,
+      "materialized_source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+      "demo_manifest_sha256": "e3f4e39929b55ad15db728744854ee3ec542c8787bf916f5f03340485e7e9c86",
+      "worktree_dirty": true
+    },
+    "manifest": {
+      "path": "backend/competition_demo_cases.json",
+      "case_count": 15,
+      "source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+      "hash_algorithm": "canonical_json_v1",
+      "sha256_expected": "e3f4e39929b55ad15db728744854ee3ec542c8787bf916f5f03340485e7e9c86",
+      "sha256_status": "verified"
+    },
+    "evaluation": {
+      "evaluation_id": "EVAL-20260828-RELEASE-CANDIDATE-V1",
+      "pointer_status": "valid",
+      "pointer_reason": null,
+      "human_scoring_status": "pending",
+      "raw_records_status": "initialized_no_model_runs",
+      "quality_window": {
+        "window_id": "RUNTIME-DEEPSEEK-V4-FLASH-20260829-PENDING",
+        "sample_count": 0,
+        "success_count": 0,
+        "success_rate": null,
+        "threshold": 0.8,
+        "alert": true,
+        "includes_retries": false,
+        "source": "awaiting_fresh_production_runs"
+      },
+      "runtime_quality_window": {
+        "status": "meets_threshold",
+        "window_id": "RUNTIME-DEEPSEEK-V4-FLASH-LAST10",
+        "model_id": "deepseek-v4-flash",
+        "sample_count": 10,
+        "success_count": 10,
+        "success_rate": 1.0,
+        "threshold": 0.8,
+        "alert": false,
+        "alert_kind": null,
+        "source": "supabase_model_quality_events",
+        "includes_retries": true,
+        "boundary": "仅统计最近10次真实 deepseek-v4-flash 三 Agent 完整尝试；不含 B1、B2、缓存回放、确定性备用或 provider probe。"
+      }
+    },
+    "signoff": {
+      "status": "signoff_stale_requires_reapproval",
+      "signoff_id": "SIGNOFF-R1-V0.4-20260825-CAPTAIN-R2",
+      "record": "backend/release_records/r1_signoff_20260825_r2.json"
+    },
+    "task_continuity": {
+      "task_backend": "supabase",
+      "executor_mode": "web",
+      "configured": true,
+      "availability": "ready",
+      "reason_code": "supabase_ready",
+      "checked_at": "2026-10-11T06:40:35Z",
+      "completed_result_durable": true,
+      "running_task_resume": false,
+      "boundary": "完成或降级结果可跨刷新与 Web 重启读取；运行中实例中断后需显式创建新任务。"
+    },
+    "release_gate": {
+      "status": "blocked",
+      "reason": "工作区存在未提交变更，发布快照未冻结",
+      "fresh_b3_reason": "发布记录未登记 fresh_production_b3_run_id",
+      "release_binding_status": "blocked",
+      "release_binding_reason": "缺少外置版本绑定记录"
+    },
+    "competition_release_ready": false,
+    "ready_checks": {
+      "manifest_hash": true,
+      "model_id": true,
+      "provider_probe": true,
+      "evaluation_pointer": true,
+      "signoff": false,
+      "human_scoring": false,
+      "fresh_production_b3": false,
+      "release_binding": false,
+      "release_gate": false
+    },
+    "boundary": "配置存在、探测通过和历史评估均不等于新的竞赛发布批准；人工评分和最终批准为空时保持 pending。"
+  },
+  "current_release": {
+    "schema_version": "audittrace_release_record_v1",
+    "release_id": "RELEASE-CANDIDATE-20260828-V1",
+    "release_status": "remediation_in_progress",
+    "model": {
+      "model_id": "deepseek-v4-flash",
+      "provider_label": "DeepSeek 官方直连"
+    },
+    "heads": {
+      "git_head": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+      "deployment_commit": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+      "release_evidence_head": null,
+      "materialized_source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+      "demo_manifest_sha256": "e3f4e39929b55ad15db728744854ee3ec542c8787bf916f5f03340485e7e9c86",
+      "worktree_dirty": true
+    },
+    "manifest": {
+      "path": "backend/competition_demo_cases.json",
+      "case_count": 15,
+      "source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+      "hash_algorithm": "canonical_json_v1",
+      "sha256_expected": "e3f4e39929b55ad15db728744854ee3ec542c8787bf916f5f03340485e7e9c86",
+      "sha256_status": "verified"
+    },
+    "evaluation": {
+      "evaluation_id": "EVAL-20260828-RELEASE-CANDIDATE-V1",
+      "pointer_status": "valid",
+      "pointer_reason": null,
+      "human_scoring_status": "pending",
+      "raw_records_status": "initialized_no_model_runs",
+      "quality_window": {
+        "window_id": "RUNTIME-DEEPSEEK-V4-FLASH-20260829-PENDING",
+        "sample_count": 0,
+        "success_count": 0,
+        "success_rate": null,
+        "threshold": 0.8,
+        "alert": true,
+        "includes_retries": false,
+        "source": "awaiting_fresh_production_runs"
+      },
+      "runtime_quality_window": {
+        "status": "meets_threshold",
+        "window_id": "RUNTIME-DEEPSEEK-V4-FLASH-LAST10",
+        "model_id": "deepseek-v4-flash",
+        "sample_count": 10,
+        "success_count": 10,
+        "success_rate": 1.0,
+        "threshold": 0.8,
+        "alert": false,
+        "alert_kind": null,
+        "source": "supabase_model_quality_events",
+        "includes_retries": true,
+        "boundary": "仅统计最近10次真实 deepseek-v4-flash 三 Agent 完整尝试；不含 B1、B2、缓存回放、确定性备用或 provider probe。"
+      }
+    },
+    "signoff": {
+      "status": "signoff_stale_requires_reapproval",
+      "signoff_id": "SIGNOFF-R1-V0.4-20260825-CAPTAIN-R2",
+      "record": "backend/release_records/r1_signoff_20260825_r2.json"
+    },
+    "task_continuity": {
+      "task_backend": "supabase",
+      "executor_mode": "web",
+      "configured": true,
+      "availability": "ready",
+      "reason_code": "supabase_ready",
+      "checked_at": "2026-10-11T06:40:35Z",
+      "completed_result_durable": true,
+      "running_task_resume": false,
+      "boundary": "完成或降级结果可跨刷新与 Web 重启读取；运行中实例中断后需显式创建新任务。"
+    },
+    "release_gate": {
+      "status": "blocked",
+      "reason": "工作区存在未提交变更，发布快照未冻结",
+      "fresh_b3_reason": "发布记录未登记 fresh_production_b3_run_id",
+      "release_binding_status": "blocked",
+      "release_binding_reason": "缺少外置版本绑定记录"
+    },
+    "competition_release_ready": false,
+    "ready_checks": {
+      "manifest_hash": true,
+      "model_id": true,
+      "provider_probe": true,
+      "evaluation_pointer": true,
+      "signoff": false,
+      "human_scoring": false,
+      "fresh_production_b3": false,
+      "release_binding": false,
+      "release_gate": false
+    },
+    "boundary": "配置存在、探测通过和历史评估均不等于新的竞赛发布批准；人工评分和最终批准为空时保持 pending。"
+  },
+  "deployment": {
+    "commit": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+    "deployment_commit": "7f83b52564aa2a10a21191d20d49ab44a5df3fa3",
+    "release_evidence_head": null,
+    "materialized_source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+    "demo_manifest_sha256": "e3f4e39929b55ad15db728744854ee3ec542c8787bf916f5f03340485e7e9c86",
+    "branch": "main",
+    "service": "audittrace-demo",
+    "source": "render_runtime_environment"
+  },
+  "catalog": {
+    "status": "demo_ready",
+    "source": "standard_case_plus_tracked_verified_cninfo_seed",
+    "detail": "竞赛演示目录固定展示标准案例和 50 家已校验的公开年报样例，不需要登录服务。",
+    "seed": {
+      "status": "ready",
+      "source": "tracked_verified_cninfo_seed",
+      "case_count": 50,
+      "field_case_count": 50,
+      "rag_case_count": 50,
+      "pdf_policy": "official_source_url_on_demand"
+    }
+  },
+  "auth": {
+    "authenticated": false,
+    "tenant_id": null
+  },
+  "signoff": {
+    "signoff_status": "signoff_stale_requires_reapproval",
+    "rule_id": "R1",
+    "rule_version": "0.4",
+    "signed_by_role": "项目队长（用户本人）",
+    "signed_at": "2026-08-25",
+    "scope": "竞赛演示版、销售与收款循环、审计计划阶段风险预筛",
+    "signoff_id": "SIGNOFF-R1-V0.4-20260825-CAPTAIN-R2",
+    "approved_thresholds": null,
+    "approved_assertion_mapping": null,
+    "boundary": "签字仅用于竞赛演示的专业筛查口径；不是会计师事务所正式审计方法，也不是审计准则，不构成审计结论或审计意见。",
+    "reason": "R1 源文件 backend/app/schemas.py 已变化，需要项目队长重新确认。"
+  },
+  "case_scope": "frozen_demo_manifest",
+  "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}

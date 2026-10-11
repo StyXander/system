@@ -1,0 +1,160 @@
+[
+  {
+    "parent_run_id": "RUN-V7-55ED10CB1D9C",
+    "child_run_id": "RUN-SUP-0C4AB87C0D93",
+    "parent_path": "backend\\runtime\\runs\\RUN-V7-55ED10CB1D9C.json",
+    "child_path": "backend\\runtime\\runs\\RUN-SUP-0C4AB87C0D93.json",
+    "parent_sha": "5b35c2a2565173d18d255c23370b4bd5e7e904d3238b06ab4f1c0439d72cd887",
+    "child_sha": "f64fbfa9419d0478b1671a93055c4b6f3ec7d040562fda256444ed94fdfebaeb",
+    "same_fields": true,
+    "parent_draft": {
+      "schema_version": "final_ai_draft_v2",
+      "ai_assisted": true,
+      "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+      "items": [
+        {
+          "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+          "schema_version": "agent_output_v2",
+          "run_id": "RUN-V7-55ED10CB1D9C",
+          "role": "review",
+          "rule_id": "R1",
+          "analysis_conclusion": "additional_procedure_required",
+          "status": "defer",
+          "claims": [
+            {
+              "text": "R1程序筛查未触发：应收账款增速-37.64%、营业收入增速-24.45%，增速差-13.20个百分点，未达到强阈值，且未评价金额重要性。",
+              "evidence_ids": [
+                "PROC-R1-2025",
+                "STD_AR_2025",
+                "STD_REV_2025"
+              ],
+              "support_status": "supported"
+            }
+          ],
+          "normal_explanations": [
+            {
+              "text": "待验证假设：年报信用风险段落称按客户信用资质设额度与信用期限并定期监控，或可解释应收下降，但无账龄与回款数据。",
+              "evidence_ids": [
+                "RAG-STD-2025-P0159-C00"
+              ],
+              "support_status": "unverified_hypothesis"
+            },
+            {
+              "text": "待验证假设：经营现金流由正转负（本年-32,280,442.49元），R2同比不宜比较，是否与应收回收相关尚待验证。",
+              "evidence_ids": [
+                "PROC-R2-2025",
+                "STD_CFO_2025"
+              ],
+              "support_status": "unverified_hypothesis"
+            }
+          ],
+          "data_gaps": [
+            "账龄结构",
+            "期后回款",
+            "信用政策变动",
+            "主要客户合同结算条款"
+          ],
+          "requested_materials": [
+            "账龄明细表",
+            "期后回款记录",
+            "信用政策说明",
+            "主要合同关键条款摘要"
+          ],
+          "reason_for_status": "R1未触发且未评价金额重要性，应收账款仅净额口径；账龄、期后回款、信用政策与合同条款缺口未覆盖，需补充程序后再评估。",
+          "draft_title": "标准股份R1应收账款与收入增速差：净额口径与资料缺口待补",
+          "draft_observation": "程序已计算事实：应收账款增速-37.64%、营业收入增速-24.45%，增速差-13.20个百分点，应收账款绝对变动-106,478,625.85元；R1未触发，未达到强阈值，未评价金额重要性。口径限制：应收账款仅有净额/报表列示额，未达到专业目标的账面余额口径。趋势限制：程序未给出趋势不可评价情形，但sustained_periods=0，不得据此描述持续趋势。有证据支持的解释：年报信用风险段落显示按客户信用资质设额度与信用期限并定期监控（待验证假设，非结论）。资料缺口：账龄结构、期后回款、信用政策变动、主要客户合同结算条款。建议程序：按矩阵已登记AP-01初步分析、AP-03风险评估辅助、AP-06补充证据再评估，取得账龄明细表、期后回款记录、信用政策说明与主要合同关键条款摘要后复核。本稿为AI辅助草稿，最终处理留人工复核。",
+          "ai_recommendation": "defer",
+          "evidence_fitness_violations": []
+        }
+      ],
+      "boundary": "AI草稿只形成待核查建议；本次字段或原文片段仍含待人工回页候选，正式认定与发布由人工决定。"
+    },
+    "child_draft": {
+      "schema_version": "final_ai_draft_v2",
+      "ai_assisted": true,
+      "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+      "items": [
+        {
+          "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+          "schema_version": "agent_output_v2",
+          "run_id": "RUN-SUP-0C4AB87C0D93",
+          "role": "review",
+          "rule_id": "R1",
+          "analysis_conclusion": "additional_procedure_required",
+          "status": "defer",
+          "claims": [
+            {
+              "text": "R1程序筛查未触发、强阈值未达到；应收账款增速-37.64%、营业收入增速-24.45%，增速差-13.20个百分点，绝对变动-106,478,625.85元，未评价金额重要性。",
+              "evidence_ids": [
+                "PROC-R1-2025",
+                "STD_AR_2025",
+                "STD_REV_2025"
+              ],
+              "support_status": "supported"
+            }
+          ],
+          "normal_explanations": [
+            {
+              "text": "待验证假设：账龄与客户集中度补充数据或可解释应收账款变动，尚待回查年报原文。",
+              "evidence_ids": [
+                "SUP-70FAA9F8E542-E01"
+              ],
+              "support_status": "unverified_hypothesis"
+            },
+            {
+              "text": "待验证假设：年报信用风险段落称按客户信用资质设额度与期限并定期监控，尚待原文回查。",
+              "evidence_ids": [
+                "RAG-STD-2025-P0159-C00"
+              ],
+              "support_status": "unverified_hypothesis"
+            }
+          ],
+          "data_gaps": [
+            "应收账款账面余额口径及坏账准备明细",
+            "期后回款记录与账龄结构原文披露",
+            "信用政策变动及主要客户合同结算条款"
+          ],
+          "requested_materials": [
+            "应收账款账龄明细表",
+            "期后回款记录",
+            "主要合同关键条款摘要与信用政策说明"
+          ],
+          "reason_for_status": "R1未触发、强阈值未达到；应收账款仅净额/报表列示额口径，未达账面余额口径，账龄、期后回款与合同条款缺口未覆盖，故按补充程序候选提交人工复核。",
+          "draft_title": "标准股份应收账款与收入变动缺口核查（R1未触发，补充程序候选）",
+          "draft_observation": "程序已计算：应收账款增速-37.64%、营业收入增速-24.45%，增速差-13.20个百分点，应收账款绝对变动-106,478,625.85元；R1未触发、强阈值未达到，未评价金额重要性。口径限制：应收账款仅有净额/报表列示额，未达到专业目标的账面余额口径。缺口：账龄结构、期后回款、信用政策变动、主要客户合同结算条款未覆盖。建议核查年报原文替代披露并取得账龄明细表、期后回款记录、信用政策说明与主要合同关键条款摘要；本件为AI辅助草稿，最终处理留人工复核。",
+          "ai_recommendation": "defer",
+          "evidence_fitness_violations": []
+        }
+      ],
+      "boundary": "AI草稿只形成待核查建议；本次字段或原文片段仍含待人工回页候选，正式认定与发布由人工决定。"
+    },
+    "supplement_evidence": [
+      {
+        "evidence_kind": "aging_summary",
+        "field_label": "账龄结构",
+        "details": {
+          "90_to_180_days_ratio": 0.33,
+          "customer_concentration_top5_ratio": 0.54,
+          "over_180_days_ratio": 0.21,
+          "overdue_ratio": 0.18,
+          "under_90_days_ratio": 0.46
+        },
+        "excerpt": "账龄结构：{\"90_to_180_days_ratio\": 0.33, \"customer_concentration_top5_ratio\": 0.54, \"over_180_days_ratio\": 0.21, \"overdue_ratio\": 0.18, \"under_90_days_ratio\": 0.46}",
+        "support_status": "pending_human_confirmation",
+        "evidence_id": "SUP-70FAA9F8E542-E01",
+        "as_of_date": "2026-04-30",
+        "source_file": "aging_public_demo.json",
+        "file_sha256": "8E10380DFAE310603E3EFC2FFD0C95754737FE44A051B8FE1FA61810E559209A",
+        "source_mode": "supplement_independent",
+        "fitness_class": "current_entity_primary_evidence",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ]
+      }
+    ],
+    "parent_recommendation": "defer",
+    "child_recommendation": "defer",
+    "attribution": "没有无补证同输入重跑控制，仅作差异展示",
+    "sample": "公开演示样例，非企业内部真实账龄"
+  }
+]

@@ -167,6 +167,8 @@ class AgentClaim(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     evidence_ids: list[str] = Field(default_factory=list, max_length=8)
     support_status: SupportStatus = "supported"
+    # 引用归属与用途校验不等于原文蕴含关系验证；历史缺字段也保持未知。
+    semantic_support_status: Literal["not_verified"] = "not_verified"
 
 
 class AgentOutput(AiGeneratedContentNotice):
@@ -194,7 +196,7 @@ class AgentOutput(AiGeneratedContentNotice):
     draft_title: str = Field(default="", max_length=200)
     draft_observation: str = Field(default="", max_length=1000)
     ai_recommendation: Literal["retain", "downgrade", "defer", "not_applicable"] | None = None
-    evidence_fitness_violations: list[dict[str, Any]] = Field(default_factory=list, max_length=8)
+    evidence_fitness_violations: list[dict[str, Any]] = Field(default_factory=list, max_length=10)
 
 
 class AgentStep(BaseModel):

@@ -1,0 +1,1409 @@
+{
+  "scope": "本机登记快照，非15案工程批次",
+  "included": [
+    "CNINFO_000002_T0_20260331",
+    "CNINFO_600031_T0_20260330",
+    "CNINFO_600104_T0_20260401",
+    "CNINFO_601985_T0_20260429",
+    "CNINFO_600938_T0_20260326",
+    "CNINFO_601088_T0_20260330",
+    "CNINFO_000858_T0_20260430",
+    "CNINFO_600048_T0_20260417",
+    "CNINFO_300750_T0_20260309",
+    "CNINFO_600276_T0_20260325",
+    "CNINFO_000651_T0_20260428",
+    "CNINFO_002594_T0_20260327",
+    "CNINFO_600023_T0_20260427",
+    "CNINFO_600690_T0_20260326",
+    "CNINFO_002415_T0_20260417",
+    "CNINFO_300015_T0_20260423",
+    "CNINFO_600588_T0_20260417",
+    "CNINFO_000333_T0_20260330",
+    "CNINFO_600519_T0_20260416",
+    "CNINFO_688111_T0_20260325"
+  ],
+  "excluded": [
+    {
+      "case_id": "CNINFO_600309_T0_20260420",
+      "company": "万华化学",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": null,
+        "specialized_required_fields": [],
+        "specialized_optional_fields": [],
+        "industry_rule_version": null,
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ],
+        "rationale": "未命中金融或条件适用关键词；先按普通非金融企业进入字段闸门，行业结论仍不是专业判断。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_600309_T0_20260420",
+            "ticker": "600309",
+            "field": "company_name",
+            "value": "万华化学 万华化学 万华化学 万华化学",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_300059_T0_20260319",
+      "company": "东方财富",
+      "reason": "独立范围复核：金融混合业务，不纳入一般销售与收款敏感性",
+      "source": "backend/runtime/cases/CNINFO_300059_T0_20260319/documents/CNINFO-300059-2024-A803C2D1D188.pdf",
+      "pdf_page": 10,
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": null,
+        "specialized_required_fields": [],
+        "specialized_optional_fields": [],
+        "industry_rule_version": null,
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ],
+        "rationale": "未命中金融或条件适用关键词；先按普通非金融企业进入字段闸门，行业结论仍不是专业判断。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_300059_T0_20260319",
+            "ticker": "300059",
+            "field": "company_name",
+            "value": "东方财富 东方财富 东方财富 东方财富",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      },
+      "production_gate_limitation": "简称启发式未识别金融行业"
+    },
+    {
+      "case_id": "CNINFO_600030_T0_20260326",
+      "company": "中信证券",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "securities",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "securities_margin_commission",
+        "specialized_required_fields": [
+          "commission_income",
+          "margin_financing_assets",
+          "impairment_provision"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_SECURITIES_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“证券”；本次使用券商佣金与两融资产趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_600030_T0_20260326",
+            "ticker": "600030",
+            "field": "company_name",
+            "value": "中信证券 中信证券 中信证券 中信证券",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601390_T0_20260330",
+      "company": "中国中铁",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": null,
+        "specialized_required_fields": [],
+        "specialized_optional_fields": [],
+        "industry_rule_version": null,
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ],
+        "rationale": "未命中金融或条件适用关键词；先按普通非金融企业进入字段闸门，行业结论仍不是专业判断。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601390_T0_20260330",
+            "ticker": "601390",
+            "field": "company_name",
+            "value": "中国中铁 中国中铁 中国中铁 中国中铁",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601319_T0_20260326",
+      "company": "中国人保",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "insurance",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "insurance_service_result",
+        "specialized_required_fields": [
+          "insurance_revenue",
+          "insurance_service_result",
+          "claims_expense",
+          "insurance_liabilities"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_INSURANCE_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“中国人保”；本次使用保险服务结果与负债趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601319_T0_20260326",
+            "ticker": "601319",
+            "field": "company_name",
+            "value": "中国人保 中国人保 中国人保 中国人保",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601628_T0_20260325",
+      "company": "中国人寿",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "insurance",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "insurance_service_result",
+        "specialized_required_fields": [
+          "insurance_revenue",
+          "insurance_service_result",
+          "claims_expense",
+          "insurance_liabilities"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_INSURANCE_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“人寿”；本次使用保险服务结果与负债趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601628_T0_20260325",
+            "ticker": "601628",
+            "field": "company_name",
+            "value": "中国人寿 中国人寿 中国人寿 中国人寿",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601601_T0_20260326",
+      "company": "中国太保",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "insurance",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "insurance_service_result",
+        "specialized_required_fields": [
+          "insurance_revenue",
+          "insurance_service_result",
+          "claims_expense",
+          "insurance_liabilities"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_INSURANCE_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“中国太保”；本次使用保险服务结果与负债趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601601_T0_20260326",
+            "ticker": "601601",
+            "field": "company_name",
+            "value": "中国太保 中国太保 中国太保 中国太保",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601318_T0_20260326",
+      "company": "中国平安",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "insurance",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "insurance_service_result",
+        "specialized_required_fields": [
+          "insurance_revenue",
+          "insurance_service_result",
+          "claims_expense",
+          "insurance_liabilities"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_INSURANCE_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“证券代码 601318 的已验证行业映射”；本次使用保险服务结果与负债趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601318_T0_20260326",
+            "ticker": "601318",
+            "field": "company_name",
+            "value": "中国平安 中国平安 中国平安 中国平安",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601668_T0_20260417",
+      "company": "中国建筑",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "construction_real_estate",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "conditional",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "construction_real_estate_contract_cycle",
+        "specialized_required_fields": [
+          "revenue",
+          "accounts_receivable",
+          "contract_assets",
+          "long_term_receivables",
+          "contract_liabilities"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_CONSTRUCTION_REAL_ESTATE_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“建筑”；本次使用建筑/地产合同结算循环联合预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601668_T0_20260417",
+            "ticker": "601668",
+            "field": "company_name",
+            "value": "中国建筑 中国建筑 中国建筑 中国建筑",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_600028_T0_20260322",
+      "company": "中国石化",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "energy_mining",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "energy_mining_ar_revenue",
+        "specialized_required_fields": [
+          "revenue",
+          "accounts_receivable"
+        ],
+        "specialized_optional_fields": [
+          "accounts_receivable_allowance",
+          "accounts_receivable_net"
+        ],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_ENERGY_MINING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“石化”；本次使用能源/矿业应收—收入口径增强预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_600028_T0_20260322",
+            "ticker": "600028",
+            "field": "company_name",
+            "value": "中国石化 中国石化 中国石化 中国石化",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601857_T0_20260329",
+      "company": "中国石油",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "energy_mining",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "energy_mining_ar_revenue",
+        "specialized_required_fields": [
+          "revenue",
+          "accounts_receivable"
+        ],
+        "specialized_optional_fields": [
+          "accounts_receivable_allowance",
+          "accounts_receivable_net"
+        ],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_ENERGY_MINING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“石油”；本次使用能源/矿业应收—收入口径增强预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601857_T0_20260329",
+            "ticker": "601857",
+            "field": "company_name",
+            "value": "中国石油 中国石油 中国石油 中国石油",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601186_T0_20260330",
+      "company": "中国铁建",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": null,
+        "specialized_required_fields": [],
+        "specialized_optional_fields": [],
+        "industry_rule_version": null,
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ],
+        "rationale": "未命中金融或条件适用关键词；先按普通非金融企业进入字段闸门，行业结论仍不是专业判断。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601186_T0_20260330",
+            "ticker": "601186",
+            "field": "company_name",
+            "value": "中国铁建 中国铁建 中国铁建 中国铁建",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601988_T0_20260330",
+      "company": "中国银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601988_T0_20260330",
+            "ticker": "601988",
+            "field": "company_name",
+            "value": "中国银行 中国银行 中国银行 中国银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601328_T0_20260327",
+      "company": "交通银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601328_T0_20260327",
+            "ticker": "601328",
+            "field": "company_name",
+            "value": "交通银行 交通银行 交通银行 交通银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601818_T0_20260330",
+      "company": "光大银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601818_T0_20260330",
+            "ticker": "601818",
+            "field": "company_name",
+            "value": "光大银行 光大银行 光大银行 光大银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601166_T0_20260326",
+      "company": "兴业银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601166_T0_20260326",
+            "ticker": "601166",
+            "field": "company_name",
+            "value": "兴业银行 兴业银行 兴业银行 兴业银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601288_T0_20260330",
+      "company": "农业银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601288_T0_20260330",
+            "ticker": "601288",
+            "field": "company_name",
+            "value": "农业银行 农业银行 农业银行 农业银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601688_T0_20260330",
+      "company": "华泰证券",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "securities",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "securities_margin_commission",
+        "specialized_required_fields": [
+          "commission_income",
+          "margin_financing_assets",
+          "impairment_provision"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_SECURITIES_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“证券”；本次使用券商佣金与两融资产趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601688_T0_20260330",
+            "ticker": "601688",
+            "field": "company_name",
+            "value": "华泰证券 华泰证券 华泰证券 华泰证券",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601398_T0_20260327",
+      "company": "工商银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601398_T0_20260327",
+            "ticker": "601398",
+            "field": "company_name",
+            "value": "工商银行 工商银行 工商银行 工商银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_000001_T0_20260320",
+      "company": "平安银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_000001_T0_20260320",
+            "ticker": "000001",
+            "field": "company_name",
+            "value": "平安银行 平安银行 平安银行 平安银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601939_T0_20260427",
+      "company": "建设银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601939_T0_20260427",
+            "ticker": "601939",
+            "field": "company_name",
+            "value": "建设银行 建设银行 建设银行 建设银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_600999_T0_20260327",
+      "company": "招商证券",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "securities",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "securities_margin_commission",
+        "specialized_required_fields": [
+          "commission_income",
+          "margin_financing_assets",
+          "impairment_provision"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_SECURITIES_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“证券”；本次使用券商佣金与两融资产趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_600999_T0_20260327",
+            "ticker": "600999",
+            "field": "company_name",
+            "value": "招商证券 招商证券 招商证券 招商证券",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_600036_T0_20260327",
+      "company": "招商银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_600036_T0_20260327",
+            "ticker": "600036",
+            "field": "company_name",
+            "value": "招商银行 招商银行 招商银行 招商银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601336_T0_20260327",
+      "company": "新华保险",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "insurance",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "insurance_service_result",
+        "specialized_required_fields": [
+          "insurance_revenue",
+          "insurance_service_result",
+          "claims_expense",
+          "insurance_liabilities"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_INSURANCE_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“保险”；本次使用保险服务结果与负债趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601336_T0_20260327",
+            "ticker": "601336",
+            "field": "company_name",
+            "value": "新华保险 新华保险 新华保险 新华保险",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601878_T0_20260417",
+      "company": "浙商证券",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "securities",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "securities_margin_commission",
+        "specialized_required_fields": [
+          "commission_income",
+          "margin_financing_assets",
+          "impairment_provision"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_SECURITIES_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“证券”；本次使用券商佣金与两融资产趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601878_T0_20260417",
+            "ticker": "601878",
+            "field": "company_name",
+            "value": "浙商证券 浙商证券 浙商证券 浙商证券",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_600000_T0_20260330",
+      "company": "浦发银行",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "banking",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "banking_credit_quality",
+        "specialized_required_fields": [
+          "loan_balance",
+          "interest_income",
+          "nonperforming_loan_ratio",
+          "provision_coverage_ratio"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_BANKING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“银行”；本次使用银行信贷质量趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_600000_T0_20260330",
+            "ticker": "600000",
+            "field": "company_name",
+            "value": "浦发银行 浦发银行 浦发银行 浦发银行",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_000166_T0_20260327",
+      "company": "申万宏源",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "securities",
+        "reporting_profile": "FINANCIAL_INSTITUTION",
+        "fit_level": "not_applicable",
+        "allowed_rules": [],
+        "blocked_rules": [
+          "R1"
+        ],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "securities_margin_commission",
+        "specialized_required_fields": [
+          "commission_income",
+          "margin_financing_assets",
+          "impairment_provision"
+        ],
+        "specialized_optional_fields": [],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_SECURITIES_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“申万宏源”；本次使用券商佣金与两融资产趋势预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_000166_T0_20260327",
+            "ticker": "000166",
+            "field": "company_name",
+            "value": "申万宏源 申万宏源 申万宏源 申万宏源",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_002475_T0_20260414",
+      "company": "立讯精密",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "general_business",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": null,
+        "specialized_required_fields": [],
+        "specialized_optional_fields": [],
+        "industry_rule_version": null,
+        "reason_codes": [
+          "NON_FINANCIAL_DEFAULT_SCOPE",
+          "INDUSTRY_METADATA_NOT_EXPLICIT"
+        ],
+        "rationale": "未命中金融或条件适用关键词；先按普通非金融企业进入字段闸门，行业结论仍不是专业判断。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_002475_T0_20260414",
+            "ticker": "002475",
+            "field": "company_name",
+            "value": "立讯精密 立讯精密 立讯精密 立讯精密",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_601899_T0_20260320",
+      "company": "紫金矿业",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "energy_mining",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "energy_mining_ar_revenue",
+        "specialized_required_fields": [
+          "revenue",
+          "accounts_receivable"
+        ],
+        "specialized_optional_fields": [
+          "accounts_receivable_allowance",
+          "accounts_receivable_net"
+        ],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_ENERGY_MINING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“矿业”；本次使用能源/矿业应收—收入口径增强预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_601899_T0_20260320",
+            "ticker": "601899",
+            "field": "company_name",
+            "value": "紫金矿业 紫金矿业 紫金矿业 紫金矿业",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CNINFO_600900_T0_20260429",
+      "company": "长江电力",
+      "reason": "缺少四金额",
+      "industry_gate": {
+        "gate_version": "industry_gate_v2",
+        "industry_family": "energy_mining",
+        "reporting_profile": "PRC_GAAP_NON_FINANCIAL",
+        "fit_level": "direct",
+        "allowed_rules": [
+          "R1"
+        ],
+        "blocked_rules": [],
+        "required_fields": {
+          "R1": [
+            "revenue",
+            "accounts_receivable"
+          ]
+        },
+        "specialized_rule": "energy_mining_ar_revenue",
+        "specialized_required_fields": [
+          "revenue",
+          "accounts_receivable"
+        ],
+        "specialized_optional_fields": [
+          "accounts_receivable_allowance",
+          "accounts_receivable_net"
+        ],
+        "industry_rule_version": "industry_rules_v1-draft",
+        "reason_codes": [
+          "SPECIALIZED_INDUSTRY_RULE_REQUIRED",
+          "SPECIALIZED_ENERGY_MINING_METADATA_HINT"
+        ],
+        "rationale": "公司元数据命中行业专用关键词“电力”；本次使用能源/矿业应收—收入口径增强预筛，不把 R1/R2 解释为该行业正式标准。",
+        "confidence": "metadata_heuristic",
+        "evidence": [
+          {
+            "evidence_type": "company_metadata",
+            "case_id": "CNINFO_600900_T0_20260429",
+            "ticker": "600900",
+            "field": "company_name",
+            "value": "长江电力 长江电力 长江电力 长江电力",
+            "source_mode": "cninfo_official_auto"
+          }
+        ]
+      }
+    }
+  ],
+  "config": {
+    "rule_id": "R1",
+    "rule_version": "0.4",
+    "r1_gap_threshold": 0.15,
+    "r1_strong_gap_threshold": 0.3,
+    "r1_absolute_threshold": 0.0,
+    "minimum_years": 2,
+    "primary_receivable_basis": "gross",
+    "three_year_trend_optional": true
+  },
+  "signoff": {
+    "signoff_status": "signoff_stale_requires_reapproval",
+    "rule_id": "R1",
+    "rule_version": "0.4",
+    "signed_by_role": "项目队长（用户本人）",
+    "signed_at": "2026-08-25",
+    "scope": "竞赛演示版、销售与收款循环、审计计划阶段风险预筛",
+    "signoff_id": "SIGNOFF-R1-V0.4-20260825-CAPTAIN-R2",
+    "approved_thresholds": null,
+    "approved_assertion_mapping": null,
+    "boundary": "签字仅用于竞赛演示的专业筛查口径；不是会计师事务所正式审计方法，也不是审计准则，不构成审计结论或审计意见。",
+    "reason": "R1 源文件 backend/app/schemas.py 已变化，需要项目队长重新确认。"
+  },
+  "provider_calls": 0
+}

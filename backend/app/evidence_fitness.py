@@ -156,3 +156,15 @@ def enforce_claim_boundaries(
                 }
             )
     return violations
+
+
+def enforce_output_boundaries(output: dict[str, Any], fitness_map: dict[str, str]) -> list[dict[str, Any]]:
+    """同等检查主张与正常解释，保留分组定位，不能把反证解释漏出用途闸门。"""
+    violations = []
+    for group in ("claims", "normal_explanations"):
+        rows = output.get(group) or []
+        for row in rows:
+            # 该闸门只验证来源类别，任何自动输出都不宣称语义蕴含已验证。
+            row["semantic_support_status"] = "not_verified"
+        violations.extend({**item, "claim_group": group} for item in enforce_claim_boundaries(rows, fitness_map))
+    return violations

@@ -70,6 +70,13 @@ artifacts/
 !/scripts/
 /scripts/*
 !/scripts/check_chinese_comments.py
+!/scripts/prepare_finals_20261011.py
+!/scripts/run_finals_ab_20261011.py
+!/scripts/build_finals_handoff_20261011.py
+!/scripts/finish_finals_records_20261011.py
+!/scripts/serve_finals_review_20261011.py
+!/scripts/verify_finals_support_20261011.cjs
+!/scripts/verify_finals_source_20261011.cjs
 !/scripts/verify_finals_company_search.py
 !/scripts/verify_finals_browser.cjs
 !/scripts/verify_unified_workspace.cjs
@@ -119,6 +126,11 @@ artifacts/
 # README 与评委包都指向这份测试清单，原先被整目录 /docs/ 忽略而永远进不了版本库。
 !/docs/
 /docs/*
+!/docs/history/
+/docs/history/*
+!/docs/history/README_RUN_20261011整改前.md
+!/docs/2026-10-11_整改提交与部署.md
+!/决赛准备/整改_2026-10-11/审迹智链_决赛修订讲稿_2026-10-11.docx
 !/docs/TEST_INVENTORY.md
 !/docs/finals-system-optimization-design.md
 !/docs/finals_remediation_plan_20261009.md

@@ -185,7 +185,7 @@ from .knowledge_sources import load_source_manifest as load_knowledge_manifest
 from .model_quality import quality_snapshot, record_external_run
 from .anti_confirmation import build_anti_confirmation_record
 from .coverage_matrix import build_assertion_evidence_procedure_matrix
-from .evidence_fitness import annotate_evidence_bundle, enforce_claim_boundaries, fitness_map_for_evidence
+from .evidence_fitness import annotate_evidence_bundle, enforce_output_boundaries, fitness_map_for_evidence
 from .numeric_gate import validate_numeric_claims
 # 轨 B（判定模块）在并行分支上交付这两个纯函数；模块缺失时对应字段保持 None，
 # 本文件不代写分级与证据闭合判定，只负责挂载。见 docs/CONTRACT_2026-09-19.md §五。
@@ -4538,7 +4538,7 @@ def _execute_run(
             if step.output is None:
                 continue
             output_payload = step.output.model_dump(mode="json")
-            violations = enforce_claim_boundaries(output_payload.get("claims") or [], fitness_map)
+            violations = enforce_output_boundaries(output_payload, fitness_map)
             output_payload["evidence_fitness_violations"] = violations
             if violations:
                 fitness_violations.extend(
@@ -4546,7 +4546,7 @@ def _execute_run(
                 )
             step.output = AgentOutput.model_validate(output_payload)
         if result.ai_draft:
-            violations = enforce_claim_boundaries(result.ai_draft.get("claims") or [], fitness_map)
+            violations = enforce_output_boundaries(result.ai_draft, fitness_map)
             result.ai_draft["evidence_fitness_violations"] = violations
             if violations:
                 fitness_violations.extend(

@@ -414,7 +414,7 @@ def _set_table_borders(table: Any) -> None:
 
 
 _SUPPORT_STATUS_LABELS = {
-    "supported": "已有证据支持",
+    "supported": "已绑定引用，支持关系待复核",
     "unverified_hypothesis": "待验证解释",
 }
 

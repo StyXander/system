@@ -1,0 +1,11 @@
+{
+  "run_id": "RUN-V7-DCF895BC5377",
+  "code_sha": "e29c175",
+  "path": "outputs\\决赛整改_2026-10-09\\e29c175_线上真实模型\\原任务与真实结果.json",
+  "sha256": "30cb28731ea018767a98ccbc63bf1b2e59c7e330f4e8dc5052eb2b6e6a56d5d1",
+  "calls": 3,
+  "model_id": "deepseek-v4-flash",
+  "duration_ms": 8990,
+  "quality_scoring": "not_performed",
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+}
