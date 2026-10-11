@@ -69,6 +69,10 @@ artifacts/
 # 干净克隆复算完整回归，提交前必须逐项确认这些文件真的进了版本库，否则该验收不成立。
 !/scripts/
 /scripts/*
+!/scripts/check_ui_hierarchy.mjs
+!/scripts/fixtures/
+/scripts/fixtures/*
+!/scripts/fixtures/ui_hierarchy_run.json
 !/scripts/check_chinese_comments.py
 !/scripts/prepare_finals_20261011.py
 !/scripts/run_finals_ab_20261011.py

@@ -6840,3 +6840,65 @@ textarea {
   .demo-growth-evidence tr { display: table-row; }
   .demo-growth-evidence td, .demo-growth-evidence th { display: table-cell; }
 }
+
+/* 结果先读摘要，再从下方查看依据；保留灰白审计工作台的阅读层级。 */
+.demo-result-lead { padding: 22px 0; border-block: 1px solid var(--at-rule); }
+.demo-result-lead h4, .demo-level-summary h3 { margin: 0 0 12px; }
+.demo-result-lead #demo-decision-copy { margin-bottom: 24px; }
+.demo-level-summary #demo-attention-badges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.demo-level-summary .demo-attention-badge { display: flex; flex-direction: column; min-width: 0; padding: 18px 16px; border: 1px solid var(--at-rule); border-top: 3px solid #2456cb; background: #f8fafc; }
+.demo-level-summary .demo-attention-badge > span { font-family: var(--font-sans); font-size: 15px; color: #4d5b70; }
+.demo-level-summary .demo-attention-badge > strong { margin: 10px 0; font-size: 21px; }
+#demo-result .demo-attention-badge-plain { font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
+.demo-level-summary .demo-attention-badge[data-state="missing"] { border-top-color: #a56d19; }
+.demo-level-summary .demo-attention-badge:is([data-level="S"], [data-level="G"], [data-level="E2"], [data-level="E3"], [data-level^="未评价"]) { border-top-color: #a56d19; }
+.demo-level-summary .demo-attention-boundary { grid-column: 1 / -1; margin: 0; }
+.demo-attention-basis { margin-top: auto; }
+.demo-attention-basis > summary, .demo-module-details > summary { min-height: 44px; padding: 12px 0; cursor: pointer; color: #204aae; font-size: 15px; font-weight: 600; }
+.demo-module-preview, .demo-matters, #demo-next-section { padding: 22px 0; border-top: 1px solid var(--at-rule); }
+.demo-module-preview h3, .demo-matters h3, #demo-next-section h4 { margin: 0 0 12px; }
+#demo-result .demo-module-preview > p, #demo-result .demo-module-caption { color: #4d5b70; margin: 8px 0 16px; font-size: 15px; }
+.demo-module-preview .demo-result-detail { margin-bottom: 0; }
+.demo-module-details { margin-top: 12px; border-top: 1px solid var(--at-rule); }
+.demo-module-details > div, .demo-module-details > ul { padding-top: 10px; overflow-wrap: anywhere; }
+.demo-module-details :is(p, li, code, a) { overflow-wrap: anywhere; }
+.demo-fact-source-links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 14px 0; }
+.demo-fact-source-links a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; color: #204aae; }
+.demo-enhancement-card { min-width: 0; padding: 20px; }
+.demo-enhancement-card h4 { margin: 0 0 12px; }
+.demo-coverage-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.demo-coverage-table th, .demo-coverage-table td { padding: 10px 7px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--at-rule); overflow-wrap: anywhere; }
+.demo-coverage-table th:last-child, .demo-coverage-table td:last-child { width: 33%; }
+.demo-matrix-original { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; background: #f6f8fc; padding: 12px; }
+.demo-enhancement-card .demo-enhancement-state { display: inline-block; margin-top: 12px; }
+.demo-enhancement-card:has(.demo-module-details[open]) { grid-column: 1 / -1; }
+#demo-result .demo-semantic-boundary { font-size: 14px; color: #79561e; }
+#demo-result #demo-anti-example .demo-claim-evidence { font-size: 14px; }
+#demo-result .demo-item-state { color: #79561e; font-size: 14px; margin: 10px 0; }
+.demo-item-card .demo-module-details { margin-top: 14px; }
+.demo-source-ledger > .demo-collapse-toggle, .demo-run-trace > .demo-collapse-toggle { min-height: 44px; padding: 12px 0; color: #204aae; font-size: 15px; }
+#demo-result :is(summary, button, a):focus-visible { outline: 2px solid #2456cb; outline-offset: 3px; }
+@media (max-width: 1023px) {
+  .demo-analysis-layout { grid-template-columns: minmax(0, 1fr); }
+  .demo-level-summary #demo-attention-badges { grid-template-columns: 1fr; }
+  .demo-evidence-axis { position: static; padding: 20px; }
+  #demo-evidence-axis-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .demo-evidence-axis li:not(:last-child)::after { display: none; }
+}
+@media (max-width: 767px) {
+  .demo-level-summary #demo-attention-badges, .demo-enhancement-grid, #demo-evidence-axis-list { grid-template-columns: 1fr; }
+  .demo-enhancement-card:has(.demo-module-details[open]) { grid-column: auto; }
+  .demo-level-summary .demo-attention-badge { padding: 16px; }
+  .demo-fact-source-links { display: grid; gap: 4px; }
+}
+@media print {
+  .demo-level-summary #demo-attention-badges { display: block; }
+  .demo-attention-badge { margin-bottom: 12px; break-inside: auto; }
+  #demo-result .demo-attention-badge-plain { font-size: 10pt; }
+  .demo-module-preview, .demo-result-lead, .demo-matters, #demo-next-section { padding: 8px 0; }
+  .demo-enhancement-grid { display: block; break-inside: auto; }
+  .demo-enhancement-card { break-inside: auto; }
+  #demo-result details > summary { display: none; }
+  .demo-evidence-axis, #demo-result .demo-collapse-toggle { display: none !important; }
+  .demo-fact-source-links a { min-height: 0; }
+}

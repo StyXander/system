@@ -1,0 +1,19 @@
+{
+  "axeViolations": 0,
+  "console": [],
+  "caseSwitch": {
+    "case": "西安标准工业股份有限公司（标准股份）",
+    "grades": "",
+    "links": 0,
+    "open": 0,
+    "resultHidden": true,
+    "coverageDetails": ""
+  },
+  "keyboard": {
+    "coverageEnterOpen": true,
+    "coverageSpaceClose": true,
+    "sourceEnterOpen": true,
+    "sourceSpaceClose": true
+  },
+  "print": "系统打印窗口打开后浏览器控制阻塞；关闭本轮页恢复控制，未完成PDF保存与人工排版检查"
+}

@@ -37,6 +37,9 @@
 
   const STATUS_LABELS = {
     candidate: "程序候选",
+    covered: "已映射资料与程序",
+    partially_covered: "部分映射",
+    gap: "存在缺口",
     DATA_NOT_COMPARABLE: "数据跨期不可比",
     RULE_NOT_TRIGGERED: "程序未触发",
     DATA_GAP: "资料缺口",
@@ -1963,6 +1966,8 @@
     summary.textContent = total
       ? `查看${label}的判定依据（共 ${total} 项）`
       : `查看${label}的判定依据`;
+    summary.dataset.openLabel = summary.textContent;
+    summary.dataset.closeLabel = `收起${label}的判定依据`;
     const body = document.createElement("div");
     body.className = "demo-attention-basis-body";
     groups.forEach((group) => {
@@ -2189,6 +2194,7 @@
       const chip = document.createElement("div");
       chip.className = "demo-attention-badge";
       chip.dataset.state = item.state;
+      chip.dataset.level = item.value.split(" ")[0];
       const term = document.createElement("span");
       term.textContent = item.label;
       const strong = document.createElement("strong");
@@ -2263,7 +2269,7 @@
       || overview.dataGaps?.[0]
       || "请由审计人员回查原文并决定是否执行追加程序";
     const caseId = run?.context?.case_id || currentCase()?.case_id;
-    const sourceUrl = evidence?.document_id && caseId
+    const sourceUrl = evidence?.document_id && evidence?.pdf_page && caseId
       ? sourceLink(caseId, evidence.document_id, evidence.pdf_page)
       : "";
     const state = byId("demo-challenge-state");
@@ -2278,7 +2284,7 @@
     byId("demo-challenge-metric").textContent = challengeMetric(run, evidenceId);
     byId("demo-challenge-review").textContent = `反证：${statusLabel(counter?.status || "not_recorded")} · 复核：${statusLabel(review?.status || "not_recorded")}`;
     byId("demo-challenge-human-next").textContent = humanNext;
-    byId("demo-challenge-boundary").textContent = `${sourceBadgeForRun(run)}；主张、证据和页码均取自运行 ${run?.run_id || "—"}，不构成审计结论。`;
+    byId("demo-challenge-boundary").textContent = `${sourceBadgeForRun(run)}。本模块核对一条主张的引用与定位；已绑定引用，支持关系待复核。程序计算与年报披露事实分别核验。`;
 
     if (sourceUrl) {
       sourceLinkNode.href = sourceUrl;
@@ -2290,7 +2296,7 @@
       sourceLinkNode.removeAttribute("href");
       sourceLinkNode.setAttribute("aria-disabled", "true");
       sourceLinkNode.setAttribute("tabindex", "-1");
-      sourceLinkNode.textContent = "当前主张未提供可定位原文";
+      sourceLinkNode.textContent = evidenceId.startsWith("PROC-") ? "程序结果卡 · 原文输入见上方事实区" : "当前主张未提供可定位原文";
       byId("demo-challenge-source-meta").textContent = "接口未提供可核对的 document_id / pdf_page；页面没有自行补填。";
     }
   }
@@ -2311,7 +2317,9 @@
       if (evidenceCtx) {
         const evidence = document.createElement("span");
         evidence.className = "demo-claim-evidence-wrap";
-        evidence.innerHTML = evidenceChainHtml(evidenceCtx.run, evidenceCtx.lookup, claim);
+        evidence.innerHTML = evidenceCtx.compact
+          ? compactEvidenceChainHtml(evidenceCtx.run, evidenceCtx.lookup, claim)
+          : evidenceChainHtml(evidenceCtx.run, evidenceCtx.lookup, claim);
         li.append(evidence);
       } else if (claim.evidence_ids?.length) {
         const evidence = document.createElement("small");
@@ -2322,6 +2330,22 @@
     });
     group.append(heading, list);
     card.append(group);
+  }
+
+  // 主阅读区保留支持限制和一个真实定位入口，完整引用放在同项详情。
+  function compactEvidenceChainHtml(run, lookup, claim) {
+    const ids = (claim.evidence_ids || []).filter(Boolean);
+    const support = SUPPORT_STATUS_LABELS[claim.support_status] || "支持关系待复核";
+    const caseId = run.context?.case_id;
+    const locatedId = ids.find(id => {
+      const row = lookup.get(String(id));
+      return row?.documentId && row?.page && caseId;
+    });
+    const row = lookup.get(String(locatedId));
+    const entry = locatedId
+      ? `<a href="${escapeHtml(sourceLink(caseId, row.documentId, row.page))}" target="_blank" rel="noopener noreferrer">${escapeHtml(locatedId)} · PDF 第 ${escapeHtml(String(row.page))} 页</a>`
+      : "暂无原文定位";
+    return `<span class="demo-claim-evidence">${escapeHtml(support)} · ${ids.length} 条引用 · ${entry}；完整引用见详情。</span>`;
   }
 
   function renderAgentCards(target, steps, run, { detail = false } = {}) {
@@ -2380,8 +2404,8 @@
           card.append(draft);
         }
       }
-      const claimLimit = detail ? 4 : 2;
-      const normalLimit = detail ? 3 : 2;
+      const claimLimit = Infinity;
+      const normalLimit = Infinity;
       if (role === "challenge") appendAgentList(card, meta.focusLabel, output.claims || [], claimLimit, evidenceCtx);
       if (role === "counter") appendAgentList(card, meta.focusLabel, output.normal_explanations || [], normalLimit, evidenceCtx);
       if (role === "review") {
@@ -2508,6 +2532,8 @@
     if (!button || !body) return;
     button.setAttribute("aria-expanded", String(Boolean(expanded)));
     body.hidden = !expanded;
+    const label = button.querySelector("span:last-child");
+    if (label) label.textContent = `${expanded ? "收起" : "查看"}${section.buttonId.includes("source") ? "来源说明与监管证据" : "运行时间线与模型留痕"}`;
   }
 
   function resetCollapsibleSections() {
@@ -2573,15 +2599,34 @@
       return counts;
     }, {});
     byId("demo-coverage-note").textContent = matrix.length
-      ? `共 ${matrix.length} 个认定格：${coverageCounts.covered || 0} 已映射资料与程序、${coverageCounts.partially_covered || 0} 部分映射、${coverageCounts.gap || 0} 存在缺口。映射不代表已执行程序或已证实认定。`
+      ? `共 ${matrix.length} 个认定格：${coverageCounts.covered || 0} 已映射资料与程序、${coverageCounts.partially_covered || 0} 部分映射、${coverageCounts.gap || 0} 存在缺口、${coverageCounts.not_applicable || 0} 不适用。映射不代表已执行程序或已证实认定。`
       : "本次运行尚未形成认定—证据—程序矩阵。";
-    matrix.slice(0, 6).forEach((row) => {
-      const li = document.createElement("li");
+    const coverageTable = document.createElement("table");
+    coverageTable.className = "demo-coverage-table";
+    coverageTable.innerHTML = '<caption class="sr-only">本次认定覆盖概览</caption><thead><tr><th scope="col">认定</th><th scope="col">覆盖状态</th><th scope="col">程序</th></tr></thead>';
+    const coverageBody = document.createElement("tbody");
+    matrix.forEach((row) => {
+      const li = document.createElement("tr");
       const procedures = (row.procedure_ids || []).slice(0, 3).join(" / ") || "无程序映射";
-      li.innerHTML = `<strong>${escapeHtml(row.assertion || "—")}</strong> · ${escapeHtml(statusLabel(row.status) || row.status || "—")} · <code>${escapeHtml(procedures)}</code>`;
-      coverageList.append(li);
+      li.innerHTML = `<th scope="row">${escapeHtml(row.assertion || "—")}</th><td>${escapeHtml(statusLabel(row.status) || row.status || "—")}</td><td>${escapeHtml(procedures)}</td>`;
+      coverageBody.append(li);
     });
-    if (!matrix.length) coverageList.append(Object.assign(document.createElement("li"), { textContent: "等待后端结构化结果。" }));
+    coverageTable.append(coverageBody);
+    if (matrix.length) coverageList.append(coverageTable);
+    if (!matrix.length) coverageList.append(Object.assign(document.createElement("p"), { textContent: "本次未提供覆盖矩阵。" }));
+    const matrixDetails = byId("demo-coverage-details");
+    matrixDetails.replaceChildren();
+    matrix.forEach(row => {
+      const paragraph = document.createElement("p");
+      const direct = row.current_entity_direct_evidence || row.evidence_ids || row.direct_evidence_ids || [];
+      const gaps = row.uncovered_gaps || row.data_gaps || [];
+      paragraph.textContent = `${row.assertion || "未记录认定"} · ${statusLabel(row.status)}；${row.support_level || ""}；直接证据：${direct.join("、") || "未登记直接证据编号"}；程序：${(row.procedure_ids || []).join("、") || "无程序映射"}；资料缺口：${gaps.join("、") || "该行未登记缺口"}`;
+      matrixDetails.append(paragraph);
+      const original = document.createElement("pre");
+      original.className = "demo-matrix-original";
+      original.textContent = JSON.stringify(row, null, 2);
+      matrixDetails.append(original);
+    });
     byId("demo-coverage-state").textContent = matrix.length ? `程序映射 ${new Set(matrix.flatMap((row) => row.procedure_ids || [])).size} 个` : "运行后生成";
 
     const fitnessList = byId("demo-fitness-list");
@@ -2601,7 +2646,7 @@
       unverified_background: "未核验背景",
     };
     byId("demo-fitness-note").textContent = evidenceRows.length
-      ? `已标注 ${evidenceRows.length} 条证据；${context.evidence_fitness_violations?.length || 0} 条越界主张被降级。`
+      ? `已标注 ${evidenceRows.length} 条证据；越界处理记录：${Array.isArray(context.evidence_fitness_violations ?? bundle.evidence_fitness_violations) ? (context.evidence_fitness_violations ?? bundle.evidence_fitness_violations).length + " 条" : "数量未提供"}；语义支持关系待复核。`
       : "证据适配度尚未写入本次结果。";
     Object.entries(fitnessCounts).forEach(([key, count]) => {
       const li = document.createElement("li");
@@ -2609,6 +2654,18 @@
       fitnessList.append(li);
     });
     if (!evidenceRows.length) fitnessList.append(Object.assign(document.createElement("li"), { textContent: "等待证据包标注。" }));
+    const fitnessDetails = byId("demo-fitness-details");
+    fitnessDetails.replaceChildren();
+    evidenceRows.forEach(row => {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = `${row.evidence_id || row.source_id || "编号未提供"} · ${fitnessLabels[row.fitness_class] || row.fitness_class}；允许用途：${row.claim_scope || row.allowed_claim_scope || "详见本次证据记录"}；${row.boundary || "来源分类不能替代主张与原文的支持关系核验。"}`;
+      fitnessDetails.append(paragraph);
+    });
+    (context.evidence_fitness_violations || bundle.evidence_fitness_violations || []).forEach(row => {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = `越界处理记录：${typeof row === "string" ? row : JSON.stringify(row)}`;
+      fitnessDetails.append(paragraph);
+    });
     byId("demo-fitness-state").textContent = context.evidence_fitness_boundary ? "边界已编译进 Agent 输入" : "运行后生成";
 
     const numeric = context.numeric_claim_trace || bundle.numeric_claim_trace || {};
@@ -2616,28 +2673,40 @@
     numericList.replaceChildren();
     const traces = Array.isArray(numeric.trace) ? numeric.trace : [];
     byId("demo-numeric-note").textContent = traces.length
-      ? `共 ${traces.length} 个数字 token：${numeric.unverified_count || 0} 个未验证，关键未验证 ${numeric.key_unverified_count || 0} 个。`
+      ? `共 ${traces.length} 个数字 token：未验证 ${numeric.unverified_count ?? "数量未提供"} 项，关键未验证 ${numeric.key_unverified_count ?? "数量未提供"} 项。`
       : "本次运行没有可提取的模型数字主张。";
-    traces.slice(0, 5).forEach((item) => {
+    traces.forEach((item) => {
       const li = document.createElement("li");
       const source = item.source || "无来源";
       li.innerHTML = `<code>${escapeHtml(item.raw || "—")}</code> · ${escapeHtml(item.verification_status || "—")} · ${escapeHtml(source)}`;
       numericList.append(li);
     });
     if (!traces.length) numericList.append(Object.assign(document.createElement("li"), { textContent: "等待 Agent 草稿完成后回查。" }));
-    byId("demo-numeric-state").textContent = numeric.passed === true ? "关键数字全部可回查" : numeric.key_unverified_count ? "关键数字未闭合，禁止完整成功" : "运行后生成";
+    byId("demo-numeric-state").textContent = numeric.passed === true ? "关键数字全部可回查" : numeric.key_unverified_count ? "关键数字未闭合，禁止完整成功" : numeric.passed === false ? "数字核查未通过" : "本次未提供通过状态";
 
     const anti = context.anti_confirmation || bundle.anti_confirmation || {};
     const antiList = byId("demo-anti-list");
     antiList.replaceChildren();
     byId("demo-anti-note").textContent = anti.reverse_evidence_search_performed
-      ? `已执行反向检索：${anti.search_questions?.length || 0} 个问题，命中 ${anti.hit_count || 0} 条；正常解释 ${anti.alternative_explanations?.length || 0} 条。`
+      ? `已执行反向检索：${anti.search_questions?.length ?? "数量未提供"} 个问题，命中 ${anti.hit_count ?? "数量未提供"} 条；正常解释 ${anti.alternative_explanations?.length ?? "数量未提供"} 条。`
       : "本次未进入 Agent 路线，尚未执行反向检索。";
-    (anti.search_questions || []).slice(0, 4).forEach((question) => {
+    (anti.search_questions || []).forEach((question) => {
       const li = document.createElement("li");
       li.innerHTML = `<code>${escapeHtml(question)}</code> · 反确认问题已登记`;
       antiList.append(li);
     });
+    const antiExample = byId("demo-anti-example");
+    antiExample.replaceChildren();
+    const counter = normalizeAgentSteps(run.agent_steps).find(step => step.role === "counter");
+    const explanations = (counter?.output?.normal_explanations || anti.alternative_explanations || []).filter(item => typeof item === "string" ? item.trim() : item?.text);
+    if (anti.reverse_evidence_search_performed && explanations.length) {
+      appendAgentList(antiExample, "本次正常解释", explanations, 1, { run, lookup: evidenceLookup(run), compact: true });
+      const explanationItem = document.createElement("li");
+      appendAgentList(explanationItem, "全部正常解释与限制", explanations, Infinity, { run, lookup: evidenceLookup(run) });
+      antiList.append(explanationItem);
+    } else antiExample.textContent = anti.reverse_evidence_search_performed
+      ? "未找到本次证据支持的正常解释；不据此认定风险已证实。"
+      : "本次未执行反向检索，不能展示解释已得到检查。";
     if (anti.none_supported_by_current_evidence) {
       antiList.append(Object.assign(document.createElement("li"), { textContent: "未找到当前证据支持的正常解释，已明确标记 none_supported_by_current_evidence。" }));
     }
@@ -2899,6 +2968,9 @@
     byId("demo-run-trace-state").className = "state pending";
     byId("demo-run-trace-state").textContent = "可审计 · 0阶段 / 0次调用";
     resetCollapsibleSections();
+    document.querySelectorAll("#demo-result details").forEach(details => { details.open = false; });
+    ["demo-established-facts", "demo-decision-copy", "demo-agent-handoff", "demo-next-materials", "demo-coverage-details", "demo-fitness-details", "demo-anti-example"].forEach(id => byId(id).replaceChildren());
+    ["demo-attention-preview", "demo-plan-preview", "demo-agents-preview", "demo-metrics-preview", "demo-trace-preview"].forEach(id => { byId(id).textContent = "等待本次运行结果。"; });
     ["demo-coverage-list", "demo-fitness-list", "demo-numeric-list", "demo-anti-list"].forEach((id) => byId(id).replaceChildren());
     byId("demo-coverage-note").textContent = "把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。";
     byId("demo-fitness-note").textContent = "不同来源只能支持不同类型的主张；监管和行业资料不证明当前企业事实。";
@@ -3280,6 +3352,22 @@
     const fieldRows = run.evidence_bundle?.field_evidence || [];
     const factSources = fieldRows.filter(row => ["revenue_current", "revenue_previous", "ar_current", "ar_previous"].includes(row.field_id));
     if (factSources.length) {
+      const links = document.createElement("div");
+      links.className = "demo-fact-source-links";
+      const labels = { revenue_current: "本年收入", revenue_previous: "上年收入", ar_current: "本年应收", ar_previous: "上年应收" };
+      factSources.forEach(row => {
+        const entry = document.createElement("span");
+        if (row.document_id && run.context?.case_id && row.pdf_page) {
+          const link = document.createElement("a");
+          link.href = sourceLink(run.context.case_id, row.document_id, row.pdf_page);
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = `${labels[row.field_id]} · 原文 PDF 第 ${row.pdf_page} 页`;
+          entry.append(link);
+        } else entry.textContent = `${labels[row.field_id]} · 原文定位未提供`;
+        links.append(entry);
+      });
+      facts.append(links);
       const originals = document.createElement("details");
       originals.className = "demo-inline-evidence";
       originals.innerHTML = "<summary>回查这些数字的原表证据</summary>";
@@ -3340,7 +3428,7 @@
       paragraph(decision, "单位更正：本页增速差按百分点呈现；旧运行原文及响应哈希保留在完整记录中。");
     }
     const handoff = byId("demo-agent-handoff");
-    handoff.parentElement.hidden = degradedReason(run).kind === "model_not_requested";
+    handoff.parentElement.hidden = false;
     handoff.replaceChildren();
     AGENT_ROLE_ORDER.forEach(role => {
       const step = steps.find(item => item.role === role);
@@ -3348,7 +3436,7 @@
       const li = document.createElement("li");
       li.innerHTML = `<strong>${escapeHtml(AGENT_ROLE_META[role].name)} · ${escapeHtml(statusLabel(step?.status || "not_requested"))}</strong>`;
       if (step?.status === "completed" && output) {
-        appendAgentList(li, role === "challenge" ? "提出的核心主张" : role === "counter" ? "检查的正常解释与限制" : "最终保留的主张", role === "counter" ? output.normal_explanations || [] : output.claims || [], role === "counter" ? 2 : 1, {run, lookup: evidenceLookup(run)});
+        appendAgentList(li, role === "challenge" ? "提出的核心主张" : role === "counter" ? "检查的正常解释与限制" : "最终保留的主张", role === "counter" ? output.normal_explanations || [] : output.claims || [], role === "counter" ? 2 : 1, {run, lookup: evidenceLookup(run), compact: true});
         if (role === "counter" && !output.normal_explanations?.length) paragraph(li, "本次未形成可展示的正常解释；不据此认定风险已排除。");
         if (role === "review") paragraph(li, `最终建议：${statusLabel(output.ai_recommendation || output.status)}。${output.reason_for_status || ""}`);
         const previous = steps.find(item => item.role === (role === "counter" ? "challenge" : "counter"));
@@ -3364,7 +3452,7 @@
         const details = document.createElement("details");
         details.innerHTML = "<summary>完整理由与角色输出</summary>";
         paragraph(details, output.reason_for_status);
-        appendAgentList(details, role === "counter" ? "反证与正常解释" : "支持主张", role === "counter" ? output.normal_explanations || [] : output.claims || [], 2, { run, lookup: evidenceLookup(run) });
+        appendAgentList(details, role === "counter" ? "反证与正常解释" : "支持主张", role === "counter" ? output.normal_explanations || [] : output.claims || [], Infinity, { run, lookup: evidenceLookup(run) });
         li.append(details);
       } else paragraph(li, `本次未形成有效输出。${step?.failure_code || ""} ${step?.detail || "未执行该角色。"}`);
       handoff.append(li);
@@ -3401,6 +3489,7 @@
       : outcome === "degraded"
         ? degradedCopy.pill(degradedOutcome)
         : "失败";
+    if (restoredHistoricalResult) statePill.textContent = `历史结果恢复 · ${statePill.textContent} · 本次新增 0 次模型调用`;
     const executionMode = run.execution_mode || run.model_check?.execution_mode || "unavailable";
     const summary = byId("demo-result-summary");
     summary.replaceChildren();
@@ -3478,12 +3567,14 @@
       card.innerHTML = `
         <span class="demo-item-eyebrow">待核查事项 ${String(index + 1).padStart(2, "0")} · ${escapeHtml(result.risk_card?.rule_id || result.rule_id)}</span>
         <h4>${escapeHtml(draft?.draft_title || result.risk_card?.title || result.rule_id)}</h4>
+        <p class="demo-item-state">规则状态：${escapeHtml(statusLabel(result.status))}；原文支持关系待复核。</p>
         <p>${escapeHtml(draft?.draft_observation || result.risk_card?.observation || "等待更多证据。")}</p>
+        <details class="demo-module-details"><summary data-open-label="查看本项完整草稿与证据" data-close-label="收起本项完整草稿">查看本项完整草稿与证据</summary>
         <span class="demo-claim-evidence-wrap">${observationChain}</span>
         ${metricsHtml ? `<div class="demo-metric-grid" role="group" aria-label="关键指标">${metricsHtml}</div>` : ""}
         ${claims.length ? `<ul class="demo-item-facts">${claims.map((claim) => `<li>${escapeHtml(claim.text)}<span class="demo-claim-evidence-wrap">${evidenceChainHtml(run, evidenceLookupForRun, claim)}</span></li>`).join("")}</ul>` : ""}
         ${gaps.length ? `<p class="demo-item-facts"><strong>缺失资料 / 需人工核查：</strong>${gaps.map(escapeHtml).join("；")}</p>` : ""}
-        <small class="demo-ai-notice">${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</small>`;
+        <small class="demo-ai-notice">${escapeHtml(AI_GENERATED_CONTENT_NOTICE)}</small></details>`;
       items.append(card);
     });
     if (!draftItems.length) {
@@ -3507,6 +3598,7 @@
     renderSourceLedger(run);
     renderRunTrace(run);
     renderInnovationControls(run);
+    renderModulePreviews(run);
     notifyModelQuality(run.context?.model_quality_snapshot);
     setPhase(outcome === "failed_run" ? "failed_run" : outcome);
     if (!restoredHistoricalResult) {
@@ -3515,6 +3607,18 @@
       heading.tabIndex = -1;
       heading.focus({preventScroll:true});
     }
+  }
+
+  // 信息层级摘要只读当前运行，不重算等级、不新增模型判断。
+  function renderModulePreviews(run) {
+    const steps = normalizeAgentSteps(run.agent_steps);
+    const review = steps.find(step => step.role === "review");
+    const procedures = procedureRecords(run);
+    byId("demo-attention-preview").textContent = `${(run.rule_results || []).map(row => `${row.rule_id}：${statusLabel(row.status)}`).join("；") || "未提供规则状态"}。复核：${statusLabel(review?.status || "not_recorded")}；完整依据包括正常解释、资料缺口及下一步程序。`;
+    byId("demo-plan-preview").textContent = `${procedures.length} 项程序映射；本次请求的资料见下一步清单。程序映射不表示已完成对应审计程序。`;
+    byId("demo-agents-preview").textContent = `${steps.filter(step => step.status === "completed").length}/3 角色完成。核心处理结果见上方；这里保留完整角色记录，引用支持关系待复核。`;
+    byId("demo-metrics-preview").textContent = `本次 ${byId("demo-structured-table-body").querySelectorAll("tr").length} 行指标；核心事实已在上方展示，展开后可核对全部读数与计算口径。`;
+    byId("demo-trace-preview").textContent = `${statusLabel(run.execution_mode || run.model_check?.execution_mode || "unavailable")} · ${run.provider_call_count ?? "未提供"} 次模型调用；阶段与各次尝试见下方完整记录。`;
   }
 
   function renderDemoFailure(code, title, detail, options) {
@@ -4491,6 +4595,14 @@
   }
 
   function bindEvents() {
+    // 捕获原生详情状态，为鼠标、键盘和打印展开提供一致的动作名称。
+    document.addEventListener("toggle", event => {
+      const details = event.target;
+      if (!(details instanceof HTMLDetailsElement) || !details.closest("#demo-result")) return;
+      const summary = details.querySelector(":scope > summary");
+      if (summary?.dataset.openLabel) summary.textContent = details.open ? summary.dataset.closeLabel : summary.dataset.openLabel;
+      if (!details.open && details.contains(document.activeElement) && document.activeElement !== summary) summary?.focus();
+    }, true);
     // 辅助轴定位到事实、角色处理、资料缺口和交付内容，不再重复模拟执行进度。
     const axisTargets = { screening: "demo-facts-title", rag: "demo-handoff-title", evidence: "demo-next-title", output: "demo-structured-heading" };
     const axisButtons = [];

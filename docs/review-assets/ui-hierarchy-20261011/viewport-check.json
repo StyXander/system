@@ -1,0 +1,62 @@
+[
+  {
+    "active": "MAIN",
+    "closedMetrics": true,
+    "factsLinks": 4,
+    "height": 1000,
+    "levels": [
+      "P2 优先核查",
+      "E2 部分闭合",
+      "未评价金额重要性"
+    ],
+    "levelsInsideDetails": false,
+    "matrixRows": 5,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "active": "MAIN",
+    "closedMetrics": true,
+    "factsLinks": 4,
+    "height": 768,
+    "levels": [
+      "P2 优先核查",
+      "E2 部分闭合",
+      "未评价金额重要性"
+    ],
+    "levelsInsideDetails": false,
+    "matrixRows": 5,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "active": "MAIN",
+    "closedMetrics": true,
+    "factsLinks": 4,
+    "height": 1024,
+    "levels": [
+      "P2 优先核查",
+      "E2 部分闭合",
+      "未评价金额重要性"
+    ],
+    "levelsInsideDetails": false,
+    "matrixRows": 5,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "active": "MAIN",
+    "closedMetrics": true,
+    "factsLinks": 4,
+    "height": 844,
+    "levels": [
+      "P2 优先核查",
+      "E2 部分闭合",
+      "未评价金额重要性"
+    ],
+    "levelsInsideDetails": false,
+    "matrixRows": 5,
+    "overflow": false,
+    "width": 390
+  }
+]

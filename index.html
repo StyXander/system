@@ -9,9 +9,9 @@
   <title>审迹智链 · 上市公司年报风险预筛</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.3">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.6">
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.12.6" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.12.9" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -212,7 +212,7 @@
             <button class="button quiet" type="button" id="demo-backup" hidden>启动确定性备用演示</button>
             <button class="button quiet" type="button" id="demo-recheck" hidden>重新检测台账</button>
             <button class="button quiet" type="button" id="demo-cancel" hidden>请求取消</button>
-            <button class="button primary" type="button" id="demo-read-result" hidden>重新读取已完成结果</button>
+            <button class="button quiet" type="button" id="demo-read-result" hidden>重新读取已完成结果</button>
             <button class="button quiet" type="button" id="demo-reset" hidden>一键重置演示</button>
           </div>
         </div>
@@ -282,14 +282,107 @@
               <span class="state pending" id="demo-result-state">—</span>
             </div>
             <div class="demo-result-summary" id="demo-result-summary"></div>
+            <section class="demo-result-lead" aria-label="当前判断与三个独立状态">
+              <section id="demo-decision-section" aria-labelledby="demo-decision-title"><h4 id="demo-decision-title">当前判断与未解决的问题</h4><div id="demo-decision-copy"></div></section>
+              <section class="demo-level-summary" aria-labelledby="demo-level-title">
+                <h3 id="demo-level-title">本次核查安排与证据状态</h3>
+                <p class="demo-module-caption">审计关注优先级、证据闭合状态与金额重要性分别解释，彼此独立。</p>
+                <div id="demo-attention-badges"></div>
+              </section>
+            </section>
 <section class="demo-primary-reading" id="demo-primary-reading" aria-label="本次事实、判断与下一步">
   <section aria-labelledby="demo-facts-title"><h4 id="demo-facts-title">本次已经确定的事实</h4><div id="demo-established-facts"></div></section>
-  <section aria-labelledby="demo-decision-title"><h4 id="demo-decision-title">当前判断与未解决的问题</h4><div id="demo-decision-copy"></div></section>
+
+  <section class="demo-matters" aria-labelledby="demo-matters-title"><h3 id="demo-matters-title">待核查事项与程序记录</h3><div id="demo-result-items" class="demo-result-items"></div></section>
   <section aria-labelledby="demo-handoff-title"><h4 id="demo-handoff-title">质疑、反证、复核如何处理这条事项</h4><ol id="demo-agent-handoff"></ol></section>
-  <section aria-labelledby="demo-next-title"><h4 id="demo-next-title">下一步准备什么</h4><div id="demo-next-materials"></div></section>
+
   <p class="demo-reading-notice">AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。</p>
 </section>
-            <details class="demo-result-detail"><summary>完整关注依据与独立状态</summary><section class="demo-attention-card" id="demo-attention-card" hidden aria-labelledby="demo-attention-title">
+
+            <section class="demo-enhancement-grid" aria-label="审计专属可信增强 · 一级展开">
+              <article class="demo-enhancement-card">
+                <h4>认定—证据—程序覆盖矩阵</h4>
+                <p id="demo-coverage-note">把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。</p>
+                <div id="demo-coverage-list"></div><details class="demo-module-details"><summary data-open-label="查看认定与证据程序对应" data-close-label="收起认定与证据程序对应">查看认定与证据程序对应</summary><div id="demo-coverage-details"></div></details>
+                <span class="demo-enhancement-state" id="demo-coverage-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>证据适配度与主张边界</h4>
+                <p id="demo-fitness-note">不同来源只能支持不同类型的主张；监管和行业资料不证明当前企业事实。</p>
+                <ul id="demo-fitness-list"></ul><p class="demo-semantic-boundary">已绑定引用，支持关系待复核；来源用途检查通过不等于原文已证实主张。</p><details class="demo-module-details"><summary data-open-label="查看逐条证据分类与用途" data-close-label="收起逐条证据分类与用途">查看逐条证据分类与用途</summary><div id="demo-fitness-details"></div></details>
+                <span class="demo-enhancement-state" id="demo-fitness-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>反确认偏差搜索</h4>
+                <p class="demo-moat-verbatim">本系统将反向检索与反证记录设计成强制工作流，而不是依赖一次对话中模型是否主动想到。</p>
+                <p id="demo-anti-note">系统记录反向检索问题、命中证据和正常解释，不诱导模型凑结论。</p>
+                <div id="demo-anti-example"></div><details class="demo-module-details"><summary data-open-label="查看完整反向检索记录" data-close-label="收起完整反向检索记录">查看完整反向检索记录</summary><ul id="demo-anti-list"></ul></details>
+                <span class="demo-enhancement-state" id="demo-anti-state">运行后生成</span>
+              </article>
+              <article class="demo-enhancement-card">
+                <h4>数字主张可回查</h4>
+                <p id="demo-numeric-note">模型文本中的关键数字必须回到规则、字段证据或当前案例上下文。</p>
+                <details class="demo-module-details"><summary data-open-label="查看全部数字回查轨迹" data-close-label="收起全部数字回查轨迹">查看全部数字回查轨迹</summary><ul id="demo-numeric-list"></ul></details>
+                <span class="demo-enhancement-state" id="demo-numeric-state">运行后生成</span>
+              </article>
+            </section>
+            <section class="demo-evidence-challenge" id="demo-evidence-challenge" data-state="empty" aria-labelledby="demo-evidence-challenge-title">
+              <div class="demo-section-heading">
+                <div><span class="folio">30-SECOND EVIDENCE CHALLENGE</span><h3 id="demo-evidence-challenge-title">30 秒证据挑战</h3></div>
+                <span class="state pending" id="demo-challenge-state">等待运行</span>
+              </div>
+              <p class="demo-challenge-boundary" id="demo-challenge-boundary">运行后，从同一次运行中选取一条真实主张，并显示证据编号、关键数字、反证/复核状态与人工下一步。</p>
+              <details class="demo-module-details"><summary data-open-label="查看这条主张、数字与复核记录" data-close-label="收起主张核验记录">查看这条主张、数字与复核记录</summary><div class="demo-challenge-grid">
+                <article class="demo-challenge-claim">
+                  <span>待核查主张</span>
+                  <strong id="demo-challenge-claim">尚无运行结果</strong>
+                  <small id="demo-challenge-run">run_id：—</small>
+                </article>
+                <dl class="demo-challenge-facts">
+                  <div><dt>证据编号</dt><dd id="demo-challenge-evidence-id">—</dd></div>
+                  <div><dt>关键数字</dt><dd id="demo-challenge-metric">—</dd></div>
+                  <div><dt>反证 / 复核</dt><dd id="demo-challenge-review">—</dd></div>
+                  <div><dt>人工下一步</dt><dd id="demo-challenge-human-next">—</dd></div>
+                </dl>
+              </div>
+              </details><div class="demo-challenge-actions">
+                <a class="button primary" id="demo-challenge-open-source" target="_blank" rel="noopener noreferrer" aria-disabled="true" tabindex="-1">当前主张未提供可定位原文</a>
+                <button class="button quiet" type="button" id="demo-challenge-open-drawer">查看本次全部证据</button>
+                <small id="demo-challenge-source-meta">页码与原文入口必须来自本次运行证据。</small>
+              </div>
+            </section>
+
+
+
+            <figure class="demo-result-visual" aria-label="从原文资料到可追溯结论的证据链视觉示意">
+              <figcaption><strong>原文 → 证据编号 → 结构化结果</strong>页面中的每项主张都必须回到当前运行的证据编号；插图仅作视觉示意，不替代真实来源定位。</figcaption>
+            </figure>
+
+            <section class="demo-supplement-summary" id="demo-supplement-summary" hidden aria-labelledby="demo-supplement-summary-title"></section>
+            <section id="demo-next-section" aria-labelledby="demo-next-title"><h4 id="demo-next-title">下一步准备什么</h4><div id="demo-next-materials"></div></section>
+            <section class="demo-structured-output" aria-labelledby="demo-structured-heading">
+              <div class="demo-section-heading">
+                <div><span class="folio">JSON / TABLE / PRINT PDF</span><h3 id="demo-structured-heading">结构化结果明细</h3></div>
+                <span class="state pending" id="demo-structured-state">等待本次运行结果</span>
+              </div>
+              <p id="demo-metrics-preview">运行后显示指标数量与计算口径。</p><details class="demo-result-detail"><summary data-open-label="查看完整指标与计算口径" data-close-label="收起完整指标表">查看完整指标与计算口径</summary><div class="demo-table-wrap" role="region" aria-label="本次运行结构化指标表格（可横向滚动）" tabindex="0">
+                <table class="demo-structured-table" id="demo-structured-table">
+                  <caption>本次运行规则指标结构化明细</caption>
+                   <thead><tr><th scope="col">指标</th><th scope="col">数值</th><th scope="col">口径与计算</th></tr></thead>
+                  <tbody id="demo-structured-table-body"></tbody>
+                </table>
+              </div></details>
+            </section>
+            <div class="action-row demo-result-actions">
+              <button class="button quiet" type="button" id="demo-open-evidence">查看原文证据</button>
+              <button class="button quiet" type="button" id="demo-open-agents">查看 Agent 完整证据</button>
+              <button class="button quiet" type="button" id="demo-supplement-rerun">补充证据并重新评估</button>
+              <button class="button quiet" type="button" id="demo-download-json">下载 JSON</button>
+              <button class="button quiet" type="button" id="demo-download-csv">下载表格 CSV</button>
+              <button class="button quiet" type="button" id="demo-print-report">打印 / 保存 PDF</button>
+              <button class="button primary" type="button" id="demo-rerun">重新演示</button>
+            </div>
+            <section class="demo-module-preview"><h3>综合关注的完整依据</h3><p id="demo-attention-preview">运行后说明程序信号、正常解释与复核判断。</p><details class="demo-result-detail"><summary data-open-label="查看六区完整关注依据" data-close-label="收起完整关注依据">查看六区完整关注依据</summary><section class="demo-attention-card" id="demo-attention-card" hidden aria-labelledby="demo-attention-title">
               <p id="demo-r1-business-context" class="demo-business-context" hidden></p>
               <div class="demo-section-heading">
                 <div><span class="folio">COMBINED AUDIT ATTENTION · SIX FIXED ZONES</span><h3 id="demo-attention-title">综合审计关注</h3></div>
@@ -316,63 +409,11 @@
                 <div id="demo-attention-procedures"></div>
               </div>
               <div class="demo-attention-zone demo-attention-zone-badges" aria-labelledby="demo-attention-badges-title">
-                <h4 id="demo-attention-badges-title"><span class="demo-attention-index">⑥</span>三个并排状态（彼此独立，不合并成一个分数）</h4>
-                <div id="demo-attention-badges"></div>
+                <h4 id="demo-attention-badges-title"><span class="demo-attention-index">⑥</span>三个并排状态（彼此独立，不合并成一个分数）</h4><p>等级与完整判定因子已在结果前部展示，<a href="#demo-level-title">回到三个独立状态与判定依据</a>。</p>
+
               </div>
-            </section></details>
-            <details class="demo-result-detail"><summary>认定覆盖、证据边界与可信控制</summary><section class="demo-enhancement-grid" aria-label="审计专属可信增强 · 一级展开">
-              <article class="demo-enhancement-card">
-                <h4>认定—证据—程序覆盖矩阵</h4>
-                <p id="demo-coverage-note">把审计认定、当前企业证据和可执行程序放在同一张可回查矩阵中。</p>
-                <ul id="demo-coverage-list"></ul>
-                <span class="demo-enhancement-state" id="demo-coverage-state">运行后生成</span>
-              </article>
-              <article class="demo-enhancement-card">
-                <h4>证据适配度与主张边界</h4>
-                <p id="demo-fitness-note">不同来源只能支持不同类型的主张；监管和行业资料不证明当前企业事实。</p>
-                <ul id="demo-fitness-list"></ul>
-                <span class="demo-enhancement-state" id="demo-fitness-state">运行后生成</span>
-              </article>
-              <article class="demo-enhancement-card">
-                <h4>反确认偏差搜索</h4>
-                <p class="demo-moat-verbatim">本系统将反向检索与反证记录设计成强制工作流，而不是依赖一次对话中模型是否主动想到。</p>
-                <p id="demo-anti-note">系统记录反向检索问题、命中证据和正常解释，不诱导模型凑结论。</p>
-                <ul id="demo-anti-list"></ul>
-                <span class="demo-enhancement-state" id="demo-anti-state">运行后生成</span>
-              </article>
-              <article class="demo-enhancement-card">
-                <h4>数字主张可回查</h4>
-                <p id="demo-numeric-note">模型文本中的关键数字必须回到规则、字段证据或当前案例上下文。</p>
-                <ul id="demo-numeric-list"></ul>
-                <span class="demo-enhancement-state" id="demo-numeric-state">运行后生成</span>
-              </article>
-            </section></details>
-            <details class="demo-result-detail"><summary>核验一条主张与关键数字</summary><section class="demo-evidence-challenge" id="demo-evidence-challenge" data-state="empty" aria-labelledby="demo-evidence-challenge-title">
-              <div class="demo-section-heading">
-                <div><span class="folio">30-SECOND EVIDENCE CHALLENGE</span><h3 id="demo-evidence-challenge-title">30 秒证据挑战</h3></div>
-                <span class="state pending" id="demo-challenge-state">等待运行</span>
-              </div>
-              <p class="demo-challenge-boundary" id="demo-challenge-boundary">运行后，从同一次运行中选取一条真实主张，并显示证据编号、关键数字、反证/复核状态与人工下一步。</p>
-              <div class="demo-challenge-grid">
-                <article class="demo-challenge-claim">
-                  <span>待核查主张</span>
-                  <strong id="demo-challenge-claim">尚无运行结果</strong>
-                  <small id="demo-challenge-run">run_id：—</small>
-                </article>
-                <dl class="demo-challenge-facts">
-                  <div><dt>证据编号</dt><dd id="demo-challenge-evidence-id">—</dd></div>
-                  <div><dt>关键数字</dt><dd id="demo-challenge-metric">—</dd></div>
-                  <div><dt>反证 / 复核</dt><dd id="demo-challenge-review">—</dd></div>
-                  <div><dt>人工下一步</dt><dd id="demo-challenge-human-next">—</dd></div>
-                </dl>
-              </div>
-              <div class="demo-challenge-actions">
-                <a class="button primary" id="demo-challenge-open-source" target="_blank" rel="noopener noreferrer" aria-disabled="true" tabindex="-1">当前主张未提供可定位原文</a>
-                <button class="button quiet" type="button" id="demo-challenge-open-drawer">查看本次全部证据</button>
-                <small id="demo-challenge-source-meta">页码与原文入口必须来自本次运行证据。</small>
-              </div>
-            </section></details>
-            <details class="demo-result-detail"><summary>完整审计计划总览</summary><section class="demo-audit-overview" id="demo-audit-overview" aria-labelledby="demo-audit-overview-title">
+            </section></details></section>
+<section class="demo-module-preview"><h3>审计计划依据与程序</h3><p id="demo-plan-preview">运行后显示本次程序与资料建议。</p><details class="demo-result-detail"><summary data-open-label="查看完整审计计划总览" data-close-label="收起审计计划总览">查看完整审计计划总览</summary><section class="demo-audit-overview" id="demo-audit-overview" aria-labelledby="demo-audit-overview-title">
               <div class="demo-section-heading">
                 <div><span class="folio">AUDIT PLANNING OVERVIEW</span><h3 id="demo-audit-overview-title">本次审计计划总览</h3></div>
                 <span class="state pending" id="demo-audit-overview-state">等待运行</span>
@@ -399,9 +440,8 @@
                   <div id="demo-overview-procedures"><p>运行后根据程序映射确定性选取。</p></div>
                 </article>
               </div>
-            </section></details>
-
-            <details class="demo-result-detail"><summary>三个角色的完整输出</summary><section class="demo-agent-inline" aria-labelledby="demo-agent-inline-title">
+            </section></details></section>
+<section class="demo-module-preview"><h3>三个角色的完整记录</h3><p id="demo-agents-preview">三个角色的核心处理结果见上方协作过程。</p><details class="demo-result-detail"><summary data-open-label="查看三个角色的全部输出" data-close-label="收起角色完整输出">查看三个角色的全部输出</summary><section class="demo-agent-inline" aria-labelledby="demo-agent-inline-title">
               <div class="demo-section-heading">
                 <div><span class="folio">MULTI-AGENT REVIEW · INLINE SUMMARY</span><h3 id="demo-agent-inline-title">三 Agent 协作结论</h3></div>
                 <span class="state pending" id="demo-agent-inline-state">运行后显示</span>
@@ -409,35 +449,8 @@
               <div class="demo-agent-inline-cards" id="demo-agent-inline-cards">
                 <div class="empty-state"><strong>尚无运行结果</strong><p>完成运行后显示质疑、反证、复核三个角色的真实状态。</p></div>
               </div>
-            </section></details>
-            <figure class="demo-result-visual" aria-label="从原文资料到可追溯结论的证据链视觉示意">
-              <figcaption><strong>原文 → 证据编号 → 结构化结果</strong>页面中的每项主张都必须回到当前运行的证据编号；插图仅作视觉示意，不替代真实来源定位。</figcaption>
-            </figure>
-            <details class="demo-result-detail"><summary>查看各项完整待核查草稿</summary><div id="demo-result-items" class="demo-result-items"></div></details>
-            <section class="demo-supplement-summary" id="demo-supplement-summary" hidden aria-labelledby="demo-supplement-summary-title"></section>
-            <section class="demo-structured-output" aria-labelledby="demo-structured-heading">
-              <div class="demo-section-heading">
-                <div><span class="folio">JSON / TABLE / PRINT PDF</span><h3 id="demo-structured-heading">结构化结果明细</h3></div>
-                <span class="state pending" id="demo-structured-state">等待本次运行结果</span>
-              </div>
-              <div class="demo-table-wrap" role="region" aria-label="本次运行结构化指标表格（可横向滚动）" tabindex="0">
-                <table class="demo-structured-table" id="demo-structured-table">
-                  <caption>本次运行规则指标结构化明细</caption>
-                   <thead><tr><th scope="col">指标</th><th scope="col">数值</th><th scope="col">口径与计算</th></tr></thead>
-                  <tbody id="demo-structured-table-body"></tbody>
-                </table>
-              </div>
-            </section>
-            <div class="action-row demo-result-actions">
-              <button class="button quiet" type="button" id="demo-open-evidence">查看原文证据</button>
-              <button class="button quiet" type="button" id="demo-open-agents">查看 Agent 完整证据</button>
-              <button class="button quiet" type="button" id="demo-supplement-rerun">补充证据并重新评估</button>
-              <button class="button quiet" type="button" id="demo-download-json">下载 JSON</button>
-              <button class="button quiet" type="button" id="demo-download-csv">下载表格 CSV</button>
-              <button class="button quiet" type="button" id="demo-print-report">打印 / 保存 PDF</button>
-              <button class="button primary" type="button" id="demo-rerun">重新演示</button>
-            </div>
-            <details class="demo-result-detail"><summary>系统已完成的程序与人工保留项</summary><section class="demo-procedure-map" aria-labelledby="demo-procedure-title">
+            </section></details></section>
+<section class="demo-module-preview"><h3>系统处理与人工保留</h3><p>系统整理资料、复算规则并草拟程序；正式判断、执行与采用由项目组决定。下方记录各项程序的具体分工。</p><details class="demo-result-detail"><summary data-open-label="查看系统程序与人工保留项" data-close-label="收起程序分工">查看系统程序与人工保留项</summary><section class="demo-procedure-map" aria-labelledby="demo-procedure-title">
               <header>
                 <h3 id="demo-procedure-title">系统替你完成什么</h3>
                 <p class="demo-procedure-note" id="demo-procedure-note"></p>
@@ -457,23 +470,23 @@
                 </section>
               </div>
               <p class="demo-procedure-version" id="demo-procedure-version"></p>
-            </section></details>
+            </section></details></section>
             <section class="demo-source-ledger" aria-labelledby="demo-source-ledger-title">
               <div class="demo-section-heading">
-                <div><span class="folio">SOURCE LEDGER · OFFICIAL ORIGINALS</span><h3 id="demo-source-ledger-title"><button class="demo-collapse-toggle" id="demo-source-ledger-toggle" type="button" aria-expanded="false" aria-controls="demo-source-ledger-body"><span class="demo-collapse-chevron" aria-hidden="true"></span><span>来源说明与监管证据</span></button></h3></div>
+                <div><span class="folio">SOURCE LEDGER · OFFICIAL ORIGINALS</span><h3 id="demo-source-ledger-title">来源说明与监管证据</h3></div>
                 <span class="state pending" id="demo-source-ledger-state">台账级 · 0条</span>
               </div>
-              <div class="demo-collapsible-body" id="demo-source-ledger-body" hidden>
-                <p class="demo-source-ledger-note" id="demo-source-ledger-note"></p>
+              <p class="demo-source-ledger-note" id="demo-source-ledger-note"></p><button class="demo-collapse-toggle" id="demo-source-ledger-toggle" type="button" aria-expanded="false" aria-controls="demo-source-ledger-body"><span class="demo-collapse-chevron" aria-hidden="true"></span><span>查看来源说明与监管证据</span></button><div class="demo-collapsible-body" id="demo-source-ledger-body" hidden>
+
                 <ul class="demo-source-ledger-list" id="demo-source-ledger-list"></ul>
               </div>
             </section>
             <section class="demo-run-trace" aria-labelledby="demo-run-trace-title">
               <div class="demo-section-heading">
-                <div><span class="folio">RUN TIMELINE · MODEL ATTEMPTS</span><h3 id="demo-run-trace-title"><button class="demo-collapse-toggle" id="demo-run-trace-toggle" type="button" aria-expanded="false" aria-controls="demo-run-trace-body"><span class="demo-collapse-chevron" aria-hidden="true"></span><span>运行时间线与模型留痕</span></button></h3></div>
+                <div><span class="folio">RUN TIMELINE · MODEL ATTEMPTS</span><h3 id="demo-run-trace-title">运行时间线与模型留痕</h3></div>
                 <span class="state pending" id="demo-run-trace-state">可审计 · 0阶段 / 0次调用</span>
               </div>
-              <div class="demo-collapsible-body" id="demo-run-trace-body" hidden>
+              <p id="demo-trace-preview">运行后显示阶段和真实执行方式。</p><button class="demo-collapse-toggle" id="demo-run-trace-toggle" type="button" aria-expanded="false" aria-controls="demo-run-trace-body"><span class="demo-collapse-chevron" aria-hidden="true"></span><span>查看运行时间线与模型留痕</span></button><div class="demo-collapsible-body" id="demo-run-trace-body" hidden>
                 <ul class="demo-run-trace-list" id="demo-run-trace-list"></ul>
               </div>
             </section>

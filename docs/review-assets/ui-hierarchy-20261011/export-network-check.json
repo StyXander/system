@@ -1,0 +1,10 @@
+{
+  "run_id": "RUN-V7-DCF895BC5377",
+  "csv_rows": 28,
+  "csv_same_run": true,
+  "requests": 41,
+  "mutations": [],
+  "http_errors": [],
+  "json_embedded_run_equals_original": true,
+  "export_boundary_present": true
+}
