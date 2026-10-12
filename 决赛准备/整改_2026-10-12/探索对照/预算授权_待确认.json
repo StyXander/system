@@ -1,0 +1,10 @@
+{
+  "experiment_id": "EXP-FINALS-20261012-AB-01",
+  "approved": false,
+  "approved_by": null,
+  "max_calls": 30,
+  "max_tokens": 500000,
+  "model_id": "deepseek-v4-flash",
+  "endpoint": "https://api.deepseek.com/v1",
+  "note": "建议上限，包含修正；需用户明确预算授权和实际模型ID。价格未知，不声称金额上限；密钥仅从环境读取。"
+}

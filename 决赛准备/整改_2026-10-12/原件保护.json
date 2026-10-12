@@ -1,0 +1,23 @@
+{
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "files": {
+    "答辩PPT\\AuditTrace_20slides_compact (1).pptx": "297d7de5907a7c3fd3ed4bbe8fb42c666d0c1c8386875fba0e00ca63b2946c14",
+    "答辩PPT\\.finals_20261010\\candidate-r2.pptx": "f53c8895381cc086c96497c0c984f3d00adc82404daf54e5d36805b3c11871e7",
+    "答辩PPT\\.finals_20261010\\candidate.pptx": "39510d4b1a306e006ef029146fb14537489d9411c867e913796544bac977fa6d",
+    "答辩PPT\\.finals_highlights_20261010\\candidate.pptx": "17a4b279cf4a49f48dfd8122dc3a6f3236238b0fad2a060ef517cbff420c2a35",
+    "答辩PPT\\.image_refresh\\candidate.pptx": "1b7f4579cd1ef8e4fda1df12de82ab82eff1ccd640e236b09a714c4535f8ab96",
+    "答辩PPT\\.image_refresh\\roundtrip.pptx": "b276440cc7b034e64971f15c35530603a377a798f1311c5e8f35d9b2da5010f2",
+    "答辩PPT\\优化版\\AuditTrace_20slides_灰白意象优化版.pptx": "1b7f4579cd1ef8e4fda1df12de82ab82eff1ccd640e236b09a714c4535f8ab96",
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟版_10页主讲_5页备用.pptx": "f53c8895381cc086c96497c0c984f3d00adc82404daf54e5d36805b3c11871e7",
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟版_宋体亮点强化版.pptx": "ea6baa80177c20b6c05c665b0f46ba8b01c53bfd80d1d3baf73a4e69ca1d4ab5",
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟讲稿_对应宋体亮点强化版.md": "ffc3868fcde7f7d9531ffc190a6954741740e7151d5f58374c1170eaaa1b2ca4",
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟讲稿_对应宋体亮点强化版.docx": "bbe790cbfc0e3b50b0ef3ec7332e423efb20bbd5f9f084aad088f2bffed9b506",
+    "backend\\release_records\\current_evaluation.json": "9c3158c815d258d8354c03562a5bc6c26e37cd695dbd996809ca30dc0c1e2ba2",
+    "backend\\competition_demo_cases.json": "3250c7c776a21cce94a935ff62ea7e4247186bcda683e2cfab515c7c34fe23e0",
+    "backend\\release_records\\current_release.json": "37534dc69b8bc0bb0cc2ab49b7167528edc5cf1b1efc5efab6fb6125c70c7c4e",
+    "决赛准备\\整改_2026-10-11\\探索对照\\manifest.json": "b40dbb37d006af3c190dac243f744c01e0004b0754d132c844ad92ec778e1c4c",
+    "决赛准备\\整改_2026-10-11\\探索对照\\inputs\\CNINFO_000858_T0_20260430.json": "b932a1317f917fcbd2fd38d9629f2864cfc34a56f28842ffdc7bcfcedf265084",
+    "决赛准备\\整改_2026-10-11\\探索对照\\inputs\\CNINFO_600309_T0_20260420.json": "64a1d4dec8b379c80c244f8ce8ee2f3b5f91c5a55bd950926d1956d08cf42464",
+    "决赛准备\\整改_2026-10-11\\探索对照\\inputs\\CNINFO_600938_T0_20260326.json": "9eec8efe99053ccf922a59bb93d053e5509a8d5f42a8ac25c72dad1cf1af6239"
+  }
+}

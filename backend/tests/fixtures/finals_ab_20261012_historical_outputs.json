@@ -1,0 +1,167 @@
+{
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "fixture_kind": "historical_public_output_excerpt_for_offline_tests_not_new_model_run",
+  "run_id": "RUN-V7-DCF895BC5377",
+  "source_sha256": "30cb28731ea018767a98ccbc63bf1b2e59c7e330f4e8dc5052eb2b6e6a56d5d1",
+  "outputs": [
+    {
+      "role": "challenge",
+      "claims": [
+        {
+          "text": "程序筛查显示应收账款增速1.07%、营业收入增速-54.55%，增速差55.62个百分点，应收账款绝对变动398,857.56元，需核查收入与应收变动方向背离的原因。",
+          "evidence_ids": [
+            "PROC-R1-2025",
+            "CNINFO_000858_T0_20260430_REVENUE_2025",
+            "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025"
+          ],
+          "support_status": "supported"
+        }
+      ],
+      "run_id": "RUN-V7-DCF895BC5377",
+      "status": "candidate",
+      "rule_id": "R1",
+      "data_gaps": [
+        "账龄结构",
+        "期后回款",
+        "信用政策变动",
+        "主要客户合同结算条款"
+      ],
+      "draft_title": "",
+      "schema_version": "agent_output_v2",
+      "ai_recommendation": "not_applicable",
+      "draft_observation": "",
+      "reason_for_status": "程序筛查为候选且证据仅覆盖报表列示净额，账龄、期后回款与合同条款缺口未覆盖，故维持候选待人工复核。",
+      "analysis_conclusion": "risk_candidate",
+      "normal_explanations": [
+        {
+          "text": "待验证假设：公司以经销为主、采用“先款后货”结算，或可解释应收与收入变动不同步，尚需合同与回款证据验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01"
+          ],
+          "support_status": "unverified_hypothesis"
+        },
+        {
+          "text": "待验证假设：应收账款按组合计提坏账准备并存在单项计提，其结构变化可能影响应收余额，需账龄与减值资料验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00"
+          ],
+          "support_status": "unverified_hypothesis"
+        }
+      ],
+      "requested_materials": [
+        "账龄明细表",
+        "期后回款记录",
+        "信用政策说明",
+        "主要合同关键条款摘要"
+      ],
+      "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+      "evidence_fitness_violations": []
+    },
+    {
+      "role": "counter",
+      "claims": [
+        {
+          "text": "程序事实可复核：应收账款增速1.07%、营业收入增速-54.55%、增速差55.62个百分点，应收绝对变动398,857.56元，但应收仅净额口径、未评价重要性。",
+          "evidence_ids": [
+            "PROC-R1-2025",
+            "CNINFO_000858_T0_20260430_REVENUE_2025",
+            "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025"
+          ],
+          "support_status": "supported"
+        }
+      ],
+      "run_id": "RUN-V7-DCF895BC5377",
+      "status": "candidate",
+      "rule_id": "R1",
+      "data_gaps": [
+        "账龄结构",
+        "期后回款",
+        "信用政策变动",
+        "主要客户合同结算条款"
+      ],
+      "draft_title": "",
+      "schema_version": "agent_output_v2",
+      "ai_recommendation": "not_applicable",
+      "draft_observation": "",
+      "reason_for_status": "程序事实与报表净额口径证据支持候选成立；但账龄、期后回款、信用政策与合同条款缺口未覆盖，正常解释均属待验证假设，未发现相反材料，故维持候选待人工复核。",
+      "analysis_conclusion": "risk_candidate",
+      "normal_explanations": [
+        {
+          "text": "待验证假设：年报载明以经销为主、“先款后货”结算，或可解释应收与收入变动不同步，需合同与回款证据验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01"
+          ],
+          "support_status": "unverified_hypothesis"
+        },
+        {
+          "text": "待验证假设：应收账款按组合计提坏账准备并存在单项计提，结构变化或影响应收余额，需账龄与减值资料验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00"
+          ],
+          "support_status": "unverified_hypothesis"
+        }
+      ],
+      "requested_materials": [
+        "账龄明细表",
+        "期后回款记录",
+        "信用政策说明",
+        "主要合同关键条款摘要"
+      ],
+      "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+      "evidence_fitness_violations": []
+    },
+    {
+      "role": "review",
+      "claims": [
+        {
+          "text": "程序筛查事实：应收账款增速1.07%、营业收入增速-54.55%，增速差55.62个百分点，应收绝对变动398,857.56元；未评价金额重要性。",
+          "evidence_ids": [
+            "PROC-R1-2025",
+            "CNINFO_000858_T0_20260430_REVENUE_2025",
+            "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025"
+          ],
+          "support_status": "supported"
+        }
+      ],
+      "run_id": "RUN-V7-DCF895BC5377",
+      "status": "retain",
+      "rule_id": "R1",
+      "data_gaps": [
+        "账龄结构",
+        "期后回款",
+        "信用政策变动",
+        "主要客户合同结算条款"
+      ],
+      "draft_title": "R1候选：收入与应收变动背离待核查（净额口径限制）",
+      "schema_version": "agent_output_v2",
+      "ai_recommendation": "retain",
+      "draft_observation": "程序筛查显示：应收账款增速1.07%、营业收入增速-54.55%，增速差55.62个百分点，应收账款绝对变动398,857.56元；未评价金额重要性。口径限制：应收账款仅有净额/报表列示额，未达到专业目标的账面余额口径。证据边界：仅报表列示净额与年报片段支持，账龄结构、期后回款、信用政策变动、主要客户合同结算条款均缺失；经销“先款后货”与坏账准备结构解释仍属待验证假设。建议取得账龄明细表、期后回款记录、信用政策说明、主要合同关键条款摘要，并按AP-01、AP-03、AP-06复核。本件为AI辅助草稿，非审计认定，最终处理由人工复核决定。",
+      "reason_for_status": "程序事实与报表净额口径证据支持候选成立；账龄、期后回款、信用政策与合同条款缺口未覆盖，正常解释均为待验证假设，故维持候选待人工复核。",
+      "analysis_conclusion": "risk_candidate",
+      "normal_explanations": [
+        {
+          "text": "待验证假设：年报载明以经销为主、“先款后货”结算，或可解释应收与收入变动不同步，需合同与回款证据验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01"
+          ],
+          "support_status": "unverified_hypothesis"
+        },
+        {
+          "text": "待验证假设：应收账款按组合计提坏账准备并存在单项计提，结构变化或影响应收余额，需账龄与减值资料验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00"
+          ],
+          "support_status": "unverified_hypothesis"
+        }
+      ],
+      "requested_materials": [
+        "账龄明细表",
+        "期后回款记录",
+        "信用政策说明",
+        "主要合同关键条款摘要"
+      ],
+      "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+      "evidence_fitness_violations": []
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "experiment_id": "EXP-FINALS-20261012-AB-01",
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "prompt_version": "agent_prompt_v6_claim_scoped_counter_review",
+  "source_hashes": {
+    "backend/app/agents.py": "b5fd2ee3b7a0ef7910265dea070ce68aa0c8fe1bb9256205617fc638f7716a27",
+    "backend/app/evidence_fitness.py": "d40d306c4c74c992c8aa635a8ca491a9781e02dc626538923011f0cd680ee235",
+    "backend/app/numeric_gate.py": "0ee8d9f8793ab3efa4e380274e7a8d5aff0d5d94a7453b18c88d57401dea1baa",
+    "scripts/run_finals_ab_20261011.py": "a7697c670992d6e63c58ed784c82d2e7cdd3d57054eac9b65130b1e0ca3e54ab"
+  },
+  "input_hashes": {
+    "CNINFO_000858_T0_20260430": "b932a1317f917fcbd2fd38d9629f2864cfc34a56f28842ffdc7bcfcedf265084",
+    "CNINFO_600938_T0_20260326": "9eec8efe99053ccf922a59bb93d053e5509a8d5f42a8ac25c72dad1cf1af6239",
+    "CNINFO_600309_T0_20260420": "64a1d4dec8b379c80c244f8ce8ee2f3b5f91c5a55bd950926d1956d08cf42464"
+  },
+  "human_freeze_status": "not_signed",
+  "model_calls_this_round": 0
+}

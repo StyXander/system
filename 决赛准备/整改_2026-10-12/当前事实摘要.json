@@ -1,0 +1,115 @@
+{
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "snapshot_date": "2026-10-12",
+  "source_head": "8ab9e7003fe663929111508728bdcd1530c2549a",
+  "local_modified_not_deployed": true,
+  "source_hashes": {
+    "backend/app/agents.py": "b5fd2ee3b7a0ef7910265dea070ce68aa0c8fe1bb9256205617fc638f7716a27",
+    "scripts/run_finals_ab_20261011.py": "a7697c670992d6e63c58ed784c82d2e7cdd3d57054eac9b65130b1e0ca3e54ab"
+  },
+  "prompt_version": "agent_prompt_v6_claim_scoped_counter_review",
+  "case_count": 23,
+  "ppt": {
+    "actual_slides": 10,
+    "modified_this_round": false,
+    "source": "答辩PPT/决赛版/审迹智链_决赛七分钟版_宋体亮点强化版.pptx"
+  },
+  "demo": {
+    "run_id": "RUN-V7-DCF895BC5377",
+    "code": "e29c175",
+    "kind": "historical_external_live",
+    "provider_calls_historical": 3,
+    "new_calls_this_round": 0,
+    "years": [
+      2025,
+      2024
+    ],
+    "professional_confirmation": "pending"
+  },
+  "experiment": {
+    "id": "EXP-FINALS-20261012-AB-01",
+    "status": "prepared_not_executed",
+    "planned_outputs": 12,
+    "base_calls": 24,
+    "max_calls": 30,
+    "max_reserved_tokens": 500000,
+    "authorized": false,
+    "provider_calls": 0
+  },
+  "evaluation_pointer": {
+    "id": "EVAL-20260828-RELEASE-CANDIDATE-V1",
+    "status": "pending_human_scoring_and_fresh_model_runs",
+    "modified_this_round": false
+  },
+  "professional_scoring": "not_performed",
+  "independent_two_person_scoring": "not_performed",
+  "user_trial": "not_performed",
+  "human_rehearsal": "not_performed",
+  "latest_live_deployment": {
+    "new_model_calls": 0,
+    "read_only": true,
+    "observation_date": "2026-10-12",
+    "status": "observed",
+    "deployment": {
+      "commit": "4bfa4cc30318859c1584851745074682cbdbcddc",
+      "deployment_commit": "4bfa4cc30318859c1584851745074682cbdbcddc",
+      "release_evidence_head": null,
+      "materialized_source_head": "be9839947bbeb2acc9596d349afbabc53b91f922",
+      "demo_manifest_sha256": "741a7d669a98f3d2c4fef300464810797afa8a9844386cd15d022886fd3968fe",
+      "branch": "main",
+      "service": "audittrace-demo",
+      "source": "render_runtime_environment"
+    }
+  },
+  "historical_deployment_20261011": "4bfa4cc30318859c1584851745074682cbdbcddc",
+  "checks": {
+    "unique_tests_passed": 47,
+    "suite_records": [
+      {
+        "file": "聚焦回归.xml",
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "46",
+        "time": "36.137",
+        "timestamp": "2026-10-12T11:31:41.175224+08:00",
+        "hostname": "hbb"
+      },
+      {
+        "file": "实验脚本复验.xml",
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "11",
+        "time": "0.441",
+        "timestamp": "2026-10-12T11:37:33.980815+08:00",
+        "hostname": "hbb"
+      }
+    ],
+    "browser_four_actual_viewports": "passed_read_only_historical_run",
+    "word_render_pages": 6,
+    "word_visual_review": "completed",
+    "font_check": {
+      "Normal": {
+        "font": "宋体",
+        "size_pt": 12.0
+      },
+      "Title": {
+        "font": "黑体",
+        "size_pt": 16.0
+      },
+      "Heading 1": {
+        "font": "黑体",
+        "size_pt": 16.0
+      }
+    },
+    "original_files_unchanged": true,
+    "original_ppt_count": 9,
+    "new_model_calls": 0,
+    "python_compile": "passed",
+    "diff_check": "passed",
+    "chinese_comment_ratio": "2934/27553=10.65%"
+  }
+}

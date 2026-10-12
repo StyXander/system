@@ -672,7 +672,8 @@ def test_prompt_v3_runs_all_three_roles_with_structured_provider_contract(monkey
     )
     assert [step.role for step in steps] == ["challenge", "counter", "review"]
     assert [step.status for step in steps] == ["completed", "completed", "completed"]
-    assert all(step.prompt_version == "agent_prompt_v3" for step in steps)
+    from backend.app.agents import PROMPT_VERSION
+    assert all(step.prompt_version == PROMPT_VERSION for step in steps)
     counter = steps[1].output
     assert counter is not None
     assert counter.normal_explanations[0].support_status == "unverified_hypothesis"

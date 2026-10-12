@@ -1,0 +1,1411 @@
+{
+  "case_id": "CNINFO_000858_T0_20260430",
+  "company": "五粮液",
+  "year": 2025,
+  "selection_reason": "规则触发",
+  "rule_result": {
+    "rule_id": "R1",
+    "status": "candidate",
+    "source_validation": {
+      "status": "passed",
+      "issues": [],
+      "review_boundary": "程序只完成来源存在性、哈希、日期与结构检查；专业口径仍待人工确认。"
+    },
+    "metrics": {
+      "revenue_growth": -0.5455180406416607,
+      "ar_growth": 0.010679900348899315,
+      "growth_gap": 0.55619794099056,
+      "absolute_ar_change": 398857.55999999493,
+      "ar_to_revenue_current": 0.0009313300618254089,
+      "ar_to_revenue_previous": 0.0004187999693687548,
+      "turnover_days_current": 0.338139415787659,
+      "turnover_days_previous": 0.16371045789385066,
+      "turnover_trend_days": 0.17442895789380833,
+      "sustained_periods": 1,
+      "materiality_multiple": null,
+      "materiality_assessment": "未评价金额重要性",
+      "three_year_trend_available": true
+    },
+    "risk_card": {
+      "card_type": "screening_only",
+      "rule_id": "R1",
+      "engineering_version": "r1_v0.4-draft",
+      "screening_strength": "strong",
+      "configured_thresholds": {
+        "gap_threshold": 0.15,
+        "strong_gap_threshold": 0.3,
+        "absolute_threshold": 0.0,
+        "planned_materiality": null,
+        "review_status": "draft_pending_professional_signoff"
+      },
+      "status": "candidate_pending_ai_and_human_review",
+      "title": "程序筛查形成R1待核查候选",
+      "observation": "应收账款增速为1.07%，营业收入增速为-54.55%，增速差为55.62个百分点；应收账款绝对变动为398,857.56元。未评价金额重要性。",
+      "basis_limitation": "应收账款仅有净额/报表列示额，未达到专业目标的账面余额口径。",
+      "trend_limitation": null,
+      "data_gaps": [
+        "账龄结构",
+        "期后回款",
+        "信用政策变动",
+        "主要客户合同结算条款"
+      ],
+      "requested_materials": [
+        "账龄明细表",
+        "期后回款记录",
+        "信用政策说明",
+        "主要合同关键条款摘要"
+      ],
+      "boundary": "这是工程草案筛查状态，不是审计认定；需经RAG、三Agent和人工复核。"
+    },
+    "agent_steps": [],
+    "screening_status": "candidate",
+    "ai_recommendation": "not_generated",
+    "ai_draft": null,
+    "evidence_ids": [
+      "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+      "CNINFO_000858_T0_20260430_REVENUE_2025",
+      "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024",
+      "CNINFO_000858_T0_20260430_REVENUE_2024",
+      "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2023",
+      "CNINFO_000858_T0_20260430_REVENUE_2023"
+    ],
+    "ai_analysis_route": null,
+    "ai_analysis_conclusion": null
+  },
+  "evidence_bundle": {
+    "case_id": "CNINFO_000858_T0_20260430",
+    "rag_error": null,
+    "rag_evidence": [
+      {
+        "score": 0.387751,
+        "title": "38",
+        "excerpt": "38 \n-29 \n北部片区 \n630 \n-30 \n小计 \n2,562 \n-90 \n区域 \n五粮浓香经销商数量 \n比上年同期增减(数量) \n全国 \n1,171 \n112 \n合计 \n3,733 \n22 \n3、经销客户的主要结算方式、经销方式 \n以经销模式为主，采用“先款后货”的结算方式。报告期内，前五大客户销售总额58.97 亿元，占销\n售收入总额的14.55%。 \n4、门店销售终端占比超过10% \n适用 □不适用 \n区域 \n期初专卖店数量 \n期末专卖店数量 \n变化原因（超过30%） \n东部片区 \n765 \n770 \n不适用 \n南部片区 \n565 \n563 \n北部片区 \n456 \n430 \n合计 \n1,786 \n1,763 \n5、线上直销销售 \n适用 □不适用 \n产品品种 \n平台名称 \n五粮液产品： \n \n第八代五粮液、39 度五粮液、经典五粮液、29 度五粮液等 \n天猫、京东、微信官方卖场",
+        "rule_id": "R1",
+        "chunk_id": "CNINFO_000858_T0_20260430-2025-P0010-C01",
+        "pdf_page": 10,
+        "print_page": null,
+        "document_id": "CNINFO-000858-2025-09133E1F44B3",
+        "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01",
+        "question_id": "RAG-Q1",
+        "report_year": 2025,
+        "source_file": "CNINFO-000858-2025-09133E1F44B3",
+        "anchor_score": 0.333333,
+        "retrieval_id": "RET-DEMO-C3186F5279BA",
+        "vector_score": null,
+        "fitness_class": "current_entity_primary_evidence",
+        "keyword_score": 0.488813,
+        "review_status": "demo_candidate_fragment_pending_human_page_review",
+        "source_sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4",
+        "low_confidence": true,
+        "source_locator": "PDF 第 10 页 / CNINFO_000858_T0_20260430-2025-P0010-C01",
+        "confidence_note": "低置信候选，必须回原页复核。",
+        "disclosure_date": "2026-04-30",
+        "excerpt_char_end": 401,
+        "chunk_char_length": 401,
+        "excerpt_char_start": 0,
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "excerpt_is_verbatim": true,
+        "linked_field_evidence_ids": []
+      },
+      {
+        "score": 0.385821,
+        "title": "国",
+        "excerpt": "国 \n814 \n159\n合计 \n3,384 \n240\n注：五粮液经销商和五粮浓香经销商存在部分重叠。 \n3、经销客户的主要结算方式、经销方式 \n以经销模式为主，采用“先款后货”的结算方式。报告期内，前五大经销商销售总额113.19 亿元，\n占销售收入总额的13.59%。 \n4、门店销售终端占比超过10% \n适用 □不适用 \n区域 \n期初专卖店数量 \n期末专卖店数量 \n变化原因（超过30%） \n东部区域 \n443\n475\n不适用 \n南部区域 \n292\n285\n西部区域 \n286\n280\n北部区域 \n237\n244\n中部区域 \n372\n378\n合计 \n1,630\n1,662\n5、线上直销销售 \n适用 □不适用",
+        "rule_id": "R1",
+        "chunk_id": "CNINFO_000858_T0_20260430-2023-P0011-C01",
+        "pdf_page": 11,
+        "print_page": null,
+        "document_id": "CNINFO-000858-2023-1AAB0EFBE751",
+        "evidence_id": "RAG-CNINFO_000858_T0_20260430-2023-P0011-C01",
+        "question_id": "RAG-Q1",
+        "report_year": 2023,
+        "source_file": "CNINFO-000858-2023-1AAB0EFBE751",
+        "anchor_score": 0.333333,
+        "retrieval_id": "RET-DEMO-C3186F5279BA",
+        "vector_score": null,
+        "fitness_class": "current_entity_primary_evidence",
+        "keyword_score": 0.483298,
+        "review_status": "demo_candidate_fragment_pending_human_page_review",
+        "source_sha256": "1AAB0EFBE751C145990AC9652C3AFF165452EE060BF22A0FE0412996A55E8566",
+        "low_confidence": true,
+        "source_locator": "PDF 第 11 页 / CNINFO_000858_T0_20260430-2023-P0011-C01",
+        "confidence_note": "低置信候选，必须回原页复核。",
+        "disclosure_date": "2024-04-29",
+        "excerpt_char_end": 308,
+        "chunk_char_length": 308,
+        "excerpt_char_start": 0,
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "excerpt_is_verbatim": true,
+        "linked_field_evidence_ids": []
+      },
+      {
+        "score": 1,
+        "title": "宜宾五粮液股份有限公司2025 年度报告全文",
+        "excerpt": "宜宾五粮液股份有限公司2025 年度报告全文 \n89 \n按组合计提坏账准备： \n单位：元 \n名称 \n期末余额 \n账面余额 \n坏账准备 \n计提比例 \n按外部客户组合计提坏账准备的应收账款组合 \n40,121,216.84 \n4,068,265.81 \n10.14% \n按关联方组合计提坏账准备的应收账款组合 \n1,692,468.48 \n \n \n合计 \n41,813,685.32 \n4,068,265.81 \n（3）本期计提、收回或转回的坏账准备情况 \n本期计提坏账准备情况： \n单位：元 \n类别 \n期初余额 \n本期变动金额 \n期末余额 \n计提 \n收回或转回 \n核销 \n其他 \n按单项计提坏账准备的应收账款 \n3,088,250.80 \n \n \n \n \n3,088,250.80 \n按组合计提坏账准备的应收账款 \n3,169,216.14 \n899,049.67 \n \n \n \n4,068,265.81 \n合计 \n6,257,466.94 \n899,049.67 \n \n \n \n7,156,516.61 \n本期公司无重要的坏账准备收回或转回金额。 \n（4）本期实际核销的应收账款情况 \n本期无实际核销",
+        "rule_id": "R1",
+        "chunk_id": "CNINFO_000858_T0_20260430-2025-P0089-C00",
+        "pdf_page": 89,
+        "print_page": null,
+        "document_id": "CNINFO-000858-2025-09133E1F44B3",
+        "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00",
+        "question_id": "RAG-Q2",
+        "report_year": 2025,
+        "source_file": "CNINFO-000858-2025-09133E1F44B3",
+        "anchor_score": 1,
+        "retrieval_id": "RET-DEMO-8237518130D5",
+        "vector_score": null,
+        "fitness_class": "current_entity_primary_evidence",
+        "keyword_score": 1,
+        "review_status": "demo_candidate_fragment_pending_human_page_review",
+        "source_sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4",
+        "low_confidence": false,
+        "source_locator": "PDF 第 89 页 / CNINFO_000858_T0_20260430-2025-P0089-C00",
+        "confidence_note": "候选片段仍须回原页复核。",
+        "disclosure_date": "2026-04-30",
+        "excerpt_char_end": 500,
+        "chunk_char_length": 898,
+        "excerpt_char_start": 0,
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "excerpt_is_verbatim": true,
+        "linked_field_evidence_ids": []
+      },
+      {
+        "score": 1,
+        "title": "按单项计提坏账准备的",
+        "excerpt": "按单项计提坏账准备的\n应收账款 \n3,477,979.92 \n \n \n389,729.12 \n \n3,088,250.80 \n按组合计提坏账准备的\n应收账款 \n3,308,653.22 \n-80,911.87 \n \n58,525.21 \n \n3,169,216.14 \n合计 \n6,786,633.14 \n-80,911.87 \n \n448,254.33 \n \n6,257,466.94 \n本期公司无重要的坏账准备收回或转回金额。 \n（4）本期实际核销的应收账款情况 \n单位：元 \n项目 \n核销金额 \n实际核销的应收账款 \n448,254.33 \n（5）按欠款方归集的期末余额前五名的应收账款和合同资产情况 \n单位：元 \n单位名称 \n应收账款 \n期末余额 \n合同资\n产期末\n余额 \n应收账款和合\n同资产期末 \n余额 \n占应收账款和合\n同资产期末余额\n合计数的比例 \n应收账款坏账准\n备和合同资产减\n值准备期末余额 \n四川沣熠制盖有限公司 \n7,420,290.04 \n \n7,420,290.04 \n17.02% \n371,014.50 \n四川普天包装股份有限公司 \n7,266,966.24 \n \n",
+        "rule_id": "R1",
+        "chunk_id": "CNINFO_000858_T0_20260430-2024-P0095-C01",
+        "pdf_page": 95,
+        "print_page": null,
+        "document_id": "CNINFO-000858-2024-B737191A7589",
+        "evidence_id": "RAG-CNINFO_000858_T0_20260430-2024-P0095-C01",
+        "question_id": "RAG-Q2",
+        "report_year": 2024,
+        "source_file": "CNINFO-000858-2024-B737191A7589",
+        "anchor_score": 1,
+        "retrieval_id": "RET-DEMO-8237518130D5",
+        "vector_score": null,
+        "fitness_class": "current_entity_primary_evidence",
+        "keyword_score": 1,
+        "review_status": "demo_candidate_fragment_pending_human_page_review",
+        "source_sha256": "B737191A758994A35E9442D46847DE771FE48B758FEB9A7F35601DEF922435E7",
+        "low_confidence": false,
+        "source_locator": "PDF 第 95 页 / CNINFO_000858_T0_20260430-2024-P0095-C01",
+        "confidence_note": "候选片段仍须回原页复核。",
+        "disclosure_date": "2025-04-26",
+        "excerpt_char_end": 500,
+        "chunk_char_length": 520,
+        "excerpt_char_start": 0,
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "excerpt_is_verbatim": true,
+        "linked_field_evidence_ids": []
+      },
+      {
+        "score": 0.356701,
+        "title": "的",
+        "excerpt": "8,241,040.51 \n2.88% 114,027,897,212.18 \n公司最近三个会计年度扣除非经常性损益前后净利润孰低者均为负值，且最近一年审计报告显示公\n司持续经营能力存在不确定性 \n□是 否 \n公司最近一个会计年度经审计利润总额、净利润、扣除非经常性损益后的净利润三者孰低为负值 \n□是 否 \n七、境内外会计准则下会计数据差异 \n1、同时按照国际会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况 \n□适用 不适用 \n公司报告期不存在按照国际会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情\n况。 \n2、同时按照境外会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况 \n□适用 不适用 \n公司报告期不存在按照境外会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情\n况。 \n八、分季度主要财务指标 \n单位：元 \n \n第一季度 \n第二季度 \n第三季度 \n第四季度 \n营业收入 \n34,832,906,762.77 \n15,815,119,815.88 \n17,267,553,533.60 \n21,259,598,210.45",
+        "rule_id": "R1",
+        "chunk_id": "CNINFO_000858_T0_20260430-2024-P0007-C01",
+        "pdf_page": 7,
+        "print_page": null,
+        "document_id": "CNINFO-000858-2024-B737191A7589",
+        "evidence_id": "RAG-CNINFO_000858_T0_20260430-2024-P0007-C01",
+        "question_id": "RAG-Q5",
+        "report_year": 2024,
+        "source_file": "CNINFO-000858-2024-B737191A7589",
+        "anchor_score": 0.333333,
+        "retrieval_id": "RET-DEMO-9BCD2DD60242",
+        "vector_score": null,
+        "fitness_class": "current_entity_primary_evidence",
+        "keyword_score": 0.400099,
+        "review_status": "demo_candidate_fragment_pending_human_page_review",
+        "source_sha256": "B737191A758994A35E9442D46847DE771FE48B758FEB9A7F35601DEF922435E7",
+        "low_confidence": true,
+        "source_locator": "PDF 第 7 页 / CNINFO_000858_T0_20260430-2024-P0007-C01",
+        "confidence_note": "低置信候选，必须回原页复核。",
+        "disclosure_date": "2025-04-26",
+        "excerpt_char_end": 536,
+        "chunk_char_length": 536,
+        "excerpt_char_start": 36,
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "excerpt_is_verbatim": true,
+        "linked_field_evidence_ids": []
+      },
+      {
+        "score": 0.345804,
+        "title": "净资产（元）",
+        "excerpt": "计报告显示公\n司持续经营能力存在不确定性 \n□是 否 \n公司报告期内经审计利润总额、净利润、扣除非经常性损益后的净利润三者孰低为负值 \n□是 否 \n七、境内外会计准则下会计数据差异 \n1、同时按照国际会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况 \n□适用 不适用 \n公司报告期不存在按照国际会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况。 \n2、同时按照境外会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况 \n□适用 不适用 \n公司报告期不存在按照境外会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况。 \n八、分季度主要财务指标 \n单位：元 \n \n第一季度 \n第二季度 \n第三季度 \n第四季度 \n营业收入 \n17,085,765,657.95 \n6,424,206,390.70 \n7,127,755,606.32 \n9,890,782,115.26 \n归属于上市公司股东的净\n利润 \n4,416,313,048.41 \n207,537,666.72 \n1,850,701,077.05 \n2,479,705,410.33",
+        "rule_id": "R1",
+        "chunk_id": "CNINFO_000858_T0_20260430-2025-P0007-C01",
+        "pdf_page": 7,
+        "print_page": null,
+        "document_id": "CNINFO-000858-2025-09133E1F44B3",
+        "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0007-C01",
+        "question_id": "RAG-Q5",
+        "report_year": 2025,
+        "source_file": "CNINFO-000858-2025-09133E1F44B3",
+        "anchor_score": 0.333333,
+        "retrieval_id": "RET-DEMO-9BCD2DD60242",
+        "vector_score": null,
+        "fitness_class": "current_entity_primary_evidence",
+        "keyword_score": 0.368964,
+        "review_status": "demo_candidate_fragment_pending_human_page_review",
+        "source_sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4",
+        "low_confidence": true,
+        "source_locator": "PDF 第 7 页 / CNINFO_000858_T0_20260430-2025-P0007-C01",
+        "confidence_note": "低置信候选，必须回原页复核。",
+        "disclosure_date": "2026-04-30",
+        "excerpt_char_end": 613,
+        "chunk_char_length": 613,
+        "excerpt_char_start": 113,
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "excerpt_is_verbatim": true,
+        "linked_field_evidence_ids": []
+      }
+    ],
+    "evidence_gaps": [
+      "RAG-Q6 · retrieval_no_hit：本次检索未返回公司对行业结算环境或回款周期变化的可回查片段。公司年报的管理层表述不能单独证明行业惯例；同行年报或行业报告须由审计人员另行取得、核验并登记后才能作为辅助资料。"
+    ],
+    "field_evidence": [
+      {
+        "unit": "元",
+        "year": 2025,
+        "value": 40528509770.23,
+        "case_id": "CNINFO_000858_T0_20260430",
+        "locator": "PDF 第 7 页：营业收入",
+        "currency": "CNY",
+        "field_id": "revenue_current",
+        "pdf_page": 7,
+        "candidate": {
+          "value": 40528509770.23,
+          "locator": "PDF 第 7 页：营业收入",
+          "pdf_page": 7,
+          "document_id": "CNINFO-000858-2025-09133E1F44B3"
+        },
+        "field_kind": "revenue",
+        "print_page": null,
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+        "document_id": "CNINFO-000858-2025-09133E1F44B3",
+        "evidence_id": "CNINFO_000858_T0_20260430_REVENUE_2025",
+        "field_basis": "reported",
+        "field_label": "本年营业收入",
+        "file_sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4",
+        "raw_excerpt": "本年比上年增减 | 2023 年 | 营业收入（元） | 40,528,509,770.23 | 89,175,178,322.70 | -54.55% | 83,272,067,317.19 | 归属于上市公司股东的 | 净利润（元） | 8,954,257,202.51",
+        "source_file": "CNINFO-000858-2025-09133E1F44B3",
+        "source_mode": "supabase_persisted_verified",
+        "source_unit": "元",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "fitness_class": "current_entity_primary_evidence",
+        "disclosure_date": "2026-04-30",
+        "statement_scope": "合并",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "announcement_title": "2025年年度报告",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "human_review_history": [],
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate"
+      },
+      {
+        "unit": "元",
+        "year": 2024,
+        "value": 89175178322.7,
+        "case_id": "CNINFO_000858_T0_20260430",
+        "locator": "PDF 第 7 页：营业收入",
+        "currency": "CNY",
+        "field_id": "revenue_previous",
+        "pdf_page": 7,
+        "candidate": {
+          "value": 89175178322.7,
+          "locator": "PDF 第 7 页：营业收入",
+          "pdf_page": 7,
+          "document_id": "CNINFO-000858-2024-B737191A7589"
+        },
+        "field_kind": "revenue",
+        "print_page": null,
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223311527.PDF",
+        "document_id": "CNINFO-000858-2024-B737191A7589",
+        "evidence_id": "CNINFO_000858_T0_20260430_REVENUE_2024",
+        "field_basis": "reported",
+        "field_label": "上年营业收入",
+        "file_sha256": "B737191A758994A35E9442D46847DE771FE48B758FEB9A7F35601DEF922435E7",
+        "raw_excerpt": "本年比上年增减 | 2022 年 | 营业收入（元） | 89,175,178,322.70 | 83,272,067,317.19 | 7.09% | 73,968,640,704.54 | 归属于上市公司股东的 | 净利润（元） | 31,853,172,533.98",
+        "source_file": "CNINFO-000858-2024-B737191A7589",
+        "source_mode": "supabase_persisted_verified",
+        "source_unit": "元",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "fitness_class": "current_entity_primary_evidence",
+        "disclosure_date": "2025-04-26",
+        "statement_scope": "合并",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "announcement_title": "2024年年度报告",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "human_review_history": [],
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate"
+      },
+      {
+        "unit": "元",
+        "year": 2025,
+        "value": 37745419.51,
+        "case_id": "CNINFO_000858_T0_20260430",
+        "locator": "PDF 第 18 页：应收账款",
+        "currency": "CNY",
+        "field_id": "ar_current",
+        "pdf_page": 18,
+        "candidate": {
+          "value": 37745419.51,
+          "locator": "PDF 第 18 页：应收账款",
+          "pdf_page": 18,
+          "document_id": "CNINFO-000858-2025-09133E1F44B3"
+        },
+        "field_kind": "accounts_receivable",
+        "print_page": null,
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+        "document_id": "CNINFO-000858-2025-09133E1F44B3",
+        "evidence_id": "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+        "field_basis": "net",
+        "field_label": "本年应收账款",
+        "file_sha256": "09133E1F44B3BB4B2CEBE211529AD68F5B04B6BE10B43870F2A78C947D5910A4",
+        "raw_excerpt": "67.67% | -0.81% | 应收账款 | 37,745,419.51 | 0.02% | 37,346,561.95 | 0.02% | 0.00% | 存货 | 20,065,336,751.20",
+        "source_file": "CNINFO-000858-2025-09133E1F44B3",
+        "source_mode": "supabase_persisted_verified",
+        "source_unit": "元",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "fitness_class": "current_entity_primary_evidence",
+        "disclosure_date": "2026-04-30",
+        "statement_scope": "合并",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "announcement_title": "2025年年度报告",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "human_review_history": [],
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate"
+      },
+      {
+        "unit": "元",
+        "year": 2024,
+        "value": 37346561.95,
+        "case_id": "CNINFO_000858_T0_20260430",
+        "locator": "PDF 第 18 页：应收账款",
+        "currency": "CNY",
+        "field_id": "ar_previous",
+        "pdf_page": 18,
+        "candidate": {
+          "value": 37346561.95,
+          "locator": "PDF 第 18 页：应收账款",
+          "pdf_page": 18,
+          "document_id": "CNINFO-000858-2024-B737191A7589"
+        },
+        "field_kind": "accounts_receivable",
+        "print_page": null,
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223311527.PDF",
+        "document_id": "CNINFO-000858-2024-B737191A7589",
+        "evidence_id": "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024",
+        "field_basis": "net",
+        "field_label": "上年应收账款",
+        "file_sha256": "B737191A758994A35E9442D46847DE771FE48B758FEB9A7F35601DEF922435E7",
+        "raw_excerpt": "69.79% | -2.12% | 应收账款 | 37,346,561.95 | 0.02% | 42,647,461.48 | 0.03% | -0.01% | 存货 | 18,233,702,166.62",
+        "source_file": "CNINFO-000858-2024-B737191A7589",
+        "source_mode": "supabase_persisted_verified",
+        "source_unit": "元",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "fitness_class": "current_entity_primary_evidence",
+        "disclosure_date": "2025-04-26",
+        "statement_scope": "合并",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "announcement_title": "2024年年度报告",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "human_review_history": [],
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate"
+      },
+      {
+        "unit": "元",
+        "year": 2023,
+        "value": 83272067317.19,
+        "case_id": "CNINFO_000858_T0_20260430",
+        "locator": "PDF 第 7 页：营业收入",
+        "currency": "CNY",
+        "field_id": "revenue_prior",
+        "pdf_page": 7,
+        "candidate": {
+          "value": 83272067317.19,
+          "locator": "PDF 第 7 页：营业收入",
+          "pdf_page": 7,
+          "document_id": "CNINFO-000858-2023-1AAB0EFBE751"
+        },
+        "field_kind": "revenue",
+        "print_page": null,
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-29/1219873658.PDF",
+        "document_id": "CNINFO-000858-2023-1AAB0EFBE751",
+        "evidence_id": "CNINFO_000858_T0_20260430_REVENUE_2023",
+        "field_basis": "reported",
+        "field_label": "前两年营业收入",
+        "file_sha256": "1AAB0EFBE751C145990AC9652C3AFF165452EE060BF22A0FE0412996A55E8566",
+        "raw_excerpt": "调整前 | 调整后 | 营业收入（元） | 83,272,067,317.19 | 73,968,640,704.54 | 73,968,640,704.54 | 12.58% | 66,209,053,612.11 | 66,209,053,612.11 | 归属于上市公司股东的净利润",
+        "source_file": "CNINFO-000858-2023-1AAB0EFBE751",
+        "source_mode": "supabase_persisted_verified",
+        "source_unit": "元",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "fitness_class": "current_entity_primary_evidence",
+        "disclosure_date": "2024-04-29",
+        "statement_scope": "合并",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "announcement_title": "2023年年度报告",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "human_review_history": [],
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate"
+      },
+      {
+        "unit": "元",
+        "year": 2023,
+        "value": 42647461.48,
+        "case_id": "CNINFO_000858_T0_20260430",
+        "locator": "PDF 第 19 页：应收账款",
+        "currency": "CNY",
+        "field_id": "ar_prior",
+        "pdf_page": 19,
+        "candidate": {
+          "value": 42647461.48,
+          "locator": "PDF 第 19 页：应收账款",
+          "pdf_page": 19,
+          "document_id": "CNINFO-000858-2023-1AAB0EFBE751"
+        },
+        "field_kind": "accounts_receivable",
+        "print_page": null,
+        "source_url": "https://static.cninfo.com.cn/finalpage/2024-04-29/1219873658.PDF",
+        "document_id": "CNINFO-000858-2023-1AAB0EFBE751",
+        "evidence_id": "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2023",
+        "field_basis": "net",
+        "field_label": "前两年应收账款",
+        "file_sha256": "1AAB0EFBE751C145990AC9652C3AFF165452EE060BF22A0FE0412996A55E8566",
+        "raw_excerpt": "60.44% | 9.35% | 应收账款 | 42,647,461.48 | 0.03% | 35,686,942.32 | 0.02% | 0.01% | 存货 | 17,387,841,712.87",
+        "source_file": "CNINFO-000858-2023-1AAB0EFBE751",
+        "source_mode": "supabase_persisted_verified",
+        "source_unit": "元",
+        "human_review": {
+          "status": "pending",
+          "decision": null
+        },
+        "fitness_class": "current_entity_primary_evidence",
+        "disclosure_date": "2024-04-29",
+        "statement_scope": "合并",
+        "extraction_method": "pdf_text_heuristic_candidate",
+        "announcement_title": "2023年年度报告",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ],
+        "human_review_history": [],
+        "source_review_status": "auto_extracted_pending_human_page_confirmation",
+        "candidate_quality_issues": [],
+        "candidate_quality_status": "passed_technical_candidate"
+      }
+    ],
+    "schema_version": "evidence_bundle_v2",
+    "anti_confirmation": {
+      "hits": [
+        {
+          "score": 0.387751,
+          "locator": 10,
+          "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01",
+          "retrieval_id": "RET-DEMO-C3186F5279BA"
+        },
+        {
+          "score": 0.385821,
+          "locator": 11,
+          "evidence_id": "RAG-CNINFO_000858_T0_20260430-2023-P0011-C01",
+          "retrieval_id": "RET-DEMO-C3186F5279BA"
+        },
+        {
+          "score": 1,
+          "locator": 89,
+          "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00",
+          "retrieval_id": "RET-DEMO-8237518130D5"
+        },
+        {
+          "score": 1,
+          "locator": 95,
+          "evidence_id": "RAG-CNINFO_000858_T0_20260430-2024-P0095-C01",
+          "retrieval_id": "RET-DEMO-8237518130D5"
+        },
+        {
+          "score": 0.356701,
+          "locator": 7,
+          "evidence_id": "RAG-CNINFO_000858_T0_20260430-2024-P0007-C01",
+          "retrieval_id": "RET-DEMO-9BCD2DD60242"
+        },
+        {
+          "score": 0.345804,
+          "locator": 7,
+          "evidence_id": "RAG-CNINFO_000858_T0_20260430-2025-P0007-C01",
+          "retrieval_id": "RET-DEMO-9BCD2DD60242"
+        }
+      ],
+      "boundary": "本记录只证明执行了反向证据搜索与正常解释核查，不诱导模型凑解释数量；是否保留候选仍由确定性结果与人工判断决定。",
+      "hit_count": 6,
+      "schema_version": "anti_confirmation_record_v1",
+      "search_questions": [
+        "RAG-Q1",
+        "RAG-Q2",
+        "RAG-Q5",
+        "RAG-Q6"
+      ],
+      "final_recommendation": "retain",
+      "alternative_explanations": [
+        {
+          "text": "待验证假设：年报载明以经销为主、“先款后货”结算，或可解释应收与收入变动不同步，需合同与回款证据验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0010-C01"
+          ],
+          "support_status": "unverified_hypothesis",
+          "supported_by_current_evidence": false
+        },
+        {
+          "text": "待验证假设：应收账款按组合计提坏账准备并存在单项计提，结构变化或影响应收余额，需账龄与减值资料验证。",
+          "evidence_ids": [
+            "RAG-CNINFO_000858_T0_20260430-2025-P0089-C00"
+          ],
+          "support_status": "unverified_hypothesis",
+          "supported_by_current_evidence": false
+        }
+      ],
+      "reverse_evidence_search_performed": true,
+      "none_supported_by_current_evidence": true
+    },
+    "prescreen_summary": {
+      "mode": "公开财报快速预筛",
+      "confidence": "technical_candidate_pending_optional_human_confirmation",
+      "rule_plans": {
+        "R1": {
+          "status": "ready",
+          "prior_year": 2023,
+          "current_year": 2025,
+          "previous_year": 2024,
+          "complete_years": [
+            2025,
+            2024,
+            2023
+          ],
+          "three_year_available": true
+        }
+      },
+      "human_review": "正式采用、缓存或导出前复核；不阻断本次公开预筛。",
+      "skipped_rules": [],
+      "analysis_years": [
+        2025,
+        2024
+      ],
+      "missing_fields": [],
+      "industry_prescreen": null,
+      "analysis_cutoff_year": 2025,
+      "requested_current_year": 2025,
+      "blocked_candidate_count": 0,
+      "candidate_quality_issues": []
+    },
+    "knowledge_evidence": [
+      {
+        "excerpt": "问询要求结合行业周期、同行业经营情况说明营业收入变化，并核查收入确认与披露事项；不代表当前案例存在相同情形。",
+        "locator": "PDF 首页及问题一。",
+        "boundary": "处罚、问询、行业、新闻与宏观材料仅作类比或待验证背景，不支持当前企业事实。",
+        "publisher": "深圳证券交易所",
+        "source_id": "SRC-SZSE-INQUIRY-002172-2024",
+        "claim_scope": "contextual_hypothesis_only",
+        "document_id": "SZSE-002172-20240606-INQUIRY",
+        "evidence_id": "KB-SRC-SZSE-INQUIRY-002172-2024",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://disc.static.szse.cn/disc/disk03/finalpage/2024-06-06/74be4173-09bb-402b-ae61-2dc8ba8ce35e.PDF",
+        "published_at": "2024-06-06",
+        "retrieval_id": "KB-BA5E2C8D7DED",
+        "fitness_class": "analogous_regulatory_or_industry_background",
+        "content_sha256": "d7f2b70a0abf9cd1d8485ba00d385e3de00bdf8487639033267886fcda87225b",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "exchange_inquiry",
+        "relevance_matches": 11,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "analogous_background"
+        ]
+      },
+      {
+        "excerpt": "问询函登记为上交所监管类比入口，关注收入、应收账款及资金往来披露的核查方向；不支持当前企业事实。",
+        "locator": "官方公告 PDF；锦州港 2024 年半年报及三季报监管问询函标题页与对应问题段落。",
+        "boundary": "处罚、问询、行业、新闻与宏观材料仅作类比或待验证背景，不支持当前企业事实。",
+        "publisher": "上海证券交易所（信息披露平台）",
+        "source_id": "SRC-INQUIRY-SSE-JINZHOU-2024",
+        "claim_scope": "contextual_hypothesis_only",
+        "document_id": "SSE-2024-JINZHOU-INQUIRY",
+        "evidence_id": "KB-SRC-INQUIRY-SSE-JINZHOU-2024",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://static.cninfo.com.cn/finalpage/2024-11-01/1221588668.PDF",
+        "published_at": "2024-11-01",
+        "retrieval_id": "KB-A64EAB133018",
+        "fitness_class": "analogous_regulatory_or_industry_background",
+        "content_sha256": "06b1a86c44bb16695ffc6271c197e45270550fe37137e45bb575a857de17944a",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "exchange_inquiry",
+        "relevance_matches": 9,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "analogous_background"
+        ]
+      },
+      {
+        "excerpt": "宏观指标登记为行业背景入口，用于形成待验证的宏观环境解释；不得据此证明某家企业的具体收入或应收账款事实。",
+        "locator": "国家统计局官方新闻稿网页；2026年1—4月份全国规模以上工业企业利润增长标题与正文。",
+        "boundary": "处罚、问询、行业、新闻与宏观材料仅作类比或待验证背景，不支持当前企业事实。",
+        "publisher": "国家统计局",
+        "source_id": "SRC-STATS-INDUSTRIAL-2026",
+        "claim_scope": "contextual_hypothesis_only",
+        "document_id": "STATS-2026-1-4-INDUSTRIAL",
+        "evidence_id": "KB-SRC-STATS-INDUSTRIAL-2026",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://www.stats.gov.cn/sj/zxfb/202605/t20260527_1963808.html",
+        "published_at": "2026-05-27",
+        "retrieval_id": "KB-70A0AD33CFAA",
+        "fitness_class": "analogous_regulatory_or_industry_background",
+        "content_sha256": "d94cd5d2f77dd3046598a06ff22e75819eaa3492bac8b79989a7e7ccc1049f28",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "macro_indicator",
+        "relevance_matches": 9,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "analogous_background"
+        ]
+      },
+      {
+        "excerpt": "问询函登记为交易所监管类比入口，关注营业收入、应收账款及回复中的口径说明；不支持当前企业事实。",
+        "locator": "官方公告 PDF；标题与公告日期对应的原始 PDF，具体问题页码以打开原件为准。",
+        "boundary": "处罚、问询、行业、新闻与宏观材料仅作类比或待验证背景，不支持当前企业事实。",
+        "publisher": "深圳证券交易所（指定信息披露平台）",
+        "source_id": "SRC-INQUIRY-SZSE-HALF-2024",
+        "claim_scope": "contextual_hypothesis_only",
+        "document_id": "SZSE-2024-HALF-INQUIRY",
+        "evidence_id": "KB-SRC-INQUIRY-SZSE-HALF-2024",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://static.cninfo.com.cn/finalpage/2024-10-30/1221559788.PDF",
+        "published_at": "2024-10-30",
+        "retrieval_id": "KB-950DB5D1FF02",
+        "fitness_class": "analogous_regulatory_or_industry_background",
+        "content_sha256": "f32989a5ddb315333c4e671d939a92e0906be23d7e91550d953cf2d04bab434d",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "exchange_inquiry",
+        "relevance_matches": 7,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "analogous_background"
+        ]
+      },
+      {
+        "excerpt": "准则登记为规范依据入口，用于支持收入确认、履约义务与确认时点等审计程序设计；不支持当前企业事实。",
+        "locator": "财政部会计司官方 PDF；企业会计准则第14号正文及收入确认相关章节，页码以原件为准。",
+        "boundary": "仅支持审计程序、准则或法规依据，不支持当前企业事实。",
+        "publisher": "中华人民共和国财政部（会计司）",
+        "source_id": "SRC-CAS14-2017",
+        "claim_scope": "procedure_guidance",
+        "document_id": "CAS14-2017-REVISION",
+        "evidence_id": "KB-SRC-CAS14-2017",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://kjs.mof.gov.cn/zhengcefabu/201707/P020170719328747835611.pdf",
+        "published_at": "2017-07-05",
+        "retrieval_id": "KB-E98D5DC367C7",
+        "fitness_class": "authoritative_normative_basis",
+        "content_sha256": "381a18c61552e86981890b5cc10203d38e4368294016c47774e71b7ac241396a",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "accounting_standard",
+        "relevance_matches": 6,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "normative_basis",
+          "procedure_basis"
+        ]
+      },
+      {
+        "excerpt": "问询围绕营业收入与利润波动、经营现金流差异、合同履约进度及收入确认方法展开；可用于形成待核查程序清单。",
+        "locator": "PDF 问题3，关于经营情况。",
+        "boundary": "处罚、问询、行业、新闻与宏观材料仅作类比或待验证背景，不支持当前企业事实。",
+        "publisher": "上海证券交易所",
+        "source_id": "SRC-SSE-INQUIRY-600684-2024",
+        "claim_scope": "contextual_hypothesis_only",
+        "document_id": "SSE-600684-20241125-FORY",
+        "evidence_id": "KB-SRC-SSE-INQUIRY-600684-2024",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://static.sse.com.cn/stock/disclosure/announcement/c/202411/600684_20241125_FORY.pdf",
+        "published_at": "2024-11-25",
+        "retrieval_id": "KB-75CA1EF7FF71",
+        "fitness_class": "analogous_regulatory_or_industry_background",
+        "content_sha256": "7ee6a1e812f30e362aaf07f0acfb55d510deb3ffd7e77ced894b015f209426bf",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "exchange_inquiry",
+        "relevance_matches": 6,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "analogous_background"
+        ]
+      },
+      {
+        "excerpt": "发布会强调强化上市公司监管、提高信息披露质量和压实中介机构责任；仅用于审计计划背景与程序设计。",
+        "locator": "证监会官网正文，第45—69行。",
+        "boundary": "处罚、问询、行业、新闻与宏观材料仅作类比或待验证背景，不支持当前企业事实。",
+        "publisher": "中国证券监督管理委员会",
+        "source_id": "SRC-CSRC-NEWS-2024-0315",
+        "claim_scope": "contextual_hypothesis_only",
+        "document_id": "CSRC-NEWS-2024-0315",
+        "evidence_id": "KB-SRC-CSRC-NEWS-2024-0315",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://www.csrc.gov.cn/csrc/c100028/c7468002/content.shtml",
+        "published_at": "2024-03-15",
+        "retrieval_id": "KB-692E79AA9BCC",
+        "fitness_class": "analogous_regulatory_or_industry_background",
+        "content_sha256": "3d2e883e6354d6b1429a9c8329c511f0b613e6402eb73b96ca1d7b6c4d2d3d70",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "news",
+        "relevance_matches": 4,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "analogous_background"
+        ]
+      },
+      {
+        "excerpt": "处罚决定书载明信息披露违法与公开发行文件编造重大虚假内容的处理决定；仅用于提示审计计划中应关注信息披露真实性与证据链。",
+        "locator": "证监会官网正文，第 123—163 行的处理决定与日期。",
+        "boundary": "处罚、问询、行业、新闻与宏观材料仅作类比或待验证背景，不支持当前企业事实。",
+        "publisher": "中国证券监督管理委员会",
+        "source_id": "SRC-CSRC-QIBU-2023-86",
+        "claim_scope": "contextual_hypothesis_only",
+        "document_id": "CSRC-2023-86",
+        "evidence_id": "KB-SRC-CSRC-QIBU-2023-86",
+        "snapshot_id": "KNOWLEDGE-20260824-REPRESENTATIVE-V1",
+        "official_url": "https://www.csrc.gov.cn/csrc/c101928/c7448181/content.shtml",
+        "published_at": "2023-11-15",
+        "retrieval_id": "KB-DBC650C2BBDC",
+        "fitness_class": "analogous_regulatory_or_industry_background",
+        "content_sha256": "77a0342e65770a300ac1e631748a974c57735b9ae90ba1d6ff797cdb161bb8f1",
+        "schema_version": "knowledge_retrieval_trace_v1",
+        "support_status": "candidate",
+        "source_category": "csrc_penalty",
+        "relevance_matches": 3,
+        "retrieval_version": "knowledge_retrieval_relevance_gate_v2",
+        "allowed_claim_types": [
+          "analogous_background"
+        ]
+      }
+    ],
+    "procedure_evidence": [
+      {
+        "unit": "status",
+        "value": "candidate",
+        "excerpt": "应收账款增速为1.07%，营业收入增速为-54.55%，增速差为55.62个百分点；应收账款绝对变动为398,857.56元。未评价金额重要性。",
+        "locator": "程序计算结果卡；不代表原文事实或人工确认",
+        "pdf_page": null,
+        "document_id": null,
+        "evidence_id": "PROC-R1-2025",
+        "field_label": "R1程序筛查结果",
+        "source_file": null,
+        "evidence_type": "deterministic_rule_result",
+        "fitness_class": "current_entity_primary_evidence",
+        "review_status": "program_calculated",
+        "allowed_claim_types": [
+          "current_entity_fact"
+        ]
+      }
+    ],
+    "numeric_claim_trace": {
+      "trace": [
+        {
+          "raw": "1.07%",
+          "kind": "percentage",
+          "source": "R1.ar_growth",
+          "sign_hint": "positive_or_unknown",
+          "normalized": 0.010700000000000001,
+          "calculation": "1.07% ↔ ar_growth=0.010679900348899315",
+          "source_type": "metric",
+          "bound_by_claim": false,
+          "verification_status": "traced"
+        },
+        {
+          "raw": "-54.55%",
+          "kind": "percentage",
+          "source": "R1.revenue_growth",
+          "sign_hint": "explicit",
+          "normalized": -0.5455,
+          "calculation": "-54.55% ↔ revenue_growth=-0.5455180406416607",
+          "source_type": "metric",
+          "bound_by_claim": false,
+          "verification_status": "traced"
+        },
+        {
+          "raw": "55.62个百分点",
+          "kind": "percentage_point",
+          "source": null,
+          "sign_hint": "positive_or_unknown",
+          "normalized": null,
+          "bound_by_claim": false,
+          "verification_status": "unparseable"
+        },
+        {
+          "raw": "398,857.56",
+          "kind": "number",
+          "source": "R1.absolute_ar_change",
+          "sign_hint": "positive_or_unknown",
+          "normalized": 398857.56,
+          "calculation": "398,857.56 ↔ absolute_ar_change=398857.55999999493",
+          "source_type": "metric",
+          "bound_by_claim": false,
+          "verification_status": "traced"
+        },
+        {
+          "raw": "01",
+          "kind": "number",
+          "source": "R1.sustained_periods",
+          "sign_hint": "positive_or_unknown",
+          "normalized": 1,
+          "calculation": "01 ↔ sustained_periods=1",
+          "source_type": "metric",
+          "bound_by_claim": false,
+          "verification_status": "traced"
+        },
+        {
+          "raw": "03",
+          "kind": "number",
+          "source": null,
+          "sign_hint": "positive_or_unknown",
+          "normalized": 3,
+          "bound_by_claim": false,
+          "verification_status": "unverified_numeric_claim"
+        },
+        {
+          "raw": "06",
+          "kind": "number",
+          "source": null,
+          "sign_hint": "positive_or_unknown",
+          "normalized": 6,
+          "bound_by_claim": false,
+          "verification_status": "unverified_numeric_claim"
+        },
+        {
+          "raw": "1.07%",
+          "kind": "percentage",
+          "source": "R1.ar_growth",
+          "sign_hint": "positive_or_unknown",
+          "normalized": 0.010700000000000001,
+          "calculation": "1.07% ↔ ar_growth=0.010679900348899315",
+          "source_type": "metric",
+          "bound_by_claim": false,
+          "verification_status": "traced"
+        },
+        {
+          "raw": "-54.55%",
+          "kind": "percentage",
+          "source": "R1.revenue_growth",
+          "sign_hint": "explicit",
+          "normalized": -0.5455,
+          "calculation": "-54.55% ↔ revenue_growth=-0.5455180406416607",
+          "source_type": "metric",
+          "bound_by_claim": false,
+          "verification_status": "traced"
+        },
+        {
+          "raw": "55.62个百分点",
+          "kind": "percentage_point",
+          "source": null,
+          "sign_hint": "positive_or_unknown",
+          "normalized": null,
+          "bound_by_claim": false,
+          "verification_status": "unparseable"
+        },
+        {
+          "raw": "398,857.56",
+          "kind": "number",
+          "source": "R1.absolute_ar_change",
+          "sign_hint": "positive_or_unknown",
+          "normalized": 398857.56,
+          "calculation": "398,857.56 ↔ absolute_ar_change=398857.55999999493",
+          "source_type": "metric",
+          "bound_by_claim": false,
+          "verification_status": "traced"
+        }
+      ],
+      "passed": true,
+      "boundary": "关键财务数字无来源时禁止完整成功；技术数字（run ID、页码、角色序号）不参与核对。按主张分段校验时，年报原文数字只在当前主张确实绑定该 evidence_id 的前提下才算来源。",
+      "key_unverified": [],
+      "schema_version": "numeric_claim_trace_v3",
+      "validation_mode": "claim_scoped",
+      "unverified_count": 2,
+      "key_unverified_count": 0,
+      "validated_segment_count": 6
+    },
+    "supplement_evidence": [],
+    "evidence_fitness_boundary": "current_entity_primary_evidence 可支持受边界限制的当前企业事实；authoritative_normative_basis 仅支持规范/程序依据；analogous_regulatory_or_industry_background 仅支持类比或待验证背景；unverified_background 不得进入最终事实主张。",
+    "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+    "evidence_fitness_violations": [],
+    "assertion_evidence_procedure_matrix": [
+      {
+        "status": "partially_covered",
+        "account": "revenue",
+        "rule_id": "R1",
+        "assertion": "发生",
+        "matrix_row_id": "CNINFO_000858_T0_20260430-R1-revenue-发生",
+        "procedure_ids": [
+          "AP-01",
+          "AP-03"
+        ],
+        "source_of_row": "programmatic",
+        "support_level": "有当前企业直接证据，但资料缺口未完全覆盖",
+        "uncovered_gaps": [
+          "主要客户合同结算条款",
+          "信用政策变动",
+          "期后回款",
+          "账龄结构"
+        ],
+        "normative_basis": [
+          {
+            "locator": "财政部会计司官方 PDF；企业会计准则第14号正文及收入确认相关章节，页码以原件为准。",
+            "category": "accounting_standard",
+            "source_id": "SRC-CAS14-2017"
+          }
+        ],
+        "requested_materials": [
+          "主要合同关键条款摘要",
+          "信用政策说明",
+          "期后回款记录",
+          "账龄明细表"
+        ],
+        "analogous_background": [
+          {
+            "locator": "PDF 首页及问题一。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SZSE-INQUIRY-002172-2024"
+          },
+          {
+            "locator": "官方公告 PDF；锦州港 2024 年半年报及三季报监管问询函标题页与对应问题段落。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SSE-JINZHOU-2024"
+          },
+          {
+            "locator": "国家统计局官方新闻稿网页；2026年1—4月份全国规模以上工业企业利润增长标题与正文。",
+            "category": "macro_indicator",
+            "source_id": "SRC-STATS-INDUSTRIAL-2026"
+          },
+          {
+            "locator": "官方公告 PDF；标题与公告日期对应的原始 PDF，具体问题页码以打开原件为准。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SZSE-HALF-2024"
+          },
+          {
+            "locator": "PDF 问题3，关于经营情况。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SSE-INQUIRY-600684-2024"
+          },
+          {
+            "locator": "证监会官网正文，第45—69行。",
+            "category": "news",
+            "source_id": "SRC-CSRC-NEWS-2024-0315"
+          },
+          {
+            "locator": "证监会官网正文，第 123—163 行的处理决定与日期。",
+            "category": "csrc_penalty",
+            "source_id": "SRC-CSRC-QIBU-2023-86"
+          }
+        ],
+        "suggested_procedures": [
+          {
+            "procedure": "初步分析程序",
+            "procedure_id": "AP-01",
+            "automation_level": "替代重复计算"
+          },
+          {
+            "procedure": "风险评估辅助",
+            "procedure_id": "AP-03",
+            "automation_level": "辅助"
+          }
+        ],
+        "current_entity_direct_evidence": [
+          "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2024",
+          "CNINFO_000858_T0_20260430_REVENUE_2023"
+        ]
+      },
+      {
+        "status": "partially_covered",
+        "account": "revenue",
+        "rule_id": "R1",
+        "assertion": "截止",
+        "matrix_row_id": "CNINFO_000858_T0_20260430-R1-revenue-截止",
+        "procedure_ids": [
+          "AP-01",
+          "AP-06"
+        ],
+        "source_of_row": "programmatic",
+        "support_level": "有当前企业直接证据，但资料缺口未完全覆盖",
+        "uncovered_gaps": [
+          "主要客户合同结算条款",
+          "信用政策变动",
+          "期后回款",
+          "账龄结构"
+        ],
+        "normative_basis": [
+          {
+            "locator": "财政部会计司官方 PDF；企业会计准则第14号正文及收入确认相关章节，页码以原件为准。",
+            "category": "accounting_standard",
+            "source_id": "SRC-CAS14-2017"
+          }
+        ],
+        "requested_materials": [
+          "主要合同关键条款摘要",
+          "信用政策说明",
+          "期后回款记录",
+          "账龄明细表"
+        ],
+        "analogous_background": [
+          {
+            "locator": "PDF 首页及问题一。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SZSE-INQUIRY-002172-2024"
+          },
+          {
+            "locator": "官方公告 PDF；锦州港 2024 年半年报及三季报监管问询函标题页与对应问题段落。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SSE-JINZHOU-2024"
+          },
+          {
+            "locator": "国家统计局官方新闻稿网页；2026年1—4月份全国规模以上工业企业利润增长标题与正文。",
+            "category": "macro_indicator",
+            "source_id": "SRC-STATS-INDUSTRIAL-2026"
+          },
+          {
+            "locator": "官方公告 PDF；标题与公告日期对应的原始 PDF，具体问题页码以打开原件为准。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SZSE-HALF-2024"
+          },
+          {
+            "locator": "PDF 问题3，关于经营情况。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SSE-INQUIRY-600684-2024"
+          },
+          {
+            "locator": "证监会官网正文，第45—69行。",
+            "category": "news",
+            "source_id": "SRC-CSRC-NEWS-2024-0315"
+          },
+          {
+            "locator": "证监会官网正文，第 123—163 行的处理决定与日期。",
+            "category": "csrc_penalty",
+            "source_id": "SRC-CSRC-QIBU-2023-86"
+          }
+        ],
+        "suggested_procedures": [
+          {
+            "procedure": "初步分析程序",
+            "procedure_id": "AP-01",
+            "automation_level": "替代重复计算"
+          },
+          {
+            "procedure": "补充证据再评估",
+            "procedure_id": "AP-06",
+            "automation_level": "辅助"
+          }
+        ],
+        "current_entity_direct_evidence": [
+          "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2024",
+          "CNINFO_000858_T0_20260430_REVENUE_2023"
+        ]
+      },
+      {
+        "status": "partially_covered",
+        "account": "revenue",
+        "rule_id": "R1",
+        "assertion": "准确性",
+        "matrix_row_id": "CNINFO_000858_T0_20260430-R1-revenue-准确性",
+        "procedure_ids": [
+          "AP-01"
+        ],
+        "source_of_row": "programmatic",
+        "support_level": "有当前企业直接证据，但资料缺口未完全覆盖",
+        "uncovered_gaps": [
+          "主要客户合同结算条款",
+          "信用政策变动",
+          "期后回款",
+          "账龄结构"
+        ],
+        "normative_basis": [
+          {
+            "locator": "财政部会计司官方 PDF；企业会计准则第14号正文及收入确认相关章节，页码以原件为准。",
+            "category": "accounting_standard",
+            "source_id": "SRC-CAS14-2017"
+          }
+        ],
+        "requested_materials": [
+          "主要合同关键条款摘要",
+          "信用政策说明",
+          "期后回款记录",
+          "账龄明细表"
+        ],
+        "analogous_background": [
+          {
+            "locator": "PDF 首页及问题一。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SZSE-INQUIRY-002172-2024"
+          },
+          {
+            "locator": "官方公告 PDF；锦州港 2024 年半年报及三季报监管问询函标题页与对应问题段落。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SSE-JINZHOU-2024"
+          },
+          {
+            "locator": "国家统计局官方新闻稿网页；2026年1—4月份全国规模以上工业企业利润增长标题与正文。",
+            "category": "macro_indicator",
+            "source_id": "SRC-STATS-INDUSTRIAL-2026"
+          },
+          {
+            "locator": "官方公告 PDF；标题与公告日期对应的原始 PDF，具体问题页码以打开原件为准。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SZSE-HALF-2024"
+          },
+          {
+            "locator": "PDF 问题3，关于经营情况。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SSE-INQUIRY-600684-2024"
+          },
+          {
+            "locator": "证监会官网正文，第45—69行。",
+            "category": "news",
+            "source_id": "SRC-CSRC-NEWS-2024-0315"
+          },
+          {
+            "locator": "证监会官网正文，第 123—163 行的处理决定与日期。",
+            "category": "csrc_penalty",
+            "source_id": "SRC-CSRC-QIBU-2023-86"
+          }
+        ],
+        "suggested_procedures": [
+          {
+            "procedure": "初步分析程序",
+            "procedure_id": "AP-01",
+            "automation_level": "替代重复计算"
+          }
+        ],
+        "current_entity_direct_evidence": [
+          "CNINFO_000858_T0_20260430_REVENUE_2025",
+          "CNINFO_000858_T0_20260430_REVENUE_2024",
+          "CNINFO_000858_T0_20260430_REVENUE_2023"
+        ]
+      },
+      {
+        "status": "partially_covered",
+        "account": "accounts_receivable",
+        "rule_id": "R1",
+        "assertion": "存在",
+        "matrix_row_id": "CNINFO_000858_T0_20260430-R1-accounts_receivable-存在",
+        "procedure_ids": [
+          "AP-01",
+          "AP-03",
+          "AP-06"
+        ],
+        "source_of_row": "programmatic",
+        "support_level": "有当前企业直接证据，但资料缺口未完全覆盖",
+        "uncovered_gaps": [
+          "主要客户合同结算条款",
+          "信用政策变动",
+          "期后回款",
+          "账龄结构"
+        ],
+        "normative_basis": [
+          {
+            "locator": "财政部会计司官方 PDF；企业会计准则第14号正文及收入确认相关章节，页码以原件为准。",
+            "category": "accounting_standard",
+            "source_id": "SRC-CAS14-2017"
+          }
+        ],
+        "requested_materials": [
+          "主要合同关键条款摘要",
+          "信用政策说明",
+          "期后回款记录",
+          "账龄明细表"
+        ],
+        "analogous_background": [
+          {
+            "locator": "PDF 首页及问题一。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SZSE-INQUIRY-002172-2024"
+          },
+          {
+            "locator": "官方公告 PDF；锦州港 2024 年半年报及三季报监管问询函标题页与对应问题段落。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SSE-JINZHOU-2024"
+          },
+          {
+            "locator": "国家统计局官方新闻稿网页；2026年1—4月份全国规模以上工业企业利润增长标题与正文。",
+            "category": "macro_indicator",
+            "source_id": "SRC-STATS-INDUSTRIAL-2026"
+          },
+          {
+            "locator": "官方公告 PDF；标题与公告日期对应的原始 PDF，具体问题页码以打开原件为准。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SZSE-HALF-2024"
+          },
+          {
+            "locator": "PDF 问题3，关于经营情况。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SSE-INQUIRY-600684-2024"
+          },
+          {
+            "locator": "证监会官网正文，第45—69行。",
+            "category": "news",
+            "source_id": "SRC-CSRC-NEWS-2024-0315"
+          },
+          {
+            "locator": "证监会官网正文，第 123—163 行的处理决定与日期。",
+            "category": "csrc_penalty",
+            "source_id": "SRC-CSRC-QIBU-2023-86"
+          }
+        ],
+        "suggested_procedures": [
+          {
+            "procedure": "初步分析程序",
+            "procedure_id": "AP-01",
+            "automation_level": "替代重复计算"
+          },
+          {
+            "procedure": "风险评估辅助",
+            "procedure_id": "AP-03",
+            "automation_level": "辅助"
+          },
+          {
+            "procedure": "补充证据再评估",
+            "procedure_id": "AP-06",
+            "automation_level": "辅助"
+          }
+        ],
+        "current_entity_direct_evidence": [
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2023"
+        ]
+      },
+      {
+        "status": "not_applicable",
+        "account": "accounts_receivable",
+        "rule_id": "R1",
+        "assertion": "计价和分摊",
+        "matrix_row_id": "CNINFO_000858_T0_20260430-R1-accounts_receivable-计价和分摊",
+        "procedure_ids": [],
+        "source_of_row": "programmatic",
+        "support_level": "无程序映射，本认定不在当前范围",
+        "uncovered_gaps": [
+          "主要客户合同结算条款",
+          "信用政策变动",
+          "期后回款",
+          "账龄结构"
+        ],
+        "normative_basis": [
+          {
+            "locator": "财政部会计司官方 PDF；企业会计准则第14号正文及收入确认相关章节，页码以原件为准。",
+            "category": "accounting_standard",
+            "source_id": "SRC-CAS14-2017"
+          }
+        ],
+        "requested_materials": [
+          "主要合同关键条款摘要",
+          "信用政策说明",
+          "期后回款记录",
+          "账龄明细表"
+        ],
+        "analogous_background": [
+          {
+            "locator": "PDF 首页及问题一。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SZSE-INQUIRY-002172-2024"
+          },
+          {
+            "locator": "官方公告 PDF；锦州港 2024 年半年报及三季报监管问询函标题页与对应问题段落。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SSE-JINZHOU-2024"
+          },
+          {
+            "locator": "国家统计局官方新闻稿网页；2026年1—4月份全国规模以上工业企业利润增长标题与正文。",
+            "category": "macro_indicator",
+            "source_id": "SRC-STATS-INDUSTRIAL-2026"
+          },
+          {
+            "locator": "官方公告 PDF；标题与公告日期对应的原始 PDF，具体问题页码以打开原件为准。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-INQUIRY-SZSE-HALF-2024"
+          },
+          {
+            "locator": "PDF 问题3，关于经营情况。",
+            "category": "exchange_inquiry",
+            "source_id": "SRC-SSE-INQUIRY-600684-2024"
+          },
+          {
+            "locator": "证监会官网正文，第45—69行。",
+            "category": "news",
+            "source_id": "SRC-CSRC-NEWS-2024-0315"
+          },
+          {
+            "locator": "证监会官网正文，第 123—163 行的处理决定与日期。",
+            "category": "csrc_penalty",
+            "source_id": "SRC-CSRC-QIBU-2023-86"
+          }
+        ],
+        "suggested_procedures": [],
+        "current_entity_direct_evidence": [
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2025",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2024",
+          "CNINFO_000858_T0_20260430_ACCOUNTS_RECEIVABLE_2023"
+        ]
+      }
+    ]
+  },
+  "analysis_route": "risk_candidate"
+}

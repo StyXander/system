@@ -153,7 +153,7 @@ ROUTE_ALLOWED_CONCLUSIONS = {
     "industry_review": ["industry_boundary", "additional_procedure_required", "data_gap"],
     "evidence_gap_review": ["data_gap", "additional_procedure_required"],
 }
-PROMPT_VERSION = "agent_prompt_v5_claim_scoped_numbers"
+PROMPT_VERSION = "agent_prompt_v6_claim_scoped_counter_review"
 ROLE_MAX_OUTPUT_TOKENS: dict[AgentRole, int] = {"challenge": 1400, "counter": 1400, "review": 1600}
 
 
@@ -356,7 +356,7 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 你会收到：rule_result（程序计算真值）、deterministic_constraints（不可改写的约束）和 evidence_bundle（本次案例允许使用的证据白名单）。
 你必须：
 1. 只提出一条最重要的候选主张，说明需要核查的会计事项和原因；
-2. 每条 claims 主张至少引用一个 evidence_id 且必须是 supported；只能作为推测的内容放入 normal_explanations，并标记为 unverified_hypothesis；
+2. 每条 claims 主张至少引用一个 evidence_id 且必须是 supported；聚焦程序事实与待核查问题，不提前完成正常解释或反证；normal_explanations 返回空列表，把替代解释留给 Counter；
 3. 把缺失的期后回款、账龄、合同或其他材料列入 data_gaps/requested_materials；
 4. 除非路线合同另有规定，status 返回 candidate；draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
 5. 把输出交给 Counter Agent，不能提前给出最终处理建议。
@@ -365,22 +365,22 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
     "counter": """你是审迹智链 Counter Agent，负责对 Challenge Agent 的主张做反证和正常解释检查。
 
 你会收到：同一 rule_result、deterministic_constraints、evidence_bundle，以及 Challenge Agent 的结构化输出。你必须：
-1. 先判断 Challenge 的主张是否真的被当前证据支持，指出越界或不确定之处；
+1. 针对 Challenge 的那条主张逐项检查证据支持、口径限制和不确定性；不要仅复述前一阶段数字或更换措辞；
 2. 优先寻找同一证据包中的正常业务解释、口径差异、季节性、合并范围和反向证据；
 3. 找不到反证时要明确写“当前证据未发现相反材料”，不能编造反证；
 4. 如果解释没有 RAG-/SUP- evidence_id 直接支持，support_status 必须为 unverified_hypothesis，并在 text 中明确写“待验证假设”；字段数值本身不能证明季节性、口径差异或管理层原因；
-5. 列出仍需取得的资料和下一步核查动作；
+5. 列出能区分原主张与替代解释的资料及核对目的；在 reason_for_status 中说明新增依据或限制，以及它是否改变候选；没有新增依据时明确写“未取得新增依据”，不强迫反对；
 6. 除非路线合同另有规定，status 只能返回 candidate 或 defer；draft_title、draft_observation 为空字符串，ai_recommendation 返回 not_applicable；
 7. 不要声称达到强阈值，也不要写跨年度周转/回款趋势或变化；如果程序没有提供可比年度，只能列为资料缺口或待验证假设；
 8. 将结构化结果交给 Review Agent，不替 Review 作最终建议。
 
-严禁：删除或弱化程序事实；根据增速差推断管理层动机；把待验证假设写成已确认事实；引用 Challenge 输出中不存在的 evidence_id。""",
+严禁：删除或弱化程序事实；根据增速差推断管理层动机；把待验证假设写成已确认事实；引用当前证据包不存在的 evidence_id。可以引入 Challenge 尚未引用、但在同一证据白名单内的材料。""",
     "review": """你是审迹智链 Review Agent，负责把程序筛查、Challenge 和 Counter 收敛成可交给人工复核的审计计划草稿。
 
 你会收到：同一 rule_result、deterministic_constraints、evidence_bundle、Challenge 输出和 Counter 输出。你必须：
 1. 检查三者是否引用同一案例、同一规则和当前证据白名单；
 2. 区分“程序已计算事实”“有证据支持的解释”“仍待验证的假设”和“资料缺口”；
-3. 形成非空 draft_title 与 draft_observation，简洁说明核查重点、证据边界和建议取得的材料；
+3. 形成非空 draft_title 与 draft_observation，简洁说明核查重点、证据边界和建议取得的材料；在 reason_for_status 中说明采纳了哪项依据或限制、为何保留/降级/暂缓；不把“前两角色一致”当作证据，不要求必须改变原判断；
 4. 如果 rule_result.risk_card 提供 basis_limitation 或 trend_limitation，必须把这些限制原样或等义写进 draft_observation；不能省略“净额/账面口径限制”或“趋势不可评价/缺少第三年”等程序边界；
 5. 只有 deterministic_constraints 明确允许时才能描述强阈值、持续趋势或周转变化；未达到强阈值、缺少第三年时必须明确写“未达到/不可评价”，不得用相反措辞；
 6. status 与 ai_recommendation 必须一致，只能是 retain、downgrade 或 defer；
@@ -389,6 +389,18 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 
 严禁：新增证据包没有的事实；把“保留”写成专业结论；认定舞弊、违法、重大错报或出具审计意见；把缺失数据补成金额或趋势。""",
 }
+
+
+# 实验单次生成仍使用最终复核输出合同，但不依赖不存在的前序角色。
+# 这段任务说明与三角色共用后面的程序真值、数字、来源用途及权限合同。
+SINGLE_GENERATION_PROMPT = """你负责独立形成一份审计计划阶段的完整待核查草稿。
+你会收到程序计算结果、确定性约束和本次允许使用的全部证据。
+在一次生成中同时检查异常、相反材料、正常解释、口径限制、资料缺口和具体补充程序。
+没有其他角色的前序输出，不要求也不假设存在前序输出。
+事实主张绑定当前证据；无法证实的解释保留为待验证假设，没有相反材料时如实说明。
+在 reason_for_status 中说明证据和局限如何决定处置，不能靠缺失信息得出肯定结论。
+按最终 review 合同提交非空标题与观察，建议与状态一致；保留 basis_limitation、trend_limitation。
+输出只是辅助草稿，最终专业采用仍由项目组决定。"""
 
 
 def _route_role_contract(analysis_route: str, role: AgentRole) -> str:
@@ -522,9 +534,11 @@ def compact_evidence_bundle(evidence_bundle: dict[str, Any] | list[dict[str, Any
 _compact_evidence_bundle = compact_evidence_bundle
 
 
-def _system_prompt(role: AgentRole, analysis_route: str = "risk_candidate") -> str:
+def _system_prompt(role: AgentRole, analysis_route: str = "risk_candidate", *, single_generation: bool = False) -> str:
+    """生成共同约束；实验A只替换任务说明，不减弱事实和证据合同。"""
     route_instruction = AI_ANALYSIS_ROUTES.get(analysis_route, AI_ANALYSIS_ROUTES["risk_candidate"])
-    return f"""{ROLE_PROMPTS[role]}
+    task_instruction = SINGLE_GENERATION_PROMPT if single_generation else ROLE_PROMPTS[role]
+    return f"""{task_instruction}
 
 本次 AI 分析路线：{analysis_route}。路线目标：{route_instruction}
 路线角色合同：{_route_role_contract(analysis_route, role)}
@@ -1028,7 +1042,8 @@ def _validate_deterministic_fact_language(output: AgentOutput, rule_result: Rule
 
 
 def _call_model(
-    *, api_key: str, base_url: str, model_id: str, role: AgentRole, payload: dict[str, Any], analysis_route: str = "risk_candidate"
+    *, api_key: str, base_url: str, model_id: str, role: AgentRole, payload: dict[str, Any], analysis_route: str = "risk_candidate",
+    single_generation: bool = False,
 ) -> tuple[dict[str, Any], int, str, str, int | None, int | None]:
     output_tool = _agent_output_tool_for(
         role,
@@ -1046,7 +1061,7 @@ def _call_model(
         "tools": [output_tool],
         "tool_choice": {"type": "function", "function": {"name": AGENT_OUTPUT_TOOL_NAME}},
         "messages": [
-            {"role": "system", "content": _system_prompt(role, analysis_route)},
+            {"role": "system", "content": _system_prompt(role, analysis_route, single_generation=single_generation)},
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ],
     }

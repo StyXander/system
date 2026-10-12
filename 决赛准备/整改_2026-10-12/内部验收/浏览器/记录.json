@@ -1,0 +1,117 @@
+{
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "records": [
+    {
+      "requested": {
+        "width": 1024,
+        "height": 768
+      },
+      "errors": [],
+      "posts": [],
+      "failedRequests": [],
+      "httpErrors": [],
+      "scope": "historical_result_read_only",
+      "new_model_calls": 0,
+      "restore_seconds": 5.252,
+      "actual": {
+        "width": 1024,
+        "height": 768,
+        "documentWidth": 1024
+      },
+      "run_id": "RUN-V7-DCF895BC5377",
+      "source_href": "/api/cases/CNINFO_000858_T0_20260430/sources/CNINFO-000858-2025-09133E1F44B3#page=7",
+      "pdf_signature": "%PDF",
+      "passed": true
+    },
+    {
+      "requested": {
+        "width": 768,
+        "height": 1024
+      },
+      "errors": [],
+      "posts": [],
+      "failedRequests": [],
+      "httpErrors": [],
+      "scope": "historical_result_read_only",
+      "new_model_calls": 0,
+      "restore_seconds": 5.149,
+      "actual": {
+        "width": 768,
+        "height": 1024,
+        "documentWidth": 768
+      },
+      "run_id": "RUN-V7-DCF895BC5377",
+      "source_href": "/api/cases/CNINFO_000858_T0_20260430/sources/CNINFO-000858-2025-09133E1F44B3#page=7",
+      "pdf_signature": "%PDF",
+      "passed": true
+    },
+    {
+      "requested": {
+        "width": 390,
+        "height": 844
+      },
+      "errors": [],
+      "posts": [],
+      "failedRequests": [],
+      "httpErrors": [],
+      "scope": "historical_result_read_only",
+      "new_model_calls": 0,
+      "restore_seconds": 2.366,
+      "actual": {
+        "width": 390,
+        "height": 844,
+        "documentWidth": 390
+      },
+      "run_id": "RUN-V7-DCF895BC5377",
+      "source_href": "/api/cases/CNINFO_000858_T0_20260430/sources/CNINFO-000858-2025-09133E1F44B3#page=7",
+      "pdf_signature": "%PDF",
+      "passed": true
+    },
+    {
+      "requested": {
+        "width": 1440,
+        "height": 1000
+      },
+      "errors": [],
+      "posts": [],
+      "failedRequests": [],
+      "httpErrors": [],
+      "scope": "historical_result_read_only",
+      "new_model_calls": 0,
+      "restore_seconds": 1.404,
+      "actual": {
+        "width": 1440,
+        "height": 1000,
+        "documentWidth": 1440
+      },
+      "run_id": "RUN-V7-DCF895BC5377",
+      "source_href": "/api/cases/CNINFO_000858_T0_20260430/sources/CNINFO-000858-2025-09133E1F44B3#page=7",
+      "pdf_signature": "%PDF",
+      "source_popup_opened": true,
+      "export_same_run": true,
+      "csv_semantic_boundary": true,
+      "focus_element": "BUTTON",
+      "refresh_same_run": true,
+      "passed": true
+    },
+    {
+      "offline_same_run": true,
+      "images": [
+        {
+          "src": "原文页/2025_P007.png",
+          "loaded": true
+        },
+        {
+          "src": "原文页/2025_P018.png",
+          "loaded": true
+        },
+        {
+          "src": "原文页/2025_P088.png",
+          "loaded": true
+        }
+      ],
+      "passed": true,
+      "new_model_calls": 0
+    }
+  ]
+}

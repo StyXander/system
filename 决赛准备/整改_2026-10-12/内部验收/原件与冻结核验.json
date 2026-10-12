@@ -1,0 +1,26 @@
+{
+  "notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "preserved": {
+    "答辩PPT\\AuditTrace_20slides_compact (1).pptx": true,
+    "答辩PPT\\.finals_20261010\\candidate-r2.pptx": true,
+    "答辩PPT\\.finals_20261010\\candidate.pptx": true,
+    "答辩PPT\\.finals_highlights_20261010\\candidate.pptx": true,
+    "答辩PPT\\.image_refresh\\candidate.pptx": true,
+    "答辩PPT\\.image_refresh\\roundtrip.pptx": true,
+    "答辩PPT\\优化版\\AuditTrace_20slides_灰白意象优化版.pptx": true,
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟版_10页主讲_5页备用.pptx": true,
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟版_宋体亮点强化版.pptx": true,
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟讲稿_对应宋体亮点强化版.md": true,
+    "答辩PPT\\决赛版\\审迹智链_决赛七分钟讲稿_对应宋体亮点强化版.docx": true,
+    "backend\\release_records\\current_evaluation.json": true,
+    "backend\\competition_demo_cases.json": true,
+    "backend\\release_records\\current_release.json": true,
+    "决赛准备\\整改_2026-10-11\\探索对照\\manifest.json": true,
+    "决赛准备\\整改_2026-10-11\\探索对照\\inputs\\CNINFO_000858_T0_20260430.json": true,
+    "决赛准备\\整改_2026-10-11\\探索对照\\inputs\\CNINFO_600309_T0_20260420.json": true,
+    "决赛准备\\整改_2026-10-11\\探索对照\\inputs\\CNINFO_600938_T0_20260326.json": true
+  },
+  "new_input_hashes_match": true,
+  "source_hashes_match": true,
+  "authorization": "not_approved"
+}

@@ -84,7 +84,8 @@ def test_agent_chain_reports_missing_configuration_without_fake_output(monkeypat
     assert response.status_code == 200
     assert body["model_check"]["status"] == "config_missing"
     assert result["agent_steps"][0]["status"] == "config_missing"
-    assert result["agent_steps"][0]["prompt_version"] == "agent_prompt_v3"
+    from backend.app.agents import PROMPT_VERSION
+    assert result["agent_steps"][0]["prompt_version"] == PROMPT_VERSION
     assert result["agent_steps"][0]["output"] is None
 
 
