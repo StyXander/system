@@ -1,2 +1,2 @@
 # 新探索实验按原始字节冻结SHA256；不让Windows/Linux换行转换改写三个输入。
-决赛准备/整改_2026-10-12/探索对照/inputs/*.json -text
+决赛准备/整改_2026-10-12/探索对照/inputs/*.json -text whitespace=cr-at-eol
