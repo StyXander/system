@@ -169,3 +169,13 @@ artifacts/
 /outputs/evaluation_v4/sealed-ai-reference/
 /outputs/evaluation_v4/**/coordinator/
 !/docs/2026-10-10_*.md
+# 2026-10-14：公开方案和完整问答不包含身份、原始付费响应及签字资料。
+!/docs/2026-10-14_认定级取证整改执行说明.md
+!/docs/2026-10-14_项目定位与公开同步执行说明.md
+!/docs/审迹智链_决赛方案书_2026-10-14.md
+!/docs/审迹智链_答辩40问_2026-10-14.md
+!/docs/2026-10-14_资料用途工程发布核验.md
+!/scripts/verify_assertion_evidence.py
+!/scripts/verify_evidence_decisions_browser.cjs
+!/scripts/build_assertion_defense_documents.py
+!/scripts/render_assertion_defense_word.ps1

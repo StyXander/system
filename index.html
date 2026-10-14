@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#FFFFFF">
-  <meta name="description" content="审迹智链 AuditTrace 竞赛演示版：上市公司年报风险预筛工作台（审计计划阶段·销售与收款循环）">
-  <title>审迹智链 · 上市公司年报风险预筛</title>
+  <meta name="description" content="审迹智链 AuditTrace：销售与收款审计计划辅助，检查资料用途、核查条件和取证任务，支持加入及撤回已登记资料的独立检验。">
+  <title>审迹智链 · 资料用途与审计计划辅助</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.10">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.11">
+  <link rel="stylesheet" href="/assets/official-v4/evidence-decisions.css?v=1.1.0">
+  <script src="/assets/official-v4/evidence-decisions.js?v=1.1.0" defer></script>
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.13.1" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.14.1" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
@@ -36,13 +38,13 @@
       <h1 id="demo-landing-title">审迹智链</h1>
       <div class="cinematic-en-name" lang="en">AuditTrace</div>
       <p class="cinematic-tagline">
-        面向会计师事务所<strong>审计计划阶段</strong>，交付预审风险备忘录、
-        <strong>最多五项待核查事项</strong>与待索取资料清单；每项主张都绑定原文证据，再交由人作最终处理。
+        面向会计师事务所<strong>审计计划阶段</strong>，逐项检查资料能用于哪些核查目的、还缺什么依据。
+        <strong>加入或撤回资料，检验核查条件的变化</strong>，交付待核查事项与有明确用途的资料清单。
       </p>
       <div class="cinematic-actions">
-        <a class="cinematic-enter" id="demo-enter-workspace" href="#workspace-root">进入评委演示</a>
-        <a class="cinematic-secondary" href="#demo-positioning">先看方法与边界</a>
-        <span class="cinematic-proof">默认冻结案例已选 · 一次启动 · 一次点击回到原文</span>
+        <a class="cinematic-enter" id="demo-enter-workspace" href="#workspace-root">分析真实公开年报</a>
+        <a class="cinematic-secondary" href="#evidence-demo-section" data-open-evidence>检验回款与截止的用途</a>
+        <span class="cinematic-proof">真实年报与匿名验收资料分别展示 · 条件检验新增 0 次模型调用</span>
       </div>
       </div>
       <figure class="cinematic-shot">
@@ -62,7 +64,7 @@
           <span class="demo-positioning-outline">销售收款预审</span>
           <span class="demo-positioning-serif">审迹智链</span>
         </h2>
-        <p class="demo-positioning-summary">从冻结公开年报案例开始，程序先复算并锁定来源，RAG 再回到年报原文，三 Agent 只在本次证据包内形成待核查草稿。评委可直接看到风险备忘录、最多五项待核查事项、待索取资料清单，以及每条主张对应的证据编号和人工下一步。</p>
+        <p class="demo-positioning-summary">从公开年报发现待核查线索，再明确收入发生、截止、准确性及应收存在、计价各自需要的资料。系统检查已登记资料的客户、交易、期间、口径和明细粒度；加入或暂时排除资料后，相关条件与取证任务随真实检验结果更新。</p>
         <div class="demo-positioning-actions">
           <a class="demo-positioning-enter" href="#workspace-root">进入证据工作台</a>
           <button class="demo-positioning-boundary" type="button" id="demo-positioning-boundary">查看方法与边界</button>
@@ -77,6 +79,16 @@
         </ol>
       </aside>
     </div>
+    <section class="evidence-method" aria-labelledby="evidence-method-title">
+      <h3 id="evidence-method-title">资料有引用，还要核对用途与条件</h3>
+      <p>一笔期后回款可以参与对应应收余额的核对，但不能单独关闭收入截止问题；公开汇总账龄也不能替代客户明细。系统把这些差别登记为核查条件，供项目组继续取证和交接。</p>
+      <dl>
+        <div><dt>资料用于哪个问题</dt><dd>同一案例和分析时点，进一步检查客户、交易、金额口径及明细粒度。</dd></div>
+        <div><dt>依据变化后还缺什么</dt><dd>加入或撤回登记资料，重新计算条件，并保留原始底稿和变化理由。</dd></div>
+        <div><dt>接下来取得什么资料</dt><dd>每项资料任务绑定核查问题和取得目的，三个角色交接也必须引用登记依据或任务。</dd></div>
+      </dl>
+      <details><summary>怎样理解程序检查与专业判断</summary><p>当前支持五项登记问题，主要检查明确的结构化字段。条件通过不代表原件真实、文字语义已支持主张或审计认定成立。三个角色用于组织不同职责，现有工程探索尚未证明其专业效果优于强单模型。</p><p>RAG、引用、认定映射和报告导出都已有成熟应用。本项目的展示重点是销售与收款场景中可操作、可回查的资料用途和条件变化。</p></details>
+    </section>
     <dl class="demo-positioning-facts" aria-label="演示能力摘要">
       <div><dt>已登记案例</dt><dd><span id="demo-positioning-case-count">23</span><small>个冻结样例</small></dd></div>
       <div><dt>本地原文索引</dt><dd><span id="demo-positioning-report-count">69</span><small>份公开年报</small></dd></div>
@@ -199,6 +211,7 @@
           <div class="empty-state"><strong>正在读取案例清单</strong><p>案例来自冻结 manifest，读取失败时不会显示模拟案例。</p></div>
         </div>
       </section>
+      <details class="evidence-demo-section" id="evidence-demo-section"><summary>现场检验：加入或撤回资料，哪些核查条件变化？（匿名合成底稿）</summary><section class="evidence-workbench" id="evidence-scenario-workbench" aria-label="匿名认定级证据检验"><p role="status">正在读取登记的匿名底稿。</p></section></details>
       <section class="demo-console" aria-labelledby="demo-console-heading">
         <div class="demo-console-panorama" aria-hidden="true"></div>
         <div class="demo-console-head">
@@ -361,6 +374,7 @@
             </figure>
 
             <section class="demo-supplement-summary" id="demo-supplement-summary" hidden aria-labelledby="demo-supplement-summary-title"></section>
+            <section class="evidence-workbench" id="evidence-run-workbench" hidden aria-label="本次运行的认定级取证任务"></section>
             <section id="demo-next-section" aria-labelledby="demo-next-title"><h4 id="demo-next-title">下一步准备什么</h4><div id="demo-next-materials"></div></section>
             <section class="demo-structured-output" aria-labelledby="demo-structured-heading">
               <div class="demo-section-heading">
@@ -378,7 +392,7 @@
             <div class="action-row demo-result-actions">
               <button class="button quiet" type="button" id="demo-open-evidence">查看原文证据</button>
               <button class="button quiet" type="button" id="demo-open-agents">查看 Agent 完整证据</button>
-              <button class="button quiet" type="button" id="demo-supplement-rerun">补充证据并重新评估</button>
+              <button class="button quiet" type="button" id="demo-supplement-rerun">补充资料与用途验证</button>
               <button class="button quiet" type="button" id="demo-download-json">下载 JSON</button>
               <button class="button quiet" type="button" id="demo-download-csv">下载表格 CSV</button>
               <button class="button quiet" type="button" id="demo-print-report">打印 / 保存 PDF</button>
@@ -546,16 +560,16 @@
 
   <dialog class="detail-drawer" id="demo-supplement-drawer" aria-labelledby="demo-supplement-title">
     <div class="dialog-head">
-      <div><span class="folio">SUPPLEMENT · PARENT / CHILD · TRACEABLE DIFF</span><h2 id="demo-supplement-title">补充证据并重新评估</h2></div>
+      <div><span class="folio">SUPPLEMENT · PARENT / CHILD · TRACEABLE DIFF</span><h2 id="demo-supplement-title">补充资料与用途验证</h2></div>
       <button class="icon-button" type="button" aria-label="关闭补充证据" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭补充证据</span></button>
     </div>
     <div class="demo-drawer-body" id="demo-supplement-body">
-      <p class="demo-supplement-lead">选择一份内置公开样例资料，系统会把新证据绑定到本次父运行并生成子运行；补充资料只进入当前案例，不覆盖原年报字段。</p>
+      <p class="demo-supplement-lead">历史内置样例为合成摘要，不能绑定真实企业。可在工作台的“新增验证”使用匿名底稿检验资料用途；真实资料通过已授权的上传与续分析入口登记。</p>
       <div class="demo-supplement-samples" id="demo-supplement-samples"></div>
       <div class="status-banner neutral" id="demo-supplement-status" hidden></div>
       <div class="demo-supplement-diff" id="demo-supplement-diff" hidden></div>
       <div class="demo-supplement-actions">
-        <button class="button quiet" type="button" id="demo-supplement-apply">按所选样例补充并重新评估</button>
+        <button class="button quiet" type="button" id="demo-supplement-apply">打开独立匿名证据检验</button>
       </div>
     </div>
   </dialog>

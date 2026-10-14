@@ -1,0 +1,218 @@
+{
+  "version": "assertion_evidence_rules_20261014_final",
+  "professional_adoption": "not_confirmed",
+  "source": {
+    "url": "https://cicpa.org.cn/xxfb/tzgg/202304/W020230410260829897530.pdf",
+    "date": "2023-04-04",
+    "paragraphs": [
+      27,
+      28
+    ],
+    "pages": [
+      7,
+      8
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "REV-OCC",
+      "assertion": "发生",
+      "account": "收入",
+      "title": "收入交易与合同交付资料是否对应",
+      "requirements": [
+        {
+          "id": "contract",
+          "kinds": [
+            "customer_contract"
+          ],
+          "granularity": "transaction",
+          "purpose": "核对客户、交易与履约条件"
+        },
+        {
+          "id": "fulfilment",
+          "kinds": [
+            "acceptance_record",
+            "delivery_record"
+          ],
+          "granularity": "transaction",
+          "purpose": "核对登记的交付或验收资料与交易对应关系"
+        }
+      ],
+      "alternative": "现有披露可能反映结算安排或交付节奏，仍需交易资料核对。"
+    },
+    {
+      "question_id": "REV-CUT",
+      "assertion": "截止",
+      "account": "收入",
+      "title": "确认条件日期与入账期间是否一致",
+      "requirements": [
+        {
+          "id": "contract",
+          "kinds": [
+            "customer_contract"
+          ],
+          "granularity": "transaction",
+          "purpose": "取得明确的收入确认条件"
+        },
+        {
+          "id": "acceptance",
+          "kinds": [
+            "acceptance_record"
+          ],
+          "granularity": "transaction",
+          "purpose": "核对验收条件日期，不以回款替代截止证据"
+        },
+        {
+          "id": "posting",
+          "kinds": [
+            "ledger_entry"
+          ],
+          "granularity": "transaction",
+          "purpose": "核对相关收入入账日期"
+        }
+      ],
+      "alternative": "交付安排与合同确认条件可能解释差异；回款记录不能单独解决收入截止。"
+    },
+    {
+      "question_id": "REV-ACC",
+      "assertion": "准确性",
+      "account": "收入",
+      "title": "合同发票与入账金额是否勾稽",
+      "requirements": [
+        {
+          "id": "contract",
+          "kinds": [
+            "customer_contract"
+          ],
+          "granularity": "transaction",
+          "purpose": "核对数量、单价、折扣及税额口径"
+        },
+        {
+          "id": "invoice",
+          "kinds": [
+            "invoice"
+          ],
+          "granularity": "transaction",
+          "purpose": "复算已登记发票金额"
+        },
+        {
+          "id": "posting",
+          "kinds": [
+            "ledger_entry"
+          ],
+          "granularity": "transaction",
+          "purpose": "核对入账金额及同一金额口径"
+        }
+      ],
+      "alternative": "折扣、退货或计量口径可能解释金额差异，须取得对应条款。"
+    },
+    {
+      "question_id": "AR-EXI",
+      "assertion": "存在",
+      "account": "应收账款",
+      "title": "客户余额与确认或收款资料是否对应",
+      "requirements": [
+        {
+          "id": "balance",
+          "kinds": [
+            "receivable_ledger"
+          ],
+          "granularity": "customer",
+          "purpose": "取得对应客户及债权余额"
+        },
+        {
+          "id": "corroboration",
+          "kinds": [
+            "receipt_record",
+            "confirmation_response"
+          ],
+          "granularity": "customer",
+          "purpose": "核对对应余额；部分回款不能替未收回余额背书"
+        }
+      ],
+      "alternative": "结算或信用政策变化可能解释应收变动；汇总比例不能证明具体客户余额。"
+    },
+    {
+      "question_id": "AR-VAL",
+      "assertion": "计价和分摊",
+      "account": "应收账款",
+      "title": "账龄回款与减值依据是否覆盖对应余额",
+      "requirements": [
+        {
+          "id": "balance",
+          "kinds": [
+            "receivable_ledger"
+          ],
+          "granularity": "customer",
+          "purpose": "取得对应客户债权余额，核对账龄及减值测算范围"
+        },
+        {
+          "id": "aging",
+          "kinds": [
+            "aging_schedule"
+          ],
+          "granularity": "customer",
+          "purpose": "取得客户级账龄，汇总附注不替代明细"
+        },
+        {
+          "id": "receipts",
+          "kinds": [
+            "receipt_record"
+          ],
+          "granularity": "customer",
+          "purpose": "核对客户级回款覆盖范围"
+        },
+        {
+          "id": "impairment",
+          "kinds": [
+            "impairment_basis"
+          ],
+          "granularity": "customer",
+          "purpose": "取得减值计提依据；不由程序认定估计充分"
+        }
+      ],
+      "alternative": "账龄、期后回款与信用环境可能改变核查重点，减值适当性仍须专业判断。"
+    }
+  ],
+  "kind_assertions": {
+    "customer_contract": [
+      "发生",
+      "截止",
+      "准确性"
+    ],
+    "acceptance_record": [
+      "发生",
+      "截止"
+    ],
+    "delivery_record": [
+      "发生"
+    ],
+    "ledger_entry": [
+      "截止",
+      "准确性"
+    ],
+    "invoice": [
+      "准确性"
+    ],
+    "receivable_ledger": [
+      "存在"
+    ],
+    "receipt_record": [
+      "存在",
+      "计价和分摊"
+    ],
+    "confirmation_response": [
+      "存在"
+    ],
+    "aging_schedule": [
+      "计价和分摊"
+    ],
+    "impairment_basis": [
+      "计价和分摊"
+    ],
+    "credit_policy": [],
+    "annual_field": [],
+    "annual_disclosure": [],
+    "normative_basis": []
+  }
+}

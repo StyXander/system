@@ -126,5 +126,5 @@ def test_public_status_endpoint_omits_internal_artifact_paths(monkeypatch) -> No
     # 前端依赖的字段必须还在，避免裁剪把页面打断。
     for required in ("release", "current_release", "model", "cases", "case_count", "demo_mode"):
         assert required in body, f"公开 /api/status 缺少前端需要的 {required}"
-    assert body["case_count"] == 15
-    assert isinstance(body["cases"], list) and len(body["cases"]) == 15
+    assert body["case_count"] == 23
+    assert isinstance(body["cases"], list) and len(body["cases"]) == 23

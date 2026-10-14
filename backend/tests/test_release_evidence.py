@@ -457,7 +457,7 @@ def test_release_ready_requires_verified_binding() -> None:
     release_data = {
         "release_status": "release_candidate",
         "model": {"model_id": "deepseek-v4-flash"},
-        "demo": {"materialized_source_head": COMMIT, "manifest_sha256": MANIFEST_HASH, "case_count": 15},
+        "demo": {"materialized_source_head": COMMIT, "manifest_sha256": MANIFEST_HASH, "case_count": 23},
         "evaluation": {"evaluation_id": "EVAL-X", "human_scoring_status": "completed"},
     }
     evaluation_data = {

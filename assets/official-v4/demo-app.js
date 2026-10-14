@@ -2776,64 +2776,11 @@
   }
 
   async function startSupplementRerun() {
-    restoredHistoricalResult = false;
-    const run = demoState.run;
-    const sampleId = SUPPLEMENT_STATE.selected;
-    if (!run || !sampleId || SUPPLEMENT_STATE.busy) return;
-    SUPPLEMENT_STATE.busy = true;
-    resetCollapsibleSections();
-    byId("demo-supplement-apply").disabled = true;
-    const status = byId("demo-supplement-status");
-    status.hidden = false;
-    status.className = "status-banner neutral";
-    status.innerHTML = "<strong>正在绑定补充资料并重新评估</strong><span>页面只显示后端真实状态。</span>";
-    try {
-      const fromSample = await fetch(`${API_BASE}/api/supplements/from-sample`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ parent_run_id: run.run_id, sample_id: sampleId, bound_rule_ids: ["R1", "R2"] }),
-      });
-      if (!fromSample.ok) {
-        const body = await fromSample.json().catch(() => ({}));
-        if (fromSample.status === 401 || fromSample.status === 403) {
-          throw new Error("补充资料重跑需要登录后的真人账号；公开演示访客未开放该操作。");
-        }
-        throw new Error(body.detail || `HTTP ${fromSample.status}`);
-      }
-      const record = await fromSample.json();
-      const rerun = await fetch(`${API_BASE}/api/supplements/${encodeURIComponent(record.supplement_id)}/rerun-task`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ run_mode: "full_analysis" }),
-      });
-      if (!rerun.ok) {
-        const body = await rerun.json().catch(() => ({}));
-        throw new Error(body.detail || `HTTP ${rerun.status}`);
-      }
-      const childTask = await rerun.json();
-      rememberWorkspace("fixed", childTask);
-      SUPPLEMENT_STATE.parentRun = run;
-      demoState.fixedTask.taskId = childTask.task_id;
-      demoState.fixedTask.task = childTask;
-      demoState.fixedTask.pollToken += 1;
-      safeSessionSet(DEMO_TASK_STORAGE_KEY, JSON.stringify({ task_id: childTask.task_id, case_id: demoState.caseId }));
-      resetStageRail();
-      setPhase("running");
-      renderExecutionBadge(null, "running");
-      setGate("neutral", "补充资料异步评估中", `父运行 ${run.run_id} 保留；页面将按后端六阶段读取子运行进度。`);
-      renderFixedTaskProgress(childTask);
-      status.className = "status-banner neutral";
-      status.innerHTML = `<strong>补充评估已创建</strong><span>子任务 ${escapeHtml(childTask.task_id)} 已进入六阶段队列，页面会逐段更新。</span>`;
-      void pollFixedRun(childTask.task_id, demoState.fixedTask.pollToken);
-    } catch (error) {
-      status.className = "status-banner danger";
-      status.innerHTML = `<strong>补充评估未完成</strong><span>${escapeHtml(error.message)}</span>`;
-    } finally {
-      SUPPLEMENT_STATE.busy = false;
-      byId("demo-supplement-apply").disabled = !SUPPLEMENT_STATE.selected;
-    }
+    // 历史合成摘要与真实企业隔离；这项演示转到独立匿名底稿。
+    byId("demo-supplement-drawer").close();
+    byId("evidence-demo-section").open = true;
+    byId("evidence-demo-section").scrollIntoView({ block: "start" });
+    document.querySelector("#evidence-scenario-workbench select")?.focus({ preventScroll: true });
   }
 
   function renderSupplementDiff(childRun, parentRun) {
@@ -3593,6 +3540,7 @@
     renderSourceLedger(run);
     renderRunTrace(run);
     renderInnovationControls(run);
+    window.AuditEvidenceDecisions?.mountRun(run);
     renderModulePreviews(run);
     notifyModelQuality(run.context?.model_quality_snapshot);
     setPhase(outcome === "failed_run" ? "failed_run" : outcome);
@@ -3632,7 +3580,7 @@
   }
 
   function sourceLink(caseId, documentId, page) {
-    return `${API_BASE}/api/cases/${encodeURIComponent(caseId)}/sources/${encodeURIComponent(documentId)}#page=${encodeURIComponent(page || 1)}`;
+    return `${API_BASE}/api/cases/${encodeURIComponent(caseId)}/sources/${encodeURIComponent(documentId)}?view=true&page=${encodeURIComponent(page || 1)}#page=${encodeURIComponent(page || 1)}`;
   }
 
   function renderEvidenceDrawer(run) {
@@ -3966,6 +3914,9 @@
       [run.run_id, "__meta__", "planning_priority", "审计关注优先级", "", run.planning_priority?.grade ? `${run.planning_priority.grade} ${ATTENTION_GRADE_LABELS[run.planning_priority.grade] || run.planning_priority.label || ""}`.trim() : "后端未提供该字段", PRIORITY_BOUNDARY, ""].map(csvCell).join(","),
       [run.run_id, "__meta__", "evidence_state", "证据闭合状态", "", run.evidence_state?.state ? `${run.evidence_state.state} ${run.evidence_state.label || ATTENTION_EVIDENCE_LABELS[run.evidence_state.state] || ""}`.trim() : "后端未提供该字段", JSON.stringify(run.evidence_state?.reasons || []), ""].map(csvCell).join(","),
     ];
+    if (demoState.run.audit_investigation) {
+      lines.push(...window.AuditEvidenceDecisions.csvRows(demoState.run.audit_investigation).map(row => row.map(csvCell).join(",")));
+    }
     downloadBlob(`${safeDownloadName(demoState.run.run_id)}-metrics.csv`, `\uFEFF${lines.join("\r\n")}`, "text/csv;charset=utf-8");
   }
 
@@ -4623,7 +4574,7 @@
     byId("demo-open-agents").addEventListener("click", () => { byId("demo-agent-drawer").showModal(); });
     byId("demo-supplement-rerun").addEventListener("click", () => {
       byId("demo-supplement-drawer").showModal();
-      byId("demo-supplement-apply").disabled = true;
+      byId("demo-supplement-apply").disabled = false;
       void loadSupplementSamples();
     });
     byId("demo-supplement-apply").addEventListener("click", () => { void startSupplementRerun(); });

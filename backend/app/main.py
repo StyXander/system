@@ -111,6 +111,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .agents import PROMPT_VERSION, compact_evidence_bundle, minimize_model_context, run_agent_chain
+from .evidence_decisions import base_from_run, check_evidence, handoff_contribution, investigate, load_scenarios, model_investigation_registry
+from .evidence_decision_schemas import EvidenceCheckRequest, EvidenceCheckResponse
 from .auth import (
     ACCESS_COOKIE_NAME,
     REFRESH_COOKIE_NAME,
@@ -165,7 +167,7 @@ from .catalog import (
     update_refresh_job,
 )
 from .data import CASE_ID, EVIDENCE, SOURCE_SNAPSHOT_ID
-from .delivery import build_report, cache_run, replay_cache
+from .delivery import build_evidence_check_report, build_report, cache_run, replay_cache
 from .demo_bootstrap import blocked_bootstrap_payload, build_bootstrap_payload, load_demo_manifest
 from .demo_run_tasks import (
     AGENT_ROLE_ORDER,
@@ -3637,15 +3639,15 @@ def _run_contract_fields(
 def _reconcile_registered_context(
     results: list[RuleResult], supplemental_evidence: list[dict[str, Any]]
 ) -> None:
-    """已登记账龄只能关闭同名资料缺口，不能据此把待核查事项自动降级。"""
+    """公开汇总账龄只增加背景；客户级资料缺口与任务必须保留。"""
     if not any(item.get("evidence_kind") == "public_aging" for item in supplemental_evidence):
         return
     for result in results:
         if result.rule_id != "R1" or not result.risk_card:
             continue
         card = result.risk_card
-        card["data_gaps"] = [item for item in card.get("data_gaps", []) if "账龄" not in item]
-        card["requested_materials"] = [item for item in card.get("requested_materials", []) if "账龄" not in item]
+        card["data_gaps"] = list(card.get("data_gaps", []))
+        card["requested_materials"] = list(card.get("requested_materials", []))
         card["available_context"] = ["公开年报汇总账龄已登记；客户级明细与真实性仍待人工复核。"]
 
 
@@ -4032,6 +4034,8 @@ def _execute_run(
     )
     context["external_model_call_planned"] = external_model_call_planned
     sensitive_data_blocked = bool(sensitive_findings and external_model_call_planned)
+    # 年报汇总资料不补造交易字段，稳定取证登记先于模型生成。
+    audit_investigation = investigate(base_from_run(context, rule_bundle))
     model_input_fingerprint = _analysis_input_fingerprint(
         context=context,
         rule_results=rule_results,
@@ -4259,6 +4263,7 @@ def _execute_run(
         primary_selector = route_priority.get(ai_analysis_route, lambda _item: False)
         primary_result = next((item for item in rule_results if primary_selector(item)), rule_results[0] if rule_results else None)
         analysis_context = {
+            "audit_investigation": model_investigation_registry(audit_investigation),
             "case_id": context.get("case_id"),
             "company_name": context.get("company_name"),
             "ticker": context.get("ticker"),
@@ -4664,8 +4669,10 @@ def _execute_run(
         rag_error=rag_error,
     ))
     all_agent_steps = [step for result in rule_results for step in result.agent_steps]
+    audit_investigation.counter_contribution = handoff_contribution(audit_investigation, all_agent_steps)
     context["observer_status"] = _observer_status(progress_observer_failures)
     response = RunResponse(
+        audit_investigation=audit_investigation,
         run_id=run_id,
         status=screening_status,
         screening_status=screening_status,
@@ -5832,7 +5839,7 @@ def confirm_case_field(case_id: str, confirmation: CNInfoFieldConfirmation, http
 
 
 @app.get("/api/cases/{case_id}/sources/{document_id}")
-def open_case_source(case_id: str, document_id: str, http_request: Request) -> Response:
+def open_case_source(case_id: str, document_id: str, http_request: Request, view: bool = False, page: int = Query(default=1, ge=1)) -> Response:
     normalized_case_id = case_id.upper()
     normalized_document_id = document_id.upper()
     tenant_id = _identity_tenant(http_request)
@@ -5840,6 +5847,17 @@ def open_case_source(case_id: str, document_id: str, http_request: Request) -> R
     if case is None:
         raise HTTPException(status_code=404, detail="案例未登记。")
     authorize_case_access(http_request, case)
+    if view:
+        from .source_viewer import preview_path, source_page_response
+
+        # 沿用案例授权和目录作用域，只展示登记原件的指定页，不重定向下载全文。
+        document = next((item for item in case.get("documents", []) if str(item.get("document_id") or "").upper() == normalized_document_id), None)
+        if document is None:
+            raise HTTPException(404, "来源文档未登记。")
+        local = _materialized_case_for_resolved(case, tenant_id=tenant_id)
+        resolved = resolve_case_document(WORKSPACE_ROOT, normalized_case_id, normalized_document_id, tenant_id=str(local.get("tenant_id") or "") or None) if local else None
+        path = preview_path(WORKSPACE_ROOT, document, resolved[0] if resolved else None, public=is_public_case(case))
+        return source_page_response(path, document, page, http_request.url.path)
     if supabase_enabled() and not is_public_case(case):
         registered_document = next(
             (
@@ -5900,7 +5918,7 @@ def open_case_source(case_id: str, document_id: str, http_request: Request) -> R
                 return RedirectResponse(source_url, status_code=307)
         raise HTTPException(status_code=404, detail="来源文档未登记或文件不存在。")
     path, document = resolved
-    return FileResponse(path, media_type="application/pdf", filename=document["source_file"])
+    return FileResponse(path, media_type="application/pdf", filename=document["source_file"], content_disposition_type="inline", headers={"Content-Security-Policy": "default-src 'none'; frame-ancestors 'self'", "X-Frame-Options": "SAMEORIGIN"})
 
 
 def _consent_public_payload(consent: dict[str, Any] | None, *, required: bool, status: str) -> dict[str, Any]:
@@ -6615,6 +6633,42 @@ def get_run(run_id: str, http_request: Request) -> StoredRunResponse:
     return stored
 
 
+@app.get("/api/evidence-scenarios")
+def evidence_scenarios() -> dict[str, Any]:
+    """公开匿名底稿与真实年报隔离，原件不存在时不能称作真实业务证据。"""
+    return _with_ai_notice({"schema_version": "evidence_scenarios_v1", "scenarios": [
+        {"base_id": row["case_id"], "title": row["company_name"], "source_mode": row["source_mode"],
+         "boundary": row["boundary"], "demonstration_steps": row.get("demonstration_steps", []),
+         "investigation": investigate(row).model_dump(mode="json")}
+        for row in load_scenarios()]})
+
+
+@app.post("/api/evidence-checks", response_model=EvidenceCheckResponse)
+def evidence_checks(payload: EvidenceCheckRequest, http_request: Request) -> EvidenceCheckResponse:
+    """只读取已授权底稿；独立检验不创建父子运行、不修改人工作业且零模型调用。"""
+    if payload.base_kind == "validation_scenario":
+        base = next((row for row in load_scenarios() if row["case_id"] == payload.base_id), None)
+        if base is None:
+            raise HTTPException(status_code=404, detail="匿名底稿不存在。")
+    else:
+        stored = get_run(payload.base_id, http_request)
+        base = base_from_run(stored.run.context, stored.run.evidence_bundle)
+    try:
+        return check_evidence(base, base_kind=payload.base_kind, base_id=payload.base_id,
+                              include=payload.include_evidence_ids, exclude=payload.exclude_evidence_ids)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.post("/api/evidence-checks/report")
+def evidence_check_report(payload: EvidenceCheckRequest, http_request: Request) -> Response:
+    """同一权限及检验函数生成未复核草稿，不授予正式报告批准资格。"""
+    checked = evidence_checks(payload, http_request)
+    content = build_evidence_check_report(checked)
+    return Response(content, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    headers={"Content-Disposition": f'attachment; filename="{checked.check_id}-draft.docx"'})
+
+
 @app.post("/api/runs/{run_id}/review", response_model=StoredRunResponse)
 def review_run(run_id: str, review: HumanReviewRequest, http_request: Request) -> StoredRunResponse:
     _reject_shared_demo_mutation("保存真人复核或导出批准")
@@ -7199,7 +7253,7 @@ def open_registered_source(filename: str) -> Response:
         if source_url:
             return RedirectResponse(source_url, status_code=307)
         raise HTTPException(status_code=404, detail="已登记来源文件不存在且没有安全的官方回退地址。")
-    return FileResponse(path, media_type="application/pdf", filename=path.name)
+    return FileResponse(path, media_type="application/pdf", filename=path.name, content_disposition_type="inline")
 
 
 @app.post("/api/rag/prepare")
@@ -7348,7 +7402,7 @@ _PUBLIC_SUPPLEMENT_SAMPLES: dict[str, dict[str, Any]] = {
         "sample_id": "aging",
         "material_type": "应收账款账龄明细",
         "title": "应收账款账龄及逾期情况",
-        "description": "公开演示样例：按账龄区间提供余额、逾期比例和客户集中度，供 R1 续分析回查。",
+        "description": "历史合成摘要，无真实业务原件；仅作兼容目录，不允许绑定真实企业。",
         "structured_json": {
             "aging_summary": {
                 "under_90_days_ratio": 0.46,
@@ -7363,7 +7417,7 @@ _PUBLIC_SUPPLEMENT_SAMPLES: dict[str, dict[str, Any]] = {
         "sample_id": "receipts",
         "material_type": "期后回款及银行流水摘要",
         "title": "期后回款及银行流水摘要",
-        "description": "公开演示样例：提供 T0 后回款比例、已核对流水笔数及异常回款说明。",
+        "description": "历史合成摘要，无真实流水原件；仅作兼容目录，不允许绑定真实企业。",
         "structured_json": {
             "subsequent_receipts_summary": {
                 "receipt_ratio": 0.63,
@@ -7400,7 +7454,7 @@ def supplement_samples() -> dict[str, Any]:
 
 @app.post("/api/supplements/from-sample")
 def supplement_from_sample(payload: SupplementSampleRequest, http_request: Request) -> dict[str, Any]:
-    """将公开样例绑定到已有父运行，生成可追溯的独立补充资料记录。"""
+    """兼容历史样例入口；校验归属后拒绝合成资料绑定真实企业。"""
 
     sample = _PUBLIC_SUPPLEMENT_SAMPLES.get(str(payload.sample_id or "").strip().lower())
     if sample is None:
@@ -7414,32 +7468,7 @@ def supplement_from_sample(payload: SupplementSampleRequest, http_request: Reque
     if parent_case is None:
         raise HTTPException(status_code=404, detail="父运行对应案例不存在。")
     authorize_case_write(http_request, parent_case)
-    context_t0 = str(parent.run.context.get("t0") or "")
-    default_date = context_t0[:10] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", context_t0[:10]) else f"{int(parent.run.context.get('current_year') or 2026)}-12-31"
-    as_of_date = payload.as_of_date or default_date
-    try:
-        parsed_rules = list(dict.fromkeys(payload.bound_rule_ids or ["R1"]))
-        structured = json.dumps(sample["structured_json"], ensure_ascii=False, sort_keys=True)
-        record = create_supplement(
-            WORKSPACE_ROOT,
-            parent_run_id=payload.parent_run_id,
-            material_type=sample["material_type"],
-            authorized=True,
-            desensitized=True,
-            bound_rule_ids=parsed_rules,
-            as_of_date=as_of_date,
-            note=payload.note or sample["description"],
-            filename=f"{sample['sample_id']}_public_demo.json",
-            content=b"",
-            structured_json=structured,
-            tenant_id=owner_tenant_id,
-            owner_user_id=identity.user_id if identity and not identity.is_local else None,
-        )
-    except (OSError, ValueError) as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
-    if supabase_enabled() and owner_tenant_id:
-        _persist_supplement_record_remote(record, owner_tenant_id)
-    return _with_ai_notice({**record, "sample_id": sample["sample_id"], "sample_title": sample["title"], "sample_payload": sample["structured_json"]})
+    raise HTTPException(status_code=422, detail="合成验收资料不能绑定真实企业运行。请使用独立匿名证据检验场景；真实补充资料使用授权上传入口。")
 
 
 @app.post("/api/supplements")

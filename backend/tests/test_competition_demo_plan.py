@@ -831,7 +831,8 @@ def test_all_seed_cases_enter_three_role_external_route(monkeypatch: pytest.Monk
             status = "defer"
         return (
             {
-                "schema_version": "agent_output_v2",
+                "schema_version": "agent_output_v3",
+                "investigation_handoffs": [{"question_id": payload["analysis_context"]["audit_investigation"]["questions"][0]["question_id"], "evidence_ids": [evidence_ids[0]], "material_request_ids": [], "rationale": "登记条件仍需对应明细资料核对"}],
                 "run_id": payload["run_id"],
                 "role": role,
                 "rule_id": payload["rule_result"]["rule_id"],

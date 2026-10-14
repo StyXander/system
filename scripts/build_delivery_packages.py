@@ -141,6 +141,8 @@ def _teacher_sources() -> list[tuple[str, Path]]:
 PACKAGE_DATA_FILES = (
     # 这些是只读的仓库内数据，不是运行态产物：清洁包与评委包的测试会直接读它们。
     # 漏一项就会让包内测试数与源码仓库不一致，所以必须和源码一起进包。
+    "backend/evidence_decision_rules.json",
+    "backend/evidence_validation_scenarios.json",
     "backend/audit_procedure_map.json",
     "backend/knowledge_sources.manifest.json",
     "backend/cache_seed.materialized.json",

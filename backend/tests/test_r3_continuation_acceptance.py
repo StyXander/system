@@ -56,6 +56,16 @@ def test_supplement_parent_child_and_docx_export_share_run_identity(
                 "as_of_date": "2026-04-30",
             },
         )
+        assert supplement_response.status_code == 422
+        assert "合成验收资料不能绑定真实企业" in supplement_response.json()["detail"]
+        # 续分析集成测试使用显式标记的自动化登记资料，不把历史内置摘要当公司证据。
+        import json
+        supplement_response = client.post("/api/supplements", data={
+            "parent_run_id": parent_id, "material_type": "自动化登记资料验收",
+            "authorized": "true", "desensitized": "true", "bound_rule_ids": "R1",
+            "as_of_date": "2026-04-30", "note": "自动化测试输入，仅验证登记与父子链，非企业业务原件",
+            "structured_json": json.dumps({"credit_policy_change": {"note": "自动化测试登记资料"}}, ensure_ascii=False),
+        })
         assert supplement_response.status_code == 200, supplement_response.text[:500]
         supplement = supplement_response.json()
         supplement_id = supplement["supplement_id"]

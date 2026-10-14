@@ -1,0 +1,397 @@
+{
+  "schema_version": "anonymous_validation_scenarios_v1",
+  "scenarios": [
+    {
+      "case_id": "ANON-SALE-A",
+      "company_name": "匿名销售A：验收与截止",
+      "source_mode": "anonymous_synthetic",
+      "t0": "2026-01-15",
+      "customer_id": "CUS-ANON",
+      "transaction_id": "TX-ANON",
+      "accounts": [
+        "收入"
+      ],
+      "evidence": [
+        {
+          "case_id": "ANON-SALE-A",
+          "evidence_id": "A-CON",
+          "kind": "customer_contract",
+          "title": "匿名合同：验收条件",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "A-CON",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "recognition_event": "acceptance"
+        },
+        {
+          "case_id": "ANON-SALE-A",
+          "evidence_id": "A-LED",
+          "kind": "ledger_entry",
+          "title": "匿名收入入账记录",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "A-LED",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "posting_date": "2025-12-31",
+          "amount": "95000"
+        },
+        {
+          "case_id": "ANON-SALE-A",
+          "evidence_id": "A-ACC",
+          "kind": "acceptance_record",
+          "title": "匿名期后验收记录",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "A-ACC",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "event_date": "2026-01-05"
+        },
+        {
+          "case_id": "ANON-SALE-A",
+          "evidence_id": "A-REC",
+          "kind": "receipt_record",
+          "title": "匿名期后回款记录",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "A-REC",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "amount": "95000"
+        }
+      ],
+      "default_evidence_ids": [
+        "A-CON",
+        "A-LED"
+      ],
+      "boundary": "匿名合成验收数据，非真实企业交易、非专业结论，禁止绑定真实企业。",
+      "demonstration_steps": [
+        {
+          "title": "加入回款",
+          "description": "检查回款能用于什么核查目的",
+          "include_evidence_ids": [
+            "A-REC"
+          ],
+          "exclude_evidence_ids": []
+        },
+        {
+          "title": "加入期后验收",
+          "description": "核对验收条件日期与入账月份",
+          "include_evidence_ids": [
+            "A-REC",
+            "A-ACC"
+          ],
+          "exclude_evidence_ids": []
+        },
+        {
+          "title": "撤回确认条件合同",
+          "description": "检查前置依据缺失后的核查条件",
+          "include_evidence_ids": [
+            "A-REC",
+            "A-ACC"
+          ],
+          "exclude_evidence_ids": [
+            "A-CON"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ANON-SALE-B",
+      "company_name": "匿名销售B：合同金额勾稽",
+      "source_mode": "anonymous_synthetic",
+      "t0": "2026-01-15",
+      "customer_id": "CUS-ANON",
+      "transaction_id": "TX-ANON",
+      "accounts": [
+        "收入"
+      ],
+      "evidence": [
+        {
+          "case_id": "ANON-SALE-B",
+          "evidence_id": "B-CON",
+          "kind": "customer_contract",
+          "title": "匿名合同：数量单价折扣",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "B-CON",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "quantity": "100",
+          "unit_price": "1000",
+          "discount": "5000",
+          "recognition_event": "acceptance"
+        },
+        {
+          "case_id": "ANON-SALE-B",
+          "evidence_id": "B-LED",
+          "kind": "ledger_entry",
+          "title": "匿名收入分录：95000元",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "B-LED",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "amount": "95000",
+          "posting_date": "2025-12-31"
+        },
+        {
+          "case_id": "ANON-SALE-B",
+          "evidence_id": "B-INV",
+          "kind": "invoice",
+          "title": "匿名发票：95000元",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "B-INV",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "amount": "95000"
+        },
+        {
+          "case_id": "ANON-SALE-B",
+          "evidence_id": "B-BAD",
+          "kind": "invoice",
+          "title": "匿名冲突发票：100000元",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "transaction",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "B-BAD",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "amount": "100000"
+        }
+      ],
+      "default_evidence_ids": [
+        "B-CON",
+        "B-LED"
+      ],
+      "boundary": "匿名合成验收数据，非真实企业交易、非专业结论，禁止绑定真实企业。",
+      "demonstration_steps": [
+        {
+          "title": "加入相符发票",
+          "description": "复算合同与登记发票金额",
+          "include_evidence_ids": [
+            "B-INV"
+          ],
+          "exclude_evidence_ids": []
+        },
+        {
+          "title": "同时加入冲突发票",
+          "description": "核对全部所选发票，保留冲突",
+          "include_evidence_ids": [
+            "B-INV",
+            "B-BAD"
+          ],
+          "exclude_evidence_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "ANON-AR-C",
+      "company_name": "匿名应收C：部分回款与减值资料",
+      "source_mode": "anonymous_synthetic",
+      "t0": "2026-01-15",
+      "customer_id": "CUS-ANON",
+      "transaction_id": "TX-ANON",
+      "accounts": [
+        "应收账款"
+      ],
+      "evidence": [
+        {
+          "case_id": "ANON-AR-C",
+          "evidence_id": "C-BAL",
+          "kind": "receivable_ledger",
+          "title": "匿名客户余额：30000元",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "customer",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "C-BAL",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "amount": "30000"
+        },
+        {
+          "case_id": "ANON-AR-C",
+          "evidence_id": "C-REC",
+          "kind": "receipt_record",
+          "title": "匿名部分回款：15000元",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "customer",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "C-REC",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "amount": "15000"
+        },
+        {
+          "case_id": "ANON-AR-C",
+          "evidence_id": "C-SUM",
+          "kind": "aging_schedule",
+          "title": "匿名汇总账龄附注",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "summary",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "C-SUM",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "aging_days": 120
+        },
+        {
+          "case_id": "ANON-AR-C",
+          "evidence_id": "C-AGE",
+          "kind": "aging_schedule",
+          "title": "匿名客户账龄明细",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "customer",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "C-AGE",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "aging_days": 120
+        },
+        {
+          "case_id": "ANON-AR-C",
+          "evidence_id": "C-IMP",
+          "kind": "impairment_basis",
+          "title": "匿名减值估计依据",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "customer",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "C-IMP",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "method": "登记的预期信用损失测算表，参数仍待专业核查"
+        },
+        {
+          "case_id": "ANON-AR-C",
+          "evidence_id": "C-CON",
+          "kind": "confirmation_response",
+          "title": "匿名余额确认：30000元",
+          "customer_id": "CUS-ANON",
+          "transaction_id": "TX-ANON",
+          "balance_id": "BAL-ANON",
+          "granularity": "customer",
+          "source_state": "synthetic_registered",
+          "available_at": "2026-01-10",
+          "original_id": "C-CON",
+          "source_mode": "anonymous_synthetic",
+          "currency": "CNY",
+          "unit": "元",
+          "basis": "不含税",
+          "amount": "30000"
+        }
+      ],
+      "default_evidence_ids": [
+        "C-BAL",
+        "C-REC"
+      ],
+      "boundary": "匿名合成验收数据，非真实企业交易、非专业结论，禁止绑定真实企业。",
+      "demonstration_steps": [
+        {
+          "title": "加入汇总账龄",
+          "description": "核对汇总资料与客户明细的粒度差别",
+          "include_evidence_ids": [
+            "C-SUM"
+          ],
+          "exclude_evidence_ids": []
+        },
+        {
+          "title": "加入客户资料及确认",
+          "description": "核对对应债权的登记字段条件",
+          "include_evidence_ids": [
+            "C-AGE",
+            "C-IMP",
+            "C-CON"
+          ],
+          "exclude_evidence_ids": []
+        },
+        {
+          "title": "撤回应收余额",
+          "description": "检查存在与计价的前置依据",
+          "include_evidence_ids": [
+            "C-AGE",
+            "C-IMP",
+            "C-CON"
+          ],
+          "exclude_evidence_ids": [
+            "C-BAL"
+          ]
+        }
+      ]
+    }
+  ]
+}

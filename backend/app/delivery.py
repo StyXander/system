@@ -99,7 +99,74 @@ from .schemas import (
 )
 
 
-REPORT_VERSION = "report_v2"
+REPORT_VERSION = "report_v3_assertion_evidence"
+
+
+def _add_investigation_section(document: Document, investigation: Any) -> None:
+    """报告只摘录已生成的认定条件及队列，不在导出时重新分析或代签。"""
+    _add_heading(document, "认定级取证任务", 1)
+    document.add_paragraph(investigation.boundary)
+    document.add_paragraph("专业复核未执行，语义支持未验证；程序条件通过不代表审计认定成立。")
+    states = {"missing": "缺少对应资料", "partial": "部分条件具备", "conflicting": "登记字段冲突", "rule_supported": "登记条件通过", "not_applicable": "本底稿不适用"}
+    for question in investigation.questions:
+        _add_heading(document, f"{question['question_id']} {question['assertion']} {question['title']}", 2)
+        document.add_paragraph(f"条件状态：{states[question['state']]}；依据：{'、'.join(question['supporting_evidence_ids']) or '未取得对应明细'}")
+        for condition in question["missing_conditions"] + question["conflicts"]:
+            document.add_paragraph(f"仍需核查：{condition}")
+        document.add_paragraph(f"待验证假设：{question['alternative_explanation']}")
+        for fact in question["computed_facts"]:
+            document.add_paragraph("登记字段检验：" + json.dumps(fact, ensure_ascii=False))
+    _add_heading(document, "按前置条件和冲突排序的资料任务", 2)
+    for task in investigation.material_requests:
+        document.add_paragraph(f"{task['rank']}. {task['request_id']}：{task['purpose']}；排序原因：{task['priority_reason']}。{task['boundary']}")
+    _add_heading(document, "逐份资料的用途与边界", 2)
+    for evidence in investigation.evidence_decisions:
+        uses = "；".join(f"{u['question_id']} {u['purpose']}：{u['reason']}" for u in evidence["uses"])
+        document.add_paragraph(f"{evidence['evidence_id']} {evidence['title']}：{'参与检验' if evidence['selected'] else '未选择'}；用途认定：{'、'.join(evidence['supports_assertions']) or '汇总背景'}。{uses or '不关闭交易或客户明细条件'}。{'重复原件未重复计入。' if evidence['duplicate'] else ''}")
+    _add_heading(document, "角色交接与版本追溯", 2)
+    for role in investigation.counter_contribution.get("roles", []):
+        document.add_paragraph(f"{role['role']}：交接{role['handoff_count']}项，新增引用{role['new_reference_count']}项。{role['boundary']}")
+    document.add_paragraph(f"规则版本：{investigation.rulebook_version}")
+    document.add_paragraph(f"规则哈希：{investigation.rulebook_sha256}")
+    document.add_paragraph(f"底稿哈希：{investigation.source_snapshot_sha256}")
+
+
+def build_evidence_check_report(check: Any) -> bytes:
+    """生成独立检验草稿，明确无专业签发；与正式已批准运行报告分别命名。"""
+    from io import BytesIO
+
+    document = Document()
+    normal = document.styles["Normal"]
+    normal.font.name = BODY_FONT
+    normal.font.size = Pt(BODY_PT)
+    normal._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), BODY_FONT)
+    # 移除模板标题边框，防止 Word 渲染给草稿标题自动加蓝色装饰线。
+    for name in ("Title", "Subtitle", "Heading 1", "Heading 2", "Heading 3"):
+        properties = document.styles[name]._element.find(qn("w:pPr"))
+        if properties is not None:
+            for border in list(properties.findall(qn("w:pBdr"))):
+                properties.remove(border)
+    document.add_paragraph("审迹智链认定级证据检验草稿", style="Title")
+    document.add_paragraph("匿名合成验收资料" if check.investigation.source_mode == "anonymous_synthetic" else "已登记年报资料的独立检验")
+    document.add_paragraph("未复核草稿，仅用于检查取证条件与资料用途。专业复核未执行，不具备正式报告批准或签发状态。")
+    document.add_paragraph(AI_GENERATED_CONTENT_NOTICE)
+    document.add_paragraph(f"检验编号：{check.check_id}；父底稿：{check.base_id}；本次模型调用：0。虚拟排除未修改来源或原运行。")
+    _add_investigation_section(document, check.investigation)
+    _add_heading(document, "相对原始底稿的变化", 1)
+    for change in check.changes:
+        document.add_paragraph(f"{change['question_id']}：{change['before']} → {change['after']}；仍缺：{'；'.join(change['missing_after']) or '无登记条件缺口'}；冲突：{'；'.join(change['conflicts_after']) or '未检出登记字段冲突'}。")
+    if not check.changes:
+        document.add_paragraph("本次检验未改变事项条件。")
+    # 样式及直接格式均统一，不能由 Word 默认标题样式留下不同字号或颜色。
+    for paragraph in document.paragraphs:
+        heading = paragraph.style.name.startswith("Heading") or paragraph.style.name == "Title"
+        for run in paragraph.runs:
+            _set_run_font(run, HEADING_FONT if heading else BODY_FONT)
+            run.font.size = Pt(16 if heading else 12)
+            run.font.color.rgb = RGBColor(0, 0, 0)
+    stream = BytesIO()
+    document.save(stream)
+    return stream.getvalue()
 
 
 def _display_gap(value: Any) -> str:
@@ -535,6 +602,8 @@ def build_report(workspace_root: Path, stored: StoredRunResponse, *, demo_previe
             document.add_paragraph(f"模型草稿判断：{format_growth_gap_text(str(draft['reason_for_status']))}")
         if draft.get("data_gaps"):
             document.add_paragraph("未解决问题：" + "；".join(str(value) for value in draft["data_gaps"]))
+    if stored.run.audit_investigation is not None:
+        _add_investigation_section(document, stored.run.audit_investigation)
     configured_parameters = context.get("configured_parameters") or {}
     r1_signoff_status = str(configured_parameters.get("r1_signoff_status") or "no_signoff_record")
     numeric_gate = context.get("numeric_claim_trace") or {}

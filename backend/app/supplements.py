@@ -139,6 +139,17 @@ def _normalize_supplement_evidence(data: Any) -> list[dict[str, Any]]:
     if not isinstance(data, dict):
         return []
     evidence: list[dict[str, Any]] = []
+    # 显式登记的交易字段与旧汇总摘要分开；客户端不能自报来源编号或真实性通过。
+    if "assertion_evidence" in data:
+        from .evidence_decision_schemas import RegisteredEvidenceFields
+        atoms = data["assertion_evidence"]
+        if not isinstance(atoms, list) or not 1 <= len(atoms) <= 30:
+            raise ValueError("认定级补充资料须为1至30条登记字段")
+        for atom in atoms:
+            fields = RegisteredEvidenceFields.model_validate(atom).model_dump(mode="json", exclude_none=True)
+            evidence.append({"evidence_kind": "assertion_evidence_atom", "field_label": fields["title"],
+                             "details": fields, "excerpt": json.dumps(fields, ensure_ascii=False)[:500],
+                             "support_status": "pending_human_confirmation"})
     mapping = {
         "aging_summary": "账龄结构",
         "subsequent_receipts_summary": "期后回款",

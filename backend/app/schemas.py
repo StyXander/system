@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 
+from .evidence_decision_schemas import AuditInvestigation, InvestigationHandoff
+
 
 RuleId = Literal["R1", "R2"]
 AgentRole = Literal["challenge", "counter", "review"]
@@ -174,7 +176,7 @@ class AgentClaim(BaseModel):
 class AgentOutput(AiGeneratedContentNotice):
     """v2 增加最终草稿与支持状态；v1 只用于读取历史运行。"""
 
-    schema_version: Literal["agent_output_v1", "agent_output_v2"]
+    schema_version: Literal["agent_output_v1", "agent_output_v2", "agent_output_v3"]
     run_id: str
     role: AgentRole
     rule_id: RuleId
@@ -197,6 +199,8 @@ class AgentOutput(AiGeneratedContentNotice):
     draft_observation: str = Field(default="", max_length=1000)
     ai_recommendation: Literal["retain", "downgrade", "defer", "not_applicable"] | None = None
     evidence_fitness_violations: list[dict[str, Any]] = Field(default_factory=list, max_length=10)
+    # v3 的交接绑定登记问题和取证任务，历史输出默认空而不补造。
+    investigation_handoffs: list[InvestigationHandoff] = Field(default_factory=list, max_length=5)
 
 
 class AgentStep(BaseModel):
@@ -206,6 +210,9 @@ class AgentStep(BaseModel):
     failure_stage: Literal["provider", "tool_arguments", "schema", "evidence", "policy"] | None = None
     failure_code: str | None = Field(default=None, max_length=80)
     model_id: str | None = None
+    # 请求别名和供应商实际返回模型分别记录；历史记录保持未知。
+    served_model_id: str | None = Field(default=None, max_length=160)
+    provider_system_fingerprint: str | None = Field(default=None, max_length=160)
     prompt_version: str | None = None
     input_sha256: str | None = None
     response_sha256: str | None = None
@@ -365,6 +372,8 @@ class RunResponse(AiGeneratedContentNotice):
     materiality_display: MaterialityDisplay | None = None
     execution_badge: ExecutionBadge | None = None
     numeric_gate_summary: NumericGateSummary | None = None
+    # 旧运行保持空值；独立证据检验不会重写原运行或签字状态。
+    audit_investigation: AuditInvestigation | None = None
 
 
 def sanitize_cached_trace(run: RunResponse, *, current_run_id: str) -> RunResponse:

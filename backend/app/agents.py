@@ -153,7 +153,7 @@ ROUTE_ALLOWED_CONCLUSIONS = {
     "industry_review": ["industry_boundary", "additional_procedure_required", "data_gap"],
     "evidence_gap_review": ["data_gap", "additional_procedure_required"],
 }
-PROMPT_VERSION = "agent_prompt_v6_claim_scoped_counter_review"
+PROMPT_VERSION = "agent_prompt_v7_assertion_evidence_decisions"
 ROLE_MAX_OUTPUT_TOKENS: dict[AgentRole, int] = {"challenge": 1400, "counter": 1400, "review": 1600}
 
 
@@ -664,6 +664,10 @@ def _user_payload(
             "不得输出舞弊、违法、重大错报、审计意见或投资建议；不确定时使用 defer 和 additional_procedure_required。",
         ],
     }
+    if (analysis_context or {}).get("audit_investigation"):
+        # 输入合同与本次严格工具合同必须一致，不能同时要求v2和v3。
+        payload["schema_version"] = "agent_output_v3"
+        payload["output_contract"]["schema_version"] = "agent_output_v3"
     if role in {"counter", "review"}:
         payload["challenge"] = previous_outputs["challenge"].model_dump(mode="json")
     if role == "review":
@@ -924,6 +928,7 @@ def validate_agent_output(
     allowed_evidence_ids: set[str],
     rule_result: RuleResult | None = None,
     analysis_route: str = "risk_candidate",
+    investigation_registry: dict[str, Any] | None = None,
 ) -> AgentOutput:
     """模型JSON必须与本次运行完全绑定；任何越界引用都属于硬失败。"""
     output = AgentOutput.model_validate(payload)
@@ -953,12 +958,23 @@ def validate_agent_output(
         if allowed_evidence_ids or analysis_route not in {"evidence_gap_review", "industry_review"}:
             raise ValueError("有证据或非缺口路线必须至少保留一条模型主张")
 
-    if output.schema_version == "agent_output_v2" and role == "review":
+    if output.schema_version in {"agent_output_v2", "agent_output_v3"} and role == "review":
         if not output.draft_title.strip() or not output.draft_observation.strip():
             raise ValueError("复核Agent未形成最终待核查草稿")
         if output.ai_recommendation != output.status:
             raise ValueError("复核Agent的ai_recommendation必须与status一致")
         output = _with_review_boundaries(output, rule_result)
+    # 新链必须给出可查的交接，不允许自由文本声称已有资料就关闭任务。
+    if investigation_registry:
+        if output.schema_version != "agent_output_v3" or not output.investigation_handoffs:
+            raise ValueError("认定级链必须提交v3登记交接")
+        question_ids = {q["question_id"] for q in investigation_registry["questions"]}
+        task_questions = {t["request_id"]: t["question_id"] for t in investigation_registry["material_requests"]}
+        for item in output.investigation_handoffs:
+            if item.question_id not in question_ids or not set(item.evidence_ids).issubset(allowed_evidence_ids):
+                raise ValueError("认定级交接引用了未登记问题或证据")
+            if any(task_questions.get(mid) != item.question_id for mid in item.material_request_ids):
+                raise ValueError("取证任务与登记问题不对应")
     output = _normalize_unverified_explanations(output)
     # 单位显示错误由确定性的格式更正解决，不额外重试模型或要求人工确认。
     output = _normalize_growth_gap_units(output)
@@ -1052,16 +1068,32 @@ def _call_model(
         str(payload.get("analysis_route") or analysis_route),
         allow_empty_claims=payload.get("evidence_mode") == "empty_gap_only",
     )
+    registry = (payload.get("analysis_context") or {}).get("audit_investigation")
+    system_prompt = _system_prompt(role, analysis_route, single_generation=single_generation)
+    if registry:
+        # 白名单由本次底稿生成，模型只提出交接，程序条件状态不交给模型修改。
+        parameters = output_tool["function"]["parameters"]
+        parameters["properties"]["schema_version"]["enum"] = ["agent_output_v3"]
+        parameters["properties"]["investigation_handoffs"] = {
+            "type": "array", "minItems": 1, "maxItems": 5,
+            "items": {"type": "object", "properties": {
+                "question_id": {"type": "string"},
+                "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                "material_request_ids": {"type": "array", "items": {"type": "string"}},
+                "rationale": {"type": "string"}},
+                "required": ["question_id", "evidence_ids", "material_request_ids", "rationale"], "additionalProperties": False}}
+        parameters["required"].append("investigation_handoffs")
+        system_prompt += "\n认定级交接合同：schema_version填写agent_output_v3。至少一项investigation_handoffs绑定audit_investigation中的question_id、现有evidence_id及该问题的material_request_ids，rationale说明核对目的。Challenge选择核查事项；Counter说明新增引用或资料任务如何区分正常解释，未取得新增依据时如实说明；Review说明采纳的依据及保留条件。程序的rule_supported不是审计认定，不能据此声称真实性、语义支持或专业采用已验证。"
     request_body = {
         "model": model_id,
         "temperature": 0.1,
-        "max_tokens": ROLE_MAX_OUTPUT_TOKENS[role],
+        "max_tokens": 2500 if registry else ROLE_MAX_OUTPUT_TOKENS[role],
         "stream": False,
         "thinking": THINKING_CONFIG,
         "tools": [output_tool],
         "tool_choice": {"type": "function", "function": {"name": AGENT_OUTPUT_TOOL_NAME}},
         "messages": [
-            {"role": "system", "content": _system_prompt(role, analysis_route, single_generation=single_generation)},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ],
     }
@@ -1100,8 +1132,11 @@ def _call_model(
     usage = response_data.get("usage") or {}
     input_tokens = usage.get("prompt_tokens")
     output_tokens = usage.get("completion_tokens")
+    parsed_output = _parse_json_content(arguments)
+    # 供应商响应头字段由服务端记录，模型工具参数不能自报实际服务模型。
+    parsed_output["_provider_metadata"] = {"model": response_data.get("model"), "system_fingerprint": response_data.get("system_fingerprint")}
     return (
-        _parse_json_content(arguments),
+        parsed_output,
         duration_ms,
         hashlib.sha256(raw).hexdigest(),
         _json_hash(payload),
@@ -1515,6 +1550,7 @@ def run_agent_chain(
                 allowed_evidence_ids=allowed_evidence_ids,
                 rule_result=rule_result,
                 analysis_route=analysis_route,
+                investigation_registry=(analysis_context or {}).get("audit_investigation"),
             )
         except ValidationError:
             attempt_history[-1]["validation"] = "MODEL_SCHEMA_VALIDATION_ERROR"
@@ -1587,7 +1623,9 @@ def run_agent_chain(
                         allowed_evidence_ids=allowed_evidence_ids,
                         rule_result=rule_result,
                         analysis_route=analysis_route,
+                        investigation_registry=(analysis_context or {}).get("audit_investigation"),
                     )
+                    raw_output = correction_raw
                 except ProviderCallError as correction_error:
                     attempt_history.append(
                         _attempt_record(
@@ -1795,6 +1833,8 @@ def run_agent_chain(
             AgentStep(
                 role=role,
                 status="completed",
+                served_model_id=(raw_output.get("_provider_metadata") or {}).get("model"),
+                provider_system_fingerprint=(raw_output.get("_provider_metadata") or {}).get("system_fingerprint"),
                 detail="已完成结构化输出并通过evidence_id与禁用词校验。" + ("增速差单位已统一为百分点；原始响应哈希保留。" if unit_corrected else ""),
                 model_id=model_id,
                 prompt_version=PROMPT_VERSION,
