@@ -53,7 +53,9 @@ def source_page_response(path: Path, document: dict, page: int, source_path: str
             if page > count:
                 raise HTTPException(404, f"PDF 共 {count} 页，所请求页码不存在。")
             original = pdf[page - 1]
-            pixmap = original.get_pixmap(matrix=pymupdf.Matrix(1.8, 1.8), alpha=False)
+            # 限制超大页面的像素尺寸，保留页图比例并避免浏览器回查耗尽内存。
+            scale = min(1.8, 2400 / max(original.rect.width, original.rect.height))
+            pixmap = original.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False)
             png = base64.b64encode(pixmap.tobytes("png")).decode("ascii")
             text = original.get_text()
     except (pymupdf.FileDataError, RuntimeError) as error:
