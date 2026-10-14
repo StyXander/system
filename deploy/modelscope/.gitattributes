@@ -1,0 +1,2 @@
+# 部署快照按原始字节核验，Linux 克隆时不得改写冻结证据与源码换行。
+* -text whitespace=cr-at-eol

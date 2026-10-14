@@ -411,6 +411,13 @@ async def security_headers(http_request: Request, call_next: Callable[..., Any])
     )
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
+    # ModelScope 用本站 iframe 展示应用；只允许其两个明确社区域名嵌入，
+    # 其他部署继续禁止嵌入，不放开任意第三方来源。
+    if os.getenv("AUDITTRACE_DEPLOYMENT_PLATFORM") == "modelscope":
+        response.headers["Content-Security-Policy"] = response.headers[
+            "Content-Security-Policy"
+        ].replace("frame-ancestors 'none'", "frame-ancestors https://modelscope.cn https://www.modelscope.cn")
+        del response.headers["X-Frame-Options"]
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     # 运行状态、任务和下载不能被浏览器/代理复用旧快照；带版本号的静态
@@ -5347,8 +5354,10 @@ def _project_status_payload(http_request: Request) -> dict[str, Any]:
             "materialized_source_head": release_snapshot.get("heads", {}).get("materialized_source_head"),
             "demo_manifest_sha256": release_snapshot.get("heads", {}).get("demo_manifest_sha256"),
             "branch": os.getenv("RENDER_GIT_BRANCH") or os.getenv("GIT_BRANCH") or None,
-            "service": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or None,
-            "source": "render_runtime_environment" if os.getenv("RENDER_GIT_COMMIT") else "local_runtime_environment",
+            "service": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or os.getenv("AUDITTRACE_DEPLOYMENT_SERVICE") or None,
+            "source": "render_runtime_environment" if os.getenv("RENDER_GIT_COMMIT") else ("modelscope_runtime_environment" if os.getenv("AUDITTRACE_DEPLOYMENT_PLATFORM") == "modelscope" else "local_runtime_environment"),
+            "source_snapshot_sha256": os.getenv("AUDITTRACE_SOURCE_SNAPSHOT_SHA256") or None,
+            "source_baseline_commit": os.getenv("AUDITTRACE_SOURCE_BASELINE_COMMIT") or None,
         },
         "catalog": {**catalog_state, "seed": seed_catalog_summary(WORKSPACE_ROOT)},
         "auth": {

@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 // - 旧高级接口不得被演示脚本调用；运行必须带超时与中止控制器。
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const app = readFileSync(new URL("../assets/official-v4/demo-app.js", import.meta.url), "utf8");
+const evidenceApp = readFileSync(new URL("../assets/official-v4/evidence-decisions.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../assets/official-v4/styles.css", import.meta.url), "utf8");
 const backend = readFileSync(new URL("../backend/app/main.py", import.meta.url), "utf8");
 const failures = [];
@@ -78,9 +79,15 @@ if (!/<button[^>]*class="button primary"[^>]*id="demo-start"|<button[^>]*id="dem
 for (const bannedRoute of ["/api/auth/", "/api/cases/import", "/api/cache/", "fields/confirm", "model-consent", "/api/runs/", "/deterministic-backup", "/api/rag/", "/retry"]) {
   if (app.includes(bannedRoute)) failures.push(`demo-app.js must not call removed route family: ${bannedRoute}`);
 }
-for (const allowed of ["/api/demo/bootstrap", "/api/demo/runs", "/api/evaluations/current", "/api/cases/", "/api/pipelines/cninfo", "/api/pipelines/", "/api/supplement-samples", "/api/supplements/"]) {
+for (const allowed of ["/api/demo/bootstrap", "/api/demo/runs", "/api/evaluations/current", "/api/cases/", "/api/pipelines/cninfo", "/api/pipelines/", "/api/supplement-samples"]) {
   if (!app.includes(allowed)) failures.push(`demo-app.js missing allowed route: ${allowed}`);
 }
+// 当前补充演示转向独立匿名资料；核对真实条件检验接口，防止旧合成摘要串入企业。
+for (const route of ["/api/evidence-checks", "/api/evidence-checks/report", "/api/evidence-scenarios"]) {
+  if (!evidenceApp.includes(route) || !backend.includes(route)) failures.push(`anonymous evidence route missing: ${route}`);
+}
+const supplementEntry = app.match(/async function startSupplementRerun\(\) \{([\s\S]*?)\n  \}/)?.[1] || "";
+if (!supplementEntry.includes('byId("evidence-demo-section").open = true') || supplementEntry.includes("fetch(")) failures.push("supplement sample entry must open the independent anonymous workbench");
 
 // 首屏只做 bootstrap；评估摘要只在抽屉打开时读取。
 const initMatch = app.match(/async function initialize\(\) \{([\s\S]*?)\n\}/);
