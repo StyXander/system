@@ -91,6 +91,7 @@ def make(source, filename):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "核验").mkdir(exist_ok=True)
     answers = ROOT / "docs/审迹智链_答辩40问_2026-10-14.md"
     text = answers.read_text(encoding="utf-8")
     headings = re.findall(r"^### Q(\d+)\. (.+)$", text, re.M)
