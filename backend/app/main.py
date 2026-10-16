@@ -875,8 +875,8 @@ def _authorize_model_prewarm(request: Request) -> None:
         raise HTTPException(status_code=403, detail="模型预热仅允许服务端批处理调用。")
 
 
-def _enforce_public_model_quota(request: Request) -> str | None:
-    if not _public_demo_enabled():
+def _enforce_public_model_quota(request: Request, *, force: bool = False) -> str | None:
+    if not _public_demo_enabled() and not force:
         return None
     # 只有具备供应商密钥、确实可能发生外部调用时才占用真实模型额度账本。
     # 开关开启但密钥缺失仍要让请求进入运行链并返回 config_missing；此类匿名
@@ -8373,3 +8373,8 @@ def cancel_demo_run_task(task_id: str) -> dict[str, Any]:
     if cancelled.get("cancel_rejected"):
         raise HTTPException(status_code=409, detail="任务已进入不可中断的协作阶段；将如实等待当前调用结算。")
     return {"task_id": cancelled["task_id"], "status": cancelled["status"], "failure_code": cancelled["failure_code"]}
+
+
+# 新业务复用现有配额、任务和原文基础；旧业务路由继续保留。
+from .connectivity_api import build_router as build_connectivity_router
+app.include_router(build_connectivity_router(WORKSPACE_ROOT, lambda request: _enforce_public_model_quota(request, force=True), _public_model_ledger))

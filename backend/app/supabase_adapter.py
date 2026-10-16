@@ -12,6 +12,7 @@ import json
 import os
 import math
 import re
+import time
 import uuid
 from contextvars import ContextVar, Token
 from copy import deepcopy
@@ -246,18 +247,24 @@ class SupabaseClient:
         request_headers = self._headers(token=token, service=service)
         request_headers.update(headers or {})
         url = f"{self.config.url}/{path.lstrip('/')}"
-        try:
-            with httpx.Client(timeout=self.config.timeout_seconds, follow_redirects=False) as client:
-                response = client.request(
-                    method,
-                    url,
-                    params=params,
-                    json=json_body,
-                    content=content,
-                    headers=request_headers,
-                )
-        except httpx.HTTPError as error:
-            raise SupabaseUnavailable("Supabase 服务暂时不可达。") from error
+        # 只读请求可在短暂断连或服务端不可用时重取一次；写入不自动重放。
+        attempts = 2 if method.upper() == "GET" else 1
+        for attempt in range(attempts):
+            try:
+                with httpx.Client(timeout=self.config.timeout_seconds, follow_redirects=False) as client:
+                    response = client.request(
+                        method, url, params=params, json=json_body,
+                        content=content, headers=request_headers,
+                    )
+            except httpx.HTTPError as error:
+                if attempt+1 < attempts:
+                    time.sleep(.3)
+                    continue
+                raise SupabaseUnavailable("Supabase 服务暂时不可达。") from error
+            if response.status_code in {429,500,502,503,504} and attempt+1 < attempts:
+                time.sleep(.3)
+                continue
+            break
         if response.status_code in {401, 403} or (
             response.status_code == 400 and path.lstrip("/").startswith("auth/v1/token")
         ):

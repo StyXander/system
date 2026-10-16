@@ -5,18 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#FFFFFF">
-  <meta name="description" content="审迹智链 AuditTrace：销售与收款审计计划辅助，检查资料用途、核查条件和取证任务，支持加入及撤回已登记资料的独立检验。">
-  <title>审迹智链 · 资料用途与审计计划辅助</title>
+  <meta name="description" content="审迹智链：面向股东、投资者与环保组织的年报和可持续报告关联核对。先看比较依据，再看数字关系、计算和差异解释。">
+  <title>审迹智链 · 双报告关联核对</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
   <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.11">
   <link rel="stylesheet" href="/assets/official-v4/evidence-decisions.css?v=1.1.0">
   <script src="/assets/official-v4/evidence-decisions.js?v=1.1.0" defer></script>
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
-  <script src="/assets/official-v4/demo-app.js?v=0.14.1" defer></script>
+  <script src="/assets/official-v4/demo-app.js?v=0.14.2" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=1.0.5">
+  <script src="/assets/official-v4/connectivity.js?v=1.1.3" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
 </head>
 <body>
+  <div id="connectivity-root">
+    <a class="cn-skip" href="#cn-workspace">跳到关联核对工作台</a>
+    <header class="cn-header"><a href="#" class="cn-brand">审迹智链 <span>AuditTrace</span></a><nav aria-label="工作台导航"><span>公开报告 · 关联核对</span><button id="cn-history" type="button">历史业务入口</button></nav></header>
+    <main id="cn-workspace" tabindex="-1">
+      <section class="cn-intro" aria-labelledby="cn-title"><p class="cn-eyebrow">ANNUAL REPORT × SUSTAINABILITY REPORT</p><h1 id="cn-title">看清数字之间的关系。</h1><p>帮助股东、投资者与环保组织，核对年报和可持续发展报告中的投入、构成与指标口径。<br>先判断能否比较，再复算；沿原文寻找差异解释。</p><div class="cn-principles"><span>01 比较前提有出处</span><span>02 关系计算可追溯</span><span>03 差异解释留余项</span></div></section>
+      <section class="cn-start" aria-label="选择报告并运行"><form id="cn-form"><div class="cn-form-row"><label>公司与报告期间<select aria-label="公司与报告期间" id="cn-pair" required><option value="">正在读取登记报告…</option></select></label><label>运行方式<select aria-label="运行方式" id="cn-mode"><option value="three_agents">自动发现＋三角色核对</option><option value="calculation_only">自动发现＋仅计算</option><option value="single_model">完整单模型对照</option></select></label><button type="submit" id="cn-run" class="cn-primary" disabled>开始关联核对 <span aria-hidden="true">↗</span></button></div><fieldset class="cn-topics"><legend>本次关注事项</legend><label><input type="checkbox" name="topic" value="research" checked>研发投入</label><label><input type="checkbox" name="topic" value="environment" checked>环保投入</label><label><input type="checkbox" name="topic" value="intensity" checked>强度与分母</label></fieldset></form><div id="cn-documents" class="cn-documents"></div></section>
+      <div id="cn-message" class="cn-message" role="status" aria-live="polite">选择同公司、同期间的两份报告，开始定位原文。</div>
+      <section id="cn-progress" class="cn-progress" aria-label="实际运行进度" hidden><ol id="cn-stages"></ol><button id="cn-cancel" type="button">取消尚未开始的模型调用</button></section>
+      <section id="cn-results" hidden aria-label="关联核对结果"><header class="cn-result-header"><div><p class="cn-eyebrow">RELATIONSHIP RECORDS</p><h2 id="cn-result-title">关联核对记录</h2><p id="cn-run-meta"></p></div><div class="cn-tools"><label>阅读视角<select aria-label="阅读视角" id="cn-perspective"><option value="public">公众阅读</option><option value="investor">投资者关注</option><option value="environment">环境关注</option><option value="professional">专业明细</option></select></label><div id="cn-exports" class="cn-exports"></div><button id="cn-print" type="button">打印 / 保存PDF</button></div></header><p id="cn-perspective-note" class="cn-reading-note"></p><div class="cn-columns"><aside class="cn-list-panel" aria-label="事项与关系"><div class="cn-panel-heading">事项 / 关系 <span id="cn-count"></span></div><div id="cn-check-list"></div></aside><article id="cn-detail" class="cn-detail" aria-live="polite"></article><aside class="cn-source-panel" aria-label="双报告原文"><div class="cn-panel-heading">回到原文 <span>PDF顺序页</span></div><div id="cn-sources"></div></aside></div><section id="cn-print-all" class="cn-print-all" aria-label="全部关系打印内容"></section><section class="cn-bottom"><details open><summary>待查问题与进一步说明</summary><div id="cn-findings"></div></details><details><summary>搜索覆盖、角色贡献与实际调用</summary><div id="cn-coverage"></div><div id="cn-agents"></div></details><details open><summary>使用者记录</summary><p>阅读确认只记录已查看；个人观察单独保存，不改变系统事实和计算结论。记录随本次结果展示，请仅填写可公开的阅读观察。</p><form id="cn-review-form"><label>记录方式<select id="cn-review-action"><option value="reading_confirmation">确认已阅读所选关系</option><option value="personal_observation">补充当前关系的个人观察</option></select></label><fieldset id="cn-review-selection"><legend>选择已阅读的关系</legend><div id="cn-review-checks"></div></fieldset><label>个人观察<textarea id="cn-observation" rows="3" maxlength="3000"></textarea></label><label>记录理由<textarea id="cn-review-reason" rows="2" minlength="3" maxlength="2000" required></textarea></label><button id="cn-save-review" type="submit">保存为新版本</button><p id="cn-review-message" role="status"></p></form><div id="cn-personal-notes"></div></details><details><summary>关系更正与版本记录</summary><div id="cn-revisions"></div></details></section></section>
+      <details class="cn-about"><summary>方法、使用群体与边界</summary><p>股东与投资者可查看投入构成及跨报告衔接；环保组织可查看环保投入、强度分母与统计范围；专业人员可展开完整核对记录。切换阅读视角不会改变事实、计算和未决条件。</p><p>六类规则：同值、研发组成、环保组成、比例与强度、多位置关联、叙述解释。企业报告证明具体关系，程序负责计算，三角色查找依据及反证。数字相近不能证明口径一致，找到解释也不会自动消除尚未说明的余差。</p><p id="cn-notice"></p></details>
+    </main><footer class="cn-footer">审迹智链 · 每个判断，回到原文。<span>公开报告阅读与研究工具</span></footer>
+    <dialog id="cn-correction"><form id="cn-correction-form"><div class="cn-dialog-head"><h2>更正当前关系</h2><button id="cn-close-correction" type="button" aria-label="关闭更正窗口">关闭</button></div><p>更正依据须来自本次原文。原始自动结果保留，更正后生成子运行；修改不等于正式专业批准。</p><div id="cn-correction-fields"></div><label>更正理由<textarea id="cn-correction-reason" required minlength="3" rows="3"></textarea></label><button class="cn-primary" type="submit">保存依据并重新计算</button><p id="cn-correction-message" role="status"></p></form></dialog>
+  </div>
+  <div id="legacy-workspace" hidden>
+  <button id="cn-back" type="button">返回双报告关联核对</button>
   <a class="skip-link" href="#main-content">跳到主要内容</a>
 
   <section class="cinematic-landing" id="demo-landing" aria-labelledby="demo-landing-title">
@@ -630,5 +647,6 @@
 
 
   <div class="global-toast" id="demo-toast" role="status" aria-live="polite" hidden></div>
+  </div>
 </body>
 </html>

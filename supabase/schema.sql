@@ -314,6 +314,10 @@ create unique index if not exists demo_run_tasks_active_request_idx
 create unique index if not exists demo_run_tasks_idempotency_idx
   on public.demo_run_tasks(idempotency_key_sha256)
   where idempotency_key_sha256 is not null;
+-- 关联核对修订只允许一个直接子结果；原结果不覆盖，并发更正明确冲突。
+create unique index if not exists connectivity_single_child_idx
+  on public.demo_run_tasks ((request_payload->>'parent_run_id'))
+  where task_kind = 'connectivity' and request_payload->>'parent_run_id' is not null;
 create index if not exists analysis_runs_tenant_idx on public.analysis_runs(tenant_id, updated_at desc);
 create unique index if not exists analysis_runs_task_idempotency_idx
   on public.analysis_runs(tenant_id, pipeline_task_id)

@@ -14,6 +14,14 @@ const styles = readFileSync(new URL("../assets/official-v4/styles.css", import.m
 const backend = readFileSync(new URL("../backend/app/main.py", import.meta.url), "utf8");
 const failures = [];
 
+// 同时覆盖当前关联核对工作台；动态控件在同一脚本模板中明确声明。
+const connectivity = readFileSync(new URL("../assets/official-v4/connectivity.js", import.meta.url), "utf8");
+const connectivityIds = new Set([...html.matchAll(/\bid="([^"]+)"/g), ...connectivity.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
+for(const match of connectivity.matchAll(/\$\('([^']+)'\)/g)){
+  if(!connectivityIds.has(match[1]))failures.push(`connectivity.js references missing id: ${match[1]}`);
+}
+if(!html.includes('/assets/official-v4/connectivity.js'))failures.push('page must load connectivity.js');
+
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 const idSet = new Set(ids);
 for (const id of ids) {

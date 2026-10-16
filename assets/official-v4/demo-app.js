@@ -4656,5 +4656,11 @@
     sustainedClause,
   };
 
-  initialize();
+  // 新工作台默认不初始化历史业务，避免改写新任务的地址及滚动位置。
+  // 用户主动打开历史入口后仍执行原来的完整流程。
+  if (document.getElementById("connectivity-root")) {
+    document.addEventListener("audittrace:legacy-open", initialize, { once: true });
+  } else {
+    initialize();
+  }
 }());

@@ -1,5 +1,7 @@
 # 审迹智链 ModelScope 部署
 
+2026年10月16日新版关联核对仍在本机联调，以下10月14日线上记录属于历史版本。本轮Supabase保存、独立实例读取、服务进程重启恢复及修订导出已验证；当前原PDF定位质量和关系识别仍未达到完整验收要求，尚未部署。新版任务执行模式须为 `web`，不交给历史付费Worker。登记原件已在本机隔离空缓存中全部取得过，平台网络获取仍须在部署后另验。
+
 空间：https://modelscope.cn/studios/burgerhaamm/audittrace
 
 推荐全屏网站：https://modelscope.cn/studios/burgerhaamm/audittrace?mode=full

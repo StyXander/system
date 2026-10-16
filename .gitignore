@@ -69,6 +69,13 @@ artifacts/
 # 干净克隆复算完整回归，提交前必须逐项确认这些文件真的进了版本库，否则该验收不成立。
 !/scripts/
 /scripts/*
+!/scripts/register_connectivity_sources.py
+!/scripts/eval_connectivity.py
+!/scripts/eval_connectivity_models.py
+!/scripts/verify_connectivity_supabase.py
+!/scripts/verify_connectivity_supabase_workflow.py
+!/scripts/verify_connectivity_saved_exports.py
+!/scripts/verify_connectivity_source_downloads.py
 !/scripts/check_ui_hierarchy.mjs
 !/scripts/fixtures/
 /scripts/fixtures/*

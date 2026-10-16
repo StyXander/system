@@ -1,0 +1,441 @@
+"""原始PDF自动发现：坐标行、年度表头、单位和上下文独立留存。
+
+不读取人工字段样本，不接受目标页、目标金额或预期答案。
+跨页继承只在表头和续表线索吻合时使用，失败页不伪装已解析。
+"""
+from __future__ import annotations
+
+from collections import defaultdict
+from pathlib import Path
+import hashlib
+import json
+import re
+import time
+from typing import Callable
+
+import pymupdf
+import httpx
+from fastapi import HTTPException
+
+from .connectivity_rules import TOPICS
+from .connectivity_schemas import DisclosureOccurrence, ReportDocument, SearchCoverage
+from .source_viewer import PDF_ACCESS_LOCK
+from .secure_download import download_bounded, SecureDownloadError
+
+EXTRACTION_VERSION = "coordinates_v1.8"
+# 原始布局结构未变化时复用解析缓存，运行仍记录完整提取算法的新版号。
+PARSER_CACHE_VERSION = "coordinates_v1.5"
+NUMBER = re.compile(r"(?<![\d.])(?:[（(]?-?\d{1,3}(?:[,，]\d{3})+(?:\.\d+)?[)）]?|[（(]?-?\d+(?:\.\d+)?[)）]?)(?![\d.])")
+# 长单位排在短单位前，保留二氧化碳当量、粗钢与产品的不同口径。
+UNIT_ATOM = r"(?:万吨二氧化碳当量|吨二氧化碳当量|万吨标准煤|吨标准煤|万吨粗钢|吨粗钢|万吨产品|吨产品|万千瓦时|千瓦时|兆瓦时|吉焦|太焦|万吨|吨|百万立方米|千立方米|万立方米|亿立方米|立方米|百万元|千元|万元|亿元|元|万人|人)"
+UNIT = re.compile(UNIT_ATOM + r"(?:[/／]" + UNIT_ATOM + r")?|[%％]")
+
+
+def source_path(root: Path, document: ReportDocument) -> Path:
+    """文件名只来自已登记的内容身份，不接受客户端路径。"""
+    if not re.fullmatch(r"[0-9a-f]{64}", document.file_sha256):
+        raise ValueError("来源未登记有效版本")
+    return root / "backend/runtime/connectivity/sources" / f"{document.file_sha256}.pdf"
+
+
+def ensure_source(root: Path, document: ReportDocument) -> Path:
+    """仅获取登记的准确URL与版本，支持交易所来源及明确标识的公告镜像。"""
+    path = source_path(root, document)
+    if path.exists():
+        with path.open("rb") as handle:
+            if hashlib.file_digest(handle, "sha256").hexdigest() != document.file_sha256:
+                raise HTTPException(409, "原件与登记版本不符，已停止读取")
+        return path
+    url = document.source_url
+    allowed_source = bool(re.fullmatch(r"https://static\.cninfo\.com\.cn/finalpage/\d{4}-\d{2}-\d{2}/\d+\.pdf", url, re.I)
+        or re.fullmatch(r"https://disc\.static\.szse\.cn/disc/disk\d+/finalpage/\d{4}-\d{2}-\d{2}/[a-f0-9-]+\.pdf", url, re.I)
+        or (document.source_kind == "announcement_mirror" and re.fullmatch(r"https://file\.finance\.sina\.com\.cn/[^?#]+\.pdf", url, re.I)))
+    if not allowed_source:
+        raise HTTPException(404, "该登记来源暂不支持自动获取，请使用公开出处")
+    try:
+        with httpx.Client(timeout=60, trust_env=False, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.cninfo.com.cn/"}) as client:
+            for attempt in range(2):
+                try:
+                    download_bounded(url, path, client=client, max_bytes=120*1024*1024, require_pdf=True,
+                        is_allowed_url=lambda candidate: candidate == url, expected_sha256=document.file_sha256)
+                    break
+                except (SecureDownloadError,httpx.HTTPError) as error:
+                    # 仅短暂网络及服务端限流错误重试同一版本；内容或版本不符立即停止。
+                    temporary = isinstance(error,httpx.HTTPError) or error.code == "NETWORK_ERROR" or (
+                        error.code == "HTTP_ERROR" and error.detail.get("status_code") in {429,500,502,503,504})
+                    if attempt or not temporary:
+                        raise
+                    time.sleep(1)
+    except (SecureDownloadError, httpx.HTTPError, OSError) as error:
+        raise HTTPException(503, "登记原件当前无法获取，未用其他版本替代") from error
+    return path
+
+
+def load_registry(root: Path) -> list[ReportDocument]:
+    path = root / "backend/connectivity_reports.json"
+    if not path.exists():
+        return []
+    rows = json.loads(path.read_text(encoding="utf-8"))["documents"]
+    result = [ReportDocument.model_validate(row) for row in rows]
+    for doc in result:
+        doc.available = source_path(root, doc).is_file()
+    return result
+
+
+def _lines(page) -> list[dict]:
+    """按真实坐标拼同行；双印刷页及明确双栏保持左右顺序。"""
+    blocks = page.get_text("dict")["blocks"]
+    text_blocks = [b for b in blocks if b.get("type") == 0]
+    width = page.rect.width
+    split = width > page.rect.height * 1.15
+    if not split:
+        paragraphs = [b for b in text_blocks if len(b.get("lines", [])) >= 4]
+        split = any(b["bbox"][2] < width * .53 for b in paragraphs) and any(b["bbox"][0] > width * .46 for b in paragraphs)
+    groups = defaultdict(list)
+    for block in text_blocks:
+        for line in block["lines"]:
+            for span in line["spans"]:
+                text = span["text"].strip()
+                if not text:
+                    continue
+                box = span["bbox"]
+                side = int((box[0] + box[2]) / 2 >= width / 2) if split else 0
+                groups[(side, round(box[1] / 2) * 2)].append((box, text))
+    result = []
+    for (side, y), spans in sorted(groups.items()):
+        spans.sort(key=lambda row: row[0][0])
+        result.append({"text": " ".join(t for _, t in spans), "side": side,
+            "bbox": [min(b[0] for b, _ in spans), min(b[1] for b, _ in spans), max(b[2] for b, _ in spans), max(b[3] for b, _ in spans)],
+            "spans": spans})
+    return result
+
+
+def _unit(text: str) -> str:
+    match = re.search(r"(?:单位|单\s*位)\s*[:：]?\s*(人民币)?\s*(" + UNIT.pattern + r")", text)
+    if match:
+        return match.group(2).replace("／", "/").replace("％", "%")
+    # 人民币中的“人”不是人数单位，金额未注明尺度时仍然保留未知。
+    found = UNIT.findall(text.replace("人民币", ""))
+    return found[-1].replace("／", "/").replace("％", "%") if found else ""
+
+
+def _table_layout(page, lines: list[dict]) -> dict:
+    """用真实合并单元格边界绑定年度及分组，支持同一年下钢铁/其他/合计。"""
+    keywords = [word for topic in TOPICS.values() for word in topic["keywords"]]
+    if not any(any(word in line["text"].replace(" ", "") for word in keywords) for line in lines):
+        return {"headers": [], "tables": []}
+    headers = []
+    tables = []
+    try:
+        for table in page.find_tables().tables:
+            data = table.extract()
+            table_headers = []
+            tables.append({"bbox": list(table.bbox), "data": data, "cells": [row.cells for row in table.rows], "headers": table_headers})
+            for row_index, values in enumerate(data[:4]):
+                for col_index, value in enumerate(values):
+                    value = str(value or "")
+                    bounds = table.rows[row_index].cells[col_index]
+                    if bounds and (re.fullmatch(r"\s*(?:20\d{2}\s*年?(?:度|末)?|本期(?:金额|发生额)?|本年(?:金额|发生额)?|合计|钢铁\d*|其他|单位|币种[:：]?人民币)\s*", value)):
+                        entry = {"text": value, "bbox": list(bounds), "table_bbox": list(table.bbox)}
+                        headers.append(entry)
+                        table_headers.append(entry)
+    except (RuntimeError, ValueError):
+        # 表格检测不足不冒充成功，坐标原文仍可作为不确定候选读取。
+        return {"headers": [], "tables": []}
+    return {"headers": headers, "tables": tables}
+
+
+def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> list[DisclosureOccurrence]:
+    """优先按表格单元格取数，避免把换行标签、脚注号和年度值拼成同一行。"""
+    result = []
+    lines = page["lines"]
+    for table_index, table in enumerate(page.get("tables", [])):
+        headers = table.get("headers", [])
+        if not any(re.search(r"20\d{2}|本期|本年", h["text"]) for h in headers):
+            # 检测器会把表头与表体断成两块；仅接回同宽、紧邻且列数相同的表头。
+            previous_headers = [t for t in page.get("tables", []) if t.get("headers")
+                and 0 <= table["bbox"][1]-t["bbox"][3] <= 32
+                and abs(table["bbox"][0]-t["bbox"][0]) < 3 and abs(table["bbox"][2]-t["bbox"][2]) < 3
+                and len(t["data"][0]) == len(table["data"][0])
+                and any(re.search(r"20\d{2}|本期|本年", h["text"]) for h in t["headers"])]
+            if previous_headers:
+                headers = max(previous_headers, key=lambda t:t["bbox"][3])["headers"]
+        data = table["data"]
+        table_text = "\n".join(" | ".join(str(v or "") for v in row) for row in data)
+        table_topics = [topic for topic in topics if any(word in table_text.replace(" ", "") for word in TOPICS[topic]["keywords"])]
+        for row_index, values in enumerate(data):
+            if not values or not any(values):
+                continue
+            label = str(next((v for v in values if v), "")).strip()
+            matched = [topic for topic in topics if any(word in re.sub(r"\s+", "", label) for word in TOPICS[topic]["keywords"])]
+            if not matched and len(table_topics) == 1 and re.match(r"合计|总计|其中|资本化|费用化", label):
+                matched = table_topics
+            if not matched:
+                continue
+            cells = table["cells"][row_index]
+            units = [str(v).replace("\n", "").replace(" ", "").replace("／", "/").replace("％", "%") for v in values if v and UNIT.fullmatch(str(v).replace("\n", "").replace(" ", ""))]
+            above = [r["text"] for r in lines if r["bbox"][3] <= table["bbox"][1]+3 and "单位" in r["text"]]
+            label_unit = re.search(r"[（(]\s*(" + UNIT.pattern + r")\s*[)）]", label)
+            unit = units[0] if units else _unit(label) if "单位" in label else label_unit.group(1) if label_unit else _unit(above[-1]) if above else ""
+            for column_index, raw in enumerate(values):
+                token = str(raw or "").strip().replace("\n", "").replace("（", "(").replace("）", ")")
+                if not re.fullmatch(r"\(?-?\d[\d,，]*(?:\.\d+)?\)?", token):
+                    continue
+                bounds = cells[column_index]
+                if not bounds or column_index == 0:
+                    continue
+                x = (bounds[0]+bounds[2])/2
+                applicable = [h for h in headers if h["bbox"][0]-.5 <= x <= h["bbox"][2]+.5 and h["bbox"][3] <= bounds[1]+3]
+                years = [h for h in applicable if re.search(r"20\d{2}|本期|本年", h["text"])]
+                year = ""
+                column_header = ""
+                scope = ""
+                if years:
+                    top = max(years, key=lambda h:h["bbox"][3])
+                    match = re.search(r"20\d{2}", top["text"])
+                    year = match.group() if match else document.period
+                    selected = [h["text"] for h in applicable if h["bbox"][1] >= top["bbox"][1]]
+                    column_header = " / ".join(selected)
+                    scope = " / ".join(text for text in selected if re.fullmatch(r"钢铁\d*|其他|合计", text))
+                row_text = " | ".join(str(v or "").replace("\n", " ") for v in values)
+                context_rows = data[max(0,row_index-2):row_index+3]
+                context = "\n".join(" | ".join(str(v or "").replace("\n", " ") for v in row) for row in context_rows)
+                context = f"本页对应列头：{column_header}\n{context}"
+                if above:
+                    context = above[-1] + "\n" + context
+                result.append(DisclosureOccurrence(occurrence_id=f"{document.document_id}-{page['page']}-T{table_index}-R{row_index}-C{column_index}",
+                    document_id=document.document_id, pdf_page=page["page"], bbox=list(bounds), label=label,
+                    value=token, unit=unit, currency="CNY" if "人民币" in context else "", year=year, scope=scope,
+                    row_header=row_text, column_header=column_header, context=context[:7000],
+                    quality="located" if year and unit else "uncertain", topic=matched[0]))
+    return result
+
+
+def _number_box(line: dict, match) -> list[float]:
+    """回到组成该行的原始span，避免把同行不同列全部绑定首个年度。"""
+    offset = 0
+    for bounds, text in line["spans"]:
+        if offset <= match.start() < offset + len(text):
+            start = (match.start() - offset) / max(1, len(text))
+            end = min(1, (match.end() - offset) / max(1, len(text)))
+            return [bounds[0]+(bounds[2]-bounds[0])*start, bounds[1], bounds[0]+(bounds[2]-bounds[0])*end, bounds[3]]
+        offset += len(text) + 1
+    return line["bbox"]
+
+
+def _join_indicator_fragments(lines: list[dict]) -> list[dict]:
+    """接合跨两行的强度标签和分式单位，数值仍保留各自原始坐标。"""
+    result = list(lines)
+    for index, line in enumerate(lines):
+        start = re.fullmatch(r"(.{2,8}?)\s+(\S+[/／])", line["text"])
+        if not start:
+            continue
+        nearby = lines[index+1:index+4]
+        suffix = next((row for row in nearby if row["side"] == line["side"]
+            and 0 <= row["bbox"][1]-line["bbox"][1] <= 35
+            and re.fullmatch(r"强度(?:比)?\s+\S+", row["text"])), None)
+        numeric = next((row for row in nearby if row["side"] == line["side"]
+            and 0 <= row["bbox"][1]-line["bbox"][1] <= 20
+            and re.fullmatch(r"[\d,，.\s/／%％-]+", row["text"])), None)
+        if not suffix or not numeric:
+            continue
+        ending = re.fullmatch(r"(强度(?:比)?)\s+(\S+)", suffix["text"])
+        unit = (start.group(2)+ending.group(2)).replace("／", "/")
+        if not UNIT.fullmatch(unit):
+            continue
+        label = start.group(1)+ending.group(1)
+        spans = [(line["bbox"],label), (suffix["bbox"],unit), *numeric["spans"]]
+        result[index] = {**line,"text":" ".join(text for _,text in spans),"spans":spans,
+            "bbox":[min(row["bbox"][0] for row in [line,suffix,numeric]),line["bbox"][1],
+                max(row["bbox"][2] for row in [line,suffix,numeric]),max(row["bbox"][3] for row in [line,suffix,numeric])]}
+    return result
+
+
+def _coordinate_year(lines: list[dict], line: dict, number_box: list[float]) -> tuple[str,str]:
+    """按最近的纯年度表头列中心绑定；跳过空列符号时不靠数值序号猜年度。"""
+    headers = [row for row in lines if row["side"] == line["side"]
+        and 0 < line["bbox"][1]-row["bbox"][1] <= 120
+        and re.fullmatch(r"(?:20\d{2}\s*年?(?:度|末)?\s*){2,}",row["text"])]
+    if not headers:
+        return "",""
+    header = max(headers,key=lambda row:row["bbox"][1])
+    positions = [(match.group(),_number_box(header,match)) for match in re.finditer(r"20\d{2}",header["text"])]
+    x = (number_box[0]+number_box[2])/2
+    year,_ = min(positions,key=lambda item:abs((item[1][0]+item[1][2])/2-x))
+    return year,header["text"]
+
+
+def extract_document(root: Path, document: ReportDocument, topics: list[str], cancelled: Callable[[], bool] = lambda: False) -> tuple[list[DisclosureOccurrence], SearchCoverage]:
+    """全页读取后召回候选；缓存不包含参考答案，只复用同版原文解析。"""
+    path = ensure_source(root, document)
+    cache_dir = root / "backend/runtime/connectivity/extraction"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / f"{document.file_sha256}-{PARSER_CACHE_VERSION}.json"
+    if cache_path.exists():
+        pages = json.loads(cache_path.read_text(encoding="utf-8"))
+    else:
+        pages = []
+        with PDF_ACCESS_LOCK, pymupdf.open(path) as pdf:
+            for index, page in enumerate(pdf):
+                if cancelled():
+                    raise InterruptedError("用户取消了原件解析")
+                try:
+                    lines = _lines(page)
+                    layout = _table_layout(page, lines)
+                    pages.append({"page": index + 1, "width": page.rect.width, "height": page.rect.height, "lines": lines, **layout, "error": "" if lines else "无可读取文字层"})
+                except (ValueError, RuntimeError) as error:
+                    pages.append({"page": index + 1, "lines": [], "error": type(error).__name__})
+        import uuid
+        temporary = cache_path.with_suffix(f".{uuid.uuid4().hex}.tmp")
+        temporary.write_text(json.dumps(pages, ensure_ascii=False), encoding="utf-8")
+        temporary.replace(cache_path)
+    if any(not page.get("width") for page in pages):
+        # 旧布局缓存只补读页面几何，不重复解析正文，也不根据屏幕像素猜坐标。
+        with PDF_ACCESS_LOCK, pymupdf.open(path) as pdf:
+            for info, original in zip(pages, pdf):
+                info["width"], info["height"] = original.rect.width, original.rect.height
+    occurrences = []
+    coverage = SearchCoverage(document_id=document.document_id, total_pages=len(pages), parsed_pages=0)
+    previous = []
+    for page in pages:
+        if cancelled():
+            raise InterruptedError("用户取消了候选定位")
+        if page["error"]:
+            coverage.failed_pages.append({"page": page["page"], "reason": page["error"]})
+            continue
+        coverage.parsed_pages += 1
+        coverage.searched_pages.append(page["page"])
+        lines = _join_indicator_fragments(page["lines"])
+        table_rows = _extract_tables(page, document, topics)
+        occurrences.extend(table_rows)
+        for index, line in enumerate(lines):
+            text = line["text"]
+            matched = [topic for topic in topics if any(key in re.sub(r"\s+", "", text) for key in TOPICS[topic]["keywords"])]
+            is_basis = bool(re.search(r"报告范围|统计口径|统计范围|除.*特别说明|报告主体|编制依据|币种.*人民币|金额.*人民币|货币.*人民币|报告时间范围|本报告覆盖的周期|报告期.*20\d{2}", text)
+                or (page["page"] <= 5 and re.search(r"股份有限公司|有限责任公司", text)))
+            basis_only = is_basis and not matched
+            if not matched and is_basis:
+                matched = ["basis"]
+            if not matched and re.search(r"资本化|费用化|用化投入", text):
+                nearby = "".join(r["text"] for r in lines[max(0,index-2):index+2] if r["side"] == line["side"])
+                if "environment" in topics and re.search(r"环保|环境保护", nearby):
+                    matched = ["environment"]
+            if not matched:
+                continue
+            same_side = [r for r in lines[max(0, index - 5):index + 6] if r["side"] == line["side"]]
+            context = "\n".join(r["text"] for r in same_side)
+            # 续表只继承上一页尾部的单位和表头，不把任意上页标题作为事实。
+            continued = index < 6 and "续" in " ".join(r["text"] for r in lines[:5])
+            inherited = "\n".join(r["text"] for r in previous[-8:]) if continued else ""
+            if inherited:
+                context = inherited + "\n[本页续表]\n" + context
+            units_above = "\n".join(r["text"] for r in same_side if r["bbox"][1] <= line["bbox"][1])
+            explicit_above = [r["text"] for r in lines[max(0,index-18):index] if r["side"] == line["side"] and "单位" in r["text"]]
+            unit_hint = _unit(text) or (_unit(explicit_above[-1]) if explicit_above else "") or _unit(inherited)
+            numeric_line = line
+            numbers = list(NUMBER.finditer(text))
+            # 图形表格可能把指标名称和数值放在相邻行；只作不确定候选。
+            if not numbers and index + 1 < len(lines) and lines[index + 1]["side"] == line["side"] and re.match(r"^[\d,，.\s%-]+$", lines[index+1]["text"]):
+                numeric_line = lines[index + 1]
+                numbers = list(NUMBER.finditer(numeric_line["text"]))
+            header = [r for r in same_side if r["bbox"][1] < line["bbox"][1] and re.search(r"20\d{2}|本年|本期", r["text"])]
+            year_labels = re.findall(r"20\d{2}", header[-1]["text"]) if header else []
+            valid = [n for n in numbers if not (
+                re.fullmatch(r"20\d{2}", n.group()) and ("年" in numeric_line["text"][n.end():n.end()+2] or len(numbers) == 1)
+                or re.search(r"[A-Za-z]$", numeric_line["text"][:n.start()])
+                or re.match(r"[A-Za-z]", numeric_line["text"][n.end():])
+                or (n.start() < 2 and re.match(r"[)）.、]", numeric_line["text"][n.end():]))
+                or (n.group().startswith("(") and not n.group().endswith(")")))]
+            if basis_only:
+                valid = []
+            # 无数值的定义段落也进入检索，NAR和五项前提需要原文证据。
+            candidates = valid or [None]
+            for offset, match in enumerate(candidates):
+                raw = match.group().replace("（", "(").replace("）", ")") if match else None
+                explicit_years = re.findall(r"(20\d{2})年", text)
+                year = year_labels[offset] if offset < len(year_labels) and len(valid) == len(year_labels) else explicit_years[0] if len(set(explicit_years)) == 1 else ""
+                label = re.split(NUMBER, text)[0].strip(" ：:，,。") or text[:70]
+                column_header = header[-1]["text"] if header else ""
+                number_box = _number_box(numeric_line, match) if match else line["bbox"]
+                if match:
+                    coordinate_year, coordinate_header = _coordinate_year(lines,line,number_box)
+                    if coordinate_year:
+                        year,column_header = coordinate_year,coordinate_header
+                    x = (number_box[0]+number_box[2])/2
+                    candidates_above = [h for h in page.get("headers", []) if h["bbox"][0] <= x <= h["bbox"][2] and h["bbox"][3] <= number_box[1]+3
+                        and h["table_bbox"][0]-2 <= x <= h["table_bbox"][2]+2 and h["table_bbox"][1]-2 <= number_box[1] <= h["table_bbox"][3]+80]
+                    if candidates_above:
+                        nearest_band = max(h["table_bbox"][1] for h in candidates_above)
+                        candidates_above = [h for h in candidates_above if h["table_bbox"][1] == nearest_band]
+                    years_above = [h for h in candidates_above if re.search(r"20\d{2}|本期|本年", h["text"])]
+                    if years_above:
+                        nearest = max(years_above, key=lambda h:h["bbox"][3])
+                        year_match = re.search(r"20\d{2}", nearest["text"])
+                        year = year_match.group() if year_match else document.period
+                        column_header = " / ".join(h["text"] for h in candidates_above if h["bbox"][1] >= nearest["bbox"][1])
+                        context = context + "\n本页对应列头：" + column_header
+                    # 句内明确写出的年度高于邻近表头，不能把表后文字误绑到上一张表。
+                    inline_periods = re.findall(r"(20\d{2})\s*年", numeric_line["text"][:match.start()])
+                    if inline_periods:
+                        year = inline_periods[-1]
+                        column_header = "句内明示" + year + "年"
+                    # 句内多指标使用各数值前的局部标签，避免费用化和资本化共用名称。
+                    prefix = numeric_line["text"][:match.start()]
+                    phrase = re.split(r"[，；;。]", prefix)[-1].strip()
+                    if re.search(r"[，；;。]", prefix) and phrase and re.search(r"投入|费用|支出|人员|比例|强度", phrase) and len(phrase) < 70:
+                        label = re.sub(r"^20\d{2}\s*年[，,\s]*", "", phrase)
+                suffix = numeric_line["text"][match.end():match.end()+16] if match else ""
+                immediate = re.match(r"\s*(" + UNIT.pattern + r")", suffix)
+                unit = immediate.group(1).replace("％", "%").replace("／", "/") if immediate else unit_hint
+                inline_units = UNIT.findall(text)
+                if "强度" in text and len(inline_units) == 2 and numeric_line["text"].lstrip().startswith("/"):
+                    unit = inline_units[0] + "/" + inline_units[1]
+                # 同一单元格已按表格结构提取时，不再提交另一份位置身份重复相加。
+                if match:
+                    duplicates = [row for row in table_rows if row.value == raw and row.bbox[0]-2 <= (number_box[0]+number_box[2])/2 <= row.bbox[2]+2
+                        and row.bbox[1]-2 <= (number_box[1]+number_box[3])/2 <= row.bbox[3]+2]
+                    if duplicates:
+                        # 同一物理单元格合并两种读取的依据，不能让较差的表格结果吞掉坐标层的单位与年度。
+                        for row in duplicates:
+                            row.unit = row.unit or unit
+                            row.year = row.year or year
+                            row.column_header = row.column_header or column_header
+                            if "人民币" in context:
+                                row.currency = row.currency or "CNY"
+                            row.context = (row.context + "\n[同页坐标补充]\n" + context)[:7000]
+                            row.quality = "located" if row.year and row.unit else "uncertain"
+                        continue
+                # 金额原币种只在上下文明示人民币时确认，不由元字推定币种。
+                currency = "CNY" if "人民币" in context else ""
+                identity = f"{document.document_id}-{page['page']}-{index}-{offset}"
+                occurrences.append(DisclosureOccurrence(occurrence_id=identity, document_id=document.document_id,
+                    pdf_page=page["page"], bbox=number_box, label=label[:160], value=raw, unit=unit,
+                    currency=currency, year=year, row_header=text, column_header=column_header,
+                    context=context[:7000], footnotes=[r["text"] for r in same_side if re.match(r"注[:：\d]|\*", r["text"])],
+                    quality="located" if match and year and unit and numeric_line is line else "uncertain" if match else "text_only",
+                    topic=matched[0]))
+        previous = lines
+    for row in occurrences:
+        page = pages[row.pdf_page-1]
+        row.page_width, row.page_height = page.get("width", 0), page.get("height", 0)
+    # 全报告币种声明可适用于未特别注明的金额，但必须另记声明的实际页源。
+    declarations = []
+    for row in occurrences:
+        compact = re.sub(r"\s+", "", row.context)
+        if row.topic == "basis" and re.search(r"(?:货币|金额|数据).{0,25}(?:均为人民币|均以人民币|以人民币.{0,12}列示)", compact):
+            declarations.append(row)
+    if declarations:
+        declaration = declarations[0]
+        for row in occurrences:
+            if not row.currency and re.search(r"元", row.unit) and not re.search(r"美元|港元|欧元|日元", row.context):
+                row.currency = "CNY"
+                row.currency_source_id = declaration.occurrence_id
+                row.currency_source_quote = re.search(r"(?:货币|金额|数据).{0,25}(?:均为人民币|均以人民币|以人民币.{0,12}列示)", re.sub(r"\s+", "", declaration.context)).group()
+    coverage.discovered_count = len(occurrences)
+    return occurrences, coverage
+
+
+def search_context(occurrences: list[DisclosureOccurrence], keywords: list[str], limit: int = 40) -> list[DisclosureOccurrence]:
+    """只在本次原件候选内补查定义和反证，保留真实命中上限。"""
+    scored = [(sum(word in row.context for word in keywords), row) for row in occurrences]
+    return [row for score, row in sorted(scored, key=lambda item: item[0], reverse=True) if score][:limit]

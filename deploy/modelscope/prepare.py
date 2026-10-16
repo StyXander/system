@@ -51,10 +51,10 @@ def main() -> None:
         "source_baseline_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT).decode().strip(),
         "files": copied,
         "boundary": "运行文件来自该 Git 提交的干净工作区；部署包原始字节快照与 Git 提交分别核验。",
-        "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+        "ai_generated_content_notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
     }
     (TARGET / "deployment-source.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    (TARGET / "README.md").write_text("---\nsdk: docker\napp_port: 7860\n---\n\n# 审迹智链 AuditTrace\n\n公开年报预筛、资料用途与审计计划辅助。\n\nAI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。\n", encoding="utf-8")
+    (TARGET / "README.md").write_text("---\nsdk: docker\napp_port: 7860\n---\n\n# 审迹智链 AuditTrace\n\n面向股东、公众投资者、环保组织和研究机构的年度报告与可持续发展报告关联核对。先判断比较前提，再计算同值、组成、比例和多位置关系，沿原文查找差异解释。专业人员可查看完整明细。\n\nAI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。\n", encoding="utf-8")
     (TARGET / ".gitignore").write_text(".env\n**/__pycache__/\n**/runtime/\n.venv/\n", encoding="utf-8")
     print(json.dumps({"file_count": len(copied), "source_snapshot_sha256": manifest["source_snapshot_sha256"], "total_bytes": sum((TARGET / p).stat().st_size for p in copied), "secret_scan": "passed", "path": str(TARGET)}, ensure_ascii=False))
 

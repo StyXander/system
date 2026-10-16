@@ -1110,5 +1110,27 @@
     ],
     "ai_generated_content_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
     "updated_at": "2026-09-19T23:25:14.210442+08:00"
+  },
+  "connectivity_20261016": {
+    "status": "implementation_in_progress",
+    "primary_users": [
+      "股东与公众投资者",
+      "环保组织与研究机构"
+    ],
+    "professional_users_retained": true,
+    "report_pairs_registered": 5,
+    "live_three_agent_task": "DEMO-RUN-401043FF6863",
+    "numeric_boundary_checks": 18,
+    "public_deployment": "not_updated_this_iteration",
+    "full_plan_complete": false,
+    "details": "outputs/connectivity-v1-acceptance/执行进度.json",
+    "supabase_real_task": "DEMO-RUN-C841A7334E27",
+    "supabase_concurrent_revision": "passed_409_200",
+    "strong_single_vs_three_agents": "executed_not_professionally_scored",
+    "latest_extraction_code": "coordinates_v1.8",
+    "verified_model_run_extraction": "coordinates_v1.8",
+    "verified_prompt": "connectivity_roles_20261016.4",
+    "supabase_process_restart_recovery": "passed",
+    "supabase_correction_task": "DEMO-RUN-06DA41AF6430"
   }
 }

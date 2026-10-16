@@ -1,0 +1,122 @@
+"""同一保存结果的JSON、CSV与Word导出，保留口径和未决条件。
+
+复用原delivery的字体、标题、表格方法，不另造排版框架。
+公众摘要和专业明细共享同一版本事实，角色名称不替代运行证据。
+"""
+from __future__ import annotations
+
+import csv
+from io import BytesIO, StringIO
+import json
+
+from docx import Document
+from docx.shared import Pt, RGBColor
+
+from .connectivity_schemas import ConnectivityRun, NOTICE
+from .delivery import _add_heading, _table_rows, _set_run_font
+
+STATUS_LABELS = {"supported": "依据齐备", "unknown": "依据待补", "conflicting": "存在冲突",
+    "consistent": "所选关系计算一致", "precision_explained": "可由已知精度解释", "unexplained_difference": "未解释差异",
+    "not_comparable": "暂不可比较", "not_executable": "暂不可执行", "not_applicable": "不适用数值计算",
+    "unreviewed": "未人工复核", "demo_modified": "演示更正", "read_confirmed": "使用者已阅读"}
+
+
+def _paragraph(document, text):
+    """每段明确设正文宋体小四，避免继承系统默认字体。"""
+    run = document.add_paragraph().add_run(str(text))
+    _set_run_font(run)
+    run.font.size = Pt(12)
+
+
+def _cell(value):
+    text = str(value if value is not None else "")
+    # 报告标签与模型文字不作为电子表格公式执行。
+    return "'" + text if text.lstrip().startswith(("=", "+", "-", "@", "\t", "\r")) else text
+
+
+def export_run(run: ConnectivityRun, format_name: str) -> tuple[bytes, str]:
+    if format_name == "json":
+        return json.dumps(run.model_dump(mode="json"), ensure_ascii=False, indent=2).encode("utf-8"), "application/json"
+    sources = {o.occurrence_id: o for o in run.occurrences}
+    if format_name == "csv":
+        stream = StringIO(newline="")
+        writer = csv.writer(stream)
+        writer.writerow(["行类型", "运行", "版本", "核对项", "规则", "事项", "角色或条件", "原值或状态", "单位", "文件", "PDF顺序页", "原文或说明", "算式", "差额", "口径", "计算", "复核"])
+        for check in run.checks:
+            base = [run.run_id, run.result_revision, check.check_id, check.rule_id, check.title]
+            tail = [check.calculation.get("expression", ""), check.calculation.get("residual", ""), check.criteria_status, check.calculation_status, check.review_status]
+            writer.writerow([_cell(v) for v in ["relation", *base, "", "", "", "", "", ";".join(check.unresolved), *tail]])
+            for member in check.members:
+                o = sources[member.occurrence_id]
+                writer.writerow([_cell(v) for v in ["member", *base, member.role, o.value, o.unit, o.document_id, o.pdf_page, o.context, *tail]])
+            for condition in check.conditions:
+                writer.writerow([_cell(v) for v in ["condition", *base, condition.name, condition.status, "", "", "", condition.reason + "；" + "；".join(ref.quote for ref in condition.evidence), *tail]])
+            if check.explanation:
+                writer.writerow([_cell(v) for v in ["explanation", *base, "", "", "", "", "", check.explanation, *tail]])
+            if check.related_checks:
+                writer.writerow([_cell(v) for v in ["related_checks", *base, "", "", "", "", "", ";".join(check.related_checks), *tail]])
+        for note in run.professional_notes:
+            writer.writerow([_cell(v) for v in ["personal_observation", run.run_id, run.result_revision, note.check_id,
+                "", "", note.actor, "个人观察，非系统结论", "", "", "", note.observation + "；理由：" + note.reason]])
+        for review in run.reviews:
+            writer.writerow([_cell(v) for v in ["review_event", run.run_id, run.result_revision, review.check_id,
+                "", "", review.actor, review.action, "", "", "", json.dumps(review.model_dump(), ensure_ascii=False)]])
+        writer.writerow(["notice", NOTICE])
+        return stream.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8"
+    if format_name != "docx":
+        raise ValueError("不支持的报告格式")
+    document = Document()
+    normal = document.styles["Normal"]
+    normal.font.name = "宋体"
+    normal.font.size = Pt(12)
+    title = document.add_paragraph(style="Title").add_run("年度报告与可持续发展报告关联核对")
+    _set_run_font(title, "黑体")
+    title.font.size = Pt(16)
+    title.font.color.rgb = RGBColor(0, 0, 0)
+    _paragraph(document, f"{run.company} · {run.period} · {run.run_id} · 结果版本{run.result_revision}")
+    _paragraph(document, NOTICE)
+    _add_heading(document, "阅读摘要", 2)
+    _paragraph(document, f"本次从登记报告中发现{len(run.occurrences)}处候选及上下文，形成{len(run.checks)}项关系记录、{len(run.findings)}项待查问题。数字相符不替代定义与范围依据。")
+    _table_rows(document, [("实际运行方式", run.execution_mode), ("模型状态", run.model_status), ("发现方式", run.discovery_mode),
+        ("资料身份", run.dataset_role), ("耗时毫秒", run.duration_ms), ("父运行", run.parent_run_id or "无")])
+    _add_heading(document, "本次文件与实际搜索覆盖", 2)
+    for doc in run.documents:
+        _table_rows(document, [("文件", doc.document_id), ("公司和期间", f"{doc.company} {doc.period}"),
+            ("来源类别", doc.source_kind), ("版本", doc.version), ("公开出处", doc.source_url), ("编制依据登记", doc.compilation_basis)])
+    for coverage in run.coverage:
+        _paragraph(document, f"{coverage.document_id}：共{coverage.total_pages}页，解析{coverage.parsed_pages}页，搜索{len(coverage.searched_pages)}页；失败页：{json.dumps(coverage.failed_pages, ensure_ascii=False)}。仅说明实际处理范围。")
+    for check in run.checks:
+        _add_heading(document, check.title, 2)
+        _table_rows(document, [("核对项及规则", f"{check.check_id} / {check.rule_id}"),
+            ("口径状态", STATUS_LABELS.get(check.criteria_status, check.criteria_status)),
+            ("计算状态", STATUS_LABELS.get(check.calculation_status, check.calculation_status)),
+            ("复核状态", STATUS_LABELS.get(check.review_status, check.review_status))])
+        for condition in check.conditions:
+            _paragraph(document, f"{condition.name}：{STATUS_LABELS.get(condition.status, condition.status)}；{condition.reason}")
+            for ref in condition.evidence:
+                _paragraph(document, f"依据 {ref.occurrence_id}：{ref.quote}")
+        for member in check.members:
+            row = sources[member.occurrence_id]
+            _table_rows(document, [("成员与角色", f"{row.occurrence_id} / {member.role}"), ("原标签", row.label),
+                ("原值与单位", f"{row.value if row.value is not None else '未提取数值'} {row.unit}"),
+                ("位置", f"{row.document_id} PDF顺序页{row.pdf_page}；列头{row.column_header}")])
+            _paragraph(document, "原文上下文：" + row.context)
+        _paragraph(document, "计算记录：" + json.dumps(check.calculation, ensure_ascii=False))
+        _paragraph(document, "解释：" + (check.explanation or "本次尚未找到充分解释"))
+        _paragraph(document, "关联的解释或分组记录：" + ("；".join(check.related_checks) or "暂无"))
+        _paragraph(document, "未决条件：" + ("；".join(check.unresolved) or "当前选定关系无额外未决条件"))
+    _add_heading(document, "具体问题与后续资料用途", 2)
+    for finding in run.findings:
+        _table_rows(document, [("关联核对项", finding.check_id), ("已知事实", finding.known_facts), ("待查问题", finding.question),
+            ("可进一步了解的说明或资料", finding.requested_material), ("用途", finding.purpose)])
+    _add_heading(document, "使用者个人观察", 2)
+    for note in run.professional_notes:
+        _paragraph(document, f"{note.check_id} / {note.actor} / {note.created_at}：{note.observation}；理由：{note.reason}。本项为个人观察，不改变系统计算结论。")
+    _add_heading(document, "角色、调用及修订记录", 2)
+    _paragraph(document, json.dumps(run.agent_steps, ensure_ascii=False))
+    _paragraph(document, json.dumps(run.provider_calls, ensure_ascii=False))
+    for review in run.reviews:
+        _paragraph(document, json.dumps(review.model_dump(), ensure_ascii=False))
+    stream = BytesIO()
+    document.save(stream)
+    return stream.getvalue(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"

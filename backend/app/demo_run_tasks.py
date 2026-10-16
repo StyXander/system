@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import hashlib
 import os
 import threading
@@ -622,11 +623,13 @@ class SupabaseDemoRunTaskStore:
                 )
             executor(task)
         except Exception as error:  # noqa: BLE001 - worker boundary fail closed
+            failure_code = getattr(error,"code","TASK_EXECUTION_ERROR")
+            logging.getLogger(__name__).error("任务 %s 执行失败，类型 %s，代码 %s",task_id,type(error).__name__,failure_code)
             self.update_task(
                 task_id,
                 status="failed",
-                failure_code="TASK_EXECUTION_ERROR",
-                error="任务执行异常，详情已记录在服务端日志。",
+                failure_code=failure_code,
+                error="任务执行失败，错误类型已记录；未生成完成结果。",
             )
         finally:
             stop.set()

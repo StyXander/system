@@ -75,7 +75,11 @@ def run_worker(*, once: bool = False, idle_seconds: float = 2.0) -> int:
                 time.sleep(max(0.25, idle_seconds))
                 continue
             request = _worker_request()
-            executor: Callable[[dict[str, Any]], Any] = lambda current: _execute_demo_run(current, store, request)
+            def executor(current: dict[str, Any]) -> Any:
+                # 新关联核对目前由Web进程执行，不能误交给历史审计业务链。
+                if current.get("run_body",{}).get("kind") == "connectivity":
+                    raise RuntimeError("关联核对任务不可由历史业务Worker执行")
+                return _execute_demo_run(current, store, request)
             # Supabase store 在每个边界安装租约探针；把同一 Request 传入，
             # 让 _require_worker_lease 在主链内部也能 fail-closed。
             setattr(executor, "__audittrace_request__", request)
