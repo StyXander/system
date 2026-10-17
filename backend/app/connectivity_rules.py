@@ -12,6 +12,16 @@ RULES = {
     "NAR-001": {"name": "叙述解释与依据", "operator": "narrative", "roles": ["occurrence"], "basis": ["CN03", "CN05", "CN06", "CN08", "AS02", "AS04"]},
 }
 BASE_CONDITIONS = ("主体", "期间", "定义", "范围", "单位")
+
+
+def direct_metric(label: str) -> str:
+    """规范明确披露量的单位后缀；比例仅认明示分子分母的完整指标名。"""
+    import re
+    compact = re.sub(r"\s+", "", label)
+    compact = re.sub(r"[（(](?:人|元|万元|亿元|千元)[）)]$", "", compact)
+    return compact if compact in {"研发人员数量", "研发投入金额", "研发投入占营业收入比例"} else ""
+
+
 TOPICS = {
     "research": {"name": "研发投入", "keywords": ["研发投入", "研发支出", "研发费用", "研究开发", "资本化研发", "费用化研发", "新产品研发试制费", "研发人员"]},
     "environment": {"name": "环保投入", "keywords": ["环保投入", "环境保护投入", "环境保护相关资金", "环保资金", "环保投资", "环保费用", "环境治理", "环保资本化", "环保费用化"]},

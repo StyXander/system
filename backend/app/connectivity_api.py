@@ -22,7 +22,7 @@ import pymupdf
 
 from .connectivity_schemas import ConnectivityRun, CorrectionRequest, UserReviewRequest, ProfessionalRiskNote, ReviewEvent, RunRequest, NOTICE
 from .connectivity_engine import calculate
-from .connectivity_extraction import load_registry, ensure_source
+from .connectivity_extraction import load_registry, ensure_source, extract_document
 from .connectivity_pipeline import run_pipeline, make_findings
 from .connectivity_rules import RULES, TOPICS, required_conditions
 from .demo_run_tasks import DemoRunTaskStore, SupabaseDemoRunTaskStore, IdempotencyConflict, result_expiry_iso
@@ -63,12 +63,27 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
             raise HTTPException(403, "更正请求必须来自当前网站")
 
-    def public(item: dict) -> dict:
+    def public(item: dict, request: Request | None = None) -> dict:
         view = store(item["task_id"]).snapshot(item["task_id"])
         if not view:
             raise HTTPException(404, "任务不存在")
         result = {k: v for k, v in view.items() if k not in {"run_body", "request_payload", "request_sha256", "idempotency_key_sha256"}}
         result["parent_task_id"] = item.get("run_body", {}).get("parent_task_id")
+        is_owner = bool(request and request.cookies.get(COOKIE)
+                        and hmac.compare_digest(owner(request), item.get("run_body", {}).get("owner", "")))
+        result["can_modify"] = is_owner
+        # 公共视图默认不含个人观察正文，只列条数；本人视图才展开。
+        body = result.get("result")
+        if isinstance(body, dict) and not is_owner:
+            body = dict(body)
+            notes = body.get("professional_notes") or []
+            body["personal_observation_count"] = len(notes)
+            body["professional_notes"] = []
+            result["result"] = body
+        elif isinstance(body, dict):
+            body = dict(body)
+            body["personal_observation_count"] = len(body.get("professional_notes") or [])
+            result["result"] = body
         return result
 
     @router.get("/bootstrap")
@@ -127,14 +142,11 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             item = runtime.create(body.pair_id, run_body, execute, idempotency_key=request.headers.get("idempotency-key"))
         except IdempotencyConflict as error:
             raise HTTPException(409, str(error)) from error
-        return public(item)
+        return public(item, request)
 
     @router.get("/runs/{task_id}")
     def read(task_id: str, request: Request):
-        item = task(task_id)
-        view = public(item)
-        view["can_modify"] = bool(request.cookies.get(COOKIE)) and hmac.compare_digest(owner(request), item["run_body"].get("owner", ""))
-        return view
+        return public(task(task_id), request)
 
     @router.post("/runs/{task_id}/cancel")
     def cancel(task_id: str, request: Request):
@@ -143,11 +155,12 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         result = store(task_id).cancel(task_id)
         if result and result.get("cancel_rejected"):
             raise HTTPException(409, "模型调用已经开始，当前阶段不可中断；请等待实际结果")
-        return public(task(task_id))
+        return public(task(task_id), request)
 
     def readable(task_id):
+        """修订与导出读取完整结果；公共视图的裁剪只在响应层做，不能反过来丢数据。"""
         item = task(task_id)
-        snapshot = public(item)
+        snapshot = store(task_id).snapshot(task_id) or {}
         if snapshot.get("status") not in {"completed", "degraded"} or not snapshot.get("result"):
             raise HTTPException(409, "任务尚无可读取的完成结果")
         return item, ConnectivityRun.model_validate(snapshot["result"])
@@ -225,14 +238,14 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     if previous["request_payload"].get("action_id") == body.action_id:
                         if previous["request_payload"].get("mutation_digest") != mutation_digest:
                             raise HTTPException(409, "同一操作编号不能提交不同内容")
-                        return public(task(previous["task_id"]))
+                        return public(task(previous["task_id"]), request)
                     raise HTTPException(409, "该结果已有新修订，请读取子运行后再更正")
             elif head_file.exists():
                 head = json.loads(head_file.read_text(encoding="utf-8"))
                 if head["action_id"] == body.action_id:
                     if head.get("mutation_digest") != mutation_digest:
                         raise HTTPException(409, "同一操作编号不能提交不同内容")
-                    return public(task(head["task_id"]))
+                    return public(task(head["task_id"]), request)
                 raise HTTPException(409, "该结果已有新修订，请读取子运行后再更正")
             def save_child(row):
                 runtime.update_task(row["task_id"], status="completed", run_id=child.run_id, result=child.model_dump(mode="json"), result_expires_at=result_expiry_iso())
@@ -246,15 +259,23 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                 temporary = head_file.with_suffix(".tmp")
                 temporary.write_text(json.dumps({"task_id": result["task_id"], "action_id": body.action_id, "mutation_digest": mutation_digest}), encoding="utf-8")
                 temporary.replace(head_file)
-        return public(result)
+        return public(result, request)
 
     @router.get("/runs/{task_id}/export/{format_name}")
-    def export(task_id: str, format_name: str):
-        _, run = readable(task_id)
+    def export(task_id: str, format_name: str, request: Request, private: bool = False):
+        item, run = readable(task_id)
         if format_name not in {"json", "csv", "docx"}:
             raise HTTPException(404, "不支持的导出格式")
-        from .connectivity_delivery import export_run
-        payload, mime = export_run(run, format_name)
+        is_owner = bool(request.cookies.get(COOKIE)) and hmac.compare_digest(owner(request), item["run_body"].get("owner", ""))
+        # 公共导出默认剔除个人观察正文，只有本人且显式 private=1 才展开。
+        include_personal = bool(private and is_owner)
+        from .connectivity_delivery import export_run, verify_export_same_source
+        payload, mime = export_run(run, format_name, include_personal=include_personal)
+        if format_name == "json":
+            # 同源校验进入导出链路：导出与页面结果不一致时拒绝下发，而不是只写在单测里。
+            problems = verify_export_same_source(run, payload)
+            if problems:
+                raise HTTPException(500, "导出与页面结果不同源，已拒绝下载：" + "；".join(problems[:3]))
         return Response(payload, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{run.run_id}.{format_name}"'})
 
     def document(document_id):
@@ -263,6 +284,23 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(404, "来源未登记")
         path = ensure_source(root, doc)
         return doc, path
+
+    @router.get("/version-chains/{company_id}")
+    def version_chain(company_id: str):
+        """企业披露版本链独立入口：不受双报告配对限制，也不产出跨报告差额。"""
+        from .connectivity_versions import build_version_chain
+        documents = [doc for doc in load_registry(root) if doc.company_id == company_id]
+        if not documents:
+            raise HTTPException(404, "该公司未登记公开版本")
+        entries = []
+        for doc in sorted(documents, key=lambda item: (item.disclosure_date or "9999", item.document_id)):
+            try:
+                rows, _, _ = extract_document(root, doc, ["research", "environment", "intensity"])
+            except (OSError, ValueError) as error:
+                raise HTTPException(503, f"{doc.document_id} 原件暂不可读取：{type(error).__name__}") from error
+            entries.append({"document": doc, "occurrences": rows})
+        chain = build_version_chain(entries)
+        return {"company_id": company_id, "notice": NOTICE, **chain}
 
     @router.get("/sources/{document_id}")
     def source(document_id: str, page: int = 1, view: bool = True):

@@ -130,7 +130,7 @@ function paperContent(kind,uw,uh,t){
     for(const p of pts){ctx.fillStyle=MAT.paper;ctx.beginPath();ctx.arc(p[0],p[1],4,0,Math.PI*2);ctx.fill();ctx.strokeStyle=MAT.graphite;ctx.lineWidth=1.4;ctx.stroke()}
     ctx.fillStyle=MAT.mistD;for(let i=0;i<3;i++)ctx.fillRect(20,244+i*15,180-i*40,3);
     ctx.fillStyle=MAT.copper;ctx.fillRect(20,uh-26,54,3);
-    ctx.fillStyle=MAT.copper;ctx.font='700 10px Georgia';ctx.fillText('PEAK Δ +18.6%',80,uh-23);
+    ctx.fillStyle=MAT.copper;ctx.font='700 10px Georgia';ctx.fillText('关系示意 · 非核验数据',80,uh-23);
   }
 }
 function addPaper(G,cx,cy,cz,ww,hh,ry,rz,kind){
@@ -278,12 +278,32 @@ function paintPoly(pts,fill,stroke,alpha){
   ctx.globalAlpha=prev;
 }
 function toPath(pts){ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.closePath()}
+// 只约束标题、左右页边与首页底部；两个模型共用完整舞台。
+function fitScene(G){
+  if(!G.envelope)G.envelope=[...new Map(G.faces.flatMap(face=>face.p).map(p=>[`${p.x},${p.y},${p.z}`,p])).values()];
+  const heading=home.querySelectorById('heroHeading');
+  const maskTop=(heading.offsetTop+heading.offsetHeight)+'px';
+  if(stage.style.getPropertyValue('--scene-top')!==maskTop)stage.style.setProperty('--scene-top',maskTop);
+  const top=heading.offsetTop+heading.offsetHeight+18,bottom=h-(w<760?42:82),side=12;
+  const bounds=()=>{const points=G.envelope.map(p=>tp(G,p)).filter(Boolean);return {left:Math.min(...points.map(p=>p.x)),right:Math.max(...points.map(p=>p.x)),top:Math.min(...points.map(p=>p.y)),bottom:Math.max(...points.map(p=>p.y))};};
+  let rect=bounds();
+  G.focal*=Math.max(.05,Math.min(1,(w-side*2)/(rect.right-rect.left),(bottom-top)/(rect.bottom-rect.top)));rect=bounds();
+  const shift=Math.max(0,side-rect.left)-Math.max(0,rect.right-(w-side));
+  // 边界校正只作用于本帧，不能写回用户拖动位置并逐帧积累。
+  G.sx+=shift;
+  G.sy+=Math.max(0,top-rect.top)-Math.max(0,rect.bottom-bottom);
+  return bounds();
+}
 function drawGroup(G,t){
   const mob=w<760;
   const rv=easeOut(G.reveal);
   const lift=(1-rv)*90;
-  if(mob){G.sx=w*.5;G.sy=h*(G.id==='a'?.48:.82)+lift;G.focal=Math.min(w*.9,h*.24)*G.zoom}
-  else{G.sx=w*(G.id==='a'?.235:.765);G.sy=h*.76+lift;G.focal=Math.min(w*.58,h*.72)*G.zoom}
+  if(mob){G.sx=w*.5+(G.panX||0);G.sy=h*(G.id==='a'?.48:.82)+lift;G.focal=Math.min(w*.9,h*.24)}
+  else{G.sx=w*(G.id==='a'?.235:.765)+(G.panX||0);G.sy=h*.76+lift;G.focal=Math.min(w*.58,h*.72)}
+  const fitted=fitScene(G);
+  // 先按默认尺寸适配舞台，再围绕模型中心缩放，避免缩放被适配抵消或带动位置。
+  const cx=(fitted.left+fitted.right)/2,cy=(fitted.top+fitted.bottom)/2;
+  G.sx=cx+(G.sx-cx)*G.zoom;G.sy=cy+(G.sy-cy)*G.zoom;G.focal*=G.zoom;
   const baseAlpha=rv*G.alpha;
   if(baseAlpha<=.01)return;
   /* 基座柔和落地阴影（屏幕空间） */
@@ -320,17 +340,17 @@ function drawGroup(G,t){
   ctx.beginPath();ctx.rect(0,0,w,h);ctx.clip();
   for(const it of queue){
     if(it.smoke){
-      /* 体积烟雾：亮核 + 灰晕，保证在浅灰空间中可见且有前后层次 */
+      /* 体积烟雾：仅将原有灰色改为红棕色，形态与透明度保持原有设置 */
       const s=it.s,q=it.q;
       const age=(t*.085+s.seed*.01+s.j*.061)%1;
       const r=(.38+age*1.1)*q.sc;
       if(r<2)continue;
       const op=(1-age)*(.62+ (s.j%3)*.07);
       let g2=ctx.createRadialGradient(q.x-r*.22,q.y-r*.2,r*.05,q.x,q.y,r);
-      g2.addColorStop(0,'rgba(253,252,250,'+Math.min(op*1.05,.85)+')');
-      g2.addColorStop(.42,'rgba(214,211,206,'+(op*.62)+')');
-      g2.addColorStop(.75,'rgba(148,145,140,'+(op*.30)+')');
-      g2.addColorStop(1,'rgba(148,145,140,0)');
+      g2.addColorStop(0,'rgba(237,116,52,'+Math.min(op*1.05,.85)+')');
+      g2.addColorStop(.42,'rgba(190,57,31,'+(op*.62)+')');
+      g2.addColorStop(.75,'rgba(102,35,27,'+(op*.30)+')');
+      g2.addColorStop(1,'rgba(102,35,27,0)');
       ctx.fillStyle=g2;ctx.beginPath();ctx.arc(q.x,q.y,r,0,Math.PI*2);ctx.fill();
       continue;
     }
@@ -480,14 +500,11 @@ function render(t){
   drawEnv(t);
   drawFragments(t);
   for(const G of Object.values(GROUPS)){
-    const signature=[rasterRevision,G.zoom,G.yaw,G.pitch,G.reveal].join('|');
+    const signature=[rasterRevision,G.zoom,G.yaw,G.pitch,G.reveal,G.panX].join('|');
     if(prefersReduced&&G.lastFrame===signature)continue;
     G.lastFrame=signature;
     ctx=contexts[G.id];ctx.clearRect(0,0,w,h);
-    ctx.save();ctx.beginPath();
-    if(w<760)ctx.rect(0,h*(G.id==='a'?.29:.66),w,h*(G.id==='a'?.30:.29));
-    else ctx.rect(G.id==='a'?0:w*.54,h*.34,w*.46,h*.59);
-    ctx.clip();drawGroup(G,t);ctx.restore();
+    ctx.save();drawGroup(G,t);ctx.restore();
   }
   ctx=contexts.background;dashTrail(t);
   moveLabels();
@@ -505,7 +522,7 @@ function moveLabels(){
     const vis=p&&rv>.6;
     el.style.opacity=vis?'1':'0';
     el.style.pointerEvents=vis?'auto':'none';
-    if(p){const half=el.offsetWidth/2+12;const minX=w<760?half:(G.id==='a'?half:w*.54+half);const maxX=w<760?w-half:(G.id==='a'?w*.46-half:w-half);el.style.left=clamp(p.x,minX,maxX)+'px';const minY=w<760?h*(G.id==='a'?.31:.67):h*.37;const maxY=w<760?h*(G.id==='a'?.53:.88):h*.78;el.style.top=clamp(p.y,minY,maxY)+'px';if(key==='report'){const upper=home.querySelectorById('tagRight');const separation=(upper.offsetHeight+el.offsetHeight)/2+20;el.style.top=Math.max(parseFloat(el.style.top),parseFloat(upper.style.top)+separation)+'px'}}
+    if(p){const half=el.offsetWidth/2+12;const minX=half;const maxX=w-half;el.style.left=clamp(p.x,minX,maxX)+'px';const minY=w<760?h*(G.id==='a'?.31:.67):h*.37;const maxY=w<760?h*(G.id==='a'?.53:.88):h*.78;el.style.top=clamp(p.y,minY,maxY)+'px';if(key==='report'){const upper=home.querySelectorById('tagRight');const separation=(upper.offsetHeight+el.offsetHeight)/2+20;el.style.top=Math.max(parseFloat(el.style.top),parseFloat(upper.style.top)+separation)+'px'}}
   }
 }
 
@@ -559,36 +576,50 @@ function choose(name){
   const id=name==='left'?'a':name==='right'||name==='report'?'b':name;
   if(!GROUPS[id])return;
   state.active=id;
+  layers.a.style.zIndex=id==='a'?'2':'1';layers.b.style.zIndex=id==='b'?'2':'1';
   for(const [key,zone] of Object.entries(zones))zone.classList.toggle('selected',key===id);
 }
 function notify(s){if(home.hidden||home.getBoundingClientRect().bottom<=0)return;const el=home.querySelectorById('notice');el.textContent=s;el.classList.add('visible');clearTimeout(notify.timer);notify.timer=setTimeout(()=>el.classList.remove('visible'),2400)}
-function zoom(G,delta){G.zoomT=clamp(G.zoomT+delta,.6,1.65);home.querySelectorById(G.id==='a'?'model-left-scale':'model-right-scale').value=Math.round(G.zoomT*100)+'%';}
-function reset(G){G.dragX=0;G.dragY=0;G.velX=0;G.velY=0;zoom(G,1-G.zoomT);}
+function zoom(G,delta){G.zoomT=clamp(G.zoomT+delta,.6,2.25);home.querySelectorById(G.id==='a'?'model-left-scale':'model-right-scale').value=Math.round(G.zoomT*100)+'%';}
+function reset(G){G.panX=0;G.dragX=0;G.dragY=0;G.velX=0;G.velY=0;zoom(G,1-G.zoomT);}
 function wheelFor(G,event){if(event.ctrlKey)return;event.preventDefault();choose(G.id);const delta=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?h:1);zoom(G,-delta*.0012);}
 home.querySelectorAll('[data-focus]').forEach(button=>{button.addEventListener('click',()=>{choose(button.dataset.focus);zones[state.active].focus({preventScroll:true});});button.addEventListener('wheel',event=>wheelFor(GROUPS[button.dataset.focus==='left'?'a':'b'],event),{passive:false});});
 home.querySelectorAll('[data-model-action]').forEach(button=>button.addEventListener('click',()=>{const G=GROUPS[button.dataset.model];choose(G.id);if(button.dataset.modelAction==='reset')reset(G);else zoom(G,button.dataset.modelAction==='zoom-in'?.14:-.14);}));
+// 以实际可见模型命中，移到另一侧后仍能重新抓取原模型。
+function hitGroup(event){
+  const rect=stage.getBoundingClientRect(),x=Math.floor((event.clientX-rect.left)*dpr),y=Math.floor((event.clientY-rect.top)*dpr);
+  const heading=home.querySelectorById('heroHeading');
+  if(y<0||x<0||x>=canvas.width||y>=canvas.height||event.clientY-rect.top<heading.offsetTop+heading.offsetHeight+16)return null;
+  for(const id of [state.active,state.active==='a'?'b':'a'])if(contexts[id].getImageData(x,y,1,1).data[3]>90)return id;
+  return null;
+}
+const surface=home.querySelectorById('top');let moving=null,lastX=0,lastY=0;
+surface.addEventListener('pointerdown',event=>{
+  if(event.button!==0||event.target.closest('button,a,input,select,textarea'))return;
+  const id=hitGroup(event)||event.target.closest('.model-zone')?.dataset.model;
+  if(!id)return;
+  event.preventDefault();choose(id);moving=GROUPS[id];state.dragging=id;lastX=event.clientX;lastY=event.clientY;moving.velX=0;moving.velY=0;
+  zones[id].focus({preventScroll:true});zones[id].classList.add('grabbing');surface.setPointerCapture(event.pointerId);
+});
+surface.addEventListener('pointermove',event=>{
+  const G=moving;if(!G)return;
+  const dx=event.clientX-lastX,dy=event.clientY-lastY;
+  if(G.zoomT>1.05&&!event.shiftKey){G.panX=(G.panX||0)+dx;G.velX=0;}else{G.dragX=clamp(G.dragX+dx,-MAXD,MAXD);G.velX=dx*.94;}
+  G.dragY=clamp(G.dragY+dy,-MAXP,MAXP);G.velY=dy*.9;lastX=event.clientX;lastY=event.clientY;
+});
+function stopMoving(){if(!moving)return;zones[moving.id].classList.remove('grabbing');if(prefersReduced){moving.velX=0;moving.velY=0;}moving=null;state.dragging=null;}
+for(const event of ['pointerup','pointercancel','lostpointercapture'])surface.addEventListener(event,stopMoving);
+surface.addEventListener('wheel',event=>{if(event.defaultPrevented)return;const id=hitGroup(event);if(id)wheelFor(GROUPS[id],event);},{passive:false});
 for(const [id,zone] of Object.entries(zones)){
-  const G=GROUPS[id];let lastX=0,lastY=0;
-  zone.addEventListener('pointerdown',event=>{
-    if(event.button!==0)return;
-    choose(id);zone.focus({preventScroll:true});state.dragging=id;lastX=event.clientX;lastY=event.clientY;G.velX=0;G.velY=0;
-    zone.setPointerCapture(event.pointerId);zone.classList.add('grabbing');
-  });
-  zone.addEventListener('pointermove',event=>{
-    if(state.dragging!==id)return;
-    const dx=event.clientX-lastX,dy=event.clientY-lastY;
-    G.dragX=clamp(G.dragX+dx,-MAXD,MAXD);G.dragY=clamp(G.dragY+dy,-MAXP,MAXP);G.velX=dx*.94;G.velY=dy*.9;lastX=event.clientX;lastY=event.clientY;
-  });
-  const stop=()=>{if(state.dragging===id)state.dragging=null;if(prefersReduced){G.velX=0;G.velY=0;}zone.classList.remove('grabbing');};
-  for(const event of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(event,stop);
-  zone.addEventListener('dblclick',()=>reset(G));
-  zone.addEventListener('wheel',event=>wheelFor(G,event),{passive:false});
+  const G=GROUPS[id];
+  zone.addEventListener('dblclick',event=>reset(GROUPS[hitGroup(event)||id]));
+  zone.addEventListener('wheel',event=>wheelFor(GROUPS[hitGroup(event)||id],event),{passive:false});
   zone.addEventListener('keydown',event=>{
     if(event.ctrlKey||event.metaKey||event.altKey)return;
     if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','Home'].includes(event.key))return;
     event.preventDefault();choose(id);G.velX=0;G.velY=0;
-    if(event.key==='ArrowLeft')G.dragX=clamp(G.dragX-26,-MAXD,MAXD);
-    if(event.key==='ArrowRight')G.dragX=clamp(G.dragX+26,-MAXD,MAXD);
+    if(event.key==='ArrowLeft'){if(G.zoomT>1.05&&!event.shiftKey)G.panX=(G.panX||0)-26;else G.dragX=clamp(G.dragX-26,-MAXD,MAXD);}
+    if(event.key==='ArrowRight'){if(G.zoomT>1.05&&!event.shiftKey)G.panX=(G.panX||0)+26;else G.dragX=clamp(G.dragX+26,-MAXD,MAXD);}
     if(event.key==='ArrowUp')G.dragY=clamp(G.dragY-20,-MAXP,MAXP);
     if(event.key==='ArrowDown')G.dragY=clamp(G.dragY+20,-MAXP,MAXP);
     if(event.key==='+'||event.key==='=')zoom(G,.1);
@@ -631,8 +662,8 @@ const io2=new IntersectionObserver(es=>{
 home.querySelectorAll('.rv').forEach(el=>io2.observe(el));
 const io=new IntersectionObserver(entries=>{for(const e of entries)if(e.target===stage)animationOn=e.isIntersecting||e.intersectionRatio>0;},{threshold:0,rootMargin:'240px'});
 io.observe(stage);
-setTimeout(()=>notify('分侧拖拽与缩放 · 中间可向下滚动'),2600);
+setTimeout(()=>notify('放大后左右拖动可移动 · Shift 拖动旋转 · 中间可滚动'),2600);
 })();
 
 // 进入实际工作台时将键盘焦点与滚动位置一起移交。
-document.querySelectorAll('[data-enter-connectivity]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();document.getElementById('notice').classList.remove('visible');document.getElementById('legacy-workspace').hidden=true;const workspace=document.getElementById('connectivity-root');workspace.hidden=false;history.replaceState(null,'','#connectivity-root');workspace.scrollIntoView({behavior:'instant',block:'start'});document.getElementById('cn-workspace').focus({preventScroll:true});}));
+document.querySelectorAll('[data-enter-connectivity]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();document.getElementById('notice').classList.remove('visible');document.getElementById('legacy-workspace').hidden=true;const workspace=document.getElementById('connectivity-root');document.getElementById('redesign-home').hidden=true;workspace.hidden=false;history.replaceState(null,'','#connectivity-root');workspace.scrollIntoView({behavior:'instant',block:'start'});document.getElementById('cn-workspace').focus({preventScroll:true});}));

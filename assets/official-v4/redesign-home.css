@@ -296,3 +296,10 @@ html{scroll-behavior: smooth;}
 #redesign-home .side-rule{z-index:5}
 
 #redesign-home .model-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;touch-action:pan-y}
+
+/* 品牌首屏保留双模型；弱化重复装饰，将注意力留给主标题和工作台入口。 */
+#redesign-home .hero-index,#redesign-home .side-rule,#redesign-home .hero-iso{display:none}
+#redesign-home .scene-label .lab-index{opacity:.55}
+
+/* 保留跨中线移动；烟雾在标题下方消散，实体限制在首页内。 */
+#redesign-home .model-canvas{mask-image:linear-gradient(to bottom,transparent var(--scene-top,330px),#000 calc(var(--scene-top,330px) + 16px),#000 calc(100% - 16px),transparent 100%)}

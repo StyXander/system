@@ -18,17 +18,19 @@ import httpx
 from fastapi import HTTPException
 
 from .connectivity_rules import TOPICS
-from .connectivity_schemas import DisclosureOccurrence, ReportDocument, SearchCoverage
+from .connectivity_schemas import DisclosureOccurrence, ExtractionExclusion, ReportDocument, SearchCoverage
 from .source_viewer import PDF_ACCESS_LOCK
 from .secure_download import download_bounded, SecureDownloadError
 
-EXTRACTION_VERSION = "coordinates_v1.8"
+EXTRACTION_VERSION = "coordinates_v1.9"
 # 原始布局结构未变化时复用解析缓存，运行仍记录完整提取算法的新版号。
 PARSER_CACHE_VERSION = "coordinates_v1.5"
 NUMBER = re.compile(r"(?<![\d.])(?:[（(]?-?\d{1,3}(?:[,，]\d{3})+(?:\.\d+)?[)）]?|[（(]?-?\d+(?:\.\d+)?[)）]?)(?![\d.])")
 # 长单位排在短单位前，保留二氧化碳当量、粗钢与产品的不同口径。
 UNIT_ATOM = r"(?:万吨二氧化碳当量|吨二氧化碳当量|万吨标准煤|吨标准煤|万吨粗钢|吨粗钢|万吨产品|吨产品|万千瓦时|千瓦时|兆瓦时|吉焦|太焦|万吨|吨|百万立方米|千立方米|万立方米|亿立方米|立方米|百万元|千元|万元|亿元|元|万人|人)"
 UNIT = re.compile(UNIT_ATOM + r"(?:[/／]" + UNIT_ATOM + r")?|[%％]")
+# 币种声明：金额／货币／数据＋人民币，覆盖"人民币元""单位：人民币"等常见写法。
+CURRENCY_DECLARATION = re.compile(r"(?:货币|金额|数据|单位)[^。；;]{0,25}(?:均为人民币|均以人民币|为人民币元|以人民币|人民币元)")
 
 
 def source_path(root: Path, document: ReportDocument) -> Path:
@@ -119,6 +121,44 @@ def _unit(text: str) -> str:
     return found[-1].replace("／", "/").replace("％", "%") if found else ""
 
 
+def _unit_source(label: str, above: list[str]) -> str:
+    """单位来源必须可追溯：本标签、本表上方说明或表前注，不跨段继承。"""
+    if "单位" in label:
+        return "行标签内单位"
+    if above:
+        return "本表上方单位说明"
+    return ""
+
+
+def _quality(year: str, unit: str, column_header: str, has_number: bool = True) -> tuple[str, str]:
+    """质量失败关闭：只有年度、单位与行列绑定同时成立才升级为 located。"""
+    if not has_number:
+        return "text_only", "该行无独立数值，仅作文字依据"
+    if not year:
+        return "uncertain", "年度列无法归属，未回退为报告期间"
+    if not unit:
+        return "uncertain", "单位待定，未从本表或本行确认"
+    if not (column_header or "").strip():
+        return "uncertain", "行列头未绑定，无法确认列归属"
+    return "located", "年度、单位与行列头均已绑定"
+
+
+def _footnote_for(table: dict, lines: list[dict], tables: list[dict]) -> str:
+    """脚注只绑定其适用表：限在本表下方 60pt 内，且不越过下一张表的表头。"""
+    bottom = table["bbox"][3]
+    next_tops = [item["bbox"][1] for item in tables if item.get("bbox") and item["bbox"][1] >= bottom]
+    limit = min(next_tops) if next_tops else float("inf")
+    for row in sorted(lines, key=lambda item: item["bbox"][1]):
+        top = row["bbox"][1]
+        if top < bottom - 1:
+            continue
+        if top > bottom + 60 or top >= limit:
+            break
+        if re.match(r"注[:：\d]|\*", row["text"]):
+            return row["text"]
+    return ""
+
+
 def _table_layout(page, lines: list[dict]) -> dict:
     """用真实合并单元格边界绑定年度及分组，支持同一年下钢铁/其他/合计。"""
     keywords = [word for topic in TOPICS.values() for word in topic["keywords"]]
@@ -190,10 +230,12 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
                 year = ""
                 column_header = ""
                 scope = ""
+                selected = []
                 if years:
                     top = max(years, key=lambda h:h["bbox"][3])
                     match = re.search(r"20\d{2}", top["text"])
-                    year = match.group() if match else document.period
+                    # 年度列解析失败时保持空值；不得用报告期间顶替指标年度。
+                    year = match.group() if match else ""
                     selected = [h["text"] for h in applicable if h["bbox"][1] >= top["bbox"][1]]
                     column_header = " / ".join(selected)
                     scope = " / ".join(text for text in selected if re.fullmatch(r"钢铁\d*|其他|合计", text))
@@ -203,11 +245,16 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
                 context = f"本页对应列头：{column_header}\n{context}"
                 if above:
                     context = above[-1] + "\n" + context
+                quality, reason = _quality(year, unit, column_header)
                 result.append(DisclosureOccurrence(occurrence_id=f"{document.document_id}-{page['page']}-T{table_index}-R{row_index}-C{column_index}",
                     document_id=document.document_id, pdf_page=page["page"], bbox=list(bounds), label=label,
-                    value=token, unit=unit, currency="CNY" if "人民币" in context else "", year=year, scope=scope,
-                    row_header=row_text, column_header=column_header, context=context[:7000],
-                    quality="located" if year and unit else "uncertain", topic=matched[0]))
+                    value=token, unit=unit, unit_source="本表单位列" if units else _unit_source(label, above),
+                    currency="CNY" if "人民币" in context else "", year=year, scope=scope,
+                    year_status="attributed" if year else "unattributed",
+                    row_header=row_text, column_header=column_header, header_path=selected,
+                    context=context[:7000], footnote_scope=_footnote_for(table, lines, page.get("tables", [])),
+                    quality=quality, quality_reason=reason, topic=matched[0],
+                    version_role=document.version_role))
     return result
 
 
@@ -265,7 +312,7 @@ def _coordinate_year(lines: list[dict], line: dict, number_box: list[float]) -> 
     return year,header["text"]
 
 
-def extract_document(root: Path, document: ReportDocument, topics: list[str], cancelled: Callable[[], bool] = lambda: False) -> tuple[list[DisclosureOccurrence], SearchCoverage]:
+def extract_document(root: Path, document: ReportDocument, topics: list[str], cancelled: Callable[[], bool] = lambda: False) -> tuple[list[DisclosureOccurrence], SearchCoverage, list[ExtractionExclusion]]:
     """全页读取后召回候选；缓存不包含参考答案，只复用同版原文解析。"""
     path = ensure_source(root, document)
     cache_dir = root / "backend/runtime/connectivity/extraction"
@@ -371,7 +418,7 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
                     if years_above:
                         nearest = max(years_above, key=lambda h:h["bbox"][3])
                         year_match = re.search(r"20\d{2}", nearest["text"])
-                        year = year_match.group() if year_match else document.period
+                        year = year_match.group() if year_match else ""
                         column_header = " / ".join(h["text"] for h in candidates_above if h["bbox"][1] >= nearest["bbox"][1])
                         context = context + "\n本页对应列头：" + column_header
                     # 句内明确写出的年度高于邻近表头，不能把表后文字误绑到上一张表。
@@ -403,16 +450,27 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
                             if "人民币" in context:
                                 row.currency = row.currency or "CNY"
                             row.context = (row.context + "\n[同页坐标补充]\n" + context)[:7000]
-                            row.quality = "located" if row.year and row.unit else "uncertain"
+                            row.year_status = "attributed" if row.year else "unattributed"
+                            row.unit_source = row.unit_source or ("同页坐标补充" if unit else "")
+                            row.quality, row.quality_reason = _quality(row.year, row.unit, row.column_header)
                         continue
                 # 金额原币种只在上下文明示人民币时确认，不由元字推定币种。
                 currency = "CNY" if "人民币" in context else ""
                 identity = f"{document.document_id}-{page['page']}-{index}-{offset}"
+                # 行列绑定可由列头、表头或句内明示年度提供；三者都没有才算未绑定。
+                binding = column_header or (header[-1]["text"] if header else "") or (f"句内明示{year}" if year else "")
+                quality, reason = _quality(year, unit, binding, bool(match))
+                if match and numeric_line is not line:
+                    quality, reason = "uncertain", "数值来自相邻行，指标与数值未同行绑定"
                 occurrences.append(DisclosureOccurrence(occurrence_id=identity, document_id=document.document_id,
                     pdf_page=page["page"], bbox=number_box, label=label[:160], value=raw, unit=unit,
-                    currency=currency, year=year, row_header=text, column_header=column_header,
+                    unit_source="同行紧跟单位" if immediate else "本页单位说明" if unit_hint else "",
+                    currency=currency, year=year, year_status="attributed" if year else "unattributed",
+                    row_header=text, column_header=column_header,
+                    header_path=[column_header] if column_header else [],
                     context=context[:7000], footnotes=[r["text"] for r in same_side if re.match(r"注[:：\d]|\*", r["text"])],
-                    quality="located" if match and year and unit and numeric_line is line else "uncertain" if match else "text_only",
+                    footnote_scope=(next((r["text"] for r in same_side if re.match(r"注[:：\d]|\*", r["text"])), "")[:120]),
+                    quality=quality, quality_reason=reason, version_role=document.version_role,
                     topic=matched[0]))
         previous = lines
     for row in occurrences:
@@ -422,17 +480,32 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
     declarations = []
     for row in occurrences:
         compact = re.sub(r"\s+", "", row.context)
-        if row.topic == "basis" and re.search(r"(?:货币|金额|数据).{0,25}(?:均为人民币|均以人民币|以人民币.{0,12}列示)", compact):
+        if row.topic == "basis" and CURRENCY_DECLARATION.search(compact):
             declarations.append(row)
     if declarations:
         declaration = declarations[0]
+        declared_quote = CURRENCY_DECLARATION.search(re.sub(r"\s+", "", declaration.context)).group()
         for row in occurrences:
             if not row.currency and re.search(r"元", row.unit) and not re.search(r"美元|港元|欧元|日元", row.context):
                 row.currency = "CNY"
                 row.currency_source_id = declaration.occurrence_id
-                row.currency_source_quote = re.search(r"(?:货币|金额|数据).{0,25}(?:均为人民币|均以人民币|以人民币.{0,12}列示)", re.sub(r"\s+", "", declaration.context)).group()
+                row.currency_source_quote = declared_quote
     coverage.discovered_count = len(occurrences)
-    return occurrences, coverage
+    return occurrences, coverage, _exclusions(occurrences)
+
+
+def _exclusions(occurrences: list[DisclosureOccurrence]) -> list[ExtractionExclusion]:
+    """已提取但未进入候选的行必须显式列示，不允许静默丢弃或改标签消化。"""
+    rows = []
+    for row in occurrences:
+        if row.quality == "located":
+            continue
+        if row.quality == "text_only":
+            continue  # 文字依据仍可用于叙述关系，不算"提取了数值却没计入"。
+        reason = row.quality_reason or "未达到候选门槛"
+        rows.append(ExtractionExclusion(occurrence_id=row.occurrence_id, document_id=row.document_id,
+            pdf_page=row.pdf_page, label=row.label, value=row.value or "", year=row.year, unit=row.unit, reason=reason))
+    return rows
 
 
 def search_context(occurrences: list[DisclosureOccurrence], keywords: list[str], limit: int = 40) -> list[DisclosureOccurrence]:

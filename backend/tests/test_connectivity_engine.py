@@ -11,7 +11,10 @@ from decimal import Decimal
 def relationship(rule, values, roles, units=None):
     operator = RULES[rule]["operator"]
     units = units or ["万元"] * len(values)
-    rows = [DisclosureOccurrence(occurrence_id=f"SYN-{i}", document_id="SYNTHETIC", pdf_page=1,
+    # 同值关系必须来自不同报告：左右成员分别放在 AR 与 ESG 文档。
+    documents = ["SYNTHETIC-AR" if role == "left" else "SYNTHETIC-ESG" if role == "right" else "SYNTHETIC"
+                 for role in roles]
+    rows = [DisclosureOccurrence(occurrence_id=f"SYN-{i}", document_id=documents[i], pdf_page=1,
         label=f"合成成员{i}", value=value, unit=unit, currency="CNY", year="2025",
         context="合成企业2025年，同一统计范围。原文明示完整且互不重叠的组成关系、单位和公式。", row_header="合成企业2025年")
         for i, (value, unit) in enumerate(zip(values, units))]
@@ -40,14 +43,22 @@ def test_supported_relation_match_difference_and_missing_basis(rule, values, rol
     unresolved = calculate(check, rows)
     assert unresolved.criteria_status == "unknown"
     assert unresolved.calculation_status == "not_comparable"
-    assert unresolved.calculation["hypothetical"] is True
+    # 硬门禁：正式差额与正式残差字段为空，试算进入独立诊断对象。
+    assert unresolved.calculation["residual"] is None
+    assert unresolved.calculation["residual_interval"] is None
+    assert unresolved.calculation["formal_blocked"] is True
+    assert unresolved.calculation["gate"]["conclusion"] == "暂不能直接比较"
+    assert unresolved.hypothetical["hypothetical"] is True
+    assert unresolved.hypothetical["residual"] not in (None, "")
 
 
 def test_same_number_does_not_prove_comparability():
     rows, check = relationship("EQ-001", ["100", "100"], ["left", "right"])
     check.conditions[3].status = "unknown"
     result = calculate(check, rows)
-    assert result.calculation["residual"] == "0"
+    # 数值相同也不能把正式差额写进结果，只能在假设试算中看到0。
+    assert result.calculation["residual"] is None
+    assert result.hypothetical["residual"] == "0"
     assert result.calculation_status == "not_comparable"
 
 
@@ -133,6 +144,8 @@ def test_unit_prefix_is_not_partially_matched_and_equal_dimensions_reduce():
 
 def test_two_ids_cannot_double_count_one_pdf_cell():
     rows, check = relationship("EQ-001", ["100", "100"], ["left", "right"])
+    # 同一单元格只可能出现在同一份报告内，这里显式放回同一文档再测重复占格。
+    rows[1].document_id = rows[0].document_id
     rows[0].bbox = [10, 20, 40, 50]
     rows[1].bbox = [11, 21, 39, 49]
     with pytest.raises(ValueError, match="同一个原文单元格"):

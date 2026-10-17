@@ -50,7 +50,7 @@ set "AUDITTRACE_PROVIDER_PROBE_ENABLED=true"
 rem Avoid duplicate services only when the running process exposes this demo's
 rem bootstrap contract. A stale backend can still serve /api/health=200 while
 rem leaving the new frontend permanently stuck in the booting state.
-powershell -NoProfile -Command "try { $h=Invoke-RestMethod 'http://127.0.0.1:8000/api/health' -TimeoutSec 2; $b=Invoke-RestMethod 'http://127.0.0.1:8000/api/demo/bootstrap' -TimeoutSec 3; if($h.service_status -eq 'ready' -and $b.schema_version -eq 'demo_bootstrap_v1' -and [int]$b.case_count -eq 15){ exit 0 } } catch {}; exit 1" >nul 2>&1
+powershell -NoProfile -Command "try { $h=Invoke-RestMethod 'http://127.0.0.1:8000/api/health' -TimeoutSec 2; $b=Invoke-RestMethod 'http://127.0.0.1:8000/api/demo/bootstrap' -TimeoutSec 3; $expected=(Get-Content -LiteralPath 'backend/competition_demo_cases.json' -Raw -Encoding UTF8 | ConvertFrom-Json).cases.Count; if($h.service_status -eq 'ready' -and $b.schema_version -eq 'demo_bootstrap_v1' -and $b.bootstrap_ready -eq $true -and [int]$b.case_count -eq $expected){ exit 0 } } catch {}; exit 1" >nul 2>&1
 if not errorlevel 1 (
   echo.
   echo AuditTrace is already running at http://127.0.0.1:8000

@@ -438,8 +438,18 @@ async def security_headers(http_request: Request, call_next: Callable[..., Any])
 
 
 def _with_ai_notice(payload: dict[str, Any]) -> dict[str, Any]:
-    """所有公开 JSON 对象统一携带同一句 AI 生成内容声明。"""
+    """历史业务的公开 JSON 携带旧审计声明；关联核对按路径走自己的声明。"""
     return {**payload, "ai_generated_content_notice": AI_GENERATED_CONTENT_NOTICE}
+
+
+def _notice_for_request(request: Any) -> str:
+    """按请求路径分派声明：关联核对接口不得附加"仅供审计计划阶段"的旧声明。"""
+    path = str(getattr(getattr(request, "url", None), "path", "") or "")
+    return CONNECTIVITY_NOTICE if path.startswith("/api/connectivity") else AI_GENERATED_CONTENT_NOTICE
+
+
+def _with_request_notice(payload: dict[str, Any], request: Any) -> dict[str, Any]:
+    return {**payload, "ai_generated_content_notice": _notice_for_request(request)}
 
 
 def _cookie_max_age(value: Any, default: int, upper: int) -> int:
@@ -513,49 +523,49 @@ def _authenticated_session_payload(session: dict[str, Any]) -> dict[str, Any]:
 
 
 @app.exception_handler(StarletteHTTPException)
-async def json_http_error(_request: Request, error: StarletteHTTPException) -> JSONResponse:
+async def json_http_error(request: Request, error: StarletteHTTPException) -> JSONResponse:
     """错误 JSON 也保留声明，防止失败分支成为未标识的机器生成出口。"""
     return JSONResponse(
         status_code=error.status_code,
         headers=error.headers,
-        content=_with_ai_notice({"detail": jsonable_encoder(error.detail)}),
+        content=_with_request_notice({"detail": jsonable_encoder(error.detail)}, request),
     )
 
 
 @app.exception_handler(RequestValidationError)
-async def json_validation_error(_request: Request, error: RequestValidationError) -> JSONResponse:
+async def json_validation_error(request: Request, error: RequestValidationError) -> JSONResponse:
     return JSONResponse(
         status_code=422,
-        content=_with_ai_notice({"detail": jsonable_encoder(error.errors())}),
+        content=_with_request_notice({"detail": jsonable_encoder(error.errors())}, request),
     )
 
 
 @app.exception_handler(SupabaseError)
-async def supabase_error_handler(_request: Request, error: SupabaseError) -> JSONResponse:
+async def supabase_error_handler(request: Request, error: SupabaseError) -> JSONResponse:
     """远程任务台账异常统一映射为脱敏、可操作的稳定响应。"""
 
     # Supabase 原始响应、URL 和 service-role key 不进入公开响应；具体错误只留在
     # 服务端日志（由部署平台收集），浏览器只依赖稳定 code/status 重试或停用入口。
     return JSONResponse(
         status_code=int(getattr(error, "status_code", 503) or 503),
-        content=_with_ai_notice(
+        content=_with_request_notice(
             {
                 "detail": str(getattr(error, "code", "SUPABASE_ERROR")),
                 "failure_code": str(getattr(error, "code", "SUPABASE_ERROR")),
-            }
+            },
+            request,
         ),
     )
 
 
 @app.exception_handler(Exception)
-async def generic_exception_handler(_request: Request, error: Exception) -> JSONResponse:
-    """全局兜底异常处理器：未捕获异常返回脱敏 500 错误，并强制附加 AI 免责声明。"""
-    # 记录原始异常类型便于定位问题，同时保证所有未预期 500 响应均包含合规 AI 声明
+async def generic_exception_handler(request: Request, error: Exception) -> JSONResponse:
+    """全局兜底异常处理器：未捕获异常返回脱敏 500 错误，并按业务类型附加对应声明。"""
     return JSONResponse(
         status_code=500,
-        content=_with_ai_notice({
+        content=_with_request_notice({
             "detail": f"服务器内部处理异常（{type(error).__name__}），请稍后重试或查看系统状态日志。"
-        }),
+        }, request),
     )
 
 
@@ -8377,4 +8387,5 @@ def cancel_demo_run_task(task_id: str) -> dict[str, Any]:
 
 # 新业务复用现有配额、任务和原文基础；旧业务路由继续保留。
 from .connectivity_api import build_router as build_connectivity_router
+from .connectivity_schemas import NOTICE as CONNECTIVITY_NOTICE
 app.include_router(build_connectivity_router(WORKSPACE_ROOT, lambda request: _enforce_public_model_quota(request, force=True), _public_model_ledger))

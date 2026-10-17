@@ -6,6 +6,7 @@ A3整理程序保留的问题，不允许模型篡改算式及原始数值。
 from __future__ import annotations
 
 from collections import defaultdict
+from decimal import Decimal
 import hashlib
 import json
 import os
@@ -20,7 +21,9 @@ from urllib.parse import urlsplit
 from .agents import _strict_tool_base_url, _provider_timeout_seconds
 from .connectivity_engine import calculate, numeric_unit, number, validate_refs
 from .connectivity_extraction import extract_document, load_registry, search_context, EXTRACTION_VERSION
-from .connectivity_rules import RULES, BASE_CONDITIONS, TOPICS
+from .connectivity_overview import build_overview
+from .connectivity_conditions import upgrade_conditions
+from .connectivity_rules import RULES, BASE_CONDITIONS, TOPICS, required_conditions, direct_metric
 from .connectivity_schemas import (AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
     EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal, RunRequest, SourceLineage, NOTICE)
 
@@ -38,42 +41,198 @@ def _reference(row: DisclosureOccurrence) -> EvidenceRef:
     return EvidenceRef(occurrence_id=row.occurrence_id, quote=row.row_header[:1000] or row.context[:1000])
 
 
-def candidate_checks(rows: list[DisclosureOccurrence], period: str) -> list[RelationshipCheck]:
-    """确定性候选只作召回，不靠同名或数值相近宣布口径成立。"""
-    groups = defaultdict(list)
+def _located(rows: list[DisclosureOccurrence], period: str):
+    """只有年度已归属、质量已由提取器显式确认为 located 的行才进入候选。"""
     for row in rows:
-        if row.value is None or row.year != period or row.quality != "located" or numeric_unit(row.unit)[0] == "unknown":
+        if row.value is None or row.year != period or row.year_status != "attributed":
+            continue
+        if row.quality != "located" or numeric_unit(row.unit)[0] == "unknown":
             continue
         try:
             number(row.value)
         except ValueError:
             continue
-        label = re.sub(r"[\s：:（）()%％]", "", row.label)
+        yield row
+
+
+TOTAL_LABEL = re.compile(r"^(?:.{0,24}?)(合计|总计|总额|小计)$")
+COMPONENT_HINT = re.compile(r"^(其中|资本化|费用化|专项|其他|其它|减：|加：|环保设施|环保费用|环保投入)")
+RATIO_LABEL = re.compile(r"(.{2,24}?)占(.{2,24}?)(?:的)?(?:比例|比重|比率)")
+
+
+def _composition_candidates(rows: list[DisclosureOccurrence], period: str) -> list[RelationshipCheck]:
+    """有原文结构支持的组成入口：同表同列的合计行与分项行。
+
+    完整性只按"表内合计行覆盖其上全部分项"的结构判定登记为待核实理由，
+    真正的五项前提仍由原文依据决定，不因结构成立而自动变绿。
+    """
+    buckets = defaultdict(list)
+    for row in _located(rows, period):
+        buckets[(row.document_id, row.pdf_page, row.column_header, row.year, row.topic)].append(row)
+    checks = []
+    for (_, _, column_header, year, topic), items in buckets.items():
+        totals = [row for row in items if TOTAL_LABEL.fullmatch(re.sub(r"[\s：:（）()]", "", row.label))]
+        if len(totals) != 1 or len(items) < 3:
+            continue
+        total = totals[0]
+        dimension = numeric_unit(total.unit)[0]
+        total_index = next(i for i, row in enumerate(items) if row.occurrence_id == total.occurrence_id)
+        before = items[:total_index]
+        components = [row for row in before if numeric_unit(row.unit)[0] == dimension]
+        if len(components) < 2:
+            continue
+        explicit = [row for row in components if COMPONENT_HINT.match(re.sub(r"[\s：:（）()]", "", row.label))]
+        if len(explicit) != len(components):
+            # 无明示分项标记时，仅当表内分项在算术上正好构成合计才登记为候选。
+            try:
+                if sum((number(row.value) for row in components), Decimal(0)) != number(total.value):
+                    continue
+            except ValueError:
+                continue
+        if topic not in {"environment", "research"}:
+            # 强度事项不属于组成关系，不套用研发或环保规则卡。
+            continue
+        rule = "ENV-001" if topic == "environment" else "RD-001"
+        evidence = [_reference(total)]
+        checks.append(RelationshipCheck(check_id="PENDING", rule_id=rule, title=f"{total.label[:60]} · 表内合计与分项",
+            topic=topic, operator=RULES[rule]["operator"],
+            members=[RelationshipMember(occurrence_id=total.occurrence_id, role="total")] +
+                    [RelationshipMember(occurrence_id=row.occurrence_id, role="component") for row in components],
+            conditions=[ComparisonCondition(name=name,
+                reason=f"由同表同列（{column_header}·{year}年）合计行与分项行自动登记；完整性须由原文说明确认")
+                for name in required_conditions(RULES[rule]["operator"])],
+            relationship_evidence=evidence))
+    return checks
+
+
+def _ratio_candidates(rows: list[DisclosureOccurrence], period: str) -> list[RelationshipCheck]:
+    """有原文公式语句支持的比例入口：指标名称即写明"X占Y比例"。"""
+    located = list(_located(rows, period))
+    checks = []
+    for ratio_row in located:
+        if numeric_unit(ratio_row.unit)[0] != "ratio":
+            continue
+        matched = RATIO_LABEL.search(re.sub(r"\s+", "", ratio_row.label))
+        if not matched:
+            continue
+        numerator_text, denominator_text = matched.group(1), matched.group(2)
+        same_doc = [row for row in located if row.document_id == ratio_row.document_id and row.occurrence_id != ratio_row.occurrence_id
+                    and numeric_unit(row.unit)[0] != "ratio"]
+        numerator = next((row for row in same_doc if numerator_text and numerator_text in re.sub(r"\s+", "", row.label)), None)
+        denominator = next((row for row in same_doc if denominator_text and denominator_text in re.sub(r"\s+", "", row.label)
+                            and (numerator is None or row.occurrence_id != numerator.occurrence_id)), None)
+        if not numerator or not denominator:
+            continue
+        if numeric_unit(numerator.unit)[0] != numeric_unit(denominator.unit)[0]:
+            continue
+        checks.append(RelationshipCheck(check_id="PENDING", rule_id="INT-001", title=f"{ratio_row.label[:60]} · 公式与分母",
+            topic=ratio_row.topic or "intensity", operator=RULES["INT-001"]["operator"],
+            members=[RelationshipMember(occurrence_id=numerator.occurrence_id, role="numerator"),
+                     RelationshipMember(occurrence_id=denominator.occurrence_id, role="denominator"),
+                     RelationshipMember(occurrence_id=ratio_row.occurrence_id, role="reported_ratio")],
+            conditions=[ComparisonCondition(name=name,
+                reason="公式来自指标名称原文；分子分母的期间、定义与范围仍须原文说明")
+                for name in required_conditions(RULES["INT-001"]["operator"])],
+            relationship_evidence=[_reference(ratio_row)]))
+    return checks
+
+
+def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
+                     rejections: list[dict] | None = None) -> list[RelationshipCheck]:
+    """确定性候选只作召回，不靠同名或数值相近宣布口径成立。
+
+    单条候选在计算中报错时只丢弃该条并登记原因，不让整次核验失败。
+    """
+    def settled(check: RelationshipCheck) -> RelationshipCheck | None:
+        if run is not None:
+            check, _ = upgrade_conditions(check, run, period)
+        try:
+            return calculate(check, rows)
+        except (ValueError, ArithmeticError, AttributeError, KeyError, IndexError, TypeError) as error:
+            if rejections is not None:
+                rejections.append({"check_id": check.check_id, "title": check.title, "reason": str(error)})
+            return None
+
+    groups = defaultdict(list)
+    for row in _located(rows, period):
+        label = direct_metric(row.label) or re.sub(r"[\s：:（）()%％]", "", row.label)
         if label in {"合计", "总计", "其中", "项目", "单位"}:
             # 通用行名不能跨表自动配对；保留原始成员，交由有具体依据的关系识别。
             continue
         # 保留投入与费用等关键原标签，不用模糊同义词强合并。
-        groups[(row.topic, label, row.column_header)].append(row)
+        # 分组建在"事项＋标签＋量纲"上：年度已由 _located 限定，列头写法差异不应把同名指标拆开。
+        groups[(row.topic, label, numeric_unit(row.unit)[0])].append(row)
+    document_types = {doc.document_id: doc.report_type for doc in (run.documents if run is not None else [])}
     checks = []
     for (topic, label, column_header), members in groups.items():
         if len(members) < 2:
             continue
-        # 不同年度不进入当前期间关系，范围未知仍逐项保留。
-        rule = "OCC-001" if len(members) > 2 else "EQ-001"
-        roles = ["occurrence"] * len(members) if rule == "OCC-001" else ["left", "right"]
-        check = RelationshipCheck(check_id=f"CHECK-{len(checks)+1:04d}", rule_id=rule, title=f"{label[:70]} · 已发现位置", topic=topic,
-            operator=RULES[rule]["operator"], members=[RelationshipMember(occurrence_id=m.occurrence_id, role=role) for m, role in zip(members, roles)],
-            conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS])
-        checks.append(calculate(check, rows))
+        by_document = defaultdict(list)
+        for row in members:
+            by_document[row.document_id].append(row)
+        # 跨报告同值：两份不同报告、一份 AR 一份 ESG，每份只取一处。
+        pair = _cross_report_pair(by_document, document_types)
+        if pair:
+            checks.append(RelationshipCheck(check_id=f"CHECK-{len(checks)+1:04d}", rule_id="EQ-001",
+                title=f"{label[:70]} · 年报与ESG披露数值核对", topic=topic, operator=RULES["EQ-001"]["operator"],
+                members=[RelationshipMember(occurrence_id=pair[0].occurrence_id, role="left"),
+                         RelationshipMember(occurrence_id=pair[1].occurrence_id, role="right")],
+                # 两份报告各留一条便于点击核对，但明确标注为自动配对：成员行不等于关系依据。
+                relationship_evidence=[_reference(pair[0]), _reference(pair[1])],
+                relationship_basis="text_statement" if direct_metric(pair[0].label) and direct_metric(pair[0].label) == direct_metric(pair[1].label) else "auto_label_match",
+                conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
+        # 同一文档内多处同名披露：只作多位置核对，不进入"能确认什么"。
+        for document_id, rows_in_doc in by_document.items():
+            if len(rows_in_doc) < 2:
+                continue
+            selected = rows_in_doc[:8]
+            checks.append(RelationshipCheck(check_id=f"CHECK-{len(checks)+1:04d}", rule_id="OCC-001",
+                title=f"{label[:60]} · 同一报告内{len(rows_in_doc)}处披露", topic=topic,
+                operator=RULES["OCC-001"]["operator"],
+                members=[RelationshipMember(occurrence_id=row.occurrence_id, role="occurrence") for row in selected],
+                relationship_evidence=[_reference(row) for row in selected[:3]],
+                relationship_basis="multi_location",
+                conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
+    # 跨文档但类型未登记时，退化为多位置核对，不冒充同值关系。
+    # 组成与比例必须有确定性入口，不能只靠模型提案。
+    for extra in _composition_candidates(rows, period) + _ratio_candidates(rows, period):
+        extra.check_id = f"CHECK-{len(checks)+1:04d}"
+        checks.append(extra)
+    checks = [item for item in (settled(check) for check in checks) if item is not None]
     # 单位置也可见，避免空关系让用户误以为没有找到任何内容。
     for topic in TOPICS:
         if not any(c.topic == topic for c in checks):
             selected = [row for row in rows if row.topic == topic][:8]
             if selected:
-                checks.append(RelationshipCheck(check_id=f"CHECK-{len(checks)+1:04d}", rule_id="NAR-001", title=f"{TOPICS[topic]['name']} · 关系依据待补", topic=topic,
+                narrative = settled(RelationshipCheck(check_id=f"CHECK-{len(checks)+1:04d}", rule_id="NAR-001",
+                    title=f"{TOPICS[topic]['name']} · 关系依据待补", topic=topic,
                     operator="narrative", members=[RelationshipMember(occurrence_id=row.occurrence_id, role="occurrence") for row in selected],
                     conditions=[ComparisonCondition(name=n) for n in BASE_CONDITIONS]))
-    return [calculate(check, rows) for check in checks]
+                if narrative is not None:
+                    checks.append(narrative)
+    return checks
+
+
+def _unique_value(rows: list) -> object | None:
+    """同一文档内同名同年度出现多个不同数值时，无法确定该对应哪一处。"""
+    return rows[0] if len({row.value for row in rows}) == 1 else None
+
+
+def _cross_report_pair(by_document: dict, document_types: dict) -> tuple | None:
+    """只接受 AR 与 ESG 各一处、且各自取值唯一的组合；含糊即退回多位置核对。"""
+    if len(by_document) < 2:
+        return None
+    if document_types:
+        ar = [rows for doc_id, rows in by_document.items() if document_types.get(doc_id) == "AR"]
+        esg = [rows for doc_id, rows in by_document.items() if document_types.get(doc_id) == "ESG"]
+        if not ar or not esg:
+            return None
+        left, right = _unique_value(ar[0]), _unique_value(esg[0])
+        return (left, right) if left and right else None
+    documents = list(by_document)
+    left = _unique_value(by_document[documents[0]])
+    right = _unique_value(by_document[documents[1]])
+    return (left, right) if left and right else None
 
 
 def make_findings(checks: list[RelationshipCheck]) -> list[FindingAndRequest]:
@@ -290,20 +449,39 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     docs = [d for d in load_registry(root) if d.case_id == request.pair_id]
     if len(docs) != 2 or {d.report_type for d in docs} != {"AR", "ESG"}:
         raise ValueError("报告对缺失或类型不匹配")
-    if len({(d.company_id, d.period) for d in docs}) != 1:
-        raise ValueError("报告主体或期间不匹配")
-    run = ConnectivityRun(run_id=f"CONN-{uuid.uuid4().hex[:16].upper()}", company=docs[0].company, period=docs[0].period,
-        documents=docs, execution_mode=request.mode, versions={"extraction": EXTRACTION_VERSION, "rules": "2026-10-16.1", "prompt": PROMPT_VERSION})
+    # 主体与指标所属期间一致才算同一报告对；指标期间未知时按未知登记，不自动等于报告期间。
+    if len({d.company_id for d in docs}) != 1:
+        raise ValueError("报告主体不匹配")
+    known_metric_periods = {d.metric_period for d in docs if d.metric_period}
+    if len(known_metric_periods) > 1:
+        raise ValueError("两份报告的指标所属期间不一致")
+    if len({d.report_period or d.period for d in docs}) != 1:
+        raise ValueError("两份报告的报告所属期间不一致")
+    # 指标期间取唯一已知值；两份都缺时显式标为未知，不按文档顺序取第一份（避免换序即换口径）。
+    metric_period = next(iter(known_metric_periods)) if known_metric_periods else ""
+    report_period = docs[0].report_period or docs[0].period
+    comparison_period = metric_period or report_period
+    run = ConnectivityRun(run_id=f"CONN-{uuid.uuid4().hex[:16].upper()}", company=docs[0].company, period=comparison_period,
+        report_period=report_period, metric_period=metric_period,
+        documents=docs, execution_mode=request.mode,
+        versions={"extraction": EXTRACTION_VERSION, "rules": "2026-10-17.2", "prompt": PROMPT_VERSION,
+                  "period_basis": f"比较期间取指标所属年度{metric_period}" if metric_period else
+                  "指标所属年度未登记（两份报告均未填），比较期间退回报告所属年度；各披露行仍按自身年度列归属"})
     progress("evidence_load", "running", "正在读取登记的两份真实PDF")
     for doc in docs:
-        rows, coverage = extract_document(root, doc, request.topics, cancelled)
+        rows, coverage, exclusions = extract_document(root, doc, request.topics, cancelled)
         run.occurrences.extend(rows)
         run.coverage.append(coverage)
+        run.extraction_exclusions.extend(exclusions)
         run.source_lineage.append(SourceLineage(document_id=doc.document_id, producer=doc.company, category=doc.source_kind))
-    progress("evidence_load", "completed", f"已发现{len(run.occurrences)}处候选及上下文")
+    progress("evidence_load", "completed",
+             f"已发现{len(run.occurrences)}处候选及上下文；{len(run.extraction_exclusions)}处已提取但未计入")
     progress("rule_calculation", "running", "检查候选、单位及比较前提")
-    run.checks = candidate_checks(run.occurrences, run.period)
-    progress("rule_calculation", "completed", f"生成{len(run.checks)}项可追溯候选，未知条件继续保留")
+    run.checks = candidate_checks(run.occurrences, comparison_period, run=run, rejections=run.candidate_rejections)
+    upgraded = sum(1 for check in run.checks if check.criteria_status == "supported")
+    progress("rule_calculation", "completed",
+             f"生成{len(run.checks)}项可追溯候选，其中{upgraded}项前提可由原文结构支持；"
+             f"{len(run.candidate_rejections)}项候选因成员冲突被丢弃")
     progress("knowledge_retrieval", "running", "在本次报告对内补查定义、脚注和其他位置")
     first_context = _context(run.occurrences)
     additional = _context(run.occurrences, preferred=["范围", "口径", "定义", "合并", "构成", "其中", "资本化", "费用化", "分母", "注："])
@@ -386,28 +564,77 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     agent_progress(role, "skipped", "本次为完整单模型对照")
         progress("agent_collaboration", "degraded" if failed else "completed", run.model_status)
     progress("evidence_validation", "running", "从原文成员重新计算全部关系")
-    run.checks = [calculate(c, run.occurrences) for c in run.checks]
+    rebuilt = []
+    for item in run.checks:
+        upgraded_check, _ = upgrade_conditions(item, run, comparison_period)
+        try:
+            rebuilt.append(calculate(upgraded_check, run.occurrences))
+        except ValueError as error:
+            run.candidate_rejections.append({"check_id": item.check_id, "title": item.title, "reason": str(error)})
+    run.checks = rebuilt
     run.findings = merge_final_findings(run)
     progress("evidence_validation", "completed", "引用、算式、未知及多位置差异已分别保留")
     progress("structured_output", "running", "保存同源核对记录及具体问题")
+    run.version_records = _version_records(docs)
+    run.version_changes = _version_changes(run)
+    run.overview = build_overview(run)
     run.duration_ms = round((time.perf_counter()-started)*1000)
     progress("structured_output", "completed", "结果已生成，按实际模型状态标识")
     return run
+
+
+def _version_records(docs) -> list:
+    """企业披露版本单独登记；媒体引述只记来源类别，不生成文件ID或页码。"""
+    from .connectivity_schemas import VersionRecord
+    records = []
+    for doc in docs:
+        records.append(VersionRecord(version_id=f"{doc.document_id}-v1", document_id=doc.document_id,
+            report_type=doc.report_type, version_role=doc.version_role, disclosure_date=doc.disclosure_date, metric_period=doc.metric_period,
+            report_period=doc.report_period or doc.period, label=f"{doc.company} {doc.report_type} {doc.period}",
+            effective_relation="登记公开版本", source_kind="mirror" if doc.source_kind == "announcement_mirror" else "official"))
+    return records
+
+
+def _version_changes(run) -> list:
+    """版本变化只作版本证据链；同标签同年度才形成对照，不相加成跨报告结论。"""
+    from .connectivity_schemas import VersionChange
+    corrections = [row for row in run.occurrences if row.value and row.version_role == "correction"]
+    if not corrections:
+        return []
+    originals = {(re.sub(r"\s+", "", row.label), row.year, row.unit): row
+                 for row in run.occurrences if row.version_role == "original"}
+    changes = []
+    for row in corrections:
+        base = originals.get((re.sub(r"\s+", "", row.label), row.year, row.unit))
+        if not base:
+            continue
+        try:
+            change = number(row.value) - number(base.value)
+        except ValueError:
+            continue
+        changes.append(VersionChange(from_version_id=f"{base.document_id}-{base.occurrence_id}",
+            to_version_id=f"{row.document_id}-{row.occurrence_id}", label=row.label,
+            display_change=f"{change}", absolute_change=f"{abs(change)}", unit=row.unit))
+    return changes
 
 
 def integrate_summaries(run: ConnectivityRun, response: dict, allowed_ids: set[str]) -> dict:
     """A3只能改进具体问题的表达，计算与未知条件保持程序结果。"""
     existing = {f.check_id: f for f in run.findings}
     sources = {r.occurrence_id: r for r in run.occurrences}
-    allowed_numbers = {n.replace(",", "") for row in run.occurrences for n in re.findall(r"\d[\d,]*(?:\.\d+)?", row.context)}
-    allowed_numbers |= {str(c.calculation.get("residual", "")) for c in run.checks}
+    # 数字闸门分源：摘要只引用原文数字；程序计算值（正式差额、残差、假设试算）不进白名单。
+    sourced_numbers = {n.replace(",", "") for row in run.occurrences for n in re.findall(r"\d[\d,]*(?:\.\d+)?", row.context)}
+    sourced_numbers.discard("")
     accepted, rejected = [], []
     for index, finding in enumerate(FinalSummaries.model_validate(response).findings):
         text = finding.question + finding.requested_material + finding.purpose
-        numeric_ok = all(n.replace(",", "") in allowed_numbers for n in re.findall(r"\d[\d,]*(?:\.\d+)?", text))
+        numeric_ok = all(n.replace(",", "") in sourced_numbers for n in re.findall(r"\d[\d,]*(?:\.\d+)?", text))
         banned = re.search(r"认定舞弊|存在重大错报|违反法律|建议买入|保证真实|不存在风险", text)
         if finding.check_id not in existing or not numeric_ok or banned or not validate_refs(finding.evidence, sources) or any(r.occurrence_id not in allowed_ids for r in finding.evidence):
-            rejected.append({"index": index, "reason": "问题越界、数值无依据或引用不匹配"})
+            reason = "问题越界、数值无原文依据或引用不匹配"
+            if not numeric_ok:
+                reason = "摘要引用了非原文数字（程序计算值不得进入摘要白名单）"
+            rejected.append({"index": index, "reason": reason})
             continue
         item = existing[finding.check_id]
         item.question = finding.question

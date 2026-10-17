@@ -187,3 +187,6 @@ artifacts/
 !/scripts/build_assertion_defense_documents.py
 !/scripts/render_assertion_defense_word.ps1
 !/scripts/verify_home_model_controls.cjs
+!/scripts/verify_home_zoom_fixed.cjs
+!/scripts/verify_connectivity_direct_metrics.cjs
+!/docs/2026-10-17_披露核对规则与列表修复验收.md
