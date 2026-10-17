@@ -20,6 +20,8 @@ STATUS_LABELS = {"supported": "依据齐备", "unknown": "依据待补", "confli
     "adjustment_explained": "有据加性调节后与0相容", "unexplained_difference": "未解释差异",
     "not_comparable": "暂不可比较", "not_executable": "暂不可执行", "not_applicable": "不适用数值计算",
     "unreviewed": "未人工复核", "demo_modified": "演示更正", "read_confirmed": "使用者已阅读"}
+AI_LABELS = {"lean_consistent": "倾向一致", "potential_conflict": "存在潜在矛盾", "plausible_explanation": "存在合理解释路径",
+             "insufficient_basis": "依据不足但可继续核查", "not_comparable": "当前不可直接比较"}
 
 
 def export_fingerprint(run: ConnectivityRun) -> list[dict]:
@@ -43,6 +45,12 @@ def verify_export_same_source(run: ConnectivityRun, payload: bytes) -> list[str]
                 problems.append(f"{expected['check_id']}的{key}不一致")
         if (expected["residual"] or None) != ((actual.get("calculation") or {}).get("residual") or None):
             problems.append(f"{expected['check_id']}的正式残差与页面不一致")
+    if exported.get("ai_analyses", []) != [a.model_dump(mode="json") for a in run.ai_analyses]:
+        problems.append("导出AI研判与保存结果不一致")
+    for expected, actual in zip(run.checks, rows):
+        for field in ("calculation_plan", "scenario_adjustment", "narrative_test"):
+            if expected.model_dump(mode="json").get(field) != actual.get(field):
+                problems.append(f"{expected.check_id}的{field}与保存结果不一致")
     return problems
 
 
@@ -108,6 +116,13 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
                 writer.writerow([_cell(v) for v in ["explanation", *base, "", "", "", "", "", check.explanation, *tail]])
             if check.related_checks:
                 writer.writerow([_cell(v) for v in ["related_checks", *base, "", "", "", "", "", ";".join(check.related_checks), *tail]])
+            for kind, value in [("calculation_plan", check.calculation_plan.model_dump() if check.calculation_plan else None),
+                                ("scenario_adjustment", check.scenario_adjustment), ("narrative_test", check.narrative_test)]:
+                if value:
+                    writer.writerow([_cell(v) for v in [kind, *base, "", "", "", "", "", json.dumps(value, ensure_ascii=False), *tail]])
+            for opinion in (a for a in run.ai_analyses if a.check_id == check.check_id):
+                writer.writerow([_cell(v) for v in ["ai_analysis", *base, opinion.status, AI_LABELS[opinion.verdict], "", "", "",
+                    json.dumps(opinion.model_dump(), ensure_ascii=False), *tail]])
         for exclusion in run.extraction_exclusions:
             writer.writerow([_cell(v) for v in ["excluded_occurrence", run.run_id, run.result_revision, "", "", "", "",
                 exclusion.value, exclusion.unit, exclusion.document_id, exclusion.pdf_page, exclusion.label + "；" + exclusion.reason]])
@@ -173,6 +188,27 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             ("口径状态", STATUS_LABELS.get(check.criteria_status, check.criteria_status)),
             ("计算状态", STATUS_LABELS.get(check.calculation_status, check.calculation_status)),
             ("复核状态", STATUS_LABELS.get(check.review_status, check.review_status))])
+        for opinion in (a for a in run.ai_analyses if a.check_id == check.check_id):
+            _add_heading(document, "AI分析意见：" + AI_LABELS[opinion.verdict], 3)
+            _paragraph(document, "仅供核查参考；" + ("输入已变化，需重新分析" if opinion.status == "needs_refresh" else "与本次保存结果绑定"))
+            _paragraph(document, "使用者处理：" + {"unreviewed": "未复核", "accepted": "已采纳为核查参考", "rejected": "已驳回"}[opinion.review_status])
+            _paragraph(document, opinion.summary)
+            for title, values in [("判断依据", opinion.reasons), ("假设", opinion.assumptions),
+                                  ("其他解释", opinion.alternative_explanations), ("下一步", opinion.next_actions),
+                                  ("分析质量说明", opinion.quality_reasons)]:
+                if values:
+                    _paragraph(document, title + "：" + "；".join(values))
+            for kind, refs in [("支持原文", opinion.supporting_evidence), ("相反证据", opinion.counter_evidence)]:
+                for ref in refs:
+                    row = sources.get(ref.occurrence_id)
+                    _paragraph(document, f"{kind} {ref.occurrence_id} / PDF {row.pdf_page if row else '?'}：{ref.quote}")
+        if check.calculation_plan:
+            _paragraph(document, "计算方案：" + check.calculation_plan.reason + "；假设：" + "；".join(check.calculation_plan.assumptions))
+        if check.scenario_adjustment:
+            _add_heading(document, "条件调节试算（不覆盖正式差额）", 3)
+            _paragraph(document, json.dumps(check.scenario_adjustment, ensure_ascii=False))
+        if check.narrative_test:
+            _paragraph(document, "文字与数值方向核对：" + json.dumps(check.narrative_test, ensure_ascii=False))
         for condition in check.conditions:
             _paragraph(document, f"{condition.name}：{STATUS_LABELS.get(condition.status, condition.status)}；{condition.reason}")
             for ref in condition.evidence:

@@ -79,8 +79,17 @@ def build_overview(run: ConnectivityRun) -> dict:
     failed_pages = sum(len(c.failed_pages) for c in run.coverage)
     excluded = len(run.extraction_exclusions)
     extracted = len(run.occurrences)
+    opinions = [a for a in run.ai_analyses if a.status == "current"]
     return {
         "relation_total": total,
+        "ai_analysis": {"value": len(opinions), "denominator": total,
+                        "items": [a.check_id for a in opinions],
+                        "by_verdict": dict(Counter(a.verdict for a in opinions)),
+                        "stale": sum(a.status != "current" for a in run.ai_analyses)},
+        "trial_calculations": {"value": sum(bool(c.hypothetical) for c in checks),
+                               "items": [c.check_id for c in checks if c.hypothetical]},
+        "scenario_bridges": {"value": sum(bool(c.scenario_adjustment and c.scenario_adjustment.get("applied")) for c in checks),
+                             "items": [c.check_id for c in checks if c.scenario_adjustment and c.scenario_adjustment.get("applied")]},
         "confirmable": {"value": len(confirmed), "denominator": total,
                         "label": "条件支持且计算成立的关系", "items": [c.check_id for c in confirmed]},
         "unconfirmable": {"value": len(blocked), "denominator": total, "conflicting": len(conflicting),

@@ -13,7 +13,7 @@ NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核�
 # 历史业务声明保持原文不变；导出与接口按 task_kind 分派，不互相冒充。
 LEGACY_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 NOTICE_BY_TASK_KIND = {"connectivity": NOTICE, "legacy_audit": LEGACY_NOTICE}
-SCHEMA_VERSION = "connectivity_v2"
+SCHEMA_VERSION = "connectivity_v3"
 
 # 本轮事项类型裁决：取方案(b)。海菲曼利润总额只走版本子流程并使用独立事项标识，
 # 不扩 topics 枚举，以免把双报告引擎改造成通用多文档平台。
@@ -133,6 +133,58 @@ class RelationshipMember(Contract):
     role: Literal["left", "right", "total", "component", "numerator", "denominator", "reported_ratio", "occurrence"]
 
 
+class CalculationPlan(Contract):
+    """模型选择既有模板；变量数值始终由程序从原始披露取回。"""
+    plan_id: str
+    operator: Literal["equal", "sum", "ratio", "occurrences", "narrative"]
+    members: list[RelationshipMember]
+    reason: str = ""
+    assumptions: list[str] = Field(default_factory=list, max_length=10)
+    status: Literal["proposed", "trial", "formal", "rejected"] = "proposed"
+    producer_role: str = ""
+
+
+class AdjustmentProposal(Contract):
+    """只提交原始数值的ID，不允许模型填造调节金额。"""
+    occurrence_id: str
+    label: str = Field(min_length=2, max_length=160)
+    sign: Literal["+", "-"]
+    reason: str = Field(min_length=2, max_length=600)
+    evidence: list[EvidenceRef] = Field(min_length=1, max_length=6)
+    assumptions: list[str] = Field(default_factory=list, max_length=8)
+
+
+class AIAnalysis(Contract):
+    """AI意见与正式计算、人工处理分开保存，历史运行默认没有该内容。"""
+    check_id: str
+    verdict: Literal["lean_consistent", "potential_conflict", "plausible_explanation", "insufficient_basis", "not_comparable"]
+    summary: str = Field(min_length=6, max_length=1000)
+    reasons: list[str] = Field(min_length=1, max_length=8)
+    supporting_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
+    counter_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
+    assumptions: list[str] = Field(default_factory=list, max_length=10)
+    alternative_explanations: list[str] = Field(default_factory=list, max_length=6)
+    next_actions: list[str] = Field(default_factory=list, max_length=8)
+    analysis_quality: Literal["high", "medium", "low"] = "low"
+    quality_reasons: list[str] = Field(default_factory=list, max_length=6)
+    calculation_plan_ids: list[str] = Field(default_factory=list, max_length=8)
+    producer_role: str = ""
+    prompt_version: str = ""
+    input_fingerprint: str = ""
+    status: Literal["current", "needs_refresh"] = "current"
+    review_status: Literal["unreviewed", "accepted", "rejected"] = "unreviewed"
+
+
+class NarrativeClaim(Contract):
+    """模型解析文字主张；程序核对绑定数据的变化方向。"""
+    indicator: str = Field(min_length=2, max_length=120)
+    direction: Literal["increase", "decrease", "stable"]
+    current_id: str
+    previous_id: str
+    evidence: list[EvidenceRef] = Field(min_length=1, max_length=4)
+    basis_description: str = Field(min_length=2, max_length=400)
+
+
 class AdjustmentRecord(Contract):
     """差异解释的量化调节：只收同基准、有原文依据、符号明确、互不重叠的加性项。
 
@@ -215,6 +267,14 @@ class RelationshipCheck(Contract):
     adjustments: list[AdjustmentRecord] = Field(default_factory=list, max_length=20)
     unresolved: list[str] = Field(default_factory=list)
     related_checks: list[str] = Field(default_factory=list)
+    mapping_type: Literal["same_metric", "component_of", "ratio_of", "overlap", "related_only", "different_metric", "uncertain"] = "uncertain"
+    mapping_reason: str = ""
+    calculation_plan: CalculationPlan | None = None
+    # 模型调节建议先进入场景试算，不自动写入正式adjustments。
+    adjustment_proposals: list[AdjustmentProposal] = Field(default_factory=list, max_length=10)
+    scenario_adjustment: dict | None = None
+    narrative_claim: NarrativeClaim | None = None
+    narrative_test: dict | None = None
 
 
 class RelationshipProposal(Contract):
@@ -227,10 +287,16 @@ class RelationshipProposal(Contract):
     relationship_evidence: list[EvidenceRef] = Field(max_length=12)
     explanation: str = ""
     explanation_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
+    mapping_type: Literal["same_metric", "component_of", "ratio_of", "overlap", "related_only", "different_metric", "uncertain"] = "uncertain"
+    mapping_reason: str = Field(default="", max_length=600)
+    calculation_reason: str = Field(default="", max_length=600)
+    assumptions: list[str] = Field(default_factory=list, max_length=10)
+    adjustment_proposals: list[AdjustmentProposal] = Field(default_factory=list, max_length=10)
+    narrative_claim: NarrativeClaim | None = None
 
 
 class AgentProposals(Contract):
-    checks: list[RelationshipProposal] = Field(max_length=4)
+    checks: list[RelationshipProposal] = Field(max_length=8)
     notes: list[str] = Field(default_factory=list, max_length=6)
 
 
@@ -238,6 +304,7 @@ class SingleAgentProposals(Contract):
     """单模型可一次提出两轮角色合计的八项关系，不人为压低输出容量。"""
     checks: list[RelationshipProposal] = Field(max_length=8)
     notes: list[str] = Field(default_factory=list, max_length=6)
+    analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
 
 
 class FinalFinding(Contract):
@@ -249,7 +316,8 @@ class FinalFinding(Contract):
 
 
 class FinalSummaries(Contract):
-    findings: list[FinalFinding] = Field(max_length=30)
+    findings: list[FinalFinding] = Field(default_factory=list, max_length=30)
+    analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
 
 
 class SearchCoverage(Contract):
@@ -333,6 +401,8 @@ class ConnectivityRun(Contract):
     provider_calls: list[dict] = Field(default_factory=list)
     duration_ms: int = 0
     versions: dict = Field(default_factory=dict)
+    ai_analyses: list[AIAnalysis] = Field(default_factory=list)
+    intelligence_trace: list[dict] = Field(default_factory=list)
     ai_generated_content_notice: str = NOTICE
 
 
@@ -362,7 +432,7 @@ class CorrectionRequest(Contract):
 class UserReviewRequest(Contract):
     """阅读确认与个人观察只改变使用者记录，不升级计算或专业结论。"""
     expected_revision: int = Field(ge=1)
-    action: Literal["reading_confirmation", "personal_observation"]
+    action: Literal["reading_confirmation", "personal_observation", "ai_accept", "ai_reject"]
     check_ids: list[str] = Field(min_length=1, max_length=100)
     reason: str = Field(min_length=3, max_length=2000)
     observation: str = Field(default="", max_length=3000)
