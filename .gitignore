@@ -186,3 +186,4 @@ artifacts/
 !/scripts/verify_evidence_decisions_browser.cjs
 !/scripts/build_assertion_defense_documents.py
 !/scripts/render_assertion_defense_word.ps1
+!/scripts/verify_home_model_controls.cjs

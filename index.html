@@ -4,24 +4,201 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="theme-color" content="#E7E5E0">
   <meta name="description" content="审迹智链：面向股东、投资者与环保组织的年报和可持续报告关联核对。先看比较依据，再看数字关系、计算和差异解释。">
   <title>审迹智链 · 双报告关联核对</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2320242C'/%3E%3Cpath d='M8 23V9h10l6 7-6 7H8Zm5-9v4h5l2-2-2-2h-5Z' fill='%23FBFAF6'/%3E%3C/svg%3E">
   <!-- 静态资源按 immutable 缓存发布；每次前端合同变化必须递增资源指纹，避免评委浏览器继续使用旧脚本。 -->
-  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.11">
+  <link rel="stylesheet" href="/assets/official-v4/styles.css?v=0.15.12">
   <link rel="stylesheet" href="/assets/official-v4/evidence-decisions.css?v=1.1.0">
   <script src="/assets/official-v4/evidence-decisions.js?v=1.1.0" defer></script>
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
   <script src="/assets/official-v4/demo-app.js?v=0.14.2" defer></script>
-  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=1.0.5">
-  <script src="/assets/official-v4/connectivity.js?v=1.1.3" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=1.0.6">
+  <script src="/assets/official-v4/connectivity.js?v=1.1.4" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
+  <link rel="stylesheet" href="/assets/official-v4/redesign-home.css?v=1.1.2">
+  <script src="/assets/official-v4/redesign-home.js?v=1.1.2" defer></script>
 </head>
 <body>
+  <div id="redesign-home">
+<div class="tex tex-stain" aria-hidden="true"></div>
+<div class="tex tex-scan" aria-hidden="true"></div>
+<div class="tex tex-noise" aria-hidden="true"></div>
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+
+<header class="site-header">
+  <a href="#top" class="identity" aria-label="审迹智链 首页">
+    <span class="identity-mark"><span>✣</span></span>
+    <span><span class="id-cn">审迹智链</span><span class="id-en">AUDITTRACE</span></span>
+  </a>
+  <nav class="nav" aria-label="主导航">
+    <a href="#top">首页 / INDEX</a><a href="#approach">设计理念 / THESIS</a><a href="#mechanism">核验流程 / SYSTEM</a><a href="#evidence">证据追踪 / EVIDENCE</a>
+  </nav>
+  <div class="header-right">
+    <span class="micro-label">DISCLOSURE INTELLIGENCE — 2026</span>
+    <a class="work-btn" href="#connectivity-root" data-enter-connectivity>进入工作台 ↗</a>
+  </div>
+</header>
+
+<main>
+<section class="hero" id="top">
+  <div class="hero-iso" aria-hidden="true"></div>
+  <div class="hero-index" aria-hidden="true"><span>01</span><span>02</span></div>
+
+  <div class="hero-heading" id="heroHeading">
+    <div class="kicker">跨报告 · 关联核验 · 证据追溯</div>
+    <h1 class="mega" aria-label="审迹智链"><span class="ghost" aria-hidden="true">审迹智链</span>审迹智链</h1>
+    <div class="title-row"><i class="rule"></i><span>AUDITTRACE</span><i class="rule"></i></div>
+    <p class="hero-sub">年度报告 × 可持续发展报告 · 智能关联核验</p>
+  </div>
+
+  <div class="side-rule left">FINANCIAL / 2025 — ANNUAL REPORT</div>
+  <div class="side-rule right">ESG / DISCLOSURE CROSS-CHECK</div>
+
+  <div class="stage" id="stage">
+    <canvas id="world" role="img" aria-label="三维设计示意：财务K线柱群与排放塔群，分别使用对应区域控制。"></canvas>
+    <canvas id="world-left" class="model-canvas" aria-hidden="true"></canvas>
+    <canvas id="world-right" class="model-canvas" aria-hidden="true"></canvas>
+    <div class="model-zone model-zone-left" id="model-left" tabindex="0" role="group" aria-label="左侧财务模型" aria-describedby="model-instructions" data-model="a"></div>
+    <div class="model-zone model-zone-right" id="model-right" tabindex="0" role="group" aria-label="右侧排放模型" aria-describedby="model-instructions" data-model="b"></div>
+    <span class="model-instructions" id="model-instructions">拖拽旋转当前模型，滚轮或加减键缩放，方向键旋转，Home键复位。两个模型之间可滚动页面。</span>
+    <button class="rd-original-style-1 scene-label" data-focus="left" id="tagLeft"><span class="lab-index">FIG 01 — K 线柱群</span><strong>财务表现 · 冲天 K 线</strong><small>FINANCIAL SIGNAL</small></button>
+    <button class="rd-original-style-2 scene-label" data-focus="right" id="tagRight"><span class="lab-index">FIG 02 — 排放塔群</span><strong>排放现场 · 碳排风险</strong><small>INDUSTRIAL CONTEXT</small></button>
+    <button class="rd-original-style-3 scene-label" data-focus="report" id="tagReport"><span class="lab-index">FIG 03 — 披露文本</span><strong>ESG 披露 · 待核验</strong><small>DOCUMENT REVIEW</small></button>
+  </div>
+
+  <div class="hero-shade" aria-hidden="true"></div>
+  <div class="hero-bottom">
+    <div class="caption-block">
+      <span class="cap-index">01.</span>
+      <div><strong>从披露到证据的空间探索</strong><p>拖拽与滚轮只控制当前一侧，中间留白可向下浏览。画面为虚构隐喻，并非对任何企业的事实判断。</p></div>
+    </div>
+    <div class="scene-hint">INDEPENDENT VIEW CONTROLS<br>分侧旋转与缩放 · 中间滚动页面</div>
+  </div>
+  <div class="model-tools model-tools-left" role="group" aria-label="左侧财务模型控制">
+    <span>财务侧</span><output id="model-left-scale" aria-label="左侧模型缩放比例">100%</output>
+    <button type="button" data-model="a" data-model-action="zoom-out" aria-label="缩小左侧模型">−</button>
+    <button type="button" data-model="a" data-model-action="zoom-in" aria-label="放大左侧模型">+</button>
+    <button type="button" data-model="a" data-model-action="reset" aria-label="复位左侧模型">↺</button>
+  </div>
+  <a href="#approach" class="scene-scroll" aria-label="向下浏览设计理念"><span>向下浏览</span><b aria-hidden="true">↓</b></a>
+  <div class="model-tools model-tools-right" role="group" aria-label="右侧排放模型控制">
+    <span>排放侧</span><output id="model-right-scale" aria-label="右侧模型缩放比例">100%</output>
+    <button type="button" data-model="b" data-model-action="zoom-out" aria-label="缩小右侧模型">−</button>
+    <button type="button" data-model="b" data-model-action="zoom-in" aria-label="放大右侧模型">+</button>
+    <button type="button" data-model="b" data-model-action="reset" aria-label="复位右侧模型">↺</button>
+  </div>
+</section>
+
+<section class="intro-sec" id="approach">
+  <div class="intro">
+    <div class="idx-row rv"><span class="idx-no">01</span><span class="idx-line"></span><span class="idx-label">THE QUESTION / 设计理念</span></div>
+    <div class="intro-grid">
+      <h2 class="intro-title rv">两份报告。<br>一条证据链。</h2>
+      <div class="intro-desc rv">
+        <p>年度报告记录企业的经营表现，可持续发展报告披露环境与社会责任信息。只有将统计期间、主体范围与指标口径放在一起，才能判断差异是否值得进一步核查。</p>
+        <a class="outline-link" href="#mechanism">查看关联核验机制 <span>↗</span></a>
+      </div>
+    </div>
+    <div class="index-list rv">
+      <a href="#approach"><b>01</b>问题 / QUESTION</a>
+      <a href="#mechanism"><b>02</b>系统 / SYSTEM</a>
+      <a href="#evidence"><b>03</b>证据 / EVIDENCE</a>
+    </div>
+  </div>
+</section>
+
+<section class="chain" id="mechanism">
+  <div class="chain-inner">
+    <div class="chain-head rv">
+      <div>
+        <div class="chapter-kicker">02 — THE SYSTEM</div>
+        <h2>从文件到判断，<br>每一步都有路径。</h2>
+      </div>
+      <p class="chain-intro">借鉴流程编排的清晰度，以证据检索和规则核对为核心。点击任意节点，查看它在跨报告关联核验中的职责。</p>
+    </div>
+    <div class="flowmap rv" id="flowmap">
+      <svg class="flow-svg" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true">
+        <path class="flow-path" d="M50 100 C 134 58, 134 58, 218 100 C 302 142, 302 142, 386 100 C 470 58, 470 58, 554 100 C 638 142, 638 142, 722 100 C 806 58, 806 58, 890 100"/>
+        <path class="rd-original-style-4 flow-flow" id="flowGlow" d="M50 100 C 134 58, 134 58, 218 100"/>
+      </svg>
+      <div class="flow-nodes" id="flowNodes">
+        <button class="rd-original-style-5 node active" data-step="0"><i class="node-ring"></i><b>01</b><span>双报告接入</span><em>INPUT</em></button>
+        <button class="rd-original-style-6 node" data-step="1"><i class="node-ring"></i><b>02</b><span>主体与口径确认</span><em>ALIGN</em></button>
+        <button class="rd-original-style-7 node" data-step="2"><i class="node-ring"></i><b>03</b><span>披露证据定位</span><em>RETRIEVE</em></button>
+        <button class="rd-original-style-8 node" data-step="3"><i class="node-ring"></i><b>04</b><span>确定性规则核对</span><em>VERIFY</em></button>
+        <button class="rd-original-style-9 node" data-step="4"><i class="node-ring"></i><b>05</b><span>差异分析与解释</span><em>ANALYZE</em></button>
+        <button class="rd-original-style-10 node" data-step="5"><i class="node-ring"></i><b>06</b><span>复核与证据输出</span><em>TRACE</em></button>
+      </div>
+    </div>
+    <div class="flow-detail rv">
+      <div>
+        <b id="flowTitle">以同一企业、同一期间建立核对任务</b>
+        <p id="flowBody">导入年度报告与可持续发展报告，记录来源与版本，避免跨年、跨实体的误比较。</p>
+      </div>
+      <span class="flow-stat" id="flowNumber">01</span>
+    </div>
+    <div class="chain-foot">
+      <span>ILLUSTRATIVE WORKFLOW / 模块说明为首页概念呈现，已实现能力以当前工作台为准</span>
+      <span>SELECT A STAGE ↗</span>
+    </div>
+  </div>
+</section>
+
+<section class="evidence" id="evidence">
+  <div class="evidence-inner">
+    <div class="evidence-title rv">
+      <div>
+        <div class="chapter-kicker">03 — TRACEABLE EVIDENCE</div>
+        <h2>追踪的不是结论，<br>而是结论的依据。</h2>
+      </div>
+      <p class="evidence-caption">仅展示一个虚构的“统计范围不同”核验情境。系统应先识别口径差异，再提示进一步核实，而不是直接把差异判定为虚假披露。</p>
+    </div>
+    <div class="evidence-display">
+      <article class="doc rv">
+        <div class="doc-kicker">DOCUMENT 01 / ANNUAL REPORT</div>
+        <h3>年度报告 · 数据口径</h3>
+        <div class="doc-row"><span>报告期间</span><b>2025 年度</b></div>
+        <div class="doc-row"><span>披露主体</span><b>集团合并范围</b></div>
+        <div class="doc-row"><span>原文定位</span><b>附注 / 待核验</b></div>
+      </article>
+      <div class="doc-bridge">↔</div>
+      <article class="doc rv">
+        <div class="doc-kicker">DOCUMENT 02 / SUSTAINABILITY REPORT</div>
+        <h3>可持续发展报告 · 环境指标</h3>
+        <div class="doc-row"><span>报告期间</span><b>2025 年度</b></div>
+        <div class="doc-row"><span>统计主体</span><b class="flagged">部分运营实体</b></div>
+        <div class="doc-row"><span>核验状态</span><b class="flagged">需要确认边界</b></div>
+      </article>
+    </div>
+    <div class="doc-result rv">
+      <div>
+        <b>发现潜在口径差异 → 发起复核</b>
+        <p>该展示使用虚构材料，不代表任何真实企业存在披露问题。可追溯的系统需要保留原文、规则命中和人工确认记录。</p>
+      </div>
+      <span>EVIDENCE BEFORE JUDGMENT</span>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="chapter-kicker">AUDITTRACE / ENTER THE WORKSPACE</div>
+  <h2>审迹智链</h2>
+  <p>年度报告 × 可持续发展报告 · 智能关联核验</p>
+  <div><a class="final-cta" href="#connectivity-root" data-enter-connectivity>进入工作台 <span>↗</span></a></div>
+</section>
+</main>
+
+<footer class="footer">
+  <span>AUDITTRACE © 2026 / INTERACTIVE CONCEPT</span>
+  <span>三维场景为设计示意 · 无真实市场数据或企业指控</span>
+</footer>
+<div class="notice" id="notice" role="status"></div>
+  </div>
   <div id="connectivity-root">
     <a class="cn-skip" href="#cn-workspace">跳到关联核对工作台</a>
-    <header class="cn-header"><a href="#" class="cn-brand">审迹智链 <span>AuditTrace</span></a><nav aria-label="工作台导航"><span>公开报告 · 关联核对</span><button id="cn-history" type="button">历史业务入口</button></nav></header>
+    <header class="cn-header"><a href="#top" class="cn-brand">审迹智链 <span>AuditTrace</span></a><nav aria-label="工作台导航"><span>公开报告 · 关联核对</span><button id="cn-history" type="button">历史业务入口</button></nav></header>
     <main id="cn-workspace" tabindex="-1">
       <section class="cn-intro" aria-labelledby="cn-title"><p class="cn-eyebrow">ANNUAL REPORT × SUSTAINABILITY REPORT</p><h1 id="cn-title">看清数字之间的关系。</h1><p>帮助股东、投资者与环保组织，核对年报和可持续发展报告中的投入、构成与指标口径。<br>先判断能否比较，再复算；沿原文寻找差异解释。</p><div class="cn-principles"><span>01 比较前提有出处</span><span>02 关系计算可追溯</span><span>03 差异解释留余项</span></div></section>
       <section class="cn-start" aria-label="选择报告并运行"><form id="cn-form"><div class="cn-form-row"><label>公司与报告期间<select aria-label="公司与报告期间" id="cn-pair" required><option value="">正在读取登记报告…</option></select></label><label>运行方式<select aria-label="运行方式" id="cn-mode"><option value="three_agents">自动发现＋三角色核对</option><option value="calculation_only">自动发现＋仅计算</option><option value="single_model">完整单模型对照</option></select></label><button type="submit" id="cn-run" class="cn-primary" disabled>开始关联核对 <span aria-hidden="true">↗</span></button></div><fieldset class="cn-topics"><legend>本次关注事项</legend><label><input type="checkbox" name="topic" value="research" checked>研发投入</label><label><input type="checkbox" name="topic" value="environment" checked>环保投入</label><label><input type="checkbox" name="topic" value="intensity" checked>强度与分母</label></fieldset></form><div id="cn-documents" class="cn-documents"></div></section>

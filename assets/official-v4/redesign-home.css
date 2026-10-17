@@ -1,0 +1,298 @@
+/* 用户提供的完整首页；样式限定在首页，避免影响业务控件。 */
+#redesign-home *,#redesign-home *::before,#redesign-home *::after{all:revert;box-sizing:border-box}
+#redesign-home{--paper: #F4F1EC; --mist: #E7E5E0; --mist-d: #D8D5D0; --silver: #B8B5AF; --silver-d: #8F8C87; --silver-dd: #5E5C59; --graphite: #252525; --ink: #1B1B1B; --copper: #A45549; --copper-d: #7E3F35; --line: rgba(37,37,37,.16); --line-2: rgba(37,37,37,.08); --ease: cubic-bezier(.22,1,.36,1); --ease-io: cubic-bezier(.65,.05,.36,1);}
+#redesign-home *{box-sizing: border-box;}
+html{scroll-behavior: smooth;}
+#redesign-home{margin: 0px; background: var(--mist); color: var(--ink); font-family: Inter, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", Arial, sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased;}
+#redesign-home button,#redesign-home a{font: inherit;}
+#redesign-home button{cursor: pointer;}
+#redesign-home a{color: inherit; text-decoration: none;}
+#redesign-home button:focus-visible,#redesign-home a:focus-visible,#redesign-home canvas:focus-visible{outline: 2px solid var(--copper); outline-offset: 4px;}
+#redesign-home ::selection{color: var(--paper); background: var(--graphite);}
+#redesign-home .tex{position: fixed; inset: 0px; pointer-events: none; z-index: 80;}
+#redesign-home .tex-noise{opacity: 0.09; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitchTiles'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+#redesign-home .tex-stain{opacity: 0.55; background: radial-gradient(30% 24% at 12% 30%, rgba(37, 37, 37, 0.06), transparent 70%), radial-gradient(26% 30% at 88% 66%, rgba(37, 37, 37, 0.06), transparent 70%), radial-gradient(44% 20% at 52% 98%, rgba(37, 37, 37, 0.05), transparent 70%);}
+#redesign-home .tex-scan{opacity: 0.05; background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(37, 37, 37, 0.5) 4px);}
+#redesign-home .cursor{position: fixed; top: 0px; left: 0px; width: 12px; height: 12px; border-radius: 50%; background: rgb(244, 241, 236); mix-blend-mode: difference; pointer-events: none; z-index: 999; transform: translate(-50%, -50%); transition: width .3s var(--ease),height .3s var(--ease);}
+#redesign-home .cursor.big{width: 72px; height: 72px;}
+@media (hover: none){#redesign-home .cursor{display: none;}}
+#redesign-home .site-header{position: relative; z-index: 40; display: flex; align-items: center; justify-content: space-between; height: 92px; padding: 0px clamp(20px, 4.5vw, 76px); border-bottom: 1px solid var(--line); background: linear-gradient(rgba(244, 241, 236, 0.94), rgba(244, 241, 236, 0.5)); backdrop-filter: blur(14px);}
+#redesign-home .identity{display: flex; align-items: center; gap: 14px;}
+#redesign-home .identity-mark{width: 37px; height: 37px; border: 1.5px solid var(--graphite); display: grid; place-items: center; position: relative; transform: rotate(45deg); transition: border-color 0.3s;}
+#redesign-home .identity-mark::before,#redesign-home .identity-mark::after{content: ""; position: absolute; background: var(--graphite); transition: background 0.3s;}
+#redesign-home .identity-mark::before{width: 19px; height: 1.5px;}
+#redesign-home .identity-mark::after{width: 1.5px; height: 19px;}
+#redesign-home .identity-mark span{transform: rotate(-45deg); font: italic 19px Georgia, serif; color: var(--graphite);}
+#redesign-home .identity:hover .identity-mark{border-color: var(--copper);}
+#redesign-home .identity:hover .identity-mark::before,#redesign-home .identity:hover .identity-mark::after{background: var(--copper);}
+#redesign-home .id-cn{font-family: "Songti SC", "Noto Serif CJK SC", SimSun, serif; font-size: 19px; font-weight: 600; letter-spacing: 0.19em; display: block;}
+#redesign-home .id-en{font: 9px Georgia, serif; letter-spacing: 0.26em; margin-top: 3px; color: var(--silver-d); display: block;}
+#redesign-home .nav{display: flex; gap: 32px; font-size: 11px; letter-spacing: 0.12em;}
+#redesign-home .nav a{position: relative; color: rgb(59, 59, 59); transition: color 0.3s;}
+#redesign-home .nav a::after{content: ""; position: absolute; bottom: -7px; left: 0px; width: 0px; height: 1.5px; background: var(--copper); transition: width .4s var(--ease);}
+#redesign-home .nav a:hover{color: var(--ink);}
+#redesign-home .nav a:hover::after{width: 100%;}
+#redesign-home .header-right{display: flex; gap: 14px; align-items: center;}
+#redesign-home .micro-label{font: 10px Georgia, serif; letter-spacing: 0.16em; color: var(--silver-d);}
+#redesign-home .work-btn{padding: 12px 18px; border: 1px solid rgba(37, 37, 37, 0.4); color: var(--ink); font-size: 12px; letter-spacing: 0.06em; background: rgba(244, 241, 236, 0.5); transition: background 0.25s, color 0.25s, border-color 0.25s;}
+#redesign-home .work-btn:hover{background: var(--graphite); border-color: var(--graphite); color: var(--paper);}
+#redesign-home .hero{position: relative; height: min(1000px, 100svh); min-height: 780px; isolation: isolate; overflow: hidden; background: radial-gradient(42% 38% at 20% 56%, rgba(255, 255, 255, 0.85), transparent 72%), radial-gradient(38% 42% at 82% 60%, rgba(255, 255, 255, 0.55), transparent 72%), radial-gradient(72% 26% at 50% 106%, rgba(94, 92, 89, 0.3), transparent 72%), linear-gradient(rgb(243, 241, 237) 0%, rgb(236, 233, 228) 42%, rgb(225, 222, 217) 74%, rgb(210, 207, 201) 100%);}
+#redesign-home .hero-iso{position: absolute; inset: 34% -12% -14%; pointer-events: none; opacity: 0.55; transform: rotateX(64deg) rotateZ(-32deg); transform-origin: 50% 100%; background-image: linear-gradient(rgba(37, 37, 37, 0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 37, 37, 0.055) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(60% 64% at 50% 52%, rgb(255, 255, 255) 10%, transparent 76%);}
+#redesign-home .hero-index{position: absolute; inset: 0px; z-index: 2; pointer-events: none;}
+#redesign-home .hero-index span{position: absolute; font: italic 700 clamp(120px, 15vw, 236px) / 1 Georgia, serif; color: transparent; -webkit-text-stroke: 1px rgba(37, 37, 37, 0.13);}
+#redesign-home .hero-index span:first-child{left: 4%; top: 42%;}
+#redesign-home .hero-index span:last-child{right: 4%; top: 42%;}
+#redesign-home .hero-heading{position: absolute; top: clamp(118px, 15.5vh, 158px); left: 0px; right: 0px; z-index: 20; text-align: center; pointer-events: none; padding: 0px 14px;}
+#redesign-home .kicker{display: flex; justify-content: center; align-items: center; gap: 14px; font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--silver-dd); font-weight: 500;}
+#redesign-home .kicker::before,#redesign-home .kicker::after{content: ""; width: 40px; height: 1px; background: linear-gradient(90deg,transparent,var(--silver-d));}
+#redesign-home .kicker::after{background: linear-gradient(270deg,transparent,var(--silver-d));}
+#redesign-home .mega{position: relative; display: inline-block; margin: 14px 0px 0px; font-family: "Songti SC", "Noto Serif CJK SC", SimSun, serif; font-size: clamp(86px, 10.2vw, 166px); font-weight: 600; letter-spacing: 0.08em; line-height: 1.04; background: linear-gradient(178deg, rgb(27, 27, 27) 0%, rgb(38, 38, 38) 34%, rgb(78, 76, 73) 72%, rgb(143, 140, 135) 100%) text; color: transparent; -webkit-text-stroke: 1px rgba(27, 27, 27, 0.16);}
+#redesign-home .mega .ghost{position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(2.3); white-space: nowrap; font-size: inherit; letter-spacing: 0.12em; color: transparent; -webkit-text-stroke: 1px rgba(37, 37, 37, 0.07); z-index: -1;}
+#redesign-home .title-row{display: flex; justify-content: center; align-items: center; gap: 18px; margin-top: 16px;}
+#redesign-home .title-row .rule{height: 1px; width: 46px; background: linear-gradient(90deg,transparent,var(--silver-d));}
+#redesign-home .title-row .rule:last-child{background: linear-gradient(270deg,transparent,var(--silver-d));}
+#redesign-home .title-row span{font: 12px Georgia, serif; letter-spacing: 0.5em; color: rgb(74, 74, 74);}
+#redesign-home .hero-sub{margin-top: 12px; font-size: 12px; letter-spacing: 0.22em; color: var(--silver-d);}
+#redesign-home .kicker,#redesign-home .mega,#redesign-home .title-row,#redesign-home .hero-sub{opacity: 0; transform: translateY(24px); transition: opacity 1.05s var(--ease),transform 1.05s var(--ease);}
+#redesign-home .hero.s1 .kicker{opacity: 1; transform: none;}
+#redesign-home .hero.s2 .mega{opacity: 1; transform: none; transition-delay: 0.05s;}
+#redesign-home .hero.s3 .title-row{opacity: 1; transform: none;}
+#redesign-home .hero.s3 .hero-sub{opacity: 1; transform: none; transition-delay: 0.1s;}
+#redesign-home .stage{position: absolute; inset: 0px; z-index: 6; overflow: hidden; touch-action: none; cursor: grab;}
+#redesign-home .stage.grabbing{cursor: grabbing;}
+#redesign-home canvas{width: 100%; height: 100%; display: block; touch-action: none; outline: 0px;}
+#redesign-home .scene-label{position: absolute; z-index: 8; transform: translate(-50%, -50%); pointer-events: auto; background: rgba(244, 241, 236, 0.88); color: var(--ink); border: 1px solid rgba(37, 37, 37, 0.28); backdrop-filter: blur(8px); padding: 10px 15px; min-width: 140px; text-align: left; box-shadow: rgba(37, 37, 37, 0.1) 0px 10px 34px; transition: opacity 0.25s, border-color 0.25s, background 0.25s; white-space: nowrap;}
+#redesign-home .scene-label:hover{border-color: var(--graphite); background: rgb(251, 250, 247);}
+#redesign-home .scene-label .lab-index{font: 700 10px Georgia, serif; color: var(--copper); letter-spacing: 0.2em; display: block; margin-bottom: 6px;}
+#redesign-home .scene-label strong{font-size: 12px; font-weight: 600; letter-spacing: 0.06em;}
+#redesign-home .scene-label small{font: 9px Georgia, serif; letter-spacing: 0.12em; color: var(--silver-d); margin-top: 3px; display: block;}
+#redesign-home .scene-label::after{content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 24px; background: linear-gradient(rgba(37, 37, 37, 0.5), transparent);}
+#redesign-home .scene-label.sunken{opacity: 0.35;}
+#redesign-home .hero-shade{position: absolute; left: 0px; right: 0px; bottom: 0px; height: 150px; z-index: 10; pointer-events: none; background: linear-gradient(transparent, rgba(216, 213, 208, 0.9));}
+#redesign-home .hero-bottom{position: absolute; z-index: 22; bottom: 28px; left: clamp(20px, 4.5vw, 76px); right: clamp(20px, 4.5vw, 76px); display: flex; justify-content: space-between; align-items: flex-end; gap: 20px;}
+#redesign-home .caption-block{display: flex; align-items: center; gap: 18px;}
+#redesign-home .cap-index{font: italic 34px Georgia, serif; color: var(--graphite);}
+#redesign-home .caption-block strong{display: block; font-weight: 600; font-size: 12px; letter-spacing: 0.14em;}
+#redesign-home .caption-block p{font-size: 10px; color: var(--silver-dd); line-height: 1.8; margin: 7px 0px 0px; max-width: 300px;}
+#redesign-home .scene-hint{font: 10px / 2 Georgia, serif; letter-spacing: 0.16em; color: rgb(95, 93, 90); text-align: right;}
+#redesign-home .viewbar{position: absolute; z-index: 24; left: 50%; transform: translateX(-50%); bottom: 26px; display: flex; align-items: center; gap: 4px; padding: 5px; border: 1px solid rgba(37, 37, 37, 0.3); background: rgba(244, 241, 236, 0.82); backdrop-filter: blur(16px); box-shadow: rgba(37, 37, 37, 0.1) 0px 12px 40px;}
+#redesign-home .viewbar button{border: 0px; background: transparent; color: rgb(51, 51, 51); font-size: 10px; letter-spacing: 0.07em; padding: 12px 14px; white-space: nowrap; transition: background 0.22s, color 0.22s;}
+#redesign-home .viewbar button:hover{background: rgba(37, 37, 37, 0.1);}
+#redesign-home .viewbar button.active{background: var(--graphite); color: var(--paper);}
+#redesign-home .viewbar .view-divider{width: 1px; height: 17px; background: rgba(37, 37, 37, 0.24);}
+#redesign-home .viewbar .tool{font: 15px Georgia, serif; padding: 8px 14px;}
+#redesign-home .viewbar .view-hint{font: 9px Georgia, serif; letter-spacing: 0.14em; color: var(--silver-d); padding: 0px 12px; white-space: nowrap;}
+#redesign-home .side-rule{position: absolute; z-index: 7; writing-mode: vertical-rl; pointer-events: none; font: 9px Georgia, serif; letter-spacing: 0.34em; color: rgba(37, 37, 37, 0.5);}
+#redesign-home .side-rule.left{left: clamp(14px, 2.2vw, 34px); top: 47%;}
+#redesign-home .side-rule.right{right: clamp(14px, 2.2vw, 34px); top: 45%; transform: rotate(180deg); color: rgba(94, 92, 89, 0.55);}
+#redesign-home .scene-hint,#redesign-home .hero-bottom{opacity: 0; transition: opacity 1.2s var(--ease) .3s;}
+#redesign-home .viewbar{opacity: 0; transition: opacity .9s var(--ease),transform .9s var(--ease); transform: translateX(-50%) translateY(14px);}
+#redesign-home .hero.s4 .hero-bottom,#redesign-home .hero.s4 .scene-hint{opacity: 1;}
+#redesign-home .hero.s4 .viewbar{opacity: 1; transform: translateX(-50%) translateY(0px);}
+#redesign-home .intro-sec{background: var(--mist); position: relative; overflow: hidden;}
+#redesign-home .intro-sec::before{content: ""; position: absolute; inset: 0px; background: radial-gradient(42% 44% at 84% 10%, rgba(37, 37, 37, 0.05), transparent 70%);}
+#redesign-home .intro{position: relative; max-width: 1440px; margin: auto; padding: 112px clamp(24px, 7vw, 120px) 118px;}
+#redesign-home .idx-row{display: flex; align-items: center; gap: 18px; margin-bottom: 44px;}
+#redesign-home .idx-no{font: italic 700 15px Georgia, serif; color: var(--copper); letter-spacing: 0.08em;}
+#redesign-home .idx-line{flex: 1 1 0%; height: 1px; background: var(--line);}
+#redesign-home .idx-label{font: 10px Georgia, serif; letter-spacing: 0.26em; color: var(--silver-d);}
+#redesign-home .intro-grid{display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 7vw; align-items: end;}
+#redesign-home .intro-title{font-family: "Songti SC", "Noto Serif CJK SC", SimSun, serif; font-size: clamp(44px, 5.2vw, 84px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; margin: 0px;}
+#redesign-home .intro-desc p{color: var(--silver-dd); font-size: 15px; line-height: 2.1; max-width: 520px; margin: 0px;}
+#redesign-home .outline-link{display: inline-flex; align-items: center; gap: 26px; margin-top: 24px; padding: 14px 0px; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 12px; letter-spacing: 0.08em; transition: gap .3s var(--ease),border-color .3s;}
+#redesign-home .outline-link:hover{gap: 36px; border-color: var(--graphite);}
+#redesign-home .outline-link span{font: 19px Georgia, serif;}
+#redesign-home .index-list{display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 74px; border-top: 1px solid var(--line); padding-top: 0px;}
+#redesign-home .index-list a{display: flex; align-items: baseline; gap: 14px; padding: 22px 4px; border-bottom: 1px solid var(--line-2); font-size: 12px; letter-spacing: 0.1em; color: var(--silver-dd); transition: color 0.25s, border-color 0.25s;}
+#redesign-home .index-list a b{font: italic 700 13px Georgia, serif; color: var(--silver-d); transition: color 0.25s;}
+#redesign-home .index-list a:hover{color: var(--ink); border-color: var(--graphite);}
+#redesign-home .index-list a:hover b{color: var(--copper);}
+#redesign-home .chain{background: rgb(30, 30, 30); color: var(--mist); padding: 104px 0px 116px; position: relative; overflow: hidden;}
+#redesign-home .chain::before{content: ""; position: absolute; inset: 0px; background: radial-gradient(40% 46% at 74% 40%, rgba(244, 241, 236, 0.05), transparent 64%), radial-gradient(34% 40% at 16% 76%, rgba(164, 85, 73, 0.07), transparent 66%);}
+#redesign-home .chain-inner{max-width: 1420px; margin: auto; padding: 0px clamp(24px, 6vw, 98px); position: relative;}
+#redesign-home .chain-head{display: flex; justify-content: space-between; gap: 60px; align-items: flex-end;}
+#redesign-home .chapter-kicker{font: 10px Georgia, serif; letter-spacing: 0.24em; color: var(--copper);}
+#redesign-home .chain h2{font-family: "Songti SC", "Noto Serif CJK SC", SimSun, serif; font-weight: 600; font-size: clamp(38px, 4.5vw, 68px); line-height: 1.25; margin: 20px 0px 0px; color: var(--paper);}
+#redesign-home .chain-intro{max-width: 310px; line-height: 2; font-size: 12px; color: rgb(154, 151, 146); margin: 0px;}
+#redesign-home .flowmap{position: relative; margin-top: 64px; height: 216px;}
+#redesign-home .flow-svg{position: absolute; inset: 0px; width: 100%; height: 100%;}
+#redesign-home .flow-svg path{fill: none; vector-effect: non-scaling-stroke;}
+#redesign-home .flow-path{stroke: rgba(244, 241, 236, 0.16); stroke-width: 1.4;}
+#redesign-home .flow-flow{stroke: rgba(244, 241, 236, 0.72); stroke-width: 1.4; stroke-dasharray: 5, 9; animation: 2.6s linear 0s infinite normal none running flowDash;}
+#redesign-home .flow-flow.hot{stroke: var(--copper);}
+@keyframes flowDash {
+  100% { stroke-dashoffset: -28; }
+}
+#redesign-home .flow-nodes{position: absolute; inset: 0px;}
+#redesign-home .node{position: absolute; top: 50%; transform: translate(-50%, -50%); width: 120px; padding: 0px; background: none; border: 0px; text-align: center; color: rgb(183, 180, 175); transition: color 0.3s;}
+#redesign-home .node .node-ring{width: 15px; height: 15px; margin: 0px auto 13px; border: 1.5px solid rgba(244, 241, 236, 0.5); border-radius: 50%; position: relative; transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;}
+#redesign-home .node .node-ring::before{content: ""; position: absolute; inset: 4px; border-radius: 50%; background: rgba(244, 241, 236, 0.25); transition: background 0.3s;}
+#redesign-home .node b{display: block; font: 12px Georgia, serif; letter-spacing: 0.16em; color: var(--silver-d); transition: color 0.3s;}
+#redesign-home .node span{display: block; margin-top: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.05em; color: rgb(217, 214, 209);}
+#redesign-home .node em{display: block; margin-top: 5px; font: 9px Georgia, serif; letter-spacing: 0.14em; color: rgb(111, 109, 105);}
+#redesign-home .node:hover{color: var(--paper);}
+#redesign-home .node:hover .node-ring{border-color: rgba(244, 241, 236, 0.9);}
+#redesign-home .node.active .node-ring{border-color: var(--paper); background: rgba(244, 241, 236, 0.08); box-shadow: rgba(244, 241, 236, 0.07) 0px 0px 0px 5px;}
+#redesign-home .node.active .node-ring::before{background: var(--copper);}
+#redesign-home .node.active b{color: var(--copper);}
+#redesign-home .node.active span{color: var(--paper);}
+#redesign-home .flow-detail{margin-top: 26px; min-height: 118px; display: flex; justify-content: space-between; align-items: center; gap: 28px; border-left: 2px solid var(--copper); background: rgba(244, 241, 236, 0.043); padding: 25px 32px;}
+#redesign-home .flow-detail b{display: block; font-size: 14px; color: var(--paper); margin-bottom: 9px;}
+#redesign-home .flow-detail p{margin: 0px; font-size: 12px; line-height: 1.9; color: rgb(168, 165, 160); max-width: 720px;}
+#redesign-home .flow-stat{font: italic 42px / 1 Georgia, serif; color: var(--copper); white-space: nowrap;}
+#redesign-home .chain-foot{display: flex; justify-content: space-between; gap: 20px; margin-top: 24px; font: 9px Georgia, serif; letter-spacing: 0.16em; color: rgb(111, 109, 105);}
+#redesign-home .evidence{background: var(--mist-d); padding: 110px clamp(24px, 7vw, 120px) 118px; position: relative;}
+#redesign-home .evidence-inner{max-width: 1320px; margin: auto;}
+#redesign-home .evidence-title{display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; margin-bottom: 46px;}
+#redesign-home .evidence h2{font-family: "Songti SC", "Noto Serif CJK SC", SimSun, serif; font-size: clamp(38px, 4.6vw, 66px); font-weight: 600; line-height: 1.25; margin: 17px 0px 0px;}
+#redesign-home .evidence-caption{color: var(--silver-dd); font-size: 12px; line-height: 2; max-width: 320px; margin: 0px;}
+#redesign-home .evidence-display{display: grid; grid-template-columns: 1fr 0.1fr 1fr; align-items: stretch; gap: 10px;}
+#redesign-home .doc{border: 1px solid var(--line); background: linear-gradient(160deg, rgba(244, 241, 236, 0.96), rgba(250, 249, 246, 0.96)); padding: 30px 34px; min-height: 300px; box-shadow: rgba(37, 37, 37, 0.05) 8px 10px 0px, rgba(37, 37, 37, 0.07) 22px 26px 56px; transition: transform .35s var(--ease),box-shadow .35s;}
+#redesign-home .doc:hover{transform: translateY(-5px); box-shadow: rgba(37, 37, 37, 0.06) 8px 12px 0px, rgba(37, 37, 37, 0.1) 26px 34px 64px;}
+#redesign-home .doc-kicker{font: 10px Georgia, serif; color: var(--silver-d); letter-spacing: 0.2em;}
+#redesign-home .doc h3{font-size: 20px; font-weight: 600; margin: 25px 0px 34px;}
+#redesign-home .doc-row{display: flex; justify-content: space-between; border-bottom: 1px solid var(--line-2); padding: 14px 0px; color: var(--silver-dd); font-size: 12px;}
+#redesign-home .doc-row b{font-weight: 600; color: var(--ink);}
+#redesign-home .doc-row .flagged{color: var(--copper);}
+#redesign-home .doc-bridge{display: flex; align-items: center; justify-content: center; color: var(--graphite); font: 24px Georgia, serif;}
+#redesign-home .doc-result{display: flex; align-items: center; justify-content: space-between; gap: 26px; margin-top: 12px; border-left: 2px solid var(--copper); background: rgba(164, 85, 73, 0.06); padding: 25px 30px;}
+#redesign-home .doc-result b{font-size: 14px;}
+#redesign-home .doc-result p{color: var(--silver-dd); font-size: 12px; line-height: 1.8; margin: 7px 0px 0px; max-width: 680px;}
+#redesign-home .doc-result span{font: 10px Georgia, serif; letter-spacing: 0.16em; color: var(--copper-d); white-space: nowrap;}
+#redesign-home .final{background: var(--graphite); padding: 110px clamp(24px, 7vw, 120px) 92px; text-align: center; position: relative; overflow: hidden;}
+#redesign-home .final::before{content: ""; position: absolute; inset: 0px; background: radial-gradient(52% 58% at 50% 112%, rgba(244, 241, 236, 0.1), transparent 70%);}
+#redesign-home .final > *{position: relative;}
+#redesign-home .final .chapter-kicker{color: var(--silver-d);}
+#redesign-home .final h2{font-family: "Songti SC", "Noto Serif CJK SC", SimSun, serif; font-size: clamp(58px, 9vw, 132px); font-weight: 600; letter-spacing: 0.08em; line-height: 1.08; margin: 20px 0px; background: linear-gradient(178deg, rgb(244, 241, 236), rgb(216, 213, 208) 46%, rgb(143, 140, 135) 100%) text; color: transparent;}
+#redesign-home .final p{color: rgb(154, 151, 146); font-size: 12px; letter-spacing: 0.14em; margin: 0px;}
+#redesign-home .final-cta{display: inline-flex; gap: 40px; align-items: center; margin-top: 30px; background: var(--paper); color: var(--graphite); padding: 20px 32px; font-size: 12px; letter-spacing: 0.1em; transition: background .25s,color .25s,transform .25s var(--ease);}
+#redesign-home .final-cta:hover{background: var(--copper); color: var(--paper); transform: translateY(-4px);}
+#redesign-home .final-cta span{font: 18px Georgia, serif;}
+#redesign-home .footer{padding: 28px clamp(24px, 6vw, 100px); background: rgb(22, 22, 22); color: rgb(123, 121, 117); display: flex; justify-content: space-between; gap: 25px; font-size: 10px; letter-spacing: 0.1em;}
+#redesign-home .notice{position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 18px); z-index: 99; background: var(--graphite); color: var(--paper); padding: 13px 22px; font-size: 12px; pointer-events: none; opacity: 0; transition: .32s var(--ease);}
+#redesign-home .notice.visible{opacity: 1; transform: translate(-50%, 0px);}
+#redesign-home .rv{opacity: 0; transform: translateY(26px); transition: opacity .95s var(--ease),transform .95s var(--ease);}
+#redesign-home .rv.on{opacity: 1; transform: none;}
+@media (max-width: 1240px){#redesign-home .nav{display: none;}
+#redesign-home .micro-label{display: none;}}
+@media (max-width: 1100px){#redesign-home .hero-bottom .caption-block{display: none;}
+#redesign-home .scene-hint{display: none;}
+#redesign-home .viewbar{bottom: 22px;}
+#redesign-home .viewbar .view-hint{display: none;}
+#redesign-home .side-rule{display: none;}
+#redesign-home .index-list{grid-template-columns: 1fr;}
+#redesign-home .node{width: 92px;}
+#redesign-home .node span{font-size: 11px;}}
+@media (max-width: 900px){#redesign-home .intro-grid{display: block;}
+#redesign-home .intro-desc{margin-top: 26px;}
+#redesign-home .chain-head{display: block;}
+#redesign-home .chain-intro{margin-top: 22px;}
+#redesign-home .flowmap{height: auto; padding: 8px 0px 4px;}
+#redesign-home .flow-svg{display: none;}
+#redesign-home .flow-nodes{position: static; display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px 10px;}
+#redesign-home .node{position: static; transform: none; width: auto;}
+#redesign-home .evidence-display{grid-template-columns: 1fr; gap: 0px;}
+#redesign-home .doc-bridge{height: 38px; transform: rotate(90deg);}}
+@media (max-width: 680px){#redesign-home .site-header{height: 74px;}
+#redesign-home .id-cn{font-size: 16px;}
+#redesign-home .identity-mark{width: 29px; height: 29px;}
+#redesign-home .work-btn{font-size: 10px; padding: 10px 12px;}
+#redesign-home .hero{min-height: 740px; height: 100svh;}
+#redesign-home .hero-heading{top: 88px;}
+#redesign-home .mega{font-size: clamp(52px, 13.6vw, 80px);}
+#redesign-home .mega .ghost{display: none;}
+#redesign-home .kicker{font-size: 8px; letter-spacing: 0.14em;}
+#redesign-home .kicker::before,#redesign-home .kicker::after{width: 16px;}
+#redesign-home .title-row span{font-size: 10px; letter-spacing: 0.34em;}
+#redesign-home .hero-sub{font-size: 10px; letter-spacing: 0.1em;}
+#redesign-home .hero-index span{font-size: clamp(90px, 24vw, 140px);}
+#redesign-home .scene-label{white-space: normal; min-width: 92px; max-width: 116px; padding: 6px 9px;}
+#redesign-home .scene-label strong{font-size: 9px;}
+#redesign-home .scene-label small{font-size: 7px;}
+#redesign-home .scene-label .lab-index{font-size: 8px; margin-bottom: 4px;}
+#redesign-home .viewbar{width: calc(100% - 20px); justify-content: center; bottom: 14px; flex-wrap: wrap;}
+#redesign-home .viewbar button{font-size: 9px; padding: 9px 8px;}
+#redesign-home .viewbar .tool{padding: 7px 10px;}
+#redesign-home .intro{padding: 76px 22px;}
+#redesign-home .flow-nodes{grid-template-columns: repeat(2, 1fr);}
+#redesign-home .flow-detail{display: block; padding: 22px 20px;}
+#redesign-home .flow-stat{display: block; margin-top: 12px; font-size: 32px;}
+#redesign-home .chain-foot{display: block; line-height: 1.9;}
+#redesign-home .evidence{padding: 76px 20px;}
+#redesign-home .evidence-title{display: block;}
+#redesign-home .evidence-caption{margin-top: 18px;}
+#redesign-home .doc{min-height: 250px; padding: 24px 22px;}
+#redesign-home .doc-result{display: block;}
+#redesign-home .doc-result span{display: block; margin-top: 10px;}
+#redesign-home .final{padding: 80px 20px;}
+#redesign-home .footer{display: block; line-height: 1.9;}}
+@media (prefers-reduced-motion: reduce){#redesign-home *,#redesign-home ::before,#redesign-home ::after{animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important;}
+#redesign-home .kicker,#redesign-home .mega,#redesign-home .title-row,#redesign-home .hero-sub,#redesign-home .hero-bottom,#redesign-home .scene-hint,#redesign-home .viewbar{opacity: 1 !important; transform: none !important;}
+#redesign-home .rv{opacity: 1; transform: none;}}
+#redesign-home[hidden]{display:none!important}
+#redesign-home .tex{position:absolute}
+#redesign-home{position:relative;isolation:isolate}
+@media print{#redesign-home{display:none!important}}
+
+/* 原稿属性样式移入外部文件，以兼容现有 CSP。 */
+#redesign-home .rd-original-style-1{left:25%;top:36%}
+#redesign-home .rd-original-style-2{left:77%;top:31%}
+#redesign-home .rd-original-style-3{left:87%;top:60%}
+#redesign-home .rd-original-style-4{opacity:0}
+#redesign-home .rd-original-style-5{left:5%}
+#redesign-home .rd-original-style-6{left:21.8%}
+#redesign-home .rd-original-style-7{left:38.6%}
+#redesign-home .rd-original-style-8{left:55.4%}
+#redesign-home .rd-original-style-9{left:72.2%}
+#redesign-home .rd-original-style-10{left:89%}
+#redesign-home{font-size:16px;line-height:normal;text-rendering:auto;letter-spacing:normal}
+#redesign-home .cursor{visibility:hidden}
+#redesign-home:hover .cursor{visibility:visible}
+
+/* 双模型独立操作，中央留白把滚轮交给页面。 */
+#redesign-home .stage{pointer-events:none;touch-action:pan-y;cursor:auto}
+#redesign-home #world{pointer-events:none;touch-action:pan-y}
+#redesign-home .model-zone{position:absolute;top:34%;bottom:7%;width:46%;z-index:7;pointer-events:auto;touch-action:none;cursor:grab}
+#redesign-home .model-zone-left{left:0}
+#redesign-home .model-zone-right{right:0}
+#redesign-home .model-zone.grabbing{cursor:grabbing}
+#redesign-home .model-zone:focus-visible{outline:1px dashed var(--copper);outline-offset:-10px}
+#redesign-home .model-instructions{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#redesign-home .scene-label{min-width:192px;padding:14px 17px;background:rgba(244,241,236,.94)}
+#redesign-home .scene-label .lab-index{font-size:12px;letter-spacing:.13em;margin-bottom:14px}
+#redesign-home .scene-label strong{font-size:14px;display:block}
+#redesign-home .scene-label small{font-size:10px;color:var(--silver-dd);margin-top:8px}
+#redesign-home .model-tools{position:absolute;bottom:110px;z-index:24;display:flex;align-items:center;gap:3px;padding:4px 6px;border:1px solid var(--line);background:rgba(244,241,236,.88);backdrop-filter:blur(12px);color:var(--graphite)}
+#redesign-home .model-tools-left{left:23%;transform:translateX(-50%)}
+#redesign-home .model-tools-right{right:23%;transform:translateX(50%)}
+#redesign-home .model-tools>span{font-size:11px;padding:0 9px;white-space:nowrap}
+#redesign-home .model-tools output{font:10px Georgia,serif;min-width:36px;color:var(--silver-dd);text-align:center}
+#redesign-home .model-tools button{display:grid;place-items:center;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--graphite);font:19px Georgia,serif;cursor:pointer}
+#redesign-home .model-tools button:hover{background:var(--graphite);color:var(--paper)}
+#redesign-home .scene-scroll{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);z-index:24;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;min-height:52px;color:var(--silver-dd);gap:5px}
+#redesign-home .scene-scroll span{font-size:10px;letter-spacing:.16em}
+#redesign-home .scene-scroll b{font:24px Georgia,serif}
+#redesign-home .scene-scroll:hover{color:var(--copper)}
+@media(max-width:1100px){#redesign-home .model-tools>span{padding:0 5px}#redesign-home .model-tools output{min-width:30px}}
+@media(max-width:759px){
+  #redesign-home .hero{height:max(1100px,calc(100svh + 260px));min-height:1100px}
+  #redesign-home .hero-heading{top:88px}
+  #redesign-home .mega{font-size:clamp(52px,13.6vw,80px)}
+  #redesign-home .model-zone{left:0;right:0;width:100%;bottom:auto}
+  #redesign-home .model-zone-left{top:29%;height:30%}
+  #redesign-home .model-zone-right{top:66%;height:29%}
+  #redesign-home .model-tools{transform:translateX(-50%);left:50%;right:auto;bottom:auto}
+  #redesign-home .model-tools-left{top:56%}
+  #redesign-home .model-tools-right{top:94%}
+  #redesign-home .model-tools button{min-width:44px;min-height:44px}
+  #redesign-home .scene-scroll{bottom:auto;top:61%;min-height:48px}
+  #redesign-home .hero-bottom{display:none}
+  #redesign-home .scene-label{min-width:150px;max-width:190px;padding:10px 12px}
+  #redesign-home .scene-label .lab-index{font-size:10px;margin-bottom:8px;letter-spacing:.1em}
+  #redesign-home .scene-label strong{font-size:11px}
+  #redesign-home .scene-label small{font-size:8px;margin-top:5px}
+}
+
+#redesign-home .side-rule{z-index:5}
+
+#redesign-home .model-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;touch-action:pan-y}
