@@ -1,7 +1,7 @@
 """真实PDF、规则与三角色在同一结果合同上运行，不以聊天代替核对。
 
 A1提出关系，A2补找定义和反证，程序每次重新检查与计算。
-A3整理程序保留的问题，不允许模型篡改算式及原始数值。
+A3形成独立AI研判及待查问题，不允许模型篡改程序状态及原始数值。
 """
 from __future__ import annotations
 
@@ -23,11 +23,14 @@ from .connectivity_engine import calculate, numeric_unit, number, validate_refs
 from .connectivity_extraction import extract_document, load_registry, search_context, EXTRACTION_VERSION
 from .connectivity_overview import build_overview
 from .connectivity_conditions import upgrade_conditions
+from .connectivity_intelligence import (METRIC_GUIDANCE, targeted_context, enrich_calculation,
+    integrate_analyses, refresh_analysis_status)
 from .connectivity_rules import RULES, BASE_CONDITIONS, TOPICS, required_conditions, direct_metric
 from .connectivity_schemas import (AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
-    EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal, RunRequest, SourceLineage, NOTICE)
+    EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal,
+    CalculationPlan, RunRequest, SourceLineage, NOTICE)
 
-PROMPT_VERSION = "connectivity_roles_20261016.4"
+PROMPT_VERSION = "connectivity_hybrid_20261018.1"
 
 
 class RoleCallFailure(RuntimeError):
@@ -82,13 +85,7 @@ def _composition_candidates(rows: list[DisclosureOccurrence], period: str) -> li
         if len(components) < 2:
             continue
         explicit = [row for row in components if COMPONENT_HINT.match(re.sub(r"[\s：:（）()]", "", row.label))]
-        if len(explicit) != len(components):
-            # 无明示分项标记时，仅当表内分项在算术上正好构成合计才登记为候选。
-            try:
-                if sum((number(row.value) for row in components), Decimal(0)) != number(total.value):
-                    continue
-            except ValueError:
-                continue
+        # 候选必须覆盖算术不平的情况；是否完整独立核查，不用“加平”作前置筛选。
         if topic not in {"environment", "research"}:
             # 强度事项不属于组成关系，不套用研发或环保规则卡。
             continue
@@ -321,17 +318,23 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         "具体关系也必须有relationship_evidence。缺依据保留未知候选。解释只覆盖其指向的条件，余差继续保留。"
         "多个年度、多个范围不能混算，第三处差异不得因两处相符被删除。"
         "不作审计、鉴证、违法、舞弊或投资结论。条件充分与未知均可返回，计算由后端完成。"
-        "本次最多返回4项关键关系，优先覆盖研发、环保、强度，不追求填满数量。"
+        "本批最多返回8项关键关系，优先覆盖研发、环保、强度，不追求填满数量。"
         "每个reason不超过60个汉字；quote只引用支持该条件的必要原句，每条不超过100个汉字，每个条件最多2个引用。"
         "未知条件不填重复原文，evidence可为空。notes最多3条且简短，不重复整个输入。"
         "checks只返回工具中声明的字段；不得回传check_id、operator、calculation、criteria_status等服务端字段。"
+        "允许结合表头、行名、脚注作语义研判，不因缺少词典式定义就停止分析。"
+        "mapping_type区分同一指标、组成、比例、重合、仅相关、不同指标及不确定；别名只帮助召回，不自动证明等价。"
+        "calculation_reason说明为何选择该规则算式，assumptions列条件；程序按members绑定原始数值复算，不生成任意代码。"
+        "adjustment_proposals只给原文数值occurrence_id、加减方向、理由、引用和假设；不填写金额。仅为场景调节，不自动确认解释成立。"
+        "narrative_claim可将文字的增加/下降/持平主张绑定current_id和previous_id，由程序比较连续两期数据。"
+        "strength/强度变化与总量变化分别看，先核实分母；'加强投入'不直接等于金额增加。"
     )
-    prompt += {"A1": "识别候选关系，优先返回有明确构成的研发、环保和强度关系，兼顾同值与多位置。",
-               "A2": "检查已有关系，利用补充原文定向找定义、正常解释和反证。只提交新增或需要调整的关系，未变化的关系不重复提交；没有新增支持时允许checks为空。",
+    prompt += {"A1": "识别名称不同但有业务关联的指标，标清关联类型、支持与冲突依据和计算方案，保留有价值的未知候选。兼顾组成、同值、多位置和文字数字主张。",
+               "A2": "按retrieval_tasks逐项处理本批候选，定向找定义、范围、正常解释和反证；利用calculated_results提出计算或调节方案。只提交新增或变化关系，不能凭数字凑等式；无变化可返回空checks。",
                "single": "一次完整完成关系识别、口径检查、反证与解释查找，任务及输出要求与三角色相同。",
-               "A3": "只整理现有核对项尚未解决的问题、建议公开说明或进一步资料及其用途。返回findings，绑定现有check_id与原文evidence，不新增结论、数值或核对关系，不改已计算状态。无未决项时返回空列表。"}[role]
-    if role == "single":
-        prompt = prompt.replace("本次最多返回4项关键关系", "本次最多返回8项关键关系")
+               "A3": "你负责独立综合研判，返回analyses和findings。对本批每项现有关系给出明确倾向、具体理由、支持、反证、假设、替代解释和下一步。允许倾向一致、潜在矛盾、存在合理解释、依据不足或不可比。缺正式前提时仍分析hypothetical及scenario_adjustment；不要只重复请人工复核。不新增核对关系、不改程序状态。"}[role]
+    if role in {"A3", "single"}:
+        prompt += "analyses仅绑定输入candidate_checks中已有check_id，引用至少一处对应成员。可以使用calculated_results中的程序数值；假设必须明列，计算闭合不等于业务解释成立。analysis_quality不是正确概率。"
     contract = FinalSummaries if role == "A3" else SingleAgentProposals if role == "single" else AgentProposals
     schema = contract.model_json_schema()
     if role != "A3":
@@ -341,8 +344,13 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         schema["$defs"]["EvidenceRef"]["properties"]["occurrence_id"]["enum"] = allowed_ids
         if role != "A3":
             schema["$defs"]["RelationshipMember"]["properties"]["occurrence_id"]["enum"] = allowed_ids
+            schema["$defs"]["AdjustmentProposal"]["properties"]["occurrence_id"]["enum"] = allowed_ids
+            for field in ("current_id", "previous_id"):
+                schema["$defs"]["NarrativeClaim"]["properties"][field]["enum"] = allowed_ids
     if role == "A3":
         schema["$defs"]["FinalFinding"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
+    if role in {"A3", "single"}:
+        schema["$defs"]["AIAnalysis"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
     tool_name = "submit_connectivity_relationships"
     body = {"model": model, "temperature": .1, "max_tokens": 14000, "stream": False, "thinking": {"type": "disabled"},
         "tools": [{"type": "function", "function": {"name": tool_name, "description": "提交原文约束的关系候选，计算由程序执行", "parameters": schema}}],
@@ -410,21 +418,59 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
 
 def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[str], role: str) -> dict:
     """成员和引用都在实际传入范围内才接纳，坏候选不污染已有结果。"""
-    accepted, rejected = [], []
+    accepted, rejected, plans, adjustments = [], [], [], []
     existing = {(c.rule_id, tuple(sorted((m.occurrence_id, m.role) for m in c.members))): c for c in run.checks}
     contract = SingleAgentProposals if role == "single" else AgentProposals
     for index, proposal in enumerate(contract.model_validate(response).checks):
         ids = {m.occurrence_id for m in proposal.members}
         refs = proposal.relationship_evidence + proposal.explanation_evidence + [r for c in proposal.conditions for r in c.evidence]
-        if not ids.issubset(allowed_ids) or any(r.occurrence_id not in allowed_ids for r in refs):
+        refs += [r for p in proposal.adjustment_proposals for r in p.evidence]
+        bound_ids = ids | {p.occurrence_id for p in proposal.adjustment_proposals}
+        if proposal.narrative_claim:
+            bound_ids |= {proposal.narrative_claim.current_id, proposal.narrative_claim.previous_id}
+            refs += proposal.narrative_claim.evidence
+        if not bound_ids.issubset(allowed_ids) or any(r.occurrence_id not in allowed_ids for r in refs):
             rejected.append({"index": index, "reason": "引用超出本角色实际获得的原文"})
+            continue
+        if proposal.mapping_type in {"related_only", "different_metric", "overlap"} and proposal.rule_id == "EQ-001":
+            rejected.append({"index": index, "reason": "仅相关、重合或不同指标不能使用同值算式；请用叙述关系保留分析"})
             continue
         signature = (proposal.rule_id, tuple(sorted((m.occurrence_id, m.role) for m in proposal.members)))
         previous = existing.get(signature)
         identity = previous.check_id if previous else f"CHECK-{uuid.uuid4().hex[:10].upper()}"
-        candidate = RelationshipCheck(check_id=identity, operator=RULES[proposal.rule_id]["operator"], **proposal.model_dump())
+        fields = proposal.model_dump(exclude={"calculation_reason", "assumptions"})
+        candidate = previous.model_copy(deep=True) if previous else RelationshipCheck(
+            check_id=identity, rule_id=proposal.rule_id, title=proposal.title, operator=RULES[proposal.rule_id]["operator"])
+        # 同签名更新保留已有调节、复核与未被本轮补证替代的字段。
+        for name, value in fields.items():
+            if name == "conditions" and previous:
+                merged = {c.name: c for c in previous.conditions}
+                for condition in proposal.conditions:
+                    old = merged.get(condition.name)
+                    if old and old.status == "conflicting" and condition.status != "conflicting":
+                        continue  # 新支持不能静默抹掉已登记反证。
+                    if old and old.status == "supported" and condition.status == "unknown":
+                        continue
+                    merged[condition.name] = condition
+                candidate.conditions = list(merged.values())
+            elif name in {"relationship_evidence", "explanation_evidence"} and previous:
+                old = getattr(previous, name)
+                candidate_refs = [*old, *getattr(proposal, name)]
+                unique = {(r.occurrence_id, r.quote): r for r in candidate_refs}
+                setattr(candidate, name, list(unique.values())[:12])
+            elif previous and value in ("", [], None, "uncertain"):
+                continue
+            else:
+                # 使用Pydantic对象而非model_dump后的嵌套dict。
+                setattr(candidate, name, getattr(proposal, name))
+        if proposal.calculation_reason:
+            candidate.calculation_plan = CalculationPlan(plan_id=f"PLAN-{identity}", operator=candidate.operator,
+                members=proposal.members, reason=proposal.calculation_reason, assumptions=proposal.assumptions, producer_role=role)
+            plans.append(identity)
+        if proposal.adjustment_proposals:
+            adjustments.append(identity)
         try:
-            candidate = calculate(candidate, run.occurrences)
+            candidate = enrich_calculation(calculate(candidate, run.occurrences), run.occurrences)
         except ValueError as error:
             rejected.append({"index": index, "reason": str(error)})
             continue
@@ -439,7 +485,8 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
         run.checks.append(candidate)
         existing[signature] = candidate
         accepted.append(identity)
-    return {"accepted_check_ids": accepted, "rejected": rejected, "role": role}
+    return {"accepted_check_ids": accepted, "rejected": rejected, "role": role,
+            "calculation_plan_ids": plans, "adjustment_check_ids": adjustments}
 
 
 def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None, agent_progress=lambda *args: None,
@@ -464,7 +511,8 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     run = ConnectivityRun(run_id=f"CONN-{uuid.uuid4().hex[:16].upper()}", company=docs[0].company, period=comparison_period,
         report_period=report_period, metric_period=metric_period,
         documents=docs, execution_mode=request.mode,
-        versions={"extraction": EXTRACTION_VERSION, "rules": "2026-10-17.2", "prompt": PROMPT_VERSION,
+        versions={"extraction": EXTRACTION_VERSION, "rules": "2026-10-18.1", "prompt": PROMPT_VERSION,
+                  "intelligence": "hybrid_v1",
                   "period_basis": f"比较期间取指标所属年度{metric_period}" if metric_period else
                   "指标所属年度未登记（两份报告均未填），比较期间退回报告所属年度；各披露行仍按自身年度列归属"})
     progress("evidence_load", "running", "正在读取登记的两份真实PDF")
@@ -496,10 +544,11 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         context_ids = {r["occurrence_id"] for r in first_context}
     proposal_fields = set(RelationshipProposal.model_fields)
     def proposals_for_context():
-        return [c.model_dump(include=proposal_fields) for c in run.checks if all(m.occurrence_id in context_ids for m in c.members)][:20]
+        return [{**c.model_dump(include=proposal_fields), "check_id": c.check_id} for c in run.checks if all(m.occurrence_id in context_ids for m in c.members)][:32]
     context = {"documents": [d.model_dump(exclude={"file_sha256"}) for d in docs], "topics": request.topics,
                "run_id": run.run_id, "occurrences": first_context, "candidate_checks": proposals_for_context(),
-               "actual_context_count": len(first_context), "total_discovered": len(run.occurrences)}
+               "actual_context_count": len(first_context), "total_discovered": len(run.occurrences),
+               "metric_guidance": METRIC_GUIDANCE}
     if request.mode == "calculation_only":
         for role in ("challenge", "counter", "review"):
             agent_progress(role, "skipped", "仅计算模式未执行模型")
@@ -509,6 +558,10 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         failed = False
         quota_ready = False
         for role, stage_role in roles:
+            if role == "A3" and not run.checks:
+                run.agent_steps.append({"role": role, "status": "skipped", "reason": "没有可绑定的核对关系"})
+                agent_progress(stage_role, "skipped", "未形成关系，不生成无对象的AI意见")
+                continue
             agent_progress(stage_role, "running", f"{role}正在核对原文关系")
             before = time.perf_counter()
             performed = False
@@ -521,27 +574,57 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 if not configured or not enabled:
                     raise ValueError("MODEL_CONFIG_MISSING" if not configured else "MODEL_DISABLED")
                 _strict_tool_base_url(os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
-                if role == "A2":
-                    combined = {r["occurrence_id"]: r for r in first_context + additional}
-                    context["occurrences"] = list(combined.values())
-                    context_ids = set(combined)
-                    context["candidate_checks"] = proposals_for_context()
-                    context["calculated_results"] = [{"title": c.title, "criteria": c.criteria_status, "calculation": c.calculation, "unresolved": c.unresolved} for c in run.checks]
-                    context["previous_role_rejections"] = [{"role": step["role"], "rejected": step.get("rejected", [])} for step in run.agent_steps if step.get("rejected")]
                 if role == "A3":
-                    run.checks = [calculate(c, run.occurrences) for c in run.checks]
+                    run.checks = [enrich_calculation(calculate(upgrade_conditions(c, run, comparison_period)[0], run.occurrences), run.occurrences) for c in run.checks]
                     run.findings = make_findings(run.checks)
-                    context["candidate_checks"] = [c.model_dump() for c in run.checks]
-                    context["unresolved_findings"] = [f.model_dump() for f in run.findings]
-                performed = True
-                response, record = call_role(role, context)
-                run.provider_calls.append(record)
-                if role == "A3":
-                    delta = integrate_summaries(run, response, context_ids)
-                else:
-                    delta = integrate_proposals(run, response, context_ids, role)
-                run.agent_steps.append({"role": role, "status": "completed", **delta, "context_count": len(context_ids)})
-                agent_progress(stage_role, "completed", f"采纳{len(delta['accepted_check_ids'])}项关系，拒绝{len(delta['rejected'])}项越界或无效候选")
+                batches = [None]
+                if role in {"A2", "A3"}:
+                    # 有界分批，不让每轮4条输出使大部分候选永远没有分析机会。
+                    batches = [run.checks[i:i+8] for i in range(0, len(run.checks), 8)] or [[]]
+                    budget = max(1, min(8, int(os.getenv("CONNECTIVITY_MAX_ROLE_BATCHES", "4"))))
+                    skipped = [c.check_id for batch in batches[budget:] for c in batch]
+                    batches = batches[:budget]
+                    run.intelligence_trace.append({"role": role, "batch_count": len(batches),
+                                                   "unprocessed_check_ids": skipped, "reason": "角色批次预算" if skipped else ""})
+                delta = {"accepted_check_ids": [], "rejected": [], "accepted_analysis_ids": [],
+                         "analysis_rejections": [], "calculation_plan_ids": [], "adjustment_check_ids": []}
+                sent_ids = set()
+                for batch_index, batch in enumerate(batches):
+                    if cancelled():
+                        raise InterruptedError("用户取消了任务")
+                    if role == "A3" and not batch:
+                        continue
+                    batch_context = dict(context)
+                    if batch is not None:
+                        selected, tasks = targeted_context(run, batch)
+                        batch_context.update(occurrences=selected, retrieval_tasks=tasks,
+                            actual_context_count=len(selected), candidate_checks=[c.model_dump() for c in batch],
+                            calculated_results=[c.model_dump(include={"check_id", "calculation", "hypothetical", "scenario_adjustment", "narrative_test", "unresolved"}) for c in batch],
+                            unresolved_findings=[f.model_dump() for f in run.findings if f.check_id in {c.check_id for c in batch}])
+                        run.intelligence_trace.append({"role": role, "batch": batch_index, "retrieval_tasks": tasks})
+                    if role == "single":
+                        selected, tasks = targeted_context(run, run.checks, limit=320)
+                        combined = {r["occurrence_id"]: r for r in [*first_context, *additional, *selected]}
+                        batch_context.update(occurrences=list(combined.values()), retrieval_tasks=tasks,
+                            candidate_checks=[c.model_dump() for c in run.checks], actual_context_count=len(combined),
+                            calculated_results=[c.model_dump(include={"check_id", "calculation", "hypothetical", "scenario_adjustment", "narrative_test"}) for c in run.checks])
+                    batch_ids = {r["occurrence_id"] for r in batch_context["occurrences"]}
+                    sent_ids |= batch_ids
+                    performed = True
+                    response, record = call_role(role, batch_context)
+                    record.update(batch=batch_index, context_count=len(batch_ids))
+                    run.provider_calls.append(record)
+                    if role == "A3":
+                        part = integrate_summaries(run, response, batch_ids)
+                    else:
+                        part = integrate_proposals(run, response, batch_ids, role)
+                        if role == "single":
+                            part.update(integrate_analyses(run, SingleAgentProposals.model_validate(response).analyses, batch_ids, role, PROMPT_VERSION))
+                    for key in delta:
+                        delta[key].extend(part.get(key, []))
+                run.agent_steps.append({"role": role, "status": "completed", **delta, "context_count": len(sent_ids),
+                                        "processed_check_ids": [c.check_id for batch in batches if batch for c in batch]})
+                agent_progress(stage_role, "completed", f"采纳{len(delta['accepted_check_ids'])}项关系，形成{len(delta['accepted_analysis_ids'])}项AI研判")
             except Exception as error:
                 # 不向公开结果泄露供应商响应正文、请求头或密钥。
                 code = str(error) if isinstance(error, ValueError) and str(error).startswith("MODEL_") else f"MODEL_{type(error).__name__.upper()}"
@@ -558,7 +641,9 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             for role in ("counter", "review"):
                 agent_progress(role, "skipped", "前序模型失败，下游未执行")
         else:
-            run.model_status = "single_completed" if request.mode == "single_model" else "three_agents_completed"
+            run.model_status = "single_completed" if request.mode == "single_model" else (
+                "no_relations_to_review" if not run.checks else "three_agents_partial" if any(
+                    step.get("unprocessed_check_ids") for step in run.intelligence_trace) else "three_agents_completed")
             if request.mode == "single_model":
                 for role in ("counter", "review"):
                     agent_progress(role, "skipped", "本次为完整单模型对照")
@@ -568,10 +653,11 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     for item in run.checks:
         upgraded_check, _ = upgrade_conditions(item, run, comparison_period)
         try:
-            rebuilt.append(calculate(upgraded_check, run.occurrences))
+            rebuilt.append(enrich_calculation(calculate(upgraded_check, run.occurrences), run.occurrences))
         except ValueError as error:
             run.candidate_rejections.append({"check_id": item.check_id, "title": item.title, "reason": str(error)})
     run.checks = rebuilt
+    refresh_analysis_status(run)
     run.findings = merge_final_findings(run)
     progress("evidence_validation", "completed", "引用、算式、未知及多位置差异已分别保留")
     progress("structured_output", "running", "保存同源核对记录及具体问题")
@@ -619,7 +705,7 @@ def _version_changes(run) -> list:
 
 
 def integrate_summaries(run: ConnectivityRun, response: dict, allowed_ids: set[str]) -> dict:
-    """A3只能改进具体问题的表达，计算与未知条件保持程序结果。"""
+    """A3改进具体问题并产生独立AI意见，计算与条件保持程序结果。"""
     existing = {f.check_id: f for f in run.findings}
     sources = {r.occurrence_id: r for r in run.occurrences}
     # 数字闸门分源：摘要只引用原文数字；程序计算值（正式差额、残差、假设试算）不进白名单。
@@ -641,7 +727,8 @@ def integrate_summaries(run: ConnectivityRun, response: dict, allowed_ids: set[s
         item.requested_material = finding.requested_material
         item.purpose = finding.purpose
         accepted.append(finding.check_id)
-    return {"role": "A3", "accepted_check_ids": accepted, "rejected": rejected}
+    delta = integrate_analyses(run, FinalSummaries.model_validate(response).analyses, allowed_ids, "A3", PROMPT_VERSION)
+    return {"role": "A3", "accepted_check_ids": accepted, "rejected": rejected, **delta}
 
 
 def merge_final_findings(run: ConnectivityRun) -> list[FindingAndRequest]:

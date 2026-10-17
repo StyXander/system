@@ -14,8 +14,8 @@
   <script src="/assets/official-v4/evidence-decisions.js?v=1.1.0" defer></script>
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
   <script src="/assets/official-v4/demo-app.js?v=0.14.2" defer></script>
-  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=2.0.0">
-  <script src="/assets/official-v4/connectivity.js?v=2.0.0" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=3.0.0">
+  <script src="/assets/official-v4/connectivity.js?v=3.0.0" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
   <script src="/assets/official-v4/connectivity-workspace.js?v=2.0.0" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/redesign-home.css?v=2.2.1">
@@ -242,9 +242,9 @@
               <div id="cn-timeline"></div>
               <details class="cn-detail-block"><summary>关系更正与版本记录</summary><div id="cn-revisions"></div></details>
               <p class="cn-privacy-note">个人观察是使用者记录，不是系统结论。保存后该记录可能随任务链接被他人读取；公共视图只显示“存在N条个人观察”，不展示正文；本人视图可展开。请只填写可公开的阅读观察。</p>
-              <details class="cn-detail-block" open><summary>使用者记录（阅读确认 / 个人观察）</summary>
+              <details class="cn-detail-block" open><summary>使用者记录（阅读、AI意见处理与个人观察）</summary>
 
-                <form id="cn-review-form"><label>记录方式<select id="cn-review-action"><option value="reading_confirmation">确认已阅读所选关系</option><option value="personal_observation">补充当前关系的个人观察</option></select></label><fieldset id="cn-review-selection"><legend>选择已阅读的关系</legend><div id="cn-review-checks"></div></fieldset><label>个人观察<textarea id="cn-observation" rows="3" maxlength="3000"></textarea></label><label>记录理由<textarea id="cn-review-reason" rows="2" minlength="3" maxlength="2000" required></textarea></label><button id="cn-save-review" type="submit">保存为新版本</button><p id="cn-review-message" role="status"></p></form>
+                <form id="cn-review-form"><label>记录方式<select id="cn-review-action"><option value="reading_confirmation">确认已阅读所选关系</option><option value="personal_observation">补充当前关系的个人观察</option><option value="ai_accept">采纳当前关系的AI意见</option><option value="ai_reject">驳回当前关系的AI意见</option></select></label><fieldset id="cn-review-selection"><legend>选择已阅读的关系</legend><div id="cn-review-checks"></div></fieldset><label>个人观察<textarea id="cn-observation" rows="3" maxlength="3000"></textarea></label><label>记录理由<textarea id="cn-review-reason" rows="2" minlength="3" maxlength="2000" required></textarea></label><button id="cn-save-review" type="submit">保存为新版本</button><p id="cn-review-message" role="status"></p></form>
                 <div id="cn-personal-notes"></div>
               </details>
             </section>

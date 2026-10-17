@@ -6,7 +6,7 @@
 - 单位：各成员单位与单位来源均已确认，量纲一致，且原文出现该单位。
 - 范围：各成员位置层级一致且非空，且各自文档有统计范围说明原文。
 - 定义：原文对指标名称给出"指／系指／定义为／包括"等定义句。
-- 组成完整／互不重叠：同表合计行数值等于各分项之和，且分项互不相同。
+- 组成完整／互不重叠：由可识别的完整业务分类及原文定义支持，独立于是否加平。
 - 公式：指标名称本身写明"X占Y比例"。
 升级只把 unknown 推到 supported；已有 supported 或 conflicting 的条件保持原样，不覆盖模型给出的依据。
 """
@@ -167,7 +167,7 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
 
 def _upgrade_sum(check: RelationshipCheck, conditions: dict[str, ComparisonCondition],
                  members: list[DisclosureOccurrence], found: dict[str, DisclosureOccurrence], upgraded: list[str]) -> None:
-    """组成完整与互不重叠只用同表结构与数值核对，不做口径推断。"""
+    """先检验组成结构，后做算术；不同坐标不等于业务上互不重叠。"""
     roles = {item.occurrence_id: item.role for item in check.members}
     total = next((row for row in members if roles.get(row.occurrence_id) == "total"), None)
     components = [row for row in members if roles.get(row.occurrence_id) == "component"]
@@ -177,26 +177,25 @@ def _upgrade_sum(check: RelationshipCheck, conditions: dict[str, ComparisonCondi
                      and row.column_header == total.column_header for row in components)
     if not same_table:
         return
-    try:
-        # 量纲统一后再比较，避免万元与元直接相加。
-        from .connectivity_engine import normalized
-        values = [normalized(row)[0] for row in components]
-        total_value = normalized(total)[0]
-    except ValueError:
-        return
-    if sum(values) != total_value:
-        return
-    quote = _quote_for(total, [total.unit]) or total.row_header[:60]
-    if quote and _set(conditions, "组成完整",
-                      f"同表合计行“{total.label[:20]}”数值等于{len(components)}个分项之和（结构化核对）",
-                      [EvidenceRef(occurrence_id=total.occurrence_id, quote=quote)], found):
-        upgraded.append("组成完整")
+    # 首版只自动支持原文定义明确包含的资本化/费用化两分法。
+    # 其它分组继续交给语义补证；不以“刚好加平”证明分项齐全。
     labels = [re.sub(r"\s+", "", row.label) for row in components]
+    categories = ["费用化" if "费用化" in label else "资本化" if "资本化" in label else "" for label in labels]
+    definition = next((row for row in found.values() if row.document_id == total.document_id
+                       and "资本化" in row.context and "费用化" in row.context
+                       and _definition_quote(row.context, "环保投入" if check.rule_id == "ENV-001" else "研发投入")), None)
+    if len(components) != 2 or set(categories) != {"资本化", "费用化"} or not definition or any("其中" in label for label in labels):
+        return
+    quote = _definition_quote(definition.context, "环保投入" if check.rule_id == "ENV-001" else "研发投入")
+    if quote and _set(conditions, "组成完整",
+                       "同表包含资本化与费用化两类，且原文定义明确包含这两类支出；算术是否加平另行计算",
+                       [EvidenceRef(occurrence_id=definition.occurrence_id, quote=quote)], found):
+        upgraded.append("组成完整")
     boxes = {tuple(round(value, 1) for value in row.bbox) for row in components}
     if len(set(labels)) == len(labels) and len(boxes) == len(labels):
         witness = components[0]
         quote = _quote_for(witness, [witness.unit]) or witness.row_header[:60]
-        if quote and _set(conditions, "互不重叠", "各分项为互不相同的行次与位置，未发现同格重复计入",
+        if quote and _set(conditions, "互不重叠", "原文定义下的资本化、费用化为两类支出，且分列不同物理位置；未将其中项重复计入",
                           [EvidenceRef(occurrence_id=witness.occurrence_id, quote=quote)], found):
             upgraded.append("互不重叠")
 

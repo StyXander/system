@@ -1,0 +1,107 @@
+{
+  "baseline_commit": "9d60fa0af43b76582839c5f60c9a9ee39a4d1b1d",
+  "mode": "calculation_only",
+  "before": {
+    "verification": "registered_reports_calculation_only",
+    "model_calls": 0,
+    "results": [
+      {
+        "pair_id": "000858-2025",
+        "company": "五粮液",
+        "documents": [
+          {
+            "document_id": "WLY_AR_2025",
+            "sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4"
+          },
+          {
+            "document_id": "WLY_ESG_2025",
+            "sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+          }
+        ],
+        "occurrences": 216,
+        "checks": 8,
+        "formal_supported": 2,
+        "formal_consistent": 2,
+        "conditional_trials": 4,
+        "ai_analyses": 0,
+        "model_calls": 0,
+        "duration_ms": 9845
+      },
+      {
+        "pair_id": "600019-2025",
+        "company": "宝钢股份",
+        "documents": [
+          {
+            "document_id": "BAOSTEEL_AR_2025",
+            "sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8"
+          },
+          {
+            "document_id": "BAOSTEEL_ESG_2025",
+            "sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+          }
+        ],
+        "occurrences": 613,
+        "checks": 9,
+        "formal_supported": 0,
+        "formal_consistent": 0,
+        "conditional_trials": 9,
+        "ai_analyses": 0,
+        "model_calls": 0,
+        "duration_ms": 13510
+      }
+    ]
+  },
+  "after": {
+    "verification": "registered_reports_calculation_only",
+    "model_calls": 0,
+    "results": [
+      {
+        "pair_id": "000858-2025",
+        "company": "五粮液",
+        "documents": [
+          {
+            "document_id": "WLY_AR_2025",
+            "sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4"
+          },
+          {
+            "document_id": "WLY_ESG_2025",
+            "sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+          }
+        ],
+        "occurrences": 216,
+        "checks": 8,
+        "formal_supported": 2,
+        "formal_consistent": 2,
+        "conditional_trials": 4,
+        "ai_analyses": 0,
+        "model_calls": 0,
+        "duration_ms": 476
+      },
+      {
+        "pair_id": "600019-2025",
+        "company": "宝钢股份",
+        "documents": [
+          {
+            "document_id": "BAOSTEEL_AR_2025",
+            "sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8"
+          },
+          {
+            "document_id": "BAOSTEEL_ESG_2025",
+            "sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+          }
+        ],
+        "occurrences": 613,
+        "checks": 9,
+        "formal_supported": 0,
+        "formal_consistent": 0,
+        "conditional_trials": 9,
+        "ai_analyses": 0,
+        "model_calls": 0,
+        "duration_ms": 752
+      }
+    ]
+  },
+  "real_model_verified": false,
+  "reason": "执行环境未配置DEEPSEEK_API_KEY；没有调用付费模型",
+  "professional_accuracy_evaluated": false
+}
