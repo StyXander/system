@@ -14,13 +14,14 @@
   <script src="/assets/official-v4/evidence-decisions.js?v=1.1.0" defer></script>
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
   <script src="/assets/official-v4/demo-app.js?v=0.14.2" defer></script>
-  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=4.1.0">
-  <script src="/assets/official-v4/connectivity.js?v=4.0.2" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=4.1.1">
+  <script src="/assets/official-v4/connectivity.js?v=4.2.0" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
   <script src="/assets/official-v4/connectivity-workspace.js?v=2.3.2" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/redesign-home.css?v=2.2.1">
   <script src="/assets/official-v4/redesign-home.js?v=2.3.1" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/archive-workbench.css?v=1.2.0">
+  <link rel="stylesheet" href="/assets/official-v4/connectivity-results.css?v=2.0.0">
 </head>
 <body>
   <div id="redesign-home">
@@ -103,11 +104,11 @@
       <section class="cn-intro" aria-labelledby="cn-title"><p class="cn-eyebrow">ANNUAL REPORT × SUSTAINABILITY REPORT</p><h1 id="cn-title">看清数字之间的关系。</h1><p>帮助股东、投资者与环保组织，核对年报和可持续发展报告中的投入、构成与指标口径。<br>AI识别关联并提出解释，程序复算；条件不完整时，继续给出带假设的分析。</p><div class="cn-principles"><span>01 比较前提有出处</span><span>02 关系计算可追溯</span><span>03 差异解释留余项</span></div></section>
       <section class="cn-start" aria-label="选择报告并运行"><form id="cn-form"><div class="cn-form-row"><label>公司与报告期间<select aria-label="公司与报告期间" id="cn-pair" required><option value="">正在读取登记报告…</option></select></label><label>运行方式<select aria-label="运行方式" id="cn-mode"><option value="three_agents">自动发现＋三角色核对</option><option value="calculation_only">自动发现＋仅计算</option><option value="single_model">完整单模型对照</option></select></label><button type="submit" id="cn-run" class="cn-primary" disabled>开始关联核对 <span aria-hidden="true">↗</span></button></div><fieldset class="cn-topics"><legend>本次关注事项</legend><label><input type="checkbox" name="topic" value="research" checked>研发投入</label><label><input type="checkbox" name="topic" value="environment" checked>环保投入</label><label><input type="checkbox" name="topic" value="intensity" checked>强度与分母</label></fieldset></form><div id="cn-documents" class="cn-documents"></div></section>
       <div id="cn-message" class="cn-message" role="status" aria-live="polite">选择同公司、同期间的两份报告，开始定位原文。</div>
-      <div id="cn-stagebar" class="cn-stagebar" aria-label="核验阶段进度" hidden><ol id="cn-stagebar-list"></ol><p id="cn-stagebar-note"></p><details id="cn-progress" class="cn-run-record"><summary id="cn-progress-summary">运行记录与取消</summary><p id="cn-progress-state"></p><div id="cn-progress-details"></div><button id="cn-cancel" type="button">取消尚未开始的模型调用</button></details></div>
+      <details id="cn-stagebar" class="cn-stagebar" aria-label="核验阶段进度" hidden><summary id="cn-stage-toggle">运行阶段与记录</summary><ol id="cn-stagebar-list"></ol><p id="cn-stagebar-note"></p><details id="cn-progress" class="cn-run-record"><summary id="cn-progress-summary">运行记录与取消</summary><p id="cn-progress-state"></p><div id="cn-progress-details"></div><button id="cn-cancel" type="button">取消尚未开始的模型调用</button></details></details>
       <section id="cn-results" hidden aria-label="关联核对结果">
         <header class="cn-result-header"><div><p class="cn-eyebrow">RELATIONSHIP RECORDS</p><h2 id="cn-result-title">关联核对记录</h2><p id="cn-run-meta"></p></div><div class="cn-tools"><label>阅读视角<select aria-label="阅读视角" id="cn-perspective"><option value="public">公众阅读</option><option value="investor">投资者关注</option><option value="environment">环境关注</option><option value="professional">事务所核对</option></select></label><div id="cn-exports" class="cn-exports"></div><button id="cn-print" type="button">打印 / 保存PDF</button></div></header>
-        <p id="cn-perspective-note" class="cn-reading-note"></p>
-        <section class="cn-overview" aria-label="结果概览四问">
+        <details class="cn-reading-guide"><summary>阅读说明与术语</summary><div id="cn-perspective-note" class="cn-reading-note"></div></details>
+        <section class="cn-overview" aria-label="结果概览">
           <div id="cn-fourq" class="cn-fourq"></div>
           <div id="cn-nextq" class="cn-nextq"></div>
         </section>
