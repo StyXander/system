@@ -32,6 +32,37 @@
   const current = () => state.task?.result;
   const occurrence = id => current()?.occurrences.find(row => row.occurrence_id===id);
   const check = () => current()?.checks.find(row => row.check_id===state.selected);
+  // AI 倾向只用于列表与详情的第一眼提示，不改变程序状态、计算或结论。
+  // 有相反证据或模型判定存在矛盾时给出黄色；模型倾向一致/有解释且未见反证时给出绿色。
+  function aiTendency(c) {
+    const run = current(); if (!run) return null;
+    const opinion = (run.ai_analyses||[]).find(row => row.check_id===c.check_id)
+      || (run.ai_opinions||[]).find(row => row.check_id===c.check_id);
+    if (!opinion) return {key:'none', tone:'neutral', short:'AI 未研判', label:'AI 尚未形成倾向',
+      note:'本次未生成 AI 意见'};
+    if (opinion.status==='needs_refresh') return {key:'stale', tone:'neutral', short:'AI 待刷新', label:'AI 意见待刷新',
+      note:'旧意见不再作为倾向依据'};
+    const verdict = String(opinion.verdict||'').toLowerCase();
+    const counter = (opinion.counter_evidence||[]).length;
+    const conflict = ['potential_conflict','unexplained','likely_error','human_review','needs_human'].includes(verdict);
+    const clearVerdict = ['lean_consistent','consistent','explainable_difference','plausible_explanation','probable_explainable'].includes(verdict);
+    if (conflict) return {key:'conflict', tone:'warn', short:'可能有矛盾', label:'AI 倾向：可能有矛盾',
+      note:'模型判断，可能不准确'};
+    if (clearVerdict) return {key:'clear', tone:'ok', short:'未见矛盾', label:'AI 倾向：未见明显矛盾',
+      note:'模型判断，可能不准确'};
+    if (counter > 0) return {key:'conflict', tone:'warn', short:'可能有矛盾', label:'AI 倾向：可能有矛盾',
+      note:'依据不足，但模型列出了相反证据'};
+    if (['not_comparable','insufficient_basis','insufficient_evidence'].includes(verdict)) {
+      return {key:'clear', tone:'ok', short:'暂未见矛盾', label:'AI 倾向：暂未见矛盾',
+        note:'依据不足，模型未列出相反证据'};
+    }
+    return {key:'unknown', tone:'neutral', short:'AI 未定', label:'AI 尚未形成倾向',
+      note:'模型判断，可能不准确'};
+  }
+  function tendencyChip(c) {
+    const tendency = aiTendency(c); if (!tendency) return '';
+    return `<span class="cn-tendency-chip" data-tone="${tendency.tone}" title="AI 倾向，可能不准确；不替代程序状态"><i></i>${escape(tendency.short)}</span>`;
+  }
   const sourceUrl = (id, page) => `/api/connectivity/sources/${encodeURIComponent(id)}?view=true&page=${page}`;
   const pageImage = (id, page) => `/api/connectivity/sources/${encodeURIComponent(id)}/pages/${page}.png`;
   const documentOf = id => current()?.documents.find(doc => doc.document_id===id);
@@ -200,7 +231,18 @@
       return `<div class="cn-ai-summary"><h3>AI 意见（仅供参考）</h3><p><strong>${escape(String(ai.total||0))}</strong> 条意见 · ${escape(parts||'无分级')} · 建议人工复核 ${escape(String(ai.needs_human||0))} 条</p><p class="cn-muted">生成方式：${escape(mode)}${ai.model_failure?`（${escape(ai.model_failure)}）`:''}。意见不改变口径、计算与已衔接统计。</p>${top}</div>`;
     })() : '';
     const priorityLine = (ov.priority_checks?.details||[]).slice(0,3).map(h=>`<button type="button" class="cn-nextq-row" data-goto="${escape(h.check_id)}"><span>${escape({high:'高',medium:'中',low:'低'}[h.priority])}</span>${escape(run.checks.find(c=>c.check_id===h.check_id)?.title||h.check_id)}<small>${escape(h.priority_reason)}</small></button>`).join('');
-    $('cn-nextq').innerHTML = (priorityLine?`<h3>优先查看</h3>${priorityLine}`:'') + (questions ? `<h3>下一步可以问公司什么</h3>${questions}` : '') + causeLine + aiLine + `<p class="cn-fq-note">${escape(ov.note||'')}</p>`;
+    const tendencySummary = (() => {
+      const hasOpinion = [...(run.ai_analyses||[]), ...(run.ai_opinions||[])].some(o => run.checks.some(c=>c.check_id===o.check_id));
+      if (!hasOpinion) return '';
+      const counts = {conflict:0, clear:0, neutral:0};
+      run.checks.forEach(c => { const t=aiTendency(c); if (!t) return; if (t.key==='conflict') counts.conflict++; else if (t.key==='clear') counts.clear++; else counts.neutral++; });
+      return `<div class="cn-tendency-summary"><span class="cn-tendency-summary-k">AI 倾向</span>
+        <span class="cn-tendency-summary-item" data-tone="warn"><i></i>可能有矛盾 <b>${counts.conflict}</b></span>
+        <span class="cn-tendency-summary-item" data-tone="ok"><i></i>暂未见矛盾 <b>${counts.clear}</b></span>
+        ${counts.neutral?`<span class="cn-tendency-summary-item" data-tone="neutral"><i></i>未研判 <b>${counts.neutral}</b></span>`:''}
+        <small>模型判断，可能不准确 · 不替代程序状态</small></div>`;
+    })();
+    $('cn-nextq').innerHTML = tendencySummary + (priorityLine?`<h3>优先查看</h3>${priorityLine}`:'') + (questions ? `<h3>下一步可以问公司什么</h3>${questions}` : '') + causeLine + aiLine + `<p class="cn-fq-note">${escape(ov.note||'')}</p>`;
   }
 
   function renderList() {
@@ -222,7 +264,7 @@
       return priority || byTopic || byGap || Number(b.relationship_evidence.length>0)-Number(a.relationship_evidence.length>0);
     });
     $('cn-count').textContent = String(checks.length);
-    $('cn-check-list').innerHTML = checks.length ? checks.map(c => `<button type="button" class="cn-check${c.check_id===state.selected?' active':''}" data-check="${escape(c.check_id)}" aria-pressed="${c.check_id===state.selected}"><small>${escape(state.bootstrap.rules[c.rule_id]?.name||c.rule_id)}</small><strong>${escape(c.title)}</strong><small>${hints[c.check_id]?`核查优先级：${escape({high:'高',medium:'中',low:'低'}[hints[c.check_id].priority])} · `:''}${status(c.criteria_status)} ${status(c.calculation_status)}</small></button>`).join('') : '<p class="cn-empty">本次未生成关系候选：可查看“问题”页的搜索覆盖与已提取未计入清单。</p>';
+    $('cn-check-list').innerHTML = checks.length ? checks.map(c => `<button type="button" class="cn-check${c.check_id===state.selected?' active':''}" data-check="${escape(c.check_id)}" aria-pressed="${c.check_id===state.selected}"><small>${escape(state.bootstrap.rules[c.rule_id]?.name||c.rule_id)}</small><strong>${escape(c.title)}</strong><small class="cn-check-tendency">${hints[c.check_id]?`<span class="cn-check-priority">优先级 ${escape({high:'高',medium:'中',low:'低'}[hints[c.check_id].priority])}</span>`:''}${tendencyChip(c)}</small></button>`).join('') : '<p class="cn-empty">本次未生成关系候选：可查看“问题”页的搜索覆盖与已提取未计入清单。</p>';
   }
 
   function memberRows(c) {
@@ -283,13 +325,14 @@
   function aiAnalysisBlock(c) {
     const run=current();
     const opinion=(run?.ai_analyses||[]).find(a=>a.check_id===c.check_id);
+    const tendency=aiTendency(c);
     if(!opinion) {
       const legacy=(run.ai_opinions||[]).find(a=>a.check_id===c.check_id);
       if(legacy&&!run.versions?.intelligence) return aiOpinionBlock(c);
       return `<section class="cn-ai-opinion"><h3>AI分析意见</h3><p>${run.execution_mode==='calculation_only'?'本次仅计算，未调用模型。程序结果与原文可继续查看。':'该关系尚未保存有效模型研判，已完成的程序结果仍可查看。'}</p>${run.execution_mode!=='calculation_only'&&state.task.can_modify?'<button type="button" data-cn-reanalyze>续分析未完成项</button>':''}</section>`;
     }
     const list=(title,values)=>values?.length?`<h4>${title}</h4><ul>${values.map(v=>`<li>${escape(v)}</li>`).join('')}</ul>`:'';
-    return `<section class="cn-ai-opinion" aria-label="AI分析意见"><div class="cn-ai-heading"><h3>${escape(aiVerdicts[opinion.verdict]||opinion.verdict)}</h3><small>AI分析意见，仅供核查参考</small></div>${opinion.status==='needs_refresh'?`<p class="cn-rejected">证据或计算已变化，下列为原意见，待重新分析。</p>${state.task.can_modify?'<button type="button" data-cn-reanalyze>重新分析受影响项</button>':''}`:''}<p class="cn-ai-summary">${escape(opinion.summary)}</p>${list('判断依据',opinion.reasons)}${refs(opinion.supporting_evidence)}${list('成立所需假设',opinion.assumptions)}${opinion.counter_evidence?.length?`<h4>相反证据</h4>${escapedRefs(opinion.counter_evidence)}${refs(opinion.counter_evidence)}`:''}${list('其他可能解释',opinion.alternative_explanations)}${list('下一步',opinion.next_actions)}<details><summary>来源与意见记录</summary>${escapedRefs(opinion.supporting_evidence)}<p>${escape(opinion.producer_role)} · ${escape(opinion.producer_model||'原记录未登记模型')}${opinion.inherited_from_run_id?' · 复用原运行意见':' · 本次生成'}</p><p>分析依据：${escape({high:'较强',medium:'中等',low:'较弱'}[opinion.analysis_quality])}。${escape((opinion.quality_reasons||[]).join('；'))}</p><p>使用者处理：${escape({unreviewed:'未作采纳记录',accepted:'已采纳为核查参考',rejected:'已驳回'}[opinion.review_status])}</p></details></section>`;
+    return `<section class="cn-ai-opinion" data-tendency="${escape(tendency?.tone||'neutral')}" aria-label="AI分析意见"><div class="cn-ai-heading"><h3>AI 分析意见</h3><small>模型判定：${escape(aiVerdicts[opinion.verdict]||opinion.verdict)} · 仅供核查参考</small></div>${opinion.status==='needs_refresh'?`<p class="cn-rejected">证据或计算已变化，下列为原意见，待重新分析。</p>${state.task.can_modify?'<button type="button" data-cn-reanalyze>重新分析受影响项</button>':''}`:''}<p class="cn-ai-summary">${escape(opinion.summary)}</p>${list('判断依据',opinion.reasons)}${refs(opinion.supporting_evidence)}${list('成立所需假设',opinion.assumptions)}${opinion.counter_evidence?.length?`<h4>相反证据</h4>${escapedRefs(opinion.counter_evidence)}${refs(opinion.counter_evidence)}`:''}${list('其他可能解释',opinion.alternative_explanations)}${list('下一步',opinion.next_actions)}<details><summary>来源与意见记录</summary>${escapedRefs(opinion.supporting_evidence)}<p>${escape(opinion.producer_role)} · ${escape(opinion.producer_model||'原记录未登记模型')}${opinion.inherited_from_run_id?' · 复用原运行意见':' · 本次生成'}</p><p>分析依据：${escape({high:'较强',medium:'中等',low:'较弱'}[opinion.analysis_quality])}。${escape((opinion.quality_reasons||[]).join('；'))}</p><p>使用者处理：${escape({unreviewed:'未作采纳记录',accepted:'已采纳为核查参考',rejected:'已驳回'}[opinion.review_status])}</p></details></section>`;
   }
 
   function explanationBlock(c) {
@@ -363,7 +406,9 @@
     const c = check(); if (!c) { $('cn-detail-conclusion').textContent = '没有可显示的关系记录。'; return; }
     const conclusion = `<p class="cn-subtitle">${escape(c.check_id)} / ${escape(c.rule_id)} / 规则版本 ${escape(c.rule_version)}</p><h2>${escape(c.title)}</h2><div class="cn-conclusion-band"><p class="cn-conclusion-text">${escape(conclusionText(c))}</p><div class="cn-statuses"><div><small>口径</small>${status(c.criteria_status)}</div><div><small>计算</small>${status(c.calculation_status)}</div><div><small>使用者处理</small>${status(c.review_status)}</div></div></div>${$('cn-perspective').value==='public' ? plainLayer(c) : ''}<h3 class="cn-section-h">成员与角色</h3>${memberRows(c)}`;
     const hardGaps=(c.unresolved||[]).filter(text=>/量纲|成员角色|成员.*不完整|单位.*不兼容/.test(text));
-    $('cn-detail-conclusion').innerHTML = `<h2>${escape(c.title)}</h2>${hardGaps.length?`<p class="cn-rejected">当前成员的程序限制：${escape(hardGaps.join('；'))}。下方AI解释需结合这些限制阅读。</p>`:''}` + aiAnalysisBlock(c) + programHintBlock(c) + hypothesesBlock(c) + `<details class="cn-detail-block"><summary>查看程序状态与披露成员</summary>${conclusion}</details>`;
+    const tendency = aiTendency(c);
+    const tendencyBanner = tendency ? `<div class="cn-tendency-banner" data-tone="${escape(tendency.tone)}"><span class="cn-tendency-mark"></span><div><strong>${escape(tendency.label)}</strong><small>${escape(tendency.note)} · 不替代程序状态</small></div></div>` : '';
+    $('cn-detail-conclusion').innerHTML = `<h2>${escape(c.title)}</h2>` + tendencyBanner + `${hardGaps.length?`<p class="cn-program-limit">当前程序限制：${escape(hardGaps.join('；'))}。下方 AI 解释需结合这些限制阅读。</p>`:''}` + aiAnalysisBlock(c) + programHintBlock(c) + hypothesesBlock(c) + `<details class="cn-detail-block"><summary>查看程序状态与披露成员</summary>${conclusion}</details>`;
     $('cn-pane-conditions').innerHTML = `<h3 class="cn-section-h">五项前提</h3>${conditionsBlock(c)}<h3 class="cn-section-h">算式与残差</h3>${calculationBlock(c)}`;
     $('cn-pane-positions').innerHTML = `<h3 class="cn-section-h">解释与反证</h3>${explanationBlock(c)}<h3 class="cn-section-h">关系依据</h3><div class="cn-explanation">${escapedRefs(c.relationship_evidence)}</div>${positionsBlock(c)}`;
     $('cn-pane-questions').querySelector('#cn-findings') && renderFindings();

@@ -604,3 +604,52 @@
  #connectivity-root #cn-list-open{display:inline-flex;min-height:44px}
  #connectivity-root #cn-check-list{display:block;max-height:none}
 }
+
+/* ===== 2026-10-18 AI 倾向：列表小概括与详情左侧小色块 =====
+   黄色=模型倾向存在矛盾；绿色=模型倾向未见矛盾；灰色=未研判/待刷新。
+   仅为阅读提示，不改变程序状态、计算或正式结论。 */
+#connectivity-root .cn-check small.cn-check-tendency{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0 0;
+  font-size:calc(8.5px*var(--aw-fs,1));color:var(--aw-faint)}
+#connectivity-root .cn-check-priority{font-size:calc(8px*var(--aw-fs,1));color:var(--aw-faint);letter-spacing:.02em}
+#connectivity-root .cn-tendency-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:30px;
+  border:1px solid #eadfc8;background:#fdf8ec;color:#8a6320;font-size:calc(8.5px*var(--aw-fs,1));line-height:1.45;white-space:nowrap}
+#connectivity-root .cn-tendency-chip i{width:4px;height:4px;border-radius:50%;background:currentColor;flex:0 0 4px}
+#connectivity-root .cn-tendency-chip[data-tone="ok"]{background:var(--aw-chip);border-color:#c9ddcc;color:#2f6a4f}
+#connectivity-root .cn-tendency-chip[data-tone="neutral"]{background:#f1f3ed;border-color:var(--aw-line);color:var(--aw-muted)}
+#connectivity-root .cn-tendency-note{margin:0;padding:4px 16px 8px;border-bottom:1px solid var(--aw-line);
+  background:rgba(255,255,255,.22);font-size:calc(8px*var(--aw-fs,1));color:var(--aw-faint);letter-spacing:.02em}
+
+#connectivity-root .cn-tendency-banner{display:flex;align-items:flex-start;gap:9px;margin:7px 0 9px;padding:9px 12px;
+  border-radius:0 8px 8px 0;background:#f7f8f3;border-left:3px solid #b9c9ba;color:#5f6f63}
+#connectivity-root .cn-tendency-banner[data-tone="warn"]{background:#fdf8ec;border-left-color:#c7953a;color:#6b4f1c}
+#connectivity-root .cn-tendency-banner[data-tone="ok"]{background:#f2f9f0;border-left-color:#4d9871;color:#2f5f46}
+#connectivity-root .cn-tendency-mark{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 7px;
+  margin-top:5px;box-shadow:0 0 0 3px rgba(0,0,0,.04)}
+#connectivity-root .cn-tendency-banner strong{display:block;font-size:calc(12px*var(--aw-fs,1));font-weight:600;line-height:1.5}
+#connectivity-root .cn-tendency-banner small{display:block;font-size:calc(8.5px*var(--aw-fs,1));line-height:1.6;
+  opacity:.82;margin-top:1px}
+
+#connectivity-root .cn-program-limit{margin:6px 0 0;padding:6px 9px;border-left:2px solid #d3b578;border-radius:0 5px 5px 0;
+  background:#f8f4e9;color:#8a7a5c;font-size:calc(9px*var(--aw-fs,1));line-height:1.7}
+
+/* AI 分析卡改为中性底，只保留详情顶部那一小块倾向色；避免整屏发黄。 */
+#connectivity-root .cn-ai-opinion{background:#fcfbf6;border:1px solid var(--aw-line);border-left:1px solid var(--aw-line);
+  border-radius:0 10px 10px 0;color:var(--aw-ink-2)}
+#connectivity-root .cn-ai-opinion h3{color:var(--aw-ink);font-size:calc(12.5px*var(--aw-fs,1))}
+#connectivity-root .cn-ai-opinion p{color:var(--aw-muted);font-size:calc(10px*var(--aw-fs,1))}
+#connectivity-root .cn-ai-opinion h4{color:var(--aw-green);font-size:calc(9.5px*var(--aw-fs,1))}
+#connectivity-root .cn-ai-opinion li{color:var(--aw-muted);font-size:calc(10px*var(--aw-fs,1))}
+#connectivity-root .cn-ai-heading small{color:var(--aw-muted);font-size:calc(8.5px*var(--aw-fs,1))}
+#connectivity-root .cn-ai-summary{color:var(--aw-ink-2);font-size:calc(10.5px*var(--aw-fs,1))}
+
+/* 概览里的 AI 倾向小计 */
+#connectivity-root .cn-tendency-summary{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0 9px;
+  margin-bottom:7px;border-bottom:1px dashed var(--aw-line)}
+#connectivity-root .cn-tendency-summary-k{font-size:calc(8.5px*var(--aw-fs,1));letter-spacing:.08em;color:var(--aw-green);font-weight:600}
+#connectivity-root .cn-tendency-summary-item{display:inline-flex;align-items:center;gap:5px;font-size:calc(9px*var(--aw-fs,1));color:var(--aw-muted)}
+#connectivity-root .cn-tendency-summary-item i{width:5px;height:5px;border-radius:50%;background:currentColor;flex:0 0 5px}
+#connectivity-root .cn-tendency-summary-item b{font-family:var(--mono);font-size:calc(9px*var(--aw-fs,1));color:var(--aw-ink)}
+#connectivity-root .cn-tendency-summary-item[data-tone="warn"]{color:#8a6320}
+#connectivity-root .cn-tendency-summary-item[data-tone="ok"]{color:#2f6a4f}
+#connectivity-root .cn-tendency-summary-item[data-tone="neutral"]{color:var(--aw-muted)}
+#connectivity-root .cn-tendency-summary small{margin-left:auto;font-size:calc(8px*var(--aw-fs,1));color:var(--aw-faint)}
