@@ -17,10 +17,10 @@
   <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=4.1.0">
   <script src="/assets/official-v4/connectivity.js?v=4.0.2" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
-  <script src="/assets/official-v4/connectivity-workspace.js?v=2.2.2" defer></script>
+  <script src="/assets/official-v4/connectivity-workspace.js?v=2.3.2" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/redesign-home.css?v=2.2.1">
-  <script src="/assets/official-v4/redesign-home.js?v=2.2.1" defer></script>
-  <link rel="stylesheet" href="/assets/official-v4/archive-workbench.css?v=1.1.0">
+  <script src="/assets/official-v4/redesign-home.js?v=2.3.1" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/archive-workbench.css?v=1.2.0">
 </head>
 <body>
   <div id="redesign-home">
@@ -35,7 +35,7 @@
     <span><span class="id-cn">审迹智链</span><span class="id-en">AUDITTRACE</span></span>
   </a>
   <nav class="nav" aria-label="主导航">
-    <a href="#top">首页 / INDEX</a><a href="#approach">设计理念 / THESIS</a><a href="#mechanism">核验流程 / SYSTEM</a><a href="#evidence">证据追踪 / EVIDENCE</a>
+    <a href="#top">首页 / INDEX</a><a href="#connectivity-root" data-enter-connectivity>工作台 / WORKSPACE</a>
   </nav>
   <div class="header-right">
     <span class="micro-label">DISCLOSURE INTELLIGENCE — 2026</span>
@@ -84,7 +84,7 @@
     <button type="button" data-model="a" data-model-action="zoom-in" aria-label="放大左侧模型">+</button>
     <button type="button" data-model="a" data-model-action="reset" aria-label="复位左侧模型">↺</button>
   </div>
-  <a href="#approach" class="scene-scroll" aria-label="向下浏览设计理念"><span>向下浏览</span><b aria-hidden="true">↓</b></a>
+  <a href="#connectivity-root" class="scene-scroll" aria-label="向下进入工作台"><span>向下进入工作台</span><b aria-hidden="true">↓</b></a>
   <div class="model-tools model-tools-right" role="group" aria-label="右侧排放模型控制">
     <span>排放侧</span><output id="model-right-scale" aria-label="右侧模型缩放比例">100%</output>
     <button type="button" data-model="b" data-model-action="zoom-out" aria-label="缩小右侧模型">−</button>
@@ -93,112 +93,10 @@
   </div>
 </section>
 
-<section class="intro-sec" id="approach">
-  <div class="intro">
-    <div class="idx-row rv"><span class="idx-no">01</span><span class="idx-line"></span><span class="idx-label">THE QUESTION / 设计理念</span></div>
-    <div class="intro-grid">
-      <h2 class="intro-title rv">两份报告。<br>一条证据链。</h2>
-      <div class="intro-desc rv">
-        <p>年度报告记录企业的经营表现，可持续发展报告披露环境与社会责任信息。只有将统计期间、主体范围与指标口径放在一起，才能判断差异是否值得进一步核查。</p>
-        <a class="outline-link" href="#mechanism">查看关联核验机制 <span>↗</span></a>
-      </div>
-    </div>
-    <div class="index-list rv">
-      <a href="#approach"><b>01</b>问题 / QUESTION</a>
-      <a href="#mechanism"><b>02</b>系统 / SYSTEM</a>
-      <a href="#evidence"><b>03</b>证据 / EVIDENCE</a>
-    </div>
-  </div>
-</section>
-
-<section class="chain" id="mechanism">
-  <div class="chain-inner">
-    <div class="chain-head rv">
-      <div>
-        <div class="chapter-kicker">02 — THE SYSTEM</div>
-        <h2>从文件到判断，<br>每一步都有路径。</h2>
-      </div>
-      <p class="chain-intro">借鉴流程编排的清晰度，以证据检索和规则核对为核心。点击任意节点，查看它在跨报告关联核验中的职责。</p>
-    </div>
-    <div class="flowmap rv" id="flowmap">
-      <svg class="flow-svg" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true">
-        <path class="flow-path" d="M50 100 C 134 58, 134 58, 218 100 C 302 142, 302 142, 386 100 C 470 58, 470 58, 554 100 C 638 142, 638 142, 722 100 C 806 58, 806 58, 890 100"/>
-        <path class="rd-original-style-4 flow-flow" id="flowGlow" d="M50 100 C 134 58, 134 58, 218 100"/>
-      </svg>
-      <div class="flow-nodes" id="flowNodes">
-        <button class="rd-original-style-5 node active" data-step="0"><i class="node-ring"></i><b>01</b><span>双报告接入</span><em>INPUT</em></button>
-        <button class="rd-original-style-6 node" data-step="1"><i class="node-ring"></i><b>02</b><span>主体与口径确认</span><em>ALIGN</em></button>
-        <button class="rd-original-style-7 node" data-step="2"><i class="node-ring"></i><b>03</b><span>披露证据定位</span><em>RETRIEVE</em></button>
-        <button class="rd-original-style-8 node" data-step="3"><i class="node-ring"></i><b>04</b><span>确定性规则核对</span><em>VERIFY</em></button>
-        <button class="rd-original-style-9 node" data-step="4"><i class="node-ring"></i><b>05</b><span>差异分析与解释</span><em>ANALYZE</em></button>
-        <button class="rd-original-style-10 node" data-step="5"><i class="node-ring"></i><b>06</b><span>复核与证据输出</span><em>TRACE</em></button>
-      </div>
-    </div>
-    <div class="flow-detail rv">
-      <div>
-        <b id="flowTitle">以同一企业、同一期间建立核对任务</b>
-        <p id="flowBody">导入年度报告与可持续发展报告，记录来源与版本，避免跨年、跨实体的误比较。</p>
-      </div>
-      <span class="flow-stat" id="flowNumber">01</span>
-    </div>
-    <div class="chain-foot">
-      <span>ILLUSTRATIVE WORKFLOW / 模块说明为首页概念呈现，已实现能力以当前工作台为准</span>
-      <span>SELECT A STAGE ↗</span>
-    </div>
-  </div>
-</section>
-
-<section class="evidence" id="evidence">
-  <div class="evidence-inner">
-    <div class="evidence-title rv">
-      <div>
-        <div class="chapter-kicker">03 — TRACEABLE EVIDENCE</div>
-        <h2>追踪的不是结论，<br>而是结论的依据。</h2>
-      </div>
-      <p class="evidence-caption">仅展示一个虚构的“统计范围不同”核验情境。系统应先识别口径差异，再提示进一步核实，而不是直接把差异判定为虚假披露。</p>
-    </div>
-    <div class="evidence-display">
-      <article class="doc rv">
-        <div class="doc-kicker">DOCUMENT 01 / ANNUAL REPORT</div>
-        <h3>年度报告 · 数据口径</h3>
-        <div class="doc-row"><span>报告期间</span><b>2025 年度</b></div>
-        <div class="doc-row"><span>披露主体</span><b>集团合并范围</b></div>
-        <div class="doc-row"><span>原文定位</span><b>附注 / 待核验</b></div>
-      </article>
-      <div class="doc-bridge">↔</div>
-      <article class="doc rv">
-        <div class="doc-kicker">DOCUMENT 02 / SUSTAINABILITY REPORT</div>
-        <h3>可持续发展报告 · 环境指标</h3>
-        <div class="doc-row"><span>报告期间</span><b>2025 年度</b></div>
-        <div class="doc-row"><span>统计主体</span><b class="flagged">部分运营实体</b></div>
-        <div class="doc-row"><span>核验状态</span><b class="flagged">需要确认边界</b></div>
-      </article>
-    </div>
-    <div class="doc-result rv">
-      <div>
-        <b>发现潜在口径差异 → 发起复核</b>
-        <p>该展示使用虚构材料，不代表任何真实企业存在披露问题。可追溯的系统需要保留原文、规则命中和人工确认记录。</p>
-      </div>
-      <span>EVIDENCE BEFORE JUDGMENT</span>
-    </div>
-  </div>
-</section>
-
-<section class="final">
-  <div class="chapter-kicker">AUDITTRACE / ENTER THE WORKSPACE</div>
-  <h2>审迹智链</h2>
-  <p>年度报告 × 可持续发展报告 · 智能关联核验</p>
-  <div><a class="final-cta" href="#connectivity-root" data-enter-connectivity>进入工作台 <span>↗</span></a></div>
-</section>
 </main>
-
-<footer class="footer">
-  <span>AUDITTRACE © 2026 / INTERACTIVE CONCEPT</span>
-  <span>三维场景为设计示意 · 无真实市场数据或企业指控</span>
-</footer>
 <div class="notice" id="notice" role="status"></div>
   </div>
-  <div id="connectivity-root" hidden>
+  <div id="connectivity-root" class="aw-embedded">
     <a class="cn-skip" href="#cn-workspace">跳到关联核对工作台</a>
     <header class="cn-header"><a href="#top" class="cn-brand" data-home>审迹智链 <span>AuditTrace</span></a><nav aria-label="工作台导航"><span>公开报告 · 关联核对</span></nav></header>
     <main id="cn-workspace" tabindex="-1">

@@ -175,7 +175,10 @@
     if (key==='result' && !task?.result) return;
     view = key;
     root.dataset.awView = key;
-    window.scrollTo(0,0);
+    if (document.activeElement !== document.body || root.getBoundingClientRect().top < 0) {
+      /* 同页模式下切视图回到工作台顶部，而不是整页顶部 */
+      if (root.getBoundingClientRect().top < -4) root.scrollIntoView({block:'start'});
+    }
     root.querySelectorAll('[data-workspace-view]').forEach(el => { el.hidden = el.dataset.workspaceView!==key; });
     root.querySelectorAll('.cn-sidebar [data-view]').forEach(el => { if (el.dataset.view===key) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); });
     const current = $('aw-crumb-current');
@@ -216,10 +219,11 @@
     if (target.dataset.step) setStep(Number(target.dataset.step), true);
     if (target.dataset.openTask) openTask(target.dataset.openTask);
     if (target.hasAttribute('data-home')) {
-      event.preventDefault(); root.hidden = true; $('redesign-home').hidden = false;
+      event.preventDefault();
       const url = new URL(location.href); url.searchParams.delete('connectivity_task'); url.hash = 'top';
-      history.replaceState(null, '', url); $('redesign-home').scrollIntoView({behavior:'instant'});
-      document.querySelector('[data-enter-connectivity]').focus();
+      history.replaceState(null, '', url);
+      window.scrollTo({top:0, behavior:'smooth'});
+      document.querySelector('#redesign-home .identity')?.focus({preventScroll:true});
     }
   });
   $('cn-next').addEventListener('click', () => setStep(step+1, true));
@@ -237,7 +241,12 @@
     if (run) { $('cn-result-nav').hidden = false; showView('result'); }
     else if (['queued','running'].includes(task.status)) showView('new');
   });
-  // 深链接与刷新直接恢复工作空间，品牌首页保持独立。
-  if (location.hash==='#connectivity-root' || new URL(location.href).searchParams.has('connectivity_task')) { $('redesign-home').hidden = true; root.hidden = false; }
+  // 首页与工作台连成同一条滚动：深链接只负责定位，不再隐藏首页。
+  if (location.hash==='#connectivity-root' || new URL(location.href).searchParams.has('connectivity_task')) {
+    let pending = true;
+    const land = () => { if (!pending) return; root.scrollIntoView({block:'start'}); };
+    requestAnimationFrame(land); setTimeout(land, 500);
+    document.addEventListener('audittrace:connectivity-task', () => { pending = false; land(); }, {once:true});
+  }
   setStep(1); showView('new');
 })();

@@ -665,5 +665,5 @@ io.observe(stage);
 setTimeout(()=>notify('放大后左右拖动可移动 · Shift 拖动旋转 · 中间可滚动'),2600);
 })();
 
-// 进入实际工作台时将键盘焦点与滚动位置一起移交。
-document.querySelectorAll('[data-enter-connectivity]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();document.getElementById('notice').classList.remove('visible');document.getElementById('legacy-workspace').hidden=true;const workspace=document.getElementById('connectivity-root');document.getElementById('redesign-home').hidden=true;workspace.hidden=false;history.replaceState(null,'','#connectivity-root');workspace.scrollIntoView({behavior:'instant',block:'start'});document.getElementById('cn-workspace').focus({preventScroll:true});}));
+// 首页与工作台同页滚动：入口只负责定位，不再切换整屏。
+document.querySelectorAll('[data-enter-connectivity]').forEach(link=>link.addEventListener('click',event=>{const workspace=document.getElementById('connectivity-root');if(!workspace)return;event.preventDefault();document.getElementById('notice')?.classList.remove('visible');document.getElementById('legacy-workspace').hidden=true;history.replaceState(null,'','#connectivity-root');window.scrollTo({top:workspace.getBoundingClientRect().top+window.scrollY,behavior:'smooth'});setTimeout(()=>document.getElementById('cn-workspace')?.focus({preventScroll:true}),420);}));
