@@ -697,6 +697,15 @@
     state.selected = button.dataset.check; renderList(); renderDetail(); renderFindings();
     closeDrawer(false);
   });
+  // 搜索命中复用现有详情与原页阅读器，不另建结果或触发模型调用。
+  document.addEventListener('audittrace:connectivity-search-open', event => {
+    const {check_id, occurrence_id, trigger} = event.detail || {};
+    if (occurrence_id && occurrence(occurrence_id)) { openReader(occurrence_id, trigger); return; }
+    if (!current()?.checks.some(check => check.check_id === check_id)) return;
+    state.selected = check_id; renderList(); renderDetail(); renderFindings(); closeDrawer(false);
+    $('cn-focus-title')?.focus({preventScroll:true});
+    $('cn-relation-focus')?.scrollIntoView({block:'start',behavior:'instant'});
+  });
   $('cn-nextq').addEventListener('click', event => {
     const reader=event.target.closest('[data-reader]'); if(reader){ openReader(reader.dataset.reader,reader); return; }
     const detail=event.target.closest('[data-focus-detail]');
@@ -727,7 +736,7 @@
   function drawerKeys(event) {
     if (event.key === 'Escape') { event.preventDefault(); closeDrawer(); return; }
     if (event.key !== 'Tab') return;
-    const items = [...$('cn-list-panel').querySelectorAll('button,a,[tabindex]:not([tabindex="-1"])')].filter(node => !node.disabled);
+    const items = [...$('cn-list-panel').querySelectorAll('button,a,[tabindex]:not([tabindex="-1"])')].filter(node => !node.disabled && node.getClientRects().length);
     if (!items.length) return;
     if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length-1].focus(); }
     else if (!event.shiftKey && document.activeElement === items[items.length-1]) { event.preventDefault(); items[0].focus(); }
@@ -736,7 +745,7 @@
     $('cn-master').classList.add('cn-list-open');
     $('cn-list-open').setAttribute('aria-expanded', 'true');
     $('cn-list-backdrop').hidden = false;
-    const first = $('cn-check-list').querySelector('button');
+    const first = $('cn-check-list').querySelector('button:not([hidden])');
     (first || $('cn-list-toggle')).focus();
     document.addEventListener('keydown', drawerKeys);
   }

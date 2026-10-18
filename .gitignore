@@ -77,6 +77,7 @@ artifacts/
 !/scripts/verify_connectivity_saved_exports.py
 !/scripts/verify_connectivity_source_downloads.py
 !/scripts/check_ui_hierarchy.mjs
+!/scripts/check_connectivity_search.cjs
 !/scripts/fixtures/
 /scripts/fixtures/*
 !/scripts/fixtures/ui_hierarchy_run.json

@@ -87,7 +87,7 @@
     <div class="aw-toolbar-right">
       <label class="aw-search" for="aw-search">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6 14 14"/></svg>
-        <input id="aw-search" type="search" placeholder="搜索关系、指标或原文位置" autocomplete="off">
+        <input id="aw-search" type="search" placeholder="搜索关系、原文片段或AI意见" aria-label="搜索当前核对结果" aria-controls="aw-search-results cn-check-list" autocomplete="off">
         <kbd>⌘K</kbd>
       </label>
       <button class="aw-circle" type="button" data-view="method" aria-label="方法说明" title="方法说明">?</button>
@@ -205,9 +205,48 @@
   function openTask(id) { const url = new URL(location.href); url.searchParams.set('connectivity_task', id); url.hash = 'connectivity-root'; location.assign(url); }
 
   const search = $('aw-search');
-  if (search) search.addEventListener('input', () => {
-    const q = search.value.trim().toLowerCase();
-    document.querySelectorAll('#cn-check-list .cn-check').forEach(el => { el.hidden = Boolean(q) && !el.textContent.toLowerCase().includes(q); });
+  const searchResults = document.createElement('section');
+  searchResults.id = 'aw-search-results'; searchResults.className = 'aw-search-results'; searchResults.hidden = true;
+  searchResults.setAttribute('aria-label', '当前结果搜索命中');
+  $('cn-results').prepend(searchResults);
+  const normalizeSearch = value => String(value ?? '').normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+  const searchText = value => value && typeof value === 'object' ? Object.values(value).map(searchText).join(' ') : String(value ?? '');
+  const occurrenceText = row => [row.label,row.context,row.document_id,row.pdf_page,row.row_header,row.column_header,row.year,row.value,row.unit,...(row.footnotes||[])].join(' ');
+  function searchExcerpt(row, query) {
+    const text = String(row.context || row.label || '').replace(/\s+/g, ' ');
+    const at = text.toLowerCase().indexOf(query.trim().toLowerCase());
+    const start = Math.max(0, at - 45);
+    return `${start ? '…' : ''}${text.slice(start, start + 190)}${text.length > start + 190 ? '…' : ''}`;
+  }
+  function applySearch() {
+    const run = task?.result, query = search.value.trim(), q = normalizeSearch(query);
+    const buttons = [...$('cn-check-list').querySelectorAll('[data-check]')];
+    if (!q || !run) {
+      buttons.forEach(button => { button.hidden = false; });
+      $('cn-count').textContent = String(buttons.length); searchResults.hidden = true; searchResults.replaceChildren(); return;
+    }
+    const occurrences = run.occurrences || [], rows = new Map(occurrences.map(row => [row.occurrence_id,row]));
+    const analyses = [...(run.ai_analyses || []),...(run.ai_opinions || [])].filter(item => item.status !== 'needs_refresh');
+    const matches = (run.checks || []).filter(check => {
+      const refs = [...(check.members || []),...(check.relationship_evidence || []),...(check.conditions || []).flatMap(item => item.evidence || [])];
+      const context = [...new Set(refs.map(ref => ref.occurrence_id))].map(id => rows.get(id)).filter(Boolean).map(occurrenceText).join(' ');
+      return normalizeSearch([searchText(check),context,...analyses.filter(item => item.check_id === check.check_id).map(searchText)].join(' ')).includes(q);
+    });
+    const ids = new Set(matches.map(check => check.check_id));
+    buttons.forEach(button => { button.hidden = !ids.has(button.dataset.check); });
+    const visible = buttons.filter(button => !button.hidden).length;
+    $('cn-count').textContent = `${visible} / ${buttons.length}`;
+    const sourceMatches = occurrences.filter(row => normalizeSearch(occurrenceText(row)).includes(q));
+    const documents = new Map((run.documents || []).map(doc => [doc.document_id,doc]));
+    searchResults.hidden = false;
+    searchResults.innerHTML = `<p role="status">“${safe(query)}”：${matches.length}项相关关系，${sourceMatches.length}处原文片段。左侧当前筛选显示${visible}项。</p><p class="cn-help">搜索范围：本次结果的关系、已提取原文片段和AI意见；不代表已搜索整份PDF。清空搜索恢复列表。</p>${matches.length ? `<details open><summary>相关关系（${matches.length}）</summary><div class="aw-search-hits">${matches.map(check => `<button type="button" data-search-check="${safe(check.check_id)}">${safe(check.title)}<small>查看关系及AI意见 ↗</small></button>`).join('')}</div></details>` : ''}${sourceMatches.length ? `<details open><summary>原文片段（${sourceMatches.length}）</summary><div class="aw-search-hits">${sourceMatches.map(row => `<button type="button" data-search-source="${safe(row.occurrence_id)}"><strong>${safe(documents.get(row.document_id)?.report_type === 'AR' ? '年报' : '报告')} · PDF ${safe(row.pdf_page)} · ${safe(row.label)}</strong><span>${safe(searchExcerpt(row, query))}</span><small>打开原页 ↗</small></button>`).join('')}</div></details>` : ''}${!matches.length && !sourceMatches.length ? '<p>本次结果中未命中。可尝试指标名或报告ID；这里未命中不代表报告原文不存在。</p>' : ''}`;
+  }
+  search.addEventListener('input', applySearch);
+  // 切换视角、概览筛选或选中关系会重建列表；持续应用当前关键词。
+  new MutationObserver(applySearch).observe($('cn-check-list'), {childList:true});
+  searchResults.addEventListener('click', event => {
+    const button = event.target.closest('[data-search-check],[data-search-source]'); if (!button) return;
+    document.dispatchEvent(new CustomEvent('audittrace:connectivity-search-open', {detail:{check_id:button.dataset.searchCheck,occurrence_id:button.dataset.searchSource,trigger:button}}));
   });
   document.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase()==='k' && root.dataset.awView==='result') { event.preventDefault(); search?.focus(); }
@@ -238,7 +277,7 @@
       status:({completed:'已完成',running:'进行中',queued:'排队中',failed:'失败',degraded:'部分完成',cancelled:'已取消',interrupted:'已中断'})[task.status]||task.status,
       time:new Date().toLocaleString('zh-CN')});
     localStorage.setItem(historyKey, JSON.stringify(rows.slice(0,30))); renderHistory();
-    if (run) { $('cn-result-nav').hidden = false; showView('result'); }
+    if (run) { $('cn-result-nav').hidden = false; showView('result'); applySearch(); }
     else if (['queued','running'].includes(task.status)) showView('new');
   });
   // 首页与工作台连成同一条滚动：深链接只负责定位，不再隐藏首页。

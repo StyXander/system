@@ -647,6 +647,20 @@
 #connectivity-root .cn-ai-heading small{color:var(--aw-muted);font-size:calc(8.5px*var(--aw-fs,1))}
 #connectivity-root .cn-ai-summary{color:var(--aw-ink-2);font-size:calc(10.5px*var(--aw-fs,1))}
 
+/* 当前结果搜索：原文与意见命中可直接回到现有阅读路径。 */
+#connectivity-root .aw-search-results{margin:0 0 20px;padding:16px;border:1px solid var(--aw-line);border-radius:10px;background:var(--aw-paper,#fff);overflow-wrap:anywhere}
+#connectivity-root .aw-search-results p{margin:0 0 10px}
+#connectivity-root .aw-search-results summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
+#connectivity-root .aw-search-hits{display:grid;gap:8px;max-height:360px;overflow:auto;padding:3px}
+#connectivity-root .aw-search-hits button{display:grid;gap:5px;text-align:left;min-height:44px;padding:12px;white-space:normal;color:var(--aw-ink);background:transparent;border:1px solid var(--aw-line);border-radius:6px;overflow-wrap:anywhere}
+#connectivity-root .aw-search-hits small{color:var(--aw-green)}
+@media(max-width:900px){
+  #connectivity-root[data-aw-view="result"] .aw-toolbar{height:auto;min-height:54px;flex-wrap:wrap;padding:10px 0}
+  #connectivity-root[data-aw-view="result"] .aw-toolbar-right{width:100%;margin-left:0}
+  #connectivity-root[data-aw-view="result"] .aw-search{display:flex!important;flex:1;width:auto;min-width:0;min-height:44px}
+  #connectivity-root .aw-search input{min-width:0}
+}
+
 /* 概览里的 AI 倾向小计 */
 #connectivity-root .cn-tendency-summary{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0 9px;
   margin-bottom:7px;border-bottom:1px dashed var(--aw-line)}
