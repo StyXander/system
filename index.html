@@ -14,12 +14,13 @@
   <script src="/assets/official-v4/evidence-decisions.js?v=1.1.0" defer></script>
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
   <script src="/assets/official-v4/demo-app.js?v=0.14.2" defer></script>
-  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=2.0.0">
-  <script src="/assets/official-v4/connectivity.js?v=2.0.0" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=4.0.0">
+  <script src="/assets/official-v4/connectivity.js?v=4.0.1" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
-  <script src="/assets/official-v4/connectivity-workspace.js?v=2.0.0" defer></script>
+  <script src="/assets/official-v4/connectivity-workspace.js?v=2.2.2" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/redesign-home.css?v=2.2.1">
   <script src="/assets/official-v4/redesign-home.js?v=2.2.1" defer></script>
+  <link rel="stylesheet" href="/assets/official-v4/archive-workbench.css?v=1.0.7">
 </head>
 <body>
   <div id="redesign-home">
@@ -201,7 +202,7 @@
     <a class="cn-skip" href="#cn-workspace">跳到关联核对工作台</a>
     <header class="cn-header"><a href="#top" class="cn-brand" data-home>审迹智链 <span>AuditTrace</span></a><nav aria-label="工作台导航"><span>公开报告 · 关联核对</span></nav></header>
     <main id="cn-workspace" tabindex="-1">
-      <section class="cn-intro" aria-labelledby="cn-title"><p class="cn-eyebrow">ANNUAL REPORT × SUSTAINABILITY REPORT</p><h1 id="cn-title">看清数字之间的关系。</h1><p>帮助股东、投资者与环保组织，核对年报和可持续发展报告中的投入、构成与指标口径。<br>先判断能否比较，再复算；沿原文寻找差异解释。</p><div class="cn-principles"><span>01 比较前提有出处</span><span>02 关系计算可追溯</span><span>03 差异解释留余项</span></div></section>
+      <section class="cn-intro" aria-labelledby="cn-title"><p class="cn-eyebrow">ANNUAL REPORT × SUSTAINABILITY REPORT</p><h1 id="cn-title">看清数字之间的关系。</h1><p>帮助股东、投资者与环保组织，核对年报和可持续发展报告中的投入、构成与指标口径。<br>AI识别关联并提出解释，程序复算；条件不完整时，继续给出带假设的分析。</p><div class="cn-principles"><span>01 比较前提有出处</span><span>02 关系计算可追溯</span><span>03 差异解释留余项</span></div></section>
       <section class="cn-start" aria-label="选择报告并运行"><form id="cn-form"><div class="cn-form-row"><label>公司与报告期间<select aria-label="公司与报告期间" id="cn-pair" required><option value="">正在读取登记报告…</option></select></label><label>运行方式<select aria-label="运行方式" id="cn-mode"><option value="three_agents">自动发现＋三角色核对</option><option value="calculation_only">自动发现＋仅计算</option><option value="single_model">完整单模型对照</option></select></label><button type="submit" id="cn-run" class="cn-primary" disabled>开始关联核对 <span aria-hidden="true">↗</span></button></div><fieldset class="cn-topics"><legend>本次关注事项</legend><label><input type="checkbox" name="topic" value="research" checked>研发投入</label><label><input type="checkbox" name="topic" value="environment" checked>环保投入</label><label><input type="checkbox" name="topic" value="intensity" checked>强度与分母</label></fieldset></form><div id="cn-documents" class="cn-documents"></div></section>
       <div id="cn-message" class="cn-message" role="status" aria-live="polite">选择同公司、同期间的两份报告，开始定位原文。</div>
       <div id="cn-stagebar" class="cn-stagebar" aria-label="核验阶段进度" hidden><ol id="cn-stagebar-list"></ol><p id="cn-stagebar-note"></p><details id="cn-progress" class="cn-run-record"><summary id="cn-progress-summary">运行记录与取消</summary><p id="cn-progress-state"></p><div id="cn-progress-details"></div><button id="cn-cancel" type="button">取消尚未开始的模型调用</button></details></div>
@@ -242,9 +243,9 @@
               <div id="cn-timeline"></div>
               <details class="cn-detail-block"><summary>关系更正与版本记录</summary><div id="cn-revisions"></div></details>
               <p class="cn-privacy-note">个人观察是使用者记录，不是系统结论。保存后该记录可能随任务链接被他人读取；公共视图只显示“存在N条个人观察”，不展示正文；本人视图可展开。请只填写可公开的阅读观察。</p>
-              <details class="cn-detail-block" open><summary>使用者记录（阅读确认 / 个人观察）</summary>
+              <details class="cn-detail-block" open><summary>使用者记录（阅读、AI意见处理与个人观察）</summary>
 
-                <form id="cn-review-form"><label>记录方式<select id="cn-review-action"><option value="reading_confirmation">确认已阅读所选关系</option><option value="personal_observation">补充当前关系的个人观察</option></select></label><fieldset id="cn-review-selection"><legend>选择已阅读的关系</legend><div id="cn-review-checks"></div></fieldset><label>个人观察<textarea id="cn-observation" rows="3" maxlength="3000"></textarea></label><label>记录理由<textarea id="cn-review-reason" rows="2" minlength="3" maxlength="2000" required></textarea></label><button id="cn-save-review" type="submit">保存为新版本</button><p id="cn-review-message" role="status"></p></form>
+                <form id="cn-review-form"><label>记录方式<select id="cn-review-action"><option value="reading_confirmation">确认已阅读所选关系</option><option value="personal_observation">补充当前关系的个人观察</option><option value="ai_accept">采纳当前关系的AI意见</option><option value="ai_reject">驳回当前关系的AI意见</option></select></label><fieldset id="cn-review-selection"><legend>选择已阅读的关系</legend><div id="cn-review-checks"></div></fieldset><label>个人观察<textarea id="cn-observation" rows="3" maxlength="3000"></textarea></label><label>记录理由<textarea id="cn-review-reason" rows="2" minlength="3" maxlength="2000" required></textarea></label><button id="cn-save-review" type="submit">保存为新版本</button><p id="cn-review-message" role="status"></p></form>
                 <div id="cn-personal-notes"></div>
               </details>
             </section>

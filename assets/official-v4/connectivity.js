@@ -2,14 +2,15 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = {bootstrap:null, task:null, selected:null, timer:null, generation:0, detailTab:'conditions', reader:null};
+  const state = {bootstrap:null, task:null, selected:null, timer:null, generation:0, detailTab:'conditions', reader:null, filter:'all'};
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const labels = {supported:'有依据支持',unknown:'未说明',conflicting:'明确冲突',consistent:'所选关系计算一致',precision_explained:'已知精度可解释',
     adjustment_explained:'有据调节后与0相容',unexplained_difference:'未解释差异',not_comparable:'暂不可比较',not_executable:'暂不可执行',
     not_applicable:'不适用数值计算',read_confirmed:'使用者已阅读',unreviewed:'未人工复核',demo_modified:'使用者修订',
     completed:'已完成',running:'进行中',queued:'排队中',degraded:'部分完成',failed:'失败',cancelled:'已取消',interrupted:'已中断',
-    expired:'已过期',skipped:'未执行',pending:'未开始',not_requested:'未调用模型',three_agents_completed:'三角色实际完成',single_completed:'单模型实际完成'};
+    expired:'已过期',skipped:'未执行',pending:'未开始',not_requested:'未调用模型',three_agents_completed:'三角色实际完成',three_agents_partial:'三角色部分完成',single_partial:'单模型部分完成',reused_completed:'复用已有研判，无新增模型调用',partial:'部分完成',reused:'复用既有结果',no_relations_to_review:'未形成可研判关系',single_completed:'单模型实际完成'};
   const roles = {left:'左侧',right:'右侧',total:'总额',component:'组成项',numerator:'分子',denominator:'分母',reported_ratio:'披露比例',occurrence:'披露位置'};
+  const aiVerdicts = {lean_consistent:'倾向一致',potential_conflict:'存在潜在矛盾',plausible_explanation:'存在合理解释路径',insufficient_basis:'依据不足但可继续核查',not_comparable:'当前不可直接比较'};
   // 六个阶段与后端 steps 键一一对应，名称即阶段含义，不由前端估算。
   const phases = {evidence_load:'报告识别与披露定位',rule_calculation:'前提判断与关系计算',knowledge_retrieval:'原文补查（解释与反证）',
     agent_collaboration:'角色协作',evidence_validation:'核实与重算',structured_output:'未决与记录生成'};
@@ -17,7 +18,7 @@
     conflicting:'×',unexplained_difference:'×',pending:'·',running:'▶',completed:'✓',degraded:'!',failed:'×',skipped:'–'};
   const status = value => `<span class="cn-badge" data-state="${escape(value)}"><span aria-hidden="true">${escape(STATE_ICON[value]||'·')}</span> ${escape(labels[value]||value)}</span>`;
   const message = (text, error=false) => { $('cn-message').textContent=text; $('cn-message').classList.toggle('error', error); };
-  const busy = value => document.querySelectorAll('#cn-form input,#cn-form select,#cn-run').forEach(control => { control.disabled=value; });
+  const busy = value => document.querySelectorAll('#cn-form input,#cn-form select,#cn-run,[data-cn-reanalyze],#cn-retry').forEach(control => { control.disabled=value; });
   async function api(path, options={}) {
     const response = await fetch(`/api/connectivity${path}`, {credentials:'same-origin', ...options, headers:{'Content-Type':'application/json', ...options.headers}});
     const data = await response.json().catch(() => ({detail:'服务未返回可读取的结果'}));
@@ -82,7 +83,7 @@
     }).join('');
     const failed = Object.entries(steps).filter(([, item]) => item.status==='failed');
     $('cn-stagebar-note').innerHTML = failed.length
-      ? `阶段失败：${failed.map(([key]) => escape(phases[key]||key)).join('、')}。已完成阶段的产物仍可查看；失败原因见运行记录。<button type="button" id="cn-retry" class="cn-retry">重试本次核对</button>`
+      ? `阶段失败：${failed.map(([key]) => escape(phases[key]||key)).join('、')}。已完成阶段的产物仍可查看；失败原因见运行记录。<button type="button" id="cn-retry" class="cn-retry">续分析未完成项</button>`
       : (task.result ? '阶段状态来自后端实际记录；修订只重算，不重跑模型阶段。' : '阶段状态来自后端实际记录，前端不估算百分比。');
   }
 
@@ -126,13 +127,20 @@
     $('cn-results').hidden = false;
     $('cn-result-title').textContent = `${run.company} · ${run.period} 关联核对`;
     const modes = {calculation_only:'自动发现 · 仅计算',three_agents:'自动发现 · 三角色核对',single_model:'自动发现 · 完整单模型对照'};
-    $('cn-run-meta').textContent = `版本${run.result_revision} / ${modes[run.execution_mode]||run.execution_mode} / ${run.parent_run_id?'原自动运行耗时':''}${(run.duration_ms/1000).toFixed(1)}秒${run.parent_run_id?'；本次修订未新增模型调用':''}`;
+    const revised = run.versions?.result_origin==='user_revision' || (run.parent_run_id && !run.prior_provider_calls?.length);
+    $('cn-run-meta').textContent = `版本${run.result_revision} / ${modes[run.execution_mode]||run.execution_mode} / ${(run.duration_ms/1000).toFixed(1)}秒${revised?'；使用者修订未新增模型调用':run.prior_provider_calls?.length?'；本次为增量续分析':''}`;
+    if(run.versions?.intelligence&&run.versions?.rules!=='2026-10-18.2') $('cn-run-meta').textContent+='；历史规则结果：范围支持与意见尚未按本次修复重验，请勿引用旧正式支持数量';
+    if(state.renderedTaskId!==state.task.task_id){ state.filter='all'; state.renderedTaskId=state.task.task_id; }
     const exportBase = `/api/connectivity/runs/${encodeURIComponent(state.task.task_id)}/export`;
     $('cn-exports').innerHTML = ['json','csv','docx'].map(format => `<a href="${exportBase}/${format}">${format==='docx'?'Word':format.toUpperCase()}</a>`).join('')
       + (state.task.can_modify ? `<a href="${exportBase}/json?private=1" title="仅本人可见：导出含个人观察正文">JSON（含个人观察）</a>` : '');
-    if (!run.checks.some(c => c.check_id===state.selected)) state.selected = (run.checks.find(c => c.relationship_evidence.length && ['RD-001','ENV-001','INT-001'].includes(c.rule_id)) || run.checks[0])?.check_id;
+    if (!run.checks.some(c => c.check_id===state.selected)) {
+      const hints=Object.fromEntries((run.program_hints||[]).map(h=>[h.check_id,h]));
+      const weights={high:2,medium:1,low:0};
+      state.selected=[...run.checks].sort((a,b)=>(weights[hints[b.check_id]?.priority]||0)-(weights[hints[a.check_id]?.priority]||0))[0]?.check_id;
+    }
     renderOverview(); renderList(); renderDetail(); renderFindings(); renderCoverage(); renderUserRecords(); renderTimeline();
-    $('cn-revisions').innerHTML = `<p>父运行：${escape(run.parent_run_id||'无，原始自动运行')}。当前版本${run.result_revision}。${state.task.parent_task_id?`<a href="?connectivity_task=${encodeURIComponent(state.task.parent_task_id)}" target="_blank" rel="noopener">打开修订前记录 ↗</a>`:''}</p>` + run.reviews.map(r => `<details><summary>${escape(r.created_at)} · ${escape(r.actor)} · ${escape(r.reason)}</summary><p>操作：${escape({relationship_correction:'关系更正',personal_observation:'个人观察',reading_confirmation:'阅读确认'}[r.action]||r.action)}；${escape(r.check_id)}</p><h4>修订前</h4>${reviewRecord(r.before)}<h4>修订后</h4>${reviewRecord(r.after)}</details>`).join('');
+    $('cn-revisions').innerHTML = `<p>父运行：${escape(run.parent_run_id||'无，原始自动运行')}。当前版本${run.result_revision}。${state.task.parent_task_id?`<a href="?connectivity_task=${encodeURIComponent(state.task.parent_task_id)}" target="_blank" rel="noopener">打开修订前记录 ↗</a>`:''}</p>` + run.reviews.map(r => `<details><summary>${escape(r.created_at)} · ${escape(r.actor)} · ${escape(r.reason)}</summary><p>操作：${escape({relationship_correction:'关系更正',personal_observation:'个人观察',reading_confirmation:'阅读确认',ai_accept:'采纳AI意见',ai_reject:'驳回AI意见'}[r.action]||r.action)}；${escape(r.check_id)}</p><h4>修订前</h4>${reviewRecord(r.before)}<h4>修订后</h4>${reviewRecord(r.after)}</details>`).join('');
   }
 
   function renderOverview() {
@@ -168,30 +176,53 @@
       const extra = item?.denominator_label ? `<small>${escape(item.denominator_label)}</small>` : `<small>${escape(hint)}</small>`;
       return `<div class="cn-fq"><span class="cn-fq-label">${escape(label)}</span><p><strong>${escape(String(item?.value ?? 0))}</strong>${denominator}</p>${extra}${gap}${undecidable}</div>`;
     }).join('');
+    if (run.versions?.intelligence) {
+      const model = ov.model_opinions || {};
+      const cards = [
+        ['all','已检查关联',run.checks.length,'候选关系与原文'],
+        ['computed','正式复算 / 条件试算',`${ov.formal_calculations?.value??ov.program_calculations?.value??0} / ${ov.trial_calculations?.value||0}`,'分别计数；点击查看数值记录'],
+        ['ai','AI分析意见',model.value||0,run.execution_mode==='calculation_only'?'本次仅计算，未生成模型意见':`新生成${model.new||0}项 · 复用${model.reused||0}项`],
+        ['priority','优先待查事项',ov.priority_checks?.value||0,'按具体矛盾、差额与AI理由排序'],
+      ];
+      $('cn-fourq').innerHTML = cards.map(([filter,title,value,note]) => `<button type="button" class="cn-fq cn-filter" data-cn-filter="${filter}" aria-pressed="${state.filter===filter}"><span class="cn-fq-label">${escape(title)}</span><span class="cn-card-value">${escape(value)}<small>项</small></span><small>${escape(note)}</small></button>`).join('');
+    }
     const causes = (ov.unresolved_causes||[]).filter(c => c.count);
     const causeLine = causes.length
       ? `<div class="cn-causes"><h3>未决原因分布（同一关系可归多类）</h3><p>${causes.map(c => `<span class="cn-cause"><strong>${escape(c.code)}</strong> ${escape(c.name)} <em>${c.count}</em></span>`).join('')}</p></div>`
       : '';
     const questions = (ov.next_questions||[]).map((q, index) => `<button type="button" class="cn-nextq-row" data-goto="${escape(q.check_id)}"><span>0${index+1}</span>${escape(q.question)}</button>`).join('');
-    $('cn-nextq').innerHTML = (questions ? `<h3>下一步可以问公司什么</h3>${questions}` : '') + causeLine + `<p class="cn-fq-note">${escape(ov.note||'')}</p>`;
+    const ai = !run.versions?.intelligence && ov.ai_opinion_summary;
+    const aiLine = ai ? (() => {
+      const bands = ai.bands || {};
+      const parts = Object.entries(bands).filter(([, count]) => count).map(([label, count]) => `${escape(label)} ${count}`).join(' · ');
+      const mode = {llm:'程序刻度 + 大模型解释',offline:'程序刻度 + 规则推理',offline_fallback:'模型失败，已回退规则推理'}[ai.mode] || ai.mode || '';
+      const top = (ai.top||[]).slice(0,3).map(row => `<button type="button" class="cn-nextq-row" data-goto="${escape(row.check_id)}"><span>${escape(row.band||'')}</span>${escape(row.target||'')}<em>${escape(String(row.score??''))}</em></button>`).join('');
+      return `<div class="cn-ai-summary"><h3>AI 意见（仅供参考）</h3><p><strong>${escape(String(ai.total||0))}</strong> 条意见 · ${escape(parts||'无分级')} · 建议人工复核 ${escape(String(ai.needs_human||0))} 条</p><p class="cn-muted">生成方式：${escape(mode)}${ai.model_failure?`（${escape(ai.model_failure)}）`:''}。意见不改变口径、计算与已衔接统计。</p>${top}</div>`;
+    })() : '';
+    const priorityLine = (ov.priority_checks?.details||[]).slice(0,3).map(h=>`<button type="button" class="cn-nextq-row" data-goto="${escape(h.check_id)}"><span>${escape({high:'高',medium:'中',low:'低'}[h.priority])}</span>${escape(run.checks.find(c=>c.check_id===h.check_id)?.title||h.check_id)}<small>${escape(h.priority_reason)}</small></button>`).join('');
+    $('cn-nextq').innerHTML = (priorityLine?`<h3>优先查看</h3>${priorityLine}`:'') + (questions ? `<h3>下一步可以问公司什么</h3>${questions}` : '') + causeLine + aiLine + `<p class="cn-fq-note">${escape(ov.note||'')}</p>`;
   }
 
   function renderList() {
     const run = current(); if (!run) return;
     const view = $('cn-perspective').value;
-    const notes = {public:'先看指标含义与比较条件，再沿原页查看计算。未说明的范围会继续保留。',investor:'优先关注投入构成与金额衔接；阅读视角不改变计算结果。',environment:'优先关注环保投入、强度分母与统计边界；不同范围的数字需分别说明。',professional:'事务所核对：优先查看尚缺依据的关系，展开条件、计算与搜索覆盖；从原文定位到待索取资料，用于项目组进一步核查。阅读确认不代表专业批准。'};
+    const notes = {public:'先看AI的解释和程序差异，再沿原页核对依据；不确定的假设与反证分别列出。',investor:'优先关注投入构成与金额衔接；阅读视角不改变计算结果。',environment:'优先关注环保投入、强度分母与统计边界；不同范围的数字需分别说明。',professional:'事务所核对：优先查看尚缺依据的关系，展开条件、计算与搜索覆盖；从原文定位到待索取资料，用于项目组进一步核查。阅读确认不代表专业批准。'};
     const glossary = {public:'口径：同一个指标在两份报告里使用的定义与范围。残差：比较后剩下、还没有解释的差额。',
       investor:'合并范围：哪些子公司被算进来。基准（basis）：解释差额时使用的同一比较基础。',
       environment:'统计边界（scope）：组织边界与运营控制权的覆盖方式。强度（intensity）：分子÷分母得到的相对值。',
-      professional:'门控（gate）：前提未支持时不输出正式差额。假设试算（hypothesis）：仅供算术参考，不进入统计。'};
+      professional:'门控（gate）：前提未支持时不输出正式差额。假设试算（hypothesis）：带假设复算，独立于正式一致统计。'};
     $('cn-perspective-note').innerHTML = `${escape(notes[view])}<details class="cn-glossary"><summary>本视角术语就地解释</summary><p>${escape(glossary[view]||'')}</p><p>主体、期间、定义、范围、单位：五项比较前提；任一未支持即"暂不能直接比较"。</p></details>`;
-    const checks = [...run.checks].sort((a, b) => {
+    const selectedIds = filterIds(run,state.filter);
+    const hints = Object.fromEntries((run.program_hints||[]).map(h=>[h.check_id,h]));
+    const checks = run.checks.filter(c=>selectedIds===null||selectedIds.includes(c.check_id)).sort((a, b) => {
+      const weight={high:2,medium:1,low:0};
+      const priority=(weight[hints[b.check_id]?.priority]||0)-(weight[hints[a.check_id]?.priority]||0);
       const byTopic = view==='environment' ? Number(b.topic!=='research')-Number(a.topic!=='research') : view==='investor' ? Number(b.topic==='research')-Number(a.topic==='research') : 0;
       const byGap = view==='professional' ? Number(b.criteria_status!=='supported')-Number(a.criteria_status!=='supported') : 0;
-      return byGap || byTopic || Number(b.relationship_evidence.length>0)-Number(a.relationship_evidence.length>0);
+      return priority || byTopic || byGap || Number(b.relationship_evidence.length>0)-Number(a.relationship_evidence.length>0);
     });
     $('cn-count').textContent = String(checks.length);
-    $('cn-check-list').innerHTML = checks.length ? checks.map(c => `<button type="button" class="cn-check${c.check_id===state.selected?' active':''}" data-check="${escape(c.check_id)}" aria-pressed="${c.check_id===state.selected}"><small>${escape(state.bootstrap.rules[c.rule_id]?.name||c.rule_id)}</small><strong>${escape(c.title)}</strong><small>${status(c.criteria_status)} ${status(c.calculation_status)}</small></button>`).join('') : '<p class="cn-empty">本次未生成关系候选：可查看“问题”页的搜索覆盖与已提取未计入清单。</p>';
+    $('cn-check-list').innerHTML = checks.length ? checks.map(c => `<button type="button" class="cn-check${c.check_id===state.selected?' active':''}" data-check="${escape(c.check_id)}" aria-pressed="${c.check_id===state.selected}"><small>${escape(state.bootstrap.rules[c.rule_id]?.name||c.rule_id)}</small><strong>${escape(c.title)}</strong><small>${hints[c.check_id]?`核查优先级：${escape({high:'高',medium:'中',low:'低'}[hints[c.check_id].priority])} · `:''}${status(c.criteria_status)} ${status(c.calculation_status)}</small></button>`).join('') : '<p class="cn-empty">本次未生成关系候选：可查看“问题”页的搜索覆盖与已提取未计入清单。</p>';
   }
 
   function memberRows(c) {
@@ -201,7 +232,7 @@
   }
 
   function conditionsBlock(c) {
-    return `<div class="cn-conditions">${c.conditions.map(cond => `<div class="cn-condition"><div class="cn-condition-head"><strong>${escape(cond.name)}</strong>${status(cond.status)}</div><p>${escape(cond.reason)}</p><div>${refs(cond.evidence)}${cond.evidence.map(r => { const o = occurrence(r.occurrence_id); return o?`<button class="cn-evidence" type="button" data-reader="${escape(o.occurrence_id)}">查看原页</button>`:''; }).join('')}</div></div>`).join('')}</div>`;
+    return `<div class="cn-conditions">${c.conditions.map(cond => `<div class="cn-condition"><div class="cn-condition-head"><strong>${escape(cond.name)}</strong>${status(cond.status)}</div><p>${escape(cond.reason)}</p>${cond.evidence_kind&&cond.evidence_kind!=='unspecified'?`<small>依据类型：${escape({explicit:'原文明示',table_structure:'表格结构',derived:'程序推导',ai_semantic:'AI语义解释',report_level:'仅报告总体声明，不能独立支持本指标'}[cond.evidence_kind]||cond.evidence_kind)}</small>`:''}<div>${refs(cond.evidence)}${cond.evidence.map(r => { const o = occurrence(r.occurrence_id); return o?`<button class="cn-evidence" type="button" data-reader="${escape(o.occurrence_id)}">查看原页</button>`:''; }).join('')}</div></div>`).join('')}</div>`;
   }
 
   function calculationBlock(c) {
@@ -215,7 +246,50 @@
          <p class="cn-muted">残差区间：[${escape(interval?.low ?? '—')}, ${escape(interval?.high ?? '—')}]${interval ? `；端点${interval.low_closed?'闭':'开'}/${interval.high_closed?'闭':'开'}；含0：${interval.contains_zero?'是':'否'}` : ''}</p>`;
     const adjustmentBlock = adjustment && (adjustment.applied?.length || adjustment.rejected?.length) ? `<div class="cn-adjustment"><h4>差异解释的加性调节</h4>${(adjustment.applied||[]).map(a => `<p><strong>${escape(a.label)}</strong> ${escape(a.sign)}${escape(a.amount)} ${escape(a.unit)} · 效果${escape(a.effect_id)} · ${a.path==='grouping'?'分组':'金额桥接'}</p>`).join('')}${(adjustment.rejected||[]).map(a => `<p class="cn-rejected">未采纳 ${escape(a.adjustment_id)}：${escape(a.reason)}</p>`).join('')}<p class="cn-muted">${escape(adjustment.note||'')}</p></div>` : '';
     const trial = c.hypothetical ? `<details class="cn-detail-block"><summary>查看假设诊断（仅供算术参考，不进入概览计数）</summary><p class="cn-muted">假设：${escape((c.hypothetical.assumptions||[]).join('；'))}</p><p class="cn-equation">${escape(c.hypothetical.expression)}<br>试算差额：${escape(c.hypothetical.residual)} ${escape(c.hypothetical.normalized_unit||'')}</p></details>` : '';
-    return `<div class="cn-equation">${escape(calc.expression || '尚无可执行算式')}</div>${formal}${adjustmentBlock}${trial}<details class="cn-detail-block"><summary>计算明细（机器可读）</summary><pre>${escape(JSON.stringify(calc, null, 2))}</pre></details>`;
+    const bridge = c.scenario_adjustment;
+    const bridgeBlock = bridge ? `<div class="cn-scenario"><h4>条件调节试算</h4><p>原始候选差额：${escape(bridge.original_residual)} ${escape(bridge.unit)}</p>${(bridge.applied||[]).map(a => `<p><strong>${escape(a.label)}</strong> · 有符号贡献 ${escape(a.amount)} ${escape(a.unit)}${refs(a.evidence)}<br>${escape(a.reason)}</p>`).join('')}${(bridge.rejected||[]).map(a => `<p class="cn-rejected">未用于试算：${escape(a.reason)}</p>`).join('')}<p><strong>剩余候选差额：${escape(bridge.remaining_residual)} ${escape(bridge.unit)}</strong></p><p class="cn-muted">假设：${escape((bridge.assumptions||[]).join('；'))}。${escape(bridge.note)}</p></div>` : '';
+    const plan = c.calculation_plan ? `<p class="cn-muted">计算方案：${escape(c.calculation_plan.reason)}；${escape({formal:'已执行正式计算',trial:'已执行条件试算',rejected:'暂不可执行',proposed:'模型建议'}[c.calculation_plan.status])}。${escape((c.calculation_plan.assumptions||[]).join('；'))}</p>` : '';
+    const narrative = c.narrative_test ? `<div class="cn-scenario"><h4>文字与数值方向核对</h4>${c.narrative_test.status==='not_executable' ? `<p>${escape(c.narrative_test.reason)}</p>` : `<p>程序计算变化方向：${escape({increase:'上升',decrease:'下降',stable:'持平'}[c.narrative_test.direction])}；与所绑定主张${c.narrative_test.direction_matches?'方向相符':'方向不同'}。${c.narrative_test.change_percent!==null?`变化${escape(c.narrative_test.change_percent)}%。`:''}</p><p class="cn-muted">${escape(c.narrative_test.note)}</p>`}</div>` : '';
+    return `<div class="cn-equation">${escape(calc.expression || '尚无可执行算式')}</div>${plan}${formal}${adjustmentBlock}${trial}${bridgeBlock}${narrative}<details class="cn-detail-block"><summary>计算明细（机器可读）</summary><pre>${escape(JSON.stringify(calc, null, 2))}</pre></details>`;
+  }
+
+  function filterIds(run, filter) {
+    if(filter==='computed') return run.overview?.numerical_records?.items||run.overview?.program_calculations?.items||[];
+    if(filter==='ai') return run.overview?.model_opinions?.items||[];
+    if(filter==='priority') return run.overview?.priority_checks?.items||[];
+    return null;
+  }
+
+  function hypothesesBlock(c) {
+    if(!c.hypotheses?.length) return '';
+    const statuses={supported:'有证据支持',plausible:'可能解释',open:'待验证',refuted:'已有反证'};
+    return `<section class="cn-hypotheses"><h3>解释与检验</h3>${c.hypotheses.map(h=>`<details class="cn-hypothesis"${h.status==='refuted'?'':' open'}><summary>${escape(statuses[h.status])} · ${escape(h.explanation)}</summary>${h.reasons?.length?`<p>${escape(h.reasons.join('；'))}</p>`:''}${h.supporting_evidence?.length?`<h4>支持</h4>${escapedRefs(h.supporting_evidence)}${refs(h.supporting_evidence)}`:''}${h.counter_evidence?.length?`<h4>反证</h4>${escapedRefs(h.counter_evidence)}${refs(h.counter_evidence)}`:''}${h.assumptions?.length?`<p>假设：${escape(h.assumptions.join('；'))}</p>`:''}${h.retrieval_queries?.length?`<p class="cn-muted">继续查：${escape(h.retrieval_queries.join('；'))}</p>`:''}</details>`).join('')}</section>`;
+  }
+
+  function displayDifference(value) {
+    const n=Number(value);
+    if (!Number.isFinite(n)) return String(value);
+    if (n!==0 && Math.abs(n)<0.0001) return n.toExponential(3);
+    return n.toLocaleString('zh-CN',{maximumFractionDigits:6});
+  }
+
+  function programHintBlock(c) {
+    const hint=(current()?.program_hints||[]).find(h=>h.check_id===c.check_id);
+    if(!hint) return '';
+    const diff=hint.difference||{};
+    return `<section class="cn-program-hint" aria-label="程序事实与核查排序"><div class="cn-priority" data-priority="${escape(hint.priority)}"><strong>核查优先级：${escape({high:'高',medium:'中',low:'低'}[hint.priority])}</strong><span>${hint.priority_source==='model'?'AI排序建议':'程序排序提示'}</span></div><p>${escape(hint.priority_reason)}</p>${diff.absolute!==null?`<p>${diff.conditional?'条件试算':'程序复算'}绝对差额 <strong>${escape(displayDifference(diff.absolute))}</strong> ${escape(diff.unit==='无量纲（1表示100%）'?'比值（1=100%）':diff.unit)}${diff.relative_percent!==null?` · ${diff.relative_basis==='left'?'左侧基准相对差异':'历史相对差异（原算法）'} ${escape(Number(diff.relative_percent).toLocaleString('zh-CN',{maximumFractionDigits:4}))}%`:''}${diff.percentage_points!==null?` · ${escape(Number(diff.percentage_points).toLocaleString('zh-CN',{maximumFractionDigits:4}))}个百分点`:''}</p>`:'<p>本项保留语义分析，尚无可执行数值比较。</p>'}<small>证据：${hint.coverage.supported.length}项支持 · ${hint.coverage.unknown.length}项待补 · ${hint.coverage.conflicting.length}项冲突。未知表示本次证据缺口。显示数字已收短，原始精度见计算记录。</small></section>`;
+  }
+
+  function aiAnalysisBlock(c) {
+    const run=current();
+    const opinion=(run?.ai_analyses||[]).find(a=>a.check_id===c.check_id);
+    if(!opinion) {
+      const legacy=(run.ai_opinions||[]).find(a=>a.check_id===c.check_id);
+      if(legacy&&!run.versions?.intelligence) return aiOpinionBlock(c);
+      return `<section class="cn-ai-opinion"><h3>AI分析意见</h3><p>${run.execution_mode==='calculation_only'?'本次仅计算，未调用模型。程序结果与原文可继续查看。':'该关系尚未保存有效模型研判，已完成的程序结果仍可查看。'}</p>${run.execution_mode!=='calculation_only'&&state.task.can_modify?'<button type="button" data-cn-reanalyze>续分析未完成项</button>':''}</section>`;
+    }
+    const list=(title,values)=>values?.length?`<h4>${title}</h4><ul>${values.map(v=>`<li>${escape(v)}</li>`).join('')}</ul>`:'';
+    return `<section class="cn-ai-opinion" aria-label="AI分析意见"><div class="cn-ai-heading"><h3>${escape(aiVerdicts[opinion.verdict]||opinion.verdict)}</h3><small>AI分析意见，仅供核查参考</small></div>${opinion.status==='needs_refresh'?`<p class="cn-rejected">证据或计算已变化，下列为原意见，待重新分析。</p>${state.task.can_modify?'<button type="button" data-cn-reanalyze>重新分析受影响项</button>':''}`:''}<p class="cn-ai-summary">${escape(opinion.summary)}</p>${list('判断依据',opinion.reasons)}${refs(opinion.supporting_evidence)}${list('成立所需假设',opinion.assumptions)}${opinion.counter_evidence?.length?`<h4>相反证据</h4>${escapedRefs(opinion.counter_evidence)}${refs(opinion.counter_evidence)}`:''}${list('其他可能解释',opinion.alternative_explanations)}${list('下一步',opinion.next_actions)}<details><summary>来源与意见记录</summary>${escapedRefs(opinion.supporting_evidence)}<p>${escape(opinion.producer_role)} · ${escape(opinion.producer_model||'原记录未登记模型')}${opinion.inherited_from_run_id?' · 复用原运行意见':' · 本次生成'}</p><p>分析依据：${escape({high:'较强',medium:'中等',low:'较弱'}[opinion.analysis_quality])}。${escape((opinion.quality_reasons||[]).join('；'))}</p><p>使用者处理：${escape({unreviewed:'未作采纳记录',accepted:'已采纳为核查参考',rejected:'已驳回'}[opinion.review_status])}</p></details></section>`;
   }
 
   function explanationBlock(c) {
@@ -256,10 +330,40 @@
     document.querySelectorAll('#cn-detail [role="tabpanel"]').forEach(panel => { panel.hidden = panel.id!==`cn-pane-${key}`; });
   }
 
+  const AI_VERDICT = {CONSISTENT:'一致',EXPLAINABLE_DIFFERENCE:'差异可解释',PROBABLE_EXPLAINABLE:'可能可解释',
+    UNEXPLAINED:'未解释',LIKELY_ERROR:'疑似错报',INSUFFICIENT_EVIDENCE:'证据不足',HUMAN_REVIEW:'强制人工'};
+  const AI_TONE = {'可忽略':'negligible','低':'low','中':'medium','高':'high','严重':'severe'};
+  function aiOpinionBlock(c) {
+    const run = current();
+    const opinion = (run.ai_opinions||[]).find(item => item.check_id===c.check_id);
+    if (!opinion) {
+      if (c.operator==='narrative') return '';
+      return `<div class="cn-ai cn-ai-empty"><strong>AI 意见</strong><p>该记录未生成 AI 意见（旧版结果或关系不可执行）。重新运行后生成；现有口径与计算状态不受影响。</p></div>`;
+    }
+    const band = opinion.band || {};
+    const confidence = Number(opinion.confidence||0);
+    const source = opinion.generated_by==='llm' ? `模型复核 · ${escape(opinion.model||'')}` : '规则推理 · 未调用模型';
+    const list = (items, empty) => (items&&items.length) ? `<ul>${items.map(item=>`<li>${escape(item)}</li>`).join('')}</ul>` : `<p class="cn-muted">${escape(empty)}</p>`;
+    const tags = (opinion.tags||[]).map(tag=>`<span class="cn-ai-tag">${escape(tag.name)} · ${escape(tag.kind)}</span>`).join('');
+    return `<article class="cn-ai" data-risk="${escape(AI_TONE[band.label]||'medium')}" aria-label="AI 意见，仅供参考">
+      <header class="cn-ai-head"><span class="cn-ai-mark">历史意见记录</span><span class="cn-ai-risk">${escape(band.label||'未分级')} · ${escape(String(opinion.score??''))}</span><span class="cn-ai-meta">置信度 ${confidence.toFixed(2)} · ${source}</span></header>
+      <h3>${escape(opinion.headline||'')}</h3>
+      <p class="cn-ai-verdict">判断：<strong>${escape(AI_VERDICT[opinion.verdict]||opinion.verdict)}</strong>${opinion.needs_human?'<span class="cn-ai-human">建议人工复核</span>':'<span class="cn-ai-human ok">可按常规归档</span>'}</p>
+      <div class="cn-ai-cols">
+        <section><h4>为什么这样判断</h4>${list(opinion.rationale,'暂无')}</section>
+        <section><h4>另一种可能</h4>${list(opinion.alternatives,'本次未登记替代解释')}</section>
+        <section><h4>下一步查什么</h4>${list(opinion.recommended_actions,'无需追加程序')}</section>
+      </div>
+      <details class="cn-ai-boundary"><summary>标签、证据与边界</summary>${tags?`<p class="cn-ai-tags">${tags}</p>`:''}${list(opinion.evidence,'未登记支持性条件')}<p>风险分由差额档位与证据缺口取大，标签按结构性/表现性放大；模型只改写解释，不改分数、等级与结论类型。</p></details>
+      <p class="cn-ai-disclaimer">${escape(opinion.disclaimer||run.ai_generated_content_notice||'')}</p>
+    </article>`;
+  }
+
   function renderDetail() {
     const c = check(); if (!c) { $('cn-detail-conclusion').textContent = '没有可显示的关系记录。'; return; }
     const conclusion = `<p class="cn-subtitle">${escape(c.check_id)} / ${escape(c.rule_id)} / 规则版本 ${escape(c.rule_version)}</p><h2>${escape(c.title)}</h2><div class="cn-conclusion-band"><p class="cn-conclusion-text">${escape(conclusionText(c))}</p><div class="cn-statuses"><div><small>口径</small>${status(c.criteria_status)}</div><div><small>计算</small>${status(c.calculation_status)}</div><div><small>使用者处理</small>${status(c.review_status)}</div></div></div>${$('cn-perspective').value==='public' ? plainLayer(c) : ''}<h3 class="cn-section-h">成员与角色</h3>${memberRows(c)}`;
-    $('cn-detail-conclusion').innerHTML = conclusion;
+    const hardGaps=(c.unresolved||[]).filter(text=>/量纲|成员角色|成员.*不完整|单位.*不兼容/.test(text));
+    $('cn-detail-conclusion').innerHTML = `<h2>${escape(c.title)}</h2>${hardGaps.length?`<p class="cn-rejected">当前成员的程序限制：${escape(hardGaps.join('；'))}。下方AI解释需结合这些限制阅读。</p>`:''}` + aiAnalysisBlock(c) + programHintBlock(c) + hypothesesBlock(c) + `<details class="cn-detail-block"><summary>查看程序状态与披露成员</summary>${conclusion}</details>`;
     $('cn-pane-conditions').innerHTML = `<h3 class="cn-section-h">五项前提</h3>${conditionsBlock(c)}<h3 class="cn-section-h">算式与残差</h3>${calculationBlock(c)}`;
     $('cn-pane-positions').innerHTML = `<h3 class="cn-section-h">解释与反证</h3>${explanationBlock(c)}<h3 class="cn-section-h">关系依据</h3><div class="cn-explanation">${escapedRefs(c.relationship_evidence)}</div>${positionsBlock(c)}`;
     $('cn-pane-questions').querySelector('#cn-findings') && renderFindings();
@@ -288,7 +392,9 @@
     $('cn-coverage').innerHTML = run.coverage.map(c => `<p>${escape(c.document_id)}：${c.total_pages}页 / 解析${c.parsed_pages}页 / 实际搜索${c.searched_pages.length}页 / 候选${c.discovered_count}处。失败：${escape(c.failed_pages.map(f => `第${f.page}页 ${f.reason}`).join('；')||'无记录')}。</p>`).join('');
     const exclusions = run.extraction_exclusions || [];
     $('cn-exclusions').innerHTML = `<h4>已提取但未计入（${exclusions.length}处）</h4>` + (exclusions.length ? `<p class="cn-muted">这些位置不作为“没有披露”的证据，也不进入候选筛选。</p><ul class="cn-excluded">${exclusions.slice(0,40).map(e => `<li>${escape(e.document_id)} · PDF ${e.pdf_page} · ${escape(e.label)} · ${escape(e.value)} ${escape(e.unit)} · ${escape(e.reason)}</li>`).join('')}</ul>` : '<p class="cn-muted">本次没有达到候选门槛后被排除的位置。</p>');
-    $('cn-agents').innerHTML = (run.parent_run_id ? '<p>以下是沿用的原运行调用记录，本次修订没有新增模型调用。</p>' : '') + `<p>实际模型状态：${escape(labels[run.model_status]||run.model_status)}；发出调用${run.provider_calls.filter(c => c.performed).length}次。</p>` + run.agent_steps.map(s => `<p><strong>${escape(s.role)}</strong> ${escape(labels[s.status]||s.status)} · 采纳${s.accepted_check_ids?.length||0}项 / 拒绝${s.rejected?.length||0}项${s.failure_code?' · '+escape(s.failure_code):''}</p>`).join('') + run.provider_calls.map(c => `<p>${escape(c.role)}：${escape(c.model||c.failure_code||'未配置')}；输入${c.input_tokens??'未知'} / 输出${c.output_tokens??'未知'} tokens；费用${c.cost??'未计价'}。</p>`).join('');
+    $('cn-agents').innerHTML = (run.versions?.result_origin==='user_revision' ? '<p>本次为使用者修订，以下沿用原调用记录。</p>' : run.prior_provider_calls?.length ? '<p>以下为本次续分析调用；复用意见保留原模型身份，历史用量不重复计入。</p>' : '') + `<p>实际模型状态：${escape(labels[run.model_status]||run.model_status)}；发出调用${run.provider_calls.filter(c => c.performed).length}次。</p>` + run.agent_steps.map(s => `<p><strong>${escape(s.role)}</strong> ${escape(labels[s.status]||s.status)} · 新增关系${s.new_check_ids?.length||0}项 / 更新${s.updated_check_ids?.length||0}项 / 新证据${s.added_evidence_ids?.length||0}处 · 采纳${s.accepted_check_ids?.length||0}项 / 拒绝${s.rejected?.length||0}项 · AI研判${s.accepted_analysis_ids?.length||0}项 · 计算方案${s.calculation_plan_ids?.length||0}项 · 调节建议${s.adjustment_check_ids?.length||0}项${s.failure_code?' · '+escape(s.failure_code):''}${(s.analysis_rejections||[]).map(r=>`<br>意见未采纳：${escape(r.reason)}`).join('')}</p>`).join('') + run.provider_calls.map(c => `<p>${escape(c.role)}：${escape(c.model||c.failure_code||'未配置')}${c.failure_message?' · '+escape(c.failure_message):''}；输入${c.input_tokens??'未知'} / 输出${c.output_tokens??'未知'} tokens；费用${c.cost??'未计价'}。</p>`).join('');
+    if (run.versions?.quota_settlement?.status==='failed') $('cn-agents').insertAdjacentHTML('afterbegin',`<p class="cn-rejected">预算结算未通过：${escape(run.versions.quota_settlement.message)}。下方调用为已取得的真实结果，结算状态单独保留。</p>`);
+    if ((run.intelligence_trace||[]).length) $('cn-agents').innerHTML += `<details><summary>定向补查与批次覆盖</summary><pre>${escape(JSON.stringify(run.intelligence_trace,null,2))}</pre></details>`;
   }
 
   function renderTimeline() {
@@ -296,7 +402,7 @@
     // 修订编号按顺序递增，与 result_revision 解耦，多条修订不再全部显示 v2。
     const revisions = [{label:'v1 自动结果', at:run.created_at, note:'模型与程序产出'}];
     (run.reviews||[]).forEach((r, index) => {
-      revisions.push({label:`v${index+2} ${({relationship_correction:'关系更正',reading_confirmation:'阅读确认',personal_observation:'个人观察'})[r.action]||r.action}`,
+      revisions.push({label:`v${index+2} ${({relationship_correction:'关系更正',reading_confirmation:'阅读确认',personal_observation:'个人观察',ai_accept:'采纳AI意见',ai_reject:'驳回AI意见'})[r.action]||r.action}`,
         at:r.created_at, note:r.reason});
     });
     // 公司披露版本按报告类型分条：AR 与 ESG 不是彼此的版本，不能并到一条轴上。
@@ -329,7 +435,7 @@
 
   function preparePrint() {
     const run = current(); if (!run) return;
-    $('cn-print-all').innerHTML = run.checks.map(c => `<article class="cn-print-relation"><h2>${escape(c.title)}</h2><p>${escape(c.check_id)} · ${escape(c.rule_id)} · ${escape(labels[c.criteria_status]||c.criteria_status)} / ${escape(labels[c.calculation_status]||c.calculation_status)} / ${escape(labels[c.review_status]||c.review_status)}</p>${c.conditions.map(n => `<p><strong>${escape(n.name)}</strong>：${escape(labels[n.status]||n.status)}；${escape(n.reason)}${n.evidence.map(r => `<br>原文 ${escape(r.occurrence_id)}：${escape(r.quote)}`).join('')}</p>`).join('')}${c.members.map(m => { const o = occurrence(m.occurrence_id); return o?`<p><strong>${escape(roles[m.role])}：${escape(o.label)}</strong> ${escape(o.value??'未提取数值')} ${escape(o.unit)}<br>${escape(o.document_id)} / PDF ${o.pdf_page}<br>${escape(o.context)}</p>`:''; }).join('')}<p>正式计算：${escape(JSON.stringify(c.calculation))}</p>${c.hypothetical?`<p>假设试算（非正式结论）：${escape(c.hypothetical.expression)}；差额${escape(c.hypothetical.residual)}</p>`:''}<p>解释：${escape(c.explanation||'尚无充分解释')}</p>${[...c.relationship_evidence,...c.explanation_evidence].map(r => `<p>关系或解释依据 ${escape(r.occurrence_id)}：${escape(r.quote)}</p>`).join('')}<p>未决：${escape(c.unresolved.join('；')||'当前选定关系无额外未决条件')}</p></article>`).join('');
+    $('cn-print-all').innerHTML = run.checks.map(c => `<article class="cn-print-relation"><h2>${escape(c.title)}</h2>${aiAnalysisBlock(c)}${programHintBlock(c)}${hypothesesBlock(c)}<p>${escape(c.check_id)} · ${escape(c.rule_id)} · ${escape(labels[c.criteria_status]||c.criteria_status)} / ${escape(labels[c.calculation_status]||c.calculation_status)} / ${escape(labels[c.review_status]||c.review_status)}</p>${c.conditions.map(n => `<p><strong>${escape(n.name)}</strong>：${escape(labels[n.status]||n.status)}；${escape(n.reason)}${n.evidence.map(r => `<br>原文 ${escape(r.occurrence_id)}：${escape(r.quote)}`).join('')}</p>`).join('')}${c.members.map(m => { const o = occurrence(m.occurrence_id); return o?`<p><strong>${escape(roles[m.role])}：${escape(o.label)}</strong> ${escape(o.value??'未提取数值')} ${escape(o.unit)}<br>${escape(o.document_id)} / PDF ${o.pdf_page}<br>${escape(o.context)}</p>`:''; }).join('')}<p>正式计算：${escape(JSON.stringify(c.calculation))}</p>${c.scenario_adjustment?`<p>条件调节试算：${escape(JSON.stringify(c.scenario_adjustment))}</p>`:''}${c.hypothetical?`<p>假设试算（非正式结论）：${escape(c.hypothetical.expression)}；差额${escape(c.hypothetical.residual)}</p>`:''}<p>解释：${escape(c.explanation||'尚无充分解释')}</p>${[...c.relationship_evidence,...c.explanation_evidence].map(r => `<p>关系或解释依据 ${escape(r.occurrence_id)}：${escape(r.quote)}</p>`).join('')}<p>未决：${escape(c.unresolved.join('；')||'当前选定关系无额外未决条件')}</p></article>`).join('');
   }
   window.addEventListener('beforeprint', preparePrint);
 
@@ -481,8 +587,10 @@
 
   // ---- 事件 ----
   async function startRun(extra={}) {
+    if(state.submitting) return;
     const topics = [...document.querySelectorAll('#cn-form input[name="topic"]:checked')].map(n => n.value);
     if (!topics.length) { message('至少选择一个关注事项。', true); return; }
+    state.submitting=true;
     clearTimeout(state.timer); state.generation++; state.selected=null; busy(true);
     $('cn-results').hidden=true; $('cn-progress').hidden=true; $('cn-cancel').disabled=true;
     message('正在提交核验请求；收到任务编号后展示实际阶段。');
@@ -491,6 +599,7 @@
         body:JSON.stringify({pair_id:$('cn-pair').value, topics, mode:$('cn-mode').value, ...extra})});
       rememberTask(task.task_id); await poll(task.task_id);
     } catch (error) { message(error.message, true); busy(false); }
+    finally { state.submitting=false; }
   }
   $('cn-form').addEventListener('submit', event => { event.preventDefault(); startRun(); });
   $('cn-stagebar').addEventListener('click', event => {
@@ -569,13 +678,14 @@
     } catch (error) { $('cn-correction-message').textContent = error.message; }
   });
   $('cn-review-action').addEventListener('change', () => {
-    const observation = $('cn-review-action').value==='personal_observation';
-    $('cn-review-selection').hidden = observation; $('cn-observation').required = observation;
+    const action = $('cn-review-action').value;
+    const observation = action==='personal_observation';
+    $('cn-review-selection').hidden = action!=='reading_confirmation'; $('cn-observation').required = observation;
   });
   $('cn-review-form').addEventListener('submit', async event => {
     event.preventDefault();
     const action = $('cn-review-action').value;
-    const ids = action==='personal_observation' ? [state.selected] : [...document.querySelectorAll('[name="review-check"]:checked')].map(n => n.value);
+    const ids = action!=='reading_confirmation' ? [state.selected] : [...document.querySelectorAll('[name="review-check"]:checked')].map(n => n.value);
     if (!ids.length) { $('cn-review-message').textContent = '请选择已阅读的关系。'; return; }
     // 保存前再次提示可见范围，不靠常驻说明代替确认。
     if (action==='personal_observation' && !window.confirm('个人观察保存后可能随任务链接被他人读取；公共视图只显示条数。确认保存？')) return;
@@ -589,6 +699,17 @@
   });
   $('cn-close-correction').addEventListener('click', () => $('cn-correction').close());
   $('cn-back').addEventListener('click', () => { $('legacy-workspace').hidden=true; $('redesign-home').hidden=true; $('connectivity-root').hidden=false; $('cn-workspace').focus(); });
+
+  document.addEventListener('click',event=>{
+    const filter=event.target.closest('[data-cn-filter]');
+    if(filter){
+      state.filter=filter.dataset.cnFilter;
+      const ids=filterIds(current(),state.filter);
+      if(ids?.length&&!ids.includes(state.selected)) state.selected=ids[0];
+      renderOverview(); renderList(); renderDetail();
+    }
+    if(event.target.closest('[data-cn-reanalyze]')&&state.task.can_modify) startRun({retry_of_task_id:state.task.task_id});
+  });
 
   (async () => {
     try {

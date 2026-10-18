@@ -14,7 +14,7 @@ from app.connectivity_schemas import (ComparisonCondition, ConnectivityRun, Disc
 
 ENTITY = "合成股份有限公司"
 BASIS = f"{ENTITY} 2025年年度报告。报告主体为{ENTITY}，合并报表范围包括全部子公司。"
-DEFINITION = "环保投入指企业为环境保护发生的资本化与费用化支出，金额单位为万元。"
+DEFINITION = "环保投入指企业为环境保护发生的资本化与费用化支出，金额单位为万元。环保投入统计范围为合并范围，资本化与费用化互不重叠。"
 
 
 def doc(document_id="SYN-AR", report_type="AR", metric_period=""):

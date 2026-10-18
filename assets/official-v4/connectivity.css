@@ -167,6 +167,46 @@ body.cn-reader-open{overflow:hidden}
 .cn-impact h3{font-size:13px;margin:0 0 6px}
 .cn-impact ol{margin:0;padding-left:20px;font-size:12px;line-height:1.9}
 .cn-glossary{margin-top:8px}
+
+/* ===== 2026-10-18 AI意见：程序刻度 + 规则/模型解释，不替代口径与计算 ===== */
+.cn-ai{margin:18px 0 6px;border:1px solid var(--line);border-left:3px solid #805915;background:#FAF9F6;padding:16px 18px}
+.cn-ai[data-risk=negligible]{border-left-color:#28624B}
+.cn-ai[data-risk=low]{border-left-color:#5B6B3A}
+.cn-ai[data-risk=medium]{border-left-color:#805915}
+.cn-ai[data-risk=high]{border-left-color:#A45549}
+.cn-ai[data-risk=severe]{border-left-color:#963C35;background:#FBF3F1}
+.cn-ai-empty{border-left-color:#B9B4AC;font-size:12px;color:var(--muted)}
+.cn-ai-empty strong{display:block;color:#7E3F35;margin-bottom:4px}
+.cn-ai-empty p{margin:0}
+.cn-ai-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.cn-ai-mark{font:700 11px/1 Consolas,monospace;letter-spacing:1.5px;color:#7E3F35;text-transform:uppercase}
+.cn-ai-risk{font:600 12px/1 Consolas,monospace;padding:4px 7px;border:1px solid currentColor;color:#7E3F35;border-radius:2px}
+.cn-ai[data-risk=negligible] .cn-ai-risk{color:#28624B}
+.cn-ai[data-risk=severe] .cn-ai-risk{color:#963C35;background:#FBE9E7}
+.cn-ai-meta{font-size:11px;color:var(--muted);margin-left:auto}
+.cn-ai h3{font-size:16px!important;line-height:1.6;margin:6px 0 8px!important;font-weight:600}
+.cn-ai-verdict{font-size:12px;margin:0 0 12px;color:var(--muted)}
+.cn-ai-verdict strong{color:var(--ink)}
+.cn-ai-human{display:inline-block;margin-left:10px;padding:2px 7px;background:#FBE9E7;color:#963C35;border:1px solid #E3C1BB;font-size:11px;border-radius:2px}
+.cn-ai-human.ok{background:#E8F3ED;color:#28624B;border-color:#BFD9CB}
+.cn-ai-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;border-top:1px solid var(--line);padding-top:12px}
+.cn-ai-cols h4{font-size:11px;letter-spacing:.5px;color:#7E3F35;margin:0 0 4px;font-weight:700}
+.cn-ai-cols ul{margin:0;padding-left:16px;font-size:12px;line-height:1.8}
+.cn-ai-cols li{margin:0 0 4px}
+.cn-ai-cols p{font-size:12px;margin:0}
+.cn-ai-boundary{margin-top:12px;border-top:1px solid var(--line);padding-top:8px;font-size:12px}
+.cn-ai-boundary summary{cursor:pointer;min-height:32px;color:var(--muted)}
+.cn-ai-boundary ul{margin:6px 0;padding-left:18px;line-height:1.8}
+.cn-ai-tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0!important}
+.cn-ai-tag{font-size:11px;padding:2px 6px;border:1px solid #D8C8B8;background:#F1E8DF;color:#6B4A35;border-radius:2px}
+.cn-ai-disclaimer{font-size:10px!important;color:var(--muted);margin:12px 0 0!important;line-height:1.7;border-top:1px dashed var(--line);padding-top:8px}
+.cn-ai-summary{margin-top:16px;border:1px solid var(--line);border-left:3px solid #805915;background:#FAF9F6;padding:12px 14px}
+.cn-ai-summary h3{font-size:12px;margin:0 0 6px}
+.cn-ai-summary p{font-size:12px;margin:0 0 4px}
+.cn-ai-summary .cn-nextq-row em{margin-left:auto;font-style:normal;font-family:Consolas,monospace;color:#7E3F35}
+@media(max-width:900px){.cn-ai-cols{grid-template-columns:1fr}.cn-ai-meta{margin-left:0;flex-basis:100%}}
+@media print{.cn-ai{break-inside:avoid;background:#fff}}
+
 .cn-glossary summary{cursor:pointer;font-size:12px;min-height:32px;display:flex;align-items:center}
 .cn-glossary p{font-size:12px;color:#5E5C59;line-height:1.9;margin:4px 0}
 .cn-run-record{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
@@ -238,3 +278,27 @@ body.cn-reader-open{overflow:hidden}
   #cn-check-list{display:flex;overflow:auto;max-height:none}
   #connectivity-root .cn-check{min-width:220px;width:220px;border-right:1px solid var(--line);border-bottom:0}
 }
+/* AI意见、条件调节与程序正式结果使用独立阅读块。 */
+.cn-ai-opinion,.cn-scenario{padding:20px 24px;margin:20px 0;border:1px solid #cbd9e8;border-radius:14px;background:#f4f7fb;color:#16324c;overflow-wrap:anywhere}
+.cn-ai-heading{display:flex;gap:16px;justify-content:space-between;align-items:baseline;flex-wrap:wrap}
+.cn-ai-heading h3{margin:0}.cn-ai-heading small{color:#52708e}.cn-ai-summary{font-size:1.05rem;line-height:1.8}.cn-ai-opinion li{margin:6px 0;line-height:1.7}.cn-ai-opinion h4,.cn-scenario h4{margin:16px 0 8px}.cn-scenario{background:#f8fafc}
+@media(max-width:600px){.cn-ai-opinion,.cn-scenario{padding:16px}}
+/* 研判与程序事实分开阅读，核查级别始终附文字说明。 */
+.cn-filter{text-align:left;color:inherit;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:12px}
+.cn-filter[aria-pressed="true"]{border-color:#2458a8;box-shadow:inset 0 -3px #2458a8}
+.cn-card-value{font-size:2rem;font-weight:700;display:flex;align-items:baseline;gap:8px}
+.cn-card-value small{font-size:.8rem;font-weight:400}
+.cn-filter:focus-visible,#connectivity-root button:focus-visible,#connectivity-root summary:focus-visible{outline:3px solid #2458a8;outline-offset:3px}
+.cn-program-hint{padding:20px 24px;border-left:3px solid #657789;background:#f5f7f9;margin:16px 0;overflow-wrap:anywhere}
+.cn-priority{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:.9rem}
+.cn-priority span{color:#566477}.cn-priority[data-priority="high"] strong{color:#9b342c}
+.cn-priority[data-priority="medium"] strong{color:#79551e}
+.cn-hypotheses{margin:24px 0}.cn-hypothesis{border-top:1px solid #cbd5df;padding:16px 0;overflow-wrap:anywhere}
+.cn-hypothesis summary{font-weight:600;cursor:pointer;line-height:1.7;min-height:44px}
+.cn-hypothesis h4{margin:16px 0 8px}.cn-ai-opinion details{margin-top:16px}
+#connectivity-root .cn-filter{min-height:140px}
+@media(max-width:600px){.cn-program-hint{padding:16px}.cn-priority{display:block}.cn-priority span{display:block;margin-top:8px}#connectivity-root .cn-filter{min-height:120px}}
+
+
+/* 详情标签保留键盘顺序，并满足短标签的触控宽度。 */
+.cn-detail-tabs [role="tab"]{min-width:44px;min-height:44px}

@@ -508,6 +508,102 @@ def _exclusions(occurrences: list[DisclosureOccurrence]) -> list[ExtractionExclu
     return rows
 
 
+def report_industry_context(root: Path, run) -> dict:
+    """从本公司业务介绍提取行业出处，三行业试点仅提供本项目检索重点。"""
+    trials = {'白酒': ['用水与取水', '包装材料', '研发投入'],
+              '钢铁': ['粗钢产量', '综合能耗', '排放强度', '环保投入'],
+              '电池': ['能源结构', '材料回收', '产能与产量', '排放强度']}
+    identity = re.compile(r'公司.{0,18}(主营业务|主要从事|所属|所处|属于)|主营业务为|所属行业|主要业务是')
+    for document in run.documents:
+        path = root / 'backend/runtime/connectivity/extraction' / f'{document.file_sha256}-{PARSER_CACHE_VERSION}.json'
+        if not path.is_file():
+            continue
+        for page in json.loads(path.read_text(encoding='utf-8')):
+            lines = page.get('lines', [])
+            for index, line in enumerate(lines):
+                context = '\n'.join(r['text'] for r in lines[max(0,index-1):index+3])
+                if not identity.search(context):
+                    continue
+                industry = next((name for name in trials if name in context), None)
+                if not industry:
+                    continue
+                oid = f'{document.document_id}-{page["page"]}-IND-{index}'
+                if not any(o.occurrence_id == oid for o in run.occurrences):
+                    run.occurrences.append(DisclosureOccurrence(occurrence_id=oid,document_id=document.document_id,
+                        pdf_page=page['page'],bbox=line.get('bbox',[]),page_width=page.get('width',0),page_height=page.get('height',0),
+                        label='公司业务与行业说明',row_header=line['text'],context=context,quality='text_only',topic='basis'))
+                return {'industry': industry, 'evidence_id': oid, 'quote': context,
+                        'search_priorities': trials[industry], 'source': 'company_report',
+                        'note': '本项目三行业检索试点；不是评级权重或同业平均值'}
+    return {'industry': '未取得明确行业依据', 'search_priorities': [], 'source': 'generic',
+            'note': '使用通用指标指导，不猜测行业分类或行业均值'}
+
+
+def retrieve_targeted_pages(root: Path, run, checks: list, round_number: int = 1, per_check: int = 8) -> list[dict]:
+    """按具体缺口和模型检索词搜索已解析全文，补出初次主题召回之外的文字依据。
+
+    新片段仅作原文证据，不猜数值、单位或年度归属；没有文字层的页单独记失败。
+    缓存按登记哈希读取，不接受模型传入路径或联网地址。
+    """
+    if round_number not in (1, 2):
+        return []
+    from .connectivity_intelligence import GAP_KEYWORDS
+    sources = {o.occurrence_id: o for o in run.occurrences}
+    cached = {}
+    for document in run.documents:
+        path = root / 'backend/runtime/connectivity/extraction' / f'{document.file_sha256}-{PARSER_CACHE_VERSION}.json'
+        if path.is_file():
+            cached[document.document_id] = json.loads(path.read_text(encoding='utf-8'))
+    tasks = []
+    for check in checks:
+        members = [sources[m.occurrence_id] for m in check.members if m.occurrence_id in sources]
+        doc_ids = {m.document_id for m in members}
+        queries = [q for h in check.hypotheses for q in h.retrieval_queries]
+        words = list(dict.fromkeys([w for c in check.conditions if c.status != 'supported'
+                                    for w in GAP_KEYWORDS.get(c.name, [])] + queries))
+        if not words:
+            continue
+        topic_words = TOPICS.get(check.topic, {}).get('keywords', [])
+        ranked, pages_scanned, failed = [], {}, []
+        for doc_id in doc_ids:
+            pages_scanned[doc_id] = []
+            for page in cached.get(doc_id, []):
+                if page.get('error'):
+                    failed.append({'document_id': doc_id, 'page': page['page'], 'reason': page['error']})
+                    continue
+                pages_scanned[doc_id].append(page['page'])
+                lines = page.get('lines', [])
+                nearby = any(m.document_id == doc_id and abs(m.pdf_page-page['page']) <= 1 for m in members)
+                for index, line in enumerate(lines):
+                    text = re.sub(r'\s+', '', line['text'])
+                    hits = sum(w in text for w in words)
+                    if not hits or not (nearby or any(w in text for w in topic_words) or any(q in text for q in queries)):
+                        continue
+                    context = '\n'.join(r['text'] for r in lines[max(0,index-2):index+3]
+                                        if r.get('side') == line.get('side'))
+                    identity = f'{doc_id}-{page["page"]}-SUP-{index}'
+                    if identity in sources or any(o.document_id == doc_id and o.pdf_page == page['page']
+                                                 and context in o.context for o in run.occurrences):
+                        continue
+                    ranked.append(((any(q in text for q in queries), nearby, hits), DisclosureOccurrence(
+                        occurrence_id=identity, document_id=doc_id, pdf_page=page['page'],
+                        bbox=line.get('bbox', []), page_width=page.get('width', 0), page_height=page.get('height', 0),
+                        label=line['text'][:180], row_header=line['text'], context=context,
+                        quality='text_only', quality_reason='按具体关系补查的原文；未绑定数值字段', topic=check.topic)))
+        ranked.sort(key=lambda pair: pair[0], reverse=True)
+        added = []
+        for _, occurrence in ranked[:per_check]:
+            if occurrence.occurrence_id not in sources:
+                run.occurrences.append(occurrence)
+                sources[occurrence.occurrence_id] = occurrence
+                added.append(occurrence.occurrence_id)
+        tasks.append({'check_id': check.check_id, 'round': round_number, 'queries': words,
+                      'model_queries': queries, 'source': 'parsed_report_pages', 'scanned_pages': pages_scanned,
+                      'failed_pages': failed, 'new_evidence_ids': added,
+                      'note': '仅搜索登记版本已解析文字；未命中不等于企业未披露'})
+    return tasks
+
+
 def search_context(occurrences: list[DisclosureOccurrence], keywords: list[str], limit: int = 40) -> list[DisclosureOccurrence]:
     """只在本次原件候选内补查定义和反证，保留真实命中上限。"""
     scored = [(sum(word in row.context for word in keywords), row) for row in occurrences]

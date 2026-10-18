@@ -6,9 +6,11 @@
 from __future__ import annotations
 
 from collections import Counter
+from decimal import Decimal
 
 from .connectivity_rules import BASE_CONDITIONS
 from .connectivity_schemas import ConnectivityRun
+from .ai_opinion import build_program_hints
 
 CONFIRMED_STATUSES = {"consistent", "precision_explained", "adjustment_explained"}
 
@@ -79,8 +81,34 @@ def build_overview(run: ConnectivityRun) -> dict:
     failed_pages = sum(len(c.failed_pages) for c in run.coverage)
     excluded = len(run.extraction_exclusions)
     extracted = len(run.occurrences)
+    hints = run.program_hints or build_program_hints(run)
+    priority = sorted([h for h in hints if h['priority'] != 'low'], key=lambda h: h['priority'] != 'high')
+    formal = [c.check_id for c in checks if c.calculation.get('residual') is not None]
+    trials = [c.check_id for c in checks if c.check_id not in formal and c.hypothetical and c.hypothetical.get('residual') is not None]
+    actionable = [h for h in hints if h.get('program_priority', h['priority']) != 'low'
+                  or (h.get('difference', {}).get('absolute') is not None and Decimal(h['difference']['absolute']) != 0)]
+    opinions = [a for a in run.ai_analyses if a.status == "current"]
     return {
+        "counting_version": "2026-10-18.2",
         "relation_total": total,
+        "formal_calculations": {"value": len(formal), "items": formal},
+        "program_calculations": {"value": len(formal), "items": formal, "label": "正式复算（历史字段别名）"},
+        "numerical_records": {"value": len(formal)+len(trials), "items": formal+trials},
+        "program_records": {"value": len(hints), "label": "程序事实记录，包含无差异记录"},
+        "program_hints": {"value": len(actionable), "items": [h['check_id'] for h in actionable], "label": "程序差异或限制提示"},
+        "priority_checks": {"value": len(priority), "items": [h['check_id'] for h in priority],
+                            "details": priority, "label": "优先核查的关系，含模型排序建议"},
+        "model_opinions": {"value": sum(a.status == 'current' for a in run.ai_analyses),
+                           "items": [a.check_id for a in run.ai_analyses if a.status == 'current'],
+                           "new": sum(a.status == 'current' and not a.inherited_from_run_id for a in run.ai_analyses),
+                           "reused": sum(a.status == 'current' and bool(a.inherited_from_run_id) for a in run.ai_analyses)},
+        "ai_analysis": {"value": len(opinions), "denominator": total,
+                        "items": [a.check_id for a in opinions],
+                        "by_verdict": dict(Counter(a.verdict for a in opinions)),
+                        "stale": sum(a.status != "current" for a in run.ai_analyses)},
+        "trial_calculations": {"value": len(trials), "items": trials, "label": "仅条件试算，不计入正式复算"},
+        "scenario_bridges": {"value": sum(bool(c.scenario_adjustment and c.scenario_adjustment.get("applied")) for c in checks),
+                             "items": [c.check_id for c in checks if c.scenario_adjustment and c.scenario_adjustment.get("applied")]},
         "confirmable": {"value": len(confirmed), "denominator": total,
                         "label": "条件支持且计算成立的关系", "items": [c.check_id for c in confirmed]},
         "unconfirmable": {"value": len(blocked), "denominator": total, "conflicting": len(conflicting),

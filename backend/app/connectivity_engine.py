@@ -127,6 +127,7 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     """从原始关系重建状态，忽略前端或模型提交的既有计算结论。"""
     result = check.model_copy(deep=True)
     result.calculation = {}
+    result.hypothetical = None
     result.unresolved = []
     result.criteria_status = "unknown"
     result.calculation_status = "not_executable"

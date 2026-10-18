@@ -20,14 +20,18 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 import pymupdf
 
-from .connectivity_schemas import ConnectivityRun, CorrectionRequest, UserReviewRequest, ProfessionalRiskNote, ReviewEvent, RunRequest, NOTICE
+from .connectivity_schemas import ConnectivityRun, CorrectionRequest, UserReviewRequest, ProfessionalRiskNote, ReviewEvent, RunRequest, NOTICE, SCHEMA_VERSION
 from .connectivity_engine import calculate
 from .connectivity_extraction import load_registry, ensure_source, extract_document
-from .connectivity_pipeline import run_pipeline, make_findings
+from .connectivity_pipeline import run_pipeline, make_findings, PROMPT_VERSION
+from .connectivity_intelligence import enrich_calculation, refresh_analysis_status
+from .ai_opinion import build_program_hints
+from .connectivity_overview import build_overview
 from .connectivity_rules import RULES, TOPICS, required_conditions
 from .demo_run_tasks import DemoRunTaskStore, SupabaseDemoRunTaskStore, IdempotencyConflict, result_expiry_iso
 from .supabase_adapter import demo_task_supabase_enabled, get_demo_task_client, SupabaseConflict
 from .source_viewer import preview_path, source_page_response, PDF_ACCESS_LOCK
+from .public_model import PublicModelQuotaError
 
 COOKIE = "audittrace_connectivity_session"
 
@@ -74,6 +78,11 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         result["can_modify"] = is_owner
         # 公共视图默认不含个人观察正文，只列条数；本人视图才展开。
         body = result.get("result")
+        if isinstance(body, dict):
+            body = dict(body)
+            normalized = ConnectivityRun.model_validate({k:v for k,v in body.items() if k in ConnectivityRun.model_fields})
+            body['overview'] = build_overview(normalized)
+            result['result'] = body
         if isinstance(body, dict) and not is_owner:
             body = dict(body)
             notes = body.get("professional_notes") or []
@@ -96,7 +105,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             pair["documents"].append(doc.model_dump())
         rule_cards = {key: {**rule, "conditions": list(required_conditions(rule["operator"]))} for key, rule in RULES.items()}
         return {"pairs": list(grouped.values()), "topics": TOPICS, "rules": rule_cards, "notice": NOTICE,
-                "task_persistence": "supabase" if demo_task_supabase_enabled() else "local", "schema_version": "connectivity_v1"}
+                "task_persistence": "supabase" if demo_task_supabase_enabled() else "local", "schema_version": SCHEMA_VERSION,
+                "intelligence_version": "hybrid_v2", "prompt_version": PROMPT_VERSION}
 
     @router.post("/runs")
     def create(body: RunRequest, request: Request):
@@ -108,6 +118,20 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(404, "报告对未登记")
         runtime = store()
         run_body = {**body.model_dump(), "kind": "connectivity", "owner": owner(request)}
+        resume = None
+        if body.retry_of_task_id:
+            original = task(body.retry_of_task_id)
+            authorize(request, original)
+            snapshot = store(body.retry_of_task_id).snapshot(body.retry_of_task_id) or {}
+            if original.get("case_id") != body.pair_id:
+                raise HTTPException(422, "重试报告对必须与原任务一致")
+            if set(original.get('run_body', {}).get('topics', body.topics)) != set(body.topics):
+                raise HTTPException(422, '增量重试须沿用原事项选择；改变事项请发起新运行')
+            if snapshot.get("result"):
+                resume = ConnectivityRun.model_validate(snapshot["result"])
+                if resume.execution_mode != body.mode:
+                    raise HTTPException(422, "增量重试须沿用原执行模式；切换模式请发起新运行")
+            run_body["parent_task_id"] = body.retry_of_task_id
 
         def execute(item):
             reservation = None
@@ -126,17 +150,25 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     raise InterruptedError("原任务已取消，未发送模型请求")
                 reservation = reserve_model(request)
             try:
+                resume_options = {"resume": resume} if resume is not None else {}
                 result = run_pipeline(root, body,
                     progress=lambda *args: runtime.update_stage(item["task_id"], *args),
                     agent_progress=lambda *args: runtime.update_agent_step(item["task_id"], *args),
-                    cancelled=cancelled, before_model=before_model)
-                degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed"}
-                runtime.update_task(item["task_id"], status="degraded" if degraded else "completed", run_id=result.run_id,
-                    result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso())
+                    cancelled=cancelled, before_model=before_model, **resume_options)
             finally:
                 if reservation:
                     calls = result.provider_calls if result else []
-                    quota_ledger().settle(reservation, input_tokens=sum(c.get("input_tokens") or 0 for c in calls), output_tokens=sum(c.get("output_tokens") or 0 for c in calls))
+                    try:
+                        quota_ledger().settle(reservation, input_tokens=sum(c.get("input_tokens") or 0 for c in calls), output_tokens=sum(c.get("output_tokens") or 0 for c in calls))
+                    except PublicModelQuotaError as error:
+                        if result is None:
+                            raise
+                        # 模型响应和预算结算是两种事实；保留已取得意见，明确结算未通过。
+                        result.versions['quota_settlement'] = {'status': 'failed', 'code': error.code, 'message': str(error)[:240]}
+                        runtime.update_stage(item['task_id'], 'structured_output', 'degraded', str(error)[:240])
+            degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed", "reused_completed"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
+            runtime.update_task(item["task_id"], status="degraded" if degraded else "completed", run_id=result.run_id,
+                result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso())
         execute.__audittrace_request__ = request
         try:
             item = runtime.create(body.pair_id, run_body, execute, idempotency_key=request.headers.get("idempotency-key"))
@@ -186,7 +218,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         child.result_revision += 1
         validated.review_status = "demo_modified"
         old = next(c for c in run.checks if c.check_id == validated.check_id)
-        child.checks = [calculate(validated if c.check_id == validated.check_id else c, child.occurrences) for c in child.checks]
+        child.checks = [enrich_calculation(calculate(validated if c.check_id == validated.check_id else c, child.occurrences), child.occurrences) for c in child.checks]
+        refresh_analysis_status(child)
         child.findings = make_findings(child.checks)
         child.reviews.append(ReviewEvent(event_id=body.action_id, actor=body.actor, action="relationship_correction", reason=body.reason,
             check_id=validated.check_id, before=old.model_dump(), after=validated.model_dump()))
@@ -203,6 +236,9 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(422, "所选关系必须属于本次结果且不可重复")
         if body.action == "personal_observation" and (len(ids) != 1 or len(body.observation.strip()) < 3):
             raise HTTPException(422, "个人观察须对应一项关系并填写具体内容")
+        if body.action in {"ai_accept", "ai_reject"}:
+            if len(ids) != 1 or not any(a.check_id in ids and a.status == "current" for a in run.ai_analyses):
+                raise HTTPException(422, "请选一项与当前结果绑定的AI意见；旧意见需先重新分析")
         child = run.model_copy(deep=True)
         child.parent_run_id = run.run_id
         child.run_id = f"CONN-{uuid.uuid4().hex[:16].upper()}"
@@ -211,7 +247,14 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             if check.check_id not in ids:
                 continue
             before = check.model_dump()
-            if body.action == "reading_confirmation":
+            if body.action in {"ai_accept", "ai_reject"}:
+                opinion = next(a for a in child.ai_analyses if a.check_id == check.check_id)
+                before = opinion.model_dump()
+                opinion.review_status = "accepted" if body.action == "ai_accept" else "rejected"
+                child.reviews.append(ReviewEvent(event_id=body.action_id, actor=body.actor, action=body.action,
+                    reason=body.reason, check_id=check.check_id, before=before, after=opinion.model_dump()))
+                continue
+            elif body.action == "reading_confirmation":
                 check.review_status = "read_confirmed"
             else:
                 child.professional_notes.append(ProfessionalRiskNote(check_id=check.check_id,
@@ -248,6 +291,10 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     return public(task(head["task_id"]), request)
                 raise HTTPException(409, "该结果已有新修订，请读取子运行后再更正")
             def save_child(row):
+                refresh_analysis_status(child)
+                child.versions['result_origin'] = 'user_revision'
+                child.program_hints = build_program_hints(child)
+                child.overview = build_overview(child)
                 runtime.update_task(row["task_id"], status="completed", run_id=child.run_id, result=child.model_dump(mode="json"), result_expires_at=result_expiry_iso())
             correction_body = {"kind": "connectivity", "owner": owner(request), "parent_run_id": run.run_id, "parent_task_id": item["task_id"], "action_id": body.action_id, "mutation_digest": mutation_digest}
             try:
