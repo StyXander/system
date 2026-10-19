@@ -4,9 +4,16 @@
   const $ = id => document.getElementById(id);
   const root = $('connectivity-root'), main = $('cn-workspace');
   const safe = value => String(value??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let step = 1, task = null, view = 'new';
+  let step = 1, task = null, view = 'new', taskError = null;
   const historyKey = 'audittrace-connectivity-history-v2';
   function historyRows() { try { return JSON.parse(localStorage.getItem(historyKey)||'[]').filter(row => /^(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}$/.test(row.id)).slice(0,30); } catch { return []; } }
+  /* 首页与工作台是两条路由：进入工作台后收起长 hero，返回首页才恢复，
+     这样结果页不会再被首页大图反复打断。 */
+  function setRoute(mode) {
+    document.body.dataset.route = mode;
+    if (mode==='workspace') document.getElementById('redesign-home')?.setAttribute('aria-hidden', 'true');
+    else document.getElementById('redesign-home')?.removeAttribute('aria-hidden');
+  }
   const intro = document.querySelector('.cn-intro'), start = document.querySelector('.cn-start'), about = document.querySelector('.cn-about');
 
   const heroSvg = `<svg viewBox="0 0 560 250" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true">
@@ -157,7 +164,17 @@
   $('cn-step-1').append(pair, $('cn-documents')); $('cn-step-2').append(topics);
   const advanced = document.createElement('details'); advanced.className = 'cn-advanced'; advanced.innerHTML = '<summary>高级设置：速度与模型调用</summary><p>三角色：计算并调用模型核对依据；仅计算：不调用模型；单模型：用于对照阅读，仍会调用模型。</p>'; advanced.append(mode); $('cn-step-2').append(advanced); $('cn-step-3').append(run);
   $('cn-results').dataset.workspaceView = 'result'; about.dataset.workspaceView = 'method'; about.open = true;
-  main.insertAdjacentHTML('beforeend', '<section class="aw-history" data-workspace-view="history" hidden><p class="cn-eyebrow">RECENT RECORDS / 历史记录</p><h1>历史记录</h1><p class="cn-help">仅列出本浏览器实际访问的任务，最多保留30条入口；任务内容从服务器重新读取，原有权限仍然适用。</p><form id="cn-open-task"><label>通过任务编号打开记录<input id="cn-task-id" required pattern="(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}" placeholder="CONNJOB-… 或 DEMO-RUN-…"></label><button type="submit">读取记录</button></form><div id="cn-history-list"></div></section>');
+  main.insertAdjacentHTML('beforeend', `<section class="aw-history" data-workspace-view="history" hidden>
+    <p class="cn-eyebrow">RECENT RECORDS / 历史记录</p>
+    <h1>历史记录</h1>
+    <p class="cn-help">默认列出本浏览器最近 5 条任务，按完成、失败、过期分开标注。任务内容从服务器重新读取，原有权限仍然适用；这里不借用他人会话的数据。</p>
+    <ol id="cn-history-list" class="cn-history-list"></ol>
+    <details class="aw-history-advanced"><summary>按任务编号打开（高级入口）</summary>
+      <form id="cn-open-task"><label>任务编号<input id="cn-task-id" required pattern="(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}" placeholder="CONNJOB-… 或 DEMO-RUN-…"></label><button type="submit">读取记录</button></form>
+      <p class="cn-help">任务编号见结果页顶部“任务”一行；复制链接可连同编号一起分享。</p>
+    </details>
+    <div id="cn-history-more"></div>
+  </section>`);
   document.querySelectorAll('[data-workspace-view="dashboard"]').forEach(node => node.remove());
 
   function syncTopicChips() {
@@ -172,9 +189,10 @@
 
   function selectTab() { /* 详情标签由 connectivity.js 管理，这里不再维护结果级标签 */ }
   function showView(key) {
-    if (key==='result' && !task?.result) return;
+    if (key==='result' && !task?.result && !taskError) return;
     view = key;
     root.dataset.awView = key;
+    if (key!=='result' && taskError) renderTaskError(null);
     if (document.activeElement !== document.body || root.getBoundingClientRect().top < 0) {
       /* 同页模式下切视图回到工作台顶部，而不是整页顶部 */
       if (root.getBoundingClientRect().top < -4) root.scrollIntoView({block:'start'});
@@ -197,12 +215,40 @@
     if (focus) { const heading = $(`cn-step-${step}`).querySelector('h2'); heading.tabIndex = -1; heading.focus(); }
     $('cn-confirm').innerHTML = `<h3>${safe($('cn-pair').selectedOptions[0]?.textContent||'')}</h3><p>${[...form.querySelectorAll('[name="topic"]:checked')].map(el => safe(el.parentElement.textContent.trim())).join(' · ')}</p><p>${safe($('cn-mode').selectedOptions[0].textContent)}</p>`;
   }
+  /* 历史入口按“能不能直接点开”设计：默认 5 条，状态分开，编号只作高级入口。 */
+  const historyTone = row => {
+    const text = String(row.status||'');
+    if (text.includes('完成')) return 'ok';
+    if (text.includes('失败') || text.includes('中断') || text.includes('无法读取')) return 'warn';
+    if (text.includes('过期') || text.includes('不存在')) return 'expired';
+    if (text.includes('进行') || text.includes('排队')) return 'run';
+    return 'neutral';
+  };
+  function historyItem(row) {
+    const tone = historyTone(row);
+    return `<li class="cn-history-row" data-tone="${tone}"><div class="cn-history-main"><span class="cn-history-dot" aria-hidden="true"></span><div><strong>${safe(row.company||'报告核对任务')}</strong><small>${safe(row.id)} · ${safe(row.time||'时间未记录')}</small></div></div><span class="cn-history-status">${safe(row.status||'状态未记录')}</span><button type="button" data-open-task="${safe(row.id)}">打开记录 ↗</button></li>`;
+  }
   function renderHistory() {
     const rows = historyRows();
-    const html = rows.length ? rows.map(row => `<article class="cn-history-row"><div><strong>${safe(row.company||'报告核对任务')}</strong><small>${safe(row.id)} · ${safe(row.status)} · ${safe(row.time)}</small></div><button type="button" data-open-task="${safe(row.id)}">打开记录 ↗</button></article>`).join('') : '<p class="cn-empty">尚无本浏览器访问记录。开始一次核验，或用已有任务编号读取。</p>';
-    $('cn-history-list').innerHTML = html;
+    const list = $('cn-history-list');
+    if (!list) return;
+    list.innerHTML = rows.length ? rows.slice(0,5).map(historyItem).join('') : '<li class="cn-empty">尚无本浏览器访问记录。开始一次核验，或用任务编号读取。</li>';
+    $('cn-history-more').innerHTML = rows.length>5 ? `<details class="aw-history-all"><summary>查看其余 ${rows.length-5} 条</summary><ol class="cn-history-list">${rows.slice(5).map(historyItem).join('')}</ol></details>` : '';
   }
   function openTask(id) { const url = new URL(location.href); url.searchParams.set('connectivity_task', id); url.hash = 'connectivity-root'; location.assign(url); }
+
+  /* 深链失败必须说清是哪一种：过期、无权限、还是服务不可用。 */
+  function renderTaskError(error) {
+    taskError = error || null;
+    const box = $('cn-task-error');
+    if (!error) { box.hidden = true; box.innerHTML = ''; return; }
+    const expired = error.status==='expired' || error.code===410;
+    const forbidden = error.status==='forbidden' || error.code===403;
+    box.hidden = false;
+    box.innerHTML = `<div class="cn-task-error-head"><p class="cn-eyebrow">TASK UNAVAILABLE</p><h2 id="cn-task-error-title">${expired?'这条任务链接已不可用':forbidden?'当前浏览器无权读取该任务':'任务结果未能读取'}</h2><p>${safe(error.message||'请稍后重试。')}</p></div>
+      <div class="cn-task-error-actions"><button type="button" data-view="new">新建一次核验</button><button type="button" data-view="history">打开历史记录</button>${error.task_id?`<button type="button" data-retry-task="${safe(error.task_id)}">重新读取</button>`:''}</div>
+      <p class="cn-help">链接仍可复制；能否读取取决于原任务的权限与保留期限。</p>`;
+  }
 
   const search = $('aw-search');
   const searchResults = document.createElement('section');
@@ -254,13 +300,18 @@
 
   root.addEventListener('click', event => {
     const target = event.target.closest('button,a'); if (!target) return;
-    if (target.dataset.view) showView(target.dataset.view);
+    if (target.dataset.view) { showView(target.dataset.view); }
     if (target.dataset.step) setStep(Number(target.dataset.step), true);
     if (target.dataset.openTask) openTask(target.dataset.openTask);
+    if (target.dataset.retryTask) {
+      renderTaskError(null);
+      document.dispatchEvent(new CustomEvent('audittrace:connectivity-open-task', {detail:{task_id:target.dataset.retryTask}}));
+    }
     if (target.hasAttribute('data-home')) {
       event.preventDefault();
       const url = new URL(location.href); url.searchParams.delete('connectivity_task'); url.hash = 'top';
       history.replaceState(null, '', url);
+      setRoute('home');
       window.scrollTo({top:0, behavior:'smooth'});
       document.querySelector('#redesign-home .identity')?.focus({preventScroll:true});
     }
@@ -271,6 +322,7 @@
   $('cn-open-task').addEventListener('submit', event => { event.preventDefault(); openTask($('cn-task-id').value.trim()); });
   document.addEventListener('audittrace:connectivity-task', event => {
     task = event.detail; const run = task.result;
+    taskError = null; renderTaskError(null); setRoute('workspace');
     const bar = $('cn-stagebar'); if (bar) { if (run) bar.dataset.stale='true'; else delete bar.dataset.stale; }
     const rows = historyRows().filter(row => row.id!==task.task_id);
     rows.unshift({id:task.task_id, company:run?`${run.company} · ${run.period}`:$('cn-pair').selectedOptions[0]?.textContent,
@@ -280,12 +332,51 @@
     if (run) { $('cn-result-nav').hidden = false; showView('result'); applySearch(); }
     else if (['queued','running'].includes(task.status)) showView('new');
   });
-  // 首页与工作台连成同一条滚动：深链接只负责定位，不再隐藏首页。
-  if (location.hash==='#connectivity-root' || new URL(location.href).searchParams.has('connectivity_task')) {
-    let pending = true;
-    const land = () => { if (!pending) return; root.scrollIntoView({block:'start'}); };
-    requestAnimationFrame(land); setTimeout(land, 500);
-    document.addEventListener('audittrace:connectivity-task', () => { pending = false; land(); }, {once:true});
+  document.addEventListener('audittrace:connectivity-task-error', event => {
+    const detail = Object.assign({}, event.detail);
+    setRoute('workspace');
+    task = null;
+    // 过期或不存在时同步更新历史条目，避免列表里仍显示“已完成”。
+    if (['expired','forbidden'].includes(detail.status)) {
+      const rows = historyRows().map(row => row.id===detail.task_id
+        ? {...row, status: detail.status==='expired' ? '已过期' : '无法读取（无权限）'} : row);
+      localStorage.setItem(historyKey, JSON.stringify(rows));
+    }
+    renderTaskError(detail);
+    $('cn-result-nav').hidden = true;
+    showView('result');
+  });
+  // 首页与工作台是两条路由：深链只负责定位，不再把长 hero 留在结果页上方。
+  const shared = new URL(location.href).searchParams.get('connectivity_task');
+  if (location.hash==='#connectivity-root' || shared) {
+    setRoute('workspace');
+    requestAnimationFrame(() => root.scrollIntoView({block:'start'}));
+  } else {
+    setRoute('home');
+  }
+  // 浏览器前进/后退与刷新走同一条读取路径。
+  window.addEventListener('popstate', () => {
+    const id = new URL(location.href).searchParams.get('connectivity_task');
+    if (id) {
+      setRoute('workspace');
+      document.dispatchEvent(new CustomEvent('audittrace:connectivity-open-task', {detail:{task_id:id}}));
+      return;
+    }
+    if (location.hash==='#connectivity-root') { setRoute('workspace'); return; }
+    setRoute('home'); showView('new');
+  });
+  // 任何“进入工作台”的入口都切到工作台路由，返回首页再恢复 hero。
+  document.addEventListener('click', event => {
+    if (event.target.closest('[data-enter-connectivity]')) setRoute('workspace');
+  }, true);
+  window.addEventListener('hashchange', () => { if (location.hash==='#connectivity-root') setRoute('workspace'); });
+  // 首页样例只指向本浏览器真实访问过的记录，没有记录就不显示，不编造数字。
+  const sampleRow = historyRows().find(row => historyTone(row)==='ok') || historyRows()[0];
+  const heroSample = $('hero-sample');
+  if (heroSample && sampleRow) {
+    heroSample.hidden = false;
+    heroSample.textContent = `查看最近一次真实记录 · ${sampleRow.company || sampleRow.id}`;
+    heroSample.addEventListener('click', event => { event.preventDefault(); openTask(sampleRow.id); });
   }
   setStep(1); showView('new');
 })();

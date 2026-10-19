@@ -15,7 +15,8 @@
   <script src="/assets/official-v4/ambient.js?v=0.13.7" defer></script>
   <script src="/assets/official-v4/demo-app.js?v=0.14.2" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/connectivity.css?v=4.1.1">
-  <script src="/assets/official-v4/connectivity.js?v=4.2.1" defer></script>
+  <script src="/assets/official-v4/connectivity-status.js?v=1.0.0" defer></script>
+  <script src="/assets/official-v4/connectivity.js?v=5.0.0" defer></script>
 <!-- 样式统一由 assets/official-v4/styles.css 提供；保留此注释说明不再允许内联样式。 -->
   <script src="/assets/official-v4/connectivity-workspace.js?v=2.3.3" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/redesign-home.css?v=2.2.1">
@@ -50,10 +51,15 @@
   <div class="hero-index" aria-hidden="true"><span>01</span><span>02</span></div>
 
   <div class="hero-heading" id="heroHeading">
-    <div class="kicker">跨报告 · 关联核验 · 证据追溯</div>
+    <div class="kicker">两份报告 · 一个披露事项 · 先判断能否比较</div>
     <h1 class="mega" aria-label="审迹智链"><span class="ghost" aria-hidden="true">审迹智链</span>审迹智链</h1>
     <div class="title-row"><i class="rule"></i><span>AUDITTRACE</span><i class="rule"></i></div>
-    <p class="hero-sub">年度报告 × 可持续发展报告 · 智能关联核验</p>
+    <p class="hero-sub hero-sub-lead">两份报告、一个披露事项：先判断能不能比，再看差异和证据。</p>
+    <p class="hero-sub hero-sub-detail">年度报告 × 可持续发展报告 · 关系判定 · 每个数字回到原页</p>
+    <div class="hero-actions">
+      <a class="hero-cta" href="#connectivity-root" data-enter-connectivity>用已登记报告开始核对 ↗</a>
+      <a class="hero-sample" id="hero-sample" href="#connectivity-root" hidden>查看一条真实核验记录</a>
+    </div>
   </div>
 
   <div class="side-rule left">FINANCIAL / 2025 — ANNUAL REPORT</div>
@@ -66,16 +72,23 @@
     <div class="model-zone model-zone-left" id="model-left" tabindex="0" role="group" aria-label="左侧财务模型" aria-describedby="model-instructions" data-model="a"></div>
     <div class="model-zone model-zone-right" id="model-right" tabindex="0" role="group" aria-label="右侧排放模型" aria-describedby="model-instructions" data-model="b"></div>
     <span class="model-instructions" id="model-instructions">拖拽旋转当前模型，滚轮或加减键缩放；放大后左右拖动或方向键可移动模型，按住Shift拖动可旋转，Home键复位。两个模型之间可滚动页面。</span>
-    <button class="rd-original-style-1 scene-label" data-focus="left" id="tagLeft"><span class="lab-index">FIG 01 — K 线柱群</span><strong>财务表现 · 冲天 K 线</strong><small>FINANCIAL SIGNAL</small></button>
-    <button class="rd-original-style-2 scene-label" data-focus="right" id="tagRight"><span class="lab-index">FIG 02 — 排放塔群</span><strong>排放现场 · 碳排风险</strong><small>INDUSTRIAL CONTEXT</small></button>
-    <button class="rd-original-style-3 scene-label" data-focus="report" id="tagReport"><span class="lab-index">FIG 03 — 披露文本</span><strong>ESG 披露 · 待核验</strong><small>DOCUMENT REVIEW</small></button>
+    <button class="rd-original-style-1 scene-label" data-focus="left" id="tagLeft"><span class="lab-index">FIG 01 — 年度报告</span><strong>年度报告 · 财务披露</strong><small>ANNUAL REPORT</small></button>
+    <button class="rd-original-style-2 scene-label" data-focus="right" id="tagRight"><span class="lab-index">FIG 02 — 可持续发展报告</span><strong>ESG 披露 · 环境与投入</strong><small>SUSTAINABILITY REPORT</small></button>
+    <button class="rd-original-style-3 scene-label" data-focus="report" id="tagReport"><span class="lab-index">FIG 03 — 关系判定</span><strong>同一事项 · 能否比较</strong><small>COMPARABILITY</small></button>
   </div>
 
   <div class="hero-shade" aria-hidden="true"></div>
+  <div class="hero-mechanism" aria-hidden="true">
+    <div class="hm-doc"><span>年度报告</span><b>披露事项</b></div>
+    <div class="hm-arrow">→</div>
+    <div class="hm-check"><span>关系判定</span><b>能否比较</b><small>主体 · 期间 · 定义 · 范围 · 单位</small></div>
+    <div class="hm-arrow">→</div>
+    <div class="hm-out"><span>结论</span><b>差异与证据</b><small>每个数字回到原页</small></div>
+  </div>
   <div class="hero-bottom">
     <div class="caption-block">
       <span class="cap-index">01.</span>
-      <div><strong>从披露到证据的空间探索</strong><p>拖拽与滚轮只控制当前一侧，中间留白可向下浏览。画面为虚构隐喻，并非对任何企业的事实判断。</p></div>
+      <div><strong>两份报告，一条证据链</strong><p>左侧年报与右侧 ESG 报告指向同一披露事项：先看主体、期间、定义、范围、单位是否可比，再回到原页。画面为虚构隐喻，并非对任何企业的事实判断。</p></div>
     </div>
     <div class="scene-hint">INDEPENDENT VIEW CONTROLS<br>分侧旋转与缩放 · 中间滚动页面</div>
   </div>
@@ -105,19 +118,22 @@
       <section class="cn-start" aria-label="选择报告并运行"><form id="cn-form"><div class="cn-form-row"><label>公司与报告期间<select aria-label="公司与报告期间" id="cn-pair" required><option value="">正在读取登记报告…</option></select></label><label>运行方式<select aria-label="运行方式" id="cn-mode"><option value="three_agents">自动发现＋三角色核对</option><option value="calculation_only">自动发现＋仅计算</option><option value="single_model">完整单模型对照</option></select></label><button type="submit" id="cn-run" class="cn-primary" disabled>开始关联核对 <span aria-hidden="true">↗</span></button></div><fieldset class="cn-topics"><legend>本次关注事项</legend><label><input type="checkbox" name="topic" value="research" checked>研发投入</label><label><input type="checkbox" name="topic" value="environment" checked>环保投入</label><label><input type="checkbox" name="topic" value="intensity" checked>强度与分母</label></fieldset></form><div id="cn-documents" class="cn-documents"></div></section>
       <div id="cn-message" class="cn-message" role="status" aria-live="polite">选择同公司、同期间的两份报告，开始定位原文。</div>
       <details id="cn-stagebar" class="cn-stagebar" aria-label="核验阶段进度" hidden><summary id="cn-stage-toggle">运行阶段与记录</summary><ol id="cn-stagebar-list"></ol><p id="cn-stagebar-note"></p><details id="cn-progress" class="cn-run-record"><summary id="cn-progress-summary">运行记录与取消</summary><p id="cn-progress-state"></p><div id="cn-progress-details"></div><button id="cn-cancel" type="button">取消尚未开始的模型调用</button></details></details>
+      <div id="cn-task-error" class="cn-task-error" hidden role="group" aria-live="polite" aria-labelledby="cn-task-error-title"></div>
       <section id="cn-results" hidden aria-label="关联核对结果">
-        <header class="cn-result-header"><div><p class="cn-eyebrow">RELATIONSHIP RECORDS</p><h2 id="cn-result-title">关联核对记录</h2><p id="cn-run-meta"></p></div><div class="cn-tools"><label>阅读视角<select aria-label="阅读视角" id="cn-perspective"><option value="public">公众阅读</option><option value="investor">投资者关注</option><option value="environment">环境关注</option><option value="professional">事务所核对</option></select></label><div id="cn-exports" class="cn-exports"></div><button id="cn-print" type="button">打印 / 保存PDF</button></div></header>
+        <header class="cn-result-header"><div><p class="cn-eyebrow">RELATIONSHIP RECORDS</p><h2 id="cn-result-title">关联核对记录</h2><p id="cn-run-meta"></p><p id="cn-ai-notice" class="cn-ai-notice">AI 生成内容，仅供关联核对参考，不构成审计结论、鉴证结论或鉴证意见。</p><div id="cn-task-strip" class="cn-task-strip" aria-label="当前任务身份"></div></div><div class="cn-tools"><div class="cn-lens" role="group" aria-label="阅读深度"><button type="button" data-lens="plain" aria-pressed="true">白话解释</button><button type="button" data-lens="professional" aria-pressed="false">专业视图</button></div><div id="cn-exports" class="cn-exports"></div><button id="cn-print" type="button">打印 / 保存PDF</button></div></header>
         <details class="cn-reading-guide"><summary>阅读说明与术语</summary><div id="cn-perspective-note" class="cn-reading-note"></div></details>
         <section class="cn-overview" aria-label="结果概览">
           <div id="cn-fourq" class="cn-fourq"></div>
           <div id="cn-nextq" class="cn-nextq"></div>
         </section>
+        <details class="cn-all-relations" id="cn-all-relations">
+          <summary><span>全部关系与专业明细</span><small id="cn-all-count">条件 · 计算 · 原文位置 · 待查问题</small></summary>
         <div class="cn-master" id="cn-master">
           <button type="button" id="cn-list-open" class="cn-list-open" aria-controls="cn-list-panel" aria-expanded="false">事项列表</button>
           <div id="cn-list-backdrop" class="cn-list-backdrop" hidden></div>
           <aside class="cn-list-panel" id="cn-list-panel" aria-label="事项与关系">
             <div class="cn-panel-heading"><span>事项 / 关系</span><span id="cn-count">0</span><button type="button" id="cn-list-toggle" aria-expanded="true" aria-controls="cn-check-list-wrap">折叠</button></div>
-            <p class="cn-tendency-note">色块为 AI 倾向，可能不准确 · 非程序结论</p>
+            <p class="cn-tendency-note">实线为程序状态，虚线为 AI 倾向（不替代程序结论）</p>
             <div id="cn-check-list-wrap"><div id="cn-check-list"></div></div>
           </aside>
           <article id="cn-detail" class="cn-detail" aria-live="polite">
@@ -151,6 +167,7 @@
             </section>
           </article>
         </div>
+        </details>
         <section id="cn-print-all" class="cn-print-all" aria-label="全部关系打印内容"></section>
       </section>
       <div id="cn-reader" class="cn-reader" role="dialog" aria-modal="true" aria-labelledby="cn-reader-title" hidden>
@@ -177,7 +194,7 @@
       <div class="cinematic-nav-meta">
         <span>审计计划 · 销售与收款循环</span>
         <a href="#demo-positioning">方法与边界</a>
-        <span class="cinematic-version">0.10.2 · DEMO</span>
+        <span class="cinematic-version">历史归档 / ARCHIVE</span>
       </div>
     </nav>
     <div class="cinematic-hero">
@@ -238,8 +255,8 @@
       <details><summary>怎样理解程序检查与专业判断</summary><p>当前支持五项登记问题，主要检查明确的结构化字段。条件通过不代表原件真实、文字语义已支持主张或审计认定成立。三个角色用于组织不同职责，现有工程探索尚未证明其专业效果优于强单模型。</p><p>RAG、引用、认定映射和报告导出都已有成熟应用。本项目的展示重点是销售与收款场景中可操作、可回查的资料用途和条件变化。</p></details>
     </section>
     <dl class="demo-positioning-facts" aria-label="演示能力摘要">
-      <div><dt>已登记案例</dt><dd><span id="demo-positioning-case-count">23</span><small>个冻结样例</small></dd></div>
-      <div><dt>本地原文索引</dt><dd><span id="demo-positioning-report-count">69</span><small>份公开年报</small></dd></div>
+      <div><dt>已登记案例</dt><dd><span id="demo-positioning-case-count">—</span><small>个冻结样例</small></dd></div>
+      <div><dt>本地原文索引</dt><dd><span id="demo-positioning-report-count">—</span><small>份公开年报</small></dd></div>
       <div><dt>工程与模型</dt><dd><span>R1/R2 + 3A</span><small>确定性规则 · 三 Agent</small></dd></div>
       <div><dt>结构化交付</dt><dd><span>JSON / 表 / PDF</span><small>同源输出 · 证据可追溯</small></dd></div>
     </dl>
@@ -678,7 +695,7 @@
 
   <dialog class="detail-drawer" id="demo-cases-drawer" aria-labelledby="demo-cases-drawer-title">
     <div class="dialog-head">
-      <div><span class="folio">REGISTERED CASES · 23</span><h2 id="demo-cases-drawer-title">企业案例库</h2></div>
+      <div><span class="folio">REGISTERED CASES</span><h2 id="demo-cases-drawer-title">企业案例库</h2></div>
       <button class="icon-button" type="button" aria-label="关闭全部案例" data-demo-close><svg aria-hidden="true"><use href="/assets/official-v4/icons.svg#close"></use></svg><span class="sr-only">关闭全部案例</span></button>
     </div>
     <div class="demo-drawer-body" id="demo-cases-drawer-body">
