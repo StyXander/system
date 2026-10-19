@@ -1,0 +1,51 @@
+{
+  "pair_id": "000333-2025",
+  "company": "美的集团",
+  "period": "2025",
+  "mode": "calculation_only",
+  "duration_ms": 8220,
+  "occurrences": 305,
+  "checks": 0,
+  "rule_distribution": {},
+  "checks_detail": [],
+  "rejections": 41,
+  "rejections_by_role": {
+    "ambiguous_column": 41
+  },
+  "coverage": [
+    {
+      "kind": "topic_coverage",
+      "topic": "environment",
+      "status": "insufficient_coverage",
+      "located_rows": 0,
+      "note": "本报告对当前事项覆盖不足；不从其他主题借关系凑数"
+    },
+    {
+      "kind": "topic_coverage",
+      "topic": "intensity",
+      "status": "insufficient_coverage",
+      "located_rows": 31,
+      "note": "本报告对当前事项覆盖不足；不从其他主题借关系凑数"
+    },
+    {
+      "kind": "topic_coverage",
+      "topic": "research",
+      "status": "insufficient_coverage",
+      "located_rows": 15,
+      "note": "本报告对当前事项覆盖不足；不从其他主题借关系凑数"
+    }
+  ],
+  "scope_gates": [],
+  "origin_counts": {},
+  "model_calls": 0,
+  "versions": {
+    "extraction": "coordinates_v1.9",
+    "rules": "2026-10-19.1",
+    "prompt": "connectivity_hybrid_20261019.1",
+    "intelligence": "hybrid_v3_claim_ledger",
+    "retrieval": "connectivity_directed_retrieval_v1",
+    "knowledge": "connectivity_rule_basis_v1",
+    "candidate_origin_scheme": "rule_plus_model_signature_v1",
+    "period_basis": "指标所属年度未登记（两份报告均未填），比较期间退回报告所属年度；各披露行仍按自身年度列归属"
+  }
+}

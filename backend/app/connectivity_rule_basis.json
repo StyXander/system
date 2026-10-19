@@ -1,0 +1,322 @@
+{
+  "schema_version": "connectivity_rule_basis_v1",
+  "updated_at": "2026-10-19",
+  "boundary": "本文件是内部规则编号到公开准则/指引的可追溯索引，不是对企业事实的证明，也不替代审计准则原文。条款未能回到权威原文的，明确标为未核验，禁止在回答中补写不存在的条款。",
+  "rules": [
+    {
+      "basis_id": "CN01",
+      "internal_name": "会计主体与报告期间同一性",
+      "statement": "只有同一会计主体、同一报告期间的披露才可以直接比较；合并报表与母公司报表是不同报告范围，不能把两者差额当作企业披露错误。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则——基本准则",
+        "document_no": "财政部令第33号（2014年修改）",
+        "version": "2014年修改版",
+        "clause": "第五条、第十五条",
+        "url": "http://czt.hunan.gov.cn/ztzl/kjxxw/zcfg_1/201408/t20140819_5060476.html",
+        "locator": "第五条（会计主体）；第十五条（可比性）",
+        "url_kind": "政府网站转载"
+      },
+      "applicability": ["EQ-001", "OCC-001", "RD-001", "ENV-001"],
+      "conditions": ["主体", "期间", "范围"],
+      "counterexample": "用合并报表金额与母公司报表金额直接相减，并把差额写成企业披露异常。",
+      "verification_status": "verified_clause_secondary_url",
+      "verified_at": "2026-10-19",
+      "note": "第五条与第十五条的条文文字已在政府网站转载页核对；正式引用仍应回到财政部原件。"
+    },
+    {
+      "basis_id": "CN03",
+      "internal_name": "披露可验证性与可靠性",
+      "statement": "披露数值应当能回到实际发生的交易或事项及原文；数字相近、引用逐字通过都不等于专业含义成立。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则——基本准则",
+        "document_no": "财政部令第33号（2014年修改）",
+        "version": "2014年修改版",
+        "clause": "第十二条",
+        "url": "http://czt.hunan.gov.cn/ztzl/kjxxw/zcfg_1/201408/t20140819_5060476.html",
+        "locator": "第十二条（可靠性）",
+        "url_kind": "政府网站转载"
+      },
+      "applicability": ["EQ-001", "RD-001", "ENV-001", "INT-001", "OCC-001", "NAR-001"],
+      "conditions": ["定义", "单位", "范围"],
+      "counterexample": "引用了一句真实原文，但把“变动比例”当成年度值，仍属于语义错误。",
+      "verification_status": "verified_clause_secondary_url",
+      "verified_at": "2026-10-19",
+      "note": "条文文字已核对；可靠性不等于本项目已经执行审计程序。"
+    },
+    {
+      "basis_id": "CN04",
+      "internal_name": "可比性与一致会计政策",
+      "statement": "同一企业不同期间、不同企业相同期间的相同或相似项目，应在会计政策、指标定义和统计口径一致时才可直接比较；变更应有附注说明。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则——基本准则",
+        "document_no": "财政部令第33号（2014年修改）",
+        "version": "2014年修改版",
+        "clause": "第十五条",
+        "url": "http://czt.hunan.gov.cn/ztzl/kjxxw/zcfg_1/201408/t20140819_5060476.html",
+        "locator": "第十五条（可比性）",
+        "url_kind": "政府网站转载"
+      },
+      "applicability": ["EQ-001", "RD-001", "ENV-001", "INT-001", "OCC-001"],
+      "conditions": ["期间", "定义", "范围", "单位"],
+      "counterexample": "两份报告使用同名指标但统计范围不同，仍直接判定为同口径一致。",
+      "verification_status": "verified_clause_secondary_url",
+      "verified_at": "2026-10-19",
+      "note": "可比性是会计信息质量要求，不表示本项目有权出具鉴证结论。"
+    },
+    {
+      "basis_id": "CN05",
+      "internal_name": "实质重于形式",
+      "statement": "判断两项披露能否比较，应看其经济实质、指标定义和统计范围，而不能只看名称相同或格式相似。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则——基本准则",
+        "document_no": "财政部令第33号（2014年修改）",
+        "version": "2014年修改版",
+        "clause": "第十六条",
+        "url": "http://czt.hunan.gov.cn/ztzl/kjxxw/zcfg_1/201408/t20140819_5060476.html",
+        "locator": "第十六条（实质重于形式）",
+        "url_kind": "政府网站转载"
+      },
+      "applicability": ["NAR-001", "EQ-001", "RD-001", "ENV-001"],
+      "conditions": ["定义", "范围"],
+      "counterexample": "把“研发费用”与“研发投入”按名称相近直接配对，忽略资本化支出与统计口径差异。",
+      "verification_status": "verified_clause_secondary_url",
+      "verified_at": "2026-10-19",
+      "note": "本规则用于关系识别，不替代对具体指标定义的原文核验。"
+    },
+    {
+      "basis_id": "CN06",
+      "internal_name": "重要性与披露完整性",
+      "statement": "对关系判断有影响的前提缺失应显式保留为未决；不能为了让结果看起来完整而省略重要条件或把不重大差异包装成异常。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则——基本准则",
+        "document_no": "财政部令第33号（2014年修改）",
+        "version": "2014年修改版",
+        "clause": "第十七条",
+        "url": "http://czt.hunan.gov.cn/ztzl/kjxxw/zcfg_1/201408/t20140819_5060476.html",
+        "locator": "第十七条（重要性）",
+        "url_kind": "政府网站转载"
+      },
+      "applicability": ["OCC-001", "NAR-001", "EQ-001"],
+      "conditions": ["范围", "组成完整", "互不重叠"],
+      "counterexample": "把只有报告级范围声明的指标直接升级为充分支持，或把内部诊断字段写进企业异常。",
+      "verification_status": "verified_clause_secondary_url",
+      "verified_at": "2026-10-19",
+      "note": "重要性阈值仍须结合具体指标和人工判断，本文件不设自动阈值。"
+    },
+    {
+      "basis_id": "CN07",
+      "internal_name": "列报、合并范围与单位一致性",
+      "statement": "报表列报项目、合并范围、期间和金额单位必须一致；合并范围以控制为基础，不能把不同报表范围混为同一比较基准。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则第30号——财务报表列报；企业会计准则第33号——合并财务报表",
+        "document_no": "财会〔2014〕7号、财会〔2014〕10号",
+        "version": "2014年修订",
+        "clause": "待核验具体条款",
+        "url": "",
+        "locator": "仅登记准则名称与修订年份；条款原文待回到财政部原件",
+        "url_kind": "未取得可核验原文链接"
+      },
+      "applicability": ["EQ-001", "RD-001", "ENV-001", "INT-001"],
+      "conditions": ["期间", "范围", "单位"],
+      "counterexample": "把合并报表研发费用与母公司报表研发费用直接相减，并写成未解释差异。",
+      "verification_status": "unverified",
+      "verified_at": "2026-10-19",
+      "note": "未取得可核验的官方条款链接，禁止在回答中引用具体条号或原文。"
+    },
+    {
+      "basis_id": "CN08",
+      "internal_name": "审计证据的充分性与适当性",
+      "statement": "支持结论的证据应充分、适当，并同时考虑支持信息和矛盾信息；证据不足时只能保留为未决，不能写成已验证。",
+      "source": {
+        "publisher": "中国注册会计师协会",
+        "title": "中国注册会计师审计准则第1301号——审计证据",
+        "document_no": "中国注册会计师审计准则",
+        "version": "2010年修订；2022年应用指南",
+        "clause": "第十条（应用指南）",
+        "url": "https://www.cicpa.org.cn/xxfb/tzgg/202201/W020220120408257541697.pdf",
+        "locator": "应用指南“审计证据的充分性和适当性（参见本准则第十条）”",
+        "url_kind": "中注协官方PDF"
+      },
+      "applicability": ["EQ-001", "RD-001", "ENV-001", "INT-001", "OCC-001", "NAR-001"],
+      "conditions": ["主体", "期间", "定义", "范围", "单位"],
+      "counterexample": "只引用一条支持性原文就宣布口径成立，忽略同一材料中的矛盾信息或反证。",
+      "verification_status": "verified_url",
+      "verified_at": "2026-10-19",
+      "note": "准则适用于审计业务；本项目只作关联核对参考，不据此出具审计意见。"
+    },
+    {
+      "basis_id": "AS02",
+      "internal_name": "分析程序与异常波动调查",
+      "statement": "分析程序通过研究财务数据之间、财务与非财务数据之间的关系评价信息；发现异常波动或关系不一致时，应进一步调查而不是直接下结论。",
+      "source": {
+        "publisher": "财政部",
+        "title": "中国注册会计师审计准则第1313号——分析程序",
+        "document_no": "中国注册会计师审计准则",
+        "version": "现行准则",
+        "clause": "第三条、第五条、第六条",
+        "url": "https://kjs.mof.gov.cn/zt/kuaijizhunzeshishi/zyzz/200806/t20080618_46274.htm",
+        "locator": "第三条（分析程序定义）；第五条、第六条（比较信息与关系）",
+        "url_kind": "财政部会计司官网"
+      },
+      "applicability": ["INT-001", "NAR-001"],
+      "conditions": ["定义", "范围", "公式", "期间"],
+      "counterexample": "发现同比方向或幅度异常后，只写“建议关注”，不核对分母、口径和两期成员。",
+      "verification_status": "verified_clause_primary_url",
+      "verified_at": "2026-10-19",
+      "note": "本项目只借用分析程序思路，不表示已执行审计程序。"
+    },
+    {
+      "basis_id": "AS04",
+      "internal_name": "职业怀疑与反证意识",
+      "statement": "审计证据既包括支持管理层认定的信息，也包括与认定相矛盾的信息；未找到反证不等于解释成立，应主动寻找能区分竞争解释的证据。",
+      "source": {
+        "publisher": "中国注册会计师协会",
+        "title": "中国注册会计师审计准则第1301号——审计证据（应用指南）",
+        "document_no": "中国注册会计师审计准则",
+        "version": "2022年1月17日修订",
+        "clause": "应用指南“审计证据的充分性和适当性”",
+        "url": "https://www.cicpa.org.cn/xxfb/tzgg/202201/W020220120408257541697.pdf",
+        "locator": "应用指南第1段：审计证据也包括与认定相矛盾的信息",
+        "url_kind": "中注协官方PDF"
+      },
+      "applicability": ["NAR-001"],
+      "conditions": ["定义", "范围"],
+      "counterexample": "某解释没有找到反证，就被写成“原因已验证”或“风险已排除”。",
+      "verification_status": "verified_url",
+      "verified_at": "2026-10-19",
+      "note": "职业怀疑是审计准则概念；本项目用它约束AI解释，不构成审计结论。"
+    },
+    {
+      "basis_id": "ESG01",
+      "internal_name": "可持续披露的主体、期间与范围",
+      "statement": "可持续发展报告应说明报告主体、报告期间、组织边界和指标口径；不能把报告总体范围声明直接当成任一具体指标的统计范围。",
+      "source": {
+        "publisher": "财政部等九部门",
+        "title": "企业可持续披露准则——基本准则（试行）",
+        "document_no": "财会〔2024〕17号",
+        "version": "2024年11月20日发布",
+        "clause": "待逐条核验具体条款",
+        "url": "https://www.gov.cn/zhengce/zhengceku/202412/content_6993358.htm",
+        "locator": "官方发布通知与附件；具体条款待回原文逐条核对",
+        "url_kind": "中国政府网官方"
+      },
+      "applicability": ["EQ-001", "RD-001", "ENV-001", "INT-001", "OCC-001"],
+      "conditions": ["主体", "期间", "范围", "定义"],
+      "counterexample": "用“本报告覆盖公司及子公司”这一句，替代某张表的具体统计边界。",
+      "verification_status": "verified_url_clause_unverified",
+      "verified_at": "2026-10-19",
+      "note": "文件与文号已核实；具体条款号未逐条核对，回答中不得补写条号。"
+    },
+    {
+      "basis_id": "ESG02",
+      "internal_name": "温室气体排放范围与强度分母",
+      "statement": "温室气体排放总量与排放强度不是同一指标；Scope 1、Scope 2 及组织边界应分别核实，强度分母必须与本指标同期间、同范围。",
+      "source": {
+        "publisher": "GHG Protocol",
+        "title": "Corporate Accounting and Reporting Standard；Scope 2 Guidance",
+        "document_no": "GHG Protocol",
+        "version": "2004；2015",
+        "clause": "组织边界、运营边界与Scope 2核算章节",
+        "url": "https://ghgprotocol.org/corporate-standard",
+        "locator": "Corporate Standard 组织边界与运营边界章节；Scope 2 Guidance",
+        "url_kind": "GHG Protocol官网"
+      },
+      "applicability": ["INT-001", "EQ-001", "NAR-001"],
+      "conditions": ["定义", "范围", "公式", "单位"],
+      "counterexample": "用直接能源消耗22.86与综合能耗26.12除以营业收入得到的强度0.0644混用，声称三者是同一口径。",
+      "verification_status": "verified_url_clause_unverified",
+      "verified_at": "2026-10-19",
+      "note": "国际框架章节名已登记；具体页码与版本条款待逐条核对。"
+    },
+    {
+      "basis_id": "ESG03",
+      "internal_name": "能源消耗口径与折标系数",
+      "statement": "综合能源消耗、直接能源消耗和能源强度是不同指标；折标系数、组织边界和分母应分别披露，不能默认互相替代。",
+      "source": {
+        "publisher": "GRI；国家市场监督管理总局/国家标准化管理委员会",
+        "title": "GRI 302: Energy；GB/T 2589 综合能耗计算通则",
+        "document_no": "GRI 302；GB/T 2589",
+        "version": "GRI 302（2016）；GB/T 2589现行版待核验",
+        "clause": "待核验具体条款",
+        "url": "https://www.globalreporting.org/standards/standards-development/topic-standards/",
+        "locator": "GRI 302 能源议题标准；GB/T 2589 条款与版本待核验",
+        "url_kind": "GRI官网；国家标准待核验"
+      },
+      "applicability": ["INT-001", "EQ-001", "NAR-001"],
+      "conditions": ["定义", "范围", "单位", "公式"],
+      "counterexample": "把直接能耗22.86吨标准煤直接当作综合能耗，或用它计算综合能耗强度。",
+      "verification_status": "unverified",
+      "verified_at": "2026-10-19",
+      "note": "GRI入口已登记；GB/T 2589的具体版本与条款未取得可核验原文，禁止引用具体条号。"
+    },
+    {
+      "basis_id": "ESG04",
+      "internal_name": "取水、耗水与循环用水区分",
+      "statement": "取水量、耗水量、循环用水量和用水强度不是同一指标；统计边界、水源类型和分母应分别核实。",
+      "source": {
+        "publisher": "GRI",
+        "title": "GRI 303: Water and Effluents",
+        "document_no": "GRI 303",
+        "version": "2018",
+        "clause": "待核验具体条款",
+        "url": "https://www.globalreporting.org/standards/standards-development/topic-standards/",
+        "locator": "GRI 303 水与废水议题标准；具体条款待核验",
+        "url_kind": "GRI官网"
+      },
+      "applicability": ["EQ-001", "INT-001", "NAR-001"],
+      "conditions": ["定义", "范围", "单位", "公式"],
+      "counterexample": "把“总取水量”和“总耗水量”当作同义指标直接比较，忽略取水与耗水的定义差异。",
+      "verification_status": "unverified",
+      "verified_at": "2026-10-19",
+      "note": "仅登记标准名称；具体条款未取得可核验原文。"
+    },
+    {
+      "basis_id": "ESG05",
+      "internal_name": "研发投入、研发费用与资本化",
+      "statement": "研发投入不默认等于研发费用；研究阶段支出与开发阶段支出的资本化条件不同，组成完整性和互不重叠须由原文说明。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则第6号——无形资产",
+        "document_no": "财会〔2006〕3号",
+        "version": "2006年发布，后续解释与应用指南待核验",
+        "clause": "待核验具体条款",
+        "url": "",
+        "locator": "仅登记准则名称；研究/开发阶段与资本化条款待回财政部原件核对",
+        "url_kind": "未取得可核验原文链接"
+      },
+      "applicability": ["RD-001", "EQ-001", "NAR-001"],
+      "conditions": ["定义", "组成完整", "互不重叠"],
+      "counterexample": "把利润表“研发费用”直接当作“研发投入”，忽略资本化研发支出。",
+      "verification_status": "unverified",
+      "verified_at": "2026-10-19",
+      "note": "未取得可核验官方链接；回答只能描述差异，不能引用具体条号。"
+    },
+    {
+      "basis_id": "ESG06",
+      "internal_name": "重述、更正与版本区分",
+      "statement": "上期数重述、更正公告与原始披露是不同版本；比较时应先确认版本、期间和指标口径，不能把版本差异当作本期经营差异。",
+      "source": {
+        "publisher": "财政部",
+        "title": "企业会计准则第28号——会计政策、会计估计变更和差错更正；企业会计准则第30号——财务报表列报",
+        "document_no": "财会〔2006〕3号；财会〔2014〕7号",
+        "version": "现行版本待逐条核验",
+        "clause": "待核验具体条款",
+        "url": "",
+        "locator": "仅登记准则名称；重述与比较信息条款待核验",
+        "url_kind": "未取得可核验原文链接"
+      },
+      "applicability": ["EQ-001", "NAR-001", "OCC-001"],
+      "conditions": ["期间", "定义", "范围"],
+      "counterexample": "把更正后的上期数与原始披露直接相减，写成企业本期经营异常。",
+      "verification_status": "unverified",
+      "verified_at": "2026-10-19",
+      "note": "未取得可核验官方链接；不得补写条号或原文。"
+    }
+  ]
+}

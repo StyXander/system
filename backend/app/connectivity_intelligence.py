@@ -11,6 +11,9 @@ import json
 import re
 
 from .connectivity_engine import normalized, number, text_number, validate_refs
+from .connectivity_claims import (apply_hypothesis_updates, build_claim_ledger, build_next_evidence,
+    hypothesis_ledger, should_reject_analysis, verify_narrative_magnitude)
+from .connectivity_retrieval import build_query_plan, rule_basis_for
 from .connectivity_schemas import AIAnalysis, ConnectivityRun, RelationshipCheck
 
 METRIC_GUIDANCE = [
@@ -40,7 +43,15 @@ GAP_KEYWORDS = {
 }
 
 #: 批次、字段或校验回执属于内部处理信息；模型若把它写成结论，不能当作业务分析保存。
-PROCESSING_NOTE = re.compile(r"occurrence_id|check_id|本批occurrences|不在本批|超出本批|未进入本批|validation_feedback")
+PROCESSING_NOTE = re.compile(r"occurrence_id|check_id|CHECK-\d|PENDING|本批occurrences|不在本批|超出本批|未进入本批|validation_feedback")
+ACTION_MATERIAL = re.compile(r"脚注|附注|表头|统计范围|合并范围|定义|上期|本期|分母|组成|分项|页码|原文|口径|单位|币种|报告")
+ACTION_VERB = re.compile(r"补|核对|核查|核实|查证|查|获取|对照|确认|复核|抽取|比较")
+
+
+def _specific_action(text: str) -> bool:
+    """下一步必须说清补什么材料、补哪里；只有“建议关注”不算。"""
+    value = str(text or "").strip()
+    return len(value) >= 8 and bool(ACTION_MATERIAL.search(value)) and bool(ACTION_VERB.search(value))
 
 
 def analysis_fingerprint(check: RelationshipCheck) -> str:
@@ -135,8 +146,13 @@ def pack_role_context(payload: dict, char_budget: int = 62000) -> dict:
 
 
 def targeted_context(run: ConnectivityRun, checks: list[RelationshipCheck], limit: int = 160) -> tuple[list[dict], list[dict]]:
-    """先保证成员及已引用材料，再按每项实际缺口检索；记录预算裁剪。"""
+    """先保证成员及已引用材料，再按每项实际缺口检索；记录预算裁剪。
+
+    2026-10-19 起 query 由 directed retrieval 计划生成，同一缺口不再反复使用
+    事项级宽泛词；排序同时要求指标名命中，避免只靠“资本化/范围”等通用词召回。
+    """
     found = {o.occurrence_id: o for o in run.occurrences}
+    plan = build_query_plan(run, checks)
     selected = {}
     tasks = []
     for check in checks:
@@ -151,31 +167,53 @@ def targeted_context(run: ConnectivityRun, checks: list[RelationshipCheck], limi
             if ref_id in found:
                 selected.setdefault(ref_id, found[ref_id])
     essential_count = len(selected)
+    # 模型可能新增调节项或反证，必须能看到同主题、同指标词根的邻近原文；
+    # 否则它只能在未见过的 ADJ 上编造 ID。该召回只扩上下文，不自动成为关系成员。
+    for check in checks:
+        member_labels = [found[m.occurrence_id].label for m in check.members if m.occurrence_id in found]
+        member_docs = {found[m.occurrence_id].document_id for m in check.members if m.occurrence_id in found}
+        roots = {label[:2] for label in member_labels if len(label) >= 2}
+        for row in run.occurrences:
+            if len(selected) >= limit:
+                break
+            if row.document_id not in member_docs or not roots:
+                continue
+            if any(root in (row.label or "") for root in roots):
+                selected.setdefault(row.occurrence_id, row)
     # 即使成员很多也显式记录未进入本批的关系，不声称模型已审阅。
     selected = dict(list(selected.items())[:limit])
     for check in checks:
         members = [found[m.occurrence_id] for m in check.members if m.occurrence_id in found]
         missing = [c.name for c in check.conditions if c.status != "supported"]
-        words = list(dict.fromkeys([w for name in missing for w in GAP_KEYWORDS.get(name, [])] +
-                                  ["资本化", "费用化", "重述", "调整", "同比", "下降", "增加"] +
+        plan_item = plan["check_plans"].get(check.check_id, {})
+        plan_queries = plan_item.get("queries", [])
+        metric_terms = plan_item.get("metrics", [])
+        words = list(dict.fromkeys([term for query in plan_queries for term in query["terms"]] +
                                   [q for h in check.hypotheses for q in h.retrieval_queries]))
+        if not words:
+            words = [w for name in missing for w in GAP_KEYWORDS.get(name, [])]
+        words = words[:32]
         docs = {m.document_id for m in members}
         ranked = []
         for row in run.occurrences:
             if row.document_id not in docs:
                 continue
             hits = sum(word in row.context for word in words)
-            if not hits:
+            specific = sum(term in row.context for term in metric_terms)
+            if not hits and not specific:
                 continue
             distance = min((abs(row.pdf_page - m.pdf_page) for m in members if m.document_id == row.document_id), default=999)
             topical = row.topic == check.topic or row.topic == "basis"
-            ranked.append(((topical, distance <= 1, hits, -distance), row))
+            ranked.append(((topical, distance <= 1, specific, hits, -distance), row))
         ranked.sort(key=lambda pair: pair[0], reverse=True)
         retrieved = [row for _, row in ranked[:12]]
         for row in retrieved:
             if len(selected) < limit:
                 selected.setdefault(row.occurrence_id, row)
         tasks.append({"check_id": check.check_id, "missing_conditions": missing, "keywords": words,
+                      "queries": plan_queries, "query_ids": plan_item.get("query_ids", []),
+                      "query_count": len(plan_queries), "query_dedupe": plan.get("shared_query_count", 0),
+                      "metric_terms": metric_terms,
                       "retrieved_ids": [r.occurrence_id for r in retrieved],
                       "sent_ids": [r.occurrence_id for r in retrieved if r.occurrence_id in selected],
                       "member_ids": [m.occurrence_id for m in check.members],
@@ -261,23 +299,17 @@ def enrich_calculation(check: RelationshipCheck, rows: list) -> RelationshipChec
     claim = check.narrative_claim
     if claim:
         try:
-            current, previous = found[claim.current_id], found[claim.previous_id]
             if not validate_refs(claim.evidence, found):
                 raise ValueError("文字主张缺少有效原文")
-            a, da, _ = normalized(current)
-            b, db, _ = normalized(previous)
-            if da != db or da == "unknown":
-                raise ValueError("趋势数据量纲不同")
-            if current.currency != previous.currency:
-                raise ValueError("趋势数据币种不同")
-            if not current.year or not previous.year or int(current.year) - int(previous.year) != 1:
-                raise ValueError("同比需要明确的连续两期指标年度")
-            actual = "increase" if a > b else "decrease" if a < b else "stable"
-            check.narrative_test = {"current": text_number(a), "previous": text_number(b), "dimension": da,
-                "direction": actual, "claimed_direction": claim.direction, "direction_matches": actual == claim.direction,
-                "change_percent": text_number((a-b)/abs(b)*100) if b else None,
-                "basis_status": "conflicting" if current.scope and previous.scope and current.scope != previous.scope else "needs_review",
-                "note": "这里只检验所绑定数值方向，指标语义、强度分母及叙述限定语由AI结合原文研判"}
+            current, previous = found[claim.current_id], found[claim.previous_id]
+            test = verify_narrative_magnitude(check, claim, rows)
+            if current.scope and previous.scope and current.scope != previous.scope:
+                test["basis_status"] = "conflicting"
+            else:
+                test["basis_status"] = "needs_review"
+            # 兼容旧字段名，同时保留幅度、精度与目标/结果区分。
+            test.setdefault("change_percent", test.get("actual_change_percent"))
+            check.narrative_test = test
         except (KeyError, ValueError, ArithmeticError) as error:
             check.narrative_test = {"status": "not_executable", "reason": str(error)}
         if check.calculation_plan and check.narrative_test.get("status") != "not_executable":
@@ -380,7 +412,22 @@ def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed
             rejected.append({"check_id": item.check_id, "reason": reason})
             continue
         seen.add(item.check_id)
+        # claim 账本先于数字门禁：列义矛盾（如把0.66%变动比例当年度值）必须直接拒绝。
+        pre_ledger = build_claim_ledger(check, item, run.occurrences, role=role, model=model)
+        reject_claim, claim_reason = should_reject_analysis(pre_ledger)
+        if reject_claim:
+            run.intelligence_trace.append({"kind": "claim_ledger", "role": role,
+                                           "check_id": item.check_id, "rejected": True,
+                                           "reason": claim_reason, **pre_ledger})
+            rejected.append({"check_id": item.check_id, "field": "claim", "reason": claim_reason})
+            continue
         allowed = grounded_numbers(check, run.occurrences, refs)
+        for derived in pre_ledger.get("derived_checks", []):
+            if derived.get("matches") and derived.get("computed"):
+                try:
+                    allowed.add(Decimal(derived["computed"]))
+                except (ValueError, ArithmeticError):
+                    pass
         def valid(text, field):
             # 模型偶尔把批次或字段诊断当成业务结论回传；内部标识不能进入AI意见。
             if PROCESSING_NOTE.search(text):
@@ -393,6 +440,11 @@ def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed
         # 无效的建议或备选解释不会抹掉同一关系中有效的分析。
         for field in ("reasons", "assumptions", "alternative_explanations", "next_actions"):
             setattr(item, field, [text for text in getattr(item, field) if valid(text, field)])
+        item.next_actions = [text for text in item.next_actions if _specific_action(text)]
+        program_actions = False
+        if not item.next_actions and check.criteria_status != "supported":
+            item.next_actions = [action["action"] for action in build_next_evidence(check, rule_basis_for(check))][:4]
+            program_actions = bool(item.next_actions)
         if not item.reasons:
             # 理由全部被移除时登记原因，让同轮的补全调用知道该项仍需重述。
             rejected.append({"check_id": item.check_id, "reason": "意见的理由全部被移除，未形成可用业务分析"})
@@ -434,18 +486,35 @@ def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed
             known.update((h.hypothesis_id, h) for h in item.hypotheses)
             check.hypotheses = list(known.values())[-3:]
             enrich_calculation(check, run.occurrences)
+            updates = apply_hypothesis_updates(check, run.occurrences)
+            if updates:
+                run.intelligence_trace.append({"kind": "hypothesis_update", "role": role,
+                                               "check_id": check.check_id, "updates": updates})
+            run.intelligence_trace.append({"kind": "hypothesis_ledger", "role": role,
+                                           "check_id": check.check_id,
+                                           "hypotheses": hypothesis_ledger(check)})
+        ledger = build_claim_ledger(check, item, run.occurrences, role=role, model=model)
+        run.intelligence_trace.append({"kind": "claim_ledger", "role": role,
+                                       "check_id": check.check_id, **ledger})
         item.input_fingerprint = analysis_fingerprint(check)
         item.status = "current"
         item.review_status = "unreviewed"
         item.calculation_plan_ids = [check.calculation_plan.plan_id] if check.calculation_plan else []
-        # 质量是可解释的系统标签，不使用模型自报概率。
+        # 质量是可解释的论证完整度，不是正确概率；claim 支持状态单独保存在账本。
         complete_argument = len(item.reasons) >= 2 and len({sources[r.occurrence_id].document_id for r in refs}) >= 2
-        item.analysis_quality = "high" if complete_argument and (item.counter_evidence or item.assumptions) else "medium"
+        claim_supported = ledger.get("support_status") == "supported"
+        item.analysis_quality = "high" if (complete_argument and claim_supported and
+                                           (item.counter_evidence or item.assumptions)) else "medium"
         if hard_block:
             item.analysis_quality = 'low'
         if not item.next_actions and check.criteria_status != "supported":
             item.analysis_quality = "low"
-        item.quality_reasons = ["引用已逐字定位；业务含义为AI研判，质量标签不是正确概率"]
+        item.quality_reasons = ["引用已逐字定位；质量标签只表示论证完整度，不是正确概率",
+                                f"claim账本：{ledger.get('support_status')}；支持{ledger.get('support_summary', {}).get('supported', 0)}条，"
+                                f"反驳{ledger.get('support_summary', {}).get('contradicted', 0)}条，"
+                                f"依据不足{ledger.get('support_summary', {}).get('insufficient_basis', 0)}条"]
+        if program_actions:
+            item.quality_reasons.append("下一步补证由程序按未决条件生成，需人工确认是否执行")
         if hard_block:
             item.quality_reasons.append('当前数值关系不能执行；本意见仅分析限制与后续路径，不能视作一致性证据')
         if check.criteria_status != "supported":
