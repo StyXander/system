@@ -1,0 +1,118 @@
+{
+  "pair_id": "000858-2025",
+  "company": "五粮液",
+  "period": "2025",
+  "mode": "calculation_only",
+  "duration_ms": 7252,
+  "occurrences": 217,
+  "checks": 6,
+  "rule_distribution": {
+    "EQ-001": 3,
+    "OCC-001": 1,
+    "INT-001": 2
+  },
+  "checks_detail": [
+    {
+      "check_id": "CHECK-0001",
+      "rule_id": "EQ-001",
+      "title": "研发人员数量 · 年报与ESG披露数值核对",
+      "topic": "research",
+      "criteria": "unknown",
+      "calculation": "not_comparable",
+      "mapping_type": "uncertain",
+      "expression": "2581 − 2581",
+      "hypothetical_residual": "0"
+    },
+    {
+      "check_id": "CHECK-0002",
+      "rule_id": "EQ-001",
+      "title": "研发投入占营业收入比例 · 年报与ESG披露数值核对",
+      "topic": "research",
+      "criteria": "unknown",
+      "calculation": "not_comparable",
+      "mapping_type": "uncertain",
+      "expression": "0.0111 − 0.0111",
+      "hypothetical_residual": "0"
+    },
+    {
+      "check_id": "CHECK-0003",
+      "rule_id": "EQ-001",
+      "title": "研发投入金额 · 年报与ESG披露数值核对",
+      "topic": "research",
+      "criteria": "unknown",
+      "calculation": "not_comparable",
+      "mapping_type": "uncertain",
+      "expression": "449183817.50 − 449000000.00",
+      "hypothetical_residual": "183817.50"
+    },
+    {
+      "check_id": "CHECK-0004",
+      "rule_id": "OCC-001",
+      "title": "研发费用 · 同一报告内2处披露",
+      "topic": "research",
+      "criteria": "unknown",
+      "calculation": "not_comparable",
+      "mapping_type": "uncertain",
+      "expression": "首处与每一已发现位置分别比较，保留全部差异",
+      "hypothetical_residual": "0"
+    },
+    {
+      "check_id": "CHECK-0005",
+      "rule_id": "INT-001",
+      "title": "研发投入占营业收入比例 · 公式与分母",
+      "topic": "research",
+      "criteria": "unknown",
+      "calculation": "not_comparable",
+      "mapping_type": "uncertain",
+      "expression": "披露0.0111 − (449183817.50 ÷ 40528509770.23)",
+      "hypothetical_residual": "0.00001684347520851680208971180080770500745"
+    },
+    {
+      "check_id": "CHECK-0006",
+      "rule_id": "INT-001",
+      "title": "研发投入占营业收入比例 · 公式与分母",
+      "topic": "research",
+      "criteria": "unknown",
+      "calculation": "not_comparable",
+      "mapping_type": "uncertain",
+      "expression": "披露0.0111 − (449000000.00 ÷ 40529000000.00)",
+      "hypothetical_residual": "0.00002151299069801870265735646080584272990"
+    }
+  ],
+  "rejections": 17,
+  "rejections_by_role": {
+    "ambiguous_column": 16,
+    "topic_filter": 1
+  },
+  "coverage": [
+    {
+      "kind": "topic_coverage",
+      "topic": "intensity",
+      "status": "insufficient_coverage",
+      "located_rows": 49,
+      "note": "本报告对当前事项覆盖不足；不从其他主题借关系凑数"
+    },
+    {
+      "kind": "topic_coverage",
+      "topic": "environment",
+      "status": "insufficient_coverage",
+      "located_rows": 3,
+      "note": "本报告对当前事项覆盖不足；不从其他主题借关系凑数"
+    }
+  ],
+  "scope_gates": [],
+  "origin_counts": {
+    "rule": 6
+  },
+  "model_calls": 0,
+  "versions": {
+    "extraction": "coordinates_v1.9",
+    "rules": "2026-10-19.1",
+    "prompt": "connectivity_hybrid_20261019.1",
+    "intelligence": "hybrid_v3_claim_ledger",
+    "retrieval": "connectivity_directed_retrieval_v1",
+    "knowledge": "connectivity_rule_basis_v1",
+    "candidate_origin_scheme": "rule_plus_model_signature_v1",
+    "period_basis": "指标所属年度未登记（两份报告均未填），比较期间退回报告所属年度；各披露行仍按自身年度列归属"
+  }
+}

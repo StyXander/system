@@ -1,0 +1,138 @@
+{
+  "schema_version": "ai2_offline_eval_v1",
+  "data_repo": "审迹智链系统",
+  "tasks_dir": "backend/runtime/connectivity/tasks",
+  "cases": {
+    "000858-2025": {
+      "task_file": "CONNJOB-D8796D38B3EC.json",
+      "run_id": "CONN-336FB57A66394FF5",
+      "company": "五粮液",
+      "period": "2025",
+      "occurrences": 216,
+      "before_checks": 8,
+      "after_checks": 6,
+      "rule_distribution": {
+        "EQ-001": 3,
+        "OCC-001": 1,
+        "INT-001": 2
+      },
+      "rejections": 17,
+      "rejections_by_role": {
+        "ambiguous_column": 16,
+        "topic_filter": 1
+      },
+      "coverage": [
+        {
+          "kind": "topic_coverage",
+          "topic": "environment",
+          "status": "insufficient_coverage",
+          "located_rows": 3,
+          "note": "本报告对当前事项覆盖不足；不从其他主题借关系凑数"
+        },
+        {
+          "kind": "topic_coverage",
+          "topic": "intensity",
+          "status": "insufficient_coverage",
+          "located_rows": 49,
+          "note": "本报告对当前事项覆盖不足；不从其他主题借关系凑数"
+        }
+      ],
+      "scope_gates": [],
+      "column_compositions": [],
+      "non_identical_mappings": [],
+      "zero_point_six_six_members": [],
+      "claim_case": {
+        "available": true,
+        "change_column": "2025 年 2024 年 变动比例",
+        "change_year": "",
+        "support_status": "contradicted",
+        "summary": {
+          "supported": 2,
+          "contradicted": 1,
+          "insufficient_basis": 0,
+          "not_verified": 0
+        },
+        "claims": [
+          {
+            "kind": "column_semantics",
+            "status": "contradicted",
+            "reason": "明确把变动/同比列当作年度值使用"
+          },
+          {
+            "kind": "year_assertion",
+            "status": "supported",
+            "reason": "存在2025年度已归属成员"
+          },
+          {
+            "kind": "year_assertion",
+            "status": "supported",
+            "reason": "存在2024年度已归属成员"
+          }
+        ]
+      }
+    },
+    "600019-2024": {
+      "task_file": "CONNJOB-46594ADB09A6.json",
+      "run_id": "CONN-DE218543181A4032",
+      "company": "宝钢股份",
+      "period": "2024",
+      "occurrences": 617,
+      "before_checks": 11,
+      "after_checks": 5,
+      "rule_distribution": {
+        "OCC-001": 4,
+        "ENV-001": 1
+      },
+      "rejections": 35,
+      "rejections_by_role": {
+        "ambiguous_column": 24,
+        "macro_context": 6,
+        "topic_filter": 2,
+        "row_identity": 3
+      },
+      "coverage": [
+        {
+          "kind": "topic_coverage",
+          "topic": "intensity",
+          "status": "only_multi_location",
+          "relation_count": 1,
+          "note": "当前报告只有同报告多位置披露，缺少跨报告同值、组成或比例关系；覆盖不足"
+        },
+        {
+          "kind": "topic_coverage",
+          "topic": "research",
+          "status": "only_multi_location",
+          "relation_count": 1,
+          "note": "当前报告只有同报告多位置披露，缺少跨报告同值、组成或比例关系；覆盖不足"
+        }
+      ],
+      "scope_gates": [],
+      "column_compositions": [
+        {
+          "check_id": "CHECK-0005",
+          "title": "环保资本化项目投入 · 表内合计列与分项列",
+          "expression": "483500000.000 − (434000000.00 + 49500000.000)",
+          "residual": "0",
+          "status": "not_comparable"
+        }
+      ],
+      "non_identical_mappings": [],
+      "zero_point_six_six_members": [],
+      "scope_case": {
+        "available": true,
+        "left": [
+          "BAO24_ESG-77-39-2",
+          "37.79",
+          77
+        ],
+        "right": [
+          "BAO24_AR-120-T0-R6-C2",
+          "1,249,616,010.99",
+          120
+        ],
+        "eq_problem": "同一报告存在与另一侧同值的同名披露；当前成员可能来自合并/母公司不同表，不能直接作为同值关系",
+        "rejected": true
+      }
+    }
+  }
+}
