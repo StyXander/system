@@ -20,7 +20,8 @@
     "evaluation_id": "EVAL-20260828-RELEASE-CANDIDATE-V1",
     "human_scoring_status": "pending",
     "competition_release_ready": false,
-    "boundary": "配置、历史评估或确定性备用不等于新鲜真实 B3 或正式发布批准；运行中 Web 实例重启会如实中断。"
+    "boundary": "配置、历史评估或确定性备用不等于新鲜真实 B3 或正式发布批准；运行中 Web 实例重启会如实中断。",
+    "historical_scope": "legacy_audit"
   },
   "deepseek_direct_local_window_20260902": {
     "window_id": "LOCAL-DEEPSEEK-V4-FLASH-DIRECT-20260902",
@@ -462,14 +463,14 @@
       "final_task_status": "historical_needs_human_before_new_public_prescreen_flow",
       "field_candidate_values": {
         "revenue": {
-          "2024": 6093653800.0,
-          "2023": 5293883000.0,
-          "2022": 5501661300.0
+          "2022": 5501661300,
+          "2023": 5293883000,
+          "2024": 6093653800
         },
         "accounts_receivable": {
-          "2024": 963991559.33,
+          "2022": 926115850.11,
           "2023": 915045622.69,
-          "2022": 926115850.11
+          "2024": 963991559.33
         }
       },
       "analysis_run_id": "RUN-V7-DAAE80CF71B6",
@@ -1132,5 +1133,14 @@
     "verified_prompt": "connectivity_roles_20261016.4",
     "supabase_process_restart_recovery": "passed",
     "supabase_correction_task": "DEMO-RUN-06DA41AF6430"
+  },
+  "current_product": {
+    "task_kind": "connectivity",
+    "scope": "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、完成可复算检查、定位证据及待补条件。",
+    "fact_source": "backend/connectivity_reports.json + connectivity_rules.py",
+    "counts_policy": "由API project_facts实时生成，不使用历史案例数",
+    "human_evaluation": "pending",
+    "production_deployment": "not_performed_this_round",
+    "connectivity_retention_minimum_days": 30
   }
 }

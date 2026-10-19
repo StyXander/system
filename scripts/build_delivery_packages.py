@@ -57,7 +57,7 @@ CLEAN_ZIP = DELIVERY_DIR / "03_审迹智链0.7.1_无密钥清洁运行包_2026-0
 JUDGE_ZIP = DELIVERY_DIR / "04_审迹智链_评委代码复现包_2026-09-03.zip"
 REPORT = DELIVERY_DIR / "交付清单与扫描报告.txt"
 VALIDATION_LOG = DELIVERY_DIR / "交付包构建与独立复验日志.txt"
-AI_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
+AI_NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。"
 
 FORBIDDEN_SUFFIXES = {".md", ".log", ".pyc", ".pyo", ".ndjson", ".tmp"}
 FORBIDDEN_PARTS = {".git", "__pycache__", ".pytest_cache", "runtime", "artifacts", "temp", "tmp"}
@@ -146,6 +146,9 @@ PACKAGE_DATA_FILES = (
     "backend/audit_procedure_map.json",
     "backend/knowledge_sources.manifest.json",
     "backend/cache_seed.materialized.json",
+    "backend/connectivity_reports.json",
+    "backend/evaluation/connectivity/release_cases.json",
+    "backend/evaluation/connectivity/reference_fields.json",
 )
 
 
@@ -170,6 +173,12 @@ def _clean_sources() -> list[tuple[str, Path]]:
         ("PROJECT_STATUS.json", ROOT / "PROJECT_STATUS.json"),
         ("PROJECT_AUTHORIZATION.json", ROOT / "PROJECT_AUTHORIZATION.json"),
         ("pytest.ini", ROOT / "pytest.ini"),
+        ("conftest.py", ROOT / "conftest.py"),
+        ("requirements.txt", ROOT / "requirements.txt"),
+        ("requirements-dev.txt", ROOT / "requirements-dev.txt"),
+        ("scripts/build_blind_submission_copy.py", ROOT / "scripts/build_blind_submission_copy.py"),
+        ("scripts/prepare_full_corpus.py", ROOT / "scripts/prepare_full_corpus.py"),
+        ("scripts/run_controlled_b1_b3_prescore.py", ROOT / "scripts/run_controlled_b1_b3_prescore.py"),
         ("render.yaml", ROOT / "render.yaml"),
         ("启动审迹智链.bat", ROOT / "启动审迹智链.bat"),
         ("backend/__init__.py", ROOT / "backend" / "__init__.py"),
@@ -179,8 +188,10 @@ def _clean_sources() -> list[tuple[str, Path]]:
         ("backend/cache_seed.lock.json", ROOT / "backend" / "cache_seed.lock.json"),
         ("supabase/schema.sql", ROOT / "supabase" / "schema.sql"),
         ("模板/审迹智链_标准案例包_V1.zip", CASE_ZIP),
-        ("模板/审迹智链_标准案例包填写与合规说明_V1.docx", CASE_GUIDE_DOCX),
     ]
+    # 历史Office指南不属于现行代码复现依赖；源文件存在时才保留历史附件。
+    if CASE_GUIDE_DOCX.is_file():
+        items.append(("模板/审迹智链_标准案例包填写与合规说明_V1.docx", CASE_GUIDE_DOCX))
     items.extend((name, ROOT / name) for name in PACKAGE_DATA_FILES)
     items.extend(_release_record_sources())
     items.extend(_iter_asset_files())
@@ -252,7 +263,8 @@ def _judge_sources() -> list[tuple[str, Path]]:
 
 JUDGE_README = """审迹智链 AuditTrace 评委代码复现包
 
-正式范围：审计计划阶段—销售与收款循环。
+当前范围：已登记公开年度报告与可持续发展报告关联核对。
+历史销售收款业务保留兼容，旧案例数量不代表当前核验能力。
 本包用途：从零安装依赖、启动服务、复算完整离线测试；不含四份公开年报全文。
 运行要求：Python 3.10 或更高版本，Windows、macOS、Linux 同一条命令。
 安装（复现测试与验收依赖）：python -m pip install -r requirements-dev.txt

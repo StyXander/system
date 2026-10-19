@@ -23,7 +23,7 @@ services:
       - key: AUDITTRACE_DEMO_EXECUTOR_MODE
         value: web
       - key: AUDITTRACE_DEMO_TASK_RETENTION_HOURS
-        value: "168"
+        value: "720"
       - key: AUDITTRACE_DEMO_TASK_LEASE_SECONDS
         value: "180"
       - key: AUDITTRACE_PROVIDER_PROBE_ENABLED
@@ -42,11 +42,11 @@ services:
       - key: AUDITTRACE_MODEL_MAX_CONCURRENT
         value: "6"
       - key: AUDITTRACE_MODEL_DAILY_RUN_LIMIT
-        value: "1000"
+        value: "60"
       - key: AUDITTRACE_MODEL_DAILY_INPUT_TOKENS
-        value: "40000000"
+        value: "1000000"
       - key: AUDITTRACE_MODEL_DAILY_OUTPUT_TOKENS
-        value: "4000000"
+        value: "300000"
       - key: AUDITTRACE_MODEL_CACHE_SECONDS
         value: "86400"
       - key: DEEPSEEK_API_KEY
@@ -54,7 +54,7 @@ services:
       - key: DEEPSEEK_BASE_URL
         value: https://api.deepseek.com
       - key: DEEPSEEK_MODEL
-        value: deepseek-flash
+        value: deepseek-v4-flash
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

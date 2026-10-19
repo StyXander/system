@@ -35,7 +35,7 @@ def evaluate(pair_ids=None):
         if unknown:
             raise ValueError("未登记的报告对：" + ", ".join(sorted(unknown)))
         pairs = [p for p in pairs if p in pair_ids]
-    references = ROOT.parent / "资料研究/制造业真实报告资料库_2026-10-15/字段样本.json"
+    references = ROOT / "backend/evaluation/connectivity/reference_fields.json"
     all_samples = json.loads(references.read_text(encoding="utf-8"))["samples"]
     summary = []
     for pair_id in pairs:

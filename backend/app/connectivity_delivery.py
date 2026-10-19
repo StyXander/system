@@ -16,6 +16,7 @@ from docx.shared import Pt, RGBColor, Cm
 from .connectivity_schemas import ConnectivityRun, notice_for
 from .delivery import _add_heading, _table_rows, _set_run_font
 from .connectivity_overview import build_overview
+from .connectivity_facts import execution_provenance
 
 STATUS_LABELS = {"supported": "依据齐备", "unknown": "依据待补", "conflicting": "存在冲突",
     "consistent": "所选关系计算一致", "precision_explained": "可由已知精度解释",
@@ -187,7 +188,12 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
     title.font.color.rgb = RGBColor(0, 0, 0)
     _paragraph(document, f"{run.company} · {run.period} · {run.run_id} · 结果版本{run.result_revision}")
     _paragraph(document, notice)
+    _paragraph(document, execution_provenance(run)["label"])
     _add_heading(document, "阅读摘要", 2)
+    labels = {"confirmable": "可确认", "limited_support": "有限支持", "conditional_trial": "条件试算", "not_comparable": "不可比", "pending": "待查"}
+    for key, label in labels.items():
+        _paragraph(document, f"{label}：{run.overview['summary_bands'][key]['value']} / {len(run.checks)}项。")
+    _paragraph(document, "上述五类互斥；条件试算项仍可能暂不可比，不可比栏仅统计没有试算记录的不可比关系。条件试算依赖所列假设；正式复算为0时表示当前前提不足或没有可执行数值关系，不能解读为没有问题。")
     _paragraph(document, f"本次从登记报告中发现{len(run.occurrences)}处候选及上下文，形成{len(run.checks)}项关系记录、{len(run.findings)}项待查问题。数字相符不替代定义与范围依据。")
     overview = run.overview
     _paragraph(document, f'程序事实记录{len(run.program_hints)}条（含无差异登记）；正式复算{overview["formal_calculations"]["value"]}项；'
@@ -202,7 +208,7 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             item = overview.get(key) or {}
             _paragraph(document, f"{item.get('label', key)}：{item.get('value')} / {item.get('denominator')}。")
         not_found = overview.get("not_found") or {}
-        _paragraph(document, f"{not_found.get('label', '未定位或提取失败的位置')}：{not_found.get('value')}，{not_found.get('denominator_label', '')}。")
+        _paragraph(document, f"未归属披露：{not_found.get('unattributed', {}).get('value', 0)}处 / 已提取{len(run.occurrences)}处；解析失败：{not_found.get('failed_pages', {}).get('value', 0)}页 / 总计{not_found.get('total_pages', 0)}页。")
         _paragraph(document, overview.get("note", ""))
     if run.ai_opinions:
         _add_heading(document, "AI意见（程序刻度＋规则/模型解释，仅供参考）", 2)

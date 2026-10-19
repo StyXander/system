@@ -1,0 +1,341 @@
+{
+  "schema_version": "release_cases_v1",
+  "dataset_role": "synthetic",
+  "professional_accuracy": null,
+  "samples": [
+    {
+      "id": "same_value",
+      "rule": "EQ-001",
+      "values": [
+        "100",
+        "100"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": "consistent",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "unit_normalization",
+      "rule": "EQ-001",
+      "values": [
+        "1",
+        "10000"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": [
+        "亿元",
+        "万元"
+      ],
+      "expected": "consistent",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "unexplained",
+      "rule": "EQ-001",
+      "values": [
+        "100",
+        "105"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": "unexplained_difference",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "composition",
+      "rule": "RD-001",
+      "values": [
+        "100",
+        "80",
+        "20"
+      ],
+      "roles": [
+        "total",
+        "component",
+        "component"
+      ],
+      "units": null,
+      "expected": "consistent",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "composition_negative",
+      "rule": "ENV-001",
+      "values": [
+        "100",
+        "80",
+        "30"
+      ],
+      "roles": [
+        "total",
+        "component",
+        "component"
+      ],
+      "units": null,
+      "expected": "unexplained_difference",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "ratio",
+      "rule": "INT-001",
+      "values": [
+        "20",
+        "100",
+        "20"
+      ],
+      "roles": [
+        "numerator",
+        "denominator",
+        "reported_ratio"
+      ],
+      "units": [
+        "万元",
+        "万元",
+        "%"
+      ],
+      "expected": "consistent",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "ratio_negative",
+      "rule": "INT-001",
+      "values": [
+        "22.86",
+        "405.29",
+        "0.0644"
+      ],
+      "roles": [
+        "numerator",
+        "denominator",
+        "reported_ratio"
+      ],
+      "units": [
+        "万元",
+        "万元",
+        "%"
+      ],
+      "expected": "unexplained_difference",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "zero_denominator",
+      "rule": "INT-001",
+      "values": [
+        "20",
+        "0",
+        "20"
+      ],
+      "roles": [
+        "numerator",
+        "denominator",
+        "reported_ratio"
+      ],
+      "units": [
+        "万元",
+        "万元",
+        "%"
+      ],
+      "expected": "not_executable",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "three_occurrences",
+      "rule": "OCC-001",
+      "values": [
+        "100",
+        "100",
+        "105"
+      ],
+      "roles": [
+        "occurrence",
+        "occurrence",
+        "occurrence"
+      ],
+      "units": null,
+      "expected": "unexplained_difference",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "unknown_scope",
+      "rule": "EQ-001",
+      "values": [
+        "100",
+        "100"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": "not_comparable",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "different_currency",
+      "rule": "EQ-001",
+      "values": [
+        "100",
+        "100"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": "not_executable",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "known_rounding",
+      "rule": "EQ-001",
+      "values": [
+        "2.00",
+        "2.004"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": "precision_explained",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "unknown_rounding",
+      "rule": "EQ-001",
+      "values": [
+        "2.00",
+        "2.004"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": "unexplained_difference",
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "year_column_attack",
+      "rule": "EQ-001",
+      "values": [
+        "100",
+        "0.66"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": null,
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "parent_vs_consolidated",
+      "rule": "EQ-001",
+      "values": [
+        "37.79",
+        "12.50"
+      ],
+      "roles": [
+        "left",
+        "right"
+      ],
+      "units": null,
+      "expected": null,
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "narrative_yoy",
+      "rule": "NAR-001",
+      "values": [
+        "10.8949",
+        "10.89"
+      ],
+      "roles": [
+        "occurrence",
+        "occurrence"
+      ],
+      "units": [
+        "%",
+        "%"
+      ],
+      "expected": null,
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    },
+    {
+      "id": "counter_evidence_withdrawal",
+      "rule": "NAR-001",
+      "values": [
+        null
+      ],
+      "roles": [
+        "occurrence"
+      ],
+      "units": null,
+      "expected": null,
+      "annotation_status": "machine_expectation_pending_two_human_reviews",
+      "annotator_a": null,
+      "annotator_b": null,
+      "adjudication": null
+    }
+  ]
+}

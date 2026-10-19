@@ -73,10 +73,10 @@ def _request_digest(case_id: str, run_body: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def result_expiry_iso() -> str:
+def result_expiry_iso(*, minimum_seconds: int = 0) -> str:
     """返回公开结果的绝对到期时间，供本地与远程台账共用。"""
 
-    return (datetime.now(timezone.utc) + timedelta(seconds=_retention_seconds())).isoformat()
+    return (datetime.now(timezone.utc) + timedelta(seconds=max(_retention_seconds(), minimum_seconds))).isoformat()
 
 
 class DemoRunTaskStore:
@@ -263,6 +263,23 @@ class DemoRunTaskStore:
             if task is not None:
                 self._expire_if_needed(task)
             return task
+
+    def list_owned(self, owner: str, *, limit: int = 5, offset: int = 0) -> list[dict[str, Any]]:
+        """只列本会话；扫描持久文件使多实例写入后也可恢复历史。"""
+        with self._lock:
+            for path in self.directory.glob(f"{self.task_id_prefix}-*.json"):
+                row = self._load_file(path.stem)
+                if row is not None:
+                    self._tasks[row["task_id"]] = row
+            rows = [row for row in self._tasks.values()
+                    if row.get("run_body", {}).get("kind") == "connectivity"
+                    and row.get("run_body", {}).get("owner") == owner]
+            rows.sort(key=lambda row: (row.get("created_at", ""), row["task_id"]), reverse=True)
+            result = []
+            for row in rows[offset:offset + limit]:
+                self._expire_if_needed(row)
+                result.append(dict(row))
+            return result
 
     def is_cancelled(self, task_id: str) -> bool:
         with self._lock:
@@ -665,6 +682,23 @@ class SupabaseDemoRunTaskStore:
             self._persist(task, expected_version=expected)
             task = self._row_to_task(self.client.get_demo_run_task(task_id))
         return task
+
+    def list_owned(self, owner: str, *, limit: int = 5, offset: int = 0) -> list[dict[str, Any]]:
+        """所有权在数据库过滤，分页前不读取其他会话结果正文。"""
+        rows = self.client._request("GET", "rest/v1/demo_run_tasks", service=True,
+            params={"task_kind": "eq.connectivity", "request_payload->>owner": f"eq.{owner}",
+                    "select": "task_id,case_id,status,created_at,updated_at,result_expires_at,run_id,failure_code,request_payload",
+                    "order": "created_at.desc,task_id.desc", "limit": str(limit), "offset": str(offset)})
+        result = []
+        for row in rows:
+            item = self._row_to_task(row)
+            if item.get("run_body", {}).get("owner") != owner:
+                continue
+            # 列表只投影过期状态，不延长旧结果寿命或读回大体积结果。
+            if item.get("status") in {"completed", "degraded"} and DemoRunTaskStore._is_expired(item):
+                item["status"] = "expired"
+            result.append(item)
+        return result
 
     def snapshot(self, task_id: str) -> dict[str, Any] | None:
         task = self.get(task_id)

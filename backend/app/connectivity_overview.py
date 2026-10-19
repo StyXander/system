@@ -11,6 +11,7 @@ from decimal import Decimal
 from .connectivity_rules import BASE_CONDITIONS
 from .connectivity_schemas import ConnectivityRun
 from .ai_opinion import build_program_hints
+from .connectivity_facts import execution_provenance
 
 CONFIRMED_STATUSES = {"consistent", "precision_explained", "adjustment_explained"}
 
@@ -88,7 +89,29 @@ def build_overview(run: ConnectivityRun) -> dict:
     actionable = [h for h in hints if h.get('program_priority', h['priority']) != 'low'
                   or (h.get('difference', {}).get('absolute') is not None and Decimal(h['difference']['absolute']) != 0)]
     opinions = [a for a in run.ai_analyses if a.status == "current"]
+    # 新计数明确区分披露位置和页；保留旧 not_found.value 供旧客户端过渡。
+    counts = {"unattributed_occurrences": {"value": excluded, "unit": "处", "denominator": extracted},
+              "failed_pages": {"value": failed_pages, "unit": "页", "denominator": total_pages}}
+    bands = {"confirmable": [], "limited_support": [], "conditional_trial": [], "not_comparable": [], "pending": []}
+    for check in checks:
+        level = getattr(check, "evidence_level", None) or check.calculation.get("evidence_level")
+        if check in confirmed:
+            category = "confirmable"
+        elif level == "L1":
+            category = "limited_support"
+        elif check.check_id in trials:
+            category = "conditional_trial"
+        elif check.calculation_status == "not_comparable":
+            category = "not_comparable"
+        else:
+            category = "pending"
+        bands[category].append(check.check_id)
     return {
+        "delivery_contract_version": "2026-10-19.ai4.1",
+        "summary_bands_note": "五类互斥；条件试算不代表口径可比，不可比栏仅统计没有试算记录的不可比关系",
+        "execution_provenance": execution_provenance(run),
+        "coverage_counts": counts,
+        "summary_bands": {key: {"value": len(ids), "items": ids, "denominator": total} for key, ids in bands.items()},
         "counting_version": "2026-10-18.2",
         "relation_total": total,
         "formal_calculations": {"value": len(formal), "items": formal},
@@ -125,7 +148,7 @@ def build_overview(run: ConnectivityRun) -> dict:
                                         "items": [c.check_id for c in undecidable]}},
         # 两件事分开计数，不合成"行数/页数"这种比值：
         # ① 已提取但未计入的位置（分母＝已提取位置数）；② 解析失败的页（分母＝总页数）。
-        "not_found": {"value": excluded + failed_pages, "label": "未计入位置与失败页合计",
+        "not_found": {"deprecated_mixed_value": True, "replacement": "coverage_counts", "value": excluded + failed_pages, "label": "未计入位置与失败页合计",
                       "unattributed": {"value": excluded, "denominator": extracted,
                                        "label": "已提取但未归属或未达候选门槛的位置",
                                        "items": [item.occurrence_id for item in run.extraction_exclusions[:10]]},

@@ -16,7 +16,7 @@ import threading
 import time
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response, Query
 from fastapi.responses import JSONResponse, RedirectResponse
 import pymupdf
 
@@ -33,7 +33,11 @@ from .supabase_adapter import demo_task_supabase_enabled, get_demo_task_client, 
 from .source_viewer import preview_path, source_page_response, PDF_ACCESS_LOCK
 from .public_model import PublicModelQuotaError
 
+from .connectivity_facts import project_facts, execution_provenance
+from .connectivity_bootstrap import source_readiness
+
 COOKIE = "audittrace_connectivity_session"
+CONNECTIVITY_RETENTION_SECONDS = 30 * 86400
 
 
 def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
@@ -82,6 +86,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             body = dict(body)
             normalized = ConnectivityRun.model_validate({k:v for k,v in body.items() if k in ConnectivityRun.model_fields})
             body['overview'] = build_overview(normalized)
+            body['ai_generated_content_notice'] = NOTICE
             result['result'] = body
         if isinstance(body, dict) and not is_owner:
             body = dict(body)
@@ -106,7 +111,24 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         rule_cards = {key: {**rule, "conditions": list(required_conditions(rule["operator"]))} for key, rule in RULES.items()}
         return {"pairs": list(grouped.values()), "topics": TOPICS, "rules": rule_cards, "notice": NOTICE,
                 "task_persistence": "supabase" if demo_task_supabase_enabled() else "local", "schema_version": SCHEMA_VERSION,
-                "intelligence_version": "hybrid_v2", "prompt_version": PROMPT_VERSION}
+                "intelligence_version": "hybrid_v2", "prompt_version": PROMPT_VERSION,
+                "project_facts": project_facts(root)}
+
+    @router.get("/readiness")
+    def readiness(pair_id: str | None = None):
+        return source_readiness(root, pair_id=pair_id)
+
+    @router.get("/runs")
+    def history(request: Request, limit: int = Query(5, ge=1, le=20), offset: int = Query(0, ge=0, le=10000)):
+        # 无会话不能用空串哈希探测历史；已知链接读取沿用原有公开策略。
+        if not request.cookies.get(COOKIE):
+            raise HTTPException(409, "请先加载工作台以建立当前浏览器会话")
+        rows = store().list_owned(owner(request), limit=limit + 1, offset=offset)
+        items = [{k: row.get(k) for k in ("task_id", "case_id", "status", "created_at", "updated_at", "result_expires_at", "run_id", "failure_code")}
+                 for row in rows[:limit]]
+        return {"items": items, "limit": limit, "offset": offset,
+                "next_offset": offset + limit if len(rows) > limit else None,
+                "notice": NOTICE, "read_policy": "known_link_public; history_session_owned"}
 
     @router.post("/runs")
     def create(body: RunRequest, request: Request):
@@ -168,7 +190,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                         runtime.update_stage(item['task_id'], 'structured_output', 'degraded', str(error)[:240])
             degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed", "reused_completed"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
             runtime.update_task(item["task_id"], status="degraded" if degraded else "completed", run_id=result.run_id,
-                result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso())
+                result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNECTIVITY_RETENTION_SECONDS))
         execute.__audittrace_request__ = request
         try:
             item = runtime.create(body.pair_id, run_body, execute, idempotency_key=request.headers.get("idempotency-key"))
@@ -295,7 +317,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                 child.versions['result_origin'] = 'user_revision'
                 child.program_hints = build_program_hints(child)
                 child.overview = build_overview(child)
-                runtime.update_task(row["task_id"], status="completed", run_id=child.run_id, result=child.model_dump(mode="json"), result_expires_at=result_expiry_iso())
+                runtime.update_task(row["task_id"], status="completed", run_id=child.run_id, result=child.model_dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNECTIVITY_RETENTION_SECONDS))
             correction_body = {"kind": "connectivity", "owner": owner(request), "parent_run_id": run.run_id, "parent_task_id": item["task_id"], "action_id": body.action_id, "mutation_digest": mutation_digest}
             try:
                 # 每个父版本使用一个稳定修订键，复用共享任务表既有唯一约束。

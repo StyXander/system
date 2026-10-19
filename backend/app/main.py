@@ -5166,7 +5166,18 @@ def public_project_status(http_request: Request) -> dict[str, Any]:
     """公开入口只返回实时发布事实，不再外抛整份历史状态文件。"""
 
     payload = _project_status_payload(http_request)
-    return _public_status_projection(payload, demo_scope=_competition_demo_enabled())
+    result = _public_status_projection(payload, demo_scope=_competition_demo_enabled())
+    from .connectivity_facts import project_facts
+    facts = project_facts(WORKSPACE_ROOT)
+    result["legacy_scope"] = {"formal_scope": result.get("formal_scope"), "case_count": result.get("case_count")}
+    result["formal_scope"] = facts["formal_scope"]
+    result["project_facts"] = facts
+    result["case_count_scope"] = "legacy_audit"
+    result["current_pair_count"] = facts["pair_count"]
+    result["current_document_count"] = facts["document_count"]
+    result["current_business_readiness"] = {"source_check": "/api/connectivity/readiness", "model_and_human_evaluation": "separately_recorded"}
+    result["ai_generated_content_notice"] = facts["notice"]
+    return result
 
 
 @app.get("/api/internal/status")

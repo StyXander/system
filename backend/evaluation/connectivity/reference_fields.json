@@ -1,0 +1,1190 @@
+{
+  "compiled_at": "2026-10-15T12:29:03.781841+08:00",
+  "purpose": "字段设计样本，未赋予正误标签，未运行产品规则",
+  "sample_count": 44,
+  "legacy_project_notice": "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。",
+  "samples": [
+    {
+      "id": "W01",
+      "company": "五粮液",
+      "check_block": 2,
+      "topic": "营业收入",
+      "use_for_design": "单位换算与两位小数展示",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 52,
+          "printed_page": "98",
+          "section": "",
+          "original_label": "营业收入",
+          "value_as_printed": "405.29",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "WLY_AR",
+          "pdf_page": 7,
+          "printed_page": "7",
+          "section": "主要会计数据",
+          "original_label": "营业收入",
+          "value_as_printed": "40,528,509,770.23",
+          "unit_as_printed": "元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W02",
+      "company": "五粮液",
+      "check_block": 2,
+      "topic": "资产总额",
+      "use_for_design": "期末余额配对",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 52,
+          "printed_page": "98",
+          "section": "",
+          "original_label": "资产总额",
+          "value_as_printed": "1,899.84",
+          "unit_as_printed": "亿元",
+          "period": "2025-12-31",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "WLY_AR",
+          "pdf_page": 7,
+          "printed_page": "7",
+          "section": "",
+          "original_label": "总资产",
+          "value_as_printed": "189,984,270,815.47",
+          "unit_as_printed": "元",
+          "period": "2025-12-31",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W03",
+      "company": "五粮液",
+      "check_block": 2,
+      "topic": "归母净利润",
+      "use_for_design": "保留归母限定词",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 52,
+          "printed_page": "98",
+          "section": "",
+          "original_label": "归母净利润",
+          "value_as_printed": "89.54",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "WLY_AR",
+          "pdf_page": 7,
+          "printed_page": "7",
+          "section": "",
+          "original_label": "归属于上市公司股东的净利润",
+          "value_as_printed": "8,954,257,202.51",
+          "unit_as_printed": "元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W04",
+      "company": "五粮液",
+      "check_block": 3,
+      "topic": "研发投入",
+      "use_for_design": "金额与比例分别登记；不等同绿色研发",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 54,
+          "printed_page": "102",
+          "section": "",
+          "original_label": "研发投入金额",
+          "value_as_printed": "4.49",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "WLY_AR",
+          "pdf_page": 17,
+          "printed_page": "17",
+          "section": "",
+          "original_label": "研发投入金额",
+          "value_as_printed": "449,183,817.50",
+          "unit_as_printed": "元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W05",
+      "company": "五粮液",
+      "check_block": 2,
+      "topic": "对外捐赠",
+      "use_for_design": "与附注营业外支出配对",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 54,
+          "printed_page": "102",
+          "section": "",
+          "original_label": "对外捐赠金额",
+          "value_as_printed": "5,142.49",
+          "unit_as_printed": "万元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "WLY_AR",
+          "pdf_page": 114,
+          "printed_page": "114",
+          "section": "附注47营业外支出",
+          "original_label": "对外捐赠",
+          "value_as_printed": "51,424,925.53",
+          "unit_as_printed": "元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W06",
+      "company": "五粮液",
+      "check_block": 8,
+      "topic": "分红支付年度",
+      "use_for_design": "不拿当年利润分配预案替代实际支付",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 52,
+          "printed_page": "98",
+          "section": "",
+          "original_label": "现金分红总额",
+          "value_as_printed": "223.00",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "注1：仅包括2025年实施的2024年度现金分红及中期分红"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W07",
+      "company": "五粮液",
+      "check_block": 3,
+      "topic": "环保投入",
+      "use_for_design": "未定位同口径财务单列；需组成清单",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 53,
+          "printed_page": "99",
+          "section": "",
+          "original_label": "环保投入",
+          "value_as_printed": "1.8",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W08",
+      "company": "五粮液",
+      "check_block": 5,
+      "topic": "污水处理厂在建工程",
+      "use_for_design": "当期增加、余额和预算分开存",
+      "observations": [
+        {
+          "source_id": "WLY_AR",
+          "pdf_page": 102,
+          "printed_page": "102",
+          "section": "",
+          "original_label": "新建集中污水处理厂—本期增加",
+          "value_as_printed": "115,817,100.73",
+          "unit_as_printed": "元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "同一行预算1,200,000,000；期末481,563,617.97；工程进度97%。已查看原页列位置"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W09",
+      "company": "五粮液",
+      "check_block": 4,
+      "topic": "水循环利用率",
+      "use_for_design": "公式与指标边界，属于ESG内部核对",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 53,
+          "printed_page": "100",
+          "section": "",
+          "original_label": "水资源循环利用率",
+          "value_as_printed": "16.63",
+          "unit_as_printed": "%",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "总用水量=总取水量+循环用水量；循环利用率=循环用水量/总用水量；总用水1,569万吨、循环261万吨"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W10",
+      "company": "五粮液",
+      "check_block": 1,
+      "topic": "碳排放组织边界",
+      "use_for_design": "运营控制权口径不能被总体合并说明覆盖",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 52,
+          "printed_page": "98",
+          "section": "",
+          "original_label": "温室气体排放总量（范围1+范围2）",
+          "value_as_printed": "49.84",
+          "unit_as_printed": "万吨二氧化碳当量",
+          "period": "2025年度",
+          "indicator_scope": "运营控制权法：股份公司及具备运营控制权的子公司",
+          "note": "范围2位置法，未扣减绿电减排；因子更新影响增长"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W11",
+      "company": "五粮液",
+      "check_block": 7,
+      "topic": "酒糟项目预期减排",
+      "use_for_design": "预计年度效果不等于报告期实际",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 18,
+          "printed_page": "29—30",
+          "section": "",
+          "original_label": "酒糟生物质热电联产项目",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "建成后的预计年度效果",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "",
+          "content_summary": "预计年减排二氧化碳超20万吨；本次未定位年报同名项目金额"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "W12",
+      "company": "五粮液",
+      "check_block": 3,
+      "topic": "乡村振兴与捐赠",
+      "use_for_design": "公益支出与消费帮扶组成，不与捐赠强求相等",
+      "observations": [
+        {
+          "source_id": "WLY_ESG",
+          "pdf_page": 54,
+          "printed_page": "102",
+          "section": "",
+          "original_label": "乡村振兴投入金额",
+          "value_as_printed": "6,583.40",
+          "unit_as_printed": "万元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "仅包含乡村振兴公益性支出和消费帮扶"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M01",
+      "company": "美的集团",
+      "check_block": 3,
+      "topic": "研发费用与投入标签",
+      "use_for_design": "换算后接近仍需保留原概念",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 45,
+          "printed_page": "85—86",
+          "section": "",
+          "original_label": "年度研发投入",
+          "value_as_printed": "177.88",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "MIDEA_AR",
+          "pdf_page": 53,
+          "printed_page": "52",
+          "section": "",
+          "original_label": "研发费用金额",
+          "value_as_printed": "17,787,624",
+          "unit_as_printed": "千元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M02",
+      "company": "美的集团",
+      "check_block": 7,
+      "topic": "累计研发",
+      "use_for_design": "不能与年度投入相等比较",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 14,
+          "printed_page": "23—24",
+          "section": "",
+          "original_label": "2020年以来累计研发投入",
+          "value_as_printed": "834",
+          "unit_as_printed": "亿元",
+          "period": "2020年以来累计至2025年",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M03",
+      "company": "美的集团",
+      "check_block": 2,
+      "topic": "期末员工",
+      "use_for_design": "保留精度和统计时点，差额来源未确认",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 74,
+          "printed_page": "143",
+          "section": "",
+          "original_label": "员工总人数",
+          "value_as_printed": "198",
+          "unit_as_printed": "千人",
+          "period": "报告期末",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "MIDEA_AR",
+          "pdf_page": 77,
+          "printed_page": "76",
+          "section": "",
+          "original_label": "在职员工的数量合计",
+          "value_as_printed": "198,570",
+          "unit_as_printed": "人",
+          "period": "报告期末",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M04",
+      "company": "美的集团",
+      "check_block": 1,
+      "topic": "温室气体边界",
+      "use_for_design": "具体49家工厂边界与总体合并范围分开",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 22,
+          "printed_page": "39—40",
+          "section": "",
+          "original_label": "范围1和范围2温室气体排放",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025年度",
+          "indicator_scope": "八个事业部下属49家工厂及安得智联",
+          "note": "注9；范围3另有类别/产品边界",
+          "content_summary": "排放表分别列各事业部与安得智联，不能假定所有附属公司均入环境指标"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M05",
+      "company": "美的集团",
+      "check_block": 4,
+      "topic": "范围1+2加总",
+      "use_for_design": "内部公式辅助，与财务金额分开",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 73,
+          "printed_page": "141",
+          "section": "",
+          "original_label": "范围1+2温室气体排放总量",
+          "value_as_printed": "2,098,936",
+          "unit_as_printed": "吨二氧化碳当量",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "范围1为507,184；范围2为1,591,752"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M06",
+      "company": "美的集团",
+      "check_block": 4,
+      "topic": "收入碳强度",
+      "use_for_design": "先确认营业收入/营业总收入及覆盖范围",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 73,
+          "printed_page": "141",
+          "section": "",
+          "original_label": "温室气体排放强度",
+          "value_as_printed": "0.046",
+          "unit_as_printed": "吨二氧化碳当量/万元营收",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "收入分母具体会计口径及范围待确认，不擅自指定合并营业总收入"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M07",
+      "company": "美的集团",
+      "check_block": 4,
+      "topic": "综合能源单位",
+      "use_for_design": "千个千瓦时保留完整",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 73,
+          "printed_page": "141—142",
+          "section": "",
+          "original_label": "综合能源消耗量",
+          "value_as_printed": "3,622,856.57",
+          "unit_as_printed": "千个千瓦时",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M08",
+      "company": "美的集团",
+      "check_block": 8,
+      "topic": "范围3统计扩展",
+      "use_for_design": "比较年度先识别边界变动",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 73,
+          "printed_page": "141",
+          "section": "",
+          "original_label": "范围3类别11",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "注30，2025年产品范围扩大",
+          "content_summary": "范围扩展影响2024与2025数据可比性"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "M09",
+      "company": "美的集团",
+      "check_block": 6,
+      "topic": "低碳技术与合作投资",
+      "use_for_design": "绿色叙述不等于全部研发投入，合作投资不等于公司自有资产",
+      "observations": [
+        {
+          "source_id": "MIDEA_ESG",
+          "pdf_page": 18,
+          "printed_page": "31—32",
+          "section": "",
+          "original_label": "气候风险与应对",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "",
+          "content_summary": "低碳冷媒、绿色材料；EPC/EEP模式引入外部资金、减轻年度投资压力；未形成绿色研发独立金额配对"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C01",
+      "company": "宁德时代",
+      "check_block": 2,
+      "topic": "营业收入",
+      "use_for_design": "千元与万元换算",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 150,
+          "printed_page": "147",
+          "section": "",
+          "original_label": "营业收入",
+          "value_as_printed": "42,370,183.4",
+          "unit_as_printed": "万元",
+          "period": "2025年度",
+          "indicator_scope": "合并财务报表范围",
+          "note": ""
+        },
+        {
+          "source_id": "CATL_AR",
+          "pdf_page": 11,
+          "printed_page": "11",
+          "section": "",
+          "original_label": "营业收入",
+          "value_as_printed": "423,701,834",
+          "unit_as_printed": "千元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C02",
+      "company": "宁德时代",
+      "check_block": 2,
+      "topic": "资产总额",
+      "use_for_design": "期末余额配对",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 150,
+          "printed_page": "147",
+          "section": "",
+          "original_label": "资产总额",
+          "value_as_printed": "97,482,754.4",
+          "unit_as_printed": "万元",
+          "period": "2025-12-31",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "CATL_AR",
+          "pdf_page": 11,
+          "printed_page": "11",
+          "section": "",
+          "original_label": "总资产",
+          "value_as_printed": "974,827,544",
+          "unit_as_printed": "千元",
+          "period": "2025-12-31",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C03",
+      "company": "宁德时代",
+      "check_block": 2,
+      "topic": "归母净利润",
+      "use_for_design": "不得误配净利润总额7,678,630.9万元",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 150,
+          "printed_page": "147",
+          "section": "",
+          "original_label": "归母净利润",
+          "value_as_printed": "7,220,128.2",
+          "unit_as_printed": "万元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "CATL_AR",
+          "pdf_page": 11,
+          "printed_page": "11",
+          "section": "",
+          "original_label": "归属于上市公司股东的净利润",
+          "value_as_printed": "72,201,282",
+          "unit_as_printed": "千元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C04",
+      "company": "宁德时代",
+      "check_block": 2,
+      "topic": "每股收益",
+      "use_for_design": "单位是元/股，不随万元经济表转换",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 150,
+          "printed_page": "147",
+          "section": "",
+          "original_label": "基本每股收益",
+          "value_as_printed": "16.14",
+          "unit_as_printed": "元/股",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "CATL_AR",
+          "pdf_page": 11,
+          "printed_page": "11",
+          "section": "",
+          "original_label": "基本每股收益",
+          "value_as_printed": "16.14",
+          "unit_as_printed": "元/股",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C05",
+      "company": "宁德时代",
+      "check_block": 3,
+      "topic": "研发投入",
+      "use_for_design": "千元/万元及5.23%比例",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 151,
+          "printed_page": "148",
+          "section": "",
+          "original_label": "研发投入",
+          "value_as_printed": "2,214,658.1",
+          "unit_as_printed": "万元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "CATL_AR",
+          "pdf_page": 30,
+          "printed_page": "30",
+          "section": "",
+          "original_label": "研发投入金额",
+          "value_as_printed": "22,146,581",
+          "unit_as_printed": "千元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C06",
+      "company": "宁德时代",
+      "check_block": 4,
+      "topic": "能源总量",
+      "use_for_design": "环境范围与能量量纲",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 152,
+          "printed_page": "149",
+          "section": "",
+          "original_label": "综合能源消耗",
+          "value_as_printed": "24,767,519.69",
+          "unit_as_printed": "兆瓦时",
+          "period": "2025年度",
+          "indicator_scope": "合并范围内对环境有实质性影响的相关子公司",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C07",
+      "company": "宁德时代",
+      "check_block": 4,
+      "topic": "能源强度",
+      "use_for_design": "分母是电池系统产量，不是营收或销量",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 153,
+          "printed_page": "150",
+          "section": "",
+          "original_label": "能源使用强度",
+          "value_as_printed": "33.11",
+          "unit_as_printed": "兆瓦时/兆瓦时",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "注5：综合能源使用量/电池系统产量"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C08",
+      "company": "宁德时代",
+      "check_block": 7,
+      "topic": "能源比较数重述",
+      "use_for_design": "重述后的2024与旧版比较数分开",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 153,
+          "printed_page": "150",
+          "section": "",
+          "original_label": "2024年能源比较数据",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2024比较年度重述值",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "蒸汽用量统一标煤折算计算方法；间接、综合能源及强度数据追溯调整",
+          "content_summary": "保留方法变更说明，不以旧版差额判错"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C09",
+      "company": "宁德时代",
+      "check_block": 8,
+      "topic": "应付账款交叉引用",
+      "use_for_design": "引用到报告标题，目标还需细化；账龄不是逾期",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 165,
+          "printed_page": "162",
+          "section": "",
+          "original_label": "深交所第46条索引",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "",
+          "content_summary": "应付账款（含应付票据）及逾期未支付金额等索引指向2025年度报告"
+        },
+        {
+          "source_id": "CATL_AR",
+          "pdf_page": 187,
+          "printed_page": "187",
+          "section": "",
+          "original_label": "应付账款合计",
+          "value_as_printed": "160,328,962",
+          "unit_as_printed": "千元",
+          "period": "2025-12-31",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "附注29；票据另查附注；大于1年账龄不等于合同逾期"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C10",
+      "company": "宁德时代",
+      "check_block": 5,
+      "topic": "光伏实际发电",
+      "use_for_design": "装机容量、发电量、避免排放各自独立",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 104,
+          "printed_page": "101",
+          "section": "",
+          "original_label": "电池工厂分布式光伏年度发电量",
+          "value_as_printed": "441,074.35",
+          "unit_as_printed": "兆瓦时",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "同页新增装机46兆瓦；避免排放为估算效果，不能变成财务碳收益"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C11",
+      "company": "宁德时代",
+      "check_block": 7,
+      "topic": "热泵预计节气",
+      "use_for_design": "保留预计全年口径",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 104,
+          "printed_page": "101",
+          "section": "",
+          "original_label": "5个电池工厂热泵改造预计全年节约天然气",
+          "value_as_printed": "3,282",
+          "unit_as_printed": "万立方米",
+          "period": "预计全年效果",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "C12",
+      "company": "宁德时代",
+      "check_block": 5,
+      "topic": "时代绿能项目阶段",
+      "use_for_design": "开发指标、在建、并网不得无条件相加",
+      "observations": [
+        {
+          "source_id": "CATL_ESG",
+          "pdf_page": 105,
+          "printed_page": "102",
+          "section": "",
+          "original_label": "时代绿能集中式可再生能源项目",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "",
+          "content_summary": "开发指标5,368兆瓦；在建容量1,871兆瓦；建成并网容量893兆瓦；未定位一对一财务项目金额"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B01",
+      "company": "宝钢股份",
+      "check_block": 2,
+      "topic": "收入",
+      "use_for_design": "数值对应仍保留营业总收入/营业收入原标签",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 86,
+          "printed_page": "168—169",
+          "section": "",
+          "original_label": "营业总收入",
+          "value_as_printed": "3,175.08",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "BAOSTEEL_AR",
+          "pdf_page": 6,
+          "printed_page": "6",
+          "section": "",
+          "original_label": "营业收入",
+          "value_as_printed": "317,508",
+          "unit_as_printed": "百万元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B02",
+      "company": "宝钢股份",
+      "check_block": 3,
+      "topic": "研发费用与研发总投入",
+      "use_for_design": "使用公司真实组成，不把试制费改称资本化研发",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 86,
+          "printed_page": "168—169",
+          "section": "",
+          "original_label": "研发费用",
+          "value_as_printed": "38.96",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 92,
+          "printed_page": "180",
+          "section": "",
+          "original_label": "研发支出",
+          "value_as_printed": "199.60",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        },
+        {
+          "source_id": "BAOSTEEL_AR",
+          "pdf_page": 17,
+          "printed_page": "17",
+          "section": "",
+          "original_label": "研发投入合计",
+          "value_as_printed": "19,960",
+          "unit_as_printed": "百万元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "费用化研发投入3,896百万元+新产品研发试制费16,064百万元；比例6.29%"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B03",
+      "company": "宝钢股份",
+      "check_block": 2,
+      "topic": "研发人数和占比",
+      "use_for_design": "人数与占比展示精度分别处理",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 92,
+          "printed_page": "180",
+          "section": "",
+          "original_label": "研发人员数量",
+          "value_as_printed": "8,683",
+          "unit_as_printed": "人",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "占比18.82%"
+        },
+        {
+          "source_id": "BAOSTEEL_AR",
+          "pdf_page": 18,
+          "printed_page": "18",
+          "section": "",
+          "original_label": "研发人员数量",
+          "value_as_printed": "8,683",
+          "unit_as_printed": "人",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "占比18.8%"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B04",
+      "company": "宝钢股份",
+      "check_block": 3,
+      "topic": "当年节能低碳投资",
+      "use_for_design": "未定位同口径附注汇总，不代替全部转固",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 30,
+          "printed_page": "56—57",
+          "section": "",
+          "original_label": "2025年节能低碳投资",
+          "value_as_printed": "32",
+          "unit_as_printed": "亿元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B05",
+      "company": "宝钢股份",
+      "check_block": 7,
+      "topic": "下一年预算",
+      "use_for_design": "2026预算不与2025实际相等比较",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 30,
+          "printed_page": "56—57",
+          "section": "",
+          "original_label": "2026年预算",
+          "value_as_printed": "11",
+          "unit_as_printed": "亿元",
+          "period": "2026预算年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B06",
+      "company": "宝钢股份",
+      "check_block": 4,
+      "topic": "吨钢能耗",
+      "use_for_design": "分子分母同钢铁口径，其他产业另存",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 90,
+          "printed_page": "176—177",
+          "section": "",
+          "original_label": "钢铁业能耗强度",
+          "value_as_printed": "4.67",
+          "unit_as_printed": "兆瓦时/吨粗钢",
+          "period": "2025年度",
+          "indicator_scope": "钢铁业口径，参照表中列及相关范围说明",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B07",
+      "company": "宝钢股份",
+      "check_block": 4,
+      "topic": "吨钢碳排放",
+      "use_for_design": "只取四大基地分子与粗钢产量",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 91,
+          "printed_page": "178—179",
+          "section": "",
+          "original_label": "吨钢碳排放",
+          "value_as_printed": "1.960",
+          "unit_as_printed": "吨二氧化碳当量/吨粗钢",
+          "period": "2025年度",
+          "indicator_scope": "四大基地",
+          "note": ""
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B08",
+      "company": "宝钢股份",
+      "check_block": 1,
+      "topic": "报告覆盖范围",
+      "use_for_design": "保留75%—100%原文区间，不能改写全集团全指标",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 3,
+          "printed_page": "2—3",
+          "section": "",
+          "original_label": "报告范围及边界",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "",
+          "content_summary": "列举四大基地及其他单位，称披露范围覆盖公司总营业收入75%—100%"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B09",
+      "company": "宝钢股份",
+      "check_block": 5,
+      "topic": "湛江零碳工程会计变动",
+      "use_for_design": "项目关联候选，需要确认产线与炼钢分项范围",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_AR",
+          "pdf_page": 154,
+          "printed_page": "154",
+          "section": "",
+          "original_label": "零碳高等级薄钢板工厂项目炼钢工程—本期转固",
+          "value_as_printed": "1,087,415,200.00",
+          "unit_as_printed": "元",
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "预算1,326,600,000；本期增加847,336,295.51；部分完工"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B10",
+      "company": "宝钢股份",
+      "check_block": 7,
+      "topic": "近零碳产线潜在减排",
+      "use_for_design": "最高年效果不是报告期实际；产能不是产量",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 32,
+          "printed_page": "60—61",
+          "section": "",
+          "original_label": "湛江近零碳钢铁产线",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025-12-23贯通及预期年度效果",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "",
+          "content_summary": "连铸坯年产能180万吨；最高每年可减少CO2排放超314万吨"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    },
+    {
+      "id": "B11",
+      "company": "宝钢股份",
+      "check_block": 8,
+      "topic": "用水指标边界脚注",
+      "use_for_design": "同一报告不同指标范围不同",
+      "observations": [
+        {
+          "source_id": "BAOSTEEL_ESG",
+          "pdf_page": 91,
+          "printed_page": "178—179",
+          "section": "",
+          "original_label": "注25与注26",
+          "value_as_printed": null,
+          "unit_as_printed": null,
+          "period": "2025年度",
+          "indicator_scope": "见报告编制说明及指标脚注",
+          "note": "",
+          "content_summary": "总用水覆盖四大基地、黄石涂镀及鲁宝；吨钢新水为四大基地"
+        }
+      ],
+      "status": "原文资料样本；不是系统核对结果或差错标签"
+    }
+  ]
+}

@@ -1127,7 +1127,8 @@ def test_ai_generated_content_notice_covers_json_api_drafts_and_errors() -> None
     for path in ("/api/health", "/api/status", "/api/cases", "/api/cases/STD_DEV_T0", "/api/rag/questions"):
         response = client.get(path)
         assert response.status_code == 200, path
-        assert response.json()["ai_generated_content_notice"] == AI_GENERATED_CONTENT_NOTICE
+        expected_notice = main_module.CONNECTIVITY_NOTICE if path == "/api/status" else AI_GENERATED_CONTENT_NOTICE
+        assert response.json()["ai_generated_content_notice"] == expected_notice
 
     invalid = client.post("/api/runs", json={"case_id": "STD_DEV_T0", "current_year": 2023, "scene": "业务承接"})
     assert invalid.status_code == 422

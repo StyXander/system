@@ -23,6 +23,7 @@ PACKAGE = (
 )
 
 
+@pytest.mark.skipif(not PACKAGE.is_file(), reason="历史杰克案例包含三份PDF全文，不随源码分发；提供已授权的原案例包后自动恢复此项复验")
 def test_jack_public_case_imports_and_is_a_traceable_r1_negative_control(tmp_path: Path) -> None:
     case = import_case_zip(
         tmp_path,

@@ -10,13 +10,15 @@ pytestmark = pytest.mark.repository_only
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_clean_delivery_package_is_present_and_zero_blocker() -> None:
-    from scripts.build_delivery_packages import CLEAN_ZIP, scan_archive
+def test_clean_delivery_package_is_present_and_zero_blocker(tmp_path: Path) -> None:
+    from scripts.build_delivery_packages import _build_zip, _clean_sources, RUN_README, scan_archive
 
-    assert CLEAN_ZIP.is_file(), "先运行 scripts/build_delivery_packages.py 生成白名单包"
-    result = scan_archive(CLEAN_ZIP)
+    # 从当前源码真正构建，不能依赖另一台电脑预先生成的ZIP。
+    clean_zip = tmp_path / "clean.zip"
+    _build_zip(clean_zip, _clean_sources(), {"README_运行说明.txt": RUN_README})
+    result = scan_archive(clean_zip)
     assert result.blockers == ()
-    with zipfile.ZipFile(CLEAN_ZIP) as archive:
+    with zipfile.ZipFile(clean_zip) as archive:
         names = archive.namelist()
         readme = archive.read("README_运行说明.txt").decode("utf-8")
     assert ".env.example" in names

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,9 @@ ROOT = Path(__file__).resolve().parent
 # 让 backend.app.* 在任何调用方式下都能被导入，不依赖 pytest.ini 的 pythonpath。
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+if str(ROOT / "backend") not in sys.path:
+    sys.path.insert(0, str(ROOT / "backend"))
 
 from backend.app.corpus import is_local_corpus_available
 
@@ -32,7 +36,10 @@ def pytest_configure(config: pytest.Config) -> None:
     只有本目录是自己创建的，因此清理时永远不会碰到别人拥有的目录。
     """
     if not config.getoption("basetemp", default=None):
-        config.option.basetemp = tempfile.mkdtemp(prefix="audittrace-pytest-")
+        temp_parent = ROOT / "runtime" / "pytest"
+        temp_parent.mkdir(parents=True, exist_ok=True)
+        # pytest 自行创建本次 UUID 子目录，避免先创建再清理受限的系统临时目录。
+        config.option.basetemp = str(temp_parent / uuid.uuid4().hex)
 
 
 FULL_CORPUS_MARKER = "requires_full_corpus"
