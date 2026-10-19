@@ -21,6 +21,12 @@ def test_clean_delivery_package_is_present_and_zero_blocker(tmp_path: Path) -> N
     with zipfile.ZipFile(clean_zip) as archive:
         names = archive.namelist()
         readme = archive.read("README_运行说明.txt").decode("utf-8")
+    assert "backend/tests/fixtures/run_contract_mock.json" in names
+    assert "backend/tests/fixtures/finals_ab_20261012_historical_outputs.json" in names
+    assert "决赛准备/整改_2026-10-12/探索对照/inputs/CNINFO_000858_T0_20260430.json" in names
+    assert "backend/app/connectivity_rule_basis.json" in names
+    assert "scripts/run_finals_ab_20261011.py" in names
+    assert "scripts/run_51_case_acceptance.py" in names
     assert ".env.example" in names
     assert not any(PurePath(name).name == ".env" for name in names)
     assert not any(name.lower().endswith((".md", ".log", ".pyc", ".ndjson")) for name in names)

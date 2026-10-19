@@ -146,6 +146,11 @@ PACKAGE_DATA_FILES = (
     "backend/audit_procedure_map.json",
     "backend/knowledge_sources.manifest.json",
     "backend/cache_seed.materialized.json",
+    "backend/tests/fixtures/run_contract_mock.json",
+    "backend/tests/fixtures/run_contract_mock_degraded.json",
+    "backend/tests/fixtures/finals_ab_20261012_historical_outputs.json",
+    "决赛准备/整改_2026-10-12/探索对照/inputs/CNINFO_000858_T0_20260430.json",
+    "backend/app/connectivity_rule_basis.json",
     "backend/connectivity_reports.json",
     "backend/connectivity_source_provenance.json",
     "backend/evaluation/connectivity/release_cases.json",
@@ -179,6 +184,8 @@ def _clean_sources() -> list[tuple[str, Path]]:
         ("requirements-dev.txt", ROOT / "requirements-dev.txt"),
         ("scripts/build_blind_submission_copy.py", ROOT / "scripts/build_blind_submission_copy.py"),
         ("scripts/prepare_full_corpus.py", ROOT / "scripts/prepare_full_corpus.py"),
+        ("scripts/run_finals_ab_20261011.py", ROOT / "scripts/run_finals_ab_20261011.py"),
+        ("scripts/run_51_case_acceptance.py", ROOT / "scripts/run_51_case_acceptance.py"),
         ("scripts/run_controlled_b1_b3_prescore.py", ROOT / "scripts/run_controlled_b1_b3_prescore.py"),
         ("render.yaml", ROOT / "render.yaml"),
         ("启动审迹智链.bat", ROOT / "启动审迹智链.bat"),
@@ -677,6 +684,7 @@ def _verify_judge_archive(path: Path) -> ValidationResult:
             timeout=1800,
             check=False,
         )
+        path.with_suffix(".validation.txt").write_text(tests.stdout + tests.stderr, encoding="utf-8")
         if tests.returncode:
             raise RuntimeError("评委包离线测试失败：\n" + tests.stdout[-6000:] + tests.stderr[-2000:])
         comments = subprocess.run(

@@ -111,7 +111,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         rule_cards = {key: {**rule, "conditions": list(required_conditions(rule["operator"]))} for key, rule in RULES.items()}
         return {"pairs": list(grouped.values()), "topics": TOPICS, "rules": rule_cards, "notice": NOTICE,
                 "task_persistence": "supabase" if demo_task_supabase_enabled() else "local", "schema_version": SCHEMA_VERSION,
-                "intelligence_version": "hybrid_v2", "prompt_version": PROMPT_VERSION,
+                "intelligence_version": "hybrid_v3_claim_ledger", "prompt_version": PROMPT_VERSION,
                 "project_facts": project_facts(root)}
 
     @router.get("/readiness")

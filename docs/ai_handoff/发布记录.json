@@ -1,0 +1,70 @@
+{
+  "verified_at": "2026-10-19T16:19:08.551Z",
+  "code_commit": "b53c6e823673488577a46b03e22208a1b88b4790",
+  "service": "audittrace-demo",
+  "url": "https://audittrace-demo.onrender.com/?connectivity_task=DEMO-RUN-41DE1DC0DBC6#connectivity-root",
+  "task_id": "DEMO-RUN-41DE1DC0DBC6",
+  "run_id": "CONN-3A76C2A2BB8C424A",
+  "expires_at": "2026-11-18T16:16:29.204262+00:00",
+  "persistence": "supabase",
+  "mode": "calculation_only",
+  "new_provider_calls": 0,
+  "api_checks": 59,
+  "api_status": "passed",
+  "resource_hash_matches": 5,
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 1000,
+      "actualHeight": 1000,
+      "actualWidth": 1440,
+      "levels": 6,
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "actualHeight": 768,
+      "actualWidth": 1024,
+      "levels": 6,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "actualHeight": 1024,
+      "actualWidth": 768,
+      "levels": 6,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "actualHeight": 844,
+      "actualWidth": 390,
+      "levels": 6,
+      "overflow": false
+    }
+  ],
+  "unverified": [
+    "native_office_render",
+    "human_professional_scoring",
+    "human_usability",
+    "paid_model_comparisons"
+  ],
+  "first_attempt": {
+    "status": "interrupted_during_second_deploy",
+    "evidence": "Render日志旧进程正常退出；该次验收失败保留，不计通过"
+  },
+  "followup_verification_artifact": "outputs/ai4/production/final-deployment.json",
+  "final_corrections": [
+    "coverage_counts页面分母",
+    "bootstrap推理版本",
+    "评委复现包测试依赖",
+    "测试登记保留历史并按实测更新"
+  ],
+  "judge_package_measured": {
+    "passed": 899,
+    "skipped": 28
+  }
+}

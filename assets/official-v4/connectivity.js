@@ -219,8 +219,8 @@
       const gap = label==='不能确认什么' && missing ? `<p class="cn-fq-missing">缺：${missing}</p>` : '';
       if (label === '还没找到什么') {
         // 未计入位置按"处"、失败页按"页"，两个比值分开写，不合成一个分数。
-        const rows = item?.unattributed || {};
-        const pages = item?.failed_pages || {};
+        const rows = ov.coverage_counts?.unattributed_occurrences || item?.unattributed || {};
+        const pages = ov.coverage_counts?.failed_pages || {...(item?.failed_pages || {}), denominator:item?.total_pages};
         return `<div class="cn-fq"><span class="cn-fq-label">${escape(label)}</span>
           <p><strong>${escape(String(rows.value ?? 0))}</strong><span class="cn-fq-den">/ ${escape(String(rows.denominator ?? 0))} <em>处</em></span></p>
           <small>已提取但未计入的位置</small>

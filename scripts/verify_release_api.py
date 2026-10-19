@@ -9,16 +9,17 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def verify(base_url):
-    output = ROOT / 'outputs/ai4/api'
+def verify(base_url, *, production=False):
+    output = ROOT / ('outputs/ai4/production' if production else 'outputs/ai4/api')
     output.mkdir(parents=True, exist_ok=True)
     evidence = {'base_url': base_url, 'started_at': datetime.now(timezone.utc).isoformat(),
                 'browser_visual': 'not_verified', 'checks': []}
     def check(name, response, expected=200):
         evidence['checks'].append({'name': name, 'status': response.status_code, 'expected': expected})
+        print(name + ': ' + str(response.status_code), flush=True)
         assert response.status_code == expected, (name, response.status_code, response.text[:200])
         return response
-    with httpx.Client(base_url=base_url, timeout=120, trust_env=False) as client:
+    with httpx.Client(base_url=base_url, timeout=120, trust_env=False, headers={"Origin":base_url.rstrip("/")}) as client:
         status = check('status', client.get('/api/status')).json()
         assert status['project_facts']['task_kind'] == 'connectivity'
         check('anonymous_history', client.get('/api/connectivity/runs'), 409)
@@ -26,7 +27,7 @@ def verify(base_url):
         assert boot['project_facts'] == status['project_facts']
         # 固定任务与本次新建任务分别验证，不把两个运行ID混成同一次调用。
         prepared_index = ROOT / 'outputs/ai4/demo/demo-index.json'
-        if prepared_index.is_file():
+        if prepared_index.is_file() and not production:
             index = json.loads(prepared_index.read_text(encoding='utf-8'))
             fixed = check('prepared_readonly_task', client.get('/api/connectivity/runs/' + index['task_id'])).json()
             assert fixed['status'] == 'completed' and fixed['run_id'] == index['run_id']
@@ -44,6 +45,8 @@ def verify(base_url):
         check('invalid_pair_readiness', client.get('/api/connectivity/readiness?pair_id=unknown'), 404)
         created = check('create_calculation_only', client.post('/api/connectivity/runs', json={'pair_id': '000858-2025', 'mode': 'calculation_only'})).json()
         task_id = created['task_id']
+        (output / 'task-checkpoint.json').write_text(json.dumps({'task_id':task_id,'base_url':base_url}),encoding='utf8')
+        print('task_id: ' + task_id, flush=True)
         deadline = time.monotonic() + 600
         while True:
             task = check('read_task', client.get('/api/connectivity/runs/' + task_id)).json()
@@ -82,5 +85,6 @@ def verify(base_url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--base-url', default='http://127.0.0.1:8774')
+    parser.add_argument('--production', action='store_true')
     args = parser.parse_args()
-    verify(args.base_url)
+    verify(args.base_url, production=args.production)

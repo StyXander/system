@@ -11,3 +11,17 @@
 材料：原PPT/方案保留，修订副本在outputs/ai4/materials；Office桌面权限不可用，替代转换失败；明确不作为已渲染提交件。
 
 发布：用户已授权GitHub main与现有Render服务。上线结果在发布记录.json补充；未触发付费模型，不扩大第三方全文再分发范围。
+
+## 线上验收补记
+
+2026年10月20日，GitHub main与Render均为b53c6e8；首页及4项主要前端资源共5项SHA-256匹配。真实仅计算任务DEMO-RUN-41DE1DC0DBC6成功，运行CONN-3A76C2A2BB8C424A，到期2026-11-18T16:16:29.204262+00:00。59次HTTP验收检查含轮询、历史会话隔离、只读分享、3种导出及原页，均通过；模型调用0。139秒含首次真实PDF提取，不作为模型耗时。
+
+[线上结果](https://audittrace-demo.onrender.com/?connectivity_task=DEMO-RUN-41DE1DC0DBC6#connectivity-root)。四档线上实际视口宽度1440/1024/768/390已核对，无横向溢出，六级计数正确，控制台未见警告或错误。首次验收遇部署实例切换502，失败日志保留，后续稳定实例重试成功。
+
+最终仅启动接口版本标识与验收辅助脚本、文档补记发生变化，21项接口专项通过。最后文档提交后继续核验任务跨部署读取；结果保存在本地outputs/ai4/production/final-deployment.json。未找到此提交对应GitHub Actions运行，不把本地回归称作远端CI成功。
+
+## 最终收尾与复现包
+
+启动接口推理版本统一为hybrid_v3_claim_ledger；页面覆盖卡改读coverage_counts，真实浏览器已验证73/225处与1/200页分别展示。API专项21通过，交付专项16通过，前端14通过。
+
+评委包完整独立解包测试实测899 passed / 28 skipped / 2 warnings，详见outputs/ai4/delivery中的完整validation日志。补齐了原先白名单漏掉的两个脚本、三份测试夹具、一份公开报告摘录输入和新规则索引；PROJECT_STATUS按实测更新，旧登记完整保留。最终出包状态、扫描和哈希以交付包构建与独立复验日志为准。

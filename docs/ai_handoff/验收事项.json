@@ -150,8 +150,8 @@
       "owner": "AI4",
       "status": "已修并测试",
       "files": "demo_run_tasks.py; connectivity_api.py; render.yaml; prepare_release_demo.py",
-      "verification": "新本地任务至少30天；API读取与导出",
-      "remaining": "本地已验证；不是公网评委链接；旧任务不续期",
+      "verification": "b53c6e8线上真实任务与同源导出通过；详见发布记录.json",
+      "remaining": "线上Supabase结果保留至2026-11-18T16:16:29.204262+00:00",
       "source_row": "| 14 | **固定演示任务在决赛前过期。**报告记录固定任务到期 2026-10-25 06:53 UTC，报告中决赛日期为10-28。 | 调整登记任务保留期限为≥30天或演示任务固定保留；重跑后更新链接；赛前用无登录窗口验证；保存离线结果、Word/JSON、截图和录像；避免现场等待150–164秒模型调用。 | 截止/决赛前一天以无痕浏览器打开新链接，概览、关系、原页正常；断网有备份。 | B/C |",
       "commit": "本次集成提交，见RELEASE_READINESS"
     },
@@ -194,8 +194,8 @@
       "owner": "AI4",
       "status": "已修并测试",
       "files": "main.py; connectivity_delivery.py; connectivity_overview.py",
-      "verification": "页面、API与导出逐字使用同一当前声明",
-      "remaining": "页面、API与导出逐字使用同一当前声明",
+      "verification": "b53c6e8线上真实任务与同源导出通过；详见发布记录.json",
+      "remaining": "不以工程验收替代专业评价",
       "source_row": "| 18 | **AI声明不醒目，且跨载体不一致。**结果页折叠、API保留旧审计声明。 | 页面结果标题附近常驻AI生成/辅助判断声明，API/Word/JSON/README使用同一新业务用语；预存结果或确定性fallback特别标注运行性质。 | 无需展开即可看见；所有导出与API声明一致。 | C/D |",
       "commit": "本次集成提交，见RELEASE_READINESS"
     },
@@ -568,8 +568,8 @@
       "owner": "AI4",
       "status": "已修并测试",
       "files": "connectivity_overview.py; connectivity_delivery.py",
-      "verification": "披露位置处、解析页页分别计数；页面和Word分别展示",
-      "remaining": "披露位置处、解析页页分别计数；页面和Word分别展示",
+      "verification": "b53c6e8线上真实任务与同源导出通过；详见发布记录.json",
+      "remaining": "不以工程验收替代专业评价",
       "source_row": "| 52 | **统计数据混合单位。**如“未计入位置72处+失败页1页=73”无业务含义。 | 页面、Word、JSON拆分“未归属披露X处”“失败Y页/总页Z页”；其它数字也区分来源条数、切片、案例、关系、AI意见和正式结论。 | 每项统计都有名称、单位、定义；三端相同。 | B/C |",
       "commit": "本次集成提交，见RELEASE_READINESS"
     },
@@ -656,8 +656,8 @@
       "owner": "AI4",
       "status": "已修并测试",
       "files": "test_release_contract.py; build_delivery_packages.py; public_model.py现有保护",
-      "verification": "所有权、他人取消403、四次同IP与预算熔断、扫描",
-      "remaining": "生产Supabase权限与公开网络未由本地测试替代",
+      "verification": "b53c6e8线上真实任务与同源导出通过；详见发布记录.json",
+      "remaining": "不以工程验收替代专业评价",
       "source_row": "| 60 | **安全、匿名配额及日志仍需边界测试。**公开模型密钥费用、并发、公网会话、旧路由、敏感文件。 | 预算熔断/用户限流分层、提交包密钥扫描、旧路由权限审查、并发与429模拟；已有CSP/HSTS/SameSite等不应被描述为不存在。 | 并发/异常请求/额度耗尽给正确结果，日志不泄露凭证。 | A/C |",
       "commit": "本次集成提交，见RELEASE_READINESS"
     },
@@ -667,8 +667,8 @@
       "owner": "AI4",
       "status": "已实现待现场验证",
       "files": "render_release_materials.ps1; 90秒脚本; API验收",
-      "verification": "已做四视口、原页开关、深链刷新与详情；axe/慢网/读屏/长数据压力仍未完成",
-      "remaining": "已做四视口、原页开关、深链刷新与详情；axe/慢网/读屏/长数据压力仍未完成",
+      "verification": "本地及线上四档实际视口、原页与深链已核验",
+      "remaining": "完整无障碍、慢网及真人测试尚未完成",
       "source_row": "| 61 | **无障碍和极端情况下未充分回归。**axe、低性能设备、键盘焦点、长标题、100成员、打印、慢网、断网、reduced motion。 | 做键盘整链、axe严重问题检查、prefers-reduced-motion、超长数据和网络异常测试；移动端不只看横向溢出。 | 核心流程可键盘操作、断网明确提示、无关键控件不可达。 | C/D |",
       "commit": "本次集成提交，见RELEASE_READINESS"
     },
@@ -687,10 +687,10 @@
       "id": 63,
       "title": "真实站点/最新部署状态有未验证项",
       "owner": "AI4",
-      "status": "已实现待现场验证",
+      "status": "已修并测试",
       "files": "verify_release_api.py; api/verification.json; RELEASE_READINESS.md",
-      "verification": "三个分支已合入、全量通过；用户已授权发布，线上部署核验执行中",
-      "remaining": "三个分支已合入、全量通过；用户已授权发布，线上部署核验执行中",
+      "verification": "b53c6e8线上真实任务与同源导出通过；详见发布记录.json",
+      "remaining": "工程发布已验证；真人评分、模型对照和Office原生渲染仍单独未验收",
       "source_row": "| 63 | **真实站点/最新部署状态有未验证项。**有审查者未能访问线上，有审查者实际运行；移动端、Supabase权限、Render现场网络等覆盖程度不一。 | 在当前生产提交上重新做登录/游客/多尺寸/报告原件/结果/历史/导出/限流/错误态E2E，记录构建commit、时间和截图；“报告已测”不能代替修复后的回归。 | 最终提交版本有真实可重放验收记录；未测项明确列出。 | A/B/C/D |",
       "commit": "本次集成提交，见RELEASE_READINESS"
     }

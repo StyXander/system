@@ -390,29 +390,20 @@
   },
   "tests": {
     "source_repository": {
-      "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
-      "latest_result": "420 passed, 1 warning in 96.40s（2026-09-08 当前工作树，M08 独立证据重算与外置绑定后，停止本机服务复跑；同日早一次全量为 238.49s，差异来自联网用例耗时，项数一致）",
-      "executed_on": "2026-09-08",
-      "status": "passed",
-      "previous_result": "384 passed, 1 warning in 224.05s（2026-09-07 R05/R06 后）",
-      "stability_evidence": "2026-09-08 停服务全量回归 420 passed / 1 warning，最后一次用时 96.40s（同日另一次为 238.49s，联网用例耗时不同，项数一致）；docs/TEST_INVENTORY.md 已更新为 38 文件 / 420 项 / 10 个需联网文件。同日一次全量回归中出现 1 次 test_all_seed_cases_enter_three_role_external_route 失败，当时本机 8000 端口服务正在运行并向 backend/runtime 追加记录；停服务后该测试单文件复跑与全量复跑均为绿。该现象根因未定位，只记录相关性，不写成已证实的因果，也不写成稳定全绿。历史 sensitive_data_blocked 间歇性失败同样保留，详情见 tmp/incident-20260903-间歇性隐私闸门阻断.md 与 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md。",
-      "root_cause_fixed": "疑似 backend/app/demo_run_tasks.py 在 Windows 上 os.replace 原子写被并发读句柄或杀软扫描拒绝（WinError 5）；已改为独立临时名 + 有限重试，终态拒绝迟到写入的生产闸门未放宽，但间歇性失败尚未完成独立复现，不能写成根因已证实。",
-      "chinese_comments": "2486/24471 = 10.16%（达手册 10% 门槛；新增 backend/app/release_evidence.py 与 provider_calls.py 的说明性注释均解释真实边界）",
-      "note": "2026-09-08 M08：新增 backend/app/release_evidence.py 独立重算运行原件哈希、按尝试哈希重派生调用 ID、重跑确定性事实语言闸门，并从独立人工评分台账推导评分完成状态；backend/app/release_gate.py 增加外置版本绑定前置条件；backend/app/provider_calls.py 统一在线与离线的调用 ID 派生规则；scripts/verify_release_evidence.py 与 scripts/build_release_binding.py 提供 CLI。此前 2026-09-07 的门禁反例契约、缓存回放归属修复与目录验收脚本改动继续有效。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。"
+      "command": "python -m pytest -q",
+      "latest_result": "907 passed, 28 skipped, 2 warnings in 203.33s",
+      "executed_on": "2026-10-20",
+      "status": "passed_with_explicit_skips",
+      "boundary": "独立AI4集成工作区；不调用模型；旧历史快照保留在historical_pre_ai4_20261020"
     },
     "judge_package": {
-      "command": "python -m pytest -q（评委包独立目录解包，无 .env、无任何模型密钥、无四份年报全文）",
-      "latest_result": "346 passed, 19 skipped, 2 warnings（0 failed；评委包无年报全文边界，详见 交付包/交付清单与扫描报告.txt）",
-      "failure_cause_status": "0 failed, 0 error（最后一次全新解包全量实测）。19 项 skip 均有明确来源：18 项标记 requires_full_corpus，因评委包不分发四份标准股份年报全文；1 项为队长签字原件不随包分发。源码仓库含全文时这些标记用例实际运行；包内未把缺资料伪装成通过。历史 19 项失败的原始逐项名单未留存，根因仍为 UNKNOWN，不以本轮边界修复倒推历史原因。另有一次后续 validate-only 曾在 CNINFO_600000_T0_20260330 报 sensitive_data_blocked；该案例单测与再次全新解包全量均通过，观察记录见 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md，说明仍存在未定位的间歇性隐私闸门风险，不能据此宣称稳定全绿。",
-      "executed_on": "2026-09-03",
-      "status": "passed",
-      "environment_reproducible": "accepted_with_intermittent_observation：2026-09-03 在新建 tmp/ai2-clean-venv-20260903（Python 3.12.10）中按评委包 requirements-dev.txt 完成依赖安装；使用该解释器在最终 ZIP 的全新隔离解包目录最后一次复现 346 passed / 19 skipped / 0 failed（2 warnings）。此前一次后续 validate-only 曾在 CNINFO_600000_T0_20260330 观察到 sensitive_data_blocked；该测试单独重跑及再次全新解包全量均通过，故根因仍未定位。最终构建验证日志为 交付包/交付清单与扫描报告.txt，报告同时记录该 ZIP 的 SHA-256。该证据证明包可安装、可运行，不等同于年报全文或真实模型链已验收，也不等同于稳定全绿。",
-      "superseded_claim": "原 2026-09-02 之 321 passed, 19 failed, 1 skipped 已被本轮实测 346 passed, 19 skipped, 0 failed 取代；取代的是“当前包状态”这一事实，不构成对当年 19 项失败的根因结论。",
-      "plan_reference": "docs/superpowers/plans/2026-09-02-judge-package-reproducibility.md；本轮复核结论：该计划 Phase 1-5 有实测支撑，Phase 6（git archive 清洁快照 + 新建虚拟环境）未执行——改动全部位于未提交工作区（HEAD be0a8d451dd4e3ed8766c335d156b3f59730660c），故不得称“全部 6 个 Phase 已完成”。整改跟踪见 docs/superpowers/plans/2026-09-03-AI-2复核整改-评委包与发布门禁修复计划.md",
-      "root_cause_fixed": "可证实部分：三份只读数据与 release_records 已进包并被 _judge_sources 的 required 清单硬校验（缺失即拒绝出包），白名单扫描 0 阻断；公开状态白名单投影与 AUDITTRACE_TRUST_LOOPBACK 显式回环开关已实现且有正反用例；未放宽任何测试或密钥扫描。当前评委包失败已收敛为 0，缺年报用例由显式 requires_full_corpus 边界跳过；历史 19 项失败的逐项成因仍 UNKNOWN，不作倒推。",
-      "test_fixes": "评委包边界已显式编码：标准年报与真实 RAG 用例统一使用 requires_full_corpus，缺全文时输出带补齐方式的 skip；种子案例三角色路由、隐私 fail-closed、启动快照和公共接口契约仍在包内实跑。",
-      "skip_boundary": "评委包固定保留两类 skip：18 项 requires_full_corpus（四份标准股份年报全文不随包分发）和 1 项 test_superseded_captain_signoff_remains_traceable（队长签字原件在团队内部 outputs/ 目录）。两类均是显式边界，不删测试、不塞内部证据。",
-      "note": "评委包复现边界与源码仓库结果分开登记；包内未复现年报哈希复验与真实模型外呼，两项仍需真人授权后另行验证。"
+      "command": "python -m pytest -q（独立解包、无.env、无模型密钥、无年报全文）",
+      "latest_result": "899 passed, 28 skipped, 2 warnings in 199.76s",
+      "executed_on": "2026-10-20",
+      "status": "tests_passed_final_package_rebuild_pending",
+      "evidence": "outputs/ai4/delivery/audittrace-package-i9cxy8vf.validation.txt",
+      "skip_boundary": "缺少未再分发全文、历史运行或内部签批；逐项原因见完整独立测试日志",
+      "boundary": "来源代码测试与完整出包验收分开；模型和专业评分未完成"
     },
     "browser_accessibility": {
       "command": ".agents/tools/browser-qa/.venv/Scripts/python.exe scripts/browser_demo_final_acceptance.py --viewport <视口> --skip-live（需先以 AUDITTRACE_DEMO_MODE=true AUDITTRACE_DEMO_USE_EXTERNAL_MODEL=false 启动本机服务）",
@@ -436,9 +427,9 @@
       "distribution_boundary": "清洁运行包为保留标准案例复验能力而包含四份公开年报全文；在真人确认全文再分发边界前仅限团队内部技术复验，禁止外发。队员和老师材料包不含年报全文。"
     },
     "chinese_comments": {
-      "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
-      "latest_result": "2486/24471 = 10.16%",
-      "executed_on": "2026-09-08",
+      "command": "python scripts/check_chinese_comments.py",
+      "latest_result": "3602/35898 = 10.03%",
+      "executed_on": "2026-10-20",
       "status": "passed"
     },
     "warning": "Starlette TestClient httpx compatibility deprecation warning",
@@ -500,6 +491,55 @@
       },
       "browser_page": "passed_single_click_rag_only_full_analysis_result_summary_and_analysis_context_restore",
       "boundary": "热缓存复用已校验公开快照，不代表最新公告已自动确认；需要最新数据时使用 force_refresh。"
+    },
+    "historical_pre_ai4_20261020": {
+      "source_repository": {
+        "command": "backend\\.venv\\Scripts\\python.exe -m pytest -q",
+        "latest_result": "420 passed, 1 warning in 96.40s（2026-09-08 当前工作树，M08 独立证据重算与外置绑定后，停止本机服务复跑；同日早一次全量为 238.49s，差异来自联网用例耗时，项数一致）",
+        "executed_on": "2026-09-08",
+        "status": "passed",
+        "previous_result": "384 passed, 1 warning in 224.05s（2026-09-07 R05/R06 后）",
+        "stability_evidence": "2026-09-08 停服务全量回归 420 passed / 1 warning，最后一次用时 96.40s（同日另一次为 238.49s，联网用例耗时不同，项数一致）；docs/TEST_INVENTORY.md 已更新为 38 文件 / 420 项 / 10 个需联网文件。同日一次全量回归中出现 1 次 test_all_seed_cases_enter_three_role_external_route 失败，当时本机 8000 端口服务正在运行并向 backend/runtime 追加记录；停服务后该测试单文件复跑与全量复跑均为绿。该现象根因未定位，只记录相关性，不写成已证实的因果，也不写成稳定全绿。历史 sensitive_data_blocked 间歇性失败同样保留，详情见 tmp/incident-20260903-间歇性隐私闸门阻断.md 与 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md。",
+        "root_cause_fixed": "疑似 backend/app/demo_run_tasks.py 在 Windows 上 os.replace 原子写被并发读句柄或杀软扫描拒绝（WinError 5）；已改为独立临时名 + 有限重试，终态拒绝迟到写入的生产闸门未放宽，但间歇性失败尚未完成独立复现，不能写成根因已证实。",
+        "chinese_comments": "2486/24471 = 10.16%（达手册 10% 门槛；新增 backend/app/release_evidence.py 与 provider_calls.py 的说明性注释均解释真实边界）",
+        "note": "2026-09-08 M08：新增 backend/app/release_evidence.py 独立重算运行原件哈希、按尝试哈希重派生调用 ID、重跑确定性事实语言闸门，并从独立人工评分台账推导评分完成状态；backend/app/release_gate.py 增加外置版本绑定前置条件；backend/app/provider_calls.py 统一在线与离线的调用 ID 派生规则；scripts/verify_release_evidence.py 与 scripts/build_release_binding.py 提供 CLI。此前 2026-09-07 的门禁反例契约、缓存回放归属修复与目录验收脚本改动继续有效。唯一 warning 仍为 Starlette TestClient / httpx 兼容弃用提示。"
+      },
+      "judge_package": {
+        "command": "python -m pytest -q（评委包独立目录解包，无 .env、无任何模型密钥、无四份年报全文）",
+        "latest_result": "346 passed, 19 skipped, 2 warnings（0 failed；评委包无年报全文边界，详见 交付包/交付清单与扫描报告.txt）",
+        "failure_cause_status": "0 failed, 0 error（最后一次全新解包全量实测）。19 项 skip 均有明确来源：18 项标记 requires_full_corpus，因评委包不分发四份标准股份年报全文；1 项为队长签字原件不随包分发。源码仓库含全文时这些标记用例实际运行；包内未把缺资料伪装成通过。历史 19 项失败的原始逐项名单未留存，根因仍为 UNKNOWN，不以本轮边界修复倒推历史原因。另有一次后续 validate-only 曾在 CNINFO_600000_T0_20260330 报 sensitive_data_blocked；该案例单测与再次全新解包全量均通过，观察记录见 tmp/incident-20260903-评委包第二次间歇性隐私阻断.md，说明仍存在未定位的间歇性隐私闸门风险，不能据此宣称稳定全绿。",
+        "executed_on": "2026-09-03",
+        "status": "passed",
+        "environment_reproducible": "accepted_with_intermittent_observation：2026-09-03 在新建 tmp/ai2-clean-venv-20260903（Python 3.12.10）中按评委包 requirements-dev.txt 完成依赖安装；使用该解释器在最终 ZIP 的全新隔离解包目录最后一次复现 346 passed / 19 skipped / 0 failed（2 warnings）。此前一次后续 validate-only 曾在 CNINFO_600000_T0_20260330 观察到 sensitive_data_blocked；该测试单独重跑及再次全新解包全量均通过，故根因仍未定位。最终构建验证日志为 交付包/交付清单与扫描报告.txt，报告同时记录该 ZIP 的 SHA-256。该证据证明包可安装、可运行，不等同于年报全文或真实模型链已验收，也不等同于稳定全绿。",
+        "superseded_claim": "原 2026-09-02 之 321 passed, 19 failed, 1 skipped 已被本轮实测 346 passed, 19 skipped, 0 failed 取代；取代的是“当前包状态”这一事实，不构成对当年 19 项失败的根因结论。",
+        "plan_reference": "docs/superpowers/plans/2026-09-02-judge-package-reproducibility.md；本轮复核结论：该计划 Phase 1-5 有实测支撑，Phase 6（git archive 清洁快照 + 新建虚拟环境）未执行——改动全部位于未提交工作区（HEAD be0a8d451dd4e3ed8766c335d156b3f59730660c），故不得称“全部 6 个 Phase 已完成”。整改跟踪见 docs/superpowers/plans/2026-09-03-AI-2复核整改-评委包与发布门禁修复计划.md",
+        "root_cause_fixed": "可证实部分：三份只读数据与 release_records 已进包并被 _judge_sources 的 required 清单硬校验（缺失即拒绝出包），白名单扫描 0 阻断；公开状态白名单投影与 AUDITTRACE_TRUST_LOOPBACK 显式回环开关已实现且有正反用例；未放宽任何测试或密钥扫描。当前评委包失败已收敛为 0，缺年报用例由显式 requires_full_corpus 边界跳过；历史 19 项失败的逐项成因仍 UNKNOWN，不作倒推。",
+        "test_fixes": "评委包边界已显式编码：标准年报与真实 RAG 用例统一使用 requires_full_corpus，缺全文时输出带补齐方式的 skip；种子案例三角色路由、隐私 fail-closed、启动快照和公共接口契约仍在包内实跑。",
+        "skip_boundary": "评委包固定保留两类 skip：18 项 requires_full_corpus（四份标准股份年报全文不随包分发）和 1 项 test_superseded_captain_signoff_remains_traceable（队长签字原件在团队内部 outputs/ 目录）。两类均是显式边界，不删测试、不塞内部证据。",
+        "note": "评委包复现边界与源码仓库结果分开登记；包内未复现年报哈希复验与真实模型外呼，两项仍需真人授权后另行验证。"
+      },
+      "chinese_comments": {
+        "command": "backend\\.venv\\Scripts\\python.exe scripts\\check_chinese_comments.py",
+        "latest_result": "2486/24471 = 10.16%",
+        "executed_on": "2026-09-08",
+        "status": "passed"
+      }
+    },
+    "connectivity_browser_20261020": {
+      "viewports": [
+        "1440x1000",
+        "1024x768",
+        "768x1024",
+        "390x844"
+      ],
+      "task_id": "DEMO-RUN-41DE1DC0DBC6",
+      "status": "passed_primary_flow",
+      "unverified": [
+        "complete_accessibility",
+        "slow_network",
+        "human_usability"
+      ],
+      "evidence": "outputs/ai4/browser/online-viewport-checks.json"
     }
   },
   "quality_evidence": {
