@@ -1,0 +1,37 @@
+{
+  "schema_version": "connectivity_source_provenance_v1",
+  "records": [
+    {
+      "document_id": "BAO24_ESG",
+      "official_alternative_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329096.PDF",
+      "official_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+      "pages": 90,
+      "retrieved_at": "2026-10-19T14:15:32.950781+00:00",
+      "publication_path_date": "2025-04-26",
+      "publication_date_basis": "official_source_url_path",
+      "registered_mirror_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+      "byte_identical": true,
+      "registry_replaced": true,
+      "version_role": "unknown",
+      "note": "官方与镜像分别登记身份；未以相同标题推定字节相同，也未覆盖旧运行来源",
+      "previous_registration": {
+        "document_id": "BAO24_ESG",
+        "case_id": "600019-2024",
+        "company_id": "600019",
+        "company": "宝钢股份",
+        "report_type": "ESG",
+        "period": "2024",
+        "version": "2024年度公告镜像，未冒充官方字节副本",
+        "source_url": "https://file.finance.sina.com.cn/211.154.219.97%3A9494/MRGG/CNSESH_STOCK/2025/2025-4/2025-04-26/11006049.PDF",
+        "source_kind": "announcement_mirror",
+        "disclosure_date": "",
+        "retrieved_at": "",
+        "compilation_basis": "待从本次报告核对",
+        "pages": 90,
+        "file_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+        "available": true
+      },
+      "change_boundary": "仅升级可回查来源元数据；document_id与file_sha256不变，旧运行原始JSON不改写"
+    }
+  ]
+}

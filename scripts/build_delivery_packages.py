@@ -147,6 +147,7 @@ PACKAGE_DATA_FILES = (
     "backend/knowledge_sources.manifest.json",
     "backend/cache_seed.materialized.json",
     "backend/connectivity_reports.json",
+    "backend/connectivity_source_provenance.json",
     "backend/evaluation/connectivity/release_cases.json",
     "backend/evaluation/connectivity/reference_fields.json",
 )
