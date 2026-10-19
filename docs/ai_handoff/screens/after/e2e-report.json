@@ -1,0 +1,482 @@
+[
+  {
+    "check": "[1440] 首页 10 秒内看到用途句",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 首页入口按钮在首屏",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 首屏入口未被浮层遮挡",
+    "ok": true,
+    "detail": "covered=False skipBottom=-66.109375"
+  },
+  {
+    "check": "[1440] 进入工作台后首页 hero 收起",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 工作台新建视图可见",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 深链直达结果",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 结果页仍隐藏首页 hero",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 一句话结论存在",
+    "ok": true,
+    "detail": "本次共 8 项关系；2 项在前提支持下完成复算且未见差异；4 项依据不足或不可比"
+  },
+  {
+    "check": "[1440] 分级计数为 2/4/0",
+    "ok": true,
+    "detail": "2\n/ 8 项|4\n/ 8 项|0\n/ 8 项"
+  },
+  {
+    "check": "[1440] 不可比不显示绿色",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] AI 计数独立呈现",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 三条证据线可见",
+    "ok": true,
+    "detail": "3"
+  },
+  {
+    "check": "[1440] 原文阅读器可打开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 原文阅读器可关闭",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 全部关系可展开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 刷新后仍在结果视图",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 历史默认不超过 5 条",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "check": "[1440] 历史有状态标注",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 失效链接给出错误说明",
+    "ok": true,
+    "detail": "这条任务链接已不可用"
+  },
+  {
+    "check": "[1440] 返回首页 hero 恢复",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1440] 无横向溢出",
+    "ok": true,
+    "detail": "0"
+  },
+  {
+    "check": "[1440] 无 JS 运行时错误",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 首页 10 秒内看到用途句",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 首页入口按钮在首屏",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 首屏入口未被浮层遮挡",
+    "ok": true,
+    "detail": "covered=False skipBottom=-66.109375"
+  },
+  {
+    "check": "[1024] 进入工作台后首页 hero 收起",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 工作台新建视图可见",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 深链直达结果",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 结果页仍隐藏首页 hero",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 一句话结论存在",
+    "ok": true,
+    "detail": "本次共 8 项关系；2 项在前提支持下完成复算且未见差异；4 项依据不足或不可比"
+  },
+  {
+    "check": "[1024] 分级计数为 2/4/0",
+    "ok": true,
+    "detail": "2\n/ 8 项|4\n/ 8 项|0\n/ 8 项"
+  },
+  {
+    "check": "[1024] 不可比不显示绿色",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] AI 计数独立呈现",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 三条证据线可见",
+    "ok": true,
+    "detail": "3"
+  },
+  {
+    "check": "[1024] 原文阅读器可打开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 原文阅读器可关闭",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 全部关系可展开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 刷新后仍在结果视图",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 历史默认不超过 5 条",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "check": "[1024] 历史有状态标注",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 失效链接给出错误说明",
+    "ok": true,
+    "detail": "这条任务链接已不可用"
+  },
+  {
+    "check": "[1024] 返回首页 hero 恢复",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[1024] 无横向溢出",
+    "ok": true,
+    "detail": "0"
+  },
+  {
+    "check": "[1024] 无 JS 运行时错误",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 首页 10 秒内看到用途句",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 首页入口按钮在首屏",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 首屏入口未被浮层遮挡",
+    "ok": true,
+    "detail": "covered=False skipBottom=-66.109375"
+  },
+  {
+    "check": "[768] 进入工作台后首页 hero 收起",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 工作台新建视图可见",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 深链直达结果",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 结果页仍隐藏首页 hero",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 一句话结论存在",
+    "ok": true,
+    "detail": "本次共 8 项关系；2 项在前提支持下完成复算且未见差异；4 项依据不足或不可比"
+  },
+  {
+    "check": "[768] 分级计数为 2/4/0",
+    "ok": true,
+    "detail": "2\n/ 8 项|4\n/ 8 项|0\n/ 8 项"
+  },
+  {
+    "check": "[768] 不可比不显示绿色",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] AI 计数独立呈现",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 三条证据线可见",
+    "ok": true,
+    "detail": "3"
+  },
+  {
+    "check": "[768] 原文阅读器可打开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 原文阅读器可关闭",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 全部关系可展开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 刷新后仍在结果视图",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 历史默认不超过 5 条",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "check": "[768] 历史有状态标注",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 失效链接给出错误说明",
+    "ok": true,
+    "detail": "这条任务链接已不可用"
+  },
+  {
+    "check": "[768] 返回首页 hero 恢复",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[768] 无横向溢出",
+    "ok": true,
+    "detail": "0"
+  },
+  {
+    "check": "[768] 无 JS 运行时错误",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 首页 10 秒内看到用途句",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 首页入口按钮在首屏",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 首屏入口未被浮层遮挡",
+    "ok": true,
+    "detail": "covered=False skipBottom=-66.109375"
+  },
+  {
+    "check": "[390] 进入工作台后首页 hero 收起",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 工作台新建视图可见",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 深链直达结果",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 结果页仍隐藏首页 hero",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 一句话结论存在",
+    "ok": true,
+    "detail": "本次共 8 项关系；2 项在前提支持下完成复算且未见差异；4 项依据不足或不可比"
+  },
+  {
+    "check": "[390] 分级计数为 2/4/0",
+    "ok": true,
+    "detail": "2\n/ 8 项|4\n/ 8 项|0\n/ 8 项"
+  },
+  {
+    "check": "[390] 不可比不显示绿色",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] AI 计数独立呈现",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 三条证据线可见",
+    "ok": true,
+    "detail": "3"
+  },
+  {
+    "check": "[390] 原文阅读器可打开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 原文阅读器可关闭",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 全部关系可展开",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 刷新后仍在结果视图",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 历史默认不超过 5 条",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "check": "[390] 历史有状态标注",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 失效链接给出错误说明",
+    "ok": true,
+    "detail": "这条任务链接已不可用"
+  },
+  {
+    "check": "[390] 返回首页 hero 恢复",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[390] 无横向溢出",
+    "ok": true,
+    "detail": "0"
+  },
+  {
+    "check": "[390] 无 JS 运行时错误",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[AI合成] AI 计数区分倾向矛盾/一致/依据不足",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[AI合成] AI 徽标不含绿色语义",
+    "ok": true,
+    "detail": "ai,ai-warn"
+  },
+  {
+    "check": "[AI合成] 程序不可比时 AI 倾向不覆盖程序",
+    "ok": true,
+    "detail": "研发费用 · 同一报告内2处披露 依据不足·不可比 AI 未见矛盾 程序事实 依据不足·不可比 关键前提缺原文依据，程序不输出正式差额 AI 意见 AI 倾向："
+  },
+  {
+    "check": "[AI合成] 程序限制显式标出",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[AI合成] 条件相容显示为条件试算",
+    "ok": true,
+    "detail": "研发人员数量 · 年报与ESG披露数值核对 条件试算 程序事实 条件试算 仅在写明假设（如显示精度、调节项）时相容，不等"
+  },
+  {
+    "check": "[AI合成] 未解释差额进入潜在矛盾",
+    "ok": true,
+    "detail": "研发投入金额 · 年报与ESG披露数值核对 潜在矛盾 程序事实 潜在矛盾 存在明确冲突前提，或同口径下仍有未解释差额 A"
+  },
+  {
+    "check": "[AI合成] 系统候选失败进入运行诊断",
+    "ok": true,
+    "detail": "运行诊断面板"
+  },
+  {
+    "check": "[AI合成] 无 JS 运行时错误",
+    "ok": true,
+    "detail": ""
+  }
+]
