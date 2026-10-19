@@ -1,0 +1,181 @@
+{
+  "baseline_commit": "541de1b",
+  "execution_mode": "calculation_only",
+  "model_called": false,
+  "pairs": {
+    "000858-2025": {
+      "occurrences": 217,
+      "checks_total": 8,
+      "criteria_status": {
+        "unknown": 8
+      },
+      "calculation_status": {
+        "not_comparable": 6,
+        "not_applicable": 2
+      },
+      "formal_with_residual": 0,
+      "trial_with_residual": 6,
+      "scope_nonempty": {
+        "value": 0,
+        "denominator": 217
+      },
+      "currency_known": {
+        "value": 40,
+        "denominator": 217
+      },
+      "currency_known_money": {
+        "value": 35,
+        "denominator": 93
+      },
+      "unit_known": {
+        "value": 168,
+        "denominator": 217
+      },
+      "quality_located": {
+        "value": 78,
+        "denominator": 217
+      },
+      "table_structure_candidates": 0,
+      "note": "旧代码没有 report_boundary/scope_level/display_precision/table_id 字段，也没有表内组成生成器"
+    },
+    "000333-2025": {
+      "occurrences": 305,
+      "checks_total": 4,
+      "criteria_status": {
+        "unknown": 4
+      },
+      "calculation_status": {
+        "not_comparable": 2,
+        "not_applicable": 2
+      },
+      "formal_with_residual": 0,
+      "trial_with_residual": 2,
+      "scope_nonempty": {
+        "value": 0,
+        "denominator": 305
+      },
+      "currency_known": {
+        "value": 154,
+        "denominator": 305
+      },
+      "currency_known_money": {
+        "value": 149,
+        "denominator": 194
+      },
+      "unit_known": {
+        "value": 242,
+        "denominator": 305
+      },
+      "quality_located": {
+        "value": 46,
+        "denominator": 305
+      },
+      "table_structure_candidates": 0,
+      "note": "旧代码没有 report_boundary/scope_level/display_precision/table_id 字段，也没有表内组成生成器"
+    },
+    "300750-2025": {
+      "occurrences": 246,
+      "checks_total": 7,
+      "criteria_status": {
+        "unknown": 7
+      },
+      "calculation_status": {
+        "not_comparable": 6,
+        "not_applicable": 1
+      },
+      "formal_with_residual": 0,
+      "trial_with_residual": 6,
+      "scope_nonempty": {
+        "value": 0,
+        "denominator": 246
+      },
+      "currency_known": {
+        "value": 3,
+        "denominator": 246
+      },
+      "currency_known_money": {
+        "value": 2,
+        "denominator": 49
+      },
+      "unit_known": {
+        "value": 143,
+        "denominator": 246
+      },
+      "quality_located": {
+        "value": 73,
+        "denominator": 246
+      },
+      "table_structure_candidates": 0,
+      "note": "旧代码没有 report_boundary/scope_level/display_precision/table_id 字段，也没有表内组成生成器"
+    },
+    "600019-2025": {
+      "occurrences": 614,
+      "checks_total": 9,
+      "criteria_status": {
+        "unknown": 9
+      },
+      "calculation_status": {
+        "not_comparable": 9
+      },
+      "formal_with_residual": 0,
+      "trial_with_residual": 9,
+      "scope_nonempty": {
+        "value": 15,
+        "denominator": 614
+      },
+      "currency_known": {
+        "value": 405,
+        "denominator": 614
+      },
+      "currency_known_money": {
+        "value": 379,
+        "denominator": 381
+      },
+      "unit_known": {
+        "value": 494,
+        "denominator": 614
+      },
+      "quality_located": {
+        "value": 95,
+        "denominator": 614
+      },
+      "table_structure_candidates": 0,
+      "note": "旧代码没有 report_boundary/scope_level/display_precision/table_id 字段，也没有表内组成生成器"
+    },
+    "600019-2024": {
+      "occurrences": 618,
+      "checks_total": 11,
+      "criteria_status": {
+        "unknown": 11
+      },
+      "calculation_status": {
+        "not_comparable": 11
+      },
+      "formal_with_residual": 0,
+      "trial_with_residual": 11,
+      "scope_nonempty": {
+        "value": 33,
+        "denominator": 618
+      },
+      "currency_known": {
+        "value": 396,
+        "denominator": 618
+      },
+      "currency_known_money": {
+        "value": 370,
+        "denominator": 370
+      },
+      "unit_known": {
+        "value": 481,
+        "denominator": 618
+      },
+      "quality_located": {
+        "value": 121,
+        "denominator": 618
+      },
+      "table_structure_candidates": 0,
+      "note": "旧代码没有 report_boundary/scope_level/display_precision/table_id 字段，也没有表内组成生成器"
+    }
+  },
+  "blocked": []
+}

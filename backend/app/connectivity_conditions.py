@@ -75,15 +75,69 @@ def _scope_quote(statement: DisclosureOccurrence, member: DisclosureOccurrence) 
         if name in label:
             aliases.append(name)
     # 同一指标的明示边界才能作为确定性支持；别名只是此处的关联锚点。
+    metric_scope = _metric_scope(member)
     for marker in SCOPE_MARKERS + ("合并", "母公司", "集团"):
         index = statement.context.find(marker)
         if index < 0:
             continue
         quote = statement.context[max(0, index-70):index+140].strip()
         compact = re.sub(r"\s+", "", quote)
-        if any(alias in compact for alias in aliases) and (not member.scope or member.scope in compact):
+        if any(alias in compact for alias in aliases) and (not metric_scope or metric_scope in compact):
             return quote
     return ""
+
+
+def _metric_scope(member: DisclosureOccurrence) -> str:
+    """只返回指标级统计范围；表内分组和报告边界不能冒充指标范围。"""
+    if member.scope_level == "metric":
+        return member.scope.strip()
+    if member.scope_level in {"report", "table"}:
+        return ""
+    # 旧数据没有 scope_level：保留原字段兼容，但后续仍须原文引文证明。
+    return member.scope.strip()
+
+
+def _table_structure_refs(check: RelationshipCheck, found: dict[str, DisclosureOccurrence]) -> list[EvidenceRef]:
+    """从表内结构证据绑定合计行原文；只用能逐字复核的片段。"""
+    total = (check.table_structure or {}).get("total") or {}
+    occurrence_id = str(total.get("occurrence_id") or "")
+    row = found.get(occurrence_id)
+    if row is None:
+        return []
+    quote = (row.row_header or row.context or "")[:400]
+    if not quote:
+        return []
+    ref = EvidenceRef(occurrence_id=occurrence_id, quote=quote)
+    return [ref] if validate_refs([ref], found) else []
+
+
+def _attach_table_structure(check: RelationshipCheck, conditions: dict[str, ComparisonCondition],
+                            found: dict[str, DisclosureOccurrence]) -> None:
+    """表内结构只登记 L1 有限支持，不把几何覆盖写成指标级确认。"""
+    structure = check.table_structure or {}
+    if not structure:
+        return
+    refs = _table_structure_refs(check, found)
+    coverage = structure.get("coverage") or {}
+    non_overlap = structure.get("non_overlap") or {}
+    for name in ("组成完整", "互不重叠"):
+        condition = conditions.get(name)
+        if condition is None or condition.status != "unknown":
+            continue
+        if name == "组成完整":
+            reason = ("表内结构显示合计覆盖全部已识别分项（L1有限支持）；"
+                      "指标定义与分项完整性仍须原文确认")
+            if coverage.get("total_equals_sum") is False:
+                reason += "；当前分项加总与合计不一致，不能闭合"
+        else:
+            reason = ("表内结构显示分项为同一合计下的兄弟行/列（L1有限支持）；"
+                      "业务互斥仍须原文定义确认")
+            if non_overlap.get("status") == "unknown":
+                reason += "；结构未证明互不重叠"
+        condition.reason = reason
+        condition.evidence_kind = "table_structure"
+        condition.evidence = refs[:2]
+
 
 
 def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: str) -> tuple[RelationshipCheck, list[str]]:
@@ -124,9 +178,12 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
                             [EvidenceRef(occurrence_id=witness.occurrence_id, quote=_quote_for(witness, [witness.unit]))], found):
             upgraded.append("单位")
 
-    # 范围：非空成员边界加本指标明示原文；报告级声明只登记覆盖线索。
-    scopes = {row.scope.strip() for row in members}
+    # 范围：非空指标级边界加本指标明示原文；报告边界和表内分组只登记覆盖线索。
+    scopes = {_metric_scope(row) for row in members}
     scope_condition = conditions.get("范围")
+    if scope_condition and scope_condition.status == "supported" and scope_condition.evidence_kind == "table_structure":
+        scope_condition.status = "unknown"
+        scope_condition.reason = "表内分组或合计列不等于指标统计范围；不能据此支持范围前提"
     if scope_condition and scope_condition.status == "supported":
         # 模型提出的条件也不能用其他指标的统计口径替代本指标边界。
         scoped_refs = [ref for ref in scope_condition.evidence if ref.occurrence_id in found]
@@ -136,6 +193,21 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
             scope_condition.status = "unknown"
             scope_condition.reason = "所引范围材料未分别说明本关系成员的指标边界；保留AI解释，不作为正式范围支持"
             scope_condition.evidence_kind = "report_level"
+    # 表标题/本指标原文直接给出范围时，优先使用可回查的字段来源。
+    direct_scope = next(iter(scopes)) if len(scopes) == 1 else ""
+    if direct_scope and scope_condition and scope_condition.status == "unknown":
+        direct_refs = []
+        for member in members:
+            if member.scope_level != "metric" or not member.scope_source_quote:
+                continue
+            probe = member.model_copy(update={"context": member.scope_source_quote})
+            if _scope_quote(probe, member):
+                direct_refs.append(EvidenceRef(occurrence_id=member.occurrence_id,
+                                               quote=member.scope_source_quote[:800]))
+        if len({found[ref.occurrence_id].document_id for ref in direct_refs}) == len({row.document_id for row in members}) and direct_refs:
+            if _set(conditions, "范围", f"表标题/本指标原文明确统计范围：{direct_scope[:40]}",
+                    direct_refs, found):
+                upgraded.append("范围")
     if len(scopes) == 1 and next(iter(scopes)):
         scope = next(iter(scopes))
         refs, ok = [], True
@@ -154,13 +226,25 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
         if ok and _set(conditions, "范围", reason, refs, found):
             upgraded.append("范围")
     if scope_condition and scope_condition.status == "unknown":
+        boundary_values = {member.report_boundary for member in members if member.report_boundary != "unknown"}
+        table_values = {member.table_scope for member in members if member.table_scope}
+        if table_values:
+            scope_condition.evidence_kind = "table_structure"
+            scope_condition.reason = ("成员范围来自表内分组或合计列；这只支持表级有限比较，"
+                                      "不能替代指标统计范围原文")
+        elif len(boundary_values) == 1:
+            scope_condition.evidence_kind = "report_level"
+            scope_condition.reason = ("报告边界已登记为" + next(iter(boundary_values)) +
+                                      "；报告级边界不能单独证明本指标适用同一边界")
         report_refs = [EvidenceRef(occurrence_id=row.occurrence_id, quote=row.context[:200]) for row in run.occurrences
                        if row.document_id in {m.document_id for m in members}
                        and re.search(r"本报告.*(?:范围|边界)|报告披露范围", row.context)]
         if report_refs:
             scope_condition.evidence = list({(r.occurrence_id, r.quote):r for r in scope_condition.evidence + report_refs[:4]}.values())[:8]
-            scope_condition.evidence_kind = "report_level"
-            scope_condition.reason = "只有报告总体范围声明，尚未证明本指标适用同一边界；AI可继续提出带假设的解释"
+            if scope_condition.evidence_kind == "unspecified":
+                scope_condition.evidence_kind = "report_level"
+            if not scope_condition.reason or scope_condition.reason == "本次原文尚未充分说明":
+                scope_condition.reason = "只有报告总体范围声明，尚未证明本指标适用同一边界；AI可继续提出带假设的解释"
 
     # 定义：原文对指标名称给出定义句。成员标签先去掉行次后缀，避免只认“合计”这种行名。
     cores = []
@@ -196,6 +280,8 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
         _upgrade_sum(check, conditions, members, found, upgraded)
     if check.operator == "ratio":
         _upgrade_ratio(conditions, members, found, upgraded)
+    # 表内结构只补充 L1 结构证据；它不能把组合条件升级为指标级 supported。
+    _attach_table_structure(check, conditions, found)
     result = check.model_copy(deep=True)
     result.conditions = list(conditions.values())
     return result, upgraded
