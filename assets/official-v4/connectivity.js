@@ -163,7 +163,7 @@
     const modes = {calculation_only:'自动发现 · 仅计算',three_agents:'自动发现 · 三角色核对',single_model:'自动发现 · 完整单模型对照'};
     const revised = run.versions?.result_origin==='user_revision' || (run.parent_run_id && !run.prior_provider_calls?.length);
     $('cn-run-meta').textContent = `版本${run.result_revision} / ${modes[run.execution_mode]||run.execution_mode} / ${(run.duration_ms/1000).toFixed(1)}秒${revised?'；使用者修订未新增模型调用':run.prior_provider_calls?.length?'；本次为增量续分析':''}`;
-    if(run.versions?.intelligence&&run.versions?.rules!=='2026-10-18.2') $('cn-run-meta').textContent+='；历史规则结果：范围支持与意见尚未按本次修复重验，请勿引用旧正式支持数量';
+    if(run.versions?.intelligence&&!['2026-10-18.2','2026-10-19.1'].includes(run.versions?.rules)) $('cn-run-meta').textContent+='；历史规则结果：范围支持与意见尚未按本次修复重验，请勿引用旧正式支持数量';
     // 任务身份置顶：公司、期间、任务、状态、版本同时可见，刷新或深链进入也不用再猜这是哪一次运行。
     const statusText = labels[state.task.status] || state.task.status;
     $('cn-task-strip').innerHTML = [
@@ -203,14 +203,9 @@
     const summary = ST.summarize(run);
     const levels = summary.levels;
     const total = summary.total;
-    const unclear = levels.insufficient.value + levels.limited.value;
-    // 四个数字互斥，分母统一为本次关系数；有限支持并入“依据不足·不可比”并注明构成。
-    const levelCards = [
-      ['formal', levels.formal.value, '五项前提有原文依据，且完成数值核对'],
-      ['conditional', levels.conditional.value, '只在写明假设（显示精度/调节）时相容'],
-      ['insufficient', unclear, levels.limited.value ? `其中 ${levels.limited.value} 项口径已支持但算式不可执行` : '关键前提缺原文依据，不输出正式差额'],
-      ['conflict', levels.conflict.value, '明确冲突前提或未解释差额，需核查'],
-    ];
+    // 六级互斥，与接口和Word读取同一批关系记录。
+    const levelCards = ['formal','conditional','limited','insufficient','conflict','not_applicable']
+      .map(key => [key, levels[key].value, levels[key].definition]);
     const fourq = [
       ['能确认什么', ov.confirmable, '条件支持且计算成立', '关系数'],
       ['不能确认什么', ov.unconfirmable, '缺前提或存在冲突', '关系数'],
@@ -246,7 +241,7 @@
       <div class="cn-level-counts" role="group" aria-label="程序结论分级，互斥，分母为关系总数">
         ${levelCards.map(([key, value, note]) => `<button type="button" class="cn-level-card" data-level="${key}" data-cn-filter="level:${key}" aria-pressed="${state.filter==='level:'+key}"><span class="cn-level-card-label">${escape(levels[key].label)}</span><span class="cn-level-card-value"><b>${escape(String(value))}</b><small>/ ${total} 项</small></span><span class="cn-level-card-note">${escape(note)}</span></button>`).join('')}
       </div>
-      <p class="cn-count-rule">四个数字互斥，分母都是本次关系数 ${total}${levels.not_applicable.value?`；另有 ${levels.not_applicable.value} 项叙述类关系不参与数值判定`:''}。“依据不足·不可比”既不是“没问题”，也不是“有问题”。</p>
+      <p class="cn-count-rule">六个数字互斥，合计等于本次关系数 ${total}。“依据不足·不可比”既不是“没问题”，也不是“有问题”。</p>
       <div class="cn-ai-counts" aria-label="AI 意见计数，非互斥">
         <span class="cn-ai-counts-label">AI 意见</span>
         <span><b>${summary.ai.value}</b> / ${total} 项有意见</span>
@@ -363,7 +358,7 @@
       return priority || severity[levelOf(a).key]-severity[levelOf(b).key] || Number(b.relationship_evidence.length>0)-Number(a.relationship_evidence.length>0);
     });
     $('cn-count').textContent = String(checks.length);
-    const filterLabels = {formal:'正式复算',conditional:'条件试算',insufficient:'依据不足·不可比',conflict:'潜在矛盾'};
+    const filterLabels = {formal:'正式复算',conditional:'条件试算',limited:'有限支持',insufficient:'依据不足·不可比',conflict:'潜在矛盾',not_applicable:'不适用数值计算'};
     const emptyText = state.filter==='all'
       ? '本次未生成关系候选：可查看“问题”页的搜索覆盖与已提取未计入清单。'
       : `当前筛选「${filterLabels[state.filter.replace('level:','')]||state.filter}」下没有关系；点击其它分级或“全部关系”继续查看。`;
@@ -385,7 +380,7 @@
     const gate = calc.gate;
     const adjustment = calc.adjustment;
     const interval = calc.residual_interval;
-    const levelLabels = {formal_consistent:'一致（前提齐备）', assumption_compatible:'假设内相容', unexplained_difference:'存在差异', insufficient_basis:'依据不足', not_applicable:'不适用'};
+    const levelLabels = {formal_consistent:'一致（前提齐备）', assumption_compatible:'假设内相容', unexplained_difference:'存在差异', insufficient_basis:'依据不足', limited_support:'有限支持', not_applicable:'不适用'};
     const assumption = calc.assumption_check;
     const levelBlock = calc.conclusion_level ? `<div class="cn-scenario"><h4>结论级别与假设检验</h4><p>结论级别：<strong>${escape(levelLabels[calc.conclusion_level]||calc.conclusion_level)}</strong></p>${assumption ? (assumption.status==='not_run' ? `<p class="cn-muted">${escape(assumption.reason||'当前关系不适用显示精度假设')}</p>` : `<p>${escape(assumption.assumption_note||'按显示小数位建立区间')}</p><p>差额区间：[${escape(assumption.residual_interval?.low??'—')}, ${escape(assumption.residual_interval?.high??'—')}]；含0：${assumption.contains_zero?'是':'否'}</p><p class="cn-muted">该检验不改变口径状态，也不等于企业实际采用的舍入方法。</p>`) : ''}</div>` : '';
     const formal = gate
@@ -406,7 +401,6 @@
     if (String(filter||'').startsWith('level:')) {
       const summary = ST.summarize(run);
       const key = filter.slice(6);
-      if (key==='insufficient') return [...summary.levels.insufficient.items, ...summary.levels.limited.items];
       return summary.levels[key]?.items || [];
     }
     if(filter==='computed') return run.overview?.numerical_records?.items||run.overview?.program_calculations?.items||[];
@@ -515,6 +509,17 @@
     </article>`;
   }
 
+  function evidenceLedgerBlock(c) {
+    const run = current();
+    const ledger = (run.claim_ledger || run.intelligence_trace || []).filter(item => item.check_id === c.check_id && (item.claims || item.kind === 'claim_ledger'));
+    const actions = (run.next_evidence || []).filter(item => item.check_id === c.check_id);
+    const basis = (run.rule_basis || []).filter(item => item.check_id === c.check_id).flatMap(item => item.entries || []);
+    const states = {supported:'有据支持',contradicted:'与证据矛盾',insufficient_basis:'依据不足',not_verified:'未核验'};
+    return '<details class="cn-detail-block"><summary>主张证据、规则依据与补证动作</summary>' +
+      (ledger.length ? ledger.map(item => '<p>主张支持状态：' + escape(states[item.support_status] || '未核验') + (item.rejected ? '（该意见未采纳）' : '') + '</p><ul>' + (item.claims || []).map(claim => '<li>' + escape(claim.text || claim.token || claim.indicator || '主张') + '：' + escape(states[claim.support_status] || '未核验') + '；' + escape(claim.reason || '') + '</li>').join('') + '</ul>').join('') : '<p>本次没有模型主张账本，不能据此推断模型观点。</p>') +
+      '<h4>规则依据</h4><ul>' + basis.map(item => '<li>' + escape(item.statement || item.title || '') + '；' + escape(item.verification_status === 'verified' ? '已登记核验' : '具体条款未完整核验，仅作检索线索') + '</li>').join('') + '</ul><h4>下一步补证</h4><ul>' + actions.map(item => '<li>' + escape(item.action || '') + '</li>').join('') + '</ul></details>';
+  }
+
   function renderDetail() {
     const c = check(); renderRelation();
     if (!c) {
@@ -533,7 +538,7 @@
     if (ai.key==='potential' && level.key==='formal') disagree.push('AI 认为可能存在矛盾，但程序在已支持前提下复算未见差异：需核对 AI 所引原文与口径是否成立。');
     if (hardGaps.length) disagree.push(`当前程序限制：${hardGaps.join('；')}。AI 解释需结合这些限制阅读。`);
     const disagreeBlock = disagree.length ? `<div class="cn-disagree">${disagree.map(text=>`<p>${escape(text)}</p>`).join('')}</div>` : '';
-    $('cn-detail-conclusion').innerHTML = `<div class="cn-detail-title"><h2>${escape(c.title)}</h2>${levelChip(c)}${tendencyChip(c)}</div>` + lanesBrief + disagreeBlock + aiAnalysisBlock(c) + programHintBlock(c) + hypothesesBlock(c) + `<details class="cn-detail-block"><summary>查看程序状态与披露成员</summary>${conclusion}</details>`;
+    $('cn-detail-conclusion').innerHTML = `<div class="cn-detail-title"><h2>${escape(c.title)}</h2>${levelChip(c)}${tendencyChip(c)}</div>` + lanesBrief + disagreeBlock + aiAnalysisBlock(c) + programHintBlock(c) + hypothesesBlock(c) + evidenceLedgerBlock(c) + `<details class="cn-detail-block"><summary>查看程序状态与披露成员</summary>${conclusion}</details>`;
     $('cn-pane-conditions').innerHTML = `<h3 class="cn-section-h">五项前提</h3>${conditionsBlock(c)}<h3 class="cn-section-h">算式与残差</h3>${calculationBlock(c)}`;
     $('cn-pane-positions').innerHTML = `<h3 class="cn-section-h">解释与反证</h3>${explanationBlock(c)}<h3 class="cn-section-h">关系依据</h3><div class="cn-explanation">${escapedRefs(c.relationship_evidence)}</div>${positionsBlock(c)}`;
     $('cn-pane-questions').querySelector('#cn-findings') && renderFindings();

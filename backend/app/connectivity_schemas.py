@@ -13,7 +13,7 @@ NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核�
 # 历史业务声明保持原文不变；导出与接口按 task_kind 分派，不互相冒充。
 LEGACY_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 NOTICE_BY_TASK_KIND = {"connectivity": NOTICE, "legacy_audit": LEGACY_NOTICE}
-SCHEMA_VERSION = "connectivity_v3"
+SCHEMA_VERSION = "connectivity_v4"
 
 # 本轮事项类型裁决：取方案(b)。海菲曼利润总额只走版本子流程并使用独立事项标识，
 # 不扩 topics 枚举，以免把双报告引擎改造成通用多文档平台。
@@ -466,6 +466,10 @@ class ConnectivityRun(Contract):
     prior_provider_calls: list[dict] = Field(default_factory=list)
     industry_context: dict = Field(default_factory=dict)
     intelligence_trace: list[dict] = Field(default_factory=list)
+    # 显式证据账本字段与原始trace并存，旧记录缺失时保持空列表。
+    claim_ledger: list[dict] = Field(default_factory=list)
+    rule_basis: list[dict] = Field(default_factory=list)
+    next_evidence: list[dict] = Field(default_factory=list)
     ai_generated_content_notice: str = NOTICE
 
 

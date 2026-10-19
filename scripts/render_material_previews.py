@@ -16,11 +16,21 @@ for source in sorted(base.glob('*')):
     destination = base / ('word-preview' if source.suffix == '.docx' else 'ppt-preview')
     destination.mkdir(parents=True, exist_ok=True)
     profile = ROOT / 'runtime' / ('lo-' + source.suffix[1:] + '-' + uuid.uuid4().hex[:8])
-    subprocess.run([str(converter), '-env:UserInstallation=' + profile.as_uri(), '--headless',
-                    '--convert-to', 'pdf', '--outdir', str(destination), str(source)],
-                   check=True, timeout=180,
-                   creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
     pdf = destination / (source.stem + '.pdf')
+    if not pdf.is_file() or pdf.stat().st_mtime < source.stat().st_mtime:
+        child_env = {key: value for key, value in os.environ.items() if key not in {'PYTHONHOME', 'PYTHONPATH'}}
+        try:
+            converted = subprocess.run([str(converter), '-env:UserInstallation=' + profile.as_uri(), '--headless',
+                            '--convert-to', 'pdf', '--outdir', str(destination), str(source)],
+                           capture_output=True, timeout=120, env=child_env,
+                           creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+            if converted.returncode != 0 or not pdf.is_file():
+                reports.append({'source':source.name,'status':'render_failed','exit_code':converted.returncode,
+                                'message':converted.stderr.decode('utf-8',errors='replace')[-1200:]})
+                continue
+        except subprocess.TimeoutExpired:
+            reports.append({'source':source.name,'status':'render_timeout','timeout_seconds':120})
+            continue
     page_paths = []
     with pymupdf.open(pdf) as document:
         for index, page in enumerate(document):

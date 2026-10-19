@@ -423,8 +423,8 @@ def test_model_candidates_are_deduplicated_and_deterministic():
     assert any("重复" in item["reason"] for item in result["rejected"])
 
 
-def test_ai1_composition_hook_is_optional_and_used_when_present(monkeypatch):
-    from app import connectivity_extraction
+def test_integrated_ai1_composition_entry_is_used(monkeypatch):
+    from app import connectivity_pipeline
     left = occ("L", "合成指标", "10", "万元", "SYN-AR")
     right = occ("R", "合成指标", "10", "万元", "SYN-ESG")
     run = run_with([left, right])
@@ -435,7 +435,7 @@ def test_ai1_composition_hook_is_optional_and_used_when_present(monkeypatch):
         members=[RelationshipMember(occurrence_id="L", role="occurrence")],
         conditions=[ComparisonCondition(name="范围")],
         relationship_evidence=[EvidenceRef(occurrence_id="L", quote="合成指标 10 万元")])
-    monkeypatch.setattr(connectivity_extraction, "build_table_composition_candidates",
+    monkeypatch.setattr(connectivity_pipeline, "build_table_composition_candidates",
                         lambda current, period: [hook_check], raising=False)
     hooked = candidate_checks(run.occurrences, "2025", run=run, topics=["research"])
     assert any(check.title == "AI1结构候选" for check in hooked)

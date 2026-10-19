@@ -55,7 +55,7 @@ def audit():
               'findings': findings, 'excluded_from_public_package': excluded, 'missing_files': missing,
               'dependencies': dependencies, 'no_static_relative_inbound': sorted(set(dependencies)-referenced),
               'boundary': '静态扫描不等于无隐私；未审查PDF全文版权或授予开源许可证；无入边不等于可删除',
-              'license_decision': 'blocked_team_authorization_required'}
+              'license_decision': 'user_authorized_github_render_owned_changes_20261019_third_party_rights_not_granted'}
     target = ROOT / 'outputs/ai4/repository-audit.json'
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')

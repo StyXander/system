@@ -2,6 +2,19 @@
 
 复用原delivery的字体、标题、表格方法，不另造排版框架。
 公众摘要和专业明细共享同一版本事实，角色名称不替代运行证据。
+
+导出合同的集成约定：
+原始结果继续使用严格模型验证，新增字段提供空列表默认值。
+历史记录缺少主张账本时保持未提供，不生成推测性证据。
+五段阅读摘要与六级程序统计分别标明各自定义。
+六级计数与浏览器共用显式结论字段及相同降级顺序。
+有限支持仅说明结构或部分条件有依据，不能并入正式确认。
+条件试算允许展示假设数值，但不填充正式残差字段。
+披露位置以处计，解析覆盖以页计，不能合成为比例。
+公共导出不包含个人观察正文，只保留已登记的数量。
+表格中的来源文字仍按文本处理，避免电子表格执行公式。
+规则条款尚未核验的标识必须保留到导出中。
+所有标题与正文在保存前统一执行中文字体及字号要求。
 """
 from __future__ import annotations
 
@@ -169,6 +182,9 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
         for revision in run.analysis_history:
             writer.writerow([_cell(v) for v in ['ai_analysis_revision', run.run_id, run.result_revision,
                 revision.get('check_id', ''), '', '', '', '', '', '', '', json.dumps(revision, ensure_ascii=False)]])
+        for kind in ("claim_ledger", "rule_basis", "next_evidence"):
+            for entry in getattr(run, kind):
+                writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision, entry.get("check_id", ""), "", "", "", "", "", "", "", json.dumps(entry, ensure_ascii=False)]])
         writer.writerow(["notice", notice])
         payload = stream.getvalue().encode("utf-8-sig")
         _assert_notice(payload, notice)
@@ -194,12 +210,16 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
     for key, label in labels.items():
         _paragraph(document, f"{label}：{run.overview['summary_bands'][key]['value']} / {len(run.checks)}项。")
     _paragraph(document, "上述五类互斥；条件试算项仍可能暂不可比，不可比栏仅统计没有试算记录的不可比关系。条件试算依赖所列假设；正式复算为0时表示当前前提不足或没有可执行数值关系，不能解读为没有问题。")
+    _paragraph(document, "页面同口径六级统计（互斥，分母为全部关系）：" + "；".join(
+        label + str(run.overview["program_levels"][key]["value"]) + "项"
+        for key, label in [("formal", "正式复算"), ("conditional", "条件试算"), ("limited", "有限支持"),
+                            ("insufficient", "依据不足·不可比"), ("conflict", "潜在矛盾"), ("not_applicable", "不适用数值计算")]))
     _paragraph(document, f"本次从登记报告中发现{len(run.occurrences)}处候选及上下文，形成{len(run.checks)}项关系记录、{len(run.findings)}项待查问题。数字相符不替代定义与范围依据。")
     overview = run.overview
     _paragraph(document, f'程序事实记录{len(run.program_hints)}条（含无差异登记）；正式复算{overview["formal_calculations"]["value"]}项；'
                f'仅条件试算{overview["trial_calculations"]["value"]}项；程序差异或限制提示{overview["program_hints"]["value"]}项。')
     _paragraph(document, f'当前模型意见覆盖{overview["model_opinions"]["value"]}/{len(run.checks)}项关系；中高优先级{overview["priority_checks"]["value"]}项。覆盖不等于异常，数量不相加为成果总数。')
-    if run.versions.get('intelligence') and run.versions.get('rules') != '2026-10-18.2':
+    if run.versions.get('intelligence') and run.versions.get('rules') not in {'2026-10-18.2', '2026-10-19.1'}:
         _paragraph(document, '历史规则结果：原范围支持与意见未按本次缺陷修复重新验证。此处保留原计算，不应引用其正式支持数量作为当前成果。')
     overview = run.overview or {}
     if overview:
@@ -377,6 +397,11 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
     for revision in run.analysis_history:
         old = revision['previous']
         _paragraph(document, f'意见修订 {revision["check_id"]}：原意见“{old["summary"]}”；修订原因：{revision["reason"]}')
+    for kind, label in [("claim_ledger", "AI主张证据账本"), ("rule_basis", "规则依据与核验状态"), ("next_evidence", "具体补证动作")]:
+        if getattr(run, kind):
+            _add_heading(document, label, 2)
+            for entry in getattr(run, kind):
+                _paragraph(document, json.dumps(entry, ensure_ascii=False))
     # 所有层级标题和表格也执行同一字号要求，不依赖Word默认样式。
     def format_paragraphs(paragraphs):
         for paragraph in paragraphs:

@@ -2,6 +2,28 @@
 
 A1提出关系，A2补找定义和反证，程序每次重新检查与计算。
 A3形成独立AI研判及待查问题，不允许模型篡改程序状态及原始数值。
+
+集成时的数据流约定：
+登记文档决定公司与报告期间，不由模型生成新的来源身份。
+提取器保留原始数值、币种来源、表头年度与坐标。
+报告级边界只用于阻止合并与母公司之间的不当配对。
+表内分组不能作为指标级统计范围的替代依据。
+候选入口可以只收到披露列表，此时不要求运行对象存在。
+表内组成候选直接调用表格模块，与旧的可选钩子分离。
+候选生成之后仍经过同一条件升级和计算函数。
+生成组成候选不表示组成完整性已经获得企业原文支持。
+同一规则与成员集合通过签名去重，保留确定性候选身份。
+宏观、行业与同行数据保留排除原因，不进入企业异常。
+模型检索任务按缺少的条件生成，不能反向改写来源值。
+模型回复的主张账本与程序计算的状态分别保存。
+被拒绝的主张保留在轨迹中，便于查看拒绝原因。
+没有发出模型请求的任务不能计入真实模型调用。
+续分析保留父运行身份与此前调用，不伪装成本次新增。
+显式证据字段是轨迹的投影，原始轨迹继续保留。
+补证动作已经自带关系编号，合并时以当前关系编号为准。
+规则检索结果为列表，不能当作单条字典展开。
+导出和页面计数在所有关系计算完毕后统一生成。
+运行耗时包含本次实际执行，不用于推断人工节时。
 """
 from __future__ import annotations
 
@@ -25,6 +47,7 @@ from .connectivity_engine import calculate, normalized, numeric_unit, number, va
 from .connectivity_extraction import extract_document, load_registry, search_context, report_industry_context, EXTRACTION_VERSION
 from .connectivity_overview import build_overview
 from .connectivity_conditions import upgrade_conditions
+from .connectivity_tables import build_table_composition_candidates
 from .connectivity_intelligence import (METRIC_GUIDANCE, targeted_context, enrich_calculation,
     integrate_analyses, refresh_analysis_status, grounded_numbers, unsupported_numbers, pack_role_context)
 from .connectivity_rules import RULES, BASE_CONDITIONS, TOPICS, required_conditions, direct_metric
@@ -70,7 +93,10 @@ def _ai1_scope(row: DisclosureOccurrence) -> str:
                 return value.strip()
         except (TypeError, ValueError):
             pass
-    explicit = str(row.scope or "").strip()
+    boundary = {"consolidated": "合并", "parent": "母公司", "segment": "分部"}.get(row.report_boundary)
+    if boundary:
+        return boundary
+    explicit = str(row.scope or "").strip() if row.scope_level in {"metric", "unknown"} else ""
     if explicit:
         return explicit
     text = " ".join([row.label, row.row_header, row.column_header, row.context[:600]])
@@ -107,6 +133,8 @@ def _macro_reason(row: DisclosureOccurrence) -> str:
                 return "AI1 宏观背景排除"
         except (TypeError, ValueError):
             pass
+    if row.content_class in {"macro", "industry", "peer", "background"}:
+        return "已登记的非企业自身指标：" + row.content_class
     text = " ".join([row.label, row.row_header[:120]])
     if MACRO_PATTERN.search(text) and not re.search(r"公司|本集团|本公司", text):
         return "标签属于全国/行业统计，不是公司自身指标"
@@ -540,18 +568,9 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
             kept_occ[key] = check
     checks = [check for check in checks if check.rule_id != "OCC-001"] + list(kept_occ.values())
     # 组成、比例、列合计与非同名映射必须有确定性入口，不能只靠模型提案。
-    ai1_extras = []
-    ai1_composition = _ai1_hook("build_table_composition_candidates")
-    if ai1_composition:
-        try:
-            ai1_extras = list(ai1_composition(run, period) or [])
-        except TypeError:
-            try:
-                ai1_extras = list(ai1_composition(rows, period, run) or [])
-            except (TypeError, ValueError):
-                ai1_extras = []
-        _trace(run, kind="ai1_hook", hook="build_table_composition_candidates",
-               status="used" if ai1_extras else "empty", count=len(ai1_extras))
+    ai1_extras = build_table_composition_candidates(rows, period)
+    _trace(run, kind="ai1_hook", hook="build_table_composition_candidates",
+           status="used" if ai1_extras else "empty", count=len(ai1_extras))
     extras = (ai1_extras + _composition_candidates(rows, period) + _column_composition_candidates(rows, period, topics) +
               _ratio_candidates(rows, period) + _semantic_metric_candidates(rows, period, run, topics))
     seen_keys = {_member_key(check.rule_id, check.members) for check in checks}
@@ -1422,6 +1441,10 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         "checks": ablation[:20],
         "boundary": "检索消融不等于模型效果实验；判断变化须由开启/关闭两次真实运行对照",
     })
+    run.claim_ledger = [entry for entry in run.intelligence_trace if entry.get("kind") == "claim_ledger"]
+    run.rule_basis = [dict(check_id=check.check_id, entries=rule_basis_for(check)) for check in run.checks]
+    run.next_evidence = [{**action, "check_id": check.check_id} for check in run.checks
+                         for action in build_next_evidence(check, rule_basis_for(check))]
     run.overview = build_overview(run)
     run.duration_ms = round((time.perf_counter()-started)*1000)
     progress("structured_output", "completed", "结果已生成，按实际模型状态标识")

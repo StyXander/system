@@ -151,3 +151,22 @@ def test_same_ip_four_attempts_keep_budget_and_concurrency(tmp_path):
     ledger.settle(third, input_tokens=1, output_tokens=1)
     with pytest.raises(PublicModelQuotaError, match='今日'):
         ledger.reserve('third-ip')
+
+
+def test_integrated_pipeline_populates_evidence_contract(tmp_path, monkeypatch):
+    from app import connectivity_pipeline as pipeline
+    from app.connectivity_schemas import RunRequest, SearchCoverage
+    from test_at_core_regressions import document, row
+    docs = [document(), document("SYN-ESG", "ESG")]
+    rows = [row(1, "研发投入金额", "1.00"), row(2, "研发投入金额", "1.00", document_id="SYN-ESG")]
+    monkeypatch.setattr(pipeline, "load_registry", lambda root: docs)
+    monkeypatch.setattr(pipeline, "extract_document", lambda root, doc, *args: (
+        [r for r in rows if r.document_id == doc.document_id], SearchCoverage(document_id=doc.document_id, total_pages=1, parsed_pages=1), []))
+    monkeypatch.setattr(pipeline, "report_industry_context", lambda *args: {})
+    result = pipeline.run_pipeline(tmp_path, RunRequest(pair_id="SYN-PAIR", mode="calculation_only"))
+    assert result.checks and result.next_evidence and result.rule_basis
+    assert result.provider_calls == []
+    assert all(item["check_id"] in {c.check_id for c in result.checks} for item in result.next_evidence)
+    payload, _ = export_run(result, "json")
+    assert json.loads(payload)["next_evidence"] == result.next_evidence
+    assert sum(item["value"] for item in result.overview["program_levels"].values()) == len(result.checks)

@@ -22,7 +22,7 @@
   const LEVELS = {
     formal: {key: 'formal', label: '正式复算', tone: 'verified', definition: '五项前提均有原文依据，且程序完成数值核对'},
     conditional: {key: 'conditional', label: '条件试算', tone: 'conditional', definition: '仅在写明假设（如显示精度、调节项）时相容，不等于正式确认'},
-    limited: {key: 'limited', label: '有限支持', tone: 'limited', definition: '口径已支持，但本次算式不可执行或只能做多位置比对'},
+    limited: {key: 'limited', label: '有限支持', tone: 'limited', definition: '仅有表级或结构依据，或口径支持但算式不可执行，不能作为正式确认'},
     insufficient: {key: 'insufficient', label: '依据不足·不可比', tone: 'neutral', definition: '关键前提缺原文依据，程序不输出正式差额'},
     conflict: {key: 'conflict', label: '潜在矛盾', tone: 'warn', definition: '存在明确冲突前提，或同口径下仍有未解释差额'},
     not_applicable: {key: 'not_applicable', label: '不适用数值计算', tone: 'neutral', definition: '叙述类关系，只记录文字主张，不生成算式'}
@@ -55,7 +55,9 @@
 
   function programLevel(check) {
     const calc = (check && check.calculation) || {};
-    const declared = calc.conclusion_level;
+    const declared = check && (check.conclusion_level && check.conclusion_level !== "not_assessed" ? check.conclusion_level : calc.conclusion_level);
+    if (declared === "limited_support") return LEVELS.limited;
+    if (declared === "insufficient_basis") return LEVELS.insufficient;
     if (declared && LEVELS[declared]) return LEVELS[declared];
     if (declared === 'unexplained_difference') return LEVELS.conflict;
     if (declared === 'formal_consistent') return LEVELS.formal;
@@ -194,7 +196,7 @@
     if (levels.conflict.value) parts.push(`${levels.conflict.value} 项存在明确矛盾或未解释差额`);
     const unclear = [];
     if (levels.conditional.value) unclear.push(`${levels.conditional.value} 项仅在写明假设时相容`);
-    if (levels.limited.value) unclear.push(`${levels.limited.value} 项口径已支持但算式不可执行`);
+    if (levels.limited.value) unclear.push(`${levels.limited.value} 项仅获有限证据支持`);
     if (levels.insufficient.value) unclear.push(`${levels.insufficient.value} 项依据不足或不可比`);
     if (unclear.length) parts.push(`${unclear.join('、')}，暂不能判断`);
     if (levels.not_applicable.value) parts.push(`${levels.not_applicable.value} 项为叙述类关系，不生成算式`);

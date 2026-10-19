@@ -51,6 +51,32 @@ def unresolved_causes(run: ConnectivityRun) -> list[dict]:
     return list(buckets.values())
 
 
+def program_level(check) -> str:
+    """与浏览器同样读取显式结论；有限支持与假设试算不升级正式结论。"""
+    calc = check.calculation
+    declared = check.conclusion_level if check.conclusion_level != "not_assessed" else calc.get("conclusion_level")
+    declared_map = {"formal_consistent": "formal", "unexplained_difference": "conflict",
+                    "assumption_compatible": "conditional", "limited_support": "limited",
+                    "insufficient_basis": "insufficient"}
+    if declared in declared_map:
+        return declared_map[declared]
+    if check.operator == "narrative" or check.calculation_status == "not_applicable":
+        return "not_applicable"
+    if check.criteria_status == "conflicting" or check.calculation_status == "unexplained_difference":
+        return "conflict"
+    assumption = calc.get("assumption_check") or {}
+    if (assumption.get("status") and assumption["status"] != "not_run" and assumption.get("contains_zero")) or (not calc.get("gate") and (calc.get("scenario_adjustment") or {}).get("applied")):
+        return "conditional"
+    if check.criteria_status == "supported" and not calc.get("gate"):
+        if check.calculation_status in CONFIRMED_STATUSES:
+            return "formal"
+        if check.calculation_status in {"not_comparable", "not_executable"}:
+            return "limited"
+    if calc.get("gate") or check.criteria_status == "unknown":
+        return "insufficient"
+    return "formal" if check.calculation_status in CONFIRMED_STATUSES else "insufficient"
+
+
 def build_overview(run: ConnectivityRun) -> dict:
     """由同一次运行的关系、覆盖与未计入清单确定性推导，不调用模型。"""
     checks = run.checks
@@ -94,7 +120,7 @@ def build_overview(run: ConnectivityRun) -> dict:
               "failed_pages": {"value": failed_pages, "unit": "页", "denominator": total_pages}}
     bands = {"confirmable": [], "limited_support": [], "conditional_trial": [], "not_comparable": [], "pending": []}
     for check in checks:
-        level = getattr(check, "evidence_level", None) or check.calculation.get("evidence_level")
+        level = check.basis_level or check.calculation.get("basis_level")
         if check in confirmed:
             category = "confirmable"
         elif level == "L1":
@@ -107,7 +133,10 @@ def build_overview(run: ConnectivityRun) -> dict:
             category = "pending"
         bands[category].append(check.check_id)
     return {
-        "delivery_contract_version": "2026-10-19.ai4.1",
+        "delivery_contract_version": "2026-10-19.integrated.2",
+        "program_levels": {key: {"value": sum(program_level(c) == key for c in checks),
+                          "items": [c.check_id for c in checks if program_level(c) == key], "denominator": total}
+                           for key in ["formal", "conditional", "limited", "insufficient", "conflict", "not_applicable"]},
         "summary_bands_note": "五类互斥；条件试算不代表口径可比，不可比栏仅统计没有试算记录的不可比关系",
         "execution_provenance": execution_provenance(run),
         "coverage_counts": counts,

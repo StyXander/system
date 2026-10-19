@@ -125,3 +125,9 @@ test('关系类型在范围冲突时优先显示范围冲突', () => {
   const pending = check({operator: 'sum', conditions: [{name: '范围', status: 'unknown'}]});
   assert.equal(S.relationType(pending).pending, '范围待证');
 });
+
+test('集成后的显式结论优先于旧状态，L1不得升级正式', () => {
+  assert.equal(S.programLevel(check({conclusion_level:'limited_support', basis_level:'L1'})).key, 'limited');
+  assert.equal(S.programLevel(check({conclusion_level:'insufficient_basis', calculation:{conclusion_level:'formal_consistent'}})).key, 'insufficient');
+  assert.equal(S.programLevel(check({conclusion_level:'not_assessed', calculation:{conclusion_level:'assumption_compatible'}})).key, 'conditional');
+});

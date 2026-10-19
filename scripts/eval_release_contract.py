@@ -21,7 +21,7 @@ def evaluate():
     results = []
     for sample in data['samples']:
         if sample['expected'] is None:
-            results.append({'id': sample['id'], 'status': 'unmeasured', 'reason': '需要AI1/AI2接口及双人专业标签，未用简单数值比较替代'})
+            results.append({'id': sample['id'], 'status': 'unmeasured', 'reason': '未为该样例冻结可自动执行预期及双人专业标签，保留未测'})
             continue
         start = time.perf_counter()
         units = sample['units'] or ['万元'] * len(sample['values'])
@@ -52,7 +52,7 @@ def evaluate():
               'groups': {'A_rules': {'status': 'executed', 'samples': results, 'provider_calls': 0, 'tokens': 0},
                          'B_single_model': {'status': 'not_run', 'reason': '未授权本轮付费调用预算'},
                          'C_original_three_stage': {'status': 'not_run', 'reason': '未授权付费预算；未冻结对照模型与同证据预算'},
-                         'D_upgraded_three_stage': {'status': 'not_run', 'reason': '等待AI2提交及付费预算'}},
+                         'D_upgraded_three_stage': {'status': 'not_run', 'reason': '集成已完成；未授权付费预算与真人冻结对照'}},
               'professional_precision': None, 'professional_recall': None, 'time_saved': None}
     target = ROOT / 'outputs/ai4/evaluation.json'
     target.parent.mkdir(parents=True, exist_ok=True)

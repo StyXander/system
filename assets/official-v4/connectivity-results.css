@@ -217,7 +217,7 @@ body[data-route="workspace"]{overflow-anchor:none}
 #connectivity-root .cn-verdict-note{margin:0;font-size:12px;line-height:1.7;color:#6b7a70}
 
 /* ---------- 结果页：四个互斥的分级计数 ---------- */
-#connectivity-root .cn-level-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:18px 0 0;border:1px solid var(--result-line);border-radius:6px;overflow:hidden;background:#fff}
+#connectivity-root .cn-level-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:18px 0 0;border:1px solid var(--result-line);border-radius:6px;overflow:hidden;background:#fff}
 #connectivity-root .cn-level-card{display:flex;flex-direction:column;gap:6px;text-align:left;padding:14px 16px 15px;background:none;border:0;border-right:1px solid var(--result-line);border-top:3px solid #b9c4b8;cursor:pointer;min-height:120px}
 #connectivity-root .cn-level-card:last-child{border-right:0}
 #connectivity-root .cn-level-card:hover{background:#f6f8f2}

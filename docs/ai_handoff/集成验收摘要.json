@@ -1,0 +1,1957 @@
+{
+  "date": "2026-10-19T16:06:33.110Z",
+  "base": "541de1b",
+  "merged": [
+    "6ebe2cd",
+    "81d70a7",
+    "e3bfef9"
+  ],
+  "tests": {
+    "full_passed": 907,
+    "full_skipped": 28,
+    "frontend_passed": 14,
+    "repair_modules_passed": 81,
+    "final_contract_passed": 13
+  },
+  "actual_demo": {
+    "task_id": "CONNJOB-61C0DD1BF0AE",
+    "run_id": "CONN-CBC8117F848F4C86",
+    "provenance": {
+      "kind": "calculation_only",
+      "label": "仅程序计算，未调用模型",
+      "provider_call_count": 0,
+      "attempt_count": 0,
+      "execution_mode": "calculation_only",
+      "model_status": "not_requested",
+      "run_id": "CONN-CBC8117F848F4C86",
+      "result_origin": "original"
+    },
+    "program_levels": {
+      "formal": {
+        "value": 0,
+        "items": [],
+        "denominator": 6
+      },
+      "conditional": {
+        "value": 2,
+        "items": [
+          "CHECK-0002",
+          "CHECK-0003"
+        ],
+        "denominator": 6
+      },
+      "limited": {
+        "value": 0,
+        "items": [],
+        "denominator": 6
+      },
+      "insufficient": {
+        "value": 4,
+        "items": [
+          "CHECK-0001",
+          "CHECK-0004",
+          "CHECK-0005",
+          "CHECK-0006"
+        ],
+        "denominator": 6
+      },
+      "conflict": {
+        "value": 0,
+        "items": [],
+        "denominator": 6
+      },
+      "not_applicable": {
+        "value": 0,
+        "items": [],
+        "denominator": 6
+      }
+    }
+  },
+  "real_pairs": {
+    "generated_at": "2026-10-19T23:58:46+0800",
+    "root": ".",
+    "execution_mode": "calculation_only",
+    "model_called": false,
+    "pairs": {
+      "000858-2025": {
+        "run_id": "CONN-20C0FE7A0071436C",
+        "company": "五粮液",
+        "period": "2025",
+        "documents": [
+          {
+            "document_id": "WLY_AR_2025",
+            "report_type": "AR",
+            "pages": 141,
+            "file_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4"
+          },
+          {
+            "document_id": "WLY_ESG_2025",
+            "report_type": "ESG",
+            "pages": 59,
+            "file_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+          }
+        ],
+        "occurrences": 225,
+        "coverage": [
+          {
+            "document_id": "WLY_AR_2025",
+            "total_pages": 141,
+            "parsed_pages": 141,
+            "failed_pages": [],
+            "searched_pages": 141
+          },
+          {
+            "document_id": "WLY_ESG_2025",
+            "total_pages": 59,
+            "parsed_pages": 58,
+            "failed_pages": [
+              {
+                "page": 2,
+                "reason": "无可读取文字层"
+              }
+            ],
+            "searched_pages": 58
+          }
+        ],
+        "exclusions": {
+          "value": 73,
+          "reasons": [
+            [
+              "年度列无法归属，未回退为报告期间",
+              49
+            ],
+            [
+              "数值来自相邻行，指标与数值未同行绑定",
+              23
+            ],
+            [
+              "单位待定，未从本表或本行确认",
+              1
+            ]
+          ]
+        },
+        "fill": {
+          "scope_nonempty": {
+            "value": 10,
+            "denominator": 225,
+            "rate": 0.0444
+          },
+          "scope_metric": {
+            "value": 0,
+            "denominator": 225,
+            "rate": 0
+          },
+          "scope_table": {
+            "value": 0,
+            "denominator": 225,
+            "rate": 0
+          },
+          "scope_report": {
+            "value": 10,
+            "denominator": 225,
+            "rate": 0.0444
+          },
+          "scope_level": {
+            "unknown": 215,
+            "report": 10
+          },
+          "report_boundary_known": {
+            "value": 10,
+            "denominator": 225,
+            "rate": 0.0444
+          },
+          "report_boundary": {
+            "unknown": 215,
+            "consolidated": 9,
+            "parent": 1
+          },
+          "currency_known": {
+            "value": 41,
+            "denominator": 225,
+            "rate": 0.1822
+          },
+          "currency_known_money": {
+            "value": 36,
+            "denominator": 90,
+            "rate": 0.4
+          },
+          "money_occurrences": 90,
+          "currency_status": {
+            "unknown": 184,
+            "table": 2,
+            "explicit": 8,
+            "report_declaration": 31
+          },
+          "currency_status_money": {
+            "unknown": 54,
+            "table": 1,
+            "explicit": 4,
+            "report_declaration": 31
+          },
+          "unit_known": {
+            "value": 173,
+            "denominator": 225,
+            "rate": 0.7689
+          },
+          "unit_status": {
+            "unknown": 52,
+            "explicit": 43,
+            "table": 130
+          },
+          "display_precision_known": {
+            "value": 154,
+            "denominator": 225,
+            "rate": 0.6844
+          },
+          "rounding_method": {
+            "unknown": 225
+          },
+          "table_identity": {
+            "value": 97,
+            "denominator": 225,
+            "rate": 0.4311
+          },
+          "metric_identity": {
+            "value": 143,
+            "denominator": 225,
+            "rate": 0.6356
+          },
+          "metric_id": {
+            "营业收入": 68,
+            "研发费用": 9,
+            "研发人员数量": 10,
+            "研发投入金额": 18,
+            "环保投入": 5,
+            "温室气体排放量": 16,
+            "综合能源消耗量": 5,
+            "年度总用水量": 12
+          },
+          "quality_located": {
+            "value": 81,
+            "denominator": 225,
+            "rate": 0.36
+          },
+          "content_class": {
+            "company": 223,
+            "macro": 1,
+            "unknown": 1
+          },
+          "row_role": {
+            "detail": 184,
+            "component": 32,
+            "total": 7,
+            "unknown": 2
+          },
+          "column_role": {
+            "unknown": 149,
+            "period": 76
+          }
+        },
+        "checks": {
+          "total": 6,
+          "criteria_status": {
+            "unknown": 6
+          },
+          "calculation_status": {
+            "not_comparable": 6
+          },
+          "conclusion_level": {
+            "insufficient_basis": 4,
+            "assumption_compatible": 2
+          },
+          "basis_level": {
+            "L0": 6
+          },
+          "formal_with_residual": 0,
+          "trial_with_residual": 6,
+          "boundary_different": 0,
+          "boundary_blocked": 0,
+          "gate_reasons": {
+            "范围": 6,
+            "币种": 3,
+            "定义": 3,
+            "关系依据": 1
+          },
+          "explanations_unsupported": 0
+        },
+        "samples": {
+          "449183817.50元": {
+            "target": "449183817.50",
+            "hit_count": 4,
+            "rows": [
+              {
+                "occurrence_id": "WLY_AR_2025-15-T3-R4-C3",
+                "document_id": "WLY_AR_2025",
+                "pdf_page": 15,
+                "label": "研发费用",
+                "value": "449,183,817.50",
+                "unit": "元",
+                "year": "2025",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "",
+                "currency_status": "unknown",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "located",
+                "quality_reason": "年度、单位与行列头均已绑定",
+                "row_role": "detail",
+                "column_role": "period",
+                "table_id": "WLY_AR_2025-15-T3"
+              },
+              {
+                "occurrence_id": "WLY_AR_2025-17-T1-R1-C3",
+                "document_id": "WLY_AR_2025",
+                "pdf_page": 17,
+                "label": "研发投入金额（元）",
+                "value": "449,183,817.50",
+                "unit": "元",
+                "year": "2025",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "",
+                "currency_status": "unknown",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "located",
+                "quality_reason": "年度、单位与行列头均已绑定",
+                "row_role": "detail",
+                "column_role": "period",
+                "table_id": "WLY_AR_2025-17-T1"
+              },
+              {
+                "occurrence_id": "WLY_AR_2025-56-T0-R18-C3",
+                "document_id": "WLY_AR_2025",
+                "pdf_page": 56,
+                "label": "研发费用",
+                "value": "449,183,817.50",
+                "unit": "元",
+                "year": "2025",
+                "scope": "合并",
+                "scope_level": "report",
+                "table_scope": "",
+                "report_boundary": "consolidated",
+                "currency": "",
+                "currency_status": "unknown",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "located",
+                "quality_reason": "年度、单位与行列头均已绑定",
+                "row_role": "detail",
+                "column_role": "period",
+                "table_id": "WLY_AR_2025-56-T0"
+              },
+              {
+                "occurrence_id": "WLY_AR_2025-118-T3-R8-C3",
+                "document_id": "WLY_AR_2025",
+                "pdf_page": 118,
+                "label": "其中：费用化研发支出",
+                "value": "449,183,817.50",
+                "unit": "元",
+                "year": "",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "",
+                "currency_status": "unknown",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "uncertain",
+                "quality_reason": "年度列无法归属，未回退为报告期间",
+                "row_role": "component",
+                "column_role": "period",
+                "table_id": "WLY_AR_2025-118-T3"
+              }
+            ]
+          },
+          "4.49亿元": {
+            "target": "449000000",
+            "hit_count": 3,
+            "rows": [
+              {
+                "occurrence_id": "WLY_ESG_2025-8-84-0",
+                "document_id": "WLY_ESG_2025",
+                "pdf_page": 8,
+                "label": "驱动科技创新：全年研发投入达 亿元，占营业收入比例为 ；截至报告期末，累计拥",
+                "value": "4.49",
+                "unit": "亿元",
+                "year": "",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "report_declaration",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "uncertain",
+                "quality_reason": "数值来自相邻行，指标与数值未同行绑定",
+                "row_role": "detail",
+                "column_role": "unknown",
+                "table_id": ""
+              },
+              {
+                "occurrence_id": "WLY_ESG_2025-33-28-1",
+                "document_id": "WLY_ESG_2025",
+                "pdf_page": 33,
+                "label": "研发投入 超过 亿元 达成。全年研发投入金额达 亿元",
+                "value": "4.49",
+                "unit": "亿元",
+                "year": "",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "report_declaration",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "uncertain",
+                "quality_reason": "数值来自相邻行，指标与数值未同行绑定",
+                "row_role": "detail",
+                "column_role": "unknown",
+                "table_id": ""
+              },
+              {
+                "occurrence_id": "WLY_ESG_2025-54-T3-R2-C4",
+                "document_id": "WLY_ESG_2025",
+                "pdf_page": 54,
+                "label": "研发投入金额",
+                "value": "4.49",
+                "unit": "亿元",
+                "year": "2025",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "report_declaration",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "located",
+                "quality_reason": "年度、单位与行列头均已绑定",
+                "row_role": "detail",
+                "column_role": "period",
+                "table_id": "WLY_ESG_2025-54-T3"
+              }
+            ]
+          },
+          "37.79亿元": {
+            "target": "3779000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "12.50亿元": {
+            "target": "1250000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "0.66%": {
+            "target": "0.0066",
+            "hit_count": 1,
+            "rows": [
+              {
+                "occurrence_id": "WLY_AR_2025-17-13-2",
+                "document_id": "WLY_AR_2025",
+                "pdf_page": 17,
+                "label": "研发投入占营业收入比例",
+                "value": "0.66",
+                "unit": "%",
+                "year": "",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "",
+                "currency_status": "unknown",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "uncertain",
+                "quality_reason": "年度列无法归属，未回退为报告期间",
+                "row_role": "detail",
+                "column_role": "unknown",
+                "table_id": ""
+              }
+            ]
+          }
+        },
+        "sample_attempt": {
+          "status": "computed_conditionally",
+          "left": {
+            "occurrence_id": "WLY_AR_2025-56-T0-R18-C3",
+            "document_id": "WLY_AR_2025",
+            "pdf_page": 56,
+            "label": "研发费用",
+            "value": "449,183,817.50",
+            "unit": "元",
+            "year": "2025",
+            "scope": "合并",
+            "scope_level": "report",
+            "table_scope": "",
+            "report_boundary": "consolidated",
+            "currency": "",
+            "currency_status": "unknown",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "period",
+            "table_id": "WLY_AR_2025-56-T0"
+          },
+          "right": {
+            "occurrence_id": "WLY_ESG_2025-54-T3-R2-C4",
+            "document_id": "WLY_ESG_2025",
+            "pdf_page": 54,
+            "label": "研发投入金额",
+            "value": "4.49",
+            "unit": "亿元",
+            "year": "2025",
+            "scope": "",
+            "scope_level": "unknown",
+            "table_scope": "",
+            "report_boundary": "unknown",
+            "currency": "CNY",
+            "currency_status": "report_declaration",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "period",
+            "table_id": "WLY_ESG_2025-54-T3"
+          },
+          "calculation_status": "not_comparable",
+          "conclusion_level": "assumption_compatible",
+          "basis_level": "L0",
+          "residual": "183817.50",
+          "assumption_check": {
+            "status": "contains_zero",
+            "assumption": "display_half_up",
+            "assumption_note": "按显示小数位四舍五入建立半单位区间；未确认企业实际舍入方法",
+            "basis_level": "L0",
+            "display_precision": {
+              "left": 2,
+              "right": 2
+            },
+            "left_interval": {
+              "low": "449183817.495",
+              "high": "449183817.505",
+              "low_closed": true,
+              "high_closed": true,
+              "contains_zero": false
+            },
+            "right_interval": {
+              "low": "448500000.00",
+              "high": "449500000.00",
+              "low_closed": true,
+              "high_closed": true,
+              "contains_zero": false
+            },
+            "residual_interval": {
+              "low": "-316182.505",
+              "high": "683817.505",
+              "low_closed": true,
+              "high_closed": true,
+              "contains_zero": true
+            },
+            "contains_zero": true,
+            "limitations": [
+              "若企业采用截断、特殊取整或尾随零并非显示精度，区间结论不成立",
+              "相容不等于口径可比，也不等于企业披露正确"
+            ]
+          },
+          "note": "只证明两处实际抽取值的显示精度条件区间；不宣称业务口径可比或正式一致"
+        },
+        "boundary_probe": null,
+        "table_composition": {
+          "candidate_count": 0,
+          "items": []
+        },
+        "duration_ms": 1609
+      },
+      "000333-2025": {
+        "run_id": "CONN-2C19A5960D9B44C8",
+        "company": "美的集团",
+        "period": "2025",
+        "documents": [
+          {
+            "document_id": "MIDEA_AR_2025",
+            "report_type": "AR",
+            "pages": 276,
+            "file_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6"
+          },
+          {
+            "document_id": "MIDEA_ESG_2025",
+            "report_type": "ESG",
+            "pages": 82,
+            "file_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194"
+          }
+        ],
+        "occurrences": 317,
+        "coverage": [
+          {
+            "document_id": "MIDEA_AR_2025",
+            "total_pages": 276,
+            "parsed_pages": 276,
+            "failed_pages": [],
+            "searched_pages": 276
+          },
+          {
+            "document_id": "MIDEA_ESG_2025",
+            "total_pages": 82,
+            "parsed_pages": 80,
+            "failed_pages": [
+              {
+                "page": 1,
+                "reason": "无可读取文字层"
+              },
+              {
+                "page": 82,
+                "reason": "无可读取文字层"
+              }
+            ],
+            "searched_pages": 80
+          }
+        ],
+        "exclusions": {
+          "value": 70,
+          "reasons": [
+            [
+              "年度列无法归属，未回退为报告期间",
+              49
+            ],
+            [
+              "数值来自相邻行，指标与数值未同行绑定",
+              10
+            ],
+            [
+              "单位待定，未从本表或本行确认",
+              9
+            ],
+            [
+              "行名仅为序号或通用词，无法表达指标身份，已拒绝自动配对",
+              2
+            ]
+          ]
+        },
+        "fill": {
+          "scope_nonempty": {
+            "value": 20,
+            "denominator": 317,
+            "rate": 0.0631
+          },
+          "scope_metric": {
+            "value": 0,
+            "denominator": 317,
+            "rate": 0
+          },
+          "scope_table": {
+            "value": 0,
+            "denominator": 317,
+            "rate": 0
+          },
+          "scope_report": {
+            "value": 20,
+            "denominator": 317,
+            "rate": 0.0631
+          },
+          "scope_level": {
+            "unknown": 297,
+            "report": 20
+          },
+          "report_boundary_known": {
+            "value": 20,
+            "denominator": 317,
+            "rate": 0.0631
+          },
+          "report_boundary": {
+            "unknown": 297,
+            "consolidated": 19,
+            "segment": 1
+          },
+          "currency_known": {
+            "value": 154,
+            "denominator": 317,
+            "rate": 0.4858
+          },
+          "currency_known_money": {
+            "value": 149,
+            "denominator": 194,
+            "rate": 0.768
+          },
+          "money_occurrences": 194,
+          "currency_status": {
+            "unknown": 163,
+            "table": 4,
+            "explicit": 150
+          },
+          "currency_status_money": {
+            "unknown": 45,
+            "explicit": 147,
+            "table": 2
+          },
+          "unit_known": {
+            "value": 246,
+            "denominator": 317,
+            "rate": 0.776
+          },
+          "unit_status": {
+            "unknown": 71,
+            "table": 210,
+            "explicit": 36
+          },
+          "display_precision_known": {
+            "value": 113,
+            "denominator": 317,
+            "rate": 0.3565
+          },
+          "rounding_method": {
+            "unknown": 317
+          },
+          "table_identity": {
+            "value": 32,
+            "denominator": 317,
+            "rate": 0.1009
+          },
+          "metric_identity": {
+            "value": 113,
+            "denominator": 317,
+            "rate": 0.3565
+          },
+          "metric_id": {
+            "营业收入": 44,
+            "研发投入金额": 13,
+            "研发人员数量": 11,
+            "研发费用": 18,
+            "温室气体排放量": 23,
+            "综合能源消耗量": 3,
+            "年度总用水量": 1
+          },
+          "quality_located": {
+            "value": 43,
+            "denominator": 317,
+            "rate": 0.1356
+          },
+          "content_class": {
+            "company": 317
+          },
+          "row_role": {
+            "detail": 292,
+            "total": 5,
+            "component": 13,
+            "unknown": 7
+          },
+          "column_role": {
+            "unknown": 295,
+            "period": 22
+          }
+        },
+        "checks": {
+          "total": 0,
+          "criteria_status": {},
+          "calculation_status": {},
+          "conclusion_level": {},
+          "basis_level": {},
+          "formal_with_residual": 0,
+          "trial_with_residual": 0,
+          "boundary_different": 0,
+          "boundary_blocked": 0,
+          "gate_reasons": {},
+          "explanations_unsupported": 0
+        },
+        "samples": {
+          "449183817.50元": {
+            "target": "449183817.50",
+            "hit_count": 0,
+            "rows": []
+          },
+          "4.49亿元": {
+            "target": "449000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "37.79亿元": {
+            "target": "3779000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "12.50亿元": {
+            "target": "1250000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "0.66%": {
+            "target": "0.0066",
+            "hit_count": 0,
+            "rows": []
+          }
+        },
+        "sample_attempt": {
+          "status": "blocked",
+          "reason": "五粮液2025未同时抽到AR的449,183,817.50元与ESG的4.49亿元两处披露",
+          "left": null,
+          "right": null
+        },
+        "boundary_probe": null,
+        "table_composition": {
+          "candidate_count": 0,
+          "items": []
+        },
+        "duration_ms": 23188
+      },
+      "300750-2025": {
+        "run_id": "CONN-5B8B6F18D7B04CFF",
+        "company": "宁德时代",
+        "period": "2025",
+        "documents": [
+          {
+            "document_id": "CATL_AR_2025",
+            "report_type": "AR",
+            "pages": 232,
+            "file_sha256": "c15272977147dee7e6935a38ea0e4fd6855370aabb106f54cfe20f7cf6048ec9"
+          },
+          {
+            "document_id": "CATL_ESG_2025",
+            "report_type": "ESG",
+            "pages": 197,
+            "file_sha256": "b5cd5663566e2ba112796d90c7da40c0657e7826b1bab5ad0f3bd51c6564ccb0"
+          }
+        ],
+        "occurrences": 243,
+        "coverage": [
+          {
+            "document_id": "CATL_AR_2025",
+            "total_pages": 232,
+            "parsed_pages": 232,
+            "failed_pages": [],
+            "searched_pages": 232
+          },
+          {
+            "document_id": "CATL_ESG_2025",
+            "total_pages": 197,
+            "parsed_pages": 197,
+            "failed_pages": [],
+            "searched_pages": 197
+          }
+        ],
+        "exclusions": {
+          "value": 72,
+          "reasons": [
+            [
+              "年度列无法归属，未回退为报告期间",
+              49
+            ],
+            [
+              "数值来自相邻行，指标与数值未同行绑定",
+              10
+            ],
+            [
+              "单位待定，未从本表或本行确认",
+              8
+            ],
+            [
+              "行名仅为序号或通用词，无法表达指标身份，已拒绝自动配对",
+              5
+            ]
+          ]
+        },
+        "fill": {
+          "scope_nonempty": {
+            "value": 32,
+            "denominator": 243,
+            "rate": 0.1317
+          },
+          "scope_metric": {
+            "value": 0,
+            "denominator": 243,
+            "rate": 0
+          },
+          "scope_table": {
+            "value": 0,
+            "denominator": 243,
+            "rate": 0
+          },
+          "scope_report": {
+            "value": 32,
+            "denominator": 243,
+            "rate": 0.1317
+          },
+          "scope_level": {
+            "unknown": 211,
+            "report": 32
+          },
+          "report_boundary_known": {
+            "value": 32,
+            "denominator": 243,
+            "rate": 0.1317
+          },
+          "report_boundary": {
+            "unknown": 211,
+            "consolidated": 27,
+            "parent": 4,
+            "segment": 1
+          },
+          "currency_known": {
+            "value": 5,
+            "denominator": 243,
+            "rate": 0.0206
+          },
+          "currency_known_money": {
+            "value": 2,
+            "denominator": 42,
+            "rate": 0.0476
+          },
+          "money_occurrences": 42,
+          "currency_status": {
+            "unknown": 238,
+            "explicit": 3,
+            "table": 2
+          },
+          "currency_status_money": {
+            "unknown": 40,
+            "explicit": 1,
+            "table": 1
+          },
+          "unit_known": {
+            "value": 131,
+            "denominator": 243,
+            "rate": 0.5391
+          },
+          "unit_status": {
+            "unknown": 112,
+            "table": 98,
+            "explicit": 33
+          },
+          "display_precision_known": {
+            "value": 139,
+            "denominator": 243,
+            "rate": 0.572
+          },
+          "rounding_method": {
+            "unknown": 242,
+            "half_up": 1
+          },
+          "table_identity": {
+            "value": 63,
+            "denominator": 243,
+            "rate": 0.2593
+          },
+          "metric_identity": {
+            "value": 156,
+            "denominator": 243,
+            "rate": 0.642
+          },
+          "metric_id": {
+            "研发人员数量": 32,
+            "营业收入": 53,
+            "研发投入金额": 26,
+            "研发费用": 9,
+            "温室气体排放量": 21,
+            "综合能源消耗量": 12,
+            "环保投入": 1,
+            "年度总用水量": 2
+          },
+          "quality_located": {
+            "value": 67,
+            "denominator": 243,
+            "rate": 0.2757
+          },
+          "content_class": {
+            "company": 240,
+            "macro": 2,
+            "unknown": 1
+          },
+          "row_role": {
+            "detail": 217,
+            "total": 5,
+            "unknown": 7,
+            "component": 14
+          },
+          "column_role": {
+            "unknown": 197,
+            "period": 46
+          }
+        },
+        "checks": {
+          "total": 5,
+          "criteria_status": {
+            "unknown": 5
+          },
+          "calculation_status": {
+            "not_comparable": 5
+          },
+          "conclusion_level": {
+            "assumption_compatible": 1,
+            "insufficient_basis": 4
+          },
+          "basis_level": {
+            "L0": 5
+          },
+          "formal_with_residual": 0,
+          "trial_with_residual": 5,
+          "boundary_different": 0,
+          "boundary_blocked": 1,
+          "gate_reasons": {
+            "范围": 5,
+            "关系依据": 2,
+            "定义": 3,
+            "币种": 3
+          },
+          "explanations_unsupported": 0
+        },
+        "samples": {
+          "449183817.50元": {
+            "target": "449183817.50",
+            "hit_count": 0,
+            "rows": []
+          },
+          "4.49亿元": {
+            "target": "449000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "37.79亿元": {
+            "target": "3779000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "12.50亿元": {
+            "target": "1250000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "0.66%": {
+            "target": "0.0066",
+            "hit_count": 0,
+            "rows": []
+          }
+        },
+        "sample_attempt": {
+          "status": "blocked",
+          "reason": "五粮液2025未同时抽到AR的449,183,817.50元与ESG的4.49亿元两处披露",
+          "left": null,
+          "right": null
+        },
+        "boundary_probe": null,
+        "table_composition": {
+          "candidate_count": 0,
+          "items": []
+        },
+        "duration_ms": 15652
+      },
+      "600019-2025": {
+        "run_id": "CONN-AB1CE92A0AC44FF2",
+        "company": "宝钢股份",
+        "period": "2025",
+        "documents": [
+          {
+            "document_id": "BAOSTEEL_AR_2025",
+            "report_type": "AR",
+            "pages": 245,
+            "file_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8"
+          },
+          {
+            "document_id": "BAOSTEEL_ESG_2025",
+            "report_type": "ESG",
+            "pages": 102,
+            "file_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+          }
+        ],
+        "occurrences": 691,
+        "coverage": [
+          {
+            "document_id": "BAOSTEEL_AR_2025",
+            "total_pages": 245,
+            "parsed_pages": 245,
+            "failed_pages": [],
+            "searched_pages": 245
+          },
+          {
+            "document_id": "BAOSTEEL_ESG_2025",
+            "total_pages": 102,
+            "parsed_pages": 102,
+            "failed_pages": [],
+            "searched_pages": 102
+          }
+        ],
+        "exclusions": {
+          "value": 202,
+          "reasons": [
+            [
+              "年度列无法归属，未回退为报告期间",
+              150
+            ],
+            [
+              "数值来自相邻行，指标与数值未同行绑定",
+              38
+            ],
+            [
+              "单位待定，未从本表或本行确认",
+              14
+            ]
+          ]
+        },
+        "fill": {
+          "scope_nonempty": {
+            "value": 92,
+            "denominator": 691,
+            "rate": 0.1331
+          },
+          "scope_metric": {
+            "value": 0,
+            "denominator": 691,
+            "rate": 0
+          },
+          "scope_table": {
+            "value": 26,
+            "denominator": 691,
+            "rate": 0.0376
+          },
+          "scope_report": {
+            "value": 66,
+            "denominator": 691,
+            "rate": 0.0955
+          },
+          "scope_level": {
+            "unknown": 599,
+            "report": 66,
+            "table": 26
+          },
+          "report_boundary_known": {
+            "value": 66,
+            "denominator": 691,
+            "rate": 0.0955
+          },
+          "report_boundary": {
+            "unknown": 625,
+            "segment": 39,
+            "consolidated": 16,
+            "parent": 11
+          },
+          "currency_known": {
+            "value": 384,
+            "denominator": 691,
+            "rate": 0.5557
+          },
+          "currency_known_money": {
+            "value": 354,
+            "denominator": 354,
+            "rate": 1
+          },
+          "money_occurrences": 354,
+          "currency_status": {
+            "unknown": 307,
+            "table": 78,
+            "explicit": 280,
+            "report_declaration": 26
+          },
+          "currency_status_money": {
+            "table": 69,
+            "explicit": 259,
+            "report_declaration": 26
+          },
+          "unit_known": {
+            "value": 566,
+            "denominator": 691,
+            "rate": 0.8191
+          },
+          "unit_status": {
+            "unknown": 125,
+            "table": 532,
+            "explicit": 34
+          },
+          "display_precision_known": {
+            "value": 324,
+            "denominator": 691,
+            "rate": 0.4689
+          },
+          "rounding_method": {
+            "unknown": 691
+          },
+          "table_identity": {
+            "value": 167,
+            "denominator": 691,
+            "rate": 0.2417
+          },
+          "metric_identity": {
+            "value": 304,
+            "denominator": 691,
+            "rate": 0.4399
+          },
+          "metric_id": {
+            "营业收入": 97,
+            "研发费用": 19,
+            "研发投入金额": 20,
+            "研发人员数量": 18,
+            "综合能源消耗量": 4,
+            "温室气体排放量": 104,
+            "年度总用水量": 42
+          },
+          "quality_located": {
+            "value": 122,
+            "denominator": 691,
+            "rate": 0.1766
+          },
+          "content_class": {
+            "company": 690,
+            "unknown": 1
+          },
+          "row_role": {
+            "detail": 644,
+            "component": 27,
+            "total": 15,
+            "unknown": 5
+          },
+          "column_role": {
+            "unknown": 628,
+            "period": 37,
+            "component": 17,
+            "total": 9
+          }
+        },
+        "checks": {
+          "total": 13,
+          "criteria_status": {
+            "unknown": 13
+          },
+          "calculation_status": {
+            "not_comparable": 13
+          },
+          "conclusion_level": {
+            "insufficient_basis": 13
+          },
+          "basis_level": {
+            "L0": 13
+          },
+          "formal_with_residual": 0,
+          "trial_with_residual": 13,
+          "boundary_different": 0,
+          "boundary_blocked": 0,
+          "gate_reasons": {
+            "定义": 13,
+            "范围": 13,
+            "关系依据": 13
+          },
+          "explanations_unsupported": 0
+        },
+        "samples": {
+          "449183817.50元": {
+            "target": "449183817.50",
+            "hit_count": 0,
+            "rows": []
+          },
+          "4.49亿元": {
+            "target": "449000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "37.79亿元": {
+            "target": "3779000000",
+            "hit_count": 2,
+            "rows": [
+              {
+                "occurrence_id": "BAOSTEEL_AR_2025-13-T0-R6-C2",
+                "document_id": "BAOSTEEL_AR_2025",
+                "pdf_page": 13,
+                "label": "研发费用",
+                "value": "3,779",
+                "unit": "百万元",
+                "year": "",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "table",
+                "display_precision": 0,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "uncertain",
+                "quality_reason": "年度列无法归属，未回退为报告期间",
+                "row_role": "detail",
+                "column_role": "unknown",
+                "table_id": "BAOSTEEL_AR_2025-13-T0"
+              },
+              {
+                "occurrence_id": "BAOSTEEL_ESG_2025-86-T0-R6-C3",
+                "document_id": "BAOSTEEL_ESG_2025",
+                "pdf_page": 86,
+                "label": "研发费用",
+                "value": "37.79",
+                "unit": "亿元",
+                "year": "2024",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "report_declaration",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "located",
+                "quality_reason": "年度、单位与行列头均已绑定",
+                "row_role": "detail",
+                "column_role": "period",
+                "table_id": "BAOSTEEL_ESG_2025-86-T0"
+              }
+            ]
+          },
+          "12.50亿元": {
+            "target": "1250000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "0.66%": {
+            "target": "0.0066",
+            "hit_count": 0,
+            "rows": []
+          }
+        },
+        "sample_attempt": {
+          "status": "blocked",
+          "reason": "五粮液2025未同时抽到AR的449,183,817.50元与ESG的4.49亿元两处披露",
+          "left": null,
+          "right": null
+        },
+        "boundary_probe": {
+          "status": "computed",
+          "parent": {
+            "occurrence_id": "BAOSTEEL_AR_2025-98-T1-R6-C3",
+            "document_id": "BAOSTEEL_AR_2025",
+            "pdf_page": 98,
+            "label": "研发费用",
+            "value": "1,249,616,010.99",
+            "unit": "元",
+            "year": "2024",
+            "scope": "母公司",
+            "scope_level": "report",
+            "table_scope": "",
+            "report_boundary": "parent",
+            "currency": "CNY",
+            "currency_status": "table",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "period",
+            "table_id": "BAOSTEEL_AR_2025-98-T1"
+          },
+          "consolidated": {
+            "occurrence_id": "BAOSTEEL_AR_2025-97-T1-R8-C3",
+            "document_id": "BAOSTEEL_AR_2025",
+            "pdf_page": 97,
+            "label": "研发费用",
+            "value": "3,779,320,686.31",
+            "unit": "元",
+            "year": "2024",
+            "scope": "合并",
+            "scope_level": "report",
+            "table_scope": "",
+            "report_boundary": "consolidated",
+            "currency": "CNY",
+            "currency_status": "table",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "period",
+            "table_id": "BAOSTEEL_AR_2025-97-T1"
+          },
+          "esg": {
+            "occurrence_id": "BAOSTEEL_ESG_2025-86-T0-R6-C3",
+            "document_id": "BAOSTEEL_ESG_2025",
+            "pdf_page": 86,
+            "label": "研发费用",
+            "value": "37.79",
+            "unit": "亿元",
+            "year": "2024",
+            "scope": "",
+            "scope_level": "unknown",
+            "table_scope": "",
+            "report_boundary": "unknown",
+            "currency": "CNY",
+            "currency_status": "report_declaration",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "period",
+            "table_id": "BAOSTEEL_ESG_2025-86-T0"
+          },
+          "probes": {
+            "parent_vs_consolidated": {
+              "status": "computed",
+              "calculation_status": "not_comparable",
+              "conclusion_level": "insufficient_basis",
+              "basis_level": "L0",
+              "boundary": {
+                "status": "different",
+                "boundaries": {
+                  "BAOSTEEL_AR_2025-98-T1-R6-C3": "parent",
+                  "BAOSTEEL_AR_2025-97-T1-R8-C3": "consolidated"
+                },
+                "table_scopes": [],
+                "message": "合并报表与母公司报表属于不同口径，不能直接比较；不认定为企业披露错误",
+                "note": "报告边界相同不证明指标统计范围相同"
+              },
+              "unresolved": [
+                "主体依据尚未充分说明",
+                "期间依据尚未充分说明",
+                "定义依据尚未充分说明",
+                "范围依据尚未充分说明",
+                "单位依据尚未充分说明",
+                "该关系由标签与量纲自动配对得到，尚缺原文对两者关系本身的说明",
+                "同值关系需要来自不同报告的两处披露；同一报告内的重复位置只作多位置核对",
+                "合并报表与母公司报表属于不同口径，不能直接比较；不认定为企业披露错误"
+              ],
+              "formal_residual": null,
+              "trial_residual": "-2529704675.32"
+            },
+            "parent_vs_esg": {
+              "status": "computed",
+              "calculation_status": "not_comparable",
+              "conclusion_level": "insufficient_basis",
+              "basis_level": "L0",
+              "boundary": {
+                "status": "undetermined",
+                "boundaries": {
+                  "BAOSTEEL_AR_2025-98-T1-R6-C3": "parent",
+                  "BAOSTEEL_ESG_2025-86-T0-R6-C3": "unknown"
+                },
+                "table_scopes": [],
+                "message": "一侧为母公司报表口径，另一侧报告边界未证实；不能直接比较（不认定为企业披露错误）",
+                "note": "报告边界相同不证明指标统计范围相同"
+              },
+              "unresolved": [
+                "主体依据尚未充分说明",
+                "期间依据尚未充分说明",
+                "定义依据尚未充分说明",
+                "范围依据尚未充分说明",
+                "单位依据尚未充分说明",
+                "该关系由标签与量纲自动配对得到，尚缺原文对两者关系本身的说明",
+                "一侧为母公司报表口径，另一侧报告边界未证实；不能直接比较（不认定为企业披露错误）"
+              ],
+              "formal_residual": null,
+              "trial_residual": "-2529383989.01"
+            }
+          }
+        },
+        "table_composition": {
+          "candidate_count": 0,
+          "items": []
+        },
+        "duration_ms": 40444
+      },
+      "600019-2024": {
+        "run_id": "CONN-14AC5879EF484685",
+        "company": "宝钢股份",
+        "period": "2024",
+        "documents": [
+          {
+            "document_id": "BAO24_AR",
+            "report_type": "AR",
+            "pages": 272,
+            "file_sha256": "0f607360d5977d9ede8ade0fc4c9de176545b04c30ec269059dd7754b4ebebaa"
+          },
+          {
+            "document_id": "BAO24_ESG",
+            "report_type": "ESG",
+            "pages": 90,
+            "file_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4"
+          }
+        ],
+        "occurrences": 708,
+        "coverage": [
+          {
+            "document_id": "BAO24_AR",
+            "total_pages": 272,
+            "parsed_pages": 272,
+            "failed_pages": [],
+            "searched_pages": 272
+          },
+          {
+            "document_id": "BAO24_ESG",
+            "total_pages": 90,
+            "parsed_pages": 90,
+            "failed_pages": [],
+            "searched_pages": 90
+          }
+        ],
+        "exclusions": {
+          "value": 148,
+          "reasons": [
+            [
+              "年度列无法归属，未回退为报告期间",
+              131
+            ],
+            [
+              "数值来自相邻行，指标与数值未同行绑定",
+              9
+            ],
+            [
+              "单位待定，未从本表或本行确认",
+              5
+            ],
+            [
+              "行名仅为序号或通用词，无法表达指标身份，已拒绝自动配对",
+              3
+            ]
+          ]
+        },
+        "fill": {
+          "scope_nonempty": {
+            "value": 132,
+            "denominator": 708,
+            "rate": 0.1864
+          },
+          "scope_metric": {
+            "value": 0,
+            "denominator": 708,
+            "rate": 0
+          },
+          "scope_table": {
+            "value": 57,
+            "denominator": 708,
+            "rate": 0.0805
+          },
+          "scope_report": {
+            "value": 75,
+            "denominator": 708,
+            "rate": 0.1059
+          },
+          "scope_level": {
+            "unknown": 576,
+            "report": 75,
+            "table": 57
+          },
+          "report_boundary_known": {
+            "value": 97,
+            "denominator": 708,
+            "rate": 0.137
+          },
+          "report_boundary": {
+            "unknown": 611,
+            "consolidated": 17,
+            "parent": 11,
+            "segment": 69
+          },
+          "currency_known": {
+            "value": 393,
+            "denominator": 708,
+            "rate": 0.5551
+          },
+          "currency_known_money": {
+            "value": 363,
+            "denominator": 363,
+            "rate": 1
+          },
+          "money_occurrences": 363,
+          "currency_status": {
+            "unknown": 315,
+            "table": 79,
+            "explicit": 277,
+            "report_declaration": 37
+          },
+          "currency_status_money": {
+            "table": 71,
+            "explicit": 255,
+            "report_declaration": 37
+          },
+          "unit_known": {
+            "value": 579,
+            "denominator": 708,
+            "rate": 0.8178
+          },
+          "unit_status": {
+            "unknown": 129,
+            "table": 532,
+            "explicit": 47
+          },
+          "display_precision_known": {
+            "value": 345,
+            "denominator": 708,
+            "rate": 0.4873
+          },
+          "rounding_method": {
+            "unknown": 708
+          },
+          "table_identity": {
+            "value": 175,
+            "denominator": 708,
+            "rate": 0.2472
+          },
+          "metric_identity": {
+            "value": 318,
+            "denominator": 708,
+            "rate": 0.4492
+          },
+          "metric_id": {
+            "营业收入": 89,
+            "温室气体排放量": 104,
+            "研发费用": 22,
+            "研发投入金额": 24,
+            "研发人员数量": 21,
+            "环保投入": 1,
+            "综合能源消耗量": 3,
+            "年度总用水量": 54
+          },
+          "quality_located": {
+            "value": 197,
+            "denominator": 708,
+            "rate": 0.2782
+          },
+          "content_class": {
+            "company": 705,
+            "industry": 1,
+            "macro": 1,
+            "unknown": 1
+          },
+          "row_role": {
+            "detail": 643,
+            "unknown": 9,
+            "component": 41,
+            "total": 15
+          },
+          "column_role": {
+            "unknown": 601,
+            "period": 50,
+            "component": 41,
+            "total": 16
+          }
+        },
+        "checks": {
+          "total": 10,
+          "criteria_status": {
+            "unknown": 10
+          },
+          "calculation_status": {
+            "not_comparable": 10
+          },
+          "conclusion_level": {
+            "insufficient_basis": 9,
+            "limited_support": 1
+          },
+          "basis_level": {
+            "L0": 9,
+            "L1": 1
+          },
+          "formal_with_residual": 0,
+          "trial_with_residual": 10,
+          "boundary_different": 0,
+          "boundary_blocked": 0,
+          "gate_reasons": {
+            "定义": 10,
+            "范围": 10,
+            "关系依据": 9,
+            "期间": 1,
+            "组成完整": 1,
+            "互不重叠": 1
+          },
+          "explanations_unsupported": 0
+        },
+        "samples": {
+          "449183817.50元": {
+            "target": "449183817.50",
+            "hit_count": 0,
+            "rows": []
+          },
+          "4.49亿元": {
+            "target": "449000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "37.79亿元": {
+            "target": "3779000000",
+            "hit_count": 3,
+            "rows": [
+              {
+                "occurrence_id": "BAO24_AR-13-T0-R6-C1",
+                "document_id": "BAO24_AR",
+                "pdf_page": 13,
+                "label": "研发费用",
+                "value": "3,779",
+                "unit": "百万元",
+                "year": "",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "table",
+                "display_precision": 0,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "uncertain",
+                "quality_reason": "年度列无法归属，未回退为报告期间",
+                "row_role": "detail",
+                "column_role": "unknown",
+                "table_id": "BAO24_AR-13-T0"
+              },
+              {
+                "occurrence_id": "BAO24_AR-17-T0-R0-C1",
+                "document_id": "BAO24_AR",
+                "pdf_page": 17,
+                "label": "本期费用化研发投入",
+                "value": "3,779",
+                "unit": "百万元",
+                "year": "2024",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "report_declaration",
+                "display_precision": 0,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "uncertain",
+                "quality_reason": "年度列无法归属，未回退为报告期间",
+                "row_role": "component",
+                "column_role": "unknown",
+                "table_id": "BAO24_AR-17-T0"
+              },
+              {
+                "occurrence_id": "BAO24_ESG-77-39-2",
+                "document_id": "BAO24_ESG",
+                "pdf_page": 77,
+                "label": "研发费用 亿元",
+                "value": "37.79",
+                "unit": "亿元",
+                "year": "2024",
+                "scope": "",
+                "scope_level": "unknown",
+                "table_scope": "",
+                "report_boundary": "unknown",
+                "currency": "CNY",
+                "currency_status": "report_declaration",
+                "display_precision": 2,
+                "rounding_method": "unknown",
+                "content_class": "company",
+                "quality": "located",
+                "quality_reason": "年度、单位与行列头均已绑定",
+                "row_role": "detail",
+                "column_role": "unknown",
+                "table_id": ""
+              }
+            ]
+          },
+          "12.50亿元": {
+            "target": "1250000000",
+            "hit_count": 0,
+            "rows": []
+          },
+          "0.66%": {
+            "target": "0.0066",
+            "hit_count": 0,
+            "rows": []
+          }
+        },
+        "sample_attempt": {
+          "status": "blocked",
+          "reason": "五粮液2025未同时抽到AR的449,183,817.50元与ESG的4.49亿元两处披露",
+          "left": null,
+          "right": null
+        },
+        "boundary_probe": {
+          "status": "computed",
+          "parent": {
+            "occurrence_id": "BAO24_AR-120-T0-R6-C2",
+            "document_id": "BAO24_AR",
+            "pdf_page": 120,
+            "label": "研发费用",
+            "value": "1,249,616,010.99",
+            "unit": "元",
+            "year": "2024",
+            "scope": "母公司",
+            "scope_level": "report",
+            "table_scope": "",
+            "report_boundary": "parent",
+            "currency": "CNY",
+            "currency_status": "table",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "period",
+            "table_id": "BAO24_AR-120-T0"
+          },
+          "consolidated": {
+            "occurrence_id": "BAO24_AR-118-T0-R12-C2",
+            "document_id": "BAO24_AR",
+            "pdf_page": 118,
+            "label": "研发费用",
+            "value": "3,779,320,686.31",
+            "unit": "元",
+            "year": "2024",
+            "scope": "合并",
+            "scope_level": "report",
+            "table_scope": "",
+            "report_boundary": "consolidated",
+            "currency": "CNY",
+            "currency_status": "table",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "period",
+            "table_id": "BAO24_AR-118-T0"
+          },
+          "esg": {
+            "occurrence_id": "BAO24_ESG-77-39-2",
+            "document_id": "BAO24_ESG",
+            "pdf_page": 77,
+            "label": "研发费用 亿元",
+            "value": "37.79",
+            "unit": "亿元",
+            "year": "2024",
+            "scope": "",
+            "scope_level": "unknown",
+            "table_scope": "",
+            "report_boundary": "unknown",
+            "currency": "CNY",
+            "currency_status": "report_declaration",
+            "display_precision": 2,
+            "rounding_method": "unknown",
+            "content_class": "company",
+            "quality": "located",
+            "quality_reason": "年度、单位与行列头均已绑定",
+            "row_role": "detail",
+            "column_role": "unknown",
+            "table_id": ""
+          },
+          "probes": {
+            "parent_vs_consolidated": {
+              "status": "computed",
+              "calculation_status": "not_comparable",
+              "conclusion_level": "insufficient_basis",
+              "basis_level": "L0",
+              "boundary": {
+                "status": "different",
+                "boundaries": {
+                  "BAO24_AR-120-T0-R6-C2": "parent",
+                  "BAO24_AR-118-T0-R12-C2": "consolidated"
+                },
+                "table_scopes": [],
+                "message": "合并报表与母公司报表属于不同口径，不能直接比较；不认定为企业披露错误",
+                "note": "报告边界相同不证明指标统计范围相同"
+              },
+              "unresolved": [
+                "主体依据尚未充分说明",
+                "期间依据尚未充分说明",
+                "定义依据尚未充分说明",
+                "范围依据尚未充分说明",
+                "单位依据尚未充分说明",
+                "该关系由标签与量纲自动配对得到，尚缺原文对两者关系本身的说明",
+                "同值关系需要来自不同报告的两处披露；同一报告内的重复位置只作多位置核对",
+                "合并报表与母公司报表属于不同口径，不能直接比较；不认定为企业披露错误"
+              ],
+              "formal_residual": null,
+              "trial_residual": "-2529704675.32"
+            },
+            "parent_vs_esg": {
+              "status": "computed",
+              "calculation_status": "not_comparable",
+              "conclusion_level": "insufficient_basis",
+              "basis_level": "L0",
+              "boundary": {
+                "status": "undetermined",
+                "boundaries": {
+                  "BAO24_AR-120-T0-R6-C2": "parent",
+                  "BAO24_ESG-77-39-2": "unknown"
+                },
+                "table_scopes": [],
+                "message": "一侧为母公司报表口径，另一侧报告边界未证实；不能直接比较（不认定为企业披露错误）",
+                "note": "报告边界相同不证明指标统计范围相同"
+              },
+              "unresolved": [
+                "主体依据尚未充分说明",
+                "期间依据尚未充分说明",
+                "定义依据尚未充分说明",
+                "范围依据尚未充分说明",
+                "单位依据尚未充分说明",
+                "该关系由标签与量纲自动配对得到，尚缺原文对两者关系本身的说明",
+                "一侧为母公司报表口径，另一侧报告边界未证实；不能直接比较（不认定为企业披露错误）"
+              ],
+              "formal_residual": null,
+              "trial_residual": "-2529383989.01"
+            }
+          }
+        },
+        "table_composition": {
+          "candidate_count": 1,
+          "items": [
+            {
+              "check_id": "TABLE-22829D2F56",
+              "rule_id": "ENV-001",
+              "layout": "column_sum",
+              "total": "环保资本化项目投入",
+              "components": [
+                "环保资本化项目投入",
+                "环保资本化项目投入"
+              ],
+              "component_columns": [
+                "2024 年 / 钢铁",
+                "2024 年 / 其他"
+              ],
+              "coverage": {
+                "component_count": 2,
+                "total_covers_columns": true,
+                "all_components_between_total": true,
+                "total_equals_sum": true,
+                "sum_residual": "0.000",
+                "basis": "同一表格、同一指标行、合计列位于分项列右侧"
+              },
+              "upgraded_conditions": [
+                "主体",
+                "期间",
+                "单位"
+              ],
+              "criteria_status": "unknown",
+              "calculation_status": "not_comparable",
+              "conclusion_level": "limited_support",
+              "basis_level": "L1",
+              "formal_residual": null,
+              "trial_residual": "0"
+            }
+          ]
+        },
+        "duration_ms": 29578
+      }
+    },
+    "blocked_pairs": [],
+    "elapsed_seconds": 110.56
+  },
+  "unverified": [
+    "paid_model_comparison",
+    "human_professional_scoring",
+    "human_usability",
+    "native_office_render"
+  ]
+}
