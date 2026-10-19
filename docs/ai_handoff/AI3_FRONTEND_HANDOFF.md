@@ -2,7 +2,7 @@
 
 > 分支：`ai/audittrace-frontend`（独立 worktree `audittrace-frontend`）
 > 基线：`541de1b` + 主工作区已有的未提交前端改动（`index.html`、`connectivity.js`）
-> 本次提交：`5576171`（前端代码与测试）；本文件另提交
+> 本次提交：`5576171`（前端代码与测试）、`af959c4`（交接文档与截图）
 > 自测时间：2026-10-19；本地 `uvicorn 127.0.0.1:8011`，真实任务 `CONNJOB-D8796D38B3EC`（8 项关系）
 
 ---
