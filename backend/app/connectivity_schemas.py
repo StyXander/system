@@ -84,10 +84,36 @@ class DisclosureOccurrence(Contract):
     currency: str = ""
     currency_source_id: str = ""
     currency_source_quote: str = ""
+    # 币种、单位、范围都要能说明“从哪一层继承”，不能把报告声明冒充指标级证据。
+    currency_status: Literal["explicit", "table", "report_declaration", "assumed", "unknown"] = "unknown"
+    unit_status: Literal["explicit", "table", "report_declaration", "unknown"] = "unknown"
+    unit_source_quote: str = ""
     year: str = ""
     # 年度列解析失败时保持空值并标 unattributed，不得回退成报告期间。
     year_status: Literal["attributed", "unattributed"] = "unattributed"
+    # 报告边界（合并/母公司/分部）与表内分组、指标统计范围分开登记。
+    report_boundary: Literal["consolidated", "parent", "segment", "unknown"] = "unknown"
+    report_boundary_source_id: str = ""
+    report_boundary_source_quote: str = ""
     scope: str = ""
+    table_scope: str = ""
+    scope_source_id: str = ""
+    scope_source_quote: str = ""
+    scope_level: Literal["report", "table", "metric", "unknown"] = "unknown"
+    # 显示小数位只是原文写法；舍入方法必须有原文声明，不能从位数推定。
+    display_precision: int | None = None
+    rounding_method: Literal["unknown", "exact", "half_up", "truncate"] = "unknown"
+    # 公司自身披露、宏观/行业背景、同业信息分开；宏观数字不得进入企业异常候选。
+    content_class: Literal["company", "macro", "industry", "peer", "background", "unknown"] = "unknown"
+    metric_id: str = ""
+    metric_identity: dict = Field(default_factory=dict)
+    # 表格结构身份用于表内合计/分项自证及跨表桥接。
+    table_id: str = ""
+    row_index: int | None = None
+    column_index: int | None = None
+    row_role: Literal["total", "component", "detail", "header", "unknown"] = "unknown"
+    column_role: Literal["total", "component", "period", "unit", "label", "unknown"] = "unknown"
+    row_parent_label: str = ""
     definition: str = ""
     row_header: str = ""
     column_header: str = ""
@@ -269,14 +295,23 @@ class RelationshipCheck(Contract):
     members: list[RelationshipMember] = Field(default_factory=list, max_length=100)
     conditions: list[ComparisonCondition] = Field(default_factory=list, max_length=12)
     relationship_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
-    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置。
-    # 自动配对只产生候选，成员行不能充当"关系本身有原文依据"。
-    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location"] = "text_statement"
+    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构。
+    # 自动配对与表内结构只产生候选，成员行不能充当"关系本身有原文依据"。
+    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure"] = "text_statement"
     ratio_scale: str = "1"
     explanation: str = ""
     explanation_evidence: list[EvidenceRef] = Field(default_factory=list)
     criteria_status: str = "unknown"
     calculation_status: str = "not_executable"
+    # 结论级别：L0 数值试算、L1 有限可比、L2 指标级有依据可比；均不等于鉴证意见。
+    basis_level: Literal["not_assessed", "L0", "L1", "L2"] = "not_assessed"
+    conclusion_level: Literal["not_assessed", "formal_consistent", "assumption_compatible",
+                             "limited_support", "unexplained_difference", "insufficient_basis",
+                             "not_applicable"] = "not_assessed"
+    # 数值、口径、解释分别记录，解释文案不得改写数学差额。
+    comparability: dict = Field(default_factory=dict)
+    # 表内合计/分项与跨表桥接的结构证据；字段结构见 AI1 交接文档。
+    table_structure: dict = Field(default_factory=dict)
     # 成员是否来自不同报告：同一文档内的多位置一致不构成跨报告衔接。
     cross_document: bool = False
     review_status: str = "unreviewed"

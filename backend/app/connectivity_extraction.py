@@ -18,11 +18,12 @@ import httpx
 from fastapi import HTTPException
 
 from .connectivity_rules import TOPICS
+from .connectivity_metrics import content_classification, currency_in_text, metric_identity
 from .connectivity_schemas import DisclosureOccurrence, ExtractionExclusion, ReportDocument, SearchCoverage
 from .source_viewer import PDF_ACCESS_LOCK
 from .secure_download import download_bounded, SecureDownloadError
 
-EXTRACTION_VERSION = "coordinates_v1.9"
+EXTRACTION_VERSION = "coordinates_v1.10"
 # 原始布局结构未变化时复用解析缓存，运行仍记录完整提取算法的新版号。
 PARSER_CACHE_VERSION = "coordinates_v1.5"
 NUMBER = re.compile(r"(?<![\d.])(?:[（(]?-?\d{1,3}(?:[,，]\d{3})+(?:\.\d+)?[)）]?|[（(]?-?\d+(?:\.\d+)?[)）]?)(?![\d.])")
@@ -31,6 +32,181 @@ UNIT_ATOM = r"(?:万吨二氧化碳当量|吨二氧化碳当量|万吨标准煤|
 UNIT = re.compile(UNIT_ATOM + r"(?:[/／]" + UNIT_ATOM + r")?|[%％]")
 # 币种声明：金额／货币／数据＋人民币，覆盖"人民币元""单位：人民币"等常见写法。
 CURRENCY_DECLARATION = re.compile(r"(?:货币|金额|数据|单位)[^。；;]{0,25}(?:均为人民币|均以人民币|为人民币元|以人民币|人民币元)")
+# 表内行/列角色的通用词；只用于结构登记，不替代指标定义。
+TOTAL_ROW = re.compile(r"(?:合计|总计|总额|小计|总投入|投入合计)$")
+COMPONENT_ROW = re.compile(r"^(?:其中|资本化|费用化|专项|其他|其它|钢铁|分项|明细)")
+BRANCH_ROW = re.compile(r"分部|板块")
+BARE_ORDINAL = re.compile(r"^(?:[一二三四五六七八九十百]+|\d+|[（(]\d+[)）]|[①-⑳])$")
+BARE_ROW_WORDS = {"其中", "合计", "总计", "小计", "总额"}
+SCOPE_MARKERS = ("统计范围", "统计口径", "合并范围", "母公司口径", "组织边界", "运营控制权", "报告覆盖")
+
+
+def _display_precision(value: str | None) -> int | None:
+    """显示精度只记录原文小数位；整数不凭空扩展为半个单位区间。"""
+    text = str(value or "").strip().strip("()（）").replace(",", "").replace("，", "")
+    if not re.fullmatch(r"[+-]?\d+(?:\.\d+)?", text):
+        return None
+    return len(text.split(".", 1)[1]) if "." in text else 0
+
+
+def _rounding_method(text: str) -> str:
+    """舍入方法必须有原文声明；看不到声明时保持 unknown，不从位数推定。"""
+    compact = re.sub(r"\s+", "", str(text or ""))
+    if re.search(r"四舍五入|按四舍五入", compact):
+        return "half_up"
+    if re.search(r"截断|舍去|向下取整", compact):
+        return "truncate"
+    if re.search(r"精确值|未舍入|未进行舍入", compact):
+        return "exact"
+    return "unknown"
+
+
+def _boundary_from_text(text: str) -> str:
+    """从表标题/章节识别报告边界；同时出现合并与母公司时保持未知，不猜。"""
+    compact = re.sub(r"\s+", "", str(text or ""))
+    if not compact:
+        return "unknown"
+    parent = "母公司" in compact
+    consolidated = bool(re.search(r"合并(?:财务报表|报表|范围|口径|数据|利润表|资产负债表|现金流量表)", compact)) or "合并" in compact
+    if parent and consolidated:
+        return "unknown"
+    if parent:
+        return "parent"
+    if consolidated:
+        return "consolidated"
+    if BRANCH_ROW.search(compact):
+        return "segment"
+    return "unknown"
+
+
+def _core_label(label: str) -> str:
+    text = re.sub(r"[\s：:（）()%％]", "", str(label or ""))
+    return re.sub(r"(合计|总计|小计|总额|其中|费用化|资本化|专项|其他|其它)$", "", text)
+
+
+def _metric_scope_from_heading(heading: str, label: str) -> str:
+    """只有表标题同时出现指标名和统计边界词时，才作为指标级范围线索。"""
+    compact = re.sub(r"\s+", "", str(heading or ""))
+    if not compact or not any(marker in compact for marker in SCOPE_MARKERS):
+        return ""
+    core = _core_label(label)
+    identity = metric_identity(label)
+    aliases = [name for name in (core, identity.get("canonical", "")) if len(name) >= 3]
+    if len(core) >= 4:
+        aliases.append(core[:4])
+    if aliases and not any(alias in compact for alias in aliases):
+        return ""
+    if not aliases:
+        return ""
+    return compact[:200]
+
+
+def _table_heading(lines: list[dict], table: dict) -> str:
+    """取表格上方最近的短行，作为表标题、单位、主体层级的原文来源。"""
+    near = []
+    for row in lines:
+        gap = table["bbox"][1] - row["bbox"][3]
+        text = row["text"].strip()
+        if 0 <= gap <= 60 and text and len(text) <= 100:
+            near.append((row["bbox"][3], text))
+    near.sort()
+    return " / ".join(text for _, text in near[-3:])
+
+
+def _heading_above(lines: list[dict], index: int, line: dict) -> str:
+    """坐标行上方紧邻的短句；只作继承线索，不跨页或跨栏拼接。"""
+    near = []
+    for row in lines[max(0, index - 14):index]:
+        gap = line["bbox"][1] - row["bbox"][3]
+        text = row["text"].strip()
+        if row.get("side") == line.get("side") and 0 <= gap <= 120 and text and len(text) <= 100:
+            near.append(text)
+    return " / ".join(near[-3:])
+
+
+def _row_role(label: str) -> str:
+    compact = re.sub(r"[\s：:（）()]", "", str(label or ""))
+    if TOTAL_ROW.search(compact) or compact in BARE_ROW_WORDS - {"其中"}:
+        return "total"
+    if COMPONENT_ROW.search(compact) or "其中" in compact or re.search(r"资本化|费用化|分项|明细", compact):
+        return "component"
+    if len(compact) >= 2:
+        return "detail"
+    return "unknown"
+
+
+def _column_role(headers: list[str], column_header: str) -> str:
+    text = re.sub(r"\s+", "", "".join(headers) + str(column_header or ""))
+    if re.search(r"合计|总计|总额|小计", text):
+        return "total"
+    if re.search(r"钢铁|其他|其它|范围一|范围二|费用化|资本化|分项|明细", text):
+        return "component"
+    if re.search(r"20\d{2}|本期|本年", text):
+        return "period"
+    if re.search(r"单位|币种", text):
+        return "unit"
+    return "unknown"
+
+
+def _label_from_row(values: list) -> tuple[str, int | None]:
+    """跳过行次与金额列，优先取真正表达指标身份的文字单元格。"""
+    candidates: list[tuple[int, str]] = []
+    for index, value in enumerate(values):
+        text = str(value or "").strip()
+        if not text:
+            continue
+        compact = text.replace(" ", "")
+        if re.fullmatch(r"[（(]?-?\d[\d,，]*(?:\.\d+)?[)）]?", compact):
+            continue
+        if BARE_ORDINAL.fullmatch(compact):
+            continue
+        candidates.append((index, text))
+    for index, text in candidates:
+        business = re.sub(r"[^\u4e00-\u9fffA-Za-z]", "", text)
+        if len(business) >= 2 and not UNIT.fullmatch(text.replace(" ", "")):
+            return text, index
+    return (candidates[0][1], candidates[0][0]) if candidates else ("", None)
+
+
+def _nearest_parent_label(data: list, row_index: int) -> str:
+    """向上寻找最近的实体指标行名，供“其中/合计”等依赖父级的行恢复身份。"""
+    for previous in reversed(data[:row_index]):
+        label, _ = _label_from_row(previous)
+        compact = re.sub(r"[\s：:（）()]", "", label)
+        if label and not BARE_ORDINAL.fullmatch(compact) and compact not in BARE_ROW_WORDS and len(compact) >= 2:
+            return label
+    return ""
+
+
+def _resolve_row_identity(data: list, row_index: int, values: list) -> tuple[str, str, bool]:
+    """恢复依赖父级的行名；无法还原则标记为不可候选，而不是一律删除合计。"""
+    label, _ = _label_from_row(values)
+    if not label:
+        return "", "", False
+    compact = re.sub(r"[\s：:（）()]", "", label)
+    if BARE_ORDINAL.fullmatch(compact):
+        # 独立序号没有业务含义，不能靠父级猜成“某指标”；直接拒绝自动配对。
+        return label, _nearest_parent_label(data, row_index), False
+    if compact in BARE_ROW_WORDS:
+        parent = _nearest_parent_label(data, row_index)
+        if not parent:
+            return label, "", False
+        return f"{parent}·{label}", parent, True
+    return label, "", True
+
+
+def _unit_from_text(text: str) -> str:
+    """从表标题/单位说明取确定倍率的单位；人民币不是计量尺度。"""
+    if not text:
+        return ""
+    match = re.search(r"(?:单位|单\s*位)\s*[:：]?\s*(?:人民币)?\s*(" + UNIT.pattern + r")", text)
+    if match:
+        return match.group(1).replace("／", "/").replace("％", "%")
+    compact = re.sub(r"\s+", "", text)
+    if re.search(r"人民币(?:元|万元|亿元)$", compact):
+        return re.search(r"(万元|亿元|元)$", compact).group(1)
+    return ""
+
 
 
 def source_path(root: Path, document: ReportDocument) -> Path:
@@ -186,7 +362,10 @@ def _table_layout(page, lines: list[dict]) -> dict:
 
 
 def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> list[DisclosureOccurrence]:
-    """优先按表格单元格取数，避免把换行标签、脚注号和年度值拼成同一行。"""
+    """优先按表格单元格取数，并继承表标题的主体边界、单位、币种与分组。
+
+    表标题只证明“表所属层级”；指标统计范围仍须本指标原文说明，二者不混用。
+    """
     result = []
     lines = page["lines"]
     for table_index, table in enumerate(page.get("tables", [])):
@@ -201,22 +380,36 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
             if previous_headers:
                 headers = max(previous_headers, key=lambda t:t["bbox"][3])["headers"]
         data = table["data"]
+        heading = _table_heading(lines, table)
+        boundary = _boundary_from_text(heading)
+        table_currency = currency_in_text(heading)
+        table_unit = _unit_from_text(heading)
+        table_id = f"{document.document_id}-{page['page']}-T{table_index}"
         table_text = "\n".join(" | ".join(str(v or "") for v in row) for row in data)
         table_topics = [topic for topic in topics if any(word in table_text.replace(" ", "") for word in TOPICS[topic]["keywords"])]
         for row_index, values in enumerate(data):
             if not values or not any(values):
                 continue
-            label = str(next((v for v in values if v), "")).strip()
-            matched = [topic for topic in topics if any(word in re.sub(r"\s+", "", label) for word in TOPICS[topic]["keywords"])]
-            if not matched and len(table_topics) == 1 and re.match(r"合计|总计|其中|资本化|费用化", label):
+            label, parent_label, label_valid = _resolve_row_identity(data, row_index, values)
+            if not label:
+                continue
+            compact_label = re.sub(r"\s+", "", label)
+            matched = [topic for topic in topics if any(word in compact_label for word in TOPICS[topic]["keywords"])]
+            if not matched and len(table_topics) == 1 and re.match(r"合计|总计|其中|资本化|费用化", compact_label):
                 matched = table_topics
             if not matched:
                 continue
             cells = table["cells"][row_index]
-            units = [str(v).replace("\n", "").replace(" ", "").replace("／", "/").replace("％", "%") for v in values if v and UNIT.fullmatch(str(v).replace("\n", "").replace(" ", ""))]
+            units = [str(v).replace("\n", "").replace(" ", "").replace("／", "/").replace("％", "%")
+                     for v in values if v and UNIT.fullmatch(str(v).replace("\n", "").replace(" ", ""))]
             above = [r["text"] for r in lines if r["bbox"][3] <= table["bbox"][1]+3 and "单位" in r["text"]]
             label_unit = re.search(r"[（(]\s*(" + UNIT.pattern + r")\s*[)）]", label)
-            unit = units[0] if units else _unit(label) if "单位" in label else label_unit.group(1) if label_unit else _unit(above[-1]) if above else ""
+            unit = units[0] if units else _unit(label) if "单位" in label else label_unit.group(1) if label_unit else table_unit or _unit(above[-1]) if above else table_unit
+            unit_status = "table" if units or table_unit or (above and unit) else "explicit" if (label_unit or "单位" in label) else "unknown"
+            unit_quote = " / ".join(units) if units else label if (label_unit or "单位" in label) else table_unit or (above[-1] if above else "")
+            row_role = _row_role(label)
+            identity = metric_identity(label)
+            content_class, content_reason = content_classification(label, heading)
             for column_index, raw in enumerate(values):
                 token = str(raw or "").strip().replace("\n", "").replace("（", "(").replace("）", ")")
                 if not re.fullmatch(r"\(?-?\d[\d,，]*(?:\.\d+)?\)?", token):
@@ -229,7 +422,7 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
                 years = [h for h in applicable if re.search(r"20\d{2}|本期|本年", h["text"])]
                 year = ""
                 column_header = ""
-                scope = ""
+                table_scope = ""
                 selected = []
                 if years:
                     top = max(years, key=lambda h:h["bbox"][3])
@@ -238,24 +431,81 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
                     year = match.group() if match else ""
                     selected = [h["text"] for h in applicable if h["bbox"][1] >= top["bbox"][1]]
                     column_header = " / ".join(selected)
-                    scope = " / ".join(text for text in selected if re.fullmatch(r"钢铁\d*|其他|合计", text))
+                    table_scope = " / ".join(text for text in selected
+                        if re.fullmatch(r"钢铁\d*|其他|其它|合计|总计|范围一|范围二|费用化|资本化|分项", text))
+                metric_scope = _metric_scope_from_heading(heading, label)
+                if table_scope:
+                    scope_value, scope_level, scope_quote = table_scope, "table", column_header or table_scope
+                elif metric_scope:
+                    scope_value, scope_level, scope_quote = metric_scope, "metric", metric_scope
+                elif boundary != "unknown":
+                    # 报告边界单独登记；它不是指标统计范围，但可作为报告层覆盖线索。
+                    scope_value = {"consolidated": "合并", "parent": "母公司", "segment": "分部"}.get(boundary, "")
+                    scope_level, scope_quote = "report", heading
+                else:
+                    scope_value, scope_level, scope_quote = "", "unknown", ""
                 row_text = " | ".join(str(v or "").replace("\n", " ") for v in values)
                 context_rows = data[max(0,row_index-2):row_index+3]
                 context = "\n".join(" | ".join(str(v or "").replace("\n", " ") for v in row) for row in context_rows)
-                context = f"本页对应列头：{column_header}\n{context}"
+                prefix = []
+                if heading:
+                    prefix.append(f"表标题/上方文字：{heading}")
+                if boundary != "unknown":
+                    prefix.append(f"报告边界：{boundary}")
+                if table_currency:
+                    prefix.append(f"币种：{table_currency}")
+                if table_unit:
+                    prefix.append(f"单位：{table_unit}")
+                if metric_scope:
+                    prefix.append(f"指标统计范围：{metric_scope}")
+                context = "\n".join(prefix + [f"本页对应列头：{column_header}", context])
                 if above:
                     context = above[-1] + "\n" + context
                 quality, reason = _quality(year, unit, column_header)
-                result.append(DisclosureOccurrence(occurrence_id=f"{document.document_id}-{page['page']}-T{table_index}-R{row_index}-C{column_index}",
-                    document_id=document.document_id, pdf_page=page["page"], bbox=list(bounds), label=label,
+                if content_class in {"macro", "industry"}:
+                    quality, reason = "uncertain", content_reason or "宏观/行业背景，不作为公司自身指标候选"
+                elif not label_valid:
+                    quality, reason = "uncertain", "行名仅为序号或通用词，无法表达指标身份，已拒绝自动配对"
+                local_currency = currency_in_text(context)
+                currency = table_currency or local_currency
+                if table_currency:
+                    currency_status = "table"
+                elif local_currency:
+                    currency_status = "explicit"
+                else:
+                    currency_status = "unknown"
+                currency_quote = heading if table_currency else ""
+                if not currency_quote and local_currency:
+                    needle = next((word for word in ("人民币", "美元", "港元", "欧元", "日元") if word in context), "")
+                    if needle:
+                        at = context.find(needle)
+                        currency_quote = context[max(0, at-20):at+len(needle)+25].strip()
+                occurrence_id = f"{document.document_id}-{page['page']}-T{table_index}-R{row_index}-C{column_index}"
+                rounding_method = _rounding_method(context)
+                result.append(DisclosureOccurrence(occurrence_id=occurrence_id,
+                    document_id=document.document_id, pdf_page=page["page"], bbox=list(bounds), label=label[:160],
                     value=token, unit=unit, unit_source="本表单位列" if units else _unit_source(label, above),
-                    currency="CNY" if "人民币" in context else "", year=year, scope=scope,
-                    year_status="attributed" if year else "unattributed",
-                    row_header=row_text, column_header=column_header, header_path=selected,
+                    unit_status=unit_status, unit_source_quote=unit_quote[:300],
+                    currency=currency, currency_status=currency_status,
+                    currency_source_id=occurrence_id if currency else "", currency_source_quote=currency_quote[:300],
+                    year=year, year_status="attributed" if year else "unattributed",
+                    report_boundary=boundary,
+                    report_boundary_source_id=occurrence_id if boundary != "unknown" else "",
+                    report_boundary_source_quote=heading[:300] if boundary != "unknown" else "",
+                    scope=scope_value[:200], table_scope=table_scope[:120], scope_level=scope_level,
+                    scope_source_id=occurrence_id if scope_value else "", scope_source_quote=scope_quote[:300],
+                    display_precision=_display_precision(token), rounding_method=rounding_method,
+                    rounding=rounding_method if rounding_method in {"exact", "half_up"} else "unknown",
+                    content_class=content_class, metric_id=identity.get("metric_id", ""), metric_identity=identity,
+                    table_id=table_id, row_index=row_index, column_index=column_index,
+                    row_role=row_role, column_role=_column_role(selected, column_header), row_parent_label=parent_label,
+                    row_header=(label + " | " + row_text) if label not in row_text else row_text,
+                    column_header=column_header, header_path=selected,
                     context=context[:7000], footnote_scope=_footnote_for(table, lines, page.get("tables", [])),
                     quality=quality, quality_reason=reason, topic=matched[0],
                     version_role=document.version_role))
     return result
+
 
 
 def _number_box(line: dict, match) -> list[float]:
@@ -437,6 +687,26 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
                 inline_units = UNIT.findall(text)
                 if "强度" in text and len(inline_units) == 2 and numeric_line["text"].lstrip().startswith("/"):
                     unit = inline_units[0] + "/" + inline_units[1]
+                # 坐标行只从紧邻的短标题继承边界、范围和币种，避免把报告总声明当成指标级证据。
+                heading_above = _heading_above(lines, index, line)
+                boundary = _boundary_from_text(heading_above)
+                content_class, content_reason = content_classification(label, heading_above)
+                identity_info = metric_identity(label)
+                metric_scope = _metric_scope_from_heading(heading_above, label)
+                if metric_scope:
+                    scope_value, scope_level, scope_quote = metric_scope, "metric", metric_scope
+                elif boundary != "unknown":
+                    scope_value = {"consolidated": "合并", "parent": "母公司", "segment": "分部"}.get(boundary, "")
+                    scope_level, scope_quote = "report", heading_above
+                else:
+                    scope_value, scope_level, scope_quote = "", "unknown", ""
+                rounding_method = _rounding_method(context)
+                compact_label = re.sub(r"[\s：:（）()]", "", label)
+                label_valid = bool(compact_label) and not BARE_ORDINAL.fullmatch(compact_label)
+                unit_quote = immediate.group(1) if immediate else (explicit_above[-1] if explicit_above else heading_above)
+                unit_status = "explicit" if immediate else "table" if unit_hint else "unknown"
+                currency_hint = currency_in_text(heading_above) or currency_in_text(context)
+                currency_status = "table" if currency_in_text(heading_above) else "explicit" if currency_in_text(context) else "unknown"
                 # 同一单元格已按表格结构提取时，不再提交另一份位置身份重复相加。
                 if match:
                     duplicates = [row for row in table_rows if row.value == raw and row.bbox[0]-2 <= (number_box[0]+number_box[2])/2 <= row.bbox[2]+2
@@ -447,25 +717,73 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
                             row.unit = row.unit or unit
                             row.year = row.year or year
                             row.column_header = row.column_header or column_header
-                            if "人民币" in context:
-                                row.currency = row.currency or "CNY"
+                            row.unit_status = row.unit_status if row.unit_status != "unknown" else unit_status
+                            row.unit_source_quote = row.unit_source_quote or unit_quote[:300]
+                            if currency_hint:
+                                row.currency = row.currency or currency_hint
+                                row.currency_status = row.currency_status if row.currency_status != "unknown" else currency_status
+                                row.currency_source_id = row.currency_source_id or row.occurrence_id
+                                row.currency_source_quote = row.currency_source_quote or heading_above[:300]
+                            if boundary != "unknown" and row.report_boundary == "unknown":
+                                row.report_boundary = boundary
+                                row.report_boundary_source_id = row.occurrence_id
+                                row.report_boundary_source_quote = heading_above[:300]
+                            if metric_scope and row.scope_level == "unknown":
+                                row.scope, row.scope_level = metric_scope[:200], "metric"
+                                row.scope_source_id = row.occurrence_id
+                                row.scope_source_quote = metric_scope[:300]
+                            elif boundary != "unknown" and row.scope_level == "unknown":
+                                row.scope = {"consolidated": "合并", "parent": "母公司", "segment": "分部"}.get(boundary, "")
+                                row.scope_level = "report"
+                                row.scope_source_id = row.occurrence_id
+                                row.scope_source_quote = heading_above[:300]
+                            if content_class in {"macro", "industry"}:
+                                row.content_class = content_class
+                                row.quality = "uncertain"
+                                row.quality_reason = content_reason or "宏观/行业背景，不作为公司自身指标候选"
+                            if not label_valid:
+                                row.quality = "uncertain"
+                                row.quality_reason = "行名仅为序号或通用词，无法表达指标身份，已拒绝自动配对"
                             row.context = (row.context + "\n[同页坐标补充]\n" + context)[:7000]
                             row.year_status = "attributed" if row.year else "unattributed"
                             row.unit_source = row.unit_source or ("同页坐标补充" if unit else "")
-                            row.quality, row.quality_reason = _quality(row.year, row.unit, row.column_header)
+                            if row.quality != "uncertain":
+                                row.quality, row.quality_reason = _quality(row.year, row.unit, row.column_header)
                         continue
                 # 金额原币种只在上下文明示人民币时确认，不由元字推定币种。
-                currency = "CNY" if "人民币" in context else ""
+                currency = currency_hint
+                currency_source_quote = ""
+                if currency:
+                    needle = next((word for word in ("人民币", "美元", "港元", "欧元", "日元") if word in heading_above + context), "")
+                    if needle:
+                        at = (heading_above + "\n" + context).find(needle)
+                        currency_source_quote = (heading_above + "\n" + context)[max(0, at-20):at+len(needle)+25].strip()
                 identity = f"{document.document_id}-{page['page']}-{index}-{offset}"
                 # 行列绑定可由列头、表头或句内明示年度提供；三者都没有才算未绑定。
                 binding = column_header or (header[-1]["text"] if header else "") or (f"句内明示{year}" if year else "")
                 quality, reason = _quality(year, unit, binding, bool(match))
                 if match and numeric_line is not line:
                     quality, reason = "uncertain", "数值来自相邻行，指标与数值未同行绑定"
+                if match and content_class in {"macro", "industry"}:
+                    quality, reason = "uncertain", content_reason or "宏观/行业背景，不作为公司自身指标候选"
+                elif match and not label_valid:
+                    quality, reason = "uncertain", "行名仅为序号或通用词，无法表达指标身份，已拒绝自动配对"
                 occurrences.append(DisclosureOccurrence(occurrence_id=identity, document_id=document.document_id,
                     pdf_page=page["page"], bbox=number_box, label=label[:160], value=raw, unit=unit,
                     unit_source="同行紧跟单位" if immediate else "本页单位说明" if unit_hint else "",
-                    currency=currency, year=year, year_status="attributed" if year else "unattributed",
+                    unit_status=unit_status, unit_source_quote=unit_quote[:300] if unit_quote else "",
+                    currency=currency, currency_status=currency_status,
+                    currency_source_id=identity if currency else "", currency_source_quote=currency_source_quote[:300],
+                    year=year, year_status="attributed" if year else "unattributed",
+                    report_boundary=boundary,
+                    report_boundary_source_id=identity if boundary != "unknown" else "",
+                    report_boundary_source_quote=heading_above[:300] if boundary != "unknown" else "",
+                    scope=scope_value[:200], scope_level=scope_level,
+                    scope_source_id=identity if scope_value else "", scope_source_quote=scope_quote[:300],
+                    display_precision=_display_precision(raw), rounding_method=rounding_method,
+                    rounding=rounding_method if rounding_method in {"exact", "half_up"} else "unknown",
+                    content_class=content_class, metric_id=identity_info.get("metric_id", ""), metric_identity=identity_info,
+                    row_role=_row_role(label),
                     row_header=text, column_header=column_header,
                     header_path=[column_header] if column_header else [],
                     context=context[:7000], footnotes=[r["text"] for r in same_side if re.match(r"注[:：\d]|\*", r["text"])],
@@ -488,6 +806,7 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
         for row in occurrences:
             if not row.currency and re.search(r"元", row.unit) and not re.search(r"美元|港元|欧元|日元", row.context):
                 row.currency = "CNY"
+                row.currency_status = "report_declaration"
                 row.currency_source_id = declaration.occurrence_id
                 row.currency_source_quote = declared_quote
     coverage.discovered_count = len(occurrences)
