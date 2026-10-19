@@ -4,6 +4,7 @@
 - 角色：AI1（核心计算、PDF 表格、口径条件与确定性复算）
 - 分支：`ai/audittrace-core`
 - 基线：`origin/main` `541de1b fix(connectivity): search source excerpts and AI opinions`
+- 实现提交：`278d63a feat(connectivity): layer scope precision and table evidence`
 - 范围：问题 01、02、03、04、05、06、07、20、22；I1、I2、I4、I8 的指标字典侧
 - 未改：`connectivity_pipeline.py`、`connectivity_intelligence.py`、`connectivity_api.py`、`connectivity_delivery.py`、`index.html`、前端 JS/CSS、PPT/方案书
 
