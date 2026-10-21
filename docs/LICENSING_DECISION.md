@@ -8,7 +8,7 @@
 
 | 项 | 结果 |
 |---|---|
-| `LICENSE` | 已创建，GNU AGPL-3.0 全文，与 https://www.gnu.org/licenses/agpl-3.0.txt **字节一致** |
+| `LICENSE` | 已创建，GNU AGPL-3.0 全文，与 SPDX 官方 `AGPL-3.0-only.txt` **字节一致**（34020 字节）。初版曾用 gnu.org 的 .txt，因其带前导缩进导致 GitHub 识别为 `Other`，已替换为 SPDX 规范文本 |
 | 版权行 | `Copyright (C) 2026 The AuditTrace Authors`（集体署名，见第 5 节） |
 | `PROJECT_LICENSE.md` | 已改写，删除原保留声明，声明 AGPL-3.0 并列出不覆盖范围 |
 | PyMuPDF 冲突 | **已消除**（AGPL 代码与 AGPL 项目一致，无需商业许可） |

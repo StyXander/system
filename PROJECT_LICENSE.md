@@ -4,7 +4,8 @@
 
 自 **2026-10-21** 起，审迹智链（AuditTrace）项目自身由项目所有者决定，以 **GNU Affero General Public License v3.0（AGPL-3.0）** 发布。
 
-- 许可证全文见仓库根目录 [LICENSE](LICENSE)（与 https://www.gnu.org/licenses/agpl-3.0.txt 字节一致）。
+- 许可证全文见仓库根目录 [LICENSE](LICENSE)。该文件与 SPDX 官方 AGPL-3.0-only 文本
+  （`https://spdx.org/licenses/AGPL-3.0-only.txt`）字节一致，未做任何改写。
 - 版权声明：`Copyright (C) 2026 The AuditTrace Authors`
 - 授权依据：项目所有者在 2026-10-21 的开源准备审查中明确选择 AGPL-3.0（整仓 AGPL-3.0，零代码改动）。
 
