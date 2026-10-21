@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "status": "blocked_environment",
+  "detail": "Windows asyncio loop creation blocks in socket._fallback_socketpair; loopback HTTP also fails WinError 10013. Browser interaction not executed.",
+  "refresh_fix": "bootstrap waits for workspace listeners; requires browser verification",
+  "script": "tools/browser_flow.py"
+}

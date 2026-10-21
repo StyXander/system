@@ -36,15 +36,16 @@ from app.connectivity_schemas import RunRequest  # noqa: E402
 def summarize(run, elapsed: float, mode: str) -> dict:
     claims = run.claim_ledger
     support = Counter(item.get("support_status", "unknown") for item in claims)
-    materials = [item for item in claims if item.get("material") and item.get("support_status") == "contradicted"]
+    materials = [claim for item in claims for claim in item.get("material_contradictions", [])]
     levels = Counter(check.calculation.get("conclusion_level", "none") for check in run.checks)
     tokens = 0
     for call in run.provider_calls:
         usage = call.get("usage") or {}
-        tokens += int(usage.get("total_tokens") or 0)
+        tokens += int(usage.get("total_tokens") or
+                      (int(call.get("input_tokens") or 0) + int(call.get("output_tokens") or 0)))
     return {
         "mode": mode,
-        "pair_id": getattr(run, "pair_id", "") or run.run_id,
+        "pair_id": run.versions.get("pair_id") or (run.documents[0].case_id if run.documents else ""),
         "elapsed_seconds": round(elapsed, 1),
         "occurrences": len(run.occurrences),
         "checks": len(run.checks),
@@ -96,7 +97,7 @@ def main() -> int:
               rows[-1].get("elapsed_seconds"), "s", flush=True)
     Path(args.out).write_text(json.dumps({"pair": args.pair, "runs": rows}, ensure_ascii=False, indent=2),
                               encoding="utf-8")
-    return 0
+    return 1 if any("error" in row for row in rows) else 0
 
 
 if __name__ == "__main__":

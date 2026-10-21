@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import time
 
@@ -13,7 +14,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "outputs/integration-20261021/screenshots"
 OUT.mkdir(parents=True, exist_ok=True)
-BASE = "http://127.0.0.1:8899/"
+BASE = os.getenv("AUDITTRACE_ACCEPTANCE_URL", "http://127.0.0.1:8901/")
 
 
 def main() -> int:
@@ -41,37 +42,52 @@ def main() -> int:
         page.click("#cn-run")
         report["submitted_at"] = time.strftime("%H:%M:%S")
         started = time.monotonic()
-        for _ in range(120):
+        for _ in range(180):
             page.wait_for_timeout(2000)
             text = page.inner_text("#cn-message")
-            if any(word in text for word in ("完成", "失败", "已生成", "条关系")):
+            if page.locator('#cn-results').is_visible() and page.locator('[data-goto]').count():
                 break
+            if text.startswith("失败"):
+                raise AssertionError(text)
         report["elapsed_seconds"] = round(time.monotonic() - started, 1)
         report["message"] = page.inner_text("#cn-message")[:400]
         page.wait_for_timeout(2000)
         report["result_shot"] = _shot(page, "flow__result")
-        # 展开第一条关系，验证五项前提与算式可见
-        try:
-            page.click(".cn-check summary", timeout=5000)
-            page.wait_for_timeout(800)
-            report["detail_shot"] = _shot(page, "flow__detail")
-        except Exception as error:
-            report["detail_error"] = type(error).__name__
+        assert page.locator('[data-goto]').count(), report["message"]
+        started = time.monotonic()
+        page.locator('[data-goto]').first.click()
+        page.locator('#cn-focus-title').wait_for(state='visible')
+        report["detail_seconds"] = round(time.monotonic()-started, 3)
+        report["detail_shot"] = _shot(page, "flow__detail")
+        started = time.monotonic()
+        page.locator('[data-reader]:visible').first.click()
+        image = page.locator('#cn-reader-docs img').first
+        image.wait_for(state='visible')
+        page.wait_for_function("""() => { const img=document.querySelector('#cn-reader-docs img');
+            return img && img.complete && img.naturalWidth > 0; }""")
+        report["source_seconds"] = round(time.monotonic()-started, 3)
+        report["source_shot"] = _shot(page, "flow__source")
+        page.click('#cn-reader-close')
         # 刷新恢复
         page.reload(wait_until="domcontentloaded")
         page.wait_for_timeout(3500)
         report["after_reload_message"] = page.inner_text("#cn-message")[:400]
+        page.wait_for_function("document.querySelector('#connectivity-root').dataset.awView === 'result'")
+        assert page.locator('#cn-focus-title').is_visible()
+        report["reload_restored"] = True
         report["reload_shot"] = _shot(page, "flow__reload")
         # 历史记录
-        try:
-            page.click("text=历史记录")
-            page.wait_for_timeout(2000)
-            report["history_shot"] = _shot(page, "flow__history")
-        except Exception as error:
-            report["history_error"] = type(error).__name__
+        page.locator('[data-view="history"]').first.click()
+        page.locator('[data-open-task]').first.wait_for(state='visible')
+        report["history_shot"] = _shot(page, "flow__history")
+        page.locator('[data-open-task]').first.click()
+        page.wait_for_function("document.querySelector('#connectivity-root').dataset.awView === 'result'")
+        assert page.locator('#cn-focus-title').is_visible()
+        report["history_restored"] = True
+        assert not report["console_errors"], report["console_errors"]
         page.close()
         browser.close()
-    (ROOT / "outputs/integration-20261021/browser_flow.json").write_text(
+    (ROOT / "outputs/integration-20261021/browser_repair.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({k: v for k, v in report.items() if not k.endswith("_shot")}, ensure_ascii=False)[:700])
     return 0
@@ -84,4 +100,9 @@ def _shot(page, name: str) -> str:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except Exception as error:
+        (ROOT / "outputs/integration-20261021/browser_repair.json").write_text(
+            json.dumps({"passed": False, "error": f"{type(error).__name__}: {error}"}, ensure_ascii=False, indent=2), encoding="utf-8")
+        raise

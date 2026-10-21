@@ -273,7 +273,7 @@ def main() -> int:
     for result in results:
         print(f'{result["id"]:>3} {result["class"]} {"PASS" if result["pass"] else "FAIL":>4} '
               f'gen={int(result["generated"])} rule={result["rule_id"]:<8} level={result["level"]:<22} {result["name"][:42]}')
-    return 0
+    return 0 if summary["pass"] == summary["total"] else 1
 
 
 if __name__ == "__main__":
