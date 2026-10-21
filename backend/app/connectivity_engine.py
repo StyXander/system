@@ -16,10 +16,12 @@ from .connectivity_rules import RULES, required_conditions
 UNITS = {
     "元": ("money", "1"), "千元": ("money", "1000"), "万元": ("money", "10000"),
     "百万元": ("money", "1000000"), "亿元": ("money", "100000000"),
+    "千克": ("mass", "0.001"), "公斤": ("mass", "0.001"),
     "吨": ("mass", "1"), "万吨": ("mass", "10000"),
     "千瓦时": ("electric_energy", "1"), "万千瓦时": ("electric_energy", "10000"), "兆瓦时": ("electric_energy", "1000"),
     "吉焦": ("heat_energy", "1"), "太焦": ("heat_energy", "1000"),
     "吨标准煤": ("standard_coal", "1"), "万吨标准煤": ("standard_coal", "10000"),
+    "千克二氧化碳当量": ("co2e", "0.001"),
     "吨二氧化碳当量": ("co2e", "1"), "万吨二氧化碳当量": ("co2e", "10000"),
     "吨粗钢": ("crude_steel_mass", "1"), "万吨粗钢": ("crude_steel_mass", "10000"),
     "吨产品": ("product_mass", "1"), "万吨产品": ("product_mass", "10000"),
@@ -246,9 +248,12 @@ def _conditions_summary(check: RelationshipCheck) -> dict:
 def validate_refs(refs: list[EvidenceRef], occurrences: dict[str, DisclosureOccurrence]) -> bool:
     """引用必须属于本次报告且逐字存在于对应上下文，不接受模型编造出处。"""
     compact = lambda s: re.sub(r"\s+", "", s)
-    return bool(refs) and all(ref.occurrence_id in occurrences and
-        compact(ref.quote) in compact(occurrences[ref.occurrence_id].context)
-        for ref in refs)
+    return bool(refs) and all(
+        ref.occurrence_id in occurrences
+        and len(compact(ref.quote)) >= 2  # 空白引文不能成为任何口径条件的证据
+        and compact(ref.quote) in compact(occurrences[ref.occurrence_id].context)
+        for ref in refs
+    )
 
 
 def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence]) -> RelationshipCheck:
