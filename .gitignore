@@ -145,6 +145,10 @@ artifacts/
 !/决赛准备/整改_2026-10-11/审迹智链_决赛修订讲稿_2026-10-11.docx
 !/docs/TEST_INVENTORY.md
 !/docs/finals-system-optimization-design.md
+# 第三轮整改的审计轨迹：计划、有限核读与最终交付报告需要与代码同版本可追溯。
+!/docs/第三轮代码级实施计划_2026-10-20.md
+!/docs/第三轮整改业务效果核对_2026-10-21.md
+!/docs/第三轮整改最终交付报告_2026-10-21.md
 !/docs/finals_remediation_plan_20261009.md
 !/docs/finals_remediation_acceptance_20261009.md
 !/scripts/inspect_finals_extraction.py
