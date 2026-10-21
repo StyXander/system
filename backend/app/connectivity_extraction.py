@@ -23,13 +23,13 @@ from .connectivity_schemas import DisclosureOccurrence, ExtractionExclusion, Rep
 from .source_viewer import PDF_ACCESS_LOCK
 from .secure_download import download_bounded, SecureDownloadError
 
-EXTRACTION_VERSION = "coordinates_v1.14"
+EXTRACTION_VERSION = "coordinates_v1.15"
 # 本轮补充合并/母公司表头，旧布局缓存缺这些单元格，须按新版重建。
 # v1.9：槽位下限改为“数值不少于年度列”，旧缓存 year 需重建。
 PARSER_CACHE_VERSION = "coordinates_v1.9"
 NUMBER = re.compile(r"(?<![\d.])(?:[（(]?-?\d{1,3}(?:[,，]\d{3})+(?:\.\d+)?[)）]?|[（(]?-?\d+(?:\.\d+)?[)）]?)(?![\d.])")
 # 长单位排在短单位前，保留二氧化碳当量、粗钢与产品的不同口径。
-UNIT_ATOM = r"(?:万吨二氧化碳当量|吨二氧化碳当量|万吨标准煤|吨标准煤|万吨粗钢|吨粗钢|万吨产品|吨产品|万千瓦时|千瓦时|兆瓦时|吉焦|太焦|万吨|吨|百万立方米|千立方米|万立方米|亿立方米|立方米|百万元|千元|万元|亿元|(?<!美)(?<!港)(?<!欧)(?<!日)元|万人|万名|人|(?<![\u4e00-\u9fff])名)"
+UNIT_ATOM = r"(?:万吨二氧化碳当量|千克二氧化碳当量|吨二氧化碳当量|万吨标准煤|吨标准煤|万吨粗钢|吨粗钢|万吨产品|吨产品|万千瓦时|千瓦时|兆瓦时|吉焦|太焦|万吨|千克|公斤|吨|百万立方米|千立方米|万立方米|亿立方米|立方米|百万元|千元|万元|亿元|(?<!美)(?<!港)(?<!欧)(?<!日)元|万人|万名|人|(?<![\u4e00-\u9fff])名)"
 UNIT = re.compile(UNIT_ATOM + r"(?:[/／]" + UNIT_ATOM + r")?|[%％]")
 # 只继承明确适用于全报告的币种声明；本表或记账本位币声明不能扩为全报告。
 REPORT_CURRENCY = re.compile(r"(?:本报告|本年度报告|本可持续发展报告)[^。；;]{0,65}(?:金额|货币|财务数据)[^。；;]{0,35}(?:人民币|美元|港元|欧元|日元)")

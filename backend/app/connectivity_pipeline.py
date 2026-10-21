@@ -638,6 +638,8 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                 # 纯分项残片不是独立主指标；带口径的派生指标（如“总量－雨水回用”）保留。
                 continue
             selected = rows_in_doc[:8]
+            # 身份依据与五项专业前提独立；字典匹配只解除关系门禁，不代替口径证据。
+            selected_identities = {metric_identity(row.label).get("metric_id", "") for row in selected}
             scopes = {_normalize_scope(_ai1_scope(row)) for row in selected}
             scopes.discard("")
             value_ratio = []
@@ -655,7 +657,10 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                 topic=topic, operator=RULES["OCC-001"]["operator"],
                 members=[RelationshipMember(occurrence_id=row.occurrence_id, role="occurrence") for row in selected],
                 relationship_evidence=[_reference(row) for row in selected[:3]],
-                relationship_basis="multi_location", mapping_type="different_metric" if mixed_scope else "uncertain",
+                relationship_basis=("metric_identity" if not mixed_scope and
+                    len(selected_identities) == 1 and "" not in selected_identities else "multi_location"),
+                mapping_type=("different_metric" if mixed_scope else "same_metric" if
+                    len(selected_identities) == 1 and "" not in selected_identities else "uncertain"),
                 mapping_reason=(scope_note + "；不直接作为企业异常") if mixed_scope else "",
                 conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
     # 同名同报告多位置只保留一个最完整的候选；单位后缀不造成重复计数。
@@ -1374,7 +1379,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     run = ConnectivityRun(run_id=f"CONN-{uuid.uuid4().hex[:16].upper()}", company=docs[0].company, period=comparison_period,
         report_period=report_period, metric_period=metric_period,
         documents=docs, execution_mode=request.mode,
-        versions={"extraction": EXTRACTION_VERSION, "rules": "2026-10-21.1", "prompt": PROMPT_VERSION,
+        versions={"pair_id": request.pair_id, "extraction": EXTRACTION_VERSION, "rules": "2026-10-21.1", "prompt": PROMPT_VERSION,
                   "intelligence": INTELLIGENCE_VERSION, "retrieval": RETRIEVAL_VERSION,
                   "knowledge": KNOWLEDGE_VERSION, "candidate_origin_scheme": "rule_plus_model_signature_v1",
                   "period_basis": f"比较期间取指标所属年度{metric_period}" if metric_period else

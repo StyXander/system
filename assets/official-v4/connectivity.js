@@ -944,7 +944,12 @@
       reportCards();
       const shared = new URL(location.href).searchParams.get('connectivity_task');
       const saved = shared && /^(?:CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}$/.test(shared) ? shared : localStorage.getItem('audittrace-connectivity-task');
-      if (saved) await poll(saved);
+      // 等待页面组织层安装任务监听器，防止快速缓存响应先于监听器到达。
+      await new Promise(resolve => {
+        if (document.documentElement.dataset.connectivityWorkspaceReady === 'true') resolve();
+        else document.addEventListener('audittrace:connectivity-workspace-ready', resolve, {once:true});
+      });
+      if (saved) { rememberTask(saved); await poll(saved); }
     } catch (error) { message(`工作台读取失败：${error.message}`, true);
       document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error', {detail:{status:'unavailable',
         message:`工作台读取失败：${error.message}。请检查服务是否启动。`}})); }

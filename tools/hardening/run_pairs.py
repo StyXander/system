@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app.connectivity_pipeline import run_pipeline  # noqa: E402
 from app.connectivity_schemas import RunRequest  # noqa: E402
+from app.connectivity_engine import numeric_unit  # noqa: E402
 
 
 PAIRS = ["000858-2025", "000333-2025", "300750-2025", "600019-2025", "600019-2024"]
@@ -37,14 +38,14 @@ def summarize(run) -> dict:
         for condition in check.conditions:
             conditions[f"{condition.name}:{condition.status}"] += 1
     for row in run.occurrences:
-        if row.currency is None:
-            continue
-        if "money" in str(row.unit):
+        if numeric_unit(row.unit)[0] == "money":
             money_rows += 1
             if not row.currency:
                 currency_unknown += 1
     return {
-        "pair_id": run.versions.get("pair_id", ""),
+        "pair_id": run.versions.get("pair_id") or (run.documents[0].case_id if run.documents else ""),
+        "versions": run.versions,
+        "documents": [{"document_id": doc.document_id, "sha256": doc.file_sha256} for doc in run.documents],
         "occurrences": len(run.occurrences),
         "checks": len(checks),
         "formal": levels.get("formal_consistent", 0),
@@ -67,6 +68,18 @@ def summarize(run) -> dict:
             {"rule_id": check.rule_id, "title": check.title[:70],
              "level": check.calculation.get("conclusion_level", "none"),
              "status": check.calculation_status, "criteria": check.criteria_status}
+            for check in checks
+        ],
+        "scope_review": [
+            {"check_id": check.check_id, "title": check.title,
+             "condition": next((condition.model_dump(mode="json") for condition in check.conditions
+                                if condition.name == "范围"), None),
+             "members": [{"occurrence_id": row.occurrence_id, "document_id": row.document_id,
+                          "page": row.pdf_page, "label": row.label, "scope_level": row.scope_level,
+                          "scope_quote": row.scope_source_quote, "boundary_quote": row.report_boundary_source_quote,
+                          "context": row.context}
+                         for row in run.occurrences if row.occurrence_id in
+                         {member.occurrence_id for member in check.members}]}
             for check in checks
         ],
     }
