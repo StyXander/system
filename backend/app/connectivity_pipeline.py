@@ -1,4 +1,4 @@
-"""真实PDF、规则与三角色在同一结果合同上运行，不以聊天代替核对。
+﻿"""真实PDF、规则与三角色在同一结果合同上运行，不以聊天代替核对。
 
 A1提出关系，A2补找定义和反证，程序每次重新检查与计算。
 A3形成独立AI研判及待查问题，不允许模型篡改程序状态及原始数值。
@@ -43,24 +43,25 @@ from fastapi import HTTPException
 
 from .agents import _strict_tool_base_url, _provider_timeout_seconds
 from .ai_opinion import build_program_hints, program_hint
-from .connectivity_engine import calculate, normalized, numeric_unit, number, validate_refs
+from .connectivity_engine import calculate, normalized, numeric_unit, number, validate_refs, identity_dimension_problem, non_exact_value
 from .connectivity_extraction import extract_document, load_registry, search_context, report_industry_context, EXTRACTION_VERSION
 from .connectivity_overview import build_overview
 from .connectivity_conditions import upgrade_conditions
+from .connectivity_metrics import compact_label, metric_identity, metric_comparison
 from .connectivity_tables import build_table_composition_candidates
 from .connectivity_intelligence import (METRIC_GUIDANCE, targeted_context, enrich_calculation,
-    integrate_analyses, refresh_analysis_status, grounded_numbers, unsupported_numbers, pack_role_context)
+    integrate_analyses, refresh_analysis_status, grounded_numbers, unsupported_numbers, pack_role_context, merge_hypotheses)
 from .connectivity_rules import RULES, BASE_CONDITIONS, TOPICS, required_conditions, direct_metric
 from .connectivity_claims import (apply_hypothesis_updates, build_claim_ledger, build_next_evidence,
     hypothesis_ledger, semantic_problem, should_reject_analysis, verify_narrative_magnitude)
 from .connectivity_retrieval import (RETRIEVAL_VERSION, KNOWLEDGE_VERSION,
     knowledge_ablation, knowledge_enabled, retrieval_effect,
     retrieve_targeted_pages, rule_basis_for)
-from .connectivity_schemas import (AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
+from .connectivity_schemas import (INTELLIGENCE_VERSION, AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
     EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal,
     AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE)
 
-PROMPT_VERSION = "connectivity_hybrid_20261019.1"
+PROMPT_VERSION = "connectivity_hybrid_20261021.1"
 
 #: AI1 可能提供的高置信结构入口；未合入时用本文件的保守兜底，不让启动失败。
 AI1_HOOK_NAMES = ("classify_disclosure_scope", "validate_row_identity", "is_macro_context",
@@ -163,13 +164,28 @@ def _row_identity_problem(row: DisclosureOccurrence) -> str:
 
 
 def _ambiguous_column_header(row: DisclosureOccurrence) -> bool:
-    """列头同时含两个年度时，行级 year 可能是猜出来的，不能进入数值候选。"""
-    return len({year for year in re.findall(r"(?:19|20)\d{2}", row.column_header or "")}) > 1
+    """只审查所选列，不用整表中其他年度否决已由坐标归属的值。"""
+    years = set(re.findall(r"(?:19|20)\d{2}", row.column_header or ""))
+    return len(years) > 1 or bool(years and row.year and row.year not in years)
+
+
+COLUMN_CALIBER = re.compile(r"合计|总计|小计|总额|钢铁|其他|其它|境内|境外|母公司|合并|分部")
+
+
+def _column_caliber(row: DisclosureOccurrence) -> str:
+    """列头中的合计/分部口径词；同一行内不同列不是同一指标的重复披露。"""
+    parts = [str(row.column_header or ""), *[str(item) for item in (row.header_path or [])]]
+    text = re.sub(r"\s+", "", " ".join(parts))
+    text = re.sub(r"(?:19|20)\d{2}年?|本期|本年|上期|上年", "", text)
+    return "+".join(sorted(set(COLUMN_CALIBER.findall(text))))
 
 
 def _semantic_concept(label: str) -> str:
     """把受控别名收敛到概念名；研发费用等未登记别名不会被强行合并。"""
     from .connectivity_retrieval import METRIC_SYNONYMS
+    identity = metric_identity(label)
+    if identity.get("metric_id"):
+        return identity["metric_id"]
     cleaned = re.sub(r"[\s：:（）()%％]", "", label or "")
     # 先查别名：研发投入金额/研发支出都应落到“研发投入”，不能被直接指标名拆开。
     for concept, aliases in METRIC_SYNONYMS.items():
@@ -177,6 +193,29 @@ def _semantic_concept(label: str) -> str:
             return concept
     direct = direct_metric(label)
     return direct or cleaned
+
+
+def _qualifier_key(label: str) -> str:
+    """仅去除身份校验允许省略的总额/本期标记，其余业务限定必须参与分组。"""
+    qualifiers = dict(metric_identity(label).get("qualifiers", {}))
+    if qualifiers.get("extent") == "total":
+        qualifiers.pop("extent")
+    if qualifiers.get("period") == "current":
+        qualifiers.pop("period")
+    return json.dumps(qualifiers, sort_keys=True)
+
+
+def _identity_concept(label: str) -> str:
+    """用受控指标身份字典收敛概念；只在跨报告映射召回时使用。
+
+    该字典区分严格别名与“不得等同”反例（研发费用不并入研发投入），
+    因此可把“研发支出总额/研发投入合计”识别为同一指标概念。
+    多位置核对仍用 _semantic_concept，避免把不同行名折叠成一条检查。
+    """
+    identity = metric_identity(label)
+    if identity.get("metric_id") and identity.get("match") in {"exact", "alias"}:
+        return identity["metric_id"]
+    return _semantic_concept(label)
 
 
 def _signature(rule_id: str, members: list[RelationshipMember]) -> str:
@@ -219,7 +258,14 @@ class RoleCallFailure(RuntimeError):
 
 
 def _reference(row: DisclosureOccurrence) -> EvidenceRef:
-    return EvidenceRef(occurrence_id=row.occurrence_id, quote=row.row_header[:1000] or row.context[:1000])
+    # 行头可能是提取器拼装的结构标签，不能冒充逐字原文。
+    quote = row.row_header[:1000]
+    compact = lambda value: re.sub(r"\s+", "", value)
+    if not quote or compact(quote) not in compact(row.context):
+        index = row.context.find(row.label)
+        start = max(0, index - 80) if index >= 0 else 0
+        quote = row.context[start:start+1000]
+    return EvidenceRef(occurrence_id=row.occurrence_id, quote=quote)
 
 
 def _located(rows: list[DisclosureOccurrence], period: str):
@@ -229,7 +275,7 @@ def _located(rows: list[DisclosureOccurrence], period: str):
             continue
         if row.quality != "located" or numeric_unit(row.unit)[0] == "unknown":
             continue
-        if _ambiguous_column_header(row):
+        if _ambiguous_column_header(row) or identity_dimension_problem(row):
             continue
         if _macro_reason(row):
             continue
@@ -301,11 +347,27 @@ def _ratio_candidates(rows: list[DisclosureOccurrence], period: str) -> list[Rel
         if not matched:
             continue
         numerator_text, denominator_text = matched.group(1), matched.group(2)
-        same_doc = [row for row in located if row.document_id == ratio_row.document_id and row.occurrence_id != ratio_row.occurrence_id
-                    and numeric_unit(row.unit)[0] != "ratio"]
-        numerator = next((row for row in same_doc if numerator_text and numerator_text in re.sub(r"\s+", "", row.label)), None)
-        denominator = next((row for row in same_doc if denominator_text and denominator_text in re.sub(r"\s+", "", row.label)
-                            and (numerator is None or row.occurrence_id != numerator.occurrence_id)), None)
+
+        def pick(text: str, exclude: set[str]) -> DisclosureOccurrence | None:
+            """先在本报告找分子分母；本报告没有时，只在另一报告唯一命中时跨报告采用。"""
+            if not text:
+                return None
+            same = [row for row in located if row.document_id == ratio_row.document_id
+                    and row.occurrence_id != ratio_row.occurrence_id
+                    and row.occurrence_id not in exclude
+                    and numeric_unit(row.unit)[0] != "ratio"
+                    and text in re.sub(r"\s+", "", row.label)]
+            if same:
+                return same[0]
+            # ESG 常直接重述比例而把分子分母留在年报；多值并存时不猜。
+            other = [row for row in located if row.document_id != ratio_row.document_id
+                     and row.occurrence_id not in exclude
+                     and numeric_unit(row.unit)[0] != "ratio"
+                     and text in re.sub(r"\s+", "", row.label)]
+            return other[0] if len({row.value for row in other}) == 1 else None
+
+        numerator = pick(numerator_text, set())
+        denominator = pick(denominator_text, {numerator.occurrence_id} if numerator else set())
         if not numerator or not denominator:
             continue
         if numeric_unit(numerator.unit)[0] != numeric_unit(denominator.unit)[0]:
@@ -387,11 +449,12 @@ def _semantic_metric_candidates(rows: list[DisclosureOccurrence], period: str, r
             continue
         if _row_identity_problem(row):
             continue
-        concept = _semantic_concept(row.label)
+        concept = _identity_concept(row.label)
         if concept and len(concept) >= 2:
-            grouped[concept].append(row)
+            qualifier_key = _qualifier_key(row.label)
+            grouped[(concept, qualifier_key)].append(row)
     checks = []
-    for concept, items in grouped.items():
+    for (concept, _qualifiers), items in grouped.items():
         by_document = defaultdict(list)
         for row in items:
             by_document[row.document_id].append(row)
@@ -419,17 +482,18 @@ def _semantic_metric_candidates(rows: list[DisclosureOccurrence], period: str, r
                     members=[RelationshipMember(occurrence_id=left.occurrence_id, role="left"),
                              RelationshipMember(occurrence_id=right.occurrence_id, role="right")],
                     relationship_evidence=[_reference(left), _reference(right)],
-                    relationship_basis="auto_label_match",
+                    # 关系由受控指标身份字典认定，属于可复核依据；不是"标签恰好相同"。
+                    relationship_basis="metric_identity",
                     mapping_type="same_metric",
-                    mapping_reason=f"受控别名把“{left.label[:30]}”与“{right.label[:30]}”召回为同一概念“{concept}”；"
-                                   f"别名只帮助召回，不自动证明口径等价",
+                    mapping_reason=f"受控指标身份字典（登记别名与不得等同反例）把“{left.label[:30]}”与“{right.label[:30]}”认定为同一概念“{concept}”；"
+                                   f"字典内含不得等同的反例，口径是否等价仍须五项前提逐项支持",
                     conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
     return checks
 
 
 def _clean_metric_label(label: str) -> str:
     text = re.sub(r"^[（(]?[一二三四五六七八九十\d]+[）)、.．]\s*", "", str(label or ""))
-    text = re.sub(r"[\s：:（）()%％]", "", text)
+    text = compact_label(text)
     # 行名末尾的单位不是指标名的一部分；“研发费用 亿元”和“研发费用”是同一指标。
     text = re.sub(r"(?:百万立方米|万立方米|立方米|亿元|万元|百万元|千元|元|万吨|吨|万人|人)$", "", text)
     return text
@@ -447,6 +511,18 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
     def settled(check: RelationshipCheck) -> RelationshipCheck | None:
         if run is not None:
             check, _ = upgrade_conditions(check, run, period)
+            # 多位置只在各项原文前提已由程序证实时采用受控身份；
+            # 同名、字典匹配或事后人工标记不能单独解除关系依据门禁。
+            if (check.rule_id == "OCC-001" and check.relationship_basis == "multi_location"
+                    and check.mapping_type != "different_metric"
+                    and all(any(c.name == name and c.status == "supported" for c in check.conditions)
+                            for name in BASE_CONDITIONS)):
+                member_ids = {member.occurrence_id for member in check.members}
+                identities = {metric_identity(row.label).get("metric_id", "")
+                              for row in rows if row.occurrence_id in member_ids}
+                if len(identities) == 1 and "" not in identities:
+                    check.relationship_basis = "metric_identity"
+                    check.mapping_type = "same_metric"
         try:
             return calculate(check, rows)
         except (ValueError, ArithmeticError, AttributeError, KeyError, IndexError, TypeError) as error:
@@ -470,7 +546,10 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                                   "role": "ambiguous_column"})
             _trace(run, kind="candidate_rejected", occurrence_id=row.occurrence_id,
                    label=row.label, reason="列头同时含多个年度", role="ambiguous_column")
-    groups = defaultdict(list)
+        elif identity_dimension_problem(row) and rejection_log is not None:
+            rejection_log.append({"occurrence_id": row.occurrence_id, "title": row.label,
+                                  "reason": identity_dimension_problem(row), "role": "metric_unit_binding"})
+    buckets = defaultdict(list)
     for row in _located(rows, period):
         if row.topic not in allowed_topics:
             continue
@@ -487,21 +566,37 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                                       "reason": "宽泛财务分母指标不作为独立待查关系；只在比例/强度关系中保留",
                                       "role": "topic_filter"})
             continue
-        label = direct_metric(row.label) or cleaned
-        # 分组建在“事项＋标签＋量纲”上；排序保证同一输入的候选 ID 稳定。
-        groups[(row.topic, label, numeric_unit(row.unit)[0])].append(row)
+        label = metric_identity(row.label).get("metric_id") or direct_metric(row.label) or cleaned
+        # 分组建在“事项＋标签＋量纲＋限定语”上；排序保证同一输入的候选 ID 稳定。
+        qualifiers = json.dumps(metric_identity(row.label).get("qualifiers", {}), sort_keys=True)
+        buckets[(row.topic, label, numeric_unit(row.unit)[0], qualifiers)].append(row)
+    groups = defaultdict(list)
+    for base_key, members in buckets.items():
+        # 同一行并列“钢铁/其他/合计”或“境内/境外”等列时，各列是不同口径，不能互相当作重复披露；
+        # 全组口径一致时保持原分组，避免把单一“合计”列与其他位置拆开。
+        if len({_column_caliber(member) for member in members}) > 1:
+            for member in members:
+                groups[base_key + (_column_caliber(member),)].append(member)
+        else:
+            for member in members:
+                groups[base_key + ("",)].append(member)
     document_types = {doc.document_id: doc.report_type for doc in (run.documents if run is not None else [])}
     checks = []
-    for group_key in sorted(groups, key=lambda item: (item[0], item[1], item[2])):
-        topic, label, _ = group_key
+    for group_key in sorted(groups, key=lambda item: (item[0], item[1], item[2], item[4])):
+        topic, label, _, _qualifiers, _caliber = group_key
         groups[group_key].sort(key=lambda row: row.occurrence_id)
         members = groups[group_key]
+        if _qualifiers != "{}":
+            label = members[0].label
         if len(members) < 2:
             continue
         by_document = defaultdict(list)
         for row in members:
             by_document[row.document_id].append(row)
         pair = _cross_report_pair(by_document, document_types)
+        if pair and run is not None and _clean_metric_label(pair[0].label) != _clean_metric_label(pair[1].label):
+            # 非同名组合走下方语义候选入口，保留召回依据而非冒充同名披露。
+            pair = None
         if pair:
             left_scope = _normalize_scope(_ai1_scope(pair[0]))
             right_scope = _normalize_scope(_ai1_scope(pair[1]))
@@ -520,20 +615,39 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                        right_scope=right_scope, decision="different_caliber_no_numeric_comparison")
                 checks.append(check)
             else:
+                # metric_identity 已在模块顶层导入；此处重复导入会把名字变成函数局部变量，
+                # 使函数内更早的调用点抛 UnboundLocalError。
+                left_id = metric_identity(pair[0].label).get("metric_id", "")
+                right_id = metric_identity(pair[1].label).get("metric_id", "")
+                if left_id and left_id == right_id:
+                    # 受控身份字典（含“不得等同”反例）认定同一概念，属于可复核依据。
+                    basis = "metric_identity"
+                elif direct_metric(pair[0].label) and direct_metric(pair[0].label) == direct_metric(pair[1].label):
+                    basis = "text_statement"
+                else:
+                    basis = "auto_label_match"
                 checks.append(RelationshipCheck(check_id=f"CHECK-{len(checks)+1:04d}", rule_id="EQ-001",
                     title=f"{label[:70]} · 年报与ESG披露数值核对", topic=topic, operator=RULES["EQ-001"]["operator"],
                     members=[RelationshipMember(occurrence_id=pair[0].occurrence_id, role="left"),
                              RelationshipMember(occurrence_id=pair[1].occurrence_id, role="right")],
-                    # 两份报告各留一条便于点击核对，但明确标注为自动配对：成员行不等于关系依据。
+                    # 两份报告各留一条便于点击核对，但明确标注关系依据类型。
                     relationship_evidence=[_reference(pair[0]), _reference(pair[1])],
-                    relationship_basis="text_statement" if direct_metric(pair[0].label) and direct_metric(pair[0].label) == direct_metric(pair[1].label) else "auto_label_match",
+                    relationship_basis=basis,
                     conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
         # 同一文档内多处同名披露：只作多位置核对，不进入“能确认什么”。
         for document_id, rows_in_doc in by_document.items():
             if len(rows_in_doc) < 2:
                 continue
-            if re.search(r"[－—]|其中|子项", label):
-                # 分项/子项不是独立主指标；避免把同一主指标的拆分位置重复计数。
+            narrative = [row for row in rows_in_doc
+                         if not row.table_id and "|" not in (row.row_header or "")
+                         and len(re.findall(r"\d+(?:\.\d+)?", row.context or "")) > 1]
+            if len(narrative) == len(rows_in_doc) and len({row.context for row in rows_in_doc}) == 1:
+                # 同一叙述句里的多个数字（产量、同比、指数）不是同一指标的多个披露位置。
+                _trace(run, kind="candidate_skipped", reason="同一叙述句内的多个数字不构成多位置披露",
+                       occurrence_ids=[row.occurrence_id for row in rows_in_doc])
+                continue
+            if re.match(r"^(?:其中|子项|明细|分项|减[:：]|加[:：])", label):
+                # 纯分项残片不是独立主指标；带口径的派生指标（如“总量－雨水回用”）保留。
                 continue
             selected = rows_in_doc[:8]
             scopes = {_normalize_scope(_ai1_scope(row)) for row in selected}
@@ -561,9 +675,9 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
     for check in [item for item in checks if item.rule_id == "OCC-001"]:
         label = re.sub(r"(百万立方米|万立方米|立方米|亿元|万元|元|万吨|吨|万人|人)$", "",
                        check.title.split("·")[0].strip())
-        first_document = next((row.document_id for row in rows
-                               if row.occurrence_id == check.members[0].occurrence_id), "")
-        key = (first_document, _semantic_concept(label))
+        first_row = next(row for row in rows if row.occurrence_id == check.members[0].occurrence_id)
+        key = (first_row.document_id, _semantic_concept(first_row.label),
+               _qualifier_key(first_row.label))
         if key not in kept_occ or len(check.members) > len(kept_occ[key].members):
             kept_occ[key] = check
     checks = [check for check in checks if check.rule_id != "OCC-001"] + list(kept_occ.values())
@@ -586,6 +700,9 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
         seen_keys.add(key)
         extra.check_id = f"CHECK-{len(checks)+1:04d}"
         checks.append(extra)
+    # 候选去重后再按规则和成员绑定分配身份；中途删除候选不能复用顺序编号。
+    for check in checks:
+        check.check_id = _stable_check_id(_member_key(check.rule_id, check.members))
     checks = [item for item in (settled(check) for check in checks) if item is not None]
     for check in checks:
         _trace(run, kind="candidate_origin", check_id=check.check_id, origin="rule",
@@ -687,6 +804,42 @@ def _context(rows: list[DisclosureOccurrence], limit: int = 110, preferred: list
     return result
 
 
+def structured_candidate_pool(rows: list[DisclosureOccurrence], period: str, limit: int = 48) -> list[dict]:
+    """提供有界、可定位的组合线索；池本身不证明业务关系，不按金额相似选成员。"""
+    located = [row for row in _located(rows, period) if not _row_identity_problem(row)]
+    pool = []
+    seen = set()
+    def add(rule_id, members, reason):
+        key = _member_key(rule_id, members)
+        if key in seen or len(pool) >= limit:
+            return
+        seen.add(key)
+        pool.append({"candidate_id": _stable_check_id(key), "rule_id": rule_id,
+                     "members": [member.model_dump() for member in members], "basis": reason,
+                     "status": "unverified_candidate"})
+    # 表内组成与比例沿用现有结构提取入口，不复制加总规则。
+    structural = build_table_composition_candidates(located, period) + _composition_candidates(located, period) + _ratio_candidates(located, period)
+    for check in structural:
+        add(check.rule_id, check.members, "行列或分子分母结构线索；仍需定义、范围与公式证据")
+    grouped = defaultdict(list)
+    for row in located:
+        identity = metric_identity(row.label)
+        if identity.get("metric_id"):
+            grouped[(identity["metric_id"], numeric_unit(row.unit)[0])].append(row)
+    for _identity, group in sorted(grouped.items()):
+        for index, left in enumerate(group):
+            for right in group[index+1:]:
+                if left.document_id == right.document_id:
+                    continue
+                comparison = metric_comparison(left.label, right.label)
+                rule = "EQ-001" if comparison["status"] == "compatible" else "NAR-001"
+                roles = ("left", "right") if rule == "EQ-001" else ("occurrence", "occurrence")
+                add(rule, [RelationshipMember(occurrence_id=left.occurrence_id, role=roles[0]),
+                           RelationshipMember(occurrence_id=right.occurrence_id, role=roles[1])],
+                    "同概念跨报告线索；" + comparison["reason"])
+    return pool
+
+
 def call_role(role: str, payload: dict) -> tuple[dict, dict]:
     """沿用现有供应商基础地址和超时规则，记录真实调用及用量。"""
     api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
@@ -694,7 +847,7 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         raise ValueError("MODEL_CONFIG_MISSING")
     if os.getenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true").lower() not in {"true", "1", "yes", "on"}:
         raise ValueError("MODEL_DISABLED")
-    model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    model = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
     base = _strict_tool_base_url(os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
     # 当前用户明确授权的外发目的地是DeepSeek官方，不随网关配置扩大发送范围。
     if urlsplit(base).hostname != "api.deepseek.com":
@@ -732,6 +885,8 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         "hypotheses保存有价值的竞争解释：理由、支持、反证、假设和具体retrieval_queries；最多3项，不凑数量。"
         "解释尚不确定仍允许明确倾向。找到反证时更新或撤回解释，说明改变判断的依据。"
         "evidence_kind区分原文明示、表格结构、程序派生与AI语义解释；不得把语义推理写成企业明示。"
+        "优先审查structured_candidate_pool中的有限成员组合；也可提出至多两项池外新组合，但须同样逐项提供原文与业务关系依据。池内不等于已核验。"
+        "hypothesis_ledger与hypothesis_updates记录此前解释及反证；不得无理由恢复已反驳解释。A3应说明新反证改变了哪项理由与下一步。"
         "occurrences的context_ref指向evidence_blocks中的原文。以成员行及对应原文块联合理解，引用仍绑定occurrence_id。"
     )
     prompt += {"A1": "识别名称不同但有业务关联的指标，标清关联类型、支持与冲突依据和计算方案，保留有价值的未知候选。兼顾组成、同值、多位置和文字数字主张。",
@@ -767,7 +922,7 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
     request = Request(f"{base}/chat/completions", data=request_bytes,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json", "User-Agent": "AuditTrace-Connectivity/1.0"}, method="POST")
     started = time.perf_counter()
-    record = {"role": role, "performed": False, "request_attempted": True, "model": model,
+    record = {"role": role, "performed": False, "request_attempted": True, "model": model, "requested_model": model,
         "status": "failed", "input_tokens": None, "output_tokens": None, "cost": None,
         "input_sha256": hashlib.sha256(request_bytes).hexdigest()}
     try:
@@ -789,7 +944,7 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
     response_data = json.loads(raw)
     choice = response_data["choices"][0]
     usage = response_data.get("usage", {})
-    record.update(performed=True, input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"),
+    record.update(performed=True, returned_model=response_data.get("model"), input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"),
         response_sha256=hashlib.sha256(raw).hexdigest(), duration_ms=round((time.perf_counter()-started)*1000))
     if choice.get("finish_reason") == "length":
         record["failure_code"] = "MODEL_OUTPUT_TRUNCATED"
@@ -929,6 +1084,8 @@ def _proposal_problem(proposal: RelationshipProposal, run: ConnectivityRun,
         return "多位置关系必须来自同一报告；跨报告同值应使用EQ规则"
     if proposal.rule_id == "NAR-001":
         return ""
+    if any(non_exact_value(row) for row in rows):
+        return "成员包含约数或上下界，不能提交精确数值关系；可改用有原文依据的叙述关系"
     dimensions = []
     currencies = set()
     for row in rows:
@@ -940,6 +1097,8 @@ def _proposal_problem(proposal: RelationshipProposal, run: ConnectivityRun,
         dimension = numeric_unit(row.unit)[0]
         if dimension == "unknown":
             return f"成员“{row.label[:40]}”单位无法确定"
+        if identity_dimension_problem(row):
+            return identity_dimension_problem(row)
         dimensions.append(dimension)
         if "money" in dimension and row.currency:
             currencies.add(row.currency)
@@ -961,6 +1120,11 @@ def _proposal_problem(proposal: RelationshipProposal, run: ConnectivityRun,
         expected = "ratio" if numerator_dim == denominator_dim else f"{numerator_dim}/{denominator_dim}"
         if ratio_dim != expected:
             return "披露比例的量纲与分子分母不匹配"
+    if proposal.rule_id in {"EQ-001", "OCC-001"}:
+        for row in rows[1:]:
+            identity = metric_comparison(rows[0].label, row.label)
+            if identity["status"] != "compatible":
+                return "指标身份或业务限定语尚不等价：" + identity["reason"]
     if proposal.rule_id == "EQ-001" and len(document_ids) == 1:
         left, right = rows
         try:
@@ -986,34 +1150,77 @@ def _proposal_problem(proposal: RelationshipProposal, run: ConnectivityRun,
     return ""
 
 
-def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[str], role: str) -> dict:
+def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[str], role: str, *, novel_budget: int = 2) -> dict:
     """成员和引用都在实际传入范围内才接纳，坏候选不污染已有结果。"""
     accepted, rejected, plans, adjustments = [], [], [], []
     new_ids, updated_ids, unchanged_ids, added_evidence, condition_changes, hypothesis_changes = [], [], [], [], [], []
     existing = {(c.rule_id, tuple(sorted((m.occurrence_id, m.role) for m in c.members))): c for c in run.checks}
+    undirected = {_member_key(c.rule_id, c.members): c for c in run.checks if c.rule_id in {"EQ-001", "OCC-001"}}
     seen_canonical = set()
     contract = SingleAgentProposals if role == "single" else AgentProposals
+    pool_keys = {_member_key(item["rule_id"], [RelationshipMember.model_validate(m) for m in item["members"]])
+                 for item in structured_candidate_pool([row for row in run.occurrences if row.occurrence_id in allowed_ids], run.period)}
+    novel_ids = []
     for index, proposal in enumerate(contract.model_validate(response).checks):
         ids = {m.occurrence_id for m in proposal.members}
         refs = proposal.relationship_evidence + proposal.explanation_evidence + [r for c in proposal.conditions for r in c.evidence]
         refs += [r for p in proposal.adjustment_proposals for r in p.evidence]
-        refs += [r for h in proposal.hypotheses for r in h.supporting_evidence + h.counter_evidence]
         bound_ids = ids | {p.occurrence_id for p in proposal.adjustment_proposals}
         if proposal.narrative_claim:
             bound_ids |= {proposal.narrative_claim.current_id, proposal.narrative_claim.previous_id}
             refs += proposal.narrative_claim.evidence
         sources = {o.occurrence_id: o for o in run.occurrences}
+        # 模型给的引文必须能在其绑定的原文里逐字定位；否则只丢弃该条引文，不否定整个候选。
+        unresolved = [ref for ref in proposal.relationship_evidence + proposal.explanation_evidence
+                      if ref.occurrence_id in allowed_ids and not validate_refs([ref], sources)]
+        if unresolved:
+            dropped = {(ref.occurrence_id, ref.quote) for ref in unresolved}
+            proposal.relationship_evidence = [ref for ref in proposal.relationship_evidence
+                                              if (ref.occurrence_id, ref.quote) not in dropped]
+            proposal.explanation_evidence = [ref for ref in proposal.explanation_evidence
+                                             if (ref.occurrence_id, ref.quote) not in dropped]
+            refs = [ref for ref in refs if (ref.occurrence_id, ref.quote) not in dropped]
+            rejected.append({"index": index, "field": "relationship_evidence",
+                             "reason": "引文不能在其绑定的原文中逐字定位，已丢弃该引文并保留候选其余内容",
+                             "occurrence_ids": sorted({ref.occurrence_id for ref in unresolved})})
+            _trace(run, kind="evidence_rejected", index=index, role=role,
+                   occurrence_ids=sorted({ref.occurrence_id for ref in unresolved}),
+                   reason="模型引文与绑定成员原文不一致")
         valid_hypotheses = []
+        basis = existing.get((proposal.rule_id, tuple(sorted((m.occurrence_id, m.role) for m in proposal.members))))
+        basis = basis or RelationshipCheck(check_id="PROPOSAL", rule_id=proposal.rule_id,
+            title=proposal.title, operator=RULES[proposal.rule_id]["operator"], members=proposal.members)
         for hypothesis in proposal.hypotheses:
             hrefs = hypothesis.supporting_evidence + hypothesis.counter_evidence
-            if hrefs and not validate_refs(hrefs, sources):
-                rejected.append({"index": index, "field": "hypotheses", "reason": "竞争解释的引用未逐字核实，已保留其他关系内容"})
+            if any(ref.occurrence_id not in allowed_ids for ref in hrefs) or (hrefs and not validate_refs(hrefs, sources)):
+                rejected.append({"index": index, "field": "hypotheses", "reason": "竞争解释的引用越界或未逐字核实，已保留其他关系内容"})
+                continue
+            # 候选假设与最终意见走同一主张账本；引文存在不能替虚构数字背书。
+            opinion = AIAnalysis(check_id=basis.check_id, verdict="insufficient_basis", summary=hypothesis.explanation,
+                reasons=hypothesis.reasons or [hypothesis.explanation], assumptions=hypothesis.assumptions,
+                supporting_evidence=hypothesis.supporting_evidence, counter_evidence=hypothesis.counter_evidence)
+            ledger = build_claim_ledger(basis, opinion, run.occurrences, role=role)
+            contradicts, problem = should_reject_analysis(ledger)
+            allowed = grounded_numbers(basis, run.occurrences, hrefs)
+            texts = [hypothesis.explanation, *hypothesis.reasons, *hypothesis.assumptions]
+            for derived in ledger.get("derived_checks", []):
+                if derived.get("matches") and derived.get("inputs_grounded"):
+                    allowed.add(Decimal(derived["computed"]))
+                    texts = [text.replace(derived["raw"], "") for text in texts]
+            if contradicts or any(unsupported_numbers(text, allowed) for text in texts):
+                rejected.append({"index": index, "field": "hypotheses", "reason": problem or "竞争解释含无来源数字，已保留其他关系内容"})
                 continue
             valid_hypotheses.append(hypothesis)
         proposal.hypotheses = valid_hypotheses
+        refs += [r for h in valid_hypotheses for r in h.supporting_evidence + h.counter_evidence]
         if not bound_ids.issubset(allowed_ids) or any(r.occurrence_id not in allowed_ids for r in refs):
             rejected.append({"index": index, "reason": "引用超出本角色实际获得的原文"})
             continue
+        # 仅相关/不同口径的关系保留为叙述线索，先消除同值算子再校验业务身份。
+        if proposal.mapping_type in {"related_only", "different_metric", "overlap"} and proposal.rule_id == "EQ-001":
+            rejected.append({"index": index, "field": "operator", "reason": "同值算式未采纳；仅相关或不同口径已保留为叙述线索"})
+            proposal.rule_id = "NAR-001"
+            proposal.members = [RelationshipMember(occurrence_id=m.occurrence_id, role="occurrence") for m in proposal.members]
         binding_problem = _proposal_problem(proposal, run, sources)
         if binding_problem:
             rejected.append({"index": index, "field": "binding", "rule_id": proposal.rule_id,
@@ -1035,7 +1242,15 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
             continue
         seen_canonical.add(canonical)
         signature = (proposal.rule_id, tuple(sorted((m.occurrence_id, m.role) for m in proposal.members)))
-        previous = existing.get(signature)
+        previous = existing.get(signature) or undirected.get(canonical)
+        if previous and proposal.rule_id in {"EQ-001", "OCC-001"}:
+            # 同值关系左右互换不增加一条业务关系，沿用原方向及编号。
+            proposal.members = [member.model_copy(deep=True) for member in previous.members]
+            signature = (proposal.rule_id, tuple(sorted((m.occurrence_id, m.role) for m in proposal.members)))
+        is_novel = not previous and canonical not in pool_keys
+        if is_novel and len(novel_ids) >= novel_budget:
+            rejected.append({"index": index, "field": "candidate_budget", "reason": "本批池外新组合超过两项；保留已通过校验的组合"})
+            continue
         identity = previous.check_id if previous else _stable_check_id(
             _signature(proposal.rule_id, proposal.members) + f"|{run.company}|{run.period}")
         _trace(run, kind="model_candidate", check_id=identity, origin="model_update" if previous else "model",
@@ -1065,6 +1280,9 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
                         condition.evidence_kind = "ai_semantic"
                     merged[condition.name] = condition
                 candidate.conditions = list(merged.values())
+            elif name == "hypotheses" and previous:
+                candidate.hypotheses, notices = merge_hypotheses(previous.hypotheses, proposal.hypotheses, identity)
+                rejected.extend(notices)
             elif name in {"relationship_evidence", "explanation_evidence"} and previous:
                 old = getattr(previous, name)
                 candidate_refs = [*old, *getattr(proposal, name)]
@@ -1082,6 +1300,22 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
                 plans.append(identity)
         if proposal.adjustment_proposals:
             adjustments.append(identity)
+        # 池外新关系必须至少保留一条能逐字回溯的原文依据；全被丢弃时不予采纳。
+        if not previous and not candidate.relationship_evidence and not candidate.explanation_evidence:
+            rejected.append({"index": index, "reason": "候选没有可逐字回溯的原文依据，不予采纳"})
+            continue
+        # AI 只能提出前提主张及其引文；"supported" 必须由程序按原文重新证明。
+        # 否则模型用任意两字原文即可自证口径，把关系直接升级为正式差额。
+        demoted = []
+        for condition in candidate.conditions:
+            if condition.status == "supported":
+                demoted.append(condition.name)
+                condition.status = "unknown"
+                condition.evidence_kind = "ai_semantic"
+                condition.reason = "AI 提出的前提支持不计为已证实，由程序按原文重新证明：" + condition.reason[:80]
+        if demoted:
+            _trace(run, kind="condition_demoted", check_id=identity, role=role, conditions=demoted,
+                   reason="AI 自证前提不成立；等待程序逐项复核")
         try:
             # 新关系先完成相同的程序补证，再交给模型研判；避免末轮复算才改写其输入。
             candidate = upgrade_conditions(candidate, run, run.period)[0]
@@ -1116,10 +1350,15 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
                 candidate.related_checks = list(dict.fromkeys([*candidate.related_checks, other.check_id]))
                 other.related_checks = list(dict.fromkeys([*other.related_checks, identity]))
         run.checks.append(candidate)
+        if is_novel:
+            novel_ids.append(identity)
         existing[signature] = candidate
+        if candidate.rule_id in {"EQ-001", "OCC-001"}:
+            undirected[canonical] = candidate
         accepted.append(identity)
     return {"accepted_check_ids": accepted, "rejected": rejected, "role": role,
             "calculation_plan_ids": plans, "adjustment_check_ids": adjustments,
+            "novel_check_ids": novel_ids,
             "new_check_ids": new_ids, "updated_check_ids": updated_ids, "unchanged_check_ids": unchanged_ids,
             "added_evidence_ids": list(dict.fromkeys(added_evidence)), "condition_changes": condition_changes,
             "hypothesis_changes": hypothesis_changes}
@@ -1147,8 +1386,8 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     run = ConnectivityRun(run_id=f"CONN-{uuid.uuid4().hex[:16].upper()}", company=docs[0].company, period=comparison_period,
         report_period=report_period, metric_period=metric_period,
         documents=docs, execution_mode=request.mode,
-        versions={"extraction": EXTRACTION_VERSION, "rules": "2026-10-19.1", "prompt": PROMPT_VERSION,
-                  "intelligence": "hybrid_v3_claim_ledger", "retrieval": RETRIEVAL_VERSION,
+        versions={"pair_id": request.pair_id, "extraction": EXTRACTION_VERSION, "rules": "2026-10-21.1", "prompt": PROMPT_VERSION,
+                  "intelligence": INTELLIGENCE_VERSION, "retrieval": RETRIEVAL_VERSION,
                   "knowledge": KNOWLEDGE_VERSION, "candidate_origin_scheme": "rule_plus_model_signature_v1",
                   "period_basis": f"比较期间取指标所属年度{metric_period}" if metric_period else
                   "指标所属年度未登记（两份报告均未填），比较期间退回报告所属年度；各披露行仍按自身年度列归属"})
@@ -1265,6 +1504,11 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     ],
                     "not_in_schema_note": "账本由后端根据文本、成员与算式确定性生成；模型无需也不能回传服务端字段。",
                 })
+            payload["hypothesis_ledger"] = [entry for check in checks for entry in hypothesis_ledger(check)]
+            payload["hypothesis_updates"] = [entry for entry in run.intelligence_trace
+                if entry.get("kind") == "hypothesis_update" and entry.get("check_id") in {check.check_id for check in checks}]
+            payload["structured_candidate_pool"] = structured_candidate_pool(
+                [row for row in run.occurrences if row.occurrence_id in combined], comparison_period)
             return pack_role_context(payload)
 
         for role, stage_role in roles:
@@ -1360,6 +1604,32 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                             work_ids.update(part.get("accepted_check_ids", []))
                         if role == "single":
                             part.update(integrate_analyses(run, SingleAgentProposals.model_validate(response).analyses, ids, role, PROMPT_VERSION, record.get("model", "")))
+                    # 绑定或引用失败只允许一次结构化反馈修复，仍走完全相同的校验。
+                    if role in {"A1", "A2"} and part.get("rejected"):
+                        repair_began = time.perf_counter()
+                        try:
+                            repair_payload = batch_payload(role, checks, feedback=part["rejected"])
+                            repair_ids = {r["occurrence_id"] for r in repair_payload["occurrences"]}
+                            repair_result, repair_record = call_role(role, repair_payload)
+                            repair_record.update(batch=batch_index, phase="candidate_repair", context_count=len(repair_ids))
+                            run.provider_calls.append(repair_record)
+                            repair_delta = integrate_proposals(run, repair_result, repair_ids, role,
+                                novel_budget=max(0, 2-len(part.get("novel_check_ids", []))))
+                            if work_ids is not None:
+                                work_ids.update(repair_delta.get("accepted_check_ids", []))
+                            for key, value in repair_delta.items():
+                                if isinstance(value, list):
+                                    part.setdefault(key, []).extend(value)
+                        except InterruptedError:
+                            raise
+                        except Exception as error:
+                            # 修复请求失败不抹掉第一次已接纳的关系、证据或统计。
+                            repair_record = failure_record(error, role, repair_began)
+                            repair_record.update(batch=batch_index, phase="candidate_repair")
+                            run.provider_calls.append(repair_record)
+                            delta["failed_batches"].append({"batch": batch_index, "phase": "candidate_repair",
+                                "failure_code": repair_record["failure_code"]})
+                            any_failure = True
                     for key in delta:
                         if key in part:
                             delta[key].extend(part[key])

@@ -1,0 +1,14 @@
+{
+  "console_errors": [],
+  "step2_shot": "flow__step2_settings.png",
+  "advanced_shot": "flow__step2_advanced.png",
+  "step3_shot": "flow__step3_confirm.png",
+  "submitted_at": "22:46:11",
+  "elapsed_seconds": 193.6,
+  "message": "已完成。228处候选、8项关系；模型状态：未调用模型。",
+  "result_shot": "flow__result.png",
+  "detail_error": "TimeoutError",
+  "after_reload_message": "选择同公司、同期间的两份报告，开始定位原文。",
+  "reload_shot": "flow__reload.png",
+  "history_shot": "flow__history.png"
+}

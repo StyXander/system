@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from backend.app import company_discovery as discovery
 from backend.app import main
-from backend.app.cninfo import CNInfoClient, CNInfoError, match_companies, normalize_company_query
+from backend.app.cninfo import CNInfoClient, CNInfoError, match_companies, normalize_company_query, china_today
 from backend.app.schemas import CNInfoPipelineRequest
 
 
@@ -203,7 +203,7 @@ def test_announcement_search_highlight_and_meeting_are_not_full_reports():
 def test_future_cutoff_rejected_and_code_normalized():
     assert CNInfoPipelineRequest(company_query="600276.SH").company_query == "600276"
     with pytest.raises(ValueError):
-        CNInfoPipelineRequest(company_query="600276", source_cutoff_date=date.today() + timedelta(days=1))
+        CNInfoPipelineRequest(company_query="600276", source_cutoff_date=china_today() + timedelta(days=1))
     with pytest.raises(ValueError):
         CNInfoPipelineRequest(company_query="SZ600276")
     with pytest.raises(ValueError):

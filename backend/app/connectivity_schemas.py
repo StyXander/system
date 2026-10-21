@@ -14,6 +14,7 @@ NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核�
 LEGACY_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 NOTICE_BY_TASK_KIND = {"connectivity": NOTICE, "legacy_audit": LEGACY_NOTICE}
 SCHEMA_VERSION = "connectivity_v4"
+INTELLIGENCE_VERSION = "hybrid_v4_counterevidence_grounded"
 
 # 本轮事项类型裁决：取方案(b)。海菲曼利润总额只走版本子流程并使用独立事项标识，
 # 不扩 topics 枚举，以免把双报告引擎改造成通用多文档平台。
@@ -79,6 +80,8 @@ class DisclosureOccurrence(Contract):
     page_height: float = 0
     label: str
     value: str | None = None
+    # 约数和上下界保留原文性质，不能伪装为精确点值进入差额计算。
+    value_qualifier: Literal["unspecified", "exact", "approximate", "lower_bound", "upper_bound"] = "unspecified"
     unit: str = ""
     unit_source: str = ""
     currency: str = ""
@@ -116,6 +119,9 @@ class DisclosureOccurrence(Contract):
     row_parent_label: str = ""
     definition: str = ""
     row_header: str = ""
+    # 所选列与整表头分存，避免把其他年度误当作本值所属列。
+    full_table_header: str = ""
+    year_binding: Literal["cell_header", "coordinate", "inline", "unattributed"] = "unattributed"
     column_header: str = ""
     header_path: list[str] = Field(default_factory=list)
     context: str
@@ -295,9 +301,10 @@ class RelationshipCheck(Contract):
     members: list[RelationshipMember] = Field(default_factory=list, max_length=100)
     conditions: list[ComparisonCondition] = Field(default_factory=list, max_length=12)
     relationship_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
-    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构。
-    # 自动配对与表内结构只产生候选，成员行不能充当"关系本身有原文依据"。
-    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure"] = "text_statement"
+    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构 /
+    # 受控指标身份字典映射。自动配对、多位置与表内结构只产生候选，成员行不能
+    # 充当"关系本身有原文依据"；字典映射属于可复核的受控依据。
+    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure", "metric_identity"] = "text_statement"
     ratio_scale: str = "1"
     explanation: str = ""
     explanation_evidence: list[EvidenceRef] = Field(default_factory=list)

@@ -16,11 +16,12 @@ from typing import Iterable
 
 from .connectivity_engine import validate_refs
 from .connectivity_extraction import PARSER_CACHE_VERSION
+from .connectivity_metrics import content_classification
 from .connectivity_rules import direct_metric
 from .connectivity_schemas import DisclosureOccurrence
 
 RULE_BASIS_PATH = Path(__file__).with_name("connectivity_rule_basis.json")
-RETRIEVAL_VERSION = "connectivity_directed_retrieval_v1"
+RETRIEVAL_VERSION = "connectivity_directed_retrieval_v2"
 KNOWLEDGE_VERSION = "connectivity_rule_basis_v1"
 
 #: 别名只用于召回；取水与耗水、研发费用与研发投入等差异仍由原文定义确认。
@@ -234,22 +235,51 @@ def _cached_pages(root: Path, run) -> dict[str, list[dict]]:
     return cached
 
 
-def _score_line(text: str, queries: list[dict]) -> tuple[int, int, list[str]]:
+def _local_line_context(lines: list[dict], index: int) -> str:
+    """只连相邻同栏行；缺少栏号时须有横向重叠坐标，否则只用当前行。"""
+    line = lines[index]
+    current_box = line.get("bbox") or []
+    selected = []
+    for row in lines[max(0, index - 2):index + 3]:
+        same_column = row is line
+        if line.get("side") is not None:
+            same_column = row.get("side") == line["side"]
+        elif len(current_box) == 4 and len(row.get("bbox") or []) == 4:
+            box = row["bbox"]
+            same_column = min(current_box[2], box[2]) > max(current_box[0], box[0])
+        if same_column and row.get("text"):
+            selected.append(row["text"])
+    return "\n".join(selected)
+
+
+def _score_line(text: str, queries: list[dict], context: str = "") -> tuple[int, int, list[str]]:
     """支持与反证分开计分；query 的指标名和条件词都必须至少命中一个。
 
-    只命中一个通用条件词（例如只出现“范围”）不足以召回，防止 13 条关系
-    反复拿到同一段宽泛文本；命中两个以上词才计入分数。
+    terms首项是指标锚点，其余是条件词，不能以两个条件词替代指标。
+    同栏相邻五行、至多600字可为分行脚注提供锚点，不接受全报告上下文。
     """
     compact = re.sub(r"\s+", "", text)
+    local_context = context if len(context) <= 600 and len(context.splitlines()) <= 5 else ""
+    local = compact + re.sub(r"\s+", "", local_context)
+    if content_classification(text)[0] in {"macro", "industry"}:
+        return 0, 0, []
     support = counter = 0
     hit_ids = []
     for query in queries:
-        terms = [term for term in query["terms"] if term]
-        if not terms:
+        terms = [re.sub(r"\s+", "", str(term)) for term in query.get("terms", [])]
+        if len(terms) < 2 or not terms[0]:
             continue
-        hits = sum(1 for term in terms if re.sub(r"\s+", "", term) in compact)
-        if hits < 2 and len(terms) > 1:
+        anchor = terms[0]
+        # 通用指代、数字行次与宏观指标不能作为业务证据的身份锚点。
+        if (len(anchor) < 2 or re.fullmatch(r"(?:本|该|上述|相关)?(?:指标|事项|项目|数据|金额|数量|合计|总计|总量|其他|备注|注)|[\d一二三四五六七八九十]+", anchor)
+                or content_classification(anchor)[0] in {"macro", "industry"}
+                or anchor.upper() == "GDP"):
             continue
+        # 条件须出现在当前证据行；邻行只提供指标身份，不能替无关行凑条件。
+        condition_hits = sum(1 for term in dict.fromkeys(terms[1:]) if term and term != anchor and term in compact)
+        if anchor not in local or not condition_hits:
+            continue
+        hits = 1 + condition_hits
         weight = hits * (2 if query["kind"] == "support" else 3)
         if query["kind"] == "support":
             support += weight
@@ -290,11 +320,10 @@ def retrieve_targeted_pages(root: Path, run, checks: list, round_number: int = 1
                 scanned[document_id].append(page.get("page"))
                 lines = page.get("lines", [])
                 for index, line in enumerate(lines):
-                    support, counter, hit_ids = _score_line(line.get("text", ""), queries)
+                    context = _local_line_context(lines, index)
+                    support, counter, hit_ids = _score_line(line.get("text", ""), queries, context)
                     if not (support or counter):
                         continue
-                    context = "\n".join(row["text"] for row in lines[max(0, index - 2):index + 3]
-                                        if row.get("side") == line.get("side"))
                     key = (document_id, page.get("page"), re.sub(r"\s+", "", context))
                     if key in seen_text:
                         continue

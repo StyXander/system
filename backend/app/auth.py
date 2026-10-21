@@ -32,13 +32,22 @@ CASE_WRITE_ROLES = frozenset({"owner", "admin", "reviewer"})
 
 
 def model_consent_contract() -> dict[str, str]:
-    """把同意绑定到服务端当前实际供应商、模型和规范化最小传输范围。"""
+    """把同意绑定到当前供应商、请求模型和规范化最小传输范围。
+
+    模型名称来自服务端配置，不接受网页直接扩大外发目的地。
+    默认请求型号必须是当前已实测可用的官方型号。
+    历史报告记载的模型名称不覆盖本次实际请求配置。
+    供应商实际返回的型号由调用记录另行保存。
+    本合同仅说明本次请求身份，不证明模型已经执行或成功。
+    模型切换后，已有同意仍按原身份核验，不能冒充新同意。
+    密钥只留在服务端，公开合同只返回供应商域名与型号。
+    """
 
     base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").strip()
     provider = (urlparse(base_url).hostname or "api.deepseek.com").lower()
     return {
         "provider": provider,
-        "model_id": os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip(),
+        "model_id": os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip(),
         "transmission_scope": model_transmission_scope(),
     }
 

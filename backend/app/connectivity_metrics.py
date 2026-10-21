@@ -77,8 +77,11 @@ METRIC_IDENTITIES: dict[str, dict] = {
 }
 
 MODIFIER_PATTERNS = (
-    ("capitalized", re.compile(r"资本化")),
-    ("expensed", re.compile(r"费用化|费用化支出")),
+    ("capitalized", re.compile(r"资本化|资本性")),
+    ("expensed", re.compile(r"费用化|费用性")),
+    ("cash", re.compile(r"现金|现金流")),
+    ("cumulative", re.compile(r"累计|累积|历年")),
+    ("current", re.compile(r"本期|当期|本年|当年|年度")),
     ("total", re.compile(r"合计|总计|总额|总投入|总量")),
     ("component", re.compile(r"其中|分项|明细|组成部分")),
     ("intensity", re.compile(r"强度|单位营收|单位产品|占比|比例|率$")),
@@ -89,9 +92,10 @@ _ASCII = re.compile(r"[a-z0-9]")
 
 
 def compact_label(label: str) -> str:
-    """去掉空白、单位和行次标点，保留可用于身份比较的业务名称。"""
+    """只去单位括号，保留括号中的资本性、现金、期间等业务限定语。"""
     text = re.sub(r"\s+", "", str(label or ""))
-    text = re.sub(r"[（(][^）)]{0,20}[）)]", "", text)
+    units = r"(?:人民币|美元|港元|欧元|日元)?(?:百万元|亿元|万元|千元|元|万人|人|万吨|吨|%|％|立方米|万立方米|千瓦时|吨标准煤|吨二氧化碳当量)"
+    text = re.sub(r"[（(](?:单位[：:]?)?" + units + r"(?:/" + units + r")?[）)]", "", text)
     text = re.sub(r"^[一二三四五六七八九十百]+[、.．]", "", text)
     return text.strip("：:，,。；;·-—_")
 
@@ -107,10 +111,110 @@ def _contains(text: str, needle: str) -> bool:
 def metric_modifier(label: str) -> str:
     """识别资本化/费用化/合计/强度等限定语，限定语不改变指标身份但改变可比范围。"""
     compact = compact_label(label)
+    qualifiers = metric_qualifiers(label)
+    for name in ("capital", "expense"):
+        inclusion = qualifiers.get("inclusion_" + name)
+        if inclusion:
+            return name + "_" + inclusion
     for name, pattern in MODIFIER_PATTERNS:
         if pattern.search(compact):
             return name
     return ""
+
+
+def metric_qualifiers(label: str) -> dict[str, str]:
+    """各维限定语独立登记，不能让首个命中吞掉现金或累计等后续限定。"""
+    text = compact_label(label)
+    result = {}
+    accounting_text = text
+    for dimension, words in (("inclusion_capital", r"资本化|资本性"), ("inclusion_expense", r"费用化|费用性")):
+        negative = re.compile(r"(?:不含|不包括|不包含|未包含|未包括|剔除|扣除|不计入|未计入)(?:的)?(?:" + words + r")(?:支出|投入|费用)?(?:部分)?")
+        excluded = bool(negative.search(text))
+        without_negative = negative.sub("", text)
+        positive = re.compile(r"(?<!不)(?<!未)(?:含|包括|包含|计入)(?:的)?(?:" + words + r")(?:支出|投入|费用)?(?:部分)?")
+        included = bool(positive.search(without_negative))
+        if excluded or included:
+            result[dimension] = "included+excluded" if included and excluded else "excluded" if excluded else "included"
+            # “含资本化部分”描述总口径的组成，不能把该总指标变成资本性分项。
+            accounting_text = positive.sub("", negative.sub("", accounting_text))
+    patterns = {
+        "accounting": (("capital", r"资本化|资本性"), ("expense", r"费用化|费用性")),
+        "payment": (("cash", r"现金"), ("noncash", r"非现金")),
+        "period": (("cumulative", r"累计|累积|历年"), ("current", r"本期|当期|本年|当年|年度")),
+        "extent": (("total", r"合计|总计|总额|总投入|总量"), ("component", r"其中|分项|明细|组成部分|(?:^|[（(])部分")),
+        "boundary": (("consolidated", r"合并"), ("parent", r"母公司")),
+        "water_flow": (("consumption", r"耗水"), ("withdrawal", r"取水"), ("usage", r"用水")),
+    }
+    for dimension, options in patterns.items():
+        source = accounting_text if dimension in {"accounting", "extent"} else text
+        hits = [name for name, pattern in options if re.search(pattern, source)]
+        # “非现金”不能同时登记为现金；联合口径保留全部成员，不能只取首项。
+        if dimension == "payment" and "noncash" in hits:
+            hits = ["noncash"]
+        if hits:
+            result[dimension] = "+".join(sorted(hits))
+    # 排放范围和用水来源属于业务口径，不能被“总量”词根吞掉。
+    scopes = set()
+    digits = {"一":"1", "二":"2", "三":"3"}
+    for match in re.finditer(r"(?:范围|scope)[：:_-]?([123一二三](?:[、，,和及+＋与][123一二三])*)", text, re.I):
+        scopes.update(digits.get(value,value) for value in re.findall(r"[123一二三]", match.group(1)))
+    if scopes:
+        result["emission_scope"] = "+".join(sorted(scopes))
+    if re.search(r"温室气体|碳排放|(?:范围|scope)[123一二三].*排放", text, re.I):
+        # ISO排放类别与GHG Scope采用独立维度；相同编号不是两套口径等价的证据。
+        categories = set()
+        category_numbers = {word: str(index) for index, word in enumerate("一二三四五六七八九十", 1)}
+        for match in re.finditer(r"类别[：:_-]?((?:[1-9]\d*|[一二三四五六七八九十]+)(?:[、，,和及+＋与](?:类别)?(?:[1-9]\d*|[一二三四五六七八九十]+))*)", text):
+            categories.update(category_numbers.get(value, value) for value in re.findall(r"[1-9]\d*|[一二三四五六七八九十]+", match.group(1)))
+        if categories:
+            result["emission_category"] = "+".join(sorted(categories))
+        elif "类别" in text:
+            result["emission_category"] = "unspecified"
+        sources = [name for name, token in (("direct", "直接"), ("indirect", "间接")) if token in text]
+        if sources:
+            result["emission_source"] = "+".join(sources)
+        chains = [name for name, pattern in (("upstream", r"上游|upstream"), ("downstream", r"下游|downstream"))
+                  if re.search(pattern, text, re.I)]
+        if chains:
+            result["value_chain"] = "+".join(chains)
+    if re.search(r"用水|取水|耗水|雨水|回用水|再生水|中水", text):
+        parts = [name for name, token in (("surface","地表水"),("ground","地下水"),("municipal","市政供水"),
+                 ("sea","海水"),("recycled","循环水"),("rainwater","雨水"),("reclaimed","再生水"),("greywater","中水")) if token in text]
+        if parts:
+            result["water_component"] = "+".join(parts)
+    # 强度和比例的分母不能充当指标本身，水资源分子也必须保持独立。
+    if re.search(r"强度", text):
+        result["quantity_kind"] = "intensity"
+    elif re.search(r"占比|比例|比重|比率|增长率|增幅|同比|环比|占.{2,}收入", text):
+        result["quantity_kind"] = "ratio"
+    if result.get("quantity_kind"):
+        if re.search(r"营收|营业收入|营业总收入", text):
+            result["denominator"] = "revenue"
+        elif re.search(r"产品|产量", text):
+            result["denominator"] = "product"
+    return result
+
+
+def metric_comparison(left_label: str, right_label: str) -> dict:
+    """检查概念和限定语的冲突；compatible 只表示没有识别出冲突，不证明同口径。"""
+    left, right = metric_identity(left_label), metric_identity(right_label)
+    result = {"status": "compatible", "reason": "未识别出指标身份或限定语冲突；仍需原文证明定义与范围", "left": left, "right": right}
+    if left["metric_id"] and right["metric_id"] and left["metric_id"] != right["metric_id"]:
+        return {**result, "status": "conflicting", "reason": f"指标概念不同：{left['canonical']} / {right['canonical']}"}
+    lq, rq = left["qualifiers"], right["qualifiers"]
+    for dimension in dict.fromkeys((*lq, *rq)):
+        a, b = lq.get(dimension, ""), rq.get(dimension, "")
+        if a == b:
+            continue
+        if a and b:
+            return {**result, "status": "conflicting", "reason": f"指标{dimension}限定不同：{a} / {b}"}
+        # “环保投入合计”和“环保投入”可继续验证；资本/现金/累计/部分等缺一不可。
+        if dimension == "extent" and (a or b) == "total":
+            continue
+        if dimension == "period" and (a or b) == "current":
+            continue
+        return {**result, "status": "unknown", "reason": f"仅一侧披露指标{dimension}限定：{a or b}，不能默认另一侧同口径"}
+    return result
 
 
 def _not_equal_hit(compact: str, canonical: str, spec: dict) -> str:
@@ -129,9 +233,11 @@ def metric_identity(label: str) -> dict:
     compact = compact_label(label)
     empty = {"metric_id": "", "canonical": "", "topic": "", "dimension": "",
              "match": "none", "equivalence": "none", "modifier": metric_modifier(label),
-             "source_label": str(label or ""), "note": "未登记指标身份，不能自动跨报告配对"}
+             "qualifiers": metric_qualifiers(label), "source_label": str(label or ""), "note": "未登记指标身份，不能自动跨报告配对"}
     if not compact:
         return empty
+    if empty["qualifiers"].get("quantity_kind"):
+        return {**empty, "note": "比例或强度保留独立身份；名称中的分子分母不能充当总量指标别名"}
     # 反例优先：例如“研发费用”不能被“研发投入”的别名吞掉。
     for canonical, spec in METRIC_IDENTITIES.items():
         if _not_equal_hit(compact, canonical, spec):
@@ -140,7 +246,7 @@ def metric_identity(label: str) -> dict:
         if any(_contains(compact, name) for name in strict):
             return {"metric_id": canonical, "canonical": canonical, "topic": spec["topic"],
                     "dimension": spec["dimension"], "match": "exact", "equivalence": "exact",
-                    "modifier": metric_modifier(label), "source_label": str(label or ""),
+                    "modifier": metric_modifier(label), "qualifiers": metric_qualifiers(label), "source_label": str(label or ""),
                     "note": spec.get("note", "")}
     for canonical, spec in METRIC_IDENTITIES.items():
         if _not_equal_hit(compact, canonical, spec):
@@ -149,7 +255,7 @@ def metric_identity(label: str) -> dict:
         if any(_contains(compact, name) for name in aliases):
             return {"metric_id": canonical, "canonical": canonical, "topic": spec["topic"],
                     "dimension": spec["dimension"], "match": "alias", "equivalence": "limited",
-                    "modifier": metric_modifier(label), "source_label": str(label or ""),
+                    "modifier": metric_modifier(label), "qualifiers": metric_qualifiers(label), "source_label": str(label or ""),
                     "note": "别名只作召回线索；仍须原文证明定义、范围与期间一致"}
     return empty
 
@@ -160,11 +266,10 @@ def classify_topic(label: str) -> str:
 
 
 def currency_in_text(text: str) -> str:
-    """只在原文明确写出币种时返回代码，不从“元”字推定币种。"""
-    for word, code in (("人民币", "CNY"), ("美元", "USD"), ("港元", "HKD"), ("欧元", "EUR"), ("日元", "JPY")):
-        if word in str(text or ""):
-            return code
-    return ""
+    """原文只有一个明确币种才返回代码；多币种声明和单独“元”均保持未知。"""
+    hits = {code for word, code in (("人民币", "CNY"), ("美元", "USD"), ("港元", "HKD"), ("欧元", "EUR"), ("日元", "JPY"))
+            if word in str(text or "")}
+    return next(iter(hits)) if len(hits) == 1 else ""
 
 
 MACRO_PREFIX = re.compile(r"^(?:我国|全国|国内|全行业|行业|全球|全省|全市|全社会)")

@@ -92,7 +92,7 @@ def test_render_declares_single_web_competition_demo_without_login_worker() -> N
     assert "key: AUDITTRACE_DEMO_TASK_PERSISTENCE\n        value: supabase" in render
     assert "key: AUDITTRACE_DEMO_EXECUTOR_MODE\n        value: web" in render
     assert "key: AUDITTRACE_PROVIDER_PROBE_ENABLED\n        value: \"true\"" in render
-    assert "key: DEEPSEEK_MODEL\n        value: deepseek-v4-flash" in render
+    assert "key: DEEPSEEK_MODEL\n        value: deepseek-flash" in render
     # Service-role credentials are declared as Render secrets only; no value is
     # committed and no paid worker is activated by the current blueprint.
     assert "key: SUPABASE_SERVICE_ROLE_KEY" in render

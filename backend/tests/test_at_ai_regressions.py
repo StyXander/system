@@ -254,7 +254,7 @@ def test_total_up_and_intensity_down_are_not_contradictory():
     assert result.get("total_and_intensity_coexist") is True
 
 
-def test_counter_evidence_refutes_explanation_and_absence_is_not_verification():
+def test_counter_quote_alone_does_not_prove_refutation_and_absence_is_not_verification():
     current = occ("CUR", "环保投入", "100")
     previous = occ("PRE", "环保投入", "90")
     check = eq_check([current, previous], [("CUR", "left"), ("PRE", "right")])
@@ -263,8 +263,10 @@ def test_counter_evidence_refutes_explanation_and_absence_is_not_verification():
         supporting_evidence=[EvidenceRef(occurrence_id="CUR", quote="环保投入 100万元")],
         counter_evidence=[EvidenceRef(occurrence_id="PRE", quote="环保投入 90万元")])]
     updates = apply_hypothesis_updates(check, [current, previous])
-    assert any(item["after"] == "refuted" for item in updates)
-    assert check.hypotheses[0].status == "refuted"
+    # 两个金额引文只证明披露过数值，不证明“范围差异解释”已被反驳。
+    assert any(item["after"] == "plausible" for item in updates)
+    assert check.hypotheses[0].status == "plausible"
+    assert hypothesis_ledger(check)[0]["semantic_status"] == "ai_assessed_not_independently_verified"
     check.hypotheses[0].counter_evidence = []
     check.hypotheses[0].status = "plausible"
     records = hypothesis_ledger(check)
@@ -365,17 +367,30 @@ def test_same_document_large_spread_is_not_an_eq_or_anomaly():
 
 
 def test_column_composition_balances_and_stays_a_candidate():
-    total = occ("SYN-ESG-79-T2-R0-C6", "环保资本化项目投入", "4.835", "亿元", "SYN-ESG", header="2024 年 / 合计", topic="environment")
-    steel = occ("SYN-ESG-79-T2-R0-C4", "环保资本化项目投入", "4.34", "亿元", "SYN-ESG", header="2024 年 / 钢铁", topic="environment")
-    other = occ("SYN-ESG-79-T2-R0-C5", "环保资本化项目投入", "0.495", "亿元", "SYN-ESG", header="2024 年 / 其他", topic="environment")
+    total = occ("SYN-ESG-79-T2-R0-C6", "环保资本化项目投入", "4.835", "亿元", "SYN-ESG", header="2025 年 / 合计", topic="environment")
+    steel = occ("SYN-ESG-79-T2-R0-C4", "环保资本化项目投入", "4.34", "亿元", "SYN-ESG", header="2025 年 / 钢铁", topic="environment")
+    other = occ("SYN-ESG-79-T2-R0-C5", "环保资本化项目投入", "0.495", "亿元", "SYN-ESG", header="2025 年 / 其他", topic="environment")
     for row in (total, steel, other):
-        row.header_path = ["2024 年", row.column_header.split("/")[-1].strip()]
+        row.header_path = ["2025 年", row.column_header.split("/")[-1].strip()]
     run = run_with([total, steel, other], documents=[doc("SYN-ESG", "ESG")])
     checks = candidate_checks(run.occurrences, "2025", run=run, topics=["environment"])
     composition = next(check for check in checks if check.rule_id == "ENV-001" and "合计列" in check.title)
     assert {member.role for member in composition.members} == {"total", "component"}
     assert composition.calculation_status == "not_comparable"
     assert composition.hypothetical["residual"] == "0"
+
+
+def test_previous_year_composition_column_cannot_be_attributed_to_current_year():
+    rows = [occ(f"SYN-ESG-79-T2-R0-C{column}", "环保资本化项目投入", value, "亿元", "SYN-ESG",
+                header=f"2024 年 / {label}", topic="environment")
+            for column, label, value in ((6, "合计", "4.835"), (4, "钢铁", "4.34"), (5, "其他", "0.495"))]
+    for row in rows:
+        row.header_path = ["2024 年", row.column_header.split("/")[-1].strip()]
+    run = run_with(rows, documents=[doc("SYN-ESG", "ESG")])
+    rejections = []
+    checks = candidate_checks(rows, "2025", run=run, topics=["environment"], rejections=rejections)
+    assert not any(check.rule_id == "ENV-001" and "合计列" in check.title for check in checks)
+    assert rejections, "必须记录年度冲突的排除原因，不能静默漏掉"
 
 
 def test_non_identical_alias_mapping_recalls_but_expense_is_not_investment():

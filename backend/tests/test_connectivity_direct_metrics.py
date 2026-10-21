@@ -28,6 +28,9 @@ def test_numeric_difference_is_not_hidden_by_direct_metric_rule():
 
 def test_explicit_ratio_label_compares_disclosure_without_claiming_recalculation():
     run = pair("研发投入占营业收入比例", "研发投入占营业收入比例", "2581", unit="%")
+    # 比例的指标范围必须有自己的原文，环保投入范围不能移作研发比例依据。
+    for occurrence in run.occurrences:
+        occurrence.context += "\n研发投入占营业收入比例统计范围为合并范围。"
     check = candidate_checks(run.occurrences, "2025", run)[0]
     assert check.operator == "equal"
     assert check.calculation_status == "consistent"
@@ -45,3 +48,10 @@ def test_expenses_and_person_times_are_not_input_or_headcount():
     for label in ("研发费用", "研发人员数量（人次）", "研发人员数量占比", "母公司研发人员数量"):
         assert not direct_metric(label)
     assert direct_metric("研发投入金额（亿元）") == "研发投入金额"
+
+
+def test_unrelated_environment_scope_cannot_support_research_ratio():
+    run = pair("研发投入占营业收入比例", "研发投入占营业收入比例", "2581", unit="%")
+    check = candidate_checks(run.occurrences, "2025", run)[0]
+    assert check.criteria_status == "unknown"
+    assert check.calculation_status == "not_comparable"

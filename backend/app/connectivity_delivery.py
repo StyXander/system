@@ -27,7 +27,7 @@ from docx import Document
 from docx.shared import Pt, RGBColor, Cm
 
 from .connectivity_schemas import ConnectivityRun, notice_for
-from .delivery import _add_heading, _table_rows, _set_run_font
+from .delivery import _add_heading as _shared_heading, _table_rows as _shared_table, _set_run_font
 from .connectivity_overview import build_overview
 from .connectivity_facts import execution_provenance
 
@@ -73,9 +73,22 @@ def verify_export_same_source(run: ConnectivityRun, payload: bytes) -> list[str]
     return problems
 
 
+def _word_text(value) -> str:
+    """PDF可能含XML非法控制字符；仅净化Word显示，不改JSON中的原始证据。"""
+    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]", "", str(value))
+
+
+def _add_heading(document, text, level=1):
+    return _shared_heading(document, _word_text(text), level)
+
+
+def _table_rows(document, rows):
+    return _shared_table(document, [(_word_text(key), _word_text(value)) for key, value in rows])
+
+
 def _paragraph(document, text):
     """每段明确设正文宋体小四，避免继承系统默认字体。"""
-    run = document.add_paragraph().add_run(str(text))
+    run = document.add_paragraph().add_run(_word_text(text))
     _set_run_font(run)
     run.font.size = Pt(12)
 
@@ -114,6 +127,9 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             entry = run.overview[key]
             writer.writerow(['overview_count', run.run_id, run.result_revision, '', '', '', key, entry['value'], '项', '', '',
                              entry.get('label', key), '', '', '', '', ''])
+        for key, entry in run.overview["program_levels"].items():
+            writer.writerow(["program_level_count", run.run_id, run.result_revision, "", "", "", key,
+                             entry["value"], "项", "", "", "六级互斥分类", "", "", "", "", ""])
         for check in run.checks:
             base = [run.run_id, run.result_revision, check.check_id, check.rule_id, check.title]
             tail = [check.calculation.get("expression", ""), check.calculation.get("residual") or "", check.criteria_status, check.calculation_status, check.review_status]
@@ -206,20 +222,18 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
     _paragraph(document, notice)
     _paragraph(document, execution_provenance(run)["label"])
     _add_heading(document, "阅读摘要", 2)
-    labels = {"confirmable": "可确认", "limited_support": "有限支持", "conditional_trial": "条件试算", "not_comparable": "不可比", "pending": "待查"}
-    for key, label in labels.items():
-        _paragraph(document, f"{label}：{run.overview['summary_bands'][key]['value']} / {len(run.checks)}项。")
-    _paragraph(document, "上述五类互斥；条件试算项仍可能暂不可比，不可比栏仅统计没有试算记录的不可比关系。条件试算依赖所列假设；正式复算为0时表示当前前提不足或没有可执行数值关系，不能解读为没有问题。")
-    _paragraph(document, "页面同口径六级统计（互斥，分母为全部关系）：" + "；".join(
-        label + str(run.overview["program_levels"][key]["value"]) + "项"
-        for key, label in [("formal", "正式复算"), ("conditional", "条件试算"), ("limited", "有限支持"),
-                            ("insufficient", "依据不足·不可比"), ("conflict", "潜在矛盾"), ("not_applicable", "不适用数值计算")]))
+    _paragraph(document, "可确认关系与其他状态采用同一六级分类，以下各类互斥，分母为全部关系：")
+    for key, label in [("formal", "正式复算且数值相容"), ("conditional", "条件试算"), ("limited", "有限支持"),
+                       ("insufficient", "依据不足·不可比"), ("conflict", "明确口径冲突或未解释差额"),
+                       ("not_applicable", "不适用数值计算")]:
+        _paragraph(document, f"{label}：{run.overview['program_levels'][key]['value']} / {len(run.checks)}项。")
+    _paragraph(document, "条件试算依赖明确列出的假设；报告层声明不证明指标范围一致。正式一致为0不代表没有问题。")
     _paragraph(document, f"本次从登记报告中发现{len(run.occurrences)}处候选及上下文，形成{len(run.checks)}项关系记录、{len(run.findings)}项待查问题。数字相符不替代定义与范围依据。")
     overview = run.overview
     _paragraph(document, f'程序事实记录{len(run.program_hints)}条（含无差异登记）；正式复算{overview["formal_calculations"]["value"]}项；'
                f'仅条件试算{overview["trial_calculations"]["value"]}项；程序差异或限制提示{overview["program_hints"]["value"]}项。')
     _paragraph(document, f'当前模型意见覆盖{overview["model_opinions"]["value"]}/{len(run.checks)}项关系；中高优先级{overview["priority_checks"]["value"]}项。覆盖不等于异常，数量不相加为成果总数。')
-    if run.versions.get('intelligence') and run.versions.get('rules') not in {'2026-10-18.2', '2026-10-19.1'}:
+    if run.versions.get('intelligence') and run.versions.get('rules') not in {'2026-10-18.2', '2026-10-19.1', '2026-10-20.3', '2026-10-21.1'}:
         _paragraph(document, '历史规则结果：原范围支持与意见未按本次缺陷修复重新验证。此处保留原计算，不应引用其正式支持数量作为当前成果。')
     overview = run.overview or {}
     if overview:
