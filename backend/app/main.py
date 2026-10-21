@@ -595,9 +595,18 @@ if forensic_editorial_dir.exists():
 
 
 def _model_settings() -> tuple[str | None, str, str]:
+    """读取当前请求配置，供运行入口和就绪状态共用。
+
+    就绪配置和实际模型调用属于不同的运行证据。
+    配置存在不能证明供应商鉴权、额度或推理已经成功。
+    请求型号与响应实际型号分别留痕，允许官方别名变化被观察。
+    旧版实验和历史发布快照中的型号保持原记录，不反向改写。
+    默认地址仅是配置默认值，具体外发仍经过目的地校验。
+    本函数不发请求、不消耗模型预算，也不生成业务意见。
+    """
     api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
     base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    model_id = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
+    model_id = os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip()
     return api_key, base_url, model_id
 
 

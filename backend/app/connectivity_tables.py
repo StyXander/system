@@ -34,6 +34,8 @@ def _usable(row: DisclosureOccurrence, period: str) -> bool:
     """组成候选只读已定位、公司自身、有明确数值和量纲的单元格。"""
     if row.value is None or row.quality != "located":
         return False
+    if not row.year or row.year_status != "attributed":
+        return False
     if row.content_class in {"macro", "industry", "peer", "background"}:
         return False
     if period and row.year and row.year != period:

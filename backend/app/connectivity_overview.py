@@ -54,10 +54,14 @@ def unresolved_causes(run: ConnectivityRun) -> list[dict]:
 def program_level(check) -> str:
     """与浏览器同样读取显式结论；有限支持与假设试算不升级正式结论。"""
     calc = check.calculation
+    if check.criteria_status == "conflicting":
+        return "conflict"
     declared = check.conclusion_level if check.conclusion_level != "not_assessed" else calc.get("conclusion_level")
     declared_map = {"formal_consistent": "formal", "unexplained_difference": "conflict",
                     "assumption_compatible": "conditional", "limited_support": "limited",
                     "insufficient_basis": "insufficient"}
+    if declared == "formal_consistent" and (check.criteria_status != "supported" or calc.get("gate")):
+        return "insufficient"
     if declared in declared_map:
         return declared_map[declared]
     if check.operator == "narrative" or check.calculation_status == "not_applicable":
@@ -74,17 +78,18 @@ def program_level(check) -> str:
             return "limited"
     if calc.get("gate") or check.criteria_status == "unknown":
         return "insufficient"
-    return "formal" if check.calculation_status in CONFIRMED_STATUSES else "insufficient"
+    return "insufficient"
 
 
 def build_overview(run: ConnectivityRun) -> dict:
     """由同一次运行的关系、覆盖与未计入清单确定性推导，不调用模型。"""
     checks = run.checks
     total = len(checks)
-    confirmed = [c for c in checks if c.criteria_status == "supported" and c.calculation_status in CONFIRMED_STATUSES]
+    levels = {c.check_id: program_level(c) for c in checks}
+    confirmed = [c for c in checks if levels[c.check_id] == "formal"]
     blocked = [c for c in checks if c.criteria_status in {"unknown", "conflicting"}]
     conflicting = [c for c in blocked if c.criteria_status == "conflicting"]
-    unexplained = [c for c in checks if c.calculation_status == "unexplained_difference"]
+    unexplained = [c for c in checks if levels[c.check_id] == "conflict" and c.criteria_status == "supported"]
     # 门禁拦住的关系无法判断差额是否未解释，单独列示，避免"0 项未解释"被读成没有未解释问题。
     undecidable = [c for c in checks if c.calculation_status == "not_comparable"]
     missing = Counter()
@@ -110,34 +115,28 @@ def build_overview(run: ConnectivityRun) -> dict:
     extracted = len(run.occurrences)
     hints = run.program_hints or build_program_hints(run)
     priority = sorted([h for h in hints if h['priority'] != 'low'], key=lambda h: h['priority'] != 'high')
-    formal = [c.check_id for c in checks if c.calculation.get('residual') is not None]
-    trials = [c.check_id for c in checks if c.check_id not in formal and c.hypothetical and c.hypothetical.get('residual') is not None]
+    formal = [c.check_id for c in checks if c.calculation.get('residual') is not None
+              and levels[c.check_id] != 'conditional']
+    arithmetic_trials = [c.check_id for c in checks if c.check_id not in formal and c.hypothetical and c.hypothetical.get('residual') is not None]
+    trials = [c.check_id for c in checks if levels[c.check_id] == 'conditional']
     actionable = [h for h in hints if h.get('program_priority', h['priority']) != 'low'
                   or (h.get('difference', {}).get('absolute') is not None and Decimal(h['difference']['absolute']) != 0)]
     opinions = [a for a in run.ai_analyses if a.status == "current"]
     # 新计数明确区分披露位置和页；保留旧 not_found.value 供旧客户端过渡。
     counts = {"unattributed_occurrences": {"value": excluded, "unit": "处", "denominator": extracted},
               "failed_pages": {"value": failed_pages, "unit": "页", "denominator": total_pages}}
-    bands = {"confirmable": [], "limited_support": [], "conditional_trial": [], "not_comparable": [], "pending": []}
+    # 旧五类字段仅是六级状态的投影，不能再独立用 hypothetical 或 L1 推断。
+    aliases = {"formal": "confirmable", "limited": "limited_support", "conditional": "conditional_trial",
+               "insufficient": "not_comparable", "conflict": "pending", "not_applicable": "pending"}
+    bands = {key: [] for key in dict.fromkeys(aliases.values())}
     for check in checks:
-        level = check.basis_level or check.calculation.get("basis_level")
-        if check in confirmed:
-            category = "confirmable"
-        elif level == "L1":
-            category = "limited_support"
-        elif check.check_id in trials:
-            category = "conditional_trial"
-        elif check.calculation_status == "not_comparable":
-            category = "not_comparable"
-        else:
-            category = "pending"
-        bands[category].append(check.check_id)
+        bands[aliases[levels[check.check_id]]].append(check.check_id)
     return {
-        "delivery_contract_version": "2026-10-19.integrated.2",
-        "program_levels": {key: {"value": sum(program_level(c) == key for c in checks),
-                          "items": [c.check_id for c in checks if program_level(c) == key], "denominator": total}
+        "delivery_contract_version": "2026-10-20.round3.1",
+        "program_levels": {key: {"value": sum(levels[c.check_id] == key for c in checks),
+                          "items": [c.check_id for c in checks if levels[c.check_id] == key], "denominator": total}
                            for key in ["formal", "conditional", "limited", "insufficient", "conflict", "not_applicable"]},
-        "summary_bands_note": "五类互斥；条件试算不代表口径可比，不可比栏仅统计没有试算记录的不可比关系",
+        "summary_bands_note": "由 program_levels 派生的历史五类投影；pending 合并明确冲突与非数值关系，准确分类以六级状态为准",
         "execution_provenance": execution_provenance(run),
         "coverage_counts": counts,
         "summary_bands": {key: {"value": len(ids), "items": ids, "denominator": total} for key, ids in bands.items()},
@@ -145,7 +144,8 @@ def build_overview(run: ConnectivityRun) -> dict:
         "relation_total": total,
         "formal_calculations": {"value": len(formal), "items": formal},
         "program_calculations": {"value": len(formal), "items": formal, "label": "正式复算（历史字段别名）"},
-        "numerical_records": {"value": len(formal)+len(trials), "items": formal+trials},
+        "numerical_records": {"value": len(formal)+len(arithmetic_trials), "items": formal+arithmetic_trials},
+        "arithmetic_references": {"value": len(arithmetic_trials), "items": arithmetic_trials, "label": "受门禁限制的算术参考，不表示假设已支持"},
         "program_records": {"value": len(hints), "label": "程序事实记录，包含无差异记录"},
         "program_hints": {"value": len(actionable), "items": [h['check_id'] for h in actionable], "label": "程序差异或限制提示"},
         "priority_checks": {"value": len(priority), "items": [h['check_id'] for h in priority],

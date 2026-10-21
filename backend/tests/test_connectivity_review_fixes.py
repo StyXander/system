@@ -106,10 +106,13 @@ def test_counts_separate_formal_trial_coverage_and_actual_program_hint():
     run=bridge_run();base=run.checks[0]
     formal=base.model_copy(deep=True);formal.check_id='FORMAL';formal.hypothetical=None
     formal.calculation={'residual':'0','left':'1','right':'1'};formal.calculation_status='consistent'
+    formal.criteria_status='supported';formal.conclusion_level='formal_consistent'
     trial=base.model_copy(deep=True);trial.check_id='TRIAL';trial.calculation={'residual':None}
     trial.hypothetical={'residual':'-1','left':'1','right':'2','normalized_unit':'元'}
+    # 明确构造有假设支持的试算，不能沿用base的依据不足级别冒充条件相容。
+    trial.conclusion_level='assumption_compatible'
     text=base.model_copy(deep=True);text.check_id='TEXT';text.operator='narrative';text.hypothetical=None
-    text.calculation={};text.calculation_status='not_applicable'
+    text.calculation={};text.calculation_status='not_applicable';text.conclusion_level='not_applicable'
     run.checks=[formal,trial,text];run.program_hints=build_program_hints(run)
     overview=build_overview(run)
     assert overview['formal_calculations']['items']==['FORMAL']

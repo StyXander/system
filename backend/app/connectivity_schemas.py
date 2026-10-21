@@ -14,6 +14,7 @@ NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核�
 LEGACY_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 NOTICE_BY_TASK_KIND = {"connectivity": NOTICE, "legacy_audit": LEGACY_NOTICE}
 SCHEMA_VERSION = "connectivity_v4"
+INTELLIGENCE_VERSION = "hybrid_v4_counterevidence_grounded"
 
 # 本轮事项类型裁决：取方案(b)。海菲曼利润总额只走版本子流程并使用独立事项标识，
 # 不扩 topics 枚举，以免把双报告引擎改造成通用多文档平台。
@@ -79,6 +80,8 @@ class DisclosureOccurrence(Contract):
     page_height: float = 0
     label: str
     value: str | None = None
+    # 约数和上下界保留原文性质，不能伪装为精确点值进入差额计算。
+    value_qualifier: Literal["unspecified", "exact", "approximate", "lower_bound", "upper_bound"] = "unspecified"
     unit: str = ""
     unit_source: str = ""
     currency: str = ""
@@ -116,6 +119,9 @@ class DisclosureOccurrence(Contract):
     row_parent_label: str = ""
     definition: str = ""
     row_header: str = ""
+    # 所选列与整表头分存，避免把其他年度误当作本值所属列。
+    full_table_header: str = ""
+    year_binding: Literal["cell_header", "coordinate", "inline", "unattributed"] = "unattributed"
     column_header: str = ""
     header_path: list[str] = Field(default_factory=list)
     context: str

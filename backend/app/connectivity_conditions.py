@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 
 from .connectivity_engine import validate_refs
+from .connectivity_metrics import metric_comparison
 from .connectivity_rules import direct_metric
 from .connectivity_schemas import ComparisonCondition, ConnectivityRun, DisclosureOccurrence, EvidenceRef, RelationshipCheck
 
@@ -77,13 +78,25 @@ def _scope_quote(statement: DisclosureOccurrence, member: DisclosureOccurrence) 
     # 同一指标的明示边界才能作为确定性支持；别名只是此处的关联锚点。
     metric_scope = _metric_scope(member)
     for marker in SCOPE_MARKERS + ("合并", "母公司", "集团"):
-        index = statement.context.find(marker)
-        if index < 0:
-            continue
-        quote = statement.context[max(0, index-70):index+140].strip()
-        compact = re.sub(r"\s+", "", quote)
-        if any(alias in compact for alias in aliases) and (not metric_scope or metric_scope in compact):
-            return quote
+        # 同段可能先有报告范围，再有本指标范围；逐处检索，不能被第一次命中遮挡。
+        for hit in re.finditer(re.escape(marker), statement.context):
+            index = hit.start()
+            quote = statement.context[max(0, index-70):index+140].strip()
+            compact = re.sub(r"\s+", "", quote)
+            if any(alias in compact for alias in aliases) and (not metric_scope or metric_scope in compact):
+                # 边界词之前的本指标名称必须保留限定语；资本性范围不能支持费用性。
+                prefix = statement.context[:index]
+                clause = re.split(r"[。；;\n]", prefix)[-1]
+                if metric_comparison(member.label, clause)["status"] == "compatible":
+                    return quote
+                # 明示定义把资本化与费用化列为同一总项组成时，总项统计范围可覆盖两类。
+                # 仅放行这项定义明确的组成限定，不放行现金、累计或相反排除口径。
+                definition = next((_definition_quote(statement.context, alias) for alias in aliases
+                                   if _definition_quote(statement.context, alias)), "")
+                if definition and "资本化" in definition and "费用化" in definition:
+                    stripped = re.sub(r"资本化|资本性|费用化|费用性", "", member.label)
+                    if metric_comparison(stripped, clause)["status"] == "compatible":
+                        return quote
     return ""
 
 
@@ -204,7 +217,7 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
             if _scope_quote(probe, member):
                 direct_refs.append(EvidenceRef(occurrence_id=member.occurrence_id,
                                                quote=member.scope_source_quote[:800]))
-        if len({found[ref.occurrence_id].document_id for ref in direct_refs}) == len({row.document_id for row in members}) and direct_refs:
+        if {ref.occurrence_id for ref in direct_refs} == {row.occurrence_id for row in members} and direct_refs:
             if _set(conditions, "范围", f"表标题/本指标原文明确统计范围：{direct_scope[:40]}",
                     direct_refs, found):
                 upgraded.append("范围")
@@ -236,9 +249,10 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
             scope_condition.evidence_kind = "report_level"
             scope_condition.reason = ("报告边界已登记为" + next(iter(boundary_values)) +
                                       "；报告级边界不能单独证明本指标适用同一边界")
-        report_refs = [EvidenceRef(occurrence_id=row.occurrence_id, quote=row.context[:200]) for row in run.occurrences
+        source_ids = {member.report_boundary_source_id for member in members if member.report_boundary_source_id}
+        report_refs = [EvidenceRef(occurrence_id=row.occurrence_id, quote=row.context[:800]) for row in run.occurrences
                        if row.document_id in {m.document_id for m in members}
-                       and re.search(r"本报告.*(?:范围|边界)|报告披露范围", row.context)]
+                       and (row.occurrence_id in source_ids or re.search(r"本报告.*(?:范围|边界)|报告披露范围", row.context))]
         if report_refs:
             scope_condition.evidence = list({(r.occurrence_id, r.quote):r for r in scope_condition.evidence + report_refs[:4]}.values())[:8]
             if scope_condition.evidence_kind == "unspecified":
@@ -272,7 +286,8 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
     # 只适用受控白名单，不把研发费用视为研发投入，也不替代主体与范围条件。
     metric = direct_metric(members[0].label)
     if check.operator == "equal" and metric and all(direct_metric(row.label) == metric for row in members):
-        refs = [EvidenceRef(occurrence_id=row.occurrence_id, quote=row.row_header or row.label) for row in members]
+        refs = [EvidenceRef(occurrence_id=row.occurrence_id,
+                            quote=_quote_for(row,[row.row_header,row.label])) for row in members]
         if _set(conditions, "定义", f"两侧原文行名均明确披露{metric}；仅核对披露数值，不确认计量方法或数据真实性", refs, found):
             upgraded.append("定义")
 

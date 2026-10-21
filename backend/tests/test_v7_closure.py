@@ -226,6 +226,8 @@ def test_public_demo_source_request_includes_cninfo_referer(
             }
         },
     )
+    # 本用例只验证巨潮来源请求；私有缓存另有独立测试，不受本机真实凭据影响。
+    monkeypatch.setattr(source_cache_module, "_private_storage_reader", lambda: None)
     observed_headers: dict[str, str | None] = {}
 
     def respond(request: httpx.Request) -> httpx.Response:
