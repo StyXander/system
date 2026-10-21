@@ -8,7 +8,7 @@
 
 | 项 | 结果 |
 |---|---|
-| `LICENSE` | 已创建，GNU AGPL-3.0 全文，与 SPDX 官方 `AGPL-3.0-only.txt` **字节一致**（34020 字节）。初版曾用 gnu.org 的 .txt，因其带前导缩进导致 GitHub 识别为 `Other`，已替换为 SPDX 规范文本 |
+| `LICENSE` | 已创建，GNU AGPL-3.0 全文，与 SPDX 官方 `AGPL-3.0-only.txt` **字节一致**（34020 字节） |
 | 版权行 | `Copyright (C) 2026 The AuditTrace Authors`（集体署名，见第 5 节） |
 | `PROJECT_LICENSE.md` | 已改写，删除原保留声明，声明 AGPL-3.0 并列出不覆盖范围 |
 | PyMuPDF 冲突 | **已消除**（AGPL 代码与 AGPL 项目一致，无需商业许可） |
@@ -134,6 +134,35 @@ Python 以 `import pymupdf` 方式进程内链接，属于强耦合，不是可�
 5. ⏳ 确认 GitHub 仓库首页识别为 AGPL-3.0（需 `LICENSE` 合入默认分支后生效）；
 6. ✅ 在 Pull Request 中说明授权来源、时间与范围。
 7. ✅ 同步更新 `CONTRIBUTING.md` 与 `SECURITY.md` 中的许可表述。
+
+### 关于 GitHub 的许可证识别（一处已更正的错误推断）
+
+`LICENSE` 放在工作分支后，`GET /repos/StyXander/system/license?ref=chore/open-source-readiness` 返回：
+
+```text
+path: LICENSE   size: 34020   spdx_id: NOASSERTION   name: Other
+```
+
+一开始把原因归到"gnu.org 文本带前导缩进导致 licensee 认不出"，并据此从 gnu.org 版换成 SPDX 版。
+**这个推断是错的**，已被对照证据推翻：
+
+| 对照仓库 | LICENSE 字节数 | GitHub 识别 |
+|---|---:|---|
+| `grafana/grafana` | 34523（gnu.org 版） | **AGPL-3.0** |
+| `minio/minio` | 34523（gnu.org 版） | **AGPL-3.0** |
+| 本仓库（`main`） | — | `NOASSERTION`，path 指向 `PROJECT_LICENSE.md` |
+| 本仓库（工作分支） | 34020 | `NOASSERTION`，path 指向 `LICENSE` |
+
+结论：gnu.org 的 34523 字节文本本身能被 GitHub 正确识别。本仓库返回 `Other` 的原因是
+**许可证分类取自默认分支**（`main` 上还没有 `LICENSE`），不是文本问题。
+
+处理：保留 SPDX 版 `LICENSE`（同样是规范文本，且与 SPDX 许可证清单对应），并把这一项
+标为**待合并后复核**。合并后执行：
+
+```bash
+curl -s https://api.github.com/repos/StyXander/system/license | grep spdx_id
+# 期望： "spdx_id": "AGPL-3.0"
+```
 
 ## 7. 需要所有者回答的问题
 
