@@ -25,7 +25,8 @@ from .secure_download import download_bounded, SecureDownloadError
 
 EXTRACTION_VERSION = "coordinates_v1.14"
 # 本轮补充合并/母公司表头，旧布局缓存缺这些单元格，须按新版重建。
-PARSER_CACHE_VERSION = "coordinates_v1.6"
+# v1.9：槽位下限改为“数值不少于年度列”，旧缓存 year 需重建。
+PARSER_CACHE_VERSION = "coordinates_v1.9"
 NUMBER = re.compile(r"(?<![\d.])(?:[（(]?-?\d{1,3}(?:[,，]\d{3})+(?:\.\d+)?[)）]?|[（(]?-?\d+(?:\.\d+)?[)）]?)(?![\d.])")
 # 长单位排在短单位前，保留二氧化碳当量、粗钢与产品的不同口径。
 UNIT_ATOM = r"(?:万吨二氧化碳当量|吨二氧化碳当量|万吨标准煤|吨标准煤|万吨粗钢|吨粗钢|万吨产品|吨产品|万千瓦时|千瓦时|兆瓦时|吉焦|太焦|万吨|吨|百万立方米|千立方米|万立方米|亿立方米|立方米|百万元|千元|万元|亿元|(?<!美)(?<!港)(?<!欧)(?<!日)元|万人|万名|人|(?<![\u4e00-\u9fff])名)"
@@ -537,9 +538,30 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
                     match = re.search(r"20\d{2}", top["text"])
                     # 年度列解析失败时保持空值；不得用报告期间顶替指标年度。
                     year = match.group() if match and len(set(re.findall(r"20\d{2}",top["text"]))) == 1 else ""
+                    if not year:
+                        # 合并表头（如“2025 年 2024 年”）跨多列时，用单元格列中心与
+                        # 年度文本 span 的坐标匹配定位本列年度；对不上就留空，不按序号猜。
+                        coord_year, _coord_quote = _coordinate_year(
+                            lines, {"side": _side_at(lines, bounds), "bbox": bounds}, bounds)
+                        if coord_year:
+                            year = coord_year
                     # 合并/母公司可能位于年度行上方，同列边界不能因层级较高而丢弃。
                     selected = [h["text"] for h in applicable if h["bbox"][1] >= top["bbox"][1] or re.fullmatch(r"合并|母公司|公司",h["text"])]
                     column_header = " / ".join(selected)
+                    if year:
+                        # 列头里的年度文本改写为明确绑定年度，保持原有层级顺序：
+                        # 否则“列头含多个年度”的通道会在判定层把已由坐标归属的列整条误杀。
+                        parts, seen_year = [], False
+                        for text in selected:
+                            if re.search(r"20\d{2}", text):
+                                if not seen_year:
+                                    parts.append(f"{year}年")
+                                    seen_year = True
+                            else:
+                                parts.append(text)
+                        if not seen_year:
+                            parts.append(f"{year}年")
+                        column_header = " / ".join(parts)
                     table_scope = " / ".join(text for text in selected
                         if re.fullmatch(r"钢铁\d*|其他|其它|合计|总计|范围一|范围二|费用化|资本化|分项|合并|母公司|公司", text))
                 local_boundary_text = label + " / " + column_header
@@ -664,6 +686,17 @@ def _join_indicator_fragments(lines: list[dict]) -> list[dict]:
             "bbox":[min(row["bbox"][0] for row in [line,suffix,numeric]),line["bbox"][1],
                 max(row["bbox"][2] for row in [line,suffix,numeric]),max(row["bbox"][3] for row in [line,suffix,numeric])]}
     return result
+
+
+def _side_at(lines: list[dict], bounds: list[float]) -> int:
+    """表格单元格不带栏位标记，按垂直距离取最近文本行的栏位。
+
+    年报常见双栏排版；用表格单元格自己的 y 坐标推断所在栏，比固定取 0 栏稳。
+    """
+    if not lines or not bounds:
+        return 0
+    nearest = min(lines, key=lambda row: abs(row["bbox"][1] - bounds[1]))
+    return int(nearest.get("side", 0))
 
 
 def _coordinate_year(lines: list[dict], line: dict, number_box: list[float]) -> tuple[str,str]:
@@ -946,11 +979,24 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
                 context = base_context
                 raw = match.group().replace("（", "(").replace("）", ")") if match else None
                 explicit_years = re.findall(r"(20\d{2})年", text)
-                year = year_labels[offset] if offset < len(year_labels) and len(valid) == len(year_labels) else explicit_years[0] if len(set(explicit_years)) == 1 else ""
+                # 槽位绑定的下限是“数值不少于年度列”，不是“严格相等”：
+                # 年报常见“项目 | 2025 | 2024 | 变动比例”结构，多出的尾部列是
+                # 计算列而不是第三个年度。要求严格相等会让这类行整体失去年度，
+                # 进而被“列头含多个年度”通道误杀。数值少于年度列时不绑定（无法确定对应列）。
+                year = (year_labels[offset] if offset < len(year_labels) and len(valid) >= len(year_labels)
+                        else explicit_years[0] if len(set(explicit_years)) == 1 else "")
                 label = _label_prefix(text)
                 column_header = header[-1]["text"] if header else ""
                 full_table_header = column_header
                 year_binding = "cell_header" if year and header and len(set(year_labels)) == 1 else "unattributed"
+                if year and len(set(re.findall(r"20\d{2}", column_header))) > 1:
+                    # 槽位已确定本值属于哪一年，列头必须同步改写为明确年度：
+                    # 否则判定层会因“列头同时含多个年度”把已归属的值整条拒绝，
+                    # 槽位绑定等于白做（这是真实报告候选被误杀的主要来源）。
+                    rest = [part for part in re.split(r"\s*/\s*", column_header)
+                            if part and not re.search(r"20\d{2}", part)]
+                    column_header = " / ".join([*rest, f"{year}年"])
+                    year_binding = "cell_header"
                 number_box = _number_box(numeric_line, match) if match else line["bbox"]
                 # 数值多于年度列时，超出部分的年度保持空值，不按最近的年度词硬绑。
                 if match and (year_slots == 0 or offset < year_slots):
