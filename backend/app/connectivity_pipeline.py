@@ -1,4 +1,4 @@
-"""真实PDF、规则与三角色在同一结果合同上运行，不以聊天代替核对。
+﻿"""真实PDF、规则与三角色在同一结果合同上运行，不以聊天代替核对。
 
 A1提出关系，A2补找定义和反证，程序每次重新检查与计算。
 A3形成独立AI研判及待查问题，不允许模型篡改程序状态及原始数值。
@@ -205,6 +205,19 @@ def _qualifier_key(label: str) -> str:
     return json.dumps(qualifiers, sort_keys=True)
 
 
+def _identity_concept(label: str) -> str:
+    """用受控指标身份字典收敛概念；只在跨报告映射召回时使用。
+
+    该字典区分严格别名与“不得等同”反例（研发费用不并入研发投入），
+    因此可把“研发支出总额/研发投入合计”识别为同一指标概念。
+    多位置核对仍用 _semantic_concept，避免把不同行名折叠成一条检查。
+    """
+    identity = metric_identity(label)
+    if identity.get("metric_id") and identity.get("match") in {"exact", "alias"}:
+        return identity["metric_id"]
+    return _semantic_concept(label)
+
+
 def _signature(rule_id: str, members: list[RelationshipMember]) -> str:
     return rule_id + "|" + "|".join(sorted(f"{item.role}:{item.occurrence_id}" for item in members))
 
@@ -334,11 +347,27 @@ def _ratio_candidates(rows: list[DisclosureOccurrence], period: str) -> list[Rel
         if not matched:
             continue
         numerator_text, denominator_text = matched.group(1), matched.group(2)
-        same_doc = [row for row in located if row.document_id == ratio_row.document_id and row.occurrence_id != ratio_row.occurrence_id
-                    and numeric_unit(row.unit)[0] != "ratio"]
-        numerator = next((row for row in same_doc if numerator_text and numerator_text in re.sub(r"\s+", "", row.label)), None)
-        denominator = next((row for row in same_doc if denominator_text and denominator_text in re.sub(r"\s+", "", row.label)
-                            and (numerator is None or row.occurrence_id != numerator.occurrence_id)), None)
+
+        def pick(text: str, exclude: set[str]) -> DisclosureOccurrence | None:
+            """先在本报告找分子分母；本报告没有时，只在另一报告唯一命中时跨报告采用。"""
+            if not text:
+                return None
+            same = [row for row in located if row.document_id == ratio_row.document_id
+                    and row.occurrence_id != ratio_row.occurrence_id
+                    and row.occurrence_id not in exclude
+                    and numeric_unit(row.unit)[0] != "ratio"
+                    and text in re.sub(r"\s+", "", row.label)]
+            if same:
+                return same[0]
+            # ESG 常直接重述比例而把分子分母留在年报；多值并存时不猜。
+            other = [row for row in located if row.document_id != ratio_row.document_id
+                     and row.occurrence_id not in exclude
+                     and numeric_unit(row.unit)[0] != "ratio"
+                     and text in re.sub(r"\s+", "", row.label)]
+            return other[0] if len({row.value for row in other}) == 1 else None
+
+        numerator = pick(numerator_text, set())
+        denominator = pick(denominator_text, {numerator.occurrence_id} if numerator else set())
         if not numerator or not denominator:
             continue
         if numeric_unit(numerator.unit)[0] != numeric_unit(denominator.unit)[0]:
@@ -420,7 +449,7 @@ def _semantic_metric_candidates(rows: list[DisclosureOccurrence], period: str, r
             continue
         if _row_identity_problem(row):
             continue
-        concept = _semantic_concept(row.label)
+        concept = _identity_concept(row.label)
         if concept and len(concept) >= 2:
             qualifier_key = _qualifier_key(row.label)
             grouped[(concept, qualifier_key)].append(row)
@@ -453,10 +482,11 @@ def _semantic_metric_candidates(rows: list[DisclosureOccurrence], period: str, r
                     members=[RelationshipMember(occurrence_id=left.occurrence_id, role="left"),
                              RelationshipMember(occurrence_id=right.occurrence_id, role="right")],
                     relationship_evidence=[_reference(left), _reference(right)],
-                    relationship_basis="auto_label_match",
+                    # 关系由受控指标身份字典认定，属于可复核依据；不是"标签恰好相同"。
+                    relationship_basis="metric_identity",
                     mapping_type="same_metric",
-                    mapping_reason=f"受控别名把“{left.label[:30]}”与“{right.label[:30]}”召回为同一概念“{concept}”；"
-                                   f"别名只帮助召回，不自动证明口径等价",
+                    mapping_reason=f"受控指标身份字典（登记别名与不得等同反例）把“{left.label[:30]}”与“{right.label[:30]}”认定为同一概念“{concept}”；"
+                                   f"字典内含不得等同的反例，口径是否等价仍须五项前提逐项支持",
                     conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
     return checks
 
@@ -573,13 +603,24 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                        right_scope=right_scope, decision="different_caliber_no_numeric_comparison")
                 checks.append(check)
             else:
+                # metric_identity 已在模块顶层导入；此处重复导入会把名字变成函数局部变量，
+                # 使函数内更早的调用点抛 UnboundLocalError。
+                left_id = metric_identity(pair[0].label).get("metric_id", "")
+                right_id = metric_identity(pair[1].label).get("metric_id", "")
+                if left_id and left_id == right_id:
+                    # 受控身份字典（含“不得等同”反例）认定同一概念，属于可复核依据。
+                    basis = "metric_identity"
+                elif direct_metric(pair[0].label) and direct_metric(pair[0].label) == direct_metric(pair[1].label):
+                    basis = "text_statement"
+                else:
+                    basis = "auto_label_match"
                 checks.append(RelationshipCheck(check_id=f"CHECK-{len(checks)+1:04d}", rule_id="EQ-001",
                     title=f"{label[:70]} · 年报与ESG披露数值核对", topic=topic, operator=RULES["EQ-001"]["operator"],
                     members=[RelationshipMember(occurrence_id=pair[0].occurrence_id, role="left"),
                              RelationshipMember(occurrence_id=pair[1].occurrence_id, role="right")],
-                    # 两份报告各留一条便于点击核对，但明确标注为自动配对：成员行不等于关系依据。
+                    # 两份报告各留一条便于点击核对，但明确标注关系依据类型。
                     relationship_evidence=[_reference(pair[0]), _reference(pair[1])],
-                    relationship_basis="text_statement" if direct_metric(pair[0].label) and direct_metric(pair[0].label) == direct_metric(pair[1].label) else "auto_label_match",
+                    relationship_basis=basis,
                     conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
         # 同一文档内多处同名披露：只作多位置核对，不进入“能确认什么”。
         for document_id, rows_in_doc in by_document.items():
@@ -1251,6 +1292,18 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
         if not previous and not candidate.relationship_evidence and not candidate.explanation_evidence:
             rejected.append({"index": index, "reason": "候选没有可逐字回溯的原文依据，不予采纳"})
             continue
+        # AI 只能提出前提主张及其引文；"supported" 必须由程序按原文重新证明。
+        # 否则模型用任意两字原文即可自证口径，把关系直接升级为正式差额。
+        demoted = []
+        for condition in candidate.conditions:
+            if condition.status == "supported":
+                demoted.append(condition.name)
+                condition.status = "unknown"
+                condition.evidence_kind = "ai_semantic"
+                condition.reason = "AI 提出的前提支持不计为已证实，由程序按原文重新证明：" + condition.reason[:80]
+        if demoted:
+            _trace(run, kind="condition_demoted", check_id=identity, role=role, conditions=demoted,
+                   reason="AI 自证前提不成立；等待程序逐项复核")
         try:
             # 新关系先完成相同的程序补证，再交给模型研判；避免末轮复算才改写其输入。
             candidate = upgrade_conditions(candidate, run, run.period)[0]

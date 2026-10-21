@@ -383,6 +383,12 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     elif result.relationship_basis == "table_structure":
         # 表内结构只证明合计与分项的几何覆盖，不证明指标定义、统计范围与期间。
         result.unresolved.append("该关系由表内结构自动生成；合计/分项覆盖仍需指标定义、统计范围与期间原文确认")
+    elif result.relationship_basis == "metric_identity":
+        # 关系来自受控指标身份字典（含“不得等同”反例）的映射，属于可复核的
+        # 受控依据，不再因“非原文明示同一指标”整体否决；五项前提仍逐项生效。
+        result.calculation["relationship_basis_note"] = (
+            "关系由受控指标身份字典映射得到，不是原文明示同一指标；"
+            "简称/异名只在字典登记的别名范围内成立")
     else:
         # 自动配对/多位置只是候选：成员行只能证明两处各自披露了什么，
         # 不能证明"这两处应当相互对照"。关系本身仍需原文或人工说明。
@@ -528,9 +534,10 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     elif trial.get("precision_compatible"):
         result.calculation_status = "precision_explained"
     else:
+        # 比例显示精度只在下方 conclusion_level 层给 L0 条件解释，
+        # 不在 calculation_status 层声称“已解释”；企业未声明舍入方法时差额仍算未解释。
         result.calculation_status = "unexplained_difference"
-        if not (result.operator == "ratio" and assumption.get("status") == "contains_zero"):
-            result.unresolved.append("同口径计算仍有未解释差额")
+        result.unresolved.append("同口径计算仍有未解释差额")
     if result.calculation_status == "consistent":
         _set_levels(result, "formal_consistent", "L2", "equal_exact")
     elif result.calculation_status == "precision_explained":
@@ -628,6 +635,8 @@ def _apply_adjustments(check: RelationshipCheck, trial: dict, found: dict[str, D
         rejected.append({"adjustment_id": "*", "reason": "关系量纲尚未确定，不能登记金额调节"})
         return {**empty, "rejected": rejected}
     seen_effects: dict[str, str] = {}
+    # 同一原文数值不能以不同效果编号被扣两次；重复扣减会人为把差额做平。
+    seen_sources: dict[str, str] = {}
     total = Decimal(0)
     total_interval = Interval(Decimal(0), Decimal(0))
     interval_status = "known"
@@ -645,6 +654,9 @@ def _apply_adjustments(check: RelationshipCheck, trial: dict, found: dict[str, D
             problems.append("调节额与关系量纲不一致")
         if item.effect_id in seen_effects:
             problems.append("同一解释效果不能在分组剔除后从金额中再次扣除")
+        reused = sorted({ref.occurrence_id for ref in item.evidence} & set(seen_sources))
+        if reused:
+            problems.append("同一原文数值不得重复扣减：已用于" + "、".join(seen_sources[item_id] for item_id in reused[:2]))
         # 重叠须有互斥依据；仅当与本项已采纳的效果重叠时才拒绝叠加。
         if item.overlap_with:
             if not item.overlap_basis.strip():
@@ -659,6 +671,9 @@ def _apply_adjustments(check: RelationshipCheck, trial: dict, found: dict[str, D
             rejected.append({"adjustment_id": item.adjustment_id, "reason": "；".join(problems)})
             continue
         seen_effects[item.effect_id] = item.adjustment_id
+        for ref in item.evidence:
+            if ref.occurrence_id in found:
+                seen_sources.setdefault(ref.occurrence_id, item.adjustment_id)
         if item.path == "grouping":
             # 分组本身不扣减金额，只登记父基准下的新基准，供后续同基准关系使用。
             partitions.append({"adjustment_id": item.adjustment_id, "effect_id": item.effect_id, "label": item.label,
@@ -750,6 +765,10 @@ def _arithmetic(check: RelationshipCheck, found: dict[str, DisclosureOccurrence]
             # 百分数及常见单位已在规范化阶段处理，额外倍率要有公式依据。
             raise ValueError("额外比例倍率须转换为明确单位后计算")
         b = n / d
+        # 区间除法保留来源一的端点开闭推导（比逐个端点枚举更严谨，不在边界上放宽）。
+        # 注意：不能用“显示位半单位”替换披露比例区间 ia——否则 ia.overlaps(ib) 必为真，
+        # precision_compatible 会把未声明舍入的差额直接升为正式 precision_explained。
+        # 比例显示精度的条件解释统一由 _ratio_precision_assumption 在 L0 层给出。
         ib = _divide_interval(ni, di)
         expression = f"披露{ text_number(a) } − ({text_number(n)} ÷ {text_number(d)})"
         # 分母相容区间逆推：由披露比例与分子区间反推分母区间，再与披露分母比较。

@@ -46,8 +46,12 @@ def _quote_for(row: DisclosureOccurrence, candidates: list[str]) -> str:
 
 
 def _definition_quote(context: str, core: str) -> str:
-    """只认“指标名 + 定义词”紧邻的句式，并返回包含定义词的原文片段。"""
-    pattern = re.compile(re.escape(core) + r"\s*" + DEFINITION_PATTERN.pattern)
+    """只认“指标名 + 有限限定语 + 定义词”的句式，并返回包含定义词的原文片段。
+
+    限定语只允许“总额/合计/数量”这类不改变指标身份的词（不超过 6 个非标点字符），
+    避免“研发支出总额是指”因为先去掉“总额”而识别不到定义。
+    """
+    pattern = re.compile(re.escape(core) + r"[^。；;，,0-9]{0,6}" + DEFINITION_PATTERN.pattern)
     for match in pattern.finditer(context):
         start = match.start()
         return context[start:start + min(80, len(context) - start)].strip()
@@ -206,6 +210,19 @@ def upgrade_conditions(check: RelationshipCheck, run: ConnectivityRun, period: s
             scope_condition.status = "unknown"
             scope_condition.reason = "所引范围材料未分别说明本关系成员的指标边界；保留AI解释，不作为正式范围支持"
             scope_condition.evidence_kind = "report_level"
+    if scope_condition and scope_condition.status == "unknown" and scope_condition.evidence:
+        # 模型提出的范围依据不能自我生效，但程序可以逐成员复核后采纳：
+        # 所引原文必须分别含本指标名与边界词，否则仍作未证实处理。
+        scoped_refs = [ref for ref in scope_condition.evidence if ref.occurrence_id in found]
+        applicant = bool(scoped_refs) and all(
+            any(found[ref.occurrence_id].document_id == member.document_id
+                and _scope_quote(found[ref.occurrence_id].model_copy(update={'context': ref.quote}), member)
+                for ref in scoped_refs) for member in members)
+        if applicant:
+            scope_condition.status = "supported"
+            scope_condition.evidence_kind = "ai_semantic"
+            scope_condition.reason = "AI 提出的范围依据经程序逐成员复核：所引原文分别说明本指标统计边界，予以采纳"
+            upgraded.append("范围")
     # 表标题/本指标原文直接给出范围时，优先使用可回查的字段来源。
     direct_scope = next(iter(scopes)) if len(scopes) == 1 else ""
     if direct_scope and scope_condition and scope_condition.status == "unknown":
@@ -321,16 +338,24 @@ def _upgrade_sum(check: RelationshipCheck, conditions: dict[str, ComparisonCondi
     definition = next((row for row in found.values() if row.document_id == total.document_id
                        and "资本化" in row.context and "费用化" in row.context
                        and _definition_quote(row.context, "环保投入" if check.rule_id == "ENV-001" else "研发投入")), None)
-    if len(components) != 2 or set(categories) != {"资本化", "费用化"} or not definition or any("其中" in label for label in labels):
+    # “其中：费用化研发投入”是常见行名；只有整行仅剩结构词时才排除，
+    # 不因为出现“其中”二字就丢掉真实分项（否则真实年报的组成关系永远不可确认）。
+    stripped = [re.sub(r"^其中[：:、\s]*", "", label) for label in labels]
+    if len(components) != 2 or set(categories) != {"资本化", "费用化"} or not definition \
+            or any(not item.strip() or item in {"其中", "合计", "总计", "小计"} for item in stripped):
         return
     quote = _definition_quote(definition.context, "环保投入" if check.rule_id == "ENV-001" else "研发投入")
     if quote and _set(conditions, "组成完整",
                        "同表包含资本化与费用化两类，且原文定义明确包含这两类支出；算术是否加平另行计算",
                        [EvidenceRef(occurrence_id=definition.occurrence_id, quote=quote)], found):
         upgraded.append("组成完整")
-    if quote and re.search(r"互不重叠|互斥|不重复|分别计入|不包含|不包括", quote):
-        if _set(conditions, "互不重叠", "原文分类定义明确不重复计入；坐标与行名不作业务互斥证明",
-                          [EvidenceRef(occurrence_id=definition.occurrence_id, quote=quote)], found):
+    if quote:
+        # 互不重叠的依据经常写在定义句后半段，不能只在前 80 字里找。
+        overlap = re.search(r"[^。；;]{0,40}(?:互不重叠|互斥|不重复|分别计入|不包含|不包括)[^。；;]{0,20}",
+                            definition.context)
+        overlap_quote = overlap.group() if overlap else ""
+        if overlap_quote and _set(conditions, "互不重叠", "原文分类定义明确不重复计入；坐标与行名不作业务互斥证明",
+                                  [EvidenceRef(occurrence_id=definition.occurrence_id, quote=overlap_quote)], found):
             upgraded.append("互不重叠")
 
 

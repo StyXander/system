@@ -301,9 +301,10 @@ class RelationshipCheck(Contract):
     members: list[RelationshipMember] = Field(default_factory=list, max_length=100)
     conditions: list[ComparisonCondition] = Field(default_factory=list, max_length=12)
     relationship_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
-    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构。
-    # 自动配对与表内结构只产生候选，成员行不能充当"关系本身有原文依据"。
-    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure"] = "text_statement"
+    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构 /
+    # 受控指标身份字典映射。自动配对、多位置与表内结构只产生候选，成员行不能
+    # 充当"关系本身有原文依据"；字典映射属于可复核的受控依据。
+    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure", "metric_identity"] = "text_statement"
     ratio_scale: str = "1"
     explanation: str = ""
     explanation_evidence: list[EvidenceRef] = Field(default_factory=list)

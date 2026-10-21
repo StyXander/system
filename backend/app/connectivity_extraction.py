@@ -33,6 +33,23 @@ UNIT = re.compile(UNIT_ATOM + r"(?:[/／]" + UNIT_ATOM + r")?|[%％]")
 # 只继承明确适用于全报告的币种声明；本表或记账本位币声明不能扩为全报告。
 REPORT_CURRENCY = re.compile(r"(?:本报告|本年度报告|本可持续发展报告)[^。；;]{0,65}(?:金额|货币|财务数据)[^。；;]{0,35}(?:人民币|美元|港元|欧元|日元)")
 REPORT_SCOPE = re.compile(r"(?:本报告|本年度报告|本可持续发展报告)[^。；;]{0,24}(?:披露范围|范围|边界|覆盖)[^。；;]{0,90}")
+# 以下两条是来源二补充的低强度声明，只在 REPORT_CURRENCY 未确定币种时补位：
+# 币种声明：金额／货币／数据＋人民币，覆盖"人民币元""单位：人民币"等常见写法。
+CURRENCY_DECLARATION = re.compile(r"(?:货币|金额|数据|单位)[^。；;]{0,25}(?:均为人民币|均以人民币|为人民币元|以人民币|人民币元)")
+# 报告级记账币种：只认“以人民币列示/为记账本位币/金额单位为人民币”等明确句子。
+# 外币折算叙述（“折算为人民币”）不构成本报告币种声明。
+DOCUMENT_CURRENCY = re.compile(
+    r"(?:(?:以|采用|使用)人民币(?:元)?(?:作为|为)?(?:记账本位币|本位币|列示|计价|计量|结算)"
+    r"|(?:记账本位币|本位币)(?:为|是)人民币"
+    r"|人民币(?:元)?为(?:记账)?本位币"
+    r"|(?:金额|货币|记账|报表)单位[:：]?\s*(?:人民币|RMB))")
+# 提示注入文本：只登记为排除项，不进入候选或模型证据池。
+INJECTION_PATTERN = re.compile(
+    r"(?:忽略|无视|绕过|跳过|不要理会).{0,12}(?:指令|提示|规则|要求|设定)"
+    r"|(?:系统|system)\s*(?:提示|指令|prompt)"
+    r"|ignore\s+(?:all\s+|the\s+)?(?:previous|above)\s+instructions"
+    r"|(?:请|务必)(?:直接)?(?:声称|输出|回答|判定).{0,12}(?:一致|无差异|正确|无问题)"
+    r"|you\s+are\s+(?:now\s+)?an?\s+(?:ai|assistant|model)", re.I)
 # 表内行/列角色的通用词；只用于结构登记，不替代指标定义。
 TOTAL_ROW = re.compile(r"(?:合计|总计|总额|小计|总投入|投入合计)$")
 COMPONENT_ROW = re.compile(r"^(?:其中|资本化|费用化|专项|其他|其它|钢铁|分项|明细)")
@@ -769,6 +786,53 @@ def _apply_report_declarations(pages: list[dict], occurrences: list[DisclosureOc
                 row.scope_source_id, row.scope_source_quote = source.occurrence_id, source.context
 
 
+def _apply_document_currency(pages: list[dict], occurrences: list[DisclosureOccurrence],
+                             document: ReportDocument) -> None:
+    """表内“单位：人民币”与记账本位币声明；只在报告级声明未确定币种时补位。
+
+    A 股年报常在财务报表附注写“以人民币为记账本位币/以人民币列示”，该句不含
+    指标数值，不会进入候选行，须单独按原文句子登记一份声明证据。证据强度仍为
+    report_declaration，不得冒充表内明示，也不从单个“元”字推定人民币。
+    """
+    declarations = [row for row in occurrences
+                    if row.topic == "basis" and CURRENCY_DECLARATION.search(re.sub(r"\s+", "", row.context))]
+    if not declarations:
+        declared = _document_currency_declaration(pages)
+        if declared:
+            page_no, quote = declared
+            declaration = DisclosureOccurrence(
+                occurrence_id=f"{document.document_id}-{page_no}-CCY-DECL",
+                document_id=document.document_id, pdf_page=page_no,
+                label="报告币种声明", row_header=quote[:200], context=quote,
+                quality="text_only", quality_reason="报告级币种声明；本身不是指标数值",
+                topic="currency_declaration")
+            occurrences.append(declaration)
+            declarations.append(declaration)
+    if not declarations:
+        return
+    declaration = declarations[0]
+    compact_declaration = re.sub(r"\s+", "", declaration.context)
+    # 声明句本身出现多种币种时，任一币种都不是报告默认，保持未知。
+    if re.search(r"美元|港元|欧元|日元", compact_declaration):
+        return
+    # “本公司/母公司/本财务报表”的记账本位币不能扩张到合并 ESG 指标；
+    # 记账货币也不等于每个指标的计量与列报币种。
+    if re.search(r"本公司|母公司|本财务报表|个别报表", compact_declaration):
+        return
+    # 只接受“金额/货币/单位…人民币”这类列报口径表述；仅命中记账本位币不足以赋值。
+    found = CURRENCY_DECLARATION.search(compact_declaration)
+    if not found:
+        return
+    declared_quote = found.group()
+    for row in occurrences:
+        # 局部已明示币种、或上下文出现其他币种时不扩张，避免把报告声明当成指标级证据。
+        if not row.currency and re.search(r"元", row.unit) and not re.search(r"美元|港元|欧元|日元", row.context):
+            row.currency = "CNY"
+            row.currency_status = "report_declaration"
+            row.currency_source_id = declaration.occurrence_id
+            row.currency_source_quote = declared_quote
+
+
 def extract_document(root: Path, document: ReportDocument, topics: list[str], cancelled: Callable[[], bool] = lambda: False) -> tuple[list[DisclosureOccurrence], SearchCoverage, list[ExtractionExclusion]]:
     """全页读取后召回候选；缓存不包含参考答案，只复用同版原文解析。"""
     path = ensure_source(root, document)
@@ -799,6 +863,8 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
             for info, original in zip(pages, pdf):
                 info["width"], info["height"] = original.rect.width, original.rect.height
     occurrences = []
+    # 指令性文本单独登记：既不让它进入候选，也不静默消失。
+    injection_rows: list[ExtractionExclusion] = []
     coverage = SearchCoverage(document_id=document.document_id, total_pages=len(pages), parsed_pages=0)
     previous = []
     for page in pages:
@@ -815,6 +881,14 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
         inherited_topic_counts=defaultdict(int)
         for index, line in enumerate(lines):
             text = line["text"]
+            instruction = INJECTION_PATTERN.search(text)
+            if instruction:
+                injection_rows.append(ExtractionExclusion(
+                    occurrence_id=f"{document.document_id}-{page['page']}-INJ-{index}",
+                    document_id=document.document_id, pdf_page=page["page"],
+                    label=text[:120], value="",
+                    reason=f"原文含指令性表述（{instruction.group()[:20]}），已隔离；不作为企业披露证据进入候选或模型输入"))
+                continue
             matched = [topic for topic in topics if any(key in re.sub(r"\s+", "", text) for key in TOPICS[topic]["keywords"])]
             is_basis = bool(re.search(r"报告范围|统计口径|统计范围|除.*特别说明|报告主体|编制依据|币种.*人民币|金额.*人民币|货币.*人民币|报告时间范围|本报告覆盖的周期|报告期.*20\d{2}", text)
                 or (page["page"] <= 5 and re.search(r"股份有限公司|有限责任公司", text)))
@@ -864,7 +938,12 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
             # 无数值的定义段落也进入检索，NAR和五项前提需要原文证据。
             compound_labels = _compound_labels(numeric_line["text"], valid)
             candidates = valid or [None]
+            base_context = context
+            # 年度列数决定可绑定年度的数值个数；多出的尾部列通常是变动/占比列。
+            year_slots = len(year_labels)
             for offset, match in enumerate(candidates):
+                # 同一行的多个数值共用本行基础上下文，列头补充不得串到下一个数值。
+                context = base_context
                 raw = match.group().replace("（", "(").replace("）", ")") if match else None
                 explicit_years = re.findall(r"(20\d{2})年", text)
                 year = year_labels[offset] if offset < len(year_labels) and len(valid) == len(year_labels) else explicit_years[0] if len(set(explicit_years)) == 1 else ""
@@ -873,15 +952,22 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
                 full_table_header = column_header
                 year_binding = "cell_header" if year and header and len(set(year_labels)) == 1 else "unattributed"
                 number_box = _number_box(numeric_line, match) if match else line["bbox"]
-                if match:
+                # 数值多于年度列时，超出部分的年度保持空值，不按最近的年度词硬绑。
+                if match and (year_slots == 0 or offset < year_slots):
                     coordinate_year, coordinate_header = _coordinate_year(lines,line,number_box)
                     if coordinate_year:
-                        year,column_header = coordinate_year,coordinate_header
+                        # 坐标年度优先于合并表头文本：列头记明确绑定年度，
+                        # 否则整行会因“列头含多个年度”被判定层误杀。
+                        year = coordinate_year
+                        column_header = f"{coordinate_year}年"
                         year_binding = "coordinate"
                         selected_header = next((h for h in reversed(lines) if h.get("side") == line.get("side")
                             and h["bbox"][1] < line["bbox"][1] and coordinate_header in h["text"]), None)
                         full_table_header = selected_header["text"] if selected_header else full_table_header
-                    elif len(set(year_labels)) > 1:
+                        context = context + "\n年度列头：" + coordinate_header
+                    elif len(set(year_labels)) > 1 and len(valid) != len(year_labels):
+                        # 多年度表头且数值个数与年度列不一一对应时无槽位可依，保持待归属；
+                        # 一一对应的情况由上面的 year_labels[offset] 槽位绑定处理，不再误杀。
                         year, column_header = "", ""
                     x = (number_box[0]+number_box[2])/2
                     candidates_above = [h for h in page.get("headers", []) if h["bbox"][0] <= x <= h["bbox"][2] and h["bbox"][3] <= number_box[1]+3
@@ -909,6 +995,10 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
                     phrase = re.split(r"[，；;。]", prefix)[-1].strip()
                     if re.search(r"[，；;。]", prefix) and phrase and re.search(r"投入|费用|支出|人员|比例|强度", phrase) and len(phrase) < 70:
                         label = re.sub(r"^20\d{2}\s*年[，,\s]*", "", phrase)
+                elif match:
+                    # 该数值位于年度列之外（变动率、占比等），不得继承任何年度。
+                    year = ""
+                    column_header = "年度列外"
                 compound_part = compound_labels[offset] if offset < len(compound_labels) else None
                 if compound_part:
                     label = compound_part[0]
@@ -1047,11 +1137,31 @@ def extract_document(root: Path, document: ReportDocument, topics: list[str], ca
         page = pages[row.pdf_page-1]
         row.page_width, row.page_height = page.get("width", 0), page.get("height", 0)
     _apply_report_declarations(pages, occurrences, document)
+    # 报告级声明未覆盖时，用“以人民币为记账本位币/金额单位：人民币”这类
+    # 无指标数值的明确句子补位；强度仍记 report_declaration，不冒充表内明示。
+    _apply_document_currency(pages, occurrences, document)
     coverage.discovered_count = len(occurrences)
-    return occurrences, coverage, _exclusions(occurrences)
+    return occurrences, coverage, _exclusions(occurrences, injection_rows)
 
 
-def _exclusions(occurrences: list[DisclosureOccurrence]) -> list[ExtractionExclusion]:
+def _document_currency_declaration(pages: list[dict]) -> tuple[int, str] | None:
+    """按原文句子找报告级币种声明；找不到就保持未知，不从“元”字猜币种。
+
+    只接受“以人民币列示/为记账本位币/金额单位为人民币”这类明确句子，
+    外币折算叙述（如“折算为人民币”）不构成本报告的记账币种声明。
+    """
+    for page in pages:
+        if page.get("error"):
+            continue
+        for line in page.get("lines", []):
+            text = line.get("text", "")
+            if DOCUMENT_CURRENCY.search(re.sub(r"\s+", "", text)):
+                return int(page["page"]), text[:300]
+    return None
+
+
+def _exclusions(occurrences: list[DisclosureOccurrence],
+                extra: list[ExtractionExclusion] | None = None) -> list[ExtractionExclusion]:
     """已提取但未进入候选的行必须显式列示，不允许静默丢弃或改标签消化。"""
     rows = []
     for row in occurrences:
@@ -1062,6 +1172,9 @@ def _exclusions(occurrences: list[DisclosureOccurrence]) -> list[ExtractionExclu
         reason = row.quality_reason or "未达到候选门槛"
         rows.append(ExtractionExclusion(occurrence_id=row.occurrence_id, document_id=row.document_id,
             pdf_page=row.pdf_page, label=row.label, value=row.value or "", year=row.year, unit=row.unit, reason=reason))
+    if extra:
+        seen = {row.occurrence_id for row in rows}
+        rows.extend(item for item in extra if item.occurrence_id not in seen)
     return rows
 
 

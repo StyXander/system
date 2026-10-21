@@ -125,9 +125,12 @@ def test_version_chain_pairs_same_type_correction():
     assert chain["changes"][0].display_change == "-10"
 
 def test_auto_pair_is_candidate_not_conclusion():
-    """自动配对即便成员行都能对上原文，也不构成"关系有原文依据"。"""
+    """未登记指标的同名配对即便成员行都对上原文，也不构成"关系有原文依据"。
+
+    登记在受控指标身份字典里的指标走 metric_identity 依据，见下一用例。
+    """
     documents = [document("AR", "AR"), document("ESG", "ESG")]
-    rows = [row(1, "AR", "环保投入", "100"), row(2, "ESG", "环保投入", "100")]
+    rows = [row(1, "AR", "社区公益投入", "100"), row(2, "ESG", "社区公益投入", "100")]
     checks = candidate_checks(rows, "2024", run=run_of(rows, documents))
     equal = [check for check in checks if check.rule_id == "EQ-001"]
     assert equal, "跨 AR/ESG 同名应召回同值候选"
@@ -138,6 +141,18 @@ def test_auto_pair_is_candidate_not_conclusion():
     assert result.criteria_status == "unknown"
     assert result.cross_document is True
     assert any("对两者关系本身" in value for value in result.unresolved)
+
+
+def test_registered_identity_pair_can_be_confirmed():
+    """受控字典认定的同一指标，五项前提齐备时可进入正式计算。"""
+    documents = [document("AR", "AR"), document("ESG", "ESG")]
+    rows = [row(1, "AR", "环保投入", "100"), row(2, "ESG", "环保投入", "100")]
+    checks = candidate_checks(rows, "2024", run=run_of(rows, documents))
+    equal = [check for check in checks if check.rule_id == "EQ-001"]
+    assert equal and equal[0].relationship_basis == "metric_identity"
+    result = calculate(supported(equal[0]), rows)
+    assert result.criteria_status == "supported"
+    assert result.calculation_status == "consistent"
 
 
 def test_multi_location_basis_never_confirmed():
