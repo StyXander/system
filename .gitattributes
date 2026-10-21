@@ -4,3 +4,7 @@
 # 冻结证据按登记哈希保存原始字节，禁止检出时改换行。
 backend/release_records/evaluations/**/dashboard.json -text
 backend/release_records/evaluations/**/raw_records.jsonl -text
+
+# 许可证与授权声明按原始字节保存，禁止检出时改换行；法律文本不应因平台差异改变字节。
+LICENSE -text
+PROJECT_LICENSE.md -text

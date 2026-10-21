@@ -70,4 +70,23 @@ SOFTWARE.
 
 ## 特别注意：PyMuPDF
 
-PyMuPDF 具有 AGPL-3.0 或 Artifex 商业许可路径。若团队将包含 PyMuPDF 的服务或源代码公开发布，必须先由团队确认适用许可证和合规方式；本文件不构成法律意见。未完成确认前，项目保持内部竞赛评审和受控技术复验边界。
+PyMuPDF 采用 **AGPL-3.0 或 Artifex 商业许可** 双轨授权。本仓库对它的使用位于核心链路：
+
+| 文件 | 用途 |
+|---|---|
+| `backend/app/rag.py`、`backend/app/field_extraction.py` | 逐页文本抽取 |
+| `backend/app/source_viewer.py`、`backend/app/connectivity_api.py` | 证据页渲染为 PNG |
+| `backend/app/connectivity_extraction.py`、`backend/app/connectivity_bootstrap.py` | 报告解析与就绪校验 |
+| `backend/app/cninfo.py`、`backend/app/cases.py` | PDF 身份校验（文件头 / 页数 / 企业 / 年度） |
+| `backend/tests/` 7 个测试文件，`scripts/browser_demo_structured_output_audit.py` | 测试与验收 |
+
+以 `import pymupdf` 方式进程内链接，构成强耦合。
+
+**处理结果（2026-10-21）**：本项目已整体采用 **AGPL-3.0**，与 PyMuPDF 的许可路径一致，因此当前**不构成许可冲突**，也无需购买 Artifex 商业许可。
+
+由此产生的约束：
+
+- 本项目不能改以 MIT / Apache-2.0 发布，除非先把 PyMuPDF 从上述 8 个模块与相关测试中移除；
+- 通过 AGPL 第 13 条，对外提供网络服务时须向使用者提供完整对应源码。
+
+分析与备选方案见 [docs/LICENSING_DECISION.md](docs/LICENSING_DECISION.md)。本文件不构成法律意见。
