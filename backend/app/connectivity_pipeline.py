@@ -511,6 +511,18 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
     def settled(check: RelationshipCheck) -> RelationshipCheck | None:
         if run is not None:
             check, _ = upgrade_conditions(check, run, period)
+            # 多位置只在各项原文前提已由程序证实时采用受控身份；
+            # 同名、字典匹配或事后人工标记不能单独解除关系依据门禁。
+            if (check.rule_id == "OCC-001" and check.relationship_basis == "multi_location"
+                    and check.mapping_type != "different_metric"
+                    and all(any(c.name == name and c.status == "supported" for c in check.conditions)
+                            for name in BASE_CONDITIONS)):
+                member_ids = {member.occurrence_id for member in check.members}
+                identities = {metric_identity(row.label).get("metric_id", "")
+                              for row in rows if row.occurrence_id in member_ids}
+                if len(identities) == 1 and "" not in identities:
+                    check.relationship_basis = "metric_identity"
+                    check.mapping_type = "same_metric"
         try:
             return calculate(check, rows)
         except (ValueError, ArithmeticError, AttributeError, KeyError, IndexError, TypeError) as error:
@@ -638,8 +650,6 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                 # 纯分项残片不是独立主指标；带口径的派生指标（如“总量－雨水回用”）保留。
                 continue
             selected = rows_in_doc[:8]
-            # 身份依据与五项专业前提独立；字典匹配只解除关系门禁，不代替口径证据。
-            selected_identities = {metric_identity(row.label).get("metric_id", "") for row in selected}
             scopes = {_normalize_scope(_ai1_scope(row)) for row in selected}
             scopes.discard("")
             value_ratio = []
@@ -657,10 +667,7 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                 topic=topic, operator=RULES["OCC-001"]["operator"],
                 members=[RelationshipMember(occurrence_id=row.occurrence_id, role="occurrence") for row in selected],
                 relationship_evidence=[_reference(row) for row in selected[:3]],
-                relationship_basis=("metric_identity" if not mixed_scope and
-                    len(selected_identities) == 1 and "" not in selected_identities else "multi_location"),
-                mapping_type=("different_metric" if mixed_scope else "same_metric" if
-                    len(selected_identities) == 1 and "" not in selected_identities else "uncertain"),
+                relationship_basis="multi_location", mapping_type="different_metric" if mixed_scope else "uncertain",
                 mapping_reason=(scope_note + "；不直接作为企业异常") if mixed_scope else "",
                 conditions=[ComparisonCondition(name=name) for name in BASE_CONDITIONS]))
     # 同名同报告多位置只保留一个最完整的候选；单位后缀不造成重复计数。
