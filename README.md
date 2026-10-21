@@ -240,6 +240,7 @@ Copyright (C) 2026 The AuditTrace Authors
 
 - 贡献流程、代码风格与不得提交的内容：[CONTRIBUTING.md](CONTRIBUTING.md)
 - 漏洞披露与安全边界：[SECURITY.md](SECURITY.md)
+- 内容分级、安全审计与公开范围清单：[docs/OPEN_SOURCE_AUDIT.md](docs/OPEN_SOURCE_AUDIT.md)
 
 提交 PR 前请至少跑通快速契约测试与完整回归。测试被跳过不等于通过。
 
