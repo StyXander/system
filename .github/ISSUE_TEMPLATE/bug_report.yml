@@ -1,0 +1,85 @@
+name: Bug 报告
+description: 报告可复现的功能异常、计算结果错误或页面问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请确认：**不要粘贴 API Key、`.env` 内容、真实企业内部资料或年报全文**。
+        涉及安全漏洞请不要用本模板，见 SECURITY.md。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 现象
+      description: 发生了什么？涉及哪个页面或接口？
+      placeholder: 在「关联核对」结果页点击某条关系后，证据页码显示为 0。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 尽量写成可照着做的步骤。没有年报原件也可以报，说明报告类型和页码即可。
+      placeholder: |
+        1. 启动服务后打开 http://127.0.0.1:8000
+        2. 进入「关联核对」，选择已登记的年报 + ESG 报告
+        3. 点击「开始核对」
+        4. 结果页第 3 条关系点击「查看原文」
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 提交版本
+      description: 输出 `git rev-parse --short HEAD` 的结果
+      placeholder: 6abd3d7
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: 操作系统 + Python 版本
+      placeholder: Windows 11 / Python 3.12.10
+    validations:
+      required: true
+
+  - type: dropdown
+    id: model-mode
+    attributes:
+      label: 模型调用模式
+      options:
+        - 已关闭模型调用（AUDITTRACE_DEMO_USE_EXTERNAL_MODEL=false）
+        - 单模型模式
+        - 三角色模式（A1/A2/A3）
+        - 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: 粘贴前请删除密钥、本机绝对路径与真实企业资料。
+      render: shell
+    validations:
+      required: false

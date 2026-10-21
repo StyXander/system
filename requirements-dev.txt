@@ -1,7 +1,9 @@
 # 开发、测试与验收依赖：先装 requirements.txt，再装本文件。
 -r requirements.txt
 
-pytest>=8,<9
+# pytest 8.x 存在 PYSEC-2026-1845（修复版 9.0.3）。原先的 pytest>=8,<9 把版本
+# 锁在无法取得修复版的区间；906 项完整回归已在 pytest 9.1.1 上实测通过，故抬到 9.x。
+pytest>=9,<10
 
 # 真实浏览器与无障碍验收（scripts/browser_* 与 axe 检查）
 playwright>=1.44,<2
@@ -10,4 +12,6 @@ axe-playwright-python>=0.1,<1
 # PDF 渲染与逐页核对（scripts/render_pdf_pages.py、audit_proposal_*.py）
 pypdf>=4,<7
 pypdfium2>=4,<6
-pillow>=10,<12
+# pillow 已移出：仓库内无任何 `from PIL` / `import PIL`。原先的 pillow>=10,<12
+# 既未使用，又把版本锁在无法取得修复版的区间（11.3.0 存在多个 CVE，修复版为
+# 12.3.0 及以上）。若后续脚本确需 PIL，请按 >=12.3 重新引入。

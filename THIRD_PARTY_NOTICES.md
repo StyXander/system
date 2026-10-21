@@ -68,6 +68,24 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## 特别注意：PyMuPDF
+## 特别注意：PyMuPDF（当前许可阻断项）
 
-PyMuPDF 具有 AGPL-3.0 或 Artifex 商业许可路径。若团队将包含 PyMuPDF 的服务或源代码公开发布，必须先由团队确认适用许可证和合规方式；本文件不构成法律意见。未完成确认前，项目保持内部竞赛评审和受控技术复验边界。
+PyMuPDF 采用 **AGPL-3.0 或 Artifex 商业许可** 双轨授权。本仓库对它的使用位于核心链路，不是可替换的边缘依赖：
+
+| 文件 | 用途 |
+|---|---|
+| `backend/app/rag.py`、`backend/app/field_extraction.py` | 逐页文本抽取 |
+| `backend/app/source_viewer.py`、`backend/app/connectivity_api.py` | 证据页渲染为 PNG |
+| `backend/app/connectivity_extraction.py`、`backend/app/connectivity_bootstrap.py` | 报告解析与就绪校验 |
+| `backend/app/cninfo.py`、`backend/app/cases.py` | PDF 身份校验（文件头 / 页数 / 企业 / 年度） |
+| `backend/tests/` 7 个测试文件，`scripts/browser_demo_structured_output_audit.py` | 测试与验收 |
+
+以 `import pymupdf` 方式进程内链接，构成强耦合。
+
+因此：
+
+- 给本仓库添加 MIT 或 Apache-2.0 的 `LICENSE` **不能**解决合规问题，反而会与该依赖冲突；
+- 合规路径只有三条：整仓采用 AGPL-3.0、以商业许可获取 PyMuPDF、或替换为宽松许可的 PDF 库；
+- 完整分析与待决事项见 [docs/LICENSING_DECISION.md](docs/LICENSING_DECISION.md)。
+
+在许可证正式确定前，项目保持竞赛评审与受控技术复验边界。本文件不构成法律意见。

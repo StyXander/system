@@ -1,193 +1,68 @@
-# 永不提交密钥、运行环境、临时文件或开发运行日志。
+# 审迹智链 .gitignore
+#
+# 原则：
+# 1. 源码、测试、文档、脚本一律可入库，不按目录整体忽略；
+# 2. 密钥、本机环境、运行数据库、生成的评估产物不入库；
+# 3. 第三方报告全文与办公文档不入库（版权与体积边界）。
+#
+# 说明：本文件只影响**未跟踪**文件。已跟踪的历史证据不会因为新增忽略规则
+# 而自动移出版本库；移出必须显式 git rm，并按 docs/open-source 清单逐项确认。
+
+# ---------------------------------------------------------------- 密钥与环境
 .env
-.venv/
-backend/.venv/
-backend/.venv.broken-*/
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ---------------------------------------------------------------- Python
 __pycache__/
-backend/**/__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
 .pytest_cache/
-.pytest_tmp/
-.pytest_tmp2/
-.pytest_tmp3/
-.pytest_tmp4/
-.pytest_tmp_*/
-backend/runtime/
-tmp/
-# 本地浏览器验收产物与前端回滚备份只留在本机，不进入发布提交。
+.pytest_tmp*/
+.mypy_cache/
+.ruff_cache/
+
+# ---------------------------------------------------------------- 运行产物与本机数据
 runtime/
-backups/
-交付包/
-~$*.docx
-$null
-.zcode/
-
-# 本地验收截图与明确禁止发送的隔离旧包不进入代码提交。
+tmp/
 artifacts/
-
-# 公开仓库与 Render 部署不分发年报全文或案例包内 PDF。
-标准股份：*.pdf
-**/documents/*.pdf
-
-# 大型二进制文件（GitHub 单文件限100MB）
-*.zip
-**/node_modules/
-**/_hosting_tools/
-*.exe
-
-# 当前公开分支只承载正式 V4 网站与 FastAPI；竞赛原件、周报、验收材料和本地工具保留在电脑中。
-/.agents/
-/.claude/
-/[0-9][0-9]_*/
-/[0-9][0-9]_*.md
-/AGENTS.md
-/PROJECT_STATUS.md
-/README_*.md
-/答辩PPT/
-/审迹智链_*.md
-/backend/tests/__pycache__/
-/docs/
+backups/
+*.sqlite
+*.sqlite3
+*.db
+# outputs/ 保存历次运行产物与评估记录；历史证据已在版本库中，新产物默认不入库。
 /outputs/
-/scripts/
-/reasonix.toml
-/.reasonix/
-/assets/icons/
-/*.py
-!/conftest.py
-/*.bat
+
+# ---------------------------------------------------------------- 第三方材料与大型二进制
+# 年报、可持续发展报告 PDF 全文受第三方版权约束，不入库。
+*.pdf
 *.docx
 *.xlsx
 *.pptx
-*.pdf
+*.zip
+~$*
+node_modules/
+_hosting_tools/
+*.exe
 
-# 竞赛演示收尾：保留评估冻结脚本、冻结快照和中文注释检查脚本，其余运行脚本与输出仍忽略。
-# 2026-09-02：历史材料集中归档；体积较大的本机旧工程、候选文档和旧素材
-# 不进入公开仓库，归档索引和必要的历史报告单独保留。
-/archive/2026-09-02/本机旧材料/
+# ---------------------------------------------------------------- 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.zcode/
+.slidep/
+.reasonix/
 
-# 2026-09-02 复核修正：本文件没有任何规则忽略 backend/tests 下的测试文件，那 26 个未跟踪
-# 测试只是从未执行 git add，所以原先"测试集已全部纳入版本库"的说法是错的。评委需要能从
-# 干净克隆复算完整回归，提交前必须逐项确认这些文件真的进了版本库，否则该验收不成立。
-!/scripts/
-/scripts/*
-!/scripts/register_connectivity_sources.py
-!/scripts/eval_connectivity.py
-!/scripts/eval_connectivity_models.py
-!/scripts/verify_connectivity_supabase.py
-!/scripts/verify_connectivity_supabase_workflow.py
-!/scripts/verify_connectivity_saved_exports.py
-!/scripts/verify_connectivity_source_downloads.py
-!/scripts/check_ui_hierarchy.mjs
-!/scripts/check_connectivity_search.cjs
-!/scripts/fixtures/
-/scripts/fixtures/*
-!/scripts/fixtures/ui_hierarchy_run.json
-!/scripts/check_chinese_comments.py
-!/scripts/prepare_finals_20261011.py
-!/scripts/run_finals_ab_20261011.py
-!/scripts/build_finals_handoff_20261011.py
-!/scripts/finish_finals_records_20261011.py
-!/scripts/serve_finals_review_20261011.py
-!/scripts/verify_finals_support_20261011.cjs
-!/scripts/verify_finals_source_20261011.cjs
-!/scripts/verify_finals_company_search.py
-!/scripts/verify_finals_browser.cjs
-!/scripts/verify_unified_workspace.cjs
-!/scripts/verify_review_workbench.cjs
-!/scripts/verify_review_search.cjs
-!/scripts/verify_review_runtime.py
-!/scripts/build_finals_handoff.py
-!/scripts/record_finals_backup.cjs
-!/scripts/freeze_evaluation_v3.py
-!/scripts/freeze_evaluation_v4.py
-!/scripts/build_evaluation_v3_workbook.py
-!/scripts/build_b0_blind_packages.py
-!/scripts/build_field_review_workbook.py
-!/scripts/run_51_case_acceptance.py
-!/scripts/validate_external_acceptance.py
-!/scripts/check_human_review_entry.py
-!/scripts/build_competition_demo_manifest.py
-!/scripts/browser_demo_run_audit.py
-!/scripts/browser_demo_batch7_audit.py
-!/scripts/browser_demo_recovery_audit.py
-!/scripts/verify_demo_outcome_judge.mjs
-!/scripts/run_demo_final_acceptance.py
-!/scripts/finalize_competition_demo_acceptance.py
-!/scripts/run_controlled_b1_b3_prescore.py
-!/scripts/verify_b1_b3_evaluation_integrity.py
-!/scripts/check_knowledge_sources_live.py
-!/scripts/build_truth_snapshot_20260825.py
-!/scripts/browser_demo_structured_output_audit.py
-!/scripts/summarize_b1_b3_evaluation.py
-!/scripts/record_r3_export_artifacts.py
-!/scripts/classify_r3_b2_failures.py
-!/scripts/upload_standard_sources_to_storage.py
-!/backend/tests/test_demo_bootstrap.py
-!/backend/tests/test_b2_procedure_evidence_contract.py
-!/backend/tests/test_r3_continuation_acceptance.py
-# 评委复现所需的验收脚本：打包、测试清单与逐状态无障碍审计全靠它们，缺一项就复算不了。
-# axe_inject.py 被 browser_demo_final_acceptance.py 直接 import，两者必须同时入库。
-!/scripts/test_inventory.py
-!/scripts/build_delivery_packages.py
-!/scripts/axe_inject.py
-!/scripts/browser_demo_final_acceptance.py
-# 发布门禁的独立重算工具：门禁代码入库而重算脚本不入库，评委就无法从干净克隆复验，
-# 外置版本绑定与人工评分台账也会退化成口头承诺。三个脚本必须与门禁同仓。
-!/scripts/verify_release_evidence.py
-!/scripts/build_release_binding.py
-!/scripts/record_human_score.py
-# README 与评委包都指向这份测试清单，原先被整目录 /docs/ 忽略而永远进不了版本库。
-!/docs/
-/docs/*
-!/docs/history/
-/docs/history/*
-!/docs/history/README_RUN_20261011整改前.md
-!/docs/2026-10-11_整改提交与部署.md
-!/决赛准备/整改_2026-10-11/审迹智链_决赛修订讲稿_2026-10-11.docx
-!/docs/TEST_INVENTORY.md
-!/docs/finals-system-optimization-design.md
-!/docs/finals_remediation_plan_20261009.md
-!/docs/finals_remediation_acceptance_20261009.md
-!/scripts/inspect_finals_extraction.py
-!/scripts/build_finals_source_corrections.py
-!/scripts/verify_finals_remediation.py
-!/scripts/prepare_finals_review_materials.py
-!/scripts/verify_finals_source_dates.py
-!/scripts/verify_finals_clean_start.py
-!/scripts/verify_finals_unknown_company.py
-!/scripts/verify_finals_unknown_calculation.py
-!/scripts/verify_finals_browser.cjs
-# 缺陷审查报告、可复跑反例与实施计划都是复验依据；留在 /docs/* 里等于只有本机可见。
-!/docs/2026-09-09_代码与运行逻辑审查及开源对照优化方案.md
-!/docs/2026-09-15_全量三轮审查报告_代码方案书对应与部署.md
-!/docs/review-assets/
-!/docs/superpowers/
-!/启动审迹智链.bat
-!/PROJECT_STATUS.md
-!/README_RUN.md
-!/outputs/
-/outputs/*
-!/outputs/evaluation_v3/
-/outputs/evaluation_v3/*
-!/outputs/evaluation_v3/current.json
-!/outputs/external_model_acceptance/
-/outputs/external_model_acceptance/*
-!/outputs/external_model_acceptance/current.json
-# 2026-08-22 正式评估 v4：合同/仪表盘/账本/底稿入库；密封 AI 参考评分与协调人清单不进公开仓库。
-!/outputs/evaluation_v4/
-/outputs/evaluation_v4/sealed-ai-reference/
-/outputs/evaluation_v4/**/coordinator/
-!/docs/2026-10-10_*.md
-# 2026-10-14：公开方案和完整问答不包含身份、原始付费响应及签字资料。
-!/docs/2026-10-14_认定级取证整改执行说明.md
-!/docs/2026-10-14_项目定位与公开同步执行说明.md
-!/docs/审迹智链_决赛方案书_2026-10-14.md
-!/docs/审迹智链_答辩40问_2026-10-14.md
-!/docs/2026-10-14_资料用途工程发布核验.md
-!/scripts/verify_assertion_evidence.py
-!/scripts/verify_evidence_decisions_browser.cjs
-!/scripts/build_assertion_defense_documents.py
-!/scripts/render_assertion_defense_word.ps1
-!/scripts/verify_home_model_controls.cjs
-!/scripts/verify_home_zoom_fixed.cjs
-!/scripts/verify_connectivity_direct_metrics.cjs
-!/docs/2026-10-17_披露核对规则与列表修复验收.md
+# ---------------------------------------------------------------- 本地 AI 协作配置
+.claude/
+.workbuddy/
+.agents/

@@ -1,0 +1,56 @@
+name: 功能建议
+description: 提出新的核对规则、口径处理或工程改进建议
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本项目优先接受**能被测试验证**的改进。请说明建议背后的业务依据（准则、指引或真实披露场景），
+        而不只是"希望支持更多格式"。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 现在的做法在什么场景下不够用？
+      placeholder: 环保投入在两份报告里一个是"万元"一个是"吨标煤折算"，当前单位归一无法处理。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议做法
+      description: 你希望系统怎么处理？如果涉及核对规则，请写出判定条件。
+    validations:
+      required: true
+
+  - type: textarea
+    id: basis
+    attributes:
+      label: 业务依据
+      description: 引用的准则、指引条款，或真实的披露场景。不确定来源的请写"未核验"。
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - 关联核对规则 / 口径判定
+        - 证据定位与导出
+        - 前端页面
+        - 部署与工程
+        - 文档
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: 边界确认
+      options:
+        - label: 我理解本项目的输出是核对线索，不是审计或鉴证结论
+          required: true
