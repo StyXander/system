@@ -88,7 +88,11 @@ CI（`.github/workflows/tests.yml`）会在 Pull Request 上运行契约测试�
 
 ## 许可证
 
-当前仓库尚未授予通用开源许可证，详见 [PROJECT_LICENSE.md](PROJECT_LICENSE.md)。在许可证正式确定前，外部贡献的授权范围以该文件为准；提交 PR 前请先确认你能接受该边界。
+本项目以 **AGPL-3.0** 发布，详见 [LICENSE](LICENSE) 与 [PROJECT_LICENSE.md](PROJECT_LICENSE.md)。
+
+提交 Pull Request 即表示你同意以 AGPL-3.0 授权你的贡献。本项目未采用 CLA。
+
+如果你所在组织不接受 AGPL 类许可证，请注意：通过网络提供服务同样会触发源码提供义务（AGPL 第 13 条）。
 
 ## 安全问题
 

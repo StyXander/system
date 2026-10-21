@@ -51,12 +51,21 @@
 
 ## 已知风险（尚未修复）
 
-以下问题在本次开源准备审查中被记录，尚未处理：
+以下问题在本次开源准备审查中被记录，**尚未处理**：
 
-1. **PyMuPDF 的 AGPL-3.0 许可**（`backend/app/*.py` 多处 `import pymupdf`）。这是**许可合规**问题而非运行安全漏洞，但会影响再分发。详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
-2. **缺少自动化依赖漏洞扫描**。当前 CI 不运行 `pip-audit` 等工具，依赖漏洞依赖人工检查。
-3. **未接入任何密钥扫描器**。当前依靠 `.gitignore` 与人工审查。
-4. **两个历史文档含本机绝对路径**（`archive/2026-09-02/历史报告/审迹智链_剩余任务执行计划_2026-08-09.md`、`docs/superpowers/plans/2026-09-03-三AI协作总调度计划.md`）。不含密钥，仅为路径信息。
+1. **缺少自动化依赖漏洞扫描**。CI 目前不运行 `pip-audit`，依赖漏洞依赖人工检查。本次审查用 `pip-audit` 手工扫过 `requirements.txt` 与 `requirements-dev.txt`，结果均为 0 漏洞，但没有持续机制。
+2. **未接入任何密钥扫描器**。当前依靠 `.gitignore` 与人工审查，没有 pre-commit 或 CI 级密钥扫描。
+3. **两个历史文档含本机绝对路径**（`archive/2026-09-02/历史报告/审迹智链_剩余任务执行计划_2026-08-09.md`、`docs/superpowers/plans/2026-09-03-三AI协作总调度计划.md`）。不含密钥，仅为路径信息。
+4. **历史提交元数据含一个真实个人邮箱**（`StyXander` 账号）。已存在于公开历史，清除需历史重写，本次未执行。
+
+## 许可相关约束（已解决冲突，但约束仍在）
+
+**PyMuPDF 的 AGPL-3.0**（`backend/app/` 多处 `import pymupdf`）曾是许可阻断项。2026-10-21 已通过将整仓改为 **AGPL-3.0** 解决，当前不构成冲突。但由此产生两条约束：
+
+- 本项目不能改以 MIT / Apache-2.0 发布，除非先移除 PyMuPDF；
+- 对外提供网络服务时，须按 AGPL 第 13 条向使用者提供完整对应源码。
+
+详见 [PROJECT_LICENSE.md](PROJECT_LICENSE.md) 与 [docs/LICENSING_DECISION.md](docs/LICENSING_DECISION.md)。
 
 ## AI 输出不构成专业结论
 

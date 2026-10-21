@@ -68,9 +68,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## 特别注意：PyMuPDF（当前许可阻断项）
+## 特别注意：PyMuPDF
 
-PyMuPDF 采用 **AGPL-3.0 或 Artifex 商业许可** 双轨授权。本仓库对它的使用位于核心链路，不是可替换的边缘依赖：
+PyMuPDF 采用 **AGPL-3.0 或 Artifex 商业许可** 双轨授权。本仓库对它的使用位于核心链路：
 
 | 文件 | 用途 |
 |---|---|
@@ -82,10 +82,11 @@ PyMuPDF 采用 **AGPL-3.0 或 Artifex 商业许可** 双轨授权。本仓库对
 
 以 `import pymupdf` 方式进程内链接，构成强耦合。
 
-因此：
+**处理结果（2026-10-21）**：本项目已整体采用 **AGPL-3.0**，与 PyMuPDF 的许可路径一致，因此当前**不构成许可冲突**，也无需购买 Artifex 商业许可。
 
-- 给本仓库添加 MIT 或 Apache-2.0 的 `LICENSE` **不能**解决合规问题，反而会与该依赖冲突；
-- 合规路径只有三条：整仓采用 AGPL-3.0、以商业许可获取 PyMuPDF、或替换为宽松许可的 PDF 库；
-- 完整分析与待决事项见 [docs/LICENSING_DECISION.md](docs/LICENSING_DECISION.md)。
+由此产生的约束：
 
-在许可证正式确定前，项目保持竞赛评审与受控技术复验边界。本文件不构成法律意见。
+- 本项目不能改以 MIT / Apache-2.0 发布，除非先把 PyMuPDF 从上述 8 个模块与相关测试中移除；
+- 通过 AGPL 第 13 条，对外提供网络服务时须向使用者提供完整对应源码。
+
+分析与备选方案见 [docs/LICENSING_DECISION.md](docs/LICENSING_DECISION.md)。本文件不构成法律意见。

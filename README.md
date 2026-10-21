@@ -212,13 +212,29 @@ archive/              早期历史归档
 
 ## 10. 许可证与贡献
 
-### 许可证状态
+### 许可证
 
-**本仓库当前尚未授予通用开源许可证。**
+本项目以 **GNU Affero General Public License v3.0（AGPL-3.0）** 发布。
 
-GitHub 仓库公开可见 **不等于** 开源。项目自身代码、文档、案例字段与页面素材目前仍受 [PROJECT_LICENSE.md](PROJECT_LICENSE.md) 的保留声明约束：除团队成员开发、指导教师审阅与竞赛评审所需的受控使用外，不得复制、再发布或商业使用。
+```text
+Copyright (C) 2026 The AuditTrace Authors
 
-许可路径正在评估中，存在一个必须先解决的第三方依赖问题（PyMuPDF 的 AGPL-3.0 / 商业双许可），详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。**在 LICENSE 正式落地前，请不要把本仓库描述为"已开源"。**
+本程序是自由软件：你可以依据自由软件基金会发布的 GNU Affero 通用公共许可证
+第 3 版（或你选择的任何更新版本）条款重新分发和/或修改它。
+本程序按「无任何担保」分发，详见 LICENSE。
+```
+
+完整条款见 [LICENSE](LICENSE)，授权范围与不覆盖的材料见 [PROJECT_LICENSE.md](PROJECT_LICENSE.md)。
+
+**AGPL-3.0 的关键点，请在使用前确认你能接受：**
+
+- 分发本项目或其衍生作品，必须以 AGPL-3.0 提供完整对应源码；
+- **通过网络提供服务也触发源码提供义务**（第 13 条）。把修改版部署成对外服务，就要向使用者提供对应源码；
+- 如果你的组织不允许 AGPL 类许可证，请不要直接使用本仓库代码。
+
+**许可证不覆盖的部分**：第三方年报与 ESG 报告 PDF 全文不在授权范围内，仅可依原发布条款使用，`LICENSE` 不对其产生任何许可。
+
+> 为什么是 AGPL 而不是 MIT：核心链路依赖 PyMuPDF（AGPL-3.0 / 商业双许可），被 8 个后端模块直接 `import`。在这条依赖不变的前提下，标 MIT 会与依赖冲突。若要改用宽松许可证，需要先把 PDF 处理层替换为 `pypdfium2` + `pdfplumber`。完整分析见 [docs/LICENSING_DECISION.md](docs/LICENSING_DECISION.md)。
 
 ### 贡献
 
@@ -226,6 +242,8 @@ GitHub 仓库公开可见 **不等于** 开源。项目自身代码、文档、�
 - 漏洞披露与安全边界：[SECURITY.md](SECURITY.md)
 
 提交 PR 前请至少跑通快速契约测试与完整回归。测试被跳过不等于通过。
+
+> 提交贡献即表示你同意以 AGPL-3.0 授权你的贡献。本项目未采用 CLA。
 
 ---
 
