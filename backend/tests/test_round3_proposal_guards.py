@@ -86,6 +86,26 @@ def test_a1_rejection_is_handed_to_a2_without_duplicate_a1_call(monkeypatch, tmp
     assert handoffs and handoffs[0]['rejected']
 
 
+def test_limited_budget_preserves_a3_instead_of_a2_repair(monkeypatch, tmp_path):
+    from test_connectivity_hybrid import opinion
+    run = bridge_run()
+    pipeline = offline_pipeline(monkeypatch, run)
+    monkeypatch.setenv('CONNECTIVITY_TOKEN_STOP_THRESHOLD', '250')
+    monkeypatch.setattr(pipeline, 'retrieve_targeted_pages', lambda *args: [])
+    bad = proposal(run)
+    bad['members'][0]['role'] = 'component'
+    calls = []
+    def offline(role, payload):
+        calls.append(role)
+        response = {'checks': [bad]} if role in {'A1', 'A2'} else {'analyses': [opinion(run).model_dump()], 'findings': []}
+        return response, {'role': role, 'model': 'OFFLINE_TEST_DOUBLE', 'status': 'completed',
+                          'performed': True, 'input_tokens': 100, 'output_tokens': 0}
+    monkeypatch.setattr(pipeline, 'call_role', offline)
+    result = pipeline.run_pipeline(tmp_path, RunRequest(pair_id='SYN-PAIR'))
+    assert calls == ['A1', 'A2', 'A3']
+    assert result.ai_analyses
+
+
 def test_resume_candidate_repair_new_relationship_reaches_a3(monkeypatch, tmp_path):
     run = bridge_run()
     pipeline = offline_pipeline(monkeypatch, run)

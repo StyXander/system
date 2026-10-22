@@ -1653,7 +1653,14 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                         # 发现者的失败交给质疑者处理，避免同材料重复修复挤掉最终裁决。
                         run.intelligence_trace.append({'kind': 'repair_handoff', 'producer_role': 'A1',
                             'consumer_role': 'A2', 'rejected': part['rejected']})
-                    if role == "A2" and part.get("rejected"):
+                    token_line = int(os.getenv('CONNECTIVITY_TOKEN_STOP_THRESHOLD', '0'))
+                    tokens_used = sum((c.get('input_tokens') or 0) + (c.get('output_tokens') or 0) for c in run.provider_calls)
+                    defer_repair = token_line > 0 and tokens_used >= token_line / 2
+                    if role == 'A2' and part.get('rejected') and defer_repair:
+                        run.intelligence_trace.append({'kind': 'repair_handoff', 'producer_role': 'A2',
+                            'consumer_role': 'A3', 'reason': '保留裁决预算；被拒候选不生效，交A3评价已接纳关系',
+                            'rejected': part['rejected']})
+                    if role == "A2" and part.get("rejected") and not defer_repair:
                         repair_began = time.perf_counter()
                         try:
                             repair_payload = batch_payload(role, checks, feedback=part["rejected"])
