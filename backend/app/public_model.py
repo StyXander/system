@@ -209,6 +209,7 @@ class PublicModelLedger:
                 raise PublicModelQuotaError("当前模型并发已满，请等待上一条分析完成。")
             if day_runs >= self.config.daily_runs:
                 raise PublicModelQuotaError("今日公开演示额度已用完。")
+            self._check_daily_tokens(connection)
             connection.execute(
                 "insert into model_usage(ip_hash,reserved_at,reservation_id) values(?,?,?)",
                 (ip_hash, now, reservation_id),
@@ -245,13 +246,22 @@ class PublicModelLedger:
                 raise PublicModelQuotaError("当前模型并发已满，请等待上一条分析完成。")
             if day_runs >= self.config.daily_runs:
                 raise PublicModelQuotaError("今日公开演示额度已用完。")
+            self._check_daily_tokens(connection)
             connection.execute(
                 "insert into model_usage(ip_hash,reserved_at,reservation_id) values(?,?,?)",
                 (ip_hash, now, reservation_id),
             )
         return reservation_id
 
+    def _check_daily_tokens(self, connection) -> None:
+        used = connection.execute(
+            'select coalesce(sum(input_tokens),0),coalesce(sum(output_tokens),0) from model_usage where reserved_at>=? and released=0',
+            (self._day_start(),)).fetchone()
+        if used[0] >= self.config.daily_input_tokens or used[1] >= self.config.daily_output_tokens:
+            raise PublicModelQuotaError('今日 token 预算已用完。')
+
     def settle(self, reservation_id: str, *, input_tokens: int = 0, output_tokens: int = 0) -> None:
+        exceeded = ''
         with self._lock, self._connect() as connection:
             row = connection.execute(
                 "select input_tokens,output_tokens from model_usage where reservation_id=? and released=0",
@@ -270,15 +280,16 @@ class PublicModelLedger:
             new_input = max(0, int(input_tokens))
             new_output = max(0, int(output_tokens))
             if day_input - int(row[0]) + new_input > self.config.daily_input_tokens:
-                connection.execute("update model_usage set released=1,settled=1 where reservation_id=?", (reservation_id,))
-                raise PublicModelQuotaError("今日输入 token 预算已用完。")
+                exceeded = "今日输入 token 预算已用完。"
             if day_output - int(row[1]) + new_output > self.config.daily_output_tokens:
-                connection.execute("update model_usage set released=1,settled=1 where reservation_id=?", (reservation_id,))
-                raise PublicModelQuotaError("今日输出 token 预算已用完。")
+                exceeded = "今日输出 token 预算已用完。"
             connection.execute(
                 "update model_usage set input_tokens=?,output_tokens=?,settled=1 where reservation_id=?",
                 (new_input, new_output, reservation_id),
             )
+        # 已实际消费的token必须提交入账后再拒绝响应，不能回滚或释放成零消费。
+        if exceeded:
+            raise PublicModelQuotaError(exceeded)
 
     def release(self, reservation_id: str) -> None:
         with self._lock, self._connect() as connection:

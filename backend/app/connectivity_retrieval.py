@@ -24,6 +24,15 @@ RULE_BASIS_PATH = Path(__file__).with_name("connectivity_rule_basis.json")
 RETRIEVAL_VERSION = "connectivity_directed_retrieval_v2"
 KNOWLEDGE_VERSION = "connectivity_rule_basis_v1"
 
+
+def recall_aliases(metric: str) -> list[str]:
+    """受控别名只扩检索，不证明两个指标定义相同。"""
+    aliases = [metric]
+    for name, values in METRIC_SYNONYMS.items():
+        if metric == name or metric in values:
+            aliases.extend([name, *values])
+    return list(dict.fromkeys(aliases))
+
 #: 别名只用于召回；取水与耗水、研发费用与研发投入等差异仍由原文定义确认。
 #: 别名表不参与“同口径”判定，也不把研发费用自动并入研发投入。
 METRIC_SYNONYMS = {
@@ -277,7 +286,7 @@ def _score_line(text: str, queries: list[dict], context: str = "") -> tuple[int,
             continue
         # 条件须出现在当前证据行；邻行只提供指标身份，不能替无关行凑条件。
         condition_hits = sum(1 for term in dict.fromkeys(terms[1:]) if term and term != anchor and term in compact)
-        if anchor not in local or not condition_hits:
+        if not any(alias in local for alias in recall_aliases(anchor)) or not condition_hits:
             continue
         hits = 1 + condition_hits
         weight = hits * (2 if query["kind"] == "support" else 3)
@@ -407,6 +416,10 @@ def retrieval_effect(before_checks: list, after_checks: list, occurrences: list,
             upgraded_conditions.extend({"check_id": check.check_id, "condition": name} for name in changes)
     return {
         "version": RETRIEVAL_VERSION,
+        "condition_transitions": [{"check_id": cid, "condition": name,
+            "before": before.get(cid, {}).get(name), "after": status}
+            for cid, conditions in after.items() for name, status in conditions.items()
+            if before.get(cid, {}).get(name) != status],
         "checks_with_upgraded_conditions": len(upgraded_checks),
         "upgraded_conditions": upgraded_conditions,
         "supported_conditions_before": sum(1 for values in before.values() for value in values.values() if value == "supported"),

@@ -24,3 +24,12 @@ def test_new_entry_keeps_proxy_configuration_fail_closed(monkeypatch):
     with pytest.raises(RuntimeError, match='AUDITTRACE_TRUSTED_PROXY_HOPS'):
         with TestClient(app):
             pass
+
+
+def test_health_reports_runtime_identity_without_guessing_commit(monkeypatch):
+    from backend.app.connectivity_app import health
+    monkeypatch.delenv('RENDER_GIT_COMMIT', raising=False)
+    monkeypatch.delenv('GIT_COMMIT', raising=False)
+    assert health()['deployment']['commit'] is None
+    monkeypatch.setenv('RENDER_GIT_COMMIT', 'a' * 40)
+    assert health()['deployment']['commit'] == 'a' * 40

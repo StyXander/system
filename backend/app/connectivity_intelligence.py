@@ -75,6 +75,10 @@ def pack_role_context(payload: dict, char_budget: int = 62000) -> dict:
     result = dict(payload)
     checks = payload.get('candidate_checks', [])
     essential = set()
+    check_ids = {c['check_id'] for c in checks}
+    for event in payload.get('collaboration_history', []):
+        if event.get('check_id') in check_ids:
+            essential.update(event.get('delivered_evidence_ids', []))
     for check in checks:
         essential.update(m['occurrence_id'] for m in check.get('members', []))
         refs = check.get('relationship_evidence', []) + check.get('explanation_evidence', [])
@@ -184,6 +188,12 @@ def targeted_context(run: ConnectivityRun, checks: list[RelationshipCheck], limi
         for ref_id in [m.occurrence_id for m in check.members] + bound + [r.occurrence_id for r in refs]:
             if ref_id in found:
                 selected.setdefault(ref_id, found[ref_id])
+    check_ids = {c.check_id for c in checks}
+    for event in run.intelligence_trace:
+        if event.get('kind') == 'agent_tool_result' and event.get('check_id') in check_ids:
+            for oid in event.get('delivered_evidence_ids', []):
+                if oid in found:
+                    selected.setdefault(oid, found[oid])
     essential_count = len(selected)
     # 模型可能新增调节项或反证，必须能看到同主题、同指标词根的邻近原文；
     # 否则它只能在未见过的 ADJ 上编造 ID。该召回只扩上下文，不自动成为关系成员。

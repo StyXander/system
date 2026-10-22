@@ -36,6 +36,29 @@ def test_metric_definition_support_and_explicit_counter_both_retrieved():
     assert _score_line("研发投入156000万元。", [support, counter]) == (0, 0, [])
 
 
+def test_alias_recalls_split_metric_but_not_unrelated_expense():
+    q = query('研发投入', '不包括', kind='counter')
+    assert _score_line('注：不包括联营企业。', [q], '研发支出\n注：不包括联营企业。')[1] > 0
+    assert _score_line('研发费用不包括其他费用。', [q]) == (0, 0, [])
+
+
+def test_tool_hit_survives_context_selection_and_packing():
+    from app.connectivity_intelligence import targeted_context, pack_role_context
+    from app.connectivity_schemas import DisclosureOccurrence
+    run = bridge_run()
+    run.occurrences.append(DisclosureOccurrence(occurrence_id='HIT',
+        document_id=run.occurrences[0].document_id, pdf_page=90, label='注',
+        context='统计口径不包括联营企业。', quality='text_only'))
+    event = dict(kind='agent_tool_result', check_id=run.checks[0].check_id,
+                 delivered_evidence_ids=['HIT'])
+    run.intelligence_trace.append(event)
+    rows, tasks = targeted_context(run, run.checks)
+    packed = pack_role_context(dict(occurrences=rows,
+        candidate_checks=[c.model_dump() for c in run.checks], collaboration_history=[event]))
+    assert 'HIT' in {r['occurrence_id'] for r in packed['occurrences']}
+    assert any('联营企业' in b['text'] for b in packed['evidence_blocks'])
+
+
 @pytest.mark.parametrize("anchor", ["", "该指标", "本指标", "合计", "其他", "一", "GDP", "全国研发投入"])
 def test_generic_or_macro_anchor_cannot_create_business_evidence(anchor):
     text = f"{anchor}是指相关统计范围，包括企业项目。"

@@ -65,3 +65,13 @@ def test_graph_does_not_change_check_conclusions():
     build_proof_graph(run)
     assert run.checks[0].conclusion_level == original
 
+
+def test_multiple_tool_results_for_one_check_are_not_overwritten():
+    run = sample()
+    plan = plan_procedures(run.checks, round_number=1)
+    result = procedure_effect(plan, run.checks, run.checks,
+        [{'check_id': 'C1', 'new_evidence_ids': ['FIRST'], 'query_ids': ['Q1']},
+         {'check_id': 'C1', 'new_evidence_ids': [], 'query_ids': ['Q2']}])
+    assert result['events'][0]['new_evidence_ids'] == ['FIRST']
+    assert result['events'][0]['query_ids'] == ['Q1', 'Q2']
+

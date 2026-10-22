@@ -64,7 +64,7 @@ from .connectivity_schemas import (INTELLIGENCE_VERSION, AgentProposals, SingleA
     EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal,
     AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE, SearchDirective)
 
-PROMPT_VERSION = "connectivity_autonomous_20261022.1"
+PROMPT_VERSION = "connectivity_autonomous_20261022.2"
 
 #: AI1 可能提供的高置信结构入口；未合入时用本文件的保守兜底，不让启动失败。
 AI1_HOOK_NAMES = ("classify_disclosure_scope", "validate_row_identity", "is_macro_context",
@@ -905,7 +905,9 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                "metric必须是对应成员原文指标名，terms给出1至5个定义、范围、母公司、合并、排除等具体查询词，"
                "kind为support或counter，reason说明触发原因。工具由服务端实际执行，下一角色会收到命中原文和前后状态。"
                "无值得补查的缺口时返回空列表。先读collaboration_history和closure_probes，不要重复已经失败的查询。"
-               "A3可请求一次反馈调查，只有取得新证据才会再次交A2质疑、A3综合；不能把假设推演写为事实。")
+               "A2必须点明A1的具体关系编号、依据及需要反驳的解释；A3须利用collaboration_history核对分歧、实际工具回执与计算。"
+               "上轮未命中时调整指标别名或具体条件词，不重复同一查询。"
+               "A3可请求一次反馈调查，新原文或首次交付本关系的既有原文均可再次交A2质疑、A3综合；命中仍须逐字引用与专业校验，不能把假设推演写为事实。")
     contract = FinalSummaries if role == "A3" else SingleAgentProposals if role == "single" else AgentProposals
     schema = contract.model_json_schema()
     if role != "A3":
@@ -1376,7 +1378,8 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
 
 
 def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None, agent_progress=lambda *args: None,
-                 cancelled=lambda: False, before_model=lambda: None, resume: ConnectivityRun | None = None) -> ConnectivityRun:
+                 cancelled=lambda: False, before_model=lambda: None, resume: ConnectivityRun | None = None,
+                 checkpoint=lambda run: None) -> ConnectivityRun:
     """共享合同一次接通；仅计算、失败与真实模型链保持不同身份。"""
     started = time.perf_counter()
     docs = [d for d in load_registry(root) if d.case_id == request.pair_id]
@@ -1479,6 +1482,14 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 raise InterruptedError("用户取消了任务")
             if len(run.provider_calls) >= 20:
                 raise ValueError("MODEL_CALL_BUDGET_EXHAUSTED")
+            # 实验可设相同的已消费token停止线；在途请求最多越过一次，绝不伪称精确等额。
+            threshold = int(os.getenv('CONNECTIVITY_TOKEN_STOP_THRESHOLD', '0'))
+            used = sum((c.get('input_tokens') or 0) + (c.get('output_tokens') or 0) for c in run.provider_calls)
+            if threshold > 0 and used >= threshold:
+                raise ValueError('MODEL_TOKEN_BUDGET_EXHAUSTED')
+            run.intelligence_trace.append({"kind": "role_context", "role": role,
+                "check_ids": [c['check_id'] for c in payload.get('candidate_checks', [])],
+                "sent_ids": [r['occurrence_id'] for r in payload.get('occurrences', [])]})
             return call_role(role, payload)
         work_ids = ({c.check_id for c in run.checks} - {a.check_id for a in run.ai_analyses if a.status == "current"}) if resume else None
 
@@ -1527,7 +1538,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             payload["closure_probes"] = [{"check_id": c.check_id, "closure": c.closure} for c in checks]
             payload["collaboration_history"] = [{k: v for k, v in e.items() if k not in {'scanned_pages', 'failed_pages'}}
                 for e in run.intelligence_trace if e.get("kind") in {
-                "agent_tool_request", "agent_tool_result", "adaptive_procedure_effect", "feedback_decision"}][-20:]
+                "agent_tool_request", "agent_tool_result", "adaptive_procedure_effect", "feedback_decision", "role_contribution"}][-20:]
             payload["hypothesis_ledger"] = [entry for check in checks for entry in hypothesis_ledger(check)]
             payload["hypothesis_updates"] = [entry for entry in run.intelligence_trace
                 if entry.get("kind") == "hypothesis_update" and entry.get("check_id") in {check.check_id for check in checks}]
@@ -1626,6 +1637,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     record.update(batch=batch_index, context_count=len(ids))
                     pending_searches.extend({**item, "producer_role": role} for item in response.get("search_requests", []))
                     run.provider_calls.append(record)
+                    checkpoint(run)
                     delta['rejected'].extend(record.get('validation_rejections', []))
                     if role == "A3":
                         part = integrate_summaries(run, response, ids, model=record.get("model", ""))
@@ -1643,8 +1655,10 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                             repair_payload = batch_payload(role, checks, feedback=part["rejected"])
                             repair_ids = {r["occurrence_id"] for r in repair_payload["occurrences"]}
                             repair_result, repair_record = bounded_call(role, repair_payload)
+                            pending_searches.extend({**item, "producer_role": role} for item in repair_result.get("search_requests", []))
                             repair_record.update(batch=batch_index, phase="candidate_repair", context_count=len(repair_ids))
                             run.provider_calls.append(repair_record)
+                            checkpoint(run)
                             repair_delta = integrate_proposals(run, repair_result, repair_ids, role,
                                 novel_budget=max(0, 2-len(part.get("novel_check_ids", []))))
                             if work_ids is not None:
@@ -1665,6 +1679,16 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     for key in delta:
                         if key in part:
                             delta[key].extend(part[key])
+                    run.intelligence_trace.append({"kind": "role_contribution", "role": role,
+                        "check_ids": [c.check_id for c in checks],
+                        "accepted_check_ids": part.get("accepted_check_ids", []),
+                        "rejected": part.get("rejected", []),
+                        "condition_changes": part.get("condition_changes", []),
+                        "hypothesis_changes": part.get("hypothesis_changes", []),
+                        "analyses": [a.model_dump(include={'check_id', 'verdict', 'summary', 'reasons',
+                            'supporting_evidence', 'counter_evidence', 'next_actions'})
+                            for a in run.ai_analyses if a.check_id in part.get('accepted_analysis_ids', [])],
+                        "accepted_analysis_ids": part.get("accepted_analysis_ids", [])})
                     delta["processed_check_ids"].extend(c.check_id for c in checks)
                     run.intelligence_trace.append({"role": role, "batch": batch_index, "retrieval_tasks": payload["retrieval_tasks"],
                                                    "processed_check_ids": [c.check_id for c in checks]})
@@ -1678,8 +1702,10 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                         follow_payload = batch_payload(role, follow, analysis_only=True, feedback=part.get("analysis_rejections", []))
                         follow_ids = {r["occurrence_id"] for r in follow_payload["occurrences"]}
                         follow_result, follow_record = bounded_call(role, follow_payload)
+                        pending_searches.extend({**item, "producer_role": role} for item in follow_result.get("search_requests", []))
                         follow_record.update(batch=batch_index, phase="analysis_completion", context_count=len(follow_ids))
                         run.provider_calls.append(follow_record)
+                        checkpoint(run)
                         follow_delta = integrate_analyses(run, (SingleAgentProposals if role == "single" else FinalSummaries).model_validate(follow_result).analyses,
                                                           follow_ids, role, PROMPT_VERSION, follow_record.get("model", ""))
                         delta["accepted_analysis_ids"].extend(follow_delta["accepted_analysis_ids"])
@@ -1692,7 +1718,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     run.provider_calls.append(record)
                     delta["failed_batches"].append({"batch": batch_index, "check_ids": [c.check_id for c in checks], "failure_code": record["failure_code"]})
                     any_failure = True
-                    fatal = record["failure_code"] in {"MODEL_CONFIG_MISSING", "MODEL_DISABLED", "MODEL_DESTINATION_NOT_AUTHORIZED", "MODEL_HTTP_401", "MODEL_HTTP_402", "MODEL_HTTP_403", "MODEL_QUOTA_UNAVAILABLE", "MODEL_SERVICE_503", "MODEL_SERVICE_403"}
+                    fatal = record["failure_code"] in {"MODEL_CONFIG_MISSING", "MODEL_DISABLED", "MODEL_DESTINATION_NOT_AUTHORIZED", "MODEL_HTTP_401", "MODEL_HTTP_402", "MODEL_HTTP_403", "MODEL_QUOTA_UNAVAILABLE", "MODEL_SERVICE_503", "MODEL_SERVICE_403", "MODEL_TOKEN_BUDGET_EXHAUSTED", "MODEL_CALL_BUDGET_EXHAUSTED"}
                     if fatal:
                         break
                     # 一个批次失败不丢掉其他关系；后续角色仍可使用已有原文和复算结果。
@@ -1701,7 +1727,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             agent_progress(stage_role, "completed" if status == "completed" else "failed",
                            f"{role}完成{successes}批，保留{len(set(delta['accepted_analysis_ids']))}项模型研判")
             if role in {"A3", "single"} and pending_searches and not feedback_used and not fatal:
-                # 裁决者提出调查后，只有新原文才能触发一次质疑与重新裁决。
+                # 首次交付本关系的既有原文也可以重新裁决；仍只允许一轮反馈。
                 feedback_used = True
                 before_feedback = [c.model_copy(deep=True) for c in run.checks]
                 tasks = execute_search_requests(root, run, pending_searches, role)
@@ -1709,10 +1735,12 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 recalculate_checks(run, comparison_period, "feedback")
                 new_ids = {oid for t in tasks for oid in t.get("new_evidence_ids", [])}
                 effect = retrieval_effect(before_feedback, run.checks, run.occurrences, new_ids)
+                reused_ids = {oid for t in tasks for oid in t.get("new_to_relation_ids", [])} - new_ids
+                reopen = bool(new_ids or reused_ids or effect['checks_with_upgraded_conditions'])
                 run.intelligence_trace.append({"kind": "feedback_decision", "role": role,
-                    "new_evidence_count": len(new_ids), "effect": effect,
-                    "stop_reason": "new_evidence_reopen" if new_ids else "no_new_evidence"})
-                if new_ids:
+                    "new_evidence_count": len(new_ids), "reused_evidence_ids": sorted(reused_ids), "effect": effect,
+                    "stop_reason": "new_evidence_reopen" if new_ids else "existing_evidence_reopen" if reopen else "no_new_evidence"})
+                if reopen:
                     roles.extend([("single", "challenge")] if role == 'single' else [("A2", "counter"), ("A3", "review")])
         if pending_searches:
             run.intelligence_trace.append({"kind": "feedback_decision", "role": "A3",

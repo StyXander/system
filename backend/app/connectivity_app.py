@@ -48,4 +48,7 @@ def health():
     return {'service_status': 'ready', 'product': 'connectivity',
         'model_status': 'configured' if os.getenv('DEEPSEEK_API_KEY', '').strip() else 'config_missing',
         'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
-        'default_mode': 'three_agents', 'project_facts': project_facts(ROOT)}
+        'default_mode': 'three_agents', 'project_facts': project_facts(ROOT),
+        'deployment': {'commit': os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') or None,
+            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.22.3',
+            'identity_source': 'runtime_environment' if os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') else 'unverified'}}

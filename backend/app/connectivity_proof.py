@@ -62,15 +62,18 @@ def procedure_effect(plan: dict, before_checks, after_checks, tasks: list[dict])
         return {str(_get(x, "check_id")): {str(_get(c, "name")): _get(c, "status")
                 for c in _list(x, "conditions")} for x in items}
     first, second = state(before_checks), state(after_checks)
-    by_id = {str(t.get("check_id")): t for t in tasks}
+    by_id = {}
+    for task in tasks:
+        by_id.setdefault(str(task.get('check_id')), []).append(task)
     events = []
     for check_id in plan["selected_check_ids"]:
         changed = [{"condition": name, "before": status, "after": second.get(check_id, {}).get(name)}
                    for name, status in first.get(check_id, {}).items()
                    if second.get(check_id, {}).get(name) != status]
-        task = by_id.get(check_id)
-        events.append({"check_id": check_id, "executed": task is not None,
-                       "new_evidence_ids": list((task or {}).get("new_evidence_ids", [])),
+        matched = by_id.get(check_id, [])
+        events.append({"check_id": check_id, "executed": bool(matched),
+                       "query_ids": list(dict.fromkeys(q for t in matched for q in t.get('query_ids', []))),
+                       "new_evidence_ids": list(dict.fromkeys(o for t in matched for o in t.get('new_evidence_ids', []))),
                        "condition_changes": changed,
                        "upgraded_conditions": [c["condition"] for c in changed if c["after"] == "supported"]})
     return {"version": VERSION, "round": plan["round"], "events": events,

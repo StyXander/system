@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-from .connectivity_retrieval import retrieve_targeted_pages
+from .connectivity_retrieval import retrieve_targeted_pages, recall_aliases
 
 
 def execute_search_requests(root, run, requests, consumer_role):
@@ -27,7 +27,9 @@ def execute_search_requests(root, run, requests, consumer_role):
         problem = ''
         if check is None:
             problem = 'unknown_check'
-        elif not 2 <= len(metric) <= 50 or not any(metric in rows[m.occurrence_id].label for m in check.members if m.occurrence_id in rows):
+        elif not 2 <= len(metric) <= 50 or not any(
+                alias in rows[m.occurrence_id].label for alias in recall_aliases(metric)
+                for m in check.members if m.occurrence_id in rows):
             problem = 'metric_not_in_bound_members'
         elif not terms or any(re.search(r'https?://|[/\\]|[\x00-\x1f]', t) for t in [metric, *terms]):
             problem = 'invalid_query_terms'
@@ -45,6 +47,19 @@ def execute_search_requests(root, run, requests, consumer_role):
                  'terms': [metric, *terms], 'text': ' '.join([metric, *terms])}
         tasks = retrieve_targeted_pages(root, run, [check], 1, per_check=4, query_overrides={cid: [query]})
         for task in tasks:
+            # 新增片段和重新找回的片段均须传递；命中不自动升级专业前提。
+            bound = {m.occurrence_id for m in check.members}
+            cited = {r.occurrence_id for r in check.relationship_evidence + check.explanation_evidence}
+            cited.update(r.occurrence_id for c in check.conditions for r in c.evidence)
+            previous = {oid for e in run.intelligence_trace if e.get('kind') == 'agent_tool_result'
+                        and e.get('check_id') == cid for oid in e.get('delivered_evidence_ids', [])}
+            previous.update(oid for e in run.intelligence_trace if e.get('kind') == 'role_context'
+                            and cid in e.get('check_ids', []) for oid in e.get('sent_ids', []))
+            hits = list(dict.fromkeys(task.get('new_evidence_ids', []) + task.get('existing_hits', [])))
+            task['delivered_evidence_ids'] = hits
+            task['unbound_evidence_ids'] = [oid for oid in hits if oid not in bound | cited]
+            task['new_to_relation_ids'] = [oid for oid in hits if oid not in bound | cited | previous]
+            task['outcome'] = 'evidence_for_review' if hits else 'no_matching_registered_text'
             task.update(request_id=request_id, producer_role=request.get('producer_role', ''), tool='search_registered_report')
             results.append(task)
             run.intelligence_trace.append({'kind': 'agent_tool_result', 'role': consumer_role, **task})
@@ -54,7 +69,7 @@ def execute_search_requests(root, run, requests, consumer_role):
 def collaboration_summary(run):
     """页面和导出共用真实轨迹投影，不生成推理文字或假阶段。"""
     kinds = {'agent_tool_request', 'agent_tool_result', 'adaptive_procedure_plan',
-             'adaptive_procedure_effect', 'feedback_decision', 'hypothesis_update'}
+             'adaptive_procedure_effect', 'feedback_decision', 'hypothesis_update', 'role_contribution'}
     events = [e for e in run.intelligence_trace if e.get('kind') in kinds]
     return {'version': 'autonomous_evidence_v1', 'events': events,
         'tool_requests': sum(e.get('kind') == 'agent_tool_request' and e.get('status') == 'executed' for e in events),

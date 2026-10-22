@@ -6,7 +6,8 @@ from backend.app import connectivity_collaboration as module
 
 
 def sample():
-    return N(checks=[N(check_id='C1', members=[N(occurrence_id='O1')])],
+    return N(checks=[N(check_id='C1', members=[N(occurrence_id='O1')],
+        relationship_evidence=[], explanation_evidence=[], conditions=[])],
         occurrences=[N(occurrence_id='O1', label='研发投入金额')], intelligence_trace=[])
 
 
@@ -61,3 +62,23 @@ def test_no_requests_produces_no_fabricated_activity():
     run = sample()
     assert module.execute_search_requests(Path('.'), run, [], 'A3') == []
     assert module.collaboration_summary(run)['events'] == []
+
+
+def test_existing_hit_is_delivered_once_to_relation(monkeypatch):
+    run = sample()
+    monkeypatch.setattr(module, 'retrieve_targeted_pages', lambda *a, **k:
+        [dict(check_id='C1', new_evidence_ids=[], existing_hits=['O1', 'OLD'], queries=[])])
+    first = module.execute_search_requests(Path('.'), run, [directive()], 'A2')[0]
+    assert first['new_to_relation_ids'] == ['OLD']
+    assert first['delivered_evidence_ids'] == ['O1', 'OLD']
+    second = module.execute_search_requests(Path('.'), run, [{**directive(), 'terms': ['母公司']}], 'A3')[0]
+    assert second['new_to_relation_ids'] == []
+
+
+def test_controlled_alias_can_request_search_without_equating_metrics(monkeypatch):
+    run = sample()
+    calls = []
+    monkeypatch.setattr(module, 'retrieve_targeted_pages', lambda *a, **k: calls.append(k) or [])
+    module.execute_search_requests(Path('.'), run, [{**directive(), 'metric': '研发支出'}], 'A2')
+    assert len(calls) == 1
+    assert run.occurrences[0].label == '研发投入金额'
