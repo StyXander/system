@@ -329,13 +329,25 @@ def non_exact_value(row: DisclosureOccurrence) -> bool:
     return bool(re.search(r"(?:不超过|不低于|不高于|至少|至多|超过|多于|少于|不足|大约|约|近)\s*$", row.label))
 
 
-def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence]) -> RelationshipCheck:
+def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence], *,
+              assume_supported: set[str] | None = None,
+              disregard_gaps: bool = False) -> RelationshipCheck:
     """从原始关系重建状态，忽略前端或模型提交的既有计算结论。
 
     数值、口径和解释分别记录：无依据解释不会改写差额，显示精度假设不会
     升级为正式结论，报告边界/表内分组/指标统计范围也不会互相冒充。
+
+    两个仅用于反事实推演的开关，默认关闭时与既有行为逐字段一致：
+    - assume_supported：假定这些前提已获原文支持。用于回答"只补这一项够不够"。
+    - disregard_gaps：假定全部形式前提（含关系依据）均已成立。用于给出算术
+      上限预测——"即使纸面前提全部补齐，剩余差额是多少"。
+    推演结果绝不写入 conclusion_level 等正式字段；调用方必须把它放进 closure
+    预测块，并保留"这是假设、不是结论"的标注。
     """
     result = check.model_copy(deep=True)
+    assumed = {name for name in (assume_supported or ()) if name}
+    if disregard_gaps:
+        assumed = {condition.name for condition in result.conditions}
     result.calculation = {}
     result.hypothetical = None
     result.unresolved = []
@@ -368,6 +380,13 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     for condition in result.conditions:
         if condition.name in conditions:
             raise ValueError("同一比较条件不能重复提交")
+        if condition.name in assumed:
+            # 反事实推演：把该前提按"已获原文支持"参与算术，但不冒充任何原文证据。
+            condition.status = "supported"
+            condition.evidence_kind = "derived"
+            condition.reason = f"反事实推演：假设「{condition.name}」前提已成立，不构成本次事实认定"
+            conditions[condition.name] = condition
+            continue
         if condition.status != "unknown" and not validate_refs(condition.evidence, found):
             condition.status = "unknown"
             condition.reason = "所引依据缺失、越界或原文不匹配"
@@ -467,6 +486,11 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
         result.calculation = {"error": f"算式未完成：{type(error).__name__}"}
         _set_levels(result, "insufficient_basis", "L0", "not_computed")
         return result
+    if disregard_gaps and not conflict:
+        # 上限预测：把闸门视为已打开，让同一个算式走完整分支，只求"剩多少差额"。
+        # 不在此处写任何标记：后面 result.calculation = trial 会整体覆盖，
+        # 写入即成为死字段。调用方（connectivity_closure）负责标注这是假设。
+        result.criteria_status = "supported"
     # 正式差额硬门禁：任一关键前提 unknown 或 conflicting 时不产出正式差额与残差。
     if result.criteria_status != "supported":
         result.calculation = _gated_calculation(result, trial)

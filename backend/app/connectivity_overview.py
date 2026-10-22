@@ -9,6 +9,7 @@ from collections import Counter
 from decimal import Decimal
 
 from .connectivity_rules import BASE_CONDITIONS
+from .connectivity_closure import summarize as summarize_closure
 from .connectivity_schemas import ConnectivityRun
 from .ai_opinion import build_program_hints
 from .connectivity_facts import execution_provenance
@@ -187,6 +188,10 @@ def build_overview(run: ConnectivityRun) -> dict:
                       "total_pages": total_pages,
                       "denominator_label": f"已提取{extracted}处 / 已检索{searched}页 / 共{total_pages}页"},
         "unresolved_causes": unresolved_causes(run),
+        # 反事实闭合推演汇总：把"依据不足"按"补纸面能否闭合"重新分档。
+        # 与 unresolved_causes 并列而不替换：前者是程序字段的确定性读数，
+        # 后者是对未决文本的关键词分类，两者分母不同，不得互相覆盖。
+        "closure": summarize_closure(checks),
         "next_questions": [{"check_id": f.check_id, "question": f.question} for f in run.findings[:3]],
         "note": "同一关系可能同时计入多个状态；四问不合成综合分数，也不做排行。",
     }

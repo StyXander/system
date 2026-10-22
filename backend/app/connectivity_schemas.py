@@ -337,6 +337,9 @@ class RelationshipCheck(Contract):
     narrative_claim: NarrativeClaim | None = None
     narrative_test: dict | None = None
     hypotheses: list[ExplanationHypothesis] = Field(default_factory=list, max_length=3)
+    # 反事实闭合推演：证据需求、上限预测、单项补证效果与归因候选。
+    # 只读派生数据，不参与任何正式结论；结构见 connectivity_closure.py。
+    closure: dict = Field(default_factory=dict)
 
 
 class RelationshipProposal(Contract):

@@ -47,6 +47,7 @@ from .connectivity_engine import calculate, normalized, numeric_unit, number, va
 from .connectivity_extraction import extract_document, load_registry, search_context, report_industry_context, EXTRACTION_VERSION
 from .connectivity_overview import build_overview
 from .connectivity_conditions import upgrade_conditions
+from .connectivity_closure import attach as attach_closure, summarize as summarize_closure
 from .connectivity_metrics import compact_label, metric_identity, metric_comparison
 from .connectivity_tables import build_table_composition_candidates
 from .connectivity_intelligence import (METRIC_GUIDANCE, targeted_context, enrich_calculation,
@@ -243,7 +244,8 @@ def recalculate_checks(run: ConnectivityRun, period: str, role: str) -> None:
     rebuilt = []
     for check in run.checks:
         try:
-            rebuilt.append(enrich_calculation(calculate(upgrade_conditions(check, run, period)[0], run.occurrences), run.occurrences))
+            rebuilt.append(attach_closure(enrich_calculation(calculate(upgrade_conditions(check, run, period)[0], run.occurrences),
+                                                            run.occurrences), run.occurrences))
         except ValueError as error:
             run.candidate_rejections.append({'check_id': check.check_id, 'title': check.title, 'role': role, 'reason': str(error)})
     run.checks = rebuilt
@@ -524,7 +526,7 @@ def candidate_checks(rows: list[DisclosureOccurrence], period: str, run=None,
                     check.relationship_basis = "metric_identity"
                     check.mapping_type = "same_metric"
         try:
-            return calculate(check, rows)
+            return attach_closure(calculate(check, rows), rows)
         except (ValueError, ArithmeticError, AttributeError, KeyError, IndexError, TypeError) as error:
             if rejections is not None:
                 rejections.append({"check_id": check.check_id, "title": check.title, "reason": str(error)})
@@ -1319,7 +1321,8 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
         try:
             # 新关系先完成相同的程序补证，再交给模型研判；避免末轮复算才改写其输入。
             candidate = upgrade_conditions(candidate, run, run.period)[0]
-            candidate = enrich_calculation(calculate(candidate, run.occurrences), run.occurrences)
+            candidate = attach_closure(enrich_calculation(calculate(candidate, run.occurrences), run.occurrences),
+                                       run.occurrences)
         except ValueError as error:
             rejected.append({"index": index, "reason": str(error)})
             continue
