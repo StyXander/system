@@ -48,6 +48,7 @@ from .connectivity_extraction import extract_document, load_registry, search_con
 from .connectivity_overview import build_overview
 from .connectivity_conditions import upgrade_conditions
 from .connectivity_tables import build_table_composition_candidates
+from .connectivity_proof import plan_procedures, procedure_effect, build_proof_graph
 from .connectivity_intelligence import (METRIC_GUIDANCE, targeted_context, enrich_calculation,
     integrate_analyses, refresh_analysis_status, grounded_numbers, unsupported_numbers, pack_role_context)
 from .connectivity_rules import RULES, BASE_CONDITIONS, TOPICS, required_conditions, direct_metric
@@ -1280,12 +1281,17 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 round_number = 1 if role == "A2" else 2
                 before_checks = [check.model_copy(deep=True) for check in ordered_checks()]
                 before_ids = {check.check_id for check in before_checks}
-                retrieval = retrieve_targeted_pages(root, run, ordered_checks(), round_number)
+                plan = plan_procedures(ordered_checks(), round_number=round_number, budget=8)
+                run.intelligence_trace.append({"role": role, "kind": "adaptive_procedure_plan", **plan})
+                selected_checks = [check for check in ordered_checks() if check.check_id in set(plan["selected_check_ids"])]
+                retrieval = retrieve_targeted_pages(root, run, selected_checks, round_number) if selected_checks else []
                 run.intelligence_trace.extend({"role": role, "kind": "directed_retrieval", **task} for task in retrieval)
                 new_evidence = {occurrence_id for task in retrieval for occurrence_id in task.get("new_evidence_ids", [])}
                 recalculate_checks(run, comparison_period, role)
                 after_checks = [check for check in run.checks if check.check_id in before_ids]
                 metrics = retrieval_effect(before_checks, after_checks, run.occurrences, new_evidence)
+                effect = procedure_effect(plan, before_checks, after_checks, retrieval)
+                run.intelligence_trace.append({"role": role, "kind": "adaptive_procedure_effect", **effect})
                 run.intelligence_trace.append({"role": role, "kind": "retrieval_metrics",
                                                "round": round_number, **metrics})
                 for check in after_checks:
@@ -1446,6 +1452,9 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     run.next_evidence = [{**action, "check_id": check.check_id} for check in run.checks
                          for action in build_next_evidence(check, rule_basis_for(check))]
     run.overview = build_overview(run)
+    # 局部证据图用于前端展示，不参与正式可比性与数值计算。
+    run.overview["proof_graph"] = build_proof_graph(run)
+    run.versions["adaptive_proof"] = "adaptive_proof_v1"
     run.duration_ms = round((time.perf_counter()-started)*1000)
     progress("structured_output", "completed", "结果已生成，按实际模型状态标识")
     return run
