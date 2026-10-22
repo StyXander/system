@@ -14,3 +14,13 @@ def test_main_page_has_no_legacy_workspace():
     assert 'id="legacy-workspace"' not in page
     assert 'demo-app.js' not in page
     assert '多智能体智能审计（推荐）' in page
+
+
+def test_new_entry_keeps_proxy_configuration_fail_closed(monkeypatch):
+    from fastapi.testclient import TestClient
+    import pytest
+    monkeypatch.setenv('AUDITTRACE_TRUSTED_PROXY_HOPS', '1')
+    monkeypatch.delenv('AUDITTRACE_TRUSTED_PROXY_CIDRS', raising=False)
+    with pytest.raises(RuntimeError, match='AUDITTRACE_TRUSTED_PROXY_HOPS'):
+        with TestClient(app):
+            pass

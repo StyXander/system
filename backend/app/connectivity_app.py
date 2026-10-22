@@ -5,20 +5,32 @@
 后续拆出公共模块前不可直接删除其传递依赖。
 """
 from pathlib import Path
+from contextlib import asynccontextmanager
 import os
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
-from .main import _enforce_public_model_quota, _public_model_ledger, security_headers
+from .main import (_enforce_public_model_quota, _public_model_ledger, security_headers,
+                   _validate_trusted_proxy_configuration, _configured_cors_origins)
 from .connectivity_api import build_router
 from .connectivity_facts import project_facts
 
 ROOT = Path(__file__).resolve().parents[2]
-app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.22')
+@asynccontextmanager
+async def lifespan(_app):
+    """沿用代理配置的失败关闭检查，不恢复旧业务任务。"""
+    _validate_trusted_proxy_configuration()
+    yield
+
+
+app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.22', lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+app.add_middleware(CORSMiddleware, allow_origins=_configured_cors_origins(), allow_credentials=True,
+                   allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'Authorization', 'Idempotency-Key'])
 app.middleware('http')(security_headers)
 app.mount('/assets', StaticFiles(directory=ROOT/'assets'), name='assets')
 app.include_router(build_router(ROOT, lambda request: _enforce_public_model_quota(request, force=True), _public_model_ledger))
