@@ -8,7 +8,8 @@
     adjustment_explained:'有据调节后与0相容',unexplained_difference:'未解释差异',not_comparable:'暂不可比较',not_executable:'暂不可执行',
     not_applicable:'不适用数值计算',read_confirmed:'使用者已阅读',unreviewed:'未人工复核',demo_modified:'使用者修订',
     completed:'已完成',running:'进行中',queued:'排队中',degraded:'部分完成',failed:'失败',cancelled:'已取消',interrupted:'已中断',
-    expired:'已过期',skipped:'未执行',pending:'未开始',not_requested:'未调用模型',three_agents_completed:'三角色实际完成',three_agents_partial:'三角色部分完成',single_partial:'单模型部分完成',reused_completed:'复用已有研判，无新增模型调用',partial:'部分完成',reused:'复用既有结果',no_relations_to_review:'未形成可研判关系',single_completed:'单模型实际完成'};
+    unrecorded:'未登记阶段回执',expired:'已过期',skipped:'未执行',pending:'未开始',not_requested:'未调用模型',three_agents_completed:'三角色实际完成',three_agents_partial:'三角色部分完成',single_partial:'单模型部分完成',reused_completed:'复用已有研判，无新增模型调用',partial:'部分完成',reused:'复用既有结果',no_relations_to_review:'未形成可研判关系',single_completed:'单模型实际完成'};
+  const formatDate = value => { const date=new Date(value); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})+' 北京时间'; };
   const roles = {left:'左侧',right:'右侧',total:'总额',component:'组成项',numerator:'分子',denominator:'分母',reported_ratio:'披露比例',occurrence:'披露位置'};
   const aiVerdicts = {lean_consistent:'倾向一致',potential_conflict:'存在潜在矛盾',plausible_explanation:'存在合理解释路径',insufficient_basis:'依据不足但可继续核查',not_comparable:'当前不可直接比较'};
   // 六个阶段与后端 steps 键一一对应，名称即阶段含义，不由前端估算。
@@ -108,14 +109,14 @@
     $('cn-stage-toggle').textContent = `${labels[task.status]||task.status} · 运行阶段与记录`;
     const steps = task.steps || {};
     $('cn-stagebar-list').innerHTML = Object.entries(phases).map(([key, title], index) => {
-      const item = steps[key] || {status:'pending', detail:'等待后端阶段记录'};
-      const value = item.status || 'pending';
-      return `<li data-status="${escape(value)}"><span class="cn-stage-index" aria-hidden="true">${index+1}</span><div><strong>${escape(title)}</strong><small>${escape(labels[value]||value)}${item.updated_at ? ` · ${escape(String(item.updated_at).replace('T',' ').slice(0,19))}` : ''}</small></div></li>`;
+      const item = steps[key] || {status:task.result?'unrecorded':'pending', detail:'本任务未登记阶段记录'};
+      const value = task.result && item.status==='pending' && !item.updated_at ? 'unrecorded' : item.status || 'pending';
+      return `<li data-status="${escape(value)}"><span class="cn-stage-index" aria-hidden="true">${index+1}</span><div><strong>${escape(title)}</strong><small>${escape(labels[value]||value)}${item.updated_at ? ` · ${escape(formatDate(item.updated_at))}` : ''}</small></div></li>`;
     }).join('');
     const failed = Object.entries(steps).filter(([, item]) => item.status==='failed');
     $('cn-stagebar-note').innerHTML = failed.length
       ? `阶段失败：${failed.map(([key]) => escape(phases[key]||key)).join('、')}。已完成阶段的产物仍可查看；失败原因见运行记录。<button type="button" id="cn-retry" class="cn-retry">续分析未完成项</button>`
-      : (task.result ? '阶段状态来自后端实际记录；修订只重算，不重跑模型阶段。' : '阶段状态来自后端实际记录，前端不估算百分比。');
+      : (task.result ? (Object.values(steps).some(s=>s.status!=='pending'||s.updated_at) ? '阶段状态来自后端实际记录；修订只重算，不重跑模型阶段。' : '本历史结果未登记阶段时间线；请按下方已保存的角色和工具回执阅读。') : '阶段状态来自后端实际记录，前端不估算百分比。');
   }
 
   function renderProgress(task) {
@@ -126,7 +127,7 @@
     $('cn-progress-summary').textContent = `运行记录 · ${labels[task.status]||task.status} · ${task.task_id}`;
     $('cn-progress-state').textContent = `${labels[task.status]||task.status} · ${task.task_id}`;
     $('cn-progress-details').innerHTML = Object.entries(phases).map(([key, title]) => { const item = task.steps?.[key];
-      return `<p><strong>${escape(title)}</strong> · ${escape(labels[item?.status||'pending']||item?.status)}<br>${escape(item?.detail||'等待后端阶段记录')}${item?.updated_at?`<small>更新于 ${escape(item.updated_at)}</small>`:''}</p>`; }).join('')
+      return `<p><strong>${escape(title)}</strong> · ${escape(labels[item?.status||'pending']||item?.status)}<br>${escape(item?.detail||'等待后端阶段记录')}${item?.updated_at?`<small>更新于 ${escape(formatDate(item.updated_at))}</small>`:''}</p>`; }).join('')
       + Object.entries(task.agent_steps||{}).map(([role, item]) => `<p>${escape(role)} · ${escape(labels[item.status]||item.status)}：${escape(item.detail||'暂无记录')}</p>`).join('');
     renderStagebar(task);
   }
@@ -194,182 +195,11 @@
 
   function renderOverview() {
     const run = current(); if (!run) return;
-    const ov = run.overview || {};
-    if (!ov.confirmable) {
-      $('cn-fourq').innerHTML = '<p class="cn-empty">该记录生成于旧版结果合同，未包含四问汇总。请重新运行并保存新结果；旧记录仍可逐项阅读。</p>';
-      $('cn-nextq').innerHTML = '';
-      return;
-    }
-    const summary = ST.summarize(run);
-    const levels = summary.levels;
-    const total = summary.total;
-    // 六级互斥，与接口和Word读取同一批关系记录。
-    const levelCards = ['formal','conditional','limited','insufficient','conflict','not_applicable']
-      .map(key => [key, levels[key].value, levels[key].definition]);
-    const fourq = [
-      ['能确认什么', ov.confirmable, '条件支持且计算成立', '关系数'],
-      ['不能确认什么', ov.unconfirmable, '缺前提或存在冲突', '关系数'],
-      ['还没解释什么', ov.unexplained, '仍有未解释残差', '关系数'],
-      ['还没找到什么', ov.not_found, '未定位或提取失败', '页'],
-    ];
-    const fourqHtml = fourq.map(([label, item, hint, unit]) => {
-      const missing = (item?.missing_breakdown||[]).slice(0,4)
-        .map(m => `${escape(m.name)} ${m.unsupported}${m.without_evidence ? `（无依据 ${m.without_evidence}）` : ''}`).join(' · ');
-      const undecidable = item?.undecidable?.value ? `<p class="cn-fq-missing">另有 ${item.undecidable.value}/${item.undecidable.denominator} 项因前提未支持，无法判断差额是否已解释</p>` : '';
-      const gap = label==='不能确认什么' && missing ? `<p class="cn-fq-missing">缺：${missing}</p>` : '';
-      if (label === '还没找到什么') {
-        // 未计入位置按"处"、失败页按"页"，两个比值分开写，不合成一个分数。
-        const rows = ov.coverage_counts?.unattributed_occurrences || item?.unattributed || {};
-        const pages = ov.coverage_counts?.failed_pages || {...(item?.failed_pages || {}), denominator:item?.total_pages};
-        return `<div class="cn-fq"><span class="cn-fq-label">${escape(label)}</span>
-          <p><strong>${escape(String(rows.value ?? 0))}</strong><span class="cn-fq-den">/ ${escape(String(rows.denominator ?? 0))} <em>处</em></span></p>
-          <small>已提取但未计入的位置</small>
-          <p><strong>${escape(String(pages.value ?? 0))}</strong><span class="cn-fq-den">/ ${escape(String(pages.denominator ?? 0))} <em>页</em></span></p>
-          <small>解析失败的页</small></div>`;
-      }
-      const denominator = item?.denominator !== undefined ? `<span class="cn-fq-den">/ ${item.denominator} <em>${unit}</em></span>` : '';
-      const extra = item?.denominator_label ? `<small>${escape(item.denominator_label)}</small>` : `<small>${escape(hint)}</small>`;
-      return `<div class="cn-fq"><span class="cn-fq-label">${escape(label)}</span><p><strong>${escape(String(item?.value ?? 0))}</strong>${denominator}</p>${extra}${gap}${undecidable}</div>`;
-    }).join('');
-    const aiBy = summary.ai.byVerdict;
-    $('cn-fourq').innerHTML = `<section class="cn-verdict" aria-labelledby="cn-verdict-title">
-      <div class="cn-verdict-head">
-        <p class="cn-verdict-kicker">本次结论 · 先判断能不能比，再看差异</p>
-        <h3 id="cn-verdict-title">${escape(ST.verdictSentence(summary))}</h3>
-        <p class="cn-verdict-note">${escape(ov.note||'')}</p>
-      </div>
-      <div class="cn-level-counts" role="group" aria-label="程序结论分级，互斥，分母为关系总数">
-        ${levelCards.map(([key, value, note]) => `<button type="button" class="cn-level-card" data-level="${key}" data-cn-filter="level:${key}" aria-pressed="${state.filter==='level:'+key}"><span class="cn-level-card-label">${escape(levels[key].label)}</span><span class="cn-level-card-value"><b>${escape(String(value))}</b><small>/ ${total} 项</small></span><span class="cn-level-card-note">${escape(note)}</span></button>`).join('')}
-      </div>
-      <p class="cn-count-rule">六个数字互斥，合计等于本次关系数 ${total}。“依据不足·不可比”既不是“没问题”，也不是“有问题”。</p>
-      <div class="cn-ai-counts" aria-label="当前有效AI意见分类">
-        <span class="cn-ai-counts-label">AI 意见</span>
-        <span><b>${summary.ai.value}</b> / ${total} 项有意见</span>
-        <span data-tone="ai-warn">倾向矛盾 ${aiBy.potential||0}</span>
-        <span data-tone="ai">倾向一致 ${aiBy.lean||0}</span>
-        <span data-tone="ai">合理解释 ${aiBy.plausible||0}</span>
-        <span data-tone="ai-none">依据不足 ${aiBy.insufficient||0}</span>
-        <span data-tone="ai-none">当前不可比 ${aiBy.not_comparable||0}</span>
-        <span class="cn-ai-counts-note">${run.execution_mode==='calculation_only'?'本次仅计算，未调用模型。':'模型判断，可能不准确；AI 倾向不替代程序状态。'}</span>
-      </div>
-      <details class="cn-fourq-details"><summary>四问明细：能确认 / 不能确认 / 未解释 / 未找到（各自带分母）</summary><div class="cn-fourq-grid">${fourqHtml}</div><p class="cn-fq-note">这四项口径沿用后端 overview：同一关系可能同时计入多个状态，不合成综合分数。</p></details>
-    </section>`;
-    const causes = (ov.unresolved_causes||[]).filter(c=>c.count);
-    // 反事实闭合推演：把"依据不足"按"补齐纸面后会不会闭合"重新分档。
-    // 与未决原因并列，不替换：前者读程序字段，后者读未决文本，分母不同。
-    const closure = ov.closure || null;
-    const closureTierLabel = {substantive_risk:'补纸面仍不一致', formal_gap:'只缺形式证据', blocked:'算式不可执行', closed:'已闭合', not_applicable:'不适用'};
-    const closurePanel = closure ? `<section class="cn-cause-chart"><h3>补证闭合推演</h3>
-      <p class="cn-global-note">${escape(closure.statement||'')}</p>
-      ${['substantive_risk','formal_gap','blocked','closed'].filter(key=>(closure.tiers?.[key]?.count||0)>0).map(key=>{
-        const tier = closure.tiers[key] || {count:0,check_ids:[]};
-        const percent = closure.relation_total ? tier.count/closure.relation_total*100 : 0;
-        return `<div class="cn-cause-row"><div><span>${escape(closureTierLabel[key]||key)}</span><span><b>${escape(String(tier.count))}</b><small> / ${escape(String(closure.relation_total))} · ${percent.toFixed(0)}%</small></span></div><svg class="cn-bar-track" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="4" fill="#e8ede6"/><rect width="${Math.min(100,percent)}" height="4" fill="${key==='substantive_risk'?'#b5735a':'#6a8979'}"/></svg></div>`;
-      }).join('')}
-      <p class="cn-global-note">上限预测假定全部形式前提均已取得原文支持，只回答"补齐后还差多少"，不是结论。${escape(closure.substantive_risk_count?`其中补纸面仍不一致 ${closure.substantive_risk_count} 条，需专业解释而非补证。`:'')}</p></section>` : '';
-    // 重复归类的原因按全部关系作分母，不组成一个可相加的分布。
-    const causePanel=`<section class="cn-cause-chart"><h3>未决原因分布</h3>${[...causes].sort((a,b)=>b.count-a.count).map(c=>{
-      const percent=total?c.count/total*100:0;
-      return `<div class="cn-cause-row"><div><span><code>${escape(c.code)}</code>${escape(c.name)}</span><span><b>${escape(c.count)}</b><small> / ${total} · ${percent.toFixed(0)}%</small></span></div><svg class="cn-bar-track" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="4" fill="#e8ede6"/><rect width="${Math.min(100,percent)}" height="4" fill="#6a8979"/></svg></div>`;
-    }).join('')||'<p class="cn-global-note">本次未登记未决原因，不代表全部关系已获支持。</p>'}<p class="cn-global-note">占全部关联的比例；同一关系可归多类，因此合计可大于关系数。</p></section>`;
-    const systemIds = new Set(summary.system.rejections.map(row => row.check_id).filter(Boolean));
-    const priorities=(ov.priority_checks?.details||[]).filter(h=>!systemIds.has(h.check_id)).slice(0,3);
-    const priorityPanel=`<section class="cn-priority-section"><h3>优先待查（只列企业可调查事项）</h3>${priorities.map((h,i)=>`<button type="button" class="cn-priority-row" data-goto="${escape(h.check_id)}"><span class="cn-priority-rank">${String(i+1).padStart(2,'0')}</span><span class="cn-priority-copy"><strong>${escape(run.checks.find(c=>c.check_id===h.check_id)?.title||h.check_id)}</strong><small>${escape(h.priority_reason)}</small></span>${priorityBadge(h.priority)}</button>`).join('')||'<p class="cn-global-note">本次没有需要企业补证的高优先级事项；系统解析问题另见运行诊断。</p>'}</section>`;
-    const legacy= !run.versions?.intelligence&&ov.ai_opinion_summary;
-    const legacySummary=legacy?`<details class="cn-legacy-summary"><summary>历史AI意见汇总</summary><p>${escape(legacy.total??0)} 条意见 · 建议人工复核 ${escape(legacy.needs_human??0)} 条</p><p>${Object.entries(legacy.bands||{}).map(([label,n])=>`${escape(label)} ${escape(n)}`).join(' · ')}</p><p>生成方式：${escape({llm:'程序刻度 + 大模型解释',offline:'程序刻度 + 规则推理',offline_fallback:'模型失败，已回退规则推理'}[legacy.mode]||legacy.mode||'未登记')}。${escape(legacy.model_failure||'')}</p>${(legacy.top||[]).slice(0,3).map(row=>`<button type="button" class="cn-priority-row" data-goto="${escape(row.check_id)}">${escape(row.band||'')} · ${escape(row.target||'')} · ${escape(row.score??'')}</button>`).join('')}</details>`:'';
-    $('cn-nextq').innerHTML=`${keyRelations(run, summary)}<div class="cn-analysis-layout"><section id="cn-relation-focus" class="cn-relation-focus" aria-label="当前事项核对关系"></section><aside class="cn-global-summary" aria-label="三条证据线与专业详情"><div class="cn-summary-label">三条证据线 · 互不替代</div>${lanes(run, summary)}<details class="cn-pro-details"><summary>专业详情：补证推演、未决原因、优先清单与历史意见</summary>${closurePanel}${causePanel}${priorityPanel}${legacySummary}${systemPanel(run, summary)}</details></aside></div>`;
-    renderRelation();
+    window.AuditTraceWorkbench.renderOverview(run, state.task, state.selected);
   }
-
-  /* 三条证据线：程序事实、AI 意见、条件缺口分区呈现，谁也不能替代谁。 */
-  function lanes(run, summary) {
-    const total = summary.total, levels = summary.levels, ai = summary.ai;
-    const topGaps = summary.gaps.slice(0, 3).map(g => `${g.name} ${g.count}项`).join(' · ');
-    const aiNote = run.execution_mode === 'calculation_only'
-      ? '本次仅计算，未调用模型；程序结果与原文仍可查看。'
-      : (ai.coversProgram.length
-        ? `有 ${ai.coversProgram.length} 项 AI 提出一致倾向或解释，但程序前提仍不足：以程序状态为准。`
-        : '模型判断，可能不准确；AI 倾向不替代程序状态。');
-    return `<div class="cn-lanes">
-      <article class="cn-lane" data-lane="program"><h3>程序事实</h3><p class="cn-lane-value"><b>${levels.formal.value}</b><small>/ ${total} 项正式复算且相容</small></p><p class="cn-lane-sub">条件试算 ${levels.conditional.value} · 有限支持 ${levels.limited.value} · 依据不足 ${levels.insufficient.value} · 口径冲突或未解释差额 ${levels.conflict.value} · 不适用 ${levels.not_applicable.value}</p><p class="cn-lane-note">程序只报有前提、可复算的结果，不预测错报概率。</p></article>
-      <article class="cn-lane" data-lane="ai"><h3>AI 意见</h3><p class="cn-lane-value"><b>${ai.value}</b><small>/ ${total} 项有意见</small></p><p class="cn-lane-sub">倾向矛盾 ${ai.byVerdict.potential||0} · 倾向一致 ${ai.byVerdict.lean||0} · 合理解释 ${ai.byVerdict.plausible||0} · 依据不足 ${ai.byVerdict.insufficient||0} · 不可比 ${ai.byVerdict.not_comparable||0}</p><p class="cn-lane-note">${escape(aiNote)}</p></article>
-      <article class="cn-lane" data-lane="gap"><h3>条件缺口</h3><p class="cn-lane-value"><b>${summary.gaps.reduce((sum,g)=>sum+g.count,0)}</b><small>项次（非互斥）</small></p><p class="cn-lane-sub">${escape(topGaps||'本次未登记缺口')}</p><p class="cn-lane-note">缺口是“还缺哪条原文依据”，不等于企业未披露或表现差。</p></article>
-    </div>`;
-  }
-
-  /* 系统解析/绑定问题不进入企业待查：单独放在运行诊断里。 */
-  function systemPanel(run, summary) {
-    const rows = summary.system.rejections;
-    const failed = summary.system.failures;
-    if (!rows.length && !failed) return '';
-    return `<section class="cn-system-panel"><h3>运行诊断 · 系统数据问题</h3><p>以下问题来自系统的候选校验或页面解析，不计入企业异常，也不作为“未发现矛盾”的依据。</p>${rows.length?`<ul>${rows.slice(0,8).map(row=>`<li><strong>${escape(row.title||row.check_id||'候选关系')}</strong>：${escape(row.reason||'未登记原因')}</li>`).join('')}</ul>`:''}${failed?`<p class="cn-global-note">另有 ${failed} 页解析失败，见“问题”页的搜索覆盖记录。</p>`:''}</section>`;
-  }
-
-  /* 首屏只给 2–3 条最值得看的关系，其余进入专业列表。 */
-  function keyRelations(run, summary) {
-    const order = {conflict:0, conditional:1, insufficient:2, limited:3, formal:4, not_applicable:5};
-    const hints = Object.fromEntries((run.program_hints||[]).map(h=>[h.check_id,h]));
-    const picked = [...run.checks].sort((a,b)=>order[levelOf(a).key]-order[levelOf(b).key]).slice(0,3);
-    if (!picked.length) return '';
-    return `<section class="cn-key-relations" aria-labelledby="cn-key-title"><div class="cn-key-head"><h3 id="cn-key-title">最值得先看的 ${picked.length} 条关系</h3><p>按程序状态排序，每一条都能打开原页核对。</p></div><ol class="cn-key-list">${picked.map((c,i)=>{
-      const level = levelOf(c), type = ST.relationType(c), hint = hints[c.check_id];
-      const firstMember = c.members?.map(m=>occurrence(m.occurrence_id)).find(Boolean);
-      return `<li class="cn-key-item" data-level="${level.key}"><span class="cn-key-rank">${String(i+1).padStart(2,'0')}</span><div class="cn-key-body"><div class="cn-key-tags"><span class="cn-key-type">${escape(type.label)}${type.pending?` · ${escape(type.pending)}`:''}</span>${levelChip(c)}${tendencyChip(c)}</div><strong>${escape(c.title)}</strong><p>${escape(hint?.priority_reason || level.definition)}</p><div class="cn-key-actions">${firstMember?`<button class="cn-evidence" type="button" data-reader="${escape(firstMember.occurrence_id)}">原页 PDF ${escape(firstMember.pdf_page)}</button>`:''}<button class="cn-text-action" type="button" data-goto="${escape(c.check_id)}">查看条件与计算 ↗</button></div></div></li>`;
-    }).join('')}</ol></section>`;
-  }
-
-
+  function renderRelation() { window.AuditTraceWorkbench.select(state.selected); }
   function priorityBadge(priority) {
-    return `<span class="cn-priority-badge" data-priority="${escape(priority||'unknown')}">${escape({high:'高',medium:'中',low:'低'}[priority]||'未分级')}<span class="cn-sr">优先级</span></span>`;
-  }
-
-  /* 补证推演摘要：只回答"补齐纸面后还差多少"，并列出缺哪几条、对应什么取证程序。
-     与程序状态并列展示，但不改写程序状态；上限预测始终带"不是结论"的标注。 */
-  function closureDigest(c) {
-    const block = c.closure || {}, ceiling = block.ceiling || {};
-    if (!ceiling.status) return '';
-    const labelMap = {would_confirm:'补齐纸面可闭合', would_confirm_conditionally:'补齐纸面后仅精度相容',
-      would_close_by_adjustment:'需有依据调节才闭合', would_still_differ:'补齐纸面仍不一致',
-      not_executable:'补齐纸面仍不可计算', conflicting:'前提冲突，无法推演', not_applicable:'不适用', limited_support:'补齐纸面仅有限支持'};
-    const residual = ceiling.residual !== null && ceiling.residual !== undefined
-      ? ` <b>${escape(displayDifference(ceiling.residual))}</b> ${escape(ceiling.normalized_unit||'')}` : '';
-    const demands = (block.demands||[]).slice(0,4)
-      .map(d => `<p>缺「${escape(d.condition)}」：${escape(d.procedure)}</p>`).join('');
-    const gap = (block.structural_gaps||[]).length
-      ? `<p>关系级缺口（补一份定义解决不了）：${escape((block.structural_gaps||[]).slice(0,2).join('；'))}</p>` : '';
-    return `<details class="cn-trial-result" data-tone="${escape(block.tier||'')}"><summary>补证推演 <b>${escape(labelMap[ceiling.status]||ceiling.status)}</b>${residual}</summary><p>${escape(block.tier_reason||'')}</p>${demands}${gap}<p>上限预测：假定全部形式前提均已取得原文支持后的算术结局，不是结论，也不是证据。</p></details>`;
-  }
-
-  function renderRelation() {    const target=$('cn-relation-focus'); if(!target) return;
-    const run=current(),c=check();
-    if(!c){ target.innerHTML='<h3>当前核对关系</h3><p class="cn-empty">本次没有可显示的关系；已有覆盖记录仍可查看。</p>'; return; }
-    const connector='<svg class="cn-flow-connector" viewBox="0 0 26 12" aria-hidden="true"><path d="M1 6H23M18 2l5 4-5 4" fill="none" stroke="#8ba18b" stroke-width="1.3"/></svg>';
-    const groups=new Map();
-    (c.members||[]).forEach(m=>{
-      const o=occurrence(m.occurrence_id),key=o?.document_id||'missing';
-      if(!groups.has(key))groups.set(key,[]);
-      groups.get(key).push({m,o});
-    });
-    const member=({m,o})=>o?`<button class="cn-source-node" type="button" data-reader="${escape(o.occurrence_id)}"><span class="cn-source-role">${escape(roles[m.role]||m.role)} <span>PDF ${escape(o.pdf_page)} ↗</span></span><strong>${escape(o.label)}</strong><span class="cn-source-value"><b>${escape(o.value??'未提取数值')}</b><small>${escape(o.unit||'单位待定')}</small></span><span class="cn-source-period">指标期间 ${escape(o.year||'未归属')}</span></button>`:`<p class="cn-source-missing">${escape(roles[m.role]||m.role)}：成员 ${escape(m.occurrence_id)} 未定位。</p>`;
-    const sources=[...groups.entries()].map(([id,rows])=>{
-      const doc=documentOf(id);
-      return `<section class="cn-source-group"><h4>${escape(doc?`${doc.report_type==='AR'?'年度报告':doc.report_type==='ESG'?'可持续发展 / ESG报告':doc.report_type} · ${doc.report_period||doc.period||'期间待定'}`:'未定位文档')}</h4>${rows.slice(0,4).map(member).join('')}${rows.length>4?`<details class="cn-extra-members"><summary>展开其余 ${rows.length-4} 项成员</summary>${rows.slice(4).map(member).join('')}</details>`:''}</section>`;
-    }).join('')||'<p class="cn-source-missing">本关系尚未登记披露成员。</p>';
-    // 关系边的语义来自规则算子与范围前提，不靠装饰连线表达。
-    const relation = ST.relationType(c);
-    const operator = relation.label;
-    const caption = c.operator==='narrative' ? '核对文字与数值方向' : relation.pending ? `${relation.pending}，暂按候选关系阅读` : '比较两处披露';
-    const cov = ST.coverage(c);
-    const basis={text_statement:'原文明示关系',auto_label_match:'自动标签配对候选',multi_location:'同报告多位置'};
-    const calc=c.calculation||{},formal=c.criteria_status==='supported'&&!calc.gate&&calc.residual!==null&&calc.residual!==undefined;
-    const trial=c.hypothetical?.residual!==null&&c.hypothetical?.residual!==undefined?c.hypothetical:null;
-    const trialLabel=levelOf(c).key==='conditional'?'条件试算':'算术参考（前提未齐）';
-    const tendency=aiTendency(c),opinion=(run.ai_analyses||[]).find(a=>a.check_id===c.check_id)||(run.ai_opinions||[]).find(a=>a.check_id===c.check_id);
-    const validOpinion=opinion&&opinion.status!=='needs_refresh';
-    const hint=(run.program_hints||[]).find(h=>h.check_id===c.check_id);
-    const questions=(run.findings||[]).filter(f=>f.check_id===c.check_id);
-    target.dataset.checkId=c.check_id;
-    target.innerHTML=`<header class="cn-focus-heading"><div class="cn-focus-kicker"><span>当前核对关系</span><code>${escape(c.rule_id)}</code></div><h3 tabindex="-1" id="cn-focus-title">${escape(c.title)}</h3><div class="cn-focus-meta">${priorityBadge(hint?.priority)}<span class="cn-relation-type">关系：${escape(relation.label)}${relation.pending?`（${escape(relation.pending)}）`:''}</span><span>${escape(state.bootstrap.rules[c.rule_id]?.name||c.rule_id)}</span><span>比较前提 ${cov.supported}/${cov.total} 项有依据</span><span>${c.cross_document?'跨报告关系':'成员范围见披露位置'}</span></div></header><div class="cn-relation-flow"><div class="cn-flow-sources"><div class="cn-flow-label">01 / 披露与原文</div>${sources}</div><div class="cn-flow-relation">${groups.size?connector:''}<div class="cn-flow-label">02 / 关系与前提</div><section class="cn-operator-node"><span>${escape(caption)}</span><h4>${escape(operator)}</h4><p>${escape(calc.expression||c.narrative_test?.reason||'尚无可执行算式')}</p><small>${escape(basis[c.relationship_basis]||'关系依据未登记')}</small></section><div class="cn-condition-strip">${(c.conditions||[]).map(cond=>`<div data-state="${escape(cond.status)}"><span>${escape(cond.name)}</span><strong>${escape(labels[cond.status]||cond.status)}</strong></div>`).join('')||'<p>本次未登记前提状态</p>'}</div><button type="button" class="cn-text-action" data-focus-detail="conditions">查看条件及关系依据 ↗</button></div><div class="cn-flow-results">${connector}<div class="cn-flow-label">03 / 结果分别阅读</div><section class="cn-program-result"><span class="cn-result-label">程序状态</span>${status(c.calculation_status)}${formal?`<p class="cn-result-number"><b>${escape(displayDifference(calc.residual))}</b><small>${escape(calc.normalized_unit||'')}</small></p><small>正式差额</small>`:`<p>${escape(calc.gate?.conclusion||'本关系无正式差额')}</p>`}${trial?`<details class="cn-trial-result"><summary>${escape(trialLabel)} <b>${escape(displayDifference(trial.residual))}</b> ${escape(trial.normalized_unit||'')}</summary><p>${escape(trial.expression||'')}</p><p>假设：${escape((trial.assumptions||[]).join('；')||'见计算记录')}</p></details>`:''}<button class="cn-text-action" type="button" data-focus-detail="conditions">计算明细 ↗</button>${closureDigest(c)}</section><section class="cn-ai-result" data-tone="${tendency?.tone||'neutral'}"><span class="cn-result-label">AI意见 · 独立于程序</span><h4>${escape(tendency?.short||'AI未研判')}</h4>${validOpinion?`<p>${escape(opinion.summary||opinion.headline||'详见AI意见记录')}</p>`:`<p>${escape(opinion?.status==='needs_refresh'?'旧意见待刷新，不作为当前倾向依据。':'本次未生成有效AI意见。')}</p>`}<small>模型判断，可能不准确</small></section></div></div><footer class="cn-focus-footer"><span>从披露位置回到原文，核对关系与缺失依据。</span><button type="button" data-focus-detail="questions">核实问题 <b>${questions.length}</b> ↗</button></footer>`;
+    return priority ? `<span class="cn-priority-badge">${escape({high:'高优先级',medium:'中优先级',low:'低优先级'}[priority]||priority)}</span>` : '';
   }
 
   function renderList() {
@@ -598,11 +428,7 @@
   function renderCoverage() {
     const run = current(); if (!run) return;
     $('cn-coverage').innerHTML = run.coverage.map(c => `<p>${escape(c.document_id)}：${c.total_pages}页 / 解析${c.parsed_pages}页 / 实际搜索${c.searched_pages.length}页 / 候选${c.discovered_count}处。失败：${escape(c.failed_pages.map(f => `第${f.page}页 ${f.reason}`).join('；')||'无记录')}。</p>`).join('');
-    const collaboration = run.overview?.collaboration || {events:[]};
-    const roleNames = {A1:'证据发现与规划',A2:'专业质疑与反证',A3:'审计判断与程序复核'};
-    const kindNames = {agent_tool_request:'自主申请检索',agent_tool_result:'实际工具回执',adaptive_procedure_plan:'缺口程序规划',adaptive_procedure_effect:'程序复核结果',feedback_decision:'反馈与停止',hypothesis_update:'解释修订',role_contribution:'角色交接与分歧'};
-    const events = collaboration.events || [];
-    if ($('cn-collaboration')) $('cn-collaboration').innerHTML = `<p>实际模型状态：${escape(labels[run.model_status]||run.model_status)} · 自主工具请求 ${collaboration.tool_requests||0} 次 · 新原文 ${(collaboration.new_evidence_ids||[]).length} 处</p>` + (events.length ? '<ol class="cn-collaboration-list">'+events.map(e=>`<li><strong>${escape(roleNames[e.producer_role||e.role]||e.role||'程序')} · ${escape(kindNames[e.kind]||e.kind)}</strong><p>${escape(e.reason||({existing_evidence_reopen:'既有原文首次进入本关系上下文，重新质疑与裁决',new_evidence_reopen:'新增原文后重新裁决',no_new_evidence:'没有新的有效上下文，停止反馈',feedback_budget_exhausted:'达到本轮反馈预算，保留具体待查事项',bounded_budget:'按缺口优先级执行有限补查'}[e.stop_reason])||e.stop_reason||e.note||e.procedures?.map(p=>p.action).join('；')||'按当前关系重新核对')}</p><small>${escape(e.check_id||'')} ${e.tool?'工具：'+escape(e.tool):''} ${e.terms?'查询：'+escape([e.metric,...e.terms].join(' / ')):''} ${e.new_evidence_ids?'新增原文：'+escape(e.new_evidence_ids.join('、')||'0'):''} ${e.delivered_evidence_ids?'交付原文：'+escape(e.delivered_evidence_ids.join('、')||'0'):''} ${e.upgraded!==undefined?'条件升级关系：'+e.upgraded:''} ${e.rejection?'未执行原因：'+escape(e.rejection):''}</small></li>`).join('')+'</ol>' : '<p>本次没有自主工具执行记录。离线计算与历史运行不会补造智能体轨迹。</p>');
+    window.AuditTraceWorkbench.renderCollaboration(run, state.task);
     const exclusions = run.extraction_exclusions || [];
     $('cn-exclusions').innerHTML = `<h4>已提取但未计入（${exclusions.length}处）</h4>` + (exclusions.length ? `<p class="cn-muted">这些位置不作为“没有披露”的证据，也不进入候选筛选。</p><ul class="cn-excluded">${exclusions.slice(0,40).map(e => `<li>${escape(e.document_id)} · PDF ${e.pdf_page} · ${escape(e.label)} · ${escape(e.value)} ${escape(e.unit)} · ${escape(e.reason)}</li>`).join('')}</ul>` : '<p class="cn-muted">本次没有达到候选门槛后被排除的位置。</p>');
     $('cn-agents').innerHTML = (run.versions?.result_origin==='user_revision' ? '<p>本次为使用者修订，以下沿用原调用记录。</p>' : run.prior_provider_calls?.length ? '<p>以下为本次续分析调用；复用意见保留原模型身份，历史用量不重复计入。</p>' : '') + `<p>实际模型状态：${escape(labels[run.model_status]||run.model_status)}；发出调用${run.provider_calls.filter(c => c.performed).length}次。</p>` + run.agent_steps.map(s => `<p><strong>${escape(s.role)}</strong> ${escape(labels[s.status]||s.status)} · 新增关系${s.new_check_ids?.length||0}项 / 更新${s.updated_check_ids?.length||0}项 / 新证据${s.added_evidence_ids?.length||0}处 · 采纳${s.accepted_check_ids?.length||0}项 / 拒绝${s.rejected?.length||0}项 · AI研判${s.accepted_analysis_ids?.length||0}项 · 计算方案${s.calculation_plan_ids?.length||0}项 · 调节建议${s.adjustment_check_ids?.length||0}项${s.failure_code?' · '+escape(s.failure_code):''}${(s.analysis_rejections||[]).map(r=>`<br>意见未采纳：${escape(r.reason)}`).join('')}</p>`).join('') + run.provider_calls.map(c => `<p>${escape(c.role)}：${escape(c.model||c.failure_code||'未配置')}${c.failure_message?' · '+escape(c.failure_message):''}；输入${c.input_tokens??'未知'} / 输出${c.output_tokens??'未知'} tokens；费用${c.cost??'未计价'}。</p>`).join('');
@@ -817,14 +643,16 @@
     const topics = [...document.querySelectorAll('#cn-form input[name="topic"]:checked')].map(n => n.value);
     if (!topics.length) { message('至少选择一个关注事项。', true); return; }
     state.submitting=true;
-    clearTimeout(state.timer); state.generation++; state.selected=null; busy(true);
+    clearTimeout(state.timer); state.generation++; state.selected=null; state.task=null; busy(true);
+    document.dispatchEvent(new CustomEvent('audittrace:connectivity-start'));
     $('cn-results').hidden=true; $('cn-progress').hidden=true; $('cn-cancel').disabled=true;
     message('正在提交核验请求；收到任务编号后展示实际阶段。');
     try {
       const task = await api('/runs', {method:'POST', headers:{'Idempotency-Key':crypto.randomUUID()},
         body:JSON.stringify({pair_id:$('cn-pair').value, topics, mode:$('cn-mode').value, ...extra})});
+      document.dispatchEvent(new CustomEvent('audittrace:connectivity-created',{detail:{task_id:task.task_id}}));
       rememberTask(task.task_id); await poll(task.task_id);
-    } catch (error) { message(error.message, true); busy(false); }
+    } catch (error) { message(error.message, true); busy(false); document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{status:'failed',message:error.message}})); }
     finally { state.submitting=false; }
   }
   $('cn-form').addEventListener('submit', event => { event.preventDefault(); startRun(); });
@@ -834,7 +662,15 @@
     startRun({retry_of_task_id: state.task?.task_id});
   });
   $('cn-cancel').addEventListener('click', async () => { if (!state.task) return; try { await api(`/runs/${encodeURIComponent(state.task.task_id)}/cancel`, {method:'POST'}); await poll(state.task.task_id); } catch (error) { message(error.message, true); } });
-  $('cn-pair').addEventListener('change', reportCards);
+  $('cn-pair').addEventListener('change', () => {
+    clearTimeout(state.timer); state.generation++; state.task=null; state.selected=null;
+    $('cn-results').hidden=true; $('cn-stagebar').hidden=true;
+    localStorage.removeItem('audittrace-connectivity-task');
+    const url=new URL(location.href); url.searchParams.delete('connectivity_task'); history.replaceState({},'',url);
+    reportCards();
+    document.dispatchEvent(new CustomEvent('audittrace:connectivity-reset'));
+    message('已切换报告对；上一次任务保留在历史记录，本次尚未分析。');
+  });
   // 阅读深度只有两档，不提供会改变排序口径的“视角”，避免同一任务出现不同结论。
   document.querySelectorAll('[data-lens]').forEach(button => button.addEventListener('click', () => {
     state.lens = button.dataset.lens;
@@ -850,10 +686,17 @@
   });
   // 搜索命中复用现有详情与原页阅读器，不另建结果或触发模型调用。
   // 历史记录、前进/后退与深链都通过同一条读取路径，避免出现“刷新回到选择页”。
+  document.addEventListener('audittrace:connectivity-select-check', event => {
+    const {check_id,task_id}=event.detail||{};
+    if (task_id!==state.task?.task_id || !current()?.checks.some(c=>c.check_id===check_id)) return;
+    state.selected=check_id; renderList(); renderDetail(); renderFindings();
+  });
   document.addEventListener('audittrace:connectivity-open-task', event => {
     const taskId = event.detail?.task_id;
-    if (!taskId) return;
-    clearTimeout(state.timer); state.generation++; state.selected = null;
+    if (!taskId || !/^(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}$/.test(taskId)) return;
+    clearTimeout(state.timer); state.generation++; state.selected = null; state.task=null;
+    rememberTask(taskId);
+    document.dispatchEvent(new CustomEvent('audittrace:connectivity-start'));
     $('cn-results').hidden = true; busy(true);
     message('正在读取任务记录…');
     poll(taskId);
