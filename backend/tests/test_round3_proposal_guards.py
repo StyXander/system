@@ -66,6 +66,26 @@ def test_reversed_equality_updates_existing_identity_and_keeps_evidence():
     assert all(ref in run.checks[0].relationship_evidence for ref in before)
 
 
+def test_a1_rejection_is_handed_to_a2_without_duplicate_a1_call(monkeypatch, tmp_path):
+    run = bridge_run()
+    pipeline = offline_pipeline(monkeypatch, run)
+    monkeypatch.setattr(pipeline, 'retrieve_targeted_pages', lambda *args: [])
+    bad = proposal(run)
+    bad['members'][0]['role'] = 'component'
+    calls, handoffs = [], []
+    def offline(role, payload):
+        calls.append(role)
+        if role == 'A2':
+            handoffs.extend(e for e in payload['collaboration_history']
+                            if e.get('kind') == 'role_contribution' and e.get('role') == 'A1')
+        response = {'checks': [bad]} if role == 'A1' else {'checks': []} if role == 'A2' else {'analyses': [], 'findings': []}
+        return response, {'role': role, 'model': 'OFFLINE_TEST_DOUBLE', 'status': 'completed', 'performed': True}
+    monkeypatch.setattr(pipeline, 'call_role', offline)
+    pipeline.run_pipeline(tmp_path, RunRequest(pair_id='SYN-PAIR'))
+    assert calls.count('A1') == 1
+    assert handoffs and handoffs[0]['rejected']
+
+
 def test_resume_candidate_repair_new_relationship_reaches_a3(monkeypatch, tmp_path):
     run = bridge_run()
     pipeline = offline_pipeline(monkeypatch, run)

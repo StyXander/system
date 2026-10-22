@@ -64,7 +64,7 @@ from .connectivity_schemas import (INTELLIGENCE_VERSION, AgentProposals, SingleA
     EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal,
     AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE, SearchDirective)
 
-PROMPT_VERSION = "connectivity_autonomous_20261022.2"
+PROMPT_VERSION = "connectivity_autonomous_20261022.3"
 
 #: AI1 可能提供的高置信结构入口；未合入时用本文件的保守兜底，不让启动失败。
 AI1_HOOK_NAMES = ("classify_disclosure_scope", "validate_row_identity", "is_macro_context",
@@ -1649,7 +1649,11 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                         if role == "single":
                             part.update(integrate_analyses(run, SingleAgentProposals.model_validate(response).analyses, ids, role, PROMPT_VERSION, record.get("model", "")))
                     # 绑定或引用失败只允许一次结构化反馈修复，仍走完全相同的校验。
-                    if role in {"A1", "A2"} and part.get("rejected"):
+                    if role == "A1" and part.get("rejected"):
+                        # 发现者的失败交给质疑者处理，避免同材料重复修复挤掉最终裁决。
+                        run.intelligence_trace.append({'kind': 'repair_handoff', 'producer_role': 'A1',
+                            'consumer_role': 'A2', 'rejected': part['rejected']})
+                    if role == "A2" and part.get("rejected"):
                         repair_began = time.perf_counter()
                         try:
                             repair_payload = batch_payload(role, checks, feedback=part["rejected"])

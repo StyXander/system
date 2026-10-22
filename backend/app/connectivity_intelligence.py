@@ -73,6 +73,18 @@ def refresh_analysis_status(run: ConnectivityRun, prompt_version: str | None = N
 def pack_role_context(payload: dict, char_budget: int = 62000) -> dict:
     """压缩重复原文与服务端计算回显，保留成员身份、关键引文和实际覆盖记录。"""
     result = dict(payload)
+    # 完整回执留在运行轨迹；模型只需上一轮任务、失败原因、证据ID与判断变化。
+    history = []
+    for event in payload.get('collaboration_history', []):
+        item = {k:v for k,v in event.items() if k in {'kind', 'role', 'check_id', 'check_ids',
+            'producer_role', 'consumer_role', 'request_id', 'metric', 'terms', 'reason', 'rejection',
+            'status', 'outcome', 'stop_reason', 'new_evidence_ids', 'delivered_evidence_ids',
+            'new_to_relation_ids', 'accepted_check_ids', 'rejected', 'condition_changes', 'hypothesis_changes'}}
+        if event.get('analyses'):
+            item['analyses'] = [{k:v for k,v in a.items() if k in {'check_id', 'verdict', 'summary', 'next_actions'}}
+                                for a in event['analyses']]
+        history.append(item)
+    result['collaboration_history'] = history
     checks = payload.get('candidate_checks', [])
     essential = set()
     check_ids = {c['check_id'] for c in checks}
