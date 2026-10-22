@@ -132,7 +132,9 @@ def build_overview(run: ConnectivityRun) -> dict:
     bands = {key: [] for key in dict.fromkeys(aliases.values())}
     for check in checks:
         bands[aliases[levels[check.check_id]]].append(check.check_id)
-    return {
+    from .connectivity_proof import build_proof_graph
+    from .connectivity_collaboration import collaboration_summary
+    return {"proof_graph": build_proof_graph(run), "collaboration": collaboration_summary(run),
         "delivery_contract_version": "2026-10-20.round3.1",
         "program_levels": {key: {"value": sum(levels[c.check_id] == key for c in checks),
                           "items": [c.check_id for c in checks if levels[c.check_id] == key], "denominator": total}

@@ -361,12 +361,23 @@ class RelationshipProposal(Contract):
     hypotheses: list[ExplanationHypothesis] = Field(default_factory=list, max_length=3)
 
 
+class SearchDirective(Contract):
+    """模型申请的本报告内检索；不接受网址、路径或可执行代码。"""
+    check_id: str = Field(min_length=1, max_length=100)
+    metric: str = Field(min_length=2, max_length=50)
+    terms: list[str] = Field(min_length=1, max_length=5)
+    kind: Literal["support", "counter"] = "counter"
+    reason: str = Field(min_length=4, max_length=200)
+
+
 class AgentProposals(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     checks: list[RelationshipProposal] = Field(max_length=8)
     notes: list[str] = Field(default_factory=list, max_length=6)
 
 
 class SingleAgentProposals(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     """单模型可一次提出两轮角色合计的八项关系，不人为压低输出容量。"""
     checks: list[RelationshipProposal] = Field(max_length=8)
     notes: list[str] = Field(default_factory=list, max_length=6)
@@ -382,6 +393,7 @@ class FinalFinding(Contract):
 
 
 class FinalSummaries(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     findings: list[FinalFinding] = Field(default_factory=list, max_length=30)
     analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
 

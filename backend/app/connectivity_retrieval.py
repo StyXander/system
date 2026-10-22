@@ -290,7 +290,7 @@ def _score_line(text: str, queries: list[dict], context: str = "") -> tuple[int,
     return support, counter, hit_ids
 
 
-def retrieve_targeted_pages(root: Path, run, checks: list, round_number: int = 1, per_check: int = 8) -> list[dict]:
+def retrieve_targeted_pages(root: Path, run, checks: list, round_number: int = 1, per_check: int = 8, *, query_overrides: dict | None = None) -> list[dict]:
     """按定向 query 搜索已解析页并补充文字证据；命中/未命中都留记录。
 
     缓存只读登记哈希对应的解析结果，不接受模型传入路径或联网地址；
@@ -304,7 +304,7 @@ def retrieve_targeted_pages(root: Path, run, checks: list, round_number: int = 1
     tasks = []
     for check in checks:
         item = plan["check_plans"].get(check.check_id) or {}
-        queries = item.get("queries") or []
+        queries = (query_overrides.get(check.check_id, []) if query_overrides is not None else item.get("queries")) or []
         if not queries:
             continue
         member_pages = {row.document_id: row.pdf_page for row in run.occurrences
@@ -359,7 +359,7 @@ def retrieve_targeted_pages(root: Path, run, checks: list, round_number: int = 1
                 counter_added += 1
         tasks.append({
             "check_id": check.check_id, "round": round_number, "version": RETRIEVAL_VERSION,
-            "queries": queries, "query_ids": item.get("query_ids", []),
+            "queries": queries, "query_ids": [query['query_id'] for query in queries],
             "query_count": len(queries), "dedupe": plan["shared_query_count"],
             "support_hits": len(added), "counter_hits": counter_added,
             "existing_hits": existing_hits[:20], "new_evidence_ids": added,

@@ -163,7 +163,7 @@
     const modes = {calculation_only:'自动发现 · 仅计算',three_agents:'自动发现 · 三角色核对',single_model:'自动发现 · 完整单模型对照'};
     const revised = run.versions?.result_origin==='user_revision' || (run.parent_run_id && !run.prior_provider_calls?.length);
     $('cn-run-meta').textContent = `版本${run.result_revision} / ${modes[run.execution_mode]||run.execution_mode} / ${(run.duration_ms/1000).toFixed(1)}秒${revised?'；使用者修订未新增模型调用':run.prior_provider_calls?.length?'；本次为增量续分析':''}`;
-    if(run.versions?.intelligence&&!['2026-10-18.2','2026-10-19.1'].includes(run.versions?.rules)) $('cn-run-meta').textContent+='；历史规则结果：范围支持与意见尚未按本次修复重验，请勿引用旧正式支持数量';
+    if(run.versions?.intelligence&&!['2026-10-18.2','2026-10-19.1','2026-10-20.3','2026-10-21.1'].includes(run.versions?.rules)) $('cn-run-meta').textContent+='；历史规则结果：范围支持与意见尚未按本次修复重验，请勿引用旧正式支持数量';
     // 任务身份置顶：公司、期间、任务、状态、版本同时可见，刷新或深链进入也不用再猜这是哪一次运行。
     const statusText = labels[state.task.status] || state.task.status;
     $('cn-task-strip').innerHTML = [
@@ -598,6 +598,11 @@
   function renderCoverage() {
     const run = current(); if (!run) return;
     $('cn-coverage').innerHTML = run.coverage.map(c => `<p>${escape(c.document_id)}：${c.total_pages}页 / 解析${c.parsed_pages}页 / 实际搜索${c.searched_pages.length}页 / 候选${c.discovered_count}处。失败：${escape(c.failed_pages.map(f => `第${f.page}页 ${f.reason}`).join('；')||'无记录')}。</p>`).join('');
+    const collaboration = run.overview?.collaboration || {events:[]};
+    const roleNames = {A1:'证据发现与规划',A2:'专业质疑与反证',A3:'审计判断与程序复核'};
+    const kindNames = {agent_tool_request:'自主申请检索',agent_tool_result:'实际工具回执',adaptive_procedure_plan:'缺口程序规划',adaptive_procedure_effect:'程序复核结果',feedback_decision:'反馈与停止',hypothesis_update:'解释修订'};
+    const events = collaboration.events || [];
+    if ($('cn-collaboration')) $('cn-collaboration').innerHTML = `<p>实际模型状态：${escape(labels[run.model_status]||run.model_status)} · 自主工具请求 ${collaboration.tool_requests||0} 次 · 新原文 ${(collaboration.new_evidence_ids||[]).length} 处</p>` + (events.length ? '<ol class="cn-collaboration-list">'+events.map(e=>`<li><strong>${escape(roleNames[e.producer_role||e.role]||e.role||'程序')} · ${escape(kindNames[e.kind]||e.kind)}</strong><p>${escape(e.reason||e.stop_reason||e.note||e.procedures?.map(p=>p.action).join('；')||'按当前关系重新核对')}</p><small>${escape(e.check_id||'')} ${e.tool?'工具：'+escape(e.tool):''} ${e.terms?'查询：'+escape([e.metric,...e.terms].join(' / ')):''} ${e.new_evidence_ids?'新增原文：'+escape(e.new_evidence_ids.join('、')||'0'):''} ${e.upgraded!==undefined?'条件升级关系：'+e.upgraded:''} ${e.rejection?'未执行原因：'+escape(e.rejection):''}</small></li>`).join('')+'</ol>' : '<p>本次没有自主工具执行记录。离线计算与历史运行不会补造智能体轨迹。</p>');
     const exclusions = run.extraction_exclusions || [];
     $('cn-exclusions').innerHTML = `<h4>已提取但未计入（${exclusions.length}处）</h4>` + (exclusions.length ? `<p class="cn-muted">这些位置不作为“没有披露”的证据，也不进入候选筛选。</p><ul class="cn-excluded">${exclusions.slice(0,40).map(e => `<li>${escape(e.document_id)} · PDF ${e.pdf_page} · ${escape(e.label)} · ${escape(e.value)} ${escape(e.unit)} · ${escape(e.reason)}</li>`).join('')}</ul>` : '<p class="cn-muted">本次没有达到候选门槛后被排除的位置。</p>');
     $('cn-agents').innerHTML = (run.versions?.result_origin==='user_revision' ? '<p>本次为使用者修订，以下沿用原调用记录。</p>' : run.prior_provider_calls?.length ? '<p>以下为本次续分析调用；复用意见保留原模型身份，历史用量不重复计入。</p>' : '') + `<p>实际模型状态：${escape(labels[run.model_status]||run.model_status)}；发出调用${run.provider_calls.filter(c => c.performed).length}次。</p>` + run.agent_steps.map(s => `<p><strong>${escape(s.role)}</strong> ${escape(labels[s.status]||s.status)} · 新增关系${s.new_check_ids?.length||0}项 / 更新${s.updated_check_ids?.length||0}项 / 新证据${s.added_evidence_ids?.length||0}处 · 采纳${s.accepted_check_ids?.length||0}项 / 拒绝${s.rejected?.length||0}项 · AI研判${s.accepted_analysis_ids?.length||0}项 · 计算方案${s.calculation_plan_ids?.length||0}项 · 调节建议${s.adjustment_check_ids?.length||0}项${s.failure_code?' · '+escape(s.failure_code):''}${(s.analysis_rejections||[]).map(r=>`<br>意见未采纳：${escape(r.reason)}`).join('')}</p>`).join('') + run.provider_calls.map(c => `<p>${escape(c.role)}：${escape(c.model||c.failure_code||'未配置')}${c.failure_message?' · '+escape(c.failure_message):''}；输入${c.input_tokens??'未知'} / 输出${c.output_tokens??'未知'} tokens；费用${c.cost??'未计价'}。</p>`).join('');
@@ -949,7 +954,6 @@
     finally { $('cn-save-review').disabled = state.task.can_modify===false; }
   });
   $('cn-close-correction').addEventListener('click', () => $('cn-correction').close());
-  $('cn-back').addEventListener('click', () => { $('legacy-workspace').hidden=true; $('redesign-home').hidden=true; $('connectivity-root').hidden=false; $('cn-workspace').focus(); });
 
   document.addEventListener('click',event=>{
     if (event.target.closest('[data-copy-link]')) { copyTaskLink(); return; }

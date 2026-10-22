@@ -666,4 +666,4 @@ setTimeout(()=>notify('放大后左右拖动可移动 · Shift 拖动旋转 · �
 })();
 
 // 首页与工作台同页滚动：入口只负责定位，不再切换整屏。
-document.querySelectorAll('[data-enter-connectivity]').forEach(link=>link.addEventListener('click',event=>{const workspace=document.getElementById('connectivity-root');if(!workspace)return;event.preventDefault();document.getElementById('notice')?.classList.remove('visible');document.getElementById('legacy-workspace').hidden=true;history.replaceState(null,'','#connectivity-root');window.scrollTo({top:workspace.getBoundingClientRect().top+window.scrollY,behavior:'smooth'});setTimeout(()=>document.getElementById('cn-workspace')?.focus({preventScroll:true}),420);}));
+document.querySelectorAll('[data-enter-connectivity]').forEach(link=>link.addEventListener('click',event=>{const workspace=document.getElementById('connectivity-root');if(!workspace)return;event.preventDefault();document.getElementById('notice')?.classList.remove('visible');history.replaceState(null,'','#connectivity-root');window.scrollTo({top:workspace.getBoundingClientRect().top+window.scrollY,behavior:'smooth'});setTimeout(()=>document.getElementById('cn-workspace')?.focus({preventScroll:true}),420);}));

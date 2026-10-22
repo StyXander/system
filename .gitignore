@@ -195,3 +195,9 @@ artifacts/
 !/scripts/verify_home_zoom_fixed.cjs
 !/scripts/verify_connectivity_direct_metrics.cjs
 !/docs/2026-10-17_披露核对规则与列表修复验收.md
+
+# 本轮必须进入Git的可复验脚本与证据说明
+!/scripts/run_final_comparison.py
+!/scripts/run_closure_experiment.py
+!/scripts/build_closure_report.py
+!/docs/决赛技术主张与实现对应_2026-10-22.md

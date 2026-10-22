@@ -1,4 +1,4 @@
-﻿"""真实PDF、规则与三角色在同一结果合同上运行，不以聊天代替核对。
+"""真实PDF、规则与三角色在同一结果合同上运行，不以聊天代替核对。
 
 A1提出关系，A2补找定义和反证，程序每次重新检查与计算。
 A3形成独立AI研判及待查问题，不允许模型篡改程序状态及原始数值。
@@ -47,6 +47,8 @@ from .connectivity_engine import calculate, normalized, numeric_unit, number, va
 from .connectivity_extraction import extract_document, load_registry, search_context, report_industry_context, EXTRACTION_VERSION
 from .connectivity_overview import build_overview
 from .connectivity_conditions import upgrade_conditions
+from .connectivity_proof import plan_procedures, procedure_effect
+from .connectivity_collaboration import execute_search_requests, collaboration_summary
 from .connectivity_closure import attach as attach_closure, summarize as summarize_closure
 from .connectivity_metrics import compact_label, metric_identity, metric_comparison
 from .connectivity_tables import build_table_composition_candidates
@@ -60,9 +62,9 @@ from .connectivity_retrieval import (RETRIEVAL_VERSION, KNOWLEDGE_VERSION,
     retrieve_targeted_pages, rule_basis_for)
 from .connectivity_schemas import (INTELLIGENCE_VERSION, AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
     EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal,
-    AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE)
+    AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE, SearchDirective)
 
-PROMPT_VERSION = "connectivity_hybrid_20261021.1"
+PROMPT_VERSION = "connectivity_autonomous_20261022.1"
 
 #: AI1 可能提供的高置信结构入口；未合入时用本文件的保守兜底，不让启动失败。
 AI1_HOOK_NAMES = ("classify_disclosure_scope", "validate_row_identity", "is_macro_context",
@@ -899,6 +901,11 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         prompt += "analyses仅绑定输入candidate_checks中已有check_id，引用至少一处对应成员。可以使用calculated_results中的程序数值；假设必须明列，计算闭合不等于业务解释成立。analysis_quality不是正确概率。允许独立决定verdict，不受程序提示倾向限制。量纲冲突、成员角色不完整或成员误绑时，不能输出lean_consistent；应解释当前绑定为何不可比，不评价另一组未绑定的数值。priority给出核查高/中/低与具体priority_reason，材料少本身不能证明企业有问题。文字关系、缺数值和不能正式计算的关系也要分析。"
     if payload.get("analysis_only"):
         prompt += "本次为同一模型的意见补全或纠错：checks返回空数组，针对现有ID提交analyses；逐条处理validation_feedback，不新造关系。"
+    prompt += ("你可在search_requests中自主申请本次登记报告内的检索。每次最多4项，check_id必须来自candidate_checks，"
+               "metric必须是对应成员原文指标名，terms给出1至5个定义、范围、母公司、合并、排除等具体查询词，"
+               "kind为support或counter，reason说明触发原因。工具由服务端实际执行，下一角色会收到命中原文和前后状态。"
+               "无值得补查的缺口时返回空列表。先读collaboration_history和closure_probes，不要重复已经失败的查询。"
+               "A3可请求一次反馈调查，只有取得新证据才会再次交A2质疑、A3综合；不能把假设推演写为事实。")
     contract = FinalSummaries if role == "A3" else SingleAgentProposals if role == "single" else AgentProposals
     schema = contract.model_json_schema()
     if role != "A3":
@@ -973,6 +980,7 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                         item.pop(key, None)
             record["discarded_server_fields"] = sorted(set(discarded))
         groups = {"checks": (RelationshipProposal, 8)} if role != "A3" else {"findings": (FinalFinding, 30)}
+        groups["search_requests"] = (SearchDirective, 4)
         if role in {"A3", "single"}:
             groups["analyses"] = (AIAnalysis, 30)
         partial_errors, valid_arguments = [], {}
@@ -1463,6 +1471,15 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         any_failure = False
         quota_ready = False
         fatal = False
+        pending_searches = []
+        feedback_used = False
+        def bounded_call(role, payload):
+            # 全运行预算包含修复与反馈请求，不能通过额外角色绕过上限。
+            if cancelled():
+                raise InterruptedError("用户取消了任务")
+            if len(run.provider_calls) >= 20:
+                raise ValueError("MODEL_CALL_BUDGET_EXHAUSTED")
+            return call_role(role, payload)
         work_ids = ({c.check_id for c in run.checks} - {a.check_id for a in run.ai_analyses if a.status == "current"}) if resume else None
 
         def failure_record(error, role, began):
@@ -1507,6 +1524,10 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     ],
                     "not_in_schema_note": "账本由后端根据文本、成员与算式确定性生成；模型无需也不能回传服务端字段。",
                 })
+            payload["closure_probes"] = [{"check_id": c.check_id, "closure": c.closure} for c in checks]
+            payload["collaboration_history"] = [{k: v for k, v in e.items() if k not in {'scanned_pages', 'failed_pages'}}
+                for e in run.intelligence_trace if e.get("kind") in {
+                "agent_tool_request", "agent_tool_result", "adaptive_procedure_effect", "feedback_decision"}][-20:]
             payload["hypothesis_ledger"] = [entry for check in checks for entry in hypothesis_ledger(check)]
             payload["hypothesis_updates"] = [entry for entry in run.intelligence_trace
                 if entry.get("kind") == "hypothesis_update" and entry.get("check_id") in {check.check_id for check in checks}]
@@ -1527,12 +1548,19 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 round_number = 1 if role == "A2" else 2
                 before_checks = [check.model_copy(deep=True) for check in ordered_checks()]
                 before_ids = {check.check_id for check in before_checks}
-                retrieval = retrieve_targeted_pages(root, run, ordered_checks(), round_number)
+                plan = plan_procedures(ordered_checks(), round_number=round_number, budget=8)
+                run.intelligence_trace.append({"role": role, "kind": "adaptive_procedure_plan", **plan})
+                requested = execute_search_requests(root, run, pending_searches, role)
+                pending_searches.clear()
+                selected = [c for c in ordered_checks() if c.check_id in plan["selected_check_ids"]]
+                retrieval = requested + (retrieve_targeted_pages(root, run, selected, round_number) if selected else [])
                 run.intelligence_trace.extend({"role": role, "kind": "directed_retrieval", **task} for task in retrieval)
                 new_evidence = {occurrence_id for task in retrieval for occurrence_id in task.get("new_evidence_ids", [])}
                 recalculate_checks(run, comparison_period, role)
                 after_checks = [check for check in run.checks if check.check_id in before_ids]
                 metrics = retrieval_effect(before_checks, after_checks, run.occurrences, new_evidence)
+                run.intelligence_trace.append({"role": role, "kind": "adaptive_procedure_effect",
+                                               **procedure_effect(plan, before_checks, after_checks, retrieval)})
                 run.intelligence_trace.append({"role": role, "kind": "retrieval_metrics",
                                                "round": round_number, **metrics})
                 for check in after_checks:
@@ -1594,8 +1622,9 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                         payload["candidate_checks"] = [c for c in payload["candidate_checks"] if c["check_id"] in included_ids]
                         if not checks:
                             continue
-                    response, record = call_role(role, payload)
+                    response, record = bounded_call(role, payload)
                     record.update(batch=batch_index, context_count=len(ids))
+                    pending_searches.extend({**item, "producer_role": role} for item in response.get("search_requests", []))
                     run.provider_calls.append(record)
                     delta['rejected'].extend(record.get('validation_rejections', []))
                     if role == "A3":
@@ -1613,7 +1642,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                         try:
                             repair_payload = batch_payload(role, checks, feedback=part["rejected"])
                             repair_ids = {r["occurrence_id"] for r in repair_payload["occurrences"]}
-                            repair_result, repair_record = call_role(role, repair_payload)
+                            repair_result, repair_record = bounded_call(role, repair_payload)
                             repair_record.update(batch=batch_index, phase="candidate_repair", context_count=len(repair_ids))
                             run.provider_calls.append(repair_record)
                             repair_delta = integrate_proposals(run, repair_result, repair_ids, role,
@@ -1648,7 +1677,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     if follow and role in {"single", "A3"}:
                         follow_payload = batch_payload(role, follow, analysis_only=True, feedback=part.get("analysis_rejections", []))
                         follow_ids = {r["occurrence_id"] for r in follow_payload["occurrences"]}
-                        follow_result, follow_record = call_role(role, follow_payload)
+                        follow_result, follow_record = bounded_call(role, follow_payload)
                         follow_record.update(batch=batch_index, phase="analysis_completion", context_count=len(follow_ids))
                         run.provider_calls.append(follow_record)
                         follow_delta = integrate_analyses(run, (SingleAgentProposals if role == "single" else FinalSummaries).model_validate(follow_result).analyses,
@@ -1671,6 +1700,23 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             run.agent_steps.append({"role": role, "status": status, **delta})
             agent_progress(stage_role, "completed" if status == "completed" else "failed",
                            f"{role}完成{successes}批，保留{len(set(delta['accepted_analysis_ids']))}项模型研判")
+            if role in {"A3", "single"} and pending_searches and not feedback_used and not fatal:
+                # 裁决者提出调查后，只有新原文才能触发一次质疑与重新裁决。
+                feedback_used = True
+                before_feedback = [c.model_copy(deep=True) for c in run.checks]
+                tasks = execute_search_requests(root, run, pending_searches, role)
+                pending_searches.clear()
+                recalculate_checks(run, comparison_period, "feedback")
+                new_ids = {oid for t in tasks for oid in t.get("new_evidence_ids", [])}
+                effect = retrieval_effect(before_feedback, run.checks, run.occurrences, new_ids)
+                run.intelligence_trace.append({"kind": "feedback_decision", "role": role,
+                    "new_evidence_count": len(new_ids), "effect": effect,
+                    "stop_reason": "new_evidence_reopen" if new_ids else "no_new_evidence"})
+                if new_ids:
+                    roles.extend([("single", "challenge")] if role == 'single' else [("A2", "counter"), ("A3", "review")])
+        if pending_searches:
+            run.intelligence_trace.append({"kind": "feedback_decision", "role": "A3",
+                "stop_reason": "feedback_budget_exhausted", "unexecuted_requests": len(pending_searches)})
         missing = [c.check_id for c in run.checks if c.check_id not in {a.check_id for a in run.ai_analyses if a.status == "current"}]
         if missing:
             run.intelligence_trace.append({"role": "analysis_coverage", "unprocessed_check_ids": missing, "reason": "本轮尚未保存有效AI研判"})

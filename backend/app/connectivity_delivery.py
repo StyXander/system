@@ -150,6 +150,8 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
                 writer.writerow([_cell(v) for v in ["adjustment", *base, item["effect_id"], f"{item['sign']}{item['amount']}", item["unit"], "", "", item["label"] + "；" + item["note"], *tail]])
             for item in (check.calculation.get("adjustment") or {}).get("rejected", []):
                 writer.writerow([_cell(v) for v in ["adjustment_rejected", *base, item.get("adjustment_id", ""), "已拒绝", "", "", "", item["reason"], *tail]])
+            if check.closure:
+                writer.writerow([_cell(v) for v in ["closure_probe", *base, "假设推演", "非正式结论", "", "", "", json.dumps(check.closure, ensure_ascii=False), *tail]])
             if check.hypothetical:
                 writer.writerow([_cell(v) for v in ["hypothetical_only", *base, "假设试算", "非正式结论", check.hypothetical.get("normalized_unit", ""), "", "",
                     check.hypothetical.get("expression", "") + "；残差" + str(check.hypothetical.get("residual")), check.hypothetical.get("expression", ""), check.hypothetical.get("residual") or "", "假设", "不进入已衔接统计", ""]])
@@ -354,6 +356,14 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
                      'residual_interval':'差额区间','precision_compatible':'是否可由披露精度解释','denominator_check':'分母检查'}
             for key,value in facts.items():
                 _paragraph(document, names[key] + '：' + (json.dumps(value,ensure_ascii=False) if isinstance(value,dict) else str(value)))
+        if check.closure:
+            _add_heading(document, "补证闭合推演（假设分析）", 3)
+            probe = check.closure
+            ceiling = probe.get('ceiling', {})
+            _paragraph(document, f"{probe.get('tier_label', '')}：{probe.get('tier_reason', '')}")
+            _paragraph(document, f"假定前提补齐后的上限：{ceiling.get('label', '')}；差额{ceiling.get('residual')} {ceiling.get('normalized_unit', '')}。不作为正式结论。")
+            for demand in probe.get('demands', []):
+                _paragraph(document, f"待补{demand.get('condition', '')}：{demand.get('procedure', '')}")
         if check.hypothetical:
             _add_heading(document, "假设试算（非正式结论，不进入已衔接统计）", 3)
             _paragraph(document, "假设：" + "；".join(check.hypothetical.get("assumptions") or []))
@@ -402,6 +412,13 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
                    f'研判{len(set(step.get("accepted_analysis_ids",[])))}项，失败批次{len(step.get("failed_batches",[]))}。')
         for rejection in step.get('analysis_rejections',[]):
             _paragraph(document, f'意见局部未采纳 {rejection.get("check_id", "")} / {rejection.get("field", "")}：{rejection.get("reason", "")}')
+    collaboration = overview.get('collaboration', {})
+    _add_heading(document, "自主补证与反证回执", 2)
+    _paragraph(document, collaboration.get('notice', '未记录自主工具执行'))
+    for event in collaboration.get('events', []):
+        _paragraph(document, f"{event.get('producer_role', event.get('role', '程序'))} / {event.get('kind')} / {event.get('check_id', '')}："
+                   f"{event.get('reason', event.get('stop_reason', event.get('note', '')))}；"
+                   f"工具{event.get('tool', '—')}；新增原文{len(event.get('new_evidence_ids', []))}处；条件升级关系{event.get('upgraded', '—')}。")
     for call in run.provider_calls:
         _paragraph(document, f'{call.get("role")} / {call.get("model", "未发出模型请求")} / {call.get("status")}；'
                    f'输入{call.get("input_tokens", "未知")}、输出{call.get("output_tokens", "未知")} tokens；'

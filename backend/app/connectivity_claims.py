@@ -518,7 +518,13 @@ def _column_claims(check, text: str, occurrences: list, refs: list) -> list[dict
                 elif re.search(r"(?:20\d{2}\s*年|年度|本期|本年|当期|金额|绝对额|占比为)", window):
                     status, reason = "contradicted", "把变动/同比列当作年度值或绝对值使用"
             elif semantics in {"share", "intensity"}:
-                if MATERIAL_UNIT.search(window) or re.search(r"金额|绝对额|达到", window):
+                # 一句中可同时出现比例和分子金额，只检查当前数值的直接语义。
+                # 例如“1.11%以4.49亿元复算”不能因另一数值带亿元就否定比例。
+                suffix = text[end:end + 14].lstrip()
+                prefix = text[max(0, start - 16):start].rstrip(' ：:')
+                direct_amount = bool(MATERIAL_UNIT.match(suffix)) or bool(re.search(
+                    r"(?:金额|绝对额|人数|数量)(?:为|达到|达|是)?$", prefix))
+                if direct_amount:
                     status, reason = "contradicted", "把占比或强度当作绝对金额/数量使用"
                 else:
                     status, reason = "supported", "按占比或强度语义引用"
