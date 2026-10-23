@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-23T19:24:57.561975+08:00",
+  "generated_at": "2026-10-23T19:52:54.302877+08:00",
   "counts": {
     "original_companies": 4,
     "new_candidates_considered": 16,
@@ -19,11 +19,11 @@
     "billed_currency_cost": null
   },
   "backend_tests": {
-    "tests": 1368,
+    "tests": 1370,
     "failures": 0,
     "errors": 0,
     "skipped": 29,
-    "passed": 1339
+    "passed": 1341
   },
   "frontend_tests_passed": 29,
   "live_model_status": "three_agents_partial",
@@ -104,7 +104,9 @@
     "recovery": "registered_official_url_plus_sha256",
     "boundary": "数据库恢复已实测；远端原件仍须按登记 URL 和哈希恢复，官方删除时明确失败"
   },
-  "production_deployed": false,
-  "deployment_verification": "see separate deployment-observation.json",
+  "production_deployed": true,
+  "production_application_commit": "7eb8c6235bba552ff6328eec048b7972d0708a8e",
+  "production_browser_verified": true,
+  "deployment_verification": "see separate deployment-observation.json and evidence/production-browser.json",
   "synthetic_tests_are_business_evidence": false
 }

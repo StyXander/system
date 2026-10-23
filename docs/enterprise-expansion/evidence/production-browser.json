@@ -1,0 +1,57 @@
+{
+  "checked_at": "2026-10-23T11:49:55.620Z",
+  "target": "https://audittrace-demo.onrender.com",
+  "errors": [],
+  "model_requests_sent": 0,
+  "new_entry": true,
+  "health": {
+    "service_status": "ready",
+    "product": "connectivity",
+    "model_status": "configured",
+    "model_id": "deepseek-flash",
+    "default_mode": "three_agents",
+    "project_facts": {
+      "task_kind": "connectivity",
+      "formal_scope": "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、完成可复算检查、定位证据及待补条件。",
+      "pair_count": 17,
+      "document_count": 34,
+      "company_count": 16,
+      "topic_count": 3,
+      "rule_count": 6,
+      "schema_version": "connectivity_v5",
+      "notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
+      "capability_boundary": "已登记公开报告专项核验；未承诺任意上传、全指标覆盖或审计鉴证意见"
+    },
+    "deployment": {
+      "commit": "7eb8c6235bba552ff6328eec048b7972d0708a8e",
+      "entry": "backend.app.connectivity_app:app",
+      "release": "2026.10.23.enterprise.1",
+      "identity_source": "runtime_environment"
+    }
+  },
+  "search": "隆基绿能 · 601012\n已验证可运行 · 已有 1 组报告对 · 点击确认身份",
+  "confirmed": "已确认：隆基绿能 · 601012",
+  "report_query": "资料已配对、待处理 · 已查询官方公告元数据；原件下载、正文主体/期间、哈希及逐页解析尚未通过。\n\n年度报告\n2025年年度报告 · 2026-04-29\n可持续发展 / ESG 报告\n2025年度可持续发展报告 · 2026-04-29\n\n下一步核对 PDF 正文、版本、主体、期间和每一页解析。\n\n下载校验并登记双报告\n\n新原件接入需要登录后的接入权限；当前可查询元数据、选择已验证案例。请使用已授权的工作台会话。",
+  "query_status": "官方公告查询完成；尚未运行核验或模型。",
+  "catalog": {
+    "status": 200,
+    "pairs": 17,
+    "ready": 17,
+    "persistence": "supabase"
+  },
+  "resumed_existing_task": true,
+  "calculation_task_id": "DEMO-RUN-8231AAA03D92",
+  "calculation_status": "completed",
+  "calculation_error": null,
+  "calculation_checks": 5,
+  "calculation_model_calls": 0,
+  "company_isolated": true,
+  "result_visible": true,
+  "exports": {
+    "json": 200,
+    "csv": 200,
+    "docx": 200
+  },
+  "source_status": 200,
+  "mobile_overflow": false
+}
