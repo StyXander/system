@@ -13,7 +13,7 @@ NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核�
 # 历史业务声明保持原文不变；导出与接口按 task_kind 分派，不互相冒充。
 LEGACY_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 NOTICE_BY_TASK_KIND = {"connectivity": NOTICE, "legacy_audit": LEGACY_NOTICE}
-SCHEMA_VERSION = "connectivity_v5"
+SCHEMA_VERSION = "connectivity_v6"
 INTELLIGENCE_VERSION = "hybrid_v4_counterevidence_grounded"
 # 财务穿透与反证层的合同版本；旧结果缺少这些字段时按空值读取，不改变既有结论。
 FINANCIAL_VERSION = "financial_bridge_v1"
@@ -503,6 +503,8 @@ class ConnectivityRun(Contract):
     revision_loop: dict = Field(default_factory=dict)
     evidence_plan: dict = Field(default_factory=dict)
     financial_scenario: dict = Field(default_factory=dict)
+    # 任务2—9 的财务穿透层：事项→会计路径→附注项目→证据→九项条件裁决。
+    financial_impact: dict = Field(default_factory=dict)
     investigation: dict = Field(default_factory=dict)
     comparison_summary: dict = Field(default_factory=dict)
     ai_generated_content_notice: str = NOTICE

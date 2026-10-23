@@ -343,6 +343,43 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             rerank = plan.get("rerank") or {}
             if rerank:
                 _paragraph(document, f"执行后重排：{'已改变' if rerank.get('changed') else '未改变'}；{rerank.get('reason', '')}")
+    impact = run.financial_impact or {}
+    if impact.get("events"):
+        _add_heading(document, "财务穿透分析：事项、会计路径、附注项目与证据等级", 2)
+        stats = impact.get("stats") or {}
+        _paragraph(document, (f"识别可持续事项{stats.get('events', 0)}项、附注项目{stats.get('items', 0)}个、"
+                              f"候选关系{stats.get('relations', 0)}条；其中项目级关联{stats.get('project_level', 0)}条。"
+                              "等级只表示证据支持程度（A明确/B间接/C假设/D不足），不是模型正确概率，也不构成审计结论。"))
+        labels = {"A": "明确财务关联", "B": "有证据的间接关联", "C": "合理关联假设", "D": "公开证据不足",
+                  "incompatible": "明确不兼容", "contradicted": "存在反证冲突", "not_applicable": "不适用"}
+        by_id = {event["event_id"]: event for event in impact.get("events", [])}
+        items = {item["item_id"]: item for item in impact.get("items", [])}
+        for relation in impact.get("relations", [])[:12]:
+            event = by_id.get(relation.get("event_id"), {})
+            item = items.get(relation.get("financial_item_id") or "", {})
+            unmet = [check.get("label", "") for check in relation.get("conditions", [])
+                     if check.get("status") != "true" and check.get("key") != "no_counter_evidence"]
+            _add_heading(document, f"{labels.get(relation.get('grade'), relation.get('grade'))}｜"
+                                    f"{event.get('project_name') or event.get('quote', '')[:24]}", 3)
+            _table_rows(document, [
+                ("事项原文", f"{event.get('quote', '')[:120]}（{event.get('document_id', '')} p{event.get('pdf_page', '')}）"),
+                ("事项阶段与金额性质", f"{event.get('stage', '')}／{event.get('amount_nature', '')}"),
+                ("财务项目", f"{item.get('table_title', '')}·{item.get('row_header', '')}".strip("·") or "未定位"),
+                ("列语义与金额", f"{item.get('column_header', '')}｜{item.get('raw_value', '')}{item.get('unit', '')}"
+                                 if item else "无"),
+                ("金额勾稽", (relation.get("numeric_reconciliation") or {}).get("status", "")),
+                ("尚未满足", "、".join(unmet[:5]) or "无"),
+            ])
+            if relation.get("counter"):
+                _paragraph(document, "反向证据：" + "；".join(
+                    str(entry.get("quote", ""))[:80] for entry in relation.get("counter", [])[:2]))
+        analysis = impact.get("analysis") or {}
+        buckets = analysis.get("buckets") or {}
+        _paragraph(document, ("预期影响分类：企业已量化披露{}项、情景试算{}项、仅定性{}项；三类不混用，"
+                              "不预测净利润、未来现金流改善额或投资回报率。").format(
+            buckets.get("disclosed_quantified", 0), buckets.get("scenario_trial", 0), buckets.get("qualitative_only", 0)))
+        _paragraph(document, "边界：找不到项目级财务项目只记为证据不足，不据此认定企业披露不实；"
+                             "预算数、期末余额与本期的发生额不得互相替代。")
     if run.ai_opinions:
         _add_heading(document, "AI意见（程序刻度＋规则/模型解释，仅供参考）", 2)
         _paragraph(document, "AI意见不改变口径状态、正式差额与已衔接统计，不构成审计结论、鉴证结论或鉴证意见。")

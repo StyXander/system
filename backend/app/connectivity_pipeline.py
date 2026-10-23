@@ -1843,6 +1843,25 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 "第一条行动已实际打开登记页并返回回执；该动作退出候选，"
                 "按剩余动作重新计算预算内顺序，不把页面命中当作条件已支持。")
         run.evidence_plan = plan
+        # 财务穿透层：事项抽取→附注结构化→会计路径→混合检索→九项条件裁决→当期/预期影响。
+        # 独立失败域：这一层失败只清空新视图，不影响既有关系、反证与正式结论。
+        progress("financial_impact", "running", "识别可持续事项并检索项目级财务附注")
+        try:
+            from .financial_impact import build as build_financial_impact
+            # 模型字段补全接口已实现并单测；真实运行需预算授权，默认只跑规则抽取，不伪装成模型抽取。
+            run.financial_impact = build_financial_impact(root, documents=docs, model_runner=None)
+            impact_stats = run.financial_impact.get("stats", {})
+            progress("financial_impact", "completed",
+                     f"事项{impact_stats.get('events', 0)}项、附注项目{impact_stats.get('items', 0)}个、"
+                     f"项目级关联{impact_stats.get('project_level', 0)}条、"
+                     f"等级{impact_stats.get('grades', {})}")
+        except Exception as error:
+            if isinstance(error, InterruptedError):
+                raise
+            run.financial_impact = {}
+            run.intelligence_trace.append({"kind": "financial_impact_error", "error": type(error).__name__,
+                                           "message": str(error)[:240]})
+            progress("financial_impact", "failed", f"财务穿透层未生成：{type(error).__name__}")
         if request.mode == "adaptive_agents":
             # adaptive_agents：在财务穿透层之上跑受控调查闭环；失败只降级调查，不回滚既有结果。
             progress("adaptive_investigation", "running", "A0规划—受控工具—Challenger反证—条件门禁闭环")

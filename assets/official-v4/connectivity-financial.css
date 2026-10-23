@@ -151,3 +151,47 @@
   #connectivity-root .cn-fin-stat:nth-child(2n){border-right:0}
   #connectivity-root .cn-fin-stat:nth-child(n+3){border-top:1px solid var(--fin-line)}
 }
+
+/* 事项级财务穿透：证据等级卡片。等级用边框与标签区分，不用百分比或热力色。 */
+#connectivity-root .cn-fi{margin:6px 0 18px;border:1px solid var(--fin-line);background:#fffefb}
+#connectivity-root .cn-fi-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:14px 16px;border-bottom:1px solid var(--fin-line)}
+#connectivity-root .cn-fi-title h4{margin:0;font:600 16px/1.4 var(--sans)}
+#connectivity-root .cn-fi-title span{font-size:11px}
+#connectivity-root .cn-fi-stats{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid var(--fin-line)}
+#connectivity-root .cn-fi-stats>div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-right:1px solid var(--fin-line)}
+#connectivity-root .cn-fi-stats>div:last-child{border-right:0}
+#connectivity-root .cn-fi-stats b{font:600 20px/1.15 var(--result-number,var(--sans));font-variant-numeric:tabular-nums}
+#connectivity-root .cn-fi-stats span{font-size:10px;color:var(--fin-muted)}
+#connectivity-root .cn-fi-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+#connectivity-root .cn-fi-item{padding:14px 16px;border-right:1px solid var(--fin-line);border-bottom:1px solid var(--fin-line);display:flex;flex-direction:column;gap:8px}
+#connectivity-root .cn-fi-item:nth-child(2n){border-right:0}
+#connectivity-root .cn-fi-item:last-child{border-bottom:0}
+#connectivity-root .cn-fi-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+#connectivity-root .cn-fi-head b{font:600 14px/1.45 var(--sans)}
+#connectivity-root .cn-fi-grade{font:11px/1.5 var(--mono);padding:2px 7px;border:1px solid #b9c6bd;background:#eef3ee;color:#245040;white-space:nowrap}
+#connectivity-root .cn-fi-item[data-grade="A"] .cn-fi-grade{background:#e4f0e8;border-color:#7aa88f;color:#1c5b45}
+#connectivity-root .cn-fi-item[data-grade="B"] .cn-fi-grade{background:#eaf0f6;border-color:#8ea7bf;color:#274e6e}
+#connectivity-root .cn-fi-item[data-grade="C"] .cn-fi-grade{background:#f6f2e8;border-color:#c9b78d;color:#6a5626}
+#connectivity-root .cn-fi-item[data-grade="D"] .cn-fi-grade,
+#connectivity-root .cn-fi-item[data-grade="incompatible"] .cn-fi-grade,
+#connectivity-root .cn-fi-item[data-grade="contradicted"] .cn-fi-grade{background:#f7ecea;border-color:#c39a94;color:#7c2f28}
+#connectivity-root .cn-fi-src{margin-left:auto;font-size:11px}
+#connectivity-root .cn-fi-quote{margin:0;font-size:12px;line-height:1.8;color:#33454c;background:#f7f6f0;border-left:2px solid #c9d3c6;padding:7px 10px}
+#connectivity-root .cn-fi-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--fin-muted)}
+#connectivity-root .cn-fi-path{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;margin:0}
+#connectivity-root .cn-fi-path>div{display:flex;gap:6px;font-size:11px;line-height:1.7}
+#connectivity-root .cn-fi-path dt{color:var(--fin-muted);white-space:nowrap}
+#connectivity-root .cn-fi-path dd{margin:0;color:var(--fin-ink)}
+#connectivity-root .cn-fi-foot{margin:0;font-size:11px}
+#connectivity-root .cn-fi-conditions{display:flex;flex-wrap:wrap;gap:4px}
+#connectivity-root .cn-fi-chip{font-size:10px;line-height:1.6;padding:1px 6px;border:1px solid #d6d3c9;background:#f4f3ed;color:#6b6f6a;cursor:help}
+#connectivity-root .cn-fi-chip[data-state="true"]{border-color:#8fb3a0;background:#e9f2ec;color:#245040}
+#connectivity-root .cn-fi-chip[data-state="false"]{border-color:#c39a94;background:#f7ecea;color:#7c2f28}
+#connectivity-root .cn-fi-unmet{margin:0;font-size:11px;line-height:1.7;color:#7c5a24}
+@media(max-width:960px){
+  #connectivity-root .cn-fi-list{grid-template-columns:1fr}
+  #connectivity-root .cn-fi-item{border-right:0}
+  #connectivity-root .cn-fi-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #connectivity-root .cn-fi-stats>div:nth-child(4n){border-right:0}
+  #connectivity-root .cn-fi-path{grid-template-columns:1fr}
+}

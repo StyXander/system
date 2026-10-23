@@ -272,6 +272,77 @@
       <table class="cn-fin-table"><caption>可持续主张与财务项目关系</caption><thead><tr><th>可持续主张</th><th>关系</th><th>财务项目</th><th>状态</th><th>ESG页</th><th>年报页</th></tr></thead><tbody>${rows}</tbody></table></details>`;
   }
 
+  const impactGrades = {A:'明确财务关联', B:'有证据的间接关联', C:'合理关联假设', D:'公开证据不足',
+    incompatible:'明确不兼容', contradicted:'存在反证冲突', not_applicable:'不适用'};
+  const impactStage = {strategy:'战略目标', planned:'计划', contracted:'已签约', executing:'实施中',
+    completed:'已完成', settled:'已结算', unknown:'阶段未明示'};
+  const impactNature = {budget:'预算数', planned_investment:'计划投资', actual_payment:'实际支付',
+    investment_incurred:'已发生投入', period_increase:'本期增加', period_decrease:'本期减少',
+    transfer_out:'转固/转出', closing_balance:'期末余额', opening_balance:'期初余额',
+    expense:'当期费用', revenue:'收入', performance:'实物绩效', none:'未识别'};
+
+  function impactHtml(impact) {
+    if (!impact || !impact.events || !impact.events.length) return '';
+    const stats = impact.stats || {};
+    const grades = stats.grades || {};
+    const events = Object.fromEntries((impact.events || []).map(item => [item.event_id, item]));
+    const items = Object.fromEntries((impact.items || []).map(item => [item.item_id, item]));
+    const order = {A:0, B:1, contradicted:2, C:3, incompatible:4, D:5, not_applicable:6};
+    const relations = [...(impact.relations || [])].sort((left, right) =>
+      (order[left.grade] ?? 9) - (order[right.grade] ?? 9));
+    const shown = relations.filter(relation => relation.grade !== 'D').slice(0, 8)
+      .concat(relations.filter(relation => relation.grade === 'D').slice(0, 2));
+    const cards = shown.map(relation => {
+      const event = events[relation.event_id] || {};
+      const item = items[relation.financial_item_id] || null;
+      const treatment = (impact.treatments || []).find(entry => entry.treatment_id === relation.treatment_id) || {};
+      const unmet = (relation.conditions || []).filter(check => check.status !== 'true' && check.key !== 'no_counter_evidence');
+      const chips = (relation.conditions || []).map(check =>
+        `<span class="cn-fi-chip" data-state="${esc(check.status)}" title="${esc(check.reason || '')}">${esc(check.label)}</span>`).join('');
+      const reconciliation = relation.numeric_reconciliation || {};
+      const money = (event.amounts || []).filter(amount => amount.dimension === 'money')[0];
+      return `<li class="cn-fi-item" data-grade="${esc(relation.grade)}">
+        <div class="cn-fi-head">
+          <span class="cn-fi-grade">${esc(relation.grade)} · ${esc(impactGrades[relation.grade] || relation.grade)}</span>
+          <b>${esc(event.project_name || event.quote?.slice(0, 22) || '未命名事项')}</b>
+          <span class="cn-fi-src">${pageLink(event.document_id, event.pdf_page, (event.report_type || 'ESG') + ' p' + (event.pdf_page || ''))}</span>
+        </div>
+        <p class="cn-fi-quote">${esc((event.quote || '').slice(0, 130))}</p>
+        <div class="cn-fi-meta">
+          <span>阶段：${esc(impactStage[event.stage] || event.stage || '')}</span>
+          <span>金额性质：${esc(impactNature[event.amount_nature] || event.amount_nature || '')}</span>
+          ${money ? `<span>原文金额：${esc(money.raw)}${esc(money.unit)}</span>` : '<span class="cn-fin-muted">原文未给金额</span>'}
+        </div>
+        <div class="cn-fi-path">
+          <div><dt>会计路径</dt><dd>${esc(treatment.scene || '未匹配到专用规则')}</dd></div>
+          <div><dt>财务项目</dt><dd>${item ? esc([item.table_title, item.row_header].filter(Boolean).join('·').replace(/^·+/,'')) : '<span class="cn-fin-muted">未定位到项目级附注</span>'}</dd></div>
+          <div><dt>列语义</dt><dd>${item ? esc((impactNature[item.value_semantics] || item.value_semantics || '') + '｜' + (item.raw_value || '') + (item.unit || '')) : '—'}</dd></div>
+          <div><dt>金额勾稽</dt><dd>${esc(reconciliation.status || '—')}${reconciliation.reason ? '：' + esc(reconciliation.reason) : ''}</dd></div>
+        </div>
+        ${item ? `<p class="cn-fi-foot">${pageLink(item.document_id, item.pdf_page, '年报 p' + item.pdf_page)}</p>` : ''}
+        <div class="cn-fi-conditions" aria-label="九项条件">${chips}</div>
+        ${unmet.length ? `<p class="cn-fi-unmet">尚未满足：${esc(unmet.slice(0, 4).map(check => check.label).join('、'))}</p>` : ''}
+        ${(relation.counter || []).length ? `<p class="cn-fin-warn">反向证据：${esc((relation.counter[0] || {}).quote?.slice(0, 70) || '')}</p>` : ''}
+      </li>`;
+    }).join('');
+    const buckets = (impact.analysis || {}).buckets || {};
+    return `<section class="cn-fi" aria-label="可持续事项财务穿透">
+      <div class="cn-fi-title"><h4>可持续事项财务穿透</h4>
+        <span class="cn-fin-muted">等级只表示证据支持程度，不是模型正确概率</span></div>
+      <div class="cn-fi-stats">
+        <div><b>${esc(stats.events || 0)}</b><span>事项</span></div>
+        <div><b>${esc(stats.items || 0)}</b><span>附注项目</span></div>
+        <div><b>${esc(stats.project_level || 0)}</b><span>项目级关联</span></div>
+        <div><b>${esc(grades.A || 0)}</b><span>A 明确</span></div>
+        <div><b>${esc(grades.B || 0)}</b><span>B 间接</span></div>
+        <div><b>${esc(grades.C || 0)}</b><span>C 假设</span></div>
+        <div><b>${esc(grades.D || 0)}</b><span>D 不足</span></div>
+      </div>
+      <p class="cn-fin-note">预期影响分类：企业已量化披露 ${esc(buckets.disclosed_quantified || 0)} 项、情景试算 ${esc(buckets.scenario_trial || 0)} 项、仅定性 ${esc(buckets.qualitative_only || 0)} 项。三类不混用，不预测净利润或投资回报率。</p>
+      <ol class="cn-fi-list">${cards || '<li class="cn-fi-item"><p class="cn-fin-note">本次运行没有可展示的事项级关系。</p></li>'}</ol>
+    </section>`;
+  }
+
   function scenarioHtml(scenario) {
     if (!scenario || !scenario.available) {
       return `<section class="cn-fin-block"><h4>风险传导情景模拟</h4><p class="cn-fin-note">${esc(scenario?.reason || '本次运行未生成情景模拟。')}</p></section>`;
@@ -435,6 +506,7 @@
     host.innerHTML = `<div class="cn-fin-intro"><p>${esc(state.graph.industry_name || '')} · ${esc(state.graph.notice || '')}</p></div>
       ${run.versions?.source_validity?.status==='invalid'?`<p class="cn-fin-warn" role="status">${esc(run.versions.source_validity.notice)}</p>`:''}
       <div id="cn-fin-filter-stats">${statsHtml(stats)}</div>
+      ${impactHtml(run.financial_impact)}
       ${toolbarHtml(state.graph)}
       ${legendHtml(state.graph.legend)}
       <div class="cn-fin-graph-layout">
