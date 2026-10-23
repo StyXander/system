@@ -7,6 +7,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '../..');
 const ST = require(path.join(root, 'assets/official-v4/connectivity-status.js'));
+const VM = require(path.join(root, 'assets/official-v4/connectivity-view-model.js'));
 const source = readFileSync(path.join(root, 'assets/official-v4/connectivity.js'), 'utf8');
 const python = process.env.AUDITTRACE_PYTHON || [
   path.join(root, 'backend/.venv/Scripts/python.exe'),
@@ -63,23 +64,19 @@ test('合理解释和倾向一致分别计数，旧意见不混入当前意见',
   for (const id of ['T','L','I','N']) assert.notEqual(ST.conflictState(current.checks.find(c=>c.check_id===id)).tone,'ok');
 });
 
-test('网页摘要与证据线显示独立合理解释和六级数量', () => {
+test('穿透图投影保留六级程序状态，合理解释与倾向一致互不覆盖', () => {
   const current = withOpinions(), summary = ST.summarize(current);
-  const lanes = extract('lanes',{escape});
-  const laneHtml = lanes(current,summary);
-  assert.match(laneHtml,/倾向一致 1 · 合理解释 1/);
-  assert.match(laneHtml,/有限支持 1 · 依据不足 1/);
-  assert.doesNotMatch(laneHtml,/AI 倾向“未见矛盾”/);
-  const elements = new Map();
-  const $ = id => {if(!elements.has(id)) elements.set(id,{});return elements.get(id);};
-  const render = extract('renderOverview',{current:()=>current,$,ST,escape,state:{filter:'all'},
-    keyRelations:()=>'',lanes,systemPanel:()=>'',priorityBadge:()=>'',renderRelation:()=>{}});
-  render();
-  const html = $('cn-fourq').innerHTML;
-  assert.match(html,/合理解释 1/);
-  assert.match(html,/倾向一致 1/);
-  assert.match(html,/当前不可比 1/);
-  for(const key of Object.keys(run.overview.program_levels)) assert.match(html,new RegExp(`data-level="${key}"`));
+  const projected = VM.project(current,ST);
+  assert.equal(projected.paths.length,current.checks.length);
+  for(const [key,level] of Object.entries(summary.levels)) {
+    const ids=projected.paths.filter(p=>p.level.key===key).map(p=>p.id).sort();
+    assert.deepEqual(ids,[...level.items].sort(),key);
+  }
+  assert.equal(projected.paths.find(p=>p.id==='F').ai.verdict,'lean_consistent');
+  assert.equal(projected.paths.find(p=>p.id==='T').ai.verdict,'plausible_explanation');
+  assert.equal(projected.paths.find(p=>p.id==='I').ai.verdict,'not_comparable');
+  assert.equal(projected.paths.find(p=>p.id==='N').ai,null);
+  assert.notEqual(projected.paths.find(p=>p.id==='I').level.key,'formal');
 });
 
 test('算术参考不能显示为条件试算，未知前提不能输出正式差额', () => {
