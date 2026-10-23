@@ -61,8 +61,14 @@ def _identity(event: SustainabilityEvent, item: FinancialItem) -> tuple[str, str
     """
     if event.company_id and item.company_id and event.company_id != item.company_id:
         return "false", "企业身份不一致，不能跨企业归属项目"
-    if event.subject and event.subject not in item.quote + item.row_header:
-        return "unknown", "具体主体或基地未在财务项目原文中证实"
+    subject = compact(event.subject)
+    row_identity = compact(item.row_header)
+    if subject:
+        locations = re.findall(r'[\u4e00-\u9fff]{2,8}(?:基地|分公司|子公司)', row_identity)
+        if locations and not any(subject in location or location in subject for location in locations):
+            return 'false', '财务项目行明确指向其他基地或主体'
+        if subject not in row_identity:
+            return 'unknown', '具体主体或基地未在财务项目行中证实，不能借用同页其他项目' 
     name = compact(event.project_name)
     if not name:
         return "unknown", "事项未披露可识别项目名，无法核对业务身份"
@@ -70,7 +76,8 @@ def _identity(event: SustainabilityEvent, item: FinancialItem) -> tuple[str, str
         return 'unknown', '通用项目名缺少基地或具体主体，不能仅凭同名建立项目身份'
     # 项目身份以行标题为准；表标题与整行引文只在行标题缺失时兜底，避免表内其他项目串味。
     haystack = compact(item.row_header) or compact(" ".join([item.table_title, item.quote]))
-    if project_key(haystack) in {project_key(event.project_name), *map(project_key, event.aliases)}:
+    comparable_name = haystack.replace(subject, '').replace('()', '').replace('（）', '') if subject else haystack
+    if project_key(comparable_name) in {project_key(event.project_name), *map(project_key, event.aliases)}:
         return "true", "财务项目的表标题或行标题出现同一项目名"
     if compact(item.row_header) in {"合计", "总计", "小计"} or "合计" in compact(item.row_header):
         return "unknown", "财务项目为汇总行，无法核对单一项目身份"

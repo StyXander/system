@@ -342,3 +342,11 @@ def test_partial_cash_payment_does_not_mean_project_settlement():
     from backend.app.financial_impact.textutil import detect_stage
     assert detect_stage('项目已支付1000万元，尚有尾款待付。') != Stage.SETTLED
     assert detect_stage('项目已完成结算。') == Stage.SETTLED
+
+
+def test_same_project_at_different_bases_and_another_row_cannot_supply_subject():
+    from backend.app.financial_impact.impact_verifier import _identity
+    source=event(subject='南方基地')
+    assert _identity(source,item(row_header='北方基地羧甲基纤维素改造项目'))[0]=='false'
+    assert _identity(source,item(quote='同页其他项目属于南方基地'))[0]=='unknown'
+    assert _identity(source,item(row_header='南方基地羧甲基纤维素改造项目'))[0]=='true'
