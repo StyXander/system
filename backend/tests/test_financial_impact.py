@@ -9,6 +9,7 @@ import pytest
 from backend.app.financial_impact import accounting_mapping, impact_analysis, impact_graph, impact_verifier
 from backend.app.financial_impact.financial_linker import Index, Unit, filter_unit, rrf, search, search_counter
 from backend.app.financial_impact.financial_notes import _header_row, _semantics, parse_notes
+from backend.app.connectivity_schemas import FinancialReview
 from backend.app.financial_impact.models import (Amount, AmountNature, FinancialItem, ImpactRelation,
                                                  RelationGrade, Stage, SustainabilityEvent)
 from backend.app.financial_impact.sustainability_events import build_event, collect_candidates
@@ -289,6 +290,21 @@ def test_同一项目名在不同基地不能直接确认():
     identity = next(check for check in relation.conditions if check.key == "identity")
     assert identity.status == "unknown"
     assert relation.grade != RelationGrade.A
+
+
+def test_财务复核合同必须逐条表态():
+    with pytest.raises(Exception):
+        FinancialReview.model_validate({"financial_assessments": []})
+    review = FinancialReview.model_validate({"financial_assessments": [{
+        "relation_id": "IR-1", "project_name": "某项目", "verdict": "insufficient",
+        "reason": "第102页列语义为预算，不是实际投入", "evidence_request": "项目台账"}]})
+    assert review.financial_assessments[0].verdict == "insufficient"
+    # 模型误带回披露核对字段时应被忽略，而不是整批失败。
+    loose = FinancialReview.model_validate({"checks": [], "search_requests": [],
+                                            "financial_assessments": [{
+                                                "relation_id": "IR-1", "verdict": "insufficient",
+                                                "reason": "证据不足，需补项目级明细"}]})
+    assert len(loose.financial_assessments) == 1
 
 
 def test_等级不是概率():

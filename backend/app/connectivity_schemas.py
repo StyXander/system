@@ -372,9 +372,32 @@ class SearchDirective(Contract):
     reason: str = Field(min_length=4, max_length=200)
 
 
+class FinancialAssessment(Contract):
+    """模型对一条财务穿透候选的判断；只作意见，不改程序等级。"""
+
+    relation_id: str
+    project_name: str = ""
+    verdict: Literal["can_support", "insufficient", "incompatible", "needs_counter_evidence"] = "insufficient"
+    reason: str = Field(min_length=5, max_length=300)
+    evidence_request: str = Field(default="", max_length=200)
+
+
+class FinancialReview(Contract):
+    """专用财务复核：只对候选逐条表态，不改程序等级。
+
+    模型偶尔会带回 checks/search_requests（沿用披露核对习惯），这里忽略多余字段，
+    但 financial_assessments 仍为必填，避免“什么都没判断”被当成通过。
+    """
+
+    model_config = {**Contract.model_config, "extra": "ignore"}
+
+    financial_assessments: list[FinancialAssessment] = Field(min_length=1, max_length=6)
+
+
 class AgentProposals(Contract):
     search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     checks: list[RelationshipProposal] = Field(max_length=8)
+    financial_assessments: list[FinancialAssessment] = Field(default_factory=list, max_length=6)
     notes: list[str] = Field(default_factory=list, max_length=6)
 
 
@@ -382,6 +405,7 @@ class SingleAgentProposals(Contract):
     search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     """单模型可一次提出两轮角色合计的八项关系，不人为压低输出容量。"""
     checks: list[RelationshipProposal] = Field(max_length=8)
+    financial_assessments: list[FinancialAssessment] = Field(default_factory=list, max_length=6)
     notes: list[str] = Field(default_factory=list, max_length=6)
     analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
 
@@ -397,6 +421,7 @@ class FinalFinding(Contract):
 class FinalSummaries(Contract):
     search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     findings: list[FinalFinding] = Field(default_factory=list, max_length=30)
+    financial_assessments: list[FinancialAssessment] = Field(default_factory=list, max_length=6)
     analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
 
 

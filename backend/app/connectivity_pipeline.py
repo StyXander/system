@@ -68,7 +68,7 @@ from .connectivity_retrieval import (RETRIEVAL_VERSION, KNOWLEDGE_VERSION,
     retrieve_targeted_pages, rule_basis_for)
 from .connectivity_schemas import (INTELLIGENCE_VERSION, FINANCIAL_VERSION, AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
     EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal,
-    AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE, SearchDirective)
+    AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE, SearchDirective, FinancialReview)
 
 PROMPT_VERSION = "connectivity_autonomous_20261022.3"
 
@@ -850,6 +850,59 @@ def structured_candidate_pool(rows: list[DisclosureOccurrence], period: str, lim
     return pool
 
 
+def call_financial_review(payload: dict) -> tuple[dict, dict]:
+    """专用财务复核：走纯 JSON 输出，避免与披露核对的函数调用 schema 互相污染。
+
+    只做逐条表态，不改程序等级；任何字段越界或数量不符都会被 Pydantic 拒绝。
+    """
+    api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("MODEL_CONFIG_MISSING")
+    if os.getenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL", "true").lower() not in {"true", "1", "yes", "on"}:
+        raise ValueError("MODEL_DISABLED")
+    model = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
+    base = _strict_tool_base_url(os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
+    if urlsplit(base).hostname != "api.deepseek.com":
+        raise ValueError("MODEL_DESTINATION_NOT_AUTHORIZED")
+    system = ("你是财务复核人。只根据输入的 financial_candidates（含等级、会计场景、列语义、未满足条件与页码）"
+              "逐条判断，输出一个 JSON 对象，键为 financial_assessments，值为数组。数组每项必须包含："
+              "relation_id（必须取自输入）、project_name、verdict（can_support/insufficient/incompatible/"
+              "needs_counter_evidence）、reason（不超过120字，说明依据的页码或列语义）、evidence_request。"
+              "不要输出 checks、search_requests 或其他键。预算数不能当已发生支出，期末余额不能当投入；"
+              "缺证据只能写 insufficient；不得宣告企业披露不实，不得给出审计或投资结论。")
+    body = {"model": model, "temperature": 0.1, "max_tokens": 4000, "stream": False,
+            "response_format": {"type": "json_object"},
+            "messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}]}
+    request_bytes = json.dumps(body, ensure_ascii=False).encode("utf-8")
+    request = Request(f"{base}/chat/completions", data=request_bytes,
+                      headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
+                               "User-Agent": "AuditTrace-FinancialReview/1.0"}, method="POST")
+    started = time.perf_counter()
+    record = {"role": "financial", "performed": False, "request_attempted": True, "model": model,
+              "requested_model": model, "status": "failed", "input_tokens": None, "output_tokens": None,
+              "cost": None, "input_sha256": hashlib.sha256(request_bytes).hexdigest()}
+    try:
+        with urlopen(request, timeout=_provider_timeout_seconds()) as response:
+            raw = response.read()
+        data = json.loads(raw)
+        message = (data.get("choices") or [{}])[0].get("message") or {}
+        content = message.get("content") or ""
+        payload_json = json.loads(content) if content.strip().startswith("{") else {}
+        assessments = payload_json.get("financial_assessments") if isinstance(payload_json, dict) else None
+        validated = FinancialReview.model_validate({"financial_assessments": assessments or []})
+        usage = data.get("usage") or {}
+        record.update({"performed": True, "status": "completed", "model": data.get("model", model),
+                       "input_tokens": usage.get("prompt_tokens"), "output_tokens": usage.get("completion_tokens"),
+                       "duration_ms": round((time.perf_counter() - started) * 1000)})
+        return validated.model_dump(mode="json"), record
+    except Exception as error:
+        record.update({"failure_code": "FINANCIAL_REVIEW_FAILED",
+                       "failure_message": f"{type(error).__name__}: {error}"[:200],
+                       "duration_ms": round((time.perf_counter() - started) * 1000)})
+        raise
+
+
 def call_role(role: str, payload: dict) -> tuple[dict, dict]:
     """沿用现有供应商基础地址和超时规则，记录真实调用及用量。"""
     api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
@@ -903,6 +956,9 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                "A2": "按retrieval_tasks逐项处理本批候选，定向找定义、范围、正常解释和反证；利用calculated_results提出计算或调节方案。只提交新增或变化关系，不能凭数字凑等式；无变化可返回空checks。",
                "single": "一次完整完成关系识别、口径检查、反证与解释查找，任务及输出要求与三角色相同。",
                "A3": "你负责独立综合研判，返回analyses和findings。对本批每项现有关系给出明确倾向、具体理由、支持、反证、假设、替代解释和下一步。允许倾向一致、潜在矛盾、存在合理解释、依据不足或不可比。缺正式前提时仍分析hypothetical及scenario_adjustment；不要只重复请人工复核。不新增核对关系、不改程序状态。",
+               "financial": "你是财务复核人。只根据输入的financial_candidates与原文页码判断每条候选："
+               "能否支持、证据不足、不兼容，还是需要反向证据。必须逐条给出relation_id、项目名、verdict、"
+               "理由与需要补的证据；不得引用输入之外的页码，不得把预算数当已发生支出，不得宣告企业披露不实。",
                "challenger": "你负责对当前财务关联候选提出竞争解释。每条解释必须给出：解释内容、可检验条件、能区分不同解释的具体证据（页码/列名/清单）。只提出解释，不得宣告任何假设已被推翻或证实；状态由程序门禁决定。不得引用输入之外的页码或金额，不得给出审计、鉴证、投资结论。最多2条，不凑数量；没有有价值的新解释时返回空列表。"}[role]
     if role in {"A3", "single"}:
         prompt += "analyses仅绑定输入candidate_checks中已有check_id，引用至少一处对应成员。可以使用calculated_results中的程序数值；假设必须明列，计算闭合不等于业务解释成立。analysis_quality不是正确概率。允许独立决定verdict，不受程序提示倾向限制。量纲冲突、成员角色不完整或成员误绑时，不能输出lean_consistent；应解释当前绑定为何不可比，不评价另一组未绑定的数值。priority给出核查高/中/低与具体priority_reason，材料少本身不能证明企业有问题。文字关系、缺数值和不能正式计算的关系也要分析。"
@@ -913,6 +969,10 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                "A2应逐条质疑其中的期间、合并范围、金额性质（预算/本期增加/期末余额）与项目身份；"
                "A3应说明现有证据能支持到哪一级、还缺哪一项材料。候选等级是证据支持程度，不是模型正确概率；"
                "不得把提示中的候选直接改写为“已确认”，也不得引用输入之外的页码或金额。"
+               "每个角色都必须在financial_assessments中，对financial_candidates里你实际判断过的每条候选给出"
+               "relation_id、项目名、verdict（can_support/insufficient/incompatible/needs_counter_evidence）、"
+               "理由与需要补的证据；没有判断的候选不要填，不得编造relation_id。"
+               "A1至少判断一条最值得追的候选；A2对A1判断过的候选提出口径质疑；A3给出最终能支持到哪一级。"
                "你可在search_requests中自主申请本次登记报告内的检索。每次最多4项，check_id必须来自candidate_checks，"
                "metric必须是对应成员原文指标名，terms给出1至5个定义、范围、母公司、合并、排除等具体查询词，"
                "kind为support或counter，reason说明触发原因。工具由服务端实际执行，下一角色会收到命中原文和前后状态。"
@@ -920,15 +980,27 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                "A2必须点明A1的具体关系编号、依据及需要反驳的解释；A3须利用collaboration_history核对分歧、实际工具回执与计算。"
                "上轮未命中时调整指标别名或具体条件词，不重复同一查询。"
                "A3可请求一次反馈调查，新原文或首次交付本关系的既有原文均可再次交A2质疑、A3综合；命中仍须逐字引用与专业校验，不能把假设推演写为事实。")
+    if role == "financial":
+        # 财务复核只需要逐条表态；复用披露核对长提示会让模型回传 checks/search_requests。
+        prompt = ("你是财务复核人。输入financial_candidates来自ESG事项与年报附注，含等级、会计场景、"
+                  "列语义、未满足条件与页码。逐条判断并只返回financial_assessments：relation_id必须取自输入，"
+                  "project_name写项目名，verdict取can_support/insufficient/incompatible/needs_counter_evidence，"
+                  "reason不超过120字并说明依据的页码或列语义，evidence_request写还需要什么材料。"
+                  "不得返回checks、search_requests或任何其他字段。预算数不能当已发生支出，期末余额不能当投入，"
+                  "缺证据只能写insufficient，不得宣告企业披露不实，不得给出审计或投资结论。")
     contract = (FinalSummaries if role == "A3" else SingleAgentProposals if role == "single"
+                else FinancialReview if role == "financial"
                 else ChallengerProposals if role == "challenger" else AgentProposals)
     schema = contract.model_json_schema()
-    if role not in {"A3", "challenger"}:
+    if role not in {"A3", "challenger", "financial"} and "RelationshipProposal" in schema.get("$defs", {}):
         schema["$defs"]["RelationshipProposal"]["properties"]["rule_id"]["description"] = "EQ同值（含研发或环保同一指标）；RD研发组成；ENV环保组成；INT比例；OCC同一指标多位置；NAR解释。不按事项名称直接选组成规则。"
+    if role == "financial":
+        schema["$defs"]["FinancialAssessment"]["properties"]["relation_id"]["enum"] = [
+            item["relation_id"] for item in payload.get("financial_candidates", [])]
     allowed_ids = [item["occurrence_id"] for item in payload.get("occurrences", [])]
     if allowed_ids:
         schema["$defs"]["EvidenceRef"]["properties"]["occurrence_id"]["enum"] = allowed_ids
-        if role != "A3":
+        if role not in {"A3", "financial"} and "RelationshipMember" in schema.get("$defs", {}):
             schema["$defs"]["RelationshipMember"]["properties"]["occurrence_id"]["enum"] = allowed_ids
             schema["$defs"]["AdjustmentProposal"]["properties"]["occurrence_id"]["enum"] = allowed_ids
             for field in ("current_id", "previous_id"):
@@ -937,9 +1009,11 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         schema["$defs"]["FinalFinding"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
     if role in {"A3", "single"}:
         schema["$defs"]["AIAnalysis"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
-    tool_name = "submit_connectivity_relationships"
+    tool_name = "submit_financial_assessments" if role == "financial" else "submit_connectivity_relationships"
+    tool_description = ("对财务穿透候选逐条表态：只填 financial_assessments，不填 checks 或 search_requests"
+                        if role == "financial" else "提交原文约束的关系候选，计算由程序执行")
     body = {"model": model, "temperature": .1, "max_tokens": 14000, "stream": False, "thinking": {"type": "disabled"},
-        "tools": [{"type": "function", "function": {"name": tool_name, "description": "提交原文约束的关系候选，计算由程序执行", "parameters": schema}}],
+        "tools": [{"type": "function", "function": {"name": tool_name, "description": tool_description, "parameters": schema}}],
         "tool_choice": {"type": "function", "function": {"name": tool_name}},
         "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}]}
     request_bytes = json.dumps(body, ensure_ascii=False).encode("utf-8")
@@ -1676,6 +1750,9 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     response, record = bounded_call(role, payload)
                     record.update(batch=batch_index, context_count=len(ids))
                     pending_searches.extend({**item, "producer_role": role} for item in response.get("search_requests", []))
+                    for assessment in (response.get("financial_assessments") or []):
+                        run.intelligence_trace.append({"kind": "financial_assessment", "role": role,
+                                                       **assessment})
                     run.provider_calls.append(record)
                     checkpoint(run)
                     delta['rejected'].extend(record.get('validation_rejections', []))
@@ -1813,7 +1890,33 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         if request.mode == "single_model":
             for stage in ("counter", "review"):
                 agent_progress(stage, "skipped", "单模型对照：同一模型完成发现与研判")
-        progress("agent_collaboration", "completed" if run.model_status in {"single_completed", "three_agents_completed", "adaptive_completed"} else "degraded", run.model_status)
+        # 专用财务复核：候选存在时强制模型逐条表态；失败只降级，不影响既有意见。
+        if request.mode != "calculation_only" and (run.financial_impact or {}).get("relations"):
+            try:
+                from .financial_impact.investigation import brief as financial_brief
+                candidates = financial_brief(run.financial_impact)
+                if candidates:
+                    review_payload = {"financial_candidates": candidates, "company": run.company,
+                                      "period": run.period, "candidate_checks": [],
+                                      "occurrences": [], "calculated_results": [], "retrieval_tasks": [],
+                                      "prior_analyses": [], "program_hints": [], "rule_basis": [],
+                                      "hypothesis_ledger": [], "structured_candidate_pool": {},
+                                      "note": "只评估候选，不新增披露关系。"}
+                    review, review_record = call_financial_review(review_payload)
+                    run.provider_calls.append(review_record)
+                    for assessment in review.get("financial_assessments", []):
+                        run.intelligence_trace.append({"kind": "financial_assessment", "role": "financial",
+                                                       **assessment})
+            except InterruptedError:
+                raise
+            except Exception as error:
+                run.intelligence_trace.append({"kind": "financial_review_error",
+                                               "error": type(error).__name__, "message": str(error)[:200]})
+        assessments = [entry for entry in run.intelligence_trace if entry.get("kind") == "financial_assessment"]
+        if run.financial_impact:
+            run.financial_impact["model_assessments"] = assessments
+        progress("agent_collaboration", "completed" if run.model_status in {"single_completed", "three_agents_completed", "adaptive_completed"} else "degraded",
+                 f"{run.model_status}；财务候选判断{len(assessments)}条")
     progress("evidence_validation", "running", "从原文成员重新计算全部关系")
     recalculate_checks(run, comparison_period, 'final')
     if request.mode != "calculation_only":
