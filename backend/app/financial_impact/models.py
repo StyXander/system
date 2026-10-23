@@ -12,7 +12,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class Stage(str, Enum):
@@ -192,12 +192,17 @@ class ImpactRelation(BaseModel):
 
 
 class ImpactAnalysis(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    version: str = ''
+    buckets: dict[str,int] = Field(default_factory=dict)
+    time_states: list[dict] = Field(default_factory=list)
     current: list[dict] = Field(default_factory=list)
     expected: list[dict] = Field(default_factory=list)
     note: str = ""
 
 
 class FinancialImpactResult(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     version: str = "financial_impact_v1"
     company: str = ""
     period: str = ""

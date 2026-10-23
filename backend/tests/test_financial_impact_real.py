@@ -163,3 +163,11 @@ def test_模型未配置时明确标记rule_only():
     events, receipt = extract_events([page(10, "本期投入1亿元实施节能改造项目。")], Doc())
     assert receipt["status"] == "rule_only"
     assert "不伪装" in receipt["note"]
+
+
+def test_real_impact_classification_and_time_states_survive_serialization(wuliangye):
+    analysis=wuliangye['analysis']
+    assert len(analysis['expected'])>0
+    assert sum(analysis['buckets'].values())==len(analysis['expected'])
+    assert len(analysis['time_states'])==len(wuliangye['events'])
+    assert analysis['version']

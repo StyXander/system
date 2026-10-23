@@ -43,7 +43,7 @@ NATURE_RULES: tuple[tuple[AmountNature, re.Pattern], ...] = (
 )
 
 STAGE_RULES: tuple[tuple[Stage, re.Pattern], ...] = (
-    (Stage.SETTLED, re.compile(r"已结算|已支付|已投运并结算")),
+    (Stage.SETTLED, re.compile(r"已结算|已结清|已完成结算|已投运并结算")),
     (Stage.RECOGNIZED, re.compile(r"已确认为|已计入在建工程|已计入固定资产|已计入当期损益")),
     (Stage.COMPLETED, re.compile(r"已建成|建成投产|竣工|完工|已投运|已投产|完成建设")),
     (Stage.EXECUTING, re.compile(r"在建|实施中|推进中|建设中|施工中|改造中|正在实施|已开工|投运|投产")),

@@ -327,3 +327,18 @@ def test_financial_item_support_edges_do_not_borrow_another_page():
     relation=impact_verifier.build_relation(event(),target,treatment(),support=[*SUPPORT,unrelated])
     assert relation.supporting and relation.supporting[0].kind=='table_structure'
     assert all(ref.pdf_page==target.pdf_page and ref.document_id==target.document_id for ref in relation.supporting)
+
+
+def test_impact_contract_keeps_derived_classification_and_time_states():
+    from backend.app.financial_impact.models import FinancialImpactResult
+    source=event(stage=Stage.PLANNED,amount_nature=AmountNature.BUDGET)
+    data=impact_analysis.build([source],[],[treatment()],[])
+    saved=FinancialImpactResult(analysis=data).model_dump(mode='json')['analysis']
+    assert saved['buckets']==data['buckets'] and sum(saved['buckets'].values())==len(saved['expected'])
+    assert saved['time_states']==data['time_states'] and saved['version']==data['version']
+
+
+def test_partial_cash_payment_does_not_mean_project_settlement():
+    from backend.app.financial_impact.textutil import detect_stage
+    assert detect_stage('项目已支付1000万元，尚有尾款待付。') != Stage.SETTLED
+    assert detect_stage('项目已完成结算。') == Stage.SETTLED
