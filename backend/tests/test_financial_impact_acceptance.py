@@ -319,3 +319,11 @@ def test_three_call_budget_allocates_one_turn_to_each_role(workspace):
     receipt=agents.investigate(root,run,invoke,max_calls=3)
     assert seen==['financial_A1','financial_A2','financial_A3']
     assert receipt['calls']==3 and receipt['model_status']=='completed_no_verified_judgments'
+
+
+def test_financial_item_support_edges_do_not_borrow_another_page():
+    target=item()
+    unrelated={**SUPPORT[0],'pdf_page':115,'quote':'同名项目其他表格的金额'}
+    relation=impact_verifier.build_relation(event(),target,treatment(),support=[*SUPPORT,unrelated])
+    assert relation.supporting and relation.supporting[0].kind=='table_structure'
+    assert all(ref.pdf_page==target.pdf_page and ref.document_id==target.document_id for ref in relation.supporting)

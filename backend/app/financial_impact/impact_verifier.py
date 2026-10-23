@@ -269,7 +269,9 @@ def build_relation(event: SustainabilityEvent, item: FinancialItem | None, treat
                        'incompatible' if grade == RelationGrade.INCOMPATIBLE else
                        "unresolved" if grade in {RelationGrade.D, RelationGrade.C} else "supported_by"),
         grade=grade, conditions=checks,
-        supporting=[_candidate_ref(entry) for entry in support[:3]],
+        supporting=([_evidence(item,event)] + [_candidate_ref(entry) for entry in support
+                    if entry.get('document_id') == item.document_id and entry.get('pdf_page') == item.pdf_page][:2]
+                    if item is not None else [_candidate_ref(entry) for entry in support[:3]]),
         counter=[_candidate_ref(entry) for entry in counter[:3]],
         numeric_reconciliation=reconciliation,
         explanation="；".join(explanation_parts) + "。" + GRADE_MEANING,
