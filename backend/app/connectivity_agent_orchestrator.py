@@ -37,7 +37,8 @@ class ChallengerNote(Contract):
     explanation: str = Field(min_length=5, max_length=600)
     testable_condition: str = Field(default="", max_length=400)
     discriminating_evidence: str = Field(default="", max_length=400)
-    next_tool: Literal["search_registered_reports", "open_source_page", "lookup_ontology_rule", "recompute_decimal", "lookup_annual_comparison", "lookup_peer_sample"] | None = None
+    next_tool: Literal["search_registered_reports", "open_source_page", "lookup_ontology_rule", "recompute_decimal", "lookup_annual_comparison", "lookup_peer_sample",
+                       "search_esg_events", "search_financial_notes", "get_accounting_rules", "verify_evidence"] | None = None
     tool_arguments: dict = Field(default_factory=dict)
 
 
@@ -90,16 +91,25 @@ def _tool_request_for(run, action: dict) -> ToolRequest:
     """把行动映射到白名单工具；只使用行动自带的文档、页码与检索词。
 
     行动没有绑定具体文档时，回退到本次已登记文档做登记内检索，不越出登记范围。
+    计量口径类缺口（定义/期间/单位）优先查已解析附注的列语义，避免把余额当投入；
+    范围类缺口优先查 ESG 事项原文，确认主张覆盖的项目清单。
     """
     if action.get("tool_name"):
         return ToolRequest(action["tool_name"], action.get("tool_arguments", {}))
+    condition = str(action.get("condition") or "")
+    terms = [str(term) for term in action.get("query_terms", []) if str(term).strip()][:5]
+    context = [str(term) for term in action.get("context_terms", []) if str(term).strip()]
+    query = (context or terms or [""])[0]
+    if condition in {"定义", "期间", "单位"} and query:
+        return ToolRequest("search_financial_notes", {"query": query, "limit": 5})
+    if condition == "范围" and query:
+        return ToolRequest("search_esg_events", {"query": query, "limit": 5})
     source = str(action.get("proposed_source") or "")
     document_id = source.split(" p", 1)[0].strip() if " p" in source else source.strip()
     registered = [doc.document_id for doc in getattr(run, "documents", [])]
     if document_id not in registered:
         document_id = next(iter(registered), "")
     page_match = re.search(r"p\s*(\d+)", source)
-    terms = [str(term) for term in action.get("query_terms", [])][:5]
     if page_match and document_id:
         return ToolRequest("open_source_page",
                            {"document_id": document_id, "page": int(page_match.group(1)),
@@ -112,6 +122,61 @@ def _tool_request_for(run, action: dict) -> ToolRequest:
 
 def _hypotheses_for_edge(revision: dict, edge_id: str) -> list[dict]:
     return [h for h in revision.get("hypotheses", []) if h.get("edge_id") == edge_id]
+
+
+def _normalize_receipt(receipt: dict) -> dict:
+    """财务穿透工具回执统一到 hit/no_match：count>0 或核验通过为 hit，其余 no_match。
+
+    核验失败（verified=False）归为 no_match，绝不让未通过逐字核验的引文进入"候选成立"路径。
+    """
+    if receipt.get("status") != "ok":
+        return receipt
+    result = receipt.get("result") or {}
+    if "verified" in result:
+        receipt["status"] = "hit" if result.get("verified") else "no_match"
+    else:
+        receipt["status"] = "hit" if int(result.get("count") or 0) > 0 else "no_match"
+    return receipt
+
+
+def _followup_request(action: dict, receipt: dict) -> ToolRequest | None:
+    """第二次动作：检索命中后立即核验引文，或对事项类型查会计处理路径。
+
+    只产生一次跟进，不放大预算；核验优先于规则查询。
+    """
+    if receipt.get("status") != "hit":
+        return None
+    result = receipt.get("result") or {}
+    if receipt.get("tool_name") == "verify_evidence" or receipt.get("tool_name") == "get_accounting_rules":
+        return None
+    if receipt.get("tool_name") == "search_esg_events":
+        events = result.get("events") or []
+        event = events[0] if events else {}
+        if event.get("document_id") and event.get("quote") and event.get("pdf_page"):
+            return ToolRequest("verify_evidence",
+                               {"document_id": event["document_id"], "page": int(event["pdf_page"]),
+                                "quote": str(event["quote"])[:120]})
+        if event.get("activity_type"):
+            return ToolRequest("get_accounting_rules", {"activity_type": event["activity_type"]})
+        return None
+    if receipt.get("tool_name") == "search_financial_notes":
+        items = result.get("items") or []
+        item = items[0] if items else {}
+        # 附注项目的 quote 是合成行文本（单元格拼接），不是页面原文；逐字核验用行头锚点。
+        anchor = str(item.get("row_header") or "").strip()
+        if anchor and "\n" in anchor:
+            anchor = anchor.splitlines()[0].strip()
+        # 行头自身不带 document_id；沿用回执或行动绑定的年报文档。
+        document_id = str(item.get("document_id") or action.get("financial_document_id") or "")
+        if not document_id:
+            source = str(action.get("proposed_source") or "")
+            document_id = source.split(" p", 1)[0].strip() if " p" in source else ""
+        if document_id and anchor and item.get("pdf_page"):
+            return ToolRequest("verify_evidence",
+                               {"document_id": document_id, "page": int(item["pdf_page"]),
+                                "quote": anchor[:120]})
+        return None
+    return None
 
 
 def _gate_transitions(revision: dict, action: dict, receipt: dict, notes: list[dict],
@@ -129,7 +194,15 @@ def _gate_transitions(revision: dict, action: dict, receipt: dict, notes: list[d
     模型意见和确定性门禁使用不同来源标签，不能互相冒充。
     """
     result = receipt.get("result") or {}
-    text = str(result.get("quote") or "\n".join(hit.get("snippet", "") for hit in result.get("hits", [])))
+    # 财务穿透回执：核验结果取引文；事项/附注命中取各自原文，供同段否定词检查。
+    if result.get("events"):
+        text = "\n".join(" ".join([str(event.get("project_name", "")), str(event.get("quote", "")),
+                                   str(event.get("activity_type", ""))]) for event in result["events"])
+    elif result.get("items"):
+        text = "\n".join(" ".join([str(item.get("table_title", "")), str(item.get("row_header", "")),
+                                   str(item.get("quote", ""))]) for item in result["items"])
+    else:
+        text = str(result.get("quote") or "\n".join(hit.get("snippet", "") for hit in result.get("hits", [])))
     transitions = []
     edge_id = action.get("edge_id", "")
     live = [h for h in _hypotheses_for_edge(revision, edge_id) if h.get("status") in {"open", "plausible"}]
@@ -260,6 +333,7 @@ def run_investigation(root, run, *, bridge: dict, revision: dict, plan: dict,
             called_roles.add("evidence")
             request = _tool_request_for(run, action)
             receipt = execute_tool(root, run, request)
+            receipt = _normalize_receipt(receipt)
             remaining_cost -= int(action.get("estimated_cost_tier", 1))
             tool_receipts.append({**receipt, "round_id": round_id, "action_id": action["action_id"]})
             events.append(_event(run, round_id, "evidence", tool_name=receipt["tool_name"],
@@ -268,6 +342,23 @@ def run_investigation(root, run, *, bridge: dict, revision: dict, plan: dict,
                                  decision_reason=receipt.get("reason", "") or "工具回执已生成。",
                                  elapsed_ms=receipt["elapsed_ms"],
                                  outcome="completed" if receipt["status"] == "hit" else "blocked"))
+            # 第二跳：检索命中后立即核验引文或查会计路径；预算不足时如实跳过并留痕。
+            followup = _followup_request(action, receipt)
+            if followup is not None and remaining_cost > 0 and len(tool_receipts) < max_actions:
+                followup_receipt = _normalize_receipt(execute_tool(root, run, followup))
+                remaining_cost -= 1
+                tool_receipts.append({**followup_receipt, "round_id": round_id,
+                                      "action_id": action["action_id"], "followup_of": receipt["tool_name"]})
+                events.append(_event(run, round_id, "evidence", tool_name=followup_receipt["tool_name"],
+                                     args_hash=followup_receipt["args_hash"],
+                                     source_hash=followup_receipt["source_hash"],
+                                     output_digest=followup_receipt["output_digest"],
+                                     decision_reason=(followup_receipt.get("reason") or "")
+                                     or f"对 {receipt['tool_name']} 命中结果的第二次动作："
+                                        f"{followup_receipt['tool_name']}。",
+                                     elapsed_ms=followup_receipt["elapsed_ms"],
+                                     outcome="completed" if followup_receipt["status"] == "hit" else "blocked"))
+                receipt = followup_receipt
         # evidence_received：增量判定。
         if receipt["output_digest"] and receipt["output_digest"] in seen_digests:
             stop_reason = "no_increment"

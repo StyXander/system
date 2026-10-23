@@ -55,15 +55,23 @@ GENERIC_PROJECT = {"在建工程项目", "工程项目", "建设项目", "研发
 
 
 def _identity(event: SustainabilityEvent, item: FinancialItem) -> tuple[str, str]:
-    """身份判定三态：同名=true；明确指向另一个项目=false；只是没出现=unknown。
+    """身份判定三态：同名且主体吻合=true；指向别的项目/主体=false；说不清=unknown。
 
-    缺项目名不能判成不兼容——那是证据不足，不是反证。
+    主体先于项目名判断：同一项目名可能存在于多个基地，缺主体或主体不同都不能确认。
     """
     name = compact(event.project_name)
     if not name:
         return "unknown", "事项未披露可识别项目名，无法核对业务身份"
     # 项目身份以行标题为准；表标题与整行引文只在行标题缺失时兜底，避免表内其他项目串味。
     haystack = compact(item.row_header) or compact(" ".join([item.table_title, item.quote]))
+    subject = compact(getattr(event, "subject", "") or "")
+    if subject:
+        found = {compact(entry) for entry in re.findall(
+            r"[\u4e00-\u9fff]{2,8}(?:基地|分公司|子公司|矿业|炼铁|炼钢)", haystack)}
+        if found and subject not in found:
+            return "false", f"财务项目指向其他主体：{'/'.join(sorted(found))[:30]}"
+        if not found:
+            return "unknown", f"财务项目未写明主体，无法确认与“{subject}”的对应关系"
     if name in haystack:
         return "true", "财务项目的表标题或行标题出现同一项目名"
     if compact(item.row_header) in {"合计", "总计", "小计"} or "合计" in compact(item.row_header):

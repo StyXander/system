@@ -177,3 +177,112 @@ def test_run_request_accepts_adaptive_mode_and_run_has_investigation_field():
         assert RunRequest(pair_id="PAIR-2025", mode=mode).mode == mode
     run = ConnectivityRun(run_id="RUN-X", company="测试钢铁", period="2025", documents=_docs())
     assert run.investigation == {}
+
+
+# ---- 财务穿透工具接入自动调用循环 ----
+
+def _financial_impact_events(**overrides):
+    event = {"event_id": "EVT-1", "document_id": "DOC-A", "project_name": "智能仓储项目",
+             "activity_type": "capex", "pdf_page": 1, "quote": "预算数 8,596,655,000.00 元",
+             "stage": "plan", "amount_nature": "plan"}
+    event.update(overrides)
+    return {"events": [event], "items": []}
+
+
+def _financial_impact_items(**overrides):
+    item = {"item_id": "ITEM-1", "document_id": "DOC-B", "table_title": "在建工程",
+            "row_header": "智能仓储项目", "column_header": "预算数",
+            "value_semantics": "plan", "raw_value": "8,596,655,000.00", "unit": "元",
+            "pdf_page": 1, "quote": "智能仓储项目 预算数 8,596,655,000.00"}
+    item.update(overrides)
+    return {"events": [], "items": [item]}
+
+
+def test_scope_condition_routes_to_esg_event_search(tmp_path, monkeypatch):
+    from backend.app.connectivity_agent_orchestrator import _tool_request_for
+    run = _run(tmp_path, monkeypatch, "预算数")
+    request = _tool_request_for(run, {"condition": "范围", "query_terms": ["智能仓储"],
+                                      "proposed_source": "DOC-A p1"})
+    assert request.tool_name == "search_esg_events"
+    assert request.arguments["query"] == "智能仓储"
+
+
+def test_definition_condition_routes_to_financial_note_search(tmp_path, monkeypatch):
+    from backend.app.connectivity_agent_orchestrator import _tool_request_for
+    run = _run(tmp_path, monkeypatch, "预算数")
+    request = _tool_request_for(run, {"condition": "定义", "context_terms": ["在建工程"],
+                                      "query_terms": ["预算数"], "proposed_source": "DOC-B p1"})
+    assert request.tool_name == "search_financial_notes"
+    assert request.arguments["query"] == "在建工程"
+
+
+def test_esg_event_hit_follows_up_with_quote_verification(tmp_path, monkeypatch):
+    run = _run(tmp_path, monkeypatch, "智能仓储项目 预算数 8,596,655,000.00 元")
+    run.financial_impact = _financial_impact_events()
+    plan = {"best_path": [{"action_id": "ACT-F", "condition_id": "E:范围", "edge_id": "EDGE-1",
+                           "condition": "范围", "proposed_source": "DOC-A p1",
+                           "query_terms": ["智能仓储"], "requires_entity": False, "executable": True,
+                           "exact_target": "核对ESG事项", "purpose": "确认主张覆盖的项目清单",
+                           "estimated_cost_tier": 1, "gap_coverage": 1, "expected_discrimination": 1}],
+            "second_path": [], "by_edge": {}}
+    investigation = run_investigation(None, run, bridge={"edges": []},
+                                      revision=_revision(), plan=plan, challenger=None)
+    receipts = investigation["tool_receipts"]
+    assert [r["tool_name"] for r in receipts] == ["search_esg_events", "verify_evidence"]
+    assert receipts[0]["status"] == "hit"
+    assert receipts[1]["followup_of"] == "search_esg_events"
+    assert receipts[1]["status"] == "hit"
+    assert investigation["outcome"] == "degraded_no_model"
+
+
+def test_note_hit_follows_up_with_quote_verification_on_annual_report(tmp_path, monkeypatch):
+    run = _run(tmp_path, monkeypatch, "在建工程 智能仓储项目 预算数 8,596,655,000.00")
+    run.financial_impact = _financial_impact_items()
+    plan = {"best_path": [{"action_id": "ACT-D", "condition_id": "E:定义", "edge_id": "EDGE-1",
+                           "condition": "定义", "proposed_source": "DOC-B p1",
+                           "context_terms": ["智能仓储"], "query_terms": [],
+                           "requires_entity": False, "executable": True,
+                           "exact_target": "核对列语义", "purpose": "确认计量口径",
+                           "estimated_cost_tier": 1, "gap_coverage": 1, "expected_discrimination": 1}],
+            "second_path": [], "by_edge": {}}
+    investigation = run_investigation(None, run, bridge={"edges": []},
+                                      revision=_revision(), plan=plan, challenger=None)
+    receipts = investigation["tool_receipts"]
+    assert [r["tool_name"] for r in receipts] == ["search_financial_notes", "verify_evidence"]
+    assert receipts[1]["status"] == "hit"
+
+
+def test_event_without_quote_queries_accounting_rules(tmp_path, monkeypatch):
+    run = _run(tmp_path, monkeypatch, "无关内容")
+    run.financial_impact = _financial_impact_events(quote="", activity_type="facility_retrofit")
+    plan = {"best_path": [{"action_id": "ACT-R", "condition_id": "E:范围", "edge_id": "EDGE-1",
+                           "condition": "范围", "proposed_source": "DOC-A p1",
+                           "query_terms": ["智能仓储"], "requires_entity": False, "executable": True,
+                           "exact_target": "核对ESG事项", "purpose": "确认范围",
+                           "estimated_cost_tier": 1, "gap_coverage": 1, "expected_discrimination": 1}],
+            "second_path": [], "by_edge": {}}
+    investigation = run_investigation(None, run, bridge={"edges": []},
+                                      revision=_revision(), plan=plan, challenger=None)
+    receipts = investigation["tool_receipts"]
+    assert [r["tool_name"] for r in receipts] == ["search_esg_events", "get_accounting_rules"]
+    assert receipts[1]["status"] == "hit"
+    assert receipts[1]["result"]["count"] >= 1
+
+
+def test_unverified_quote_stays_no_match_and_hypotheses_unchanged(tmp_path, monkeypatch):
+    run = _run(tmp_path, monkeypatch, "页面上没有这句话")
+    run.financial_impact = _financial_impact_events()
+    revision = _revision()
+    plan = {"best_path": [{"action_id": "ACT-V", "condition_id": "E:范围", "edge_id": "EDGE-1",
+                           "condition": "范围", "proposed_source": "DOC-A p1",
+                           "query_terms": ["智能仓储"], "requires_entity": False, "executable": True,
+                           "exact_target": "核对ESG事项", "purpose": "确认范围",
+                           "estimated_cost_tier": 1, "gap_coverage": 1, "expected_discrimination": 1}],
+            "second_path": [], "by_edge": {}}
+    investigation = run_investigation(None, run, bridge={"edges": []},
+                                      revision=revision, plan=plan, challenger=None)
+    receipts = investigation["tool_receipts"]
+    assert receipts[1]["tool_name"] == "verify_evidence"
+    assert receipts[1]["status"] == "no_match"
+    assert receipts[1]["result"]["verified"] is False
+    assert all(h["status"] == "open" for h in revision["hypotheses"])

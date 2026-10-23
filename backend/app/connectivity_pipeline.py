@@ -908,7 +908,12 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         prompt += "analyses仅绑定输入candidate_checks中已有check_id，引用至少一处对应成员。可以使用calculated_results中的程序数值；假设必须明列，计算闭合不等于业务解释成立。analysis_quality不是正确概率。允许独立决定verdict，不受程序提示倾向限制。量纲冲突、成员角色不完整或成员误绑时，不能输出lean_consistent；应解释当前绑定为何不可比，不评价另一组未绑定的数值。priority给出核查高/中/低与具体priority_reason，材料少本身不能证明企业有问题。文字关系、缺数值和不能正式计算的关系也要分析。"
     if payload.get("analysis_only"):
         prompt += "本次为同一模型的意见补全或纠错：checks返回空数组，针对现有ID提交analyses；逐条处理validation_feedback，不新造关系。"
-    prompt += ("你可在search_requests中自主申请本次登记报告内的检索。每次最多4项，check_id必须来自candidate_checks，"
+    prompt += ("financial_candidates是本轮程序从ESG报告事项与年报附注建立的真实候选：包含等级、会计路径、"
+               "列语义、未满足条件与页码。A1应优先判断其中是否存在值得追查的财务路径，并在notes说明看到的具体项目名与页码；"
+               "A2应逐条质疑其中的期间、合并范围、金额性质（预算/本期增加/期末余额）与项目身份；"
+               "A3应说明现有证据能支持到哪一级、还缺哪一项材料。候选等级是证据支持程度，不是模型正确概率；"
+               "不得把提示中的候选直接改写为“已确认”，也不得引用输入之外的页码或金额。"
+               "你可在search_requests中自主申请本次登记报告内的检索。每次最多4项，check_id必须来自candidate_checks，"
                "metric必须是对应成员原文指标名，terms给出1至5个定义、范围、母公司、合并、排除等具体查询词，"
                "kind为support或counter，reason说明触发原因。工具由服务端实际执行，下一角色会收到命中原文和前后状态。"
                "无值得补查的缺口时返回空列表。先读collaboration_history和closure_probes，不要重复已经失败的查询。"
@@ -1463,6 +1468,25 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     progress("knowledge_retrieval", "completed", f"首轮传入{len(first_context)}处；反证补查{len(additional)}处，覆盖另行列示")
     if cancelled():
         raise InterruptedError("用户取消了任务")
+    # 财务穿透层在智能体之前构建：A1/A2/A3 拿到的是真实事项与附注候选，
+    # 而不是先跑完披露核对、再在末尾追加一张图。
+    progress("financial_impact", "running", "识别可持续事项并检索项目级财务附注")
+    try:
+        from .financial_impact import build as build_financial_impact
+        run.financial_impact = build_financial_impact(root, documents=docs, model_runner=None)
+        trace = run.intelligence_trace
+        trace.append({"kind": "financial_impact_ready", "role": "program",
+                      "candidates": len((run.financial_impact or {}).get("relations", [])),
+                      "project_level": (run.financial_impact or {}).get("stats", {}).get("project_level", 0)})
+        progress("financial_impact", "completed",
+                 f"事项{(run.financial_impact or {}).get('stats', {}).get('events', 0)}项、"
+                 f"附注项目{(run.financial_impact or {}).get('stats', {}).get('items', 0)}个、"
+                 f"项目级关联{(run.financial_impact or {}).get('stats', {}).get('project_level', 0)}条")
+    except Exception as error:
+        run.financial_impact = {}
+        run.intelligence_trace.append({"kind": "financial_impact_error", "error": type(error).__name__,
+                                       "message": str(error)[:240]})
+        progress("financial_impact", "failed", f"财务穿透层未生成：{type(error).__name__}")
     progress("agent_collaboration", "running" if request.mode != "calculation_only" else "skipped", "三角色引用原文与程序计算" if request.mode != "calculation_only" else "本次仅计算，未调用模型")
     context_ids = {r["occurrence_id"] for r in first_context}
     if request.mode == "single_model":
@@ -1553,6 +1577,8 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             payload["hypothesis_ledger"] = [entry for check in checks for entry in hypothesis_ledger(check)]
             payload["hypothesis_updates"] = [entry for entry in run.intelligence_trace
                 if entry.get("kind") == "hypothesis_update" and entry.get("check_id") in {check.check_id for check in checks}]
+            from .financial_impact.investigation import brief as financial_brief
+            payload["financial_candidates"] = financial_brief(run.financial_impact or {})
             payload["structured_candidate_pool"] = structured_candidate_pool(
                 [row for row in run.occurrences if row.occurrence_id in combined], comparison_period)
             return pack_role_context(payload)
@@ -1799,6 +1825,43 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 run.model_status = {"single_model": "single_partial", "adaptive_agents": "adaptive_partial"}.get(request.mode, "three_agents_partial")
     run.findings = merge_final_findings(run)
     progress("evidence_validation", "completed", "引用、算式、未知及多位置差异已分别保留")
+    # 证据驱动调查：把未决条件转成真实工具动作，回执与状态变化单独留痕。
+    if run.financial_impact and os.getenv("CONNECTIVITY_ABLATION_NO_FINANCIAL_TOOLS") != "1":
+        try:
+            from .financial_impact import investigation as financial_investigation
+            from .connectivity_tool_registry import ToolRequest, execute_tool
+            impact = run.financial_impact
+            annual = next((doc.document_id for doc in run.documents
+                           if str(getattr(doc, "report_type", "")).upper() == "AR"), None)
+            actions = []
+            for relation in impact.get("relations", [])[:8]:
+                actions.extend(financial_investigation.actions_for(relation, impact, annual))
+            receipts = []
+            for action in actions[:6]:
+                arguments = {key: value for key, value in action.items()
+                             if key in {"query", "document_id", "page", "quote", "keyword", "limit", "terms"}}
+                if action["action"] == "search_registered_reports":
+                    arguments.pop("query", None)
+                receipt = execute_tool(root, run, ToolRequest(action["action"], arguments))
+                receipt.update({"relation_id": action["relation_id"], "purpose": action["purpose"],
+                                "discriminates": action["discriminates"]})
+                receipts.append(receipt)
+                run.intelligence_trace.append({"kind": "financial_tool_receipt", "role": "program",
+                                               "tool": action["action"], "relation_id": action["relation_id"],
+                                               "status": receipt.get("status"), "reason": receipt.get("reason", "")[:160]})
+            if receipts:
+                financial_investigation.apply_receipts(impact, receipts)
+                run.intelligence_trace.append({"kind": "financial_investigation_summary", "role": "program",
+                                               "actions": len(receipts),
+                                               "changes": impact.get("investigation", {}).get("changes", [])})
+                progress("financial_investigation", "completed",
+                         f"执行{len(receipts)}个只读工具，等级变化{len(impact.get('investigation', {}).get('changes', []))}条")
+        except Exception as error:
+            if isinstance(error, InterruptedError):
+                raise
+            run.intelligence_trace.append({"kind": "financial_investigation_error",
+                                           "error": type(error).__name__, "message": str(error)[:240]})
+
     progress("structured_output", "running", "保存同源核对记录及具体问题")
     run.version_records = _version_records(docs)
     run.version_changes = _version_changes(run)
@@ -1843,25 +1906,6 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 "第一条行动已实际打开登记页并返回回执；该动作退出候选，"
                 "按剩余动作重新计算预算内顺序，不把页面命中当作条件已支持。")
         run.evidence_plan = plan
-        # 财务穿透层：事项抽取→附注结构化→会计路径→混合检索→九项条件裁决→当期/预期影响。
-        # 独立失败域：这一层失败只清空新视图，不影响既有关系、反证与正式结论。
-        progress("financial_impact", "running", "识别可持续事项并检索项目级财务附注")
-        try:
-            from .financial_impact import build as build_financial_impact
-            # 模型字段补全接口已实现并单测；真实运行需预算授权，默认只跑规则抽取，不伪装成模型抽取。
-            run.financial_impact = build_financial_impact(root, documents=docs, model_runner=None)
-            impact_stats = run.financial_impact.get("stats", {})
-            progress("financial_impact", "completed",
-                     f"事项{impact_stats.get('events', 0)}项、附注项目{impact_stats.get('items', 0)}个、"
-                     f"项目级关联{impact_stats.get('project_level', 0)}条、"
-                     f"等级{impact_stats.get('grades', {})}")
-        except Exception as error:
-            if isinstance(error, InterruptedError):
-                raise
-            run.financial_impact = {}
-            run.intelligence_trace.append({"kind": "financial_impact_error", "error": type(error).__name__,
-                                           "message": str(error)[:240]})
-            progress("financial_impact", "failed", f"财务穿透层未生成：{type(error).__name__}")
         if request.mode == "adaptive_agents":
             # adaptive_agents：在财务穿透层之上跑受控调查闭环；失败只降级调查，不回滚既有结果。
             progress("adaptive_investigation", "running", "A0规划—受控工具—Challenger反证—条件门禁闭环")

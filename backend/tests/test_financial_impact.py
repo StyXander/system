@@ -282,6 +282,15 @@ def test_无任何候选证据时为D():
     assert relation.grade == RelationGrade.D
 
 
+def test_同一项目名在不同基地不能直接确认():
+    """项目名相同但事项写明梅山基地、附注未写主体时，只能记 unknown。"""
+    relation = impact_verifier.build_relation(
+        event(subject="梅山基地"), item(), treatment(), support=SUPPORT)
+    identity = next(check for check in relation.conditions if check.key == "identity")
+    assert identity.status == "unknown"
+    assert relation.grade != RelationGrade.A
+
+
 def test_等级不是概率():
     assert "不代表模型正确概率" in impact_verifier.GRADE_MEANING
     assert "不构成审计结论" in impact_verifier.GRADE_MEANING

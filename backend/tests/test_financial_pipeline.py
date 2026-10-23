@@ -53,5 +53,14 @@ def test_pipeline_carries_project_level_financial_impact():
         "identity", "period", "scope", "accounting_conditions", "comparability",
         "cross_reference", "evidence", "no_counter_evidence", "reconciliation"}
     assert run.financial_impact["graph"]["paths"], "图谱应给出受约束路径"
+    # 穿透层必须在智能体之前就绪，并把真实工具回执留在同一运行里。
+    kinds = [entry.get("kind") for entry in run.intelligence_trace]
+    assert "financial_impact_ready" in kinds
+    receipts = (run.financial_impact.get("investigation") or {}).get("receipts") or []
+    assert receipts, "应执行过只读证据工具"
+    assert any(receipt.get("status") == "ok" for receipt in receipts)
+    assert any(receipt.get("tool_name") == "verify_evidence" for receipt in receipts)
+    from backend.app.financial_impact.investigation import brief
+    assert brief(run.financial_impact), "智能体输入应有非空财务候选"
     assert any(item["kind"] == "disclosed_quantified" or item["kind"] == "qualitative_only"
                for item in impact["analysis"]["expected"] + [{"kind": "qualitative_only"}])

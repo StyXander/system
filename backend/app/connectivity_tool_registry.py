@@ -142,9 +142,11 @@ def _search_esg_events(run, args, receipt, started):
     hits = [event for event in events if key in compact(
         " ".join([event.get("project_name", ""), event.get("quote", ""), event.get("activity_type", "")]))]
     receipt.update({"status": "ok", "result": {"query": query, "count": len(hits), "events": [
-        {"event_id": event.get("event_id"), "project_name": event.get("project_name"),
+        {"event_id": event.get("event_id"), "document_id": event.get("document_id"),
+         "project_name": event.get("project_name"),
          "pdf_page": event.get("pdf_page"), "stage": event.get("stage"),
-         "amount_nature": event.get("amount_nature"), "quote": str(event.get("quote"))[:120]}
+         "amount_nature": event.get("amount_nature"), "activity_type": event.get("activity_type"),
+         "quote": str(event.get("quote"))[:120]}
         for event in hits[:limit]]}})
     receipt["output_digest"] = _digest(json.dumps(receipt["result"], ensure_ascii=False, sort_keys=True))
     return _finish(receipt, started)
@@ -163,10 +165,12 @@ def _search_financial_notes(run, args, receipt, started):
     hits = [item for item in items if key in compact(
         " ".join([str(item.get("table_title", "")), str(item.get("row_header", "")), str(item.get("quote", ""))]))]
     receipt.update({"status": "ok", "result": {"query": query, "count": len(hits), "items": [
-        {"item_id": item.get("item_id"), "table_title": item.get("table_title"),
+        {"item_id": item.get("item_id"), "document_id": item.get("document_id"),
+         "table_title": item.get("table_title"),
          "row_header": item.get("row_header"), "column_header": item.get("column_header"),
          "value_semantics": item.get("value_semantics"), "raw_value": item.get("raw_value"),
-         "unit": item.get("unit"), "pdf_page": item.get("pdf_page")}
+         "unit": item.get("unit"), "pdf_page": item.get("pdf_page"),
+         "quote": str(item.get("quote"))[:120]}
         for item in hits[:limit]]}})
     receipt["output_digest"] = _digest(json.dumps(receipt["result"], ensure_ascii=False, sort_keys=True))
     return _finish(receipt, started)

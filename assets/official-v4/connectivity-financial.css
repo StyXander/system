@@ -78,7 +78,7 @@
 #connectivity-root .cn-fin-conditions dd[data-value="unknown"]{color:#8a7b5c}
 #connectivity-root .cn-fin-gaps{margin:6px 0 0;padding-left:18px;font-size:11px;line-height:1.8;color:#5e6b70}
 #connectivity-root .cn-fin-gaps li{margin:0 0 4px}
-#connectivity-root .cn-fin-note{font-size:12px;line-height:1.8;color:var(--fin-muted);margin:6px 0}
+#connectivity-root .cn-fin-note{font-size:12px;line-height:1.8;color:var(--fin-muted);margin:6px 0;overflow-wrap:anywhere}
 #connectivity-root .cn-fin-block{margin:26px 0 0;padding:20px 0 0;border-top:1px solid #d8e0d6}
 #connectivity-root .cn-fin-block h4{font:600 20px/1.4 var(--sans);margin:0 0 6px;letter-spacing:-.02em}
 #connectivity-root .cn-fin-block h4 small{font:11px var(--sans);color:var(--fin-muted);font-weight:400;margin-left:8px}

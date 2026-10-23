@@ -100,8 +100,11 @@ def activity_type(text: str) -> tuple[str, str]:
 
 
 def clean_quote(text: str) -> str:
-    """去掉项目符号与页眉噪声，保留可直接回查的原文。"""
-    value = re.sub(r"^[\s•·□■☑√⌧*\-—]+", "", str(text or ""))
+    """去掉项目符号与页眉导航，保留可直接回查的原文。"""
+    value = str(text or "")
+    # 页眉形如“宝山钢铁股份有限公司｜可持续发展报告02｜环境篇03｜社会篇01｜管治篇6564”，只保留正文。
+    value = re.sub(r"^.*?篇\d{2,4}(?=20\d{2}年)", "", value)
+    value = re.sub(r"^[\s•·□■☑√⌧*\-—]+", "", value)
     value = re.sub(r"\s+", "", value)
     return value[:400]
 
