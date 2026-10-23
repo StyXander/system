@@ -8409,3 +8409,9 @@ def cancel_demo_run_task(task_id: str) -> dict[str, Any]:
 from .connectivity_api import build_router as build_connectivity_router
 from .connectivity_schemas import NOTICE as CONNECTIVITY_NOTICE
 app.include_router(build_connectivity_router(WORKSPACE_ROOT, lambda request: _enforce_public_model_quota(request, force=True), _public_model_ledger))
+
+# 兼容仍保存旧启动命令的公开部署：导出正式应用，避免新页面接到旧路由集。
+# 正式入口反向导入本模块的额度/安全函数时跳过，避免循环导入未构造的 app。
+import sys as _entrypoint_sys
+if _public_demo_enabled() and f"{__package__}.connectivity_app" not in _entrypoint_sys.modules:
+    from .connectivity_app import app as app
