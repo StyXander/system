@@ -185,6 +185,18 @@ def _table_layout(page, lines: list[dict]) -> dict:
     return {"headers": headers, "tables": tables}
 
 
+def _table_heading(lines: list[dict], table: dict) -> str:
+    """取表格上方最近的短行，作为表标题/单位/主体层级的原文来源。"""
+    near = []
+    for row in lines:
+        gap = table["bbox"][1] - row["bbox"][3]
+        text = row["text"].strip()
+        if 0 <= gap <= 55 and text and len(text) <= 90:
+            near.append((row["bbox"][3], text))
+    near.sort()
+    return " / ".join(text for _, text in near[-3:])
+
+
 def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> list[DisclosureOccurrence]:
     """优先按表格单元格取数，避免把换行标签、脚注号和年度值拼成同一行。"""
     result = []
@@ -201,6 +213,14 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
             if previous_headers:
                 headers = max(previous_headers, key=lambda t:t["bbox"][3])["headers"]
         data = table["data"]
+        heading = _table_heading(lines, table)
+        # 只认表标题/表头里的合并或母公司；同时出现两者视为口径不明，不猜。
+        scope_hint = ""
+        if "母公司" in heading and not re.search(r"合并(?!范围)", heading):
+            scope_hint = "母公司"
+        elif re.search(r"合并(?!范围)", heading) and "母公司" not in heading:
+            scope_hint = "合并"
+        currency_hint = "CNY" if "人民币" in heading else ""
         table_text = "\n".join(" | ".join(str(v or "") for v in row) for row in data)
         table_topics = [topic for topic in topics if any(word in table_text.replace(" ", "") for word in TOPICS[topic]["keywords"])]
         for row_index, values in enumerate(data):
@@ -242,14 +262,26 @@ def _extract_tables(page: dict, document: ReportDocument, topics: list[str]) -> 
                 row_text = " | ".join(str(v or "").replace("\n", " ") for v in values)
                 context_rows = data[max(0,row_index-2):row_index+3]
                 context = "\n".join(" | ".join(str(v or "").replace("\n", " ") for v in row) for row in context_rows)
+                prefix = ([f"表标题/上方文字：{heading}"] if heading else []) + (["币种：人民币"] if currency_hint else [])
                 context = f"本页对应列头：{column_header}\n{context}"
                 if above:
                     context = above[-1] + "\n" + context
+                if prefix:
+                    context = "\n".join(prefix) + "\n" + context
                 quality, reason = _quality(year, unit, column_header)
+                scope_value = scope or scope_hint
+                scope_quote = ((column_header if scope else heading)[:200]) if scope_value else ""
+                currency_value = currency_hint or ("CNY" if "人民币" in context else "")
+                currency_quote = heading[:200] if "人民币" in heading else ("人民币" if "人民币" in context else "")
                 result.append(DisclosureOccurrence(occurrence_id=f"{document.document_id}-{page['page']}-T{table_index}-R{row_index}-C{column_index}",
                     document_id=document.document_id, pdf_page=page["page"], bbox=list(bounds), label=label,
                     value=token, unit=unit, unit_source="本表单位列" if units else _unit_source(label, above),
-                    currency="CNY" if "人民币" in context else "", year=year, scope=scope,
+                    currency=currency_value,
+                    currency_source_id=f"{document.document_id}-{page['page']}-T{table_index}-R{row_index}-C{column_index}" if currency_value else "",
+                    currency_source_quote=currency_quote,
+                    year=year, scope=scope_value,
+                    scope_source_id=f"{document.document_id}-{page['page']}-T{table_index}-R{row_index}-C{column_index}" if scope_value else "",
+                    scope_source_quote=scope_quote,
                     year_status="attributed" if year else "unattributed",
                     row_header=row_text, column_header=column_header, header_path=selected,
                     context=context[:7000], footnote_scope=_footnote_for(table, lines, page.get("tables", [])),

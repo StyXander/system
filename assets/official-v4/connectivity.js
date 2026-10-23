@@ -136,6 +136,9 @@
 
   function conclusionText(c) {
     const gate = c.calculation?.gate;
+    const level = c.calculation?.conclusion_level;
+    if (level==='assumption_compatible') return `${gate?'暂不能直接比较；':''}按显示精度假设，差额区间含0；这不等于正式确认，口径依据仍需补齐。`;
+    if (level==='insufficient_basis') return `${gate?gate.conclusion+'；':''}依据不足，暂不能判断。`;
     if (gate) return `${gate.conclusion}：缺少${(gate.missing||[]).join('、')||'关键前提'}的原文依据。`;
     if (c.calculation_status==='consistent') return '所选成员在同口径下计算一致。';
     if (c.calculation_status==='precision_explained') return '差额可由已声明的精度区间解释。';
@@ -310,6 +313,9 @@
     const gate = calc.gate;
     const adjustment = calc.adjustment;
     const interval = calc.residual_interval;
+    const levelLabels = {formal_consistent:'一致（前提齐备）', assumption_compatible:'假设内相容', unexplained_difference:'存在差异', insufficient_basis:'依据不足', not_applicable:'不适用'};
+    const assumption = calc.assumption_check;
+    const levelBlock = calc.conclusion_level ? `<div class="cn-scenario"><h4>结论级别与假设检验</h4><p>结论级别：<strong>${escape(levelLabels[calc.conclusion_level]||calc.conclusion_level)}</strong></p>${assumption ? (assumption.status==='not_run' ? `<p class="cn-muted">${escape(assumption.reason||'当前关系不适用显示精度假设')}</p>` : `<p>${escape(assumption.assumption_note||'按显示小数位建立区间')}</p><p>差额区间：[${escape(assumption.residual_interval?.low??'—')}, ${escape(assumption.residual_interval?.high??'—')}]；含0：${assumption.contains_zero?'是':'否'}</p><p class="cn-muted">该检验不改变口径状态，也不等于企业实际采用的舍入方法。</p>`) : ''}</div>` : '';
     const formal = gate
       ? `<p class="cn-gate"><strong>${escape(gate.conclusion)}</strong>；缺少：${escape((gate.missing||[]).join('、'))}。正式差额与正式残差字段为空，不以0填充。</p><p class="cn-muted">${escape(gate.needed||'')}</p>`
       : `<p>正式差额：<strong class="cn-num">${escape(calc.residual ?? '—')}</strong> ${escape(calc.normalized_unit||'')}</p>
@@ -320,7 +326,7 @@
     const bridgeBlock = bridge ? `<div class="cn-scenario"><h4>条件调节试算</h4><p>原始候选差额：${escape(bridge.original_residual)} ${escape(bridge.unit)}</p>${(bridge.applied||[]).map(a => `<p><strong>${escape(a.label)}</strong> · 有符号贡献 ${escape(a.amount)} ${escape(a.unit)}${refs(a.evidence)}<br>${escape(a.reason)}</p>`).join('')}${(bridge.rejected||[]).map(a => `<p class="cn-rejected">未用于试算：${escape(a.reason)}</p>`).join('')}<p><strong>剩余候选差额：${escape(bridge.remaining_residual)} ${escape(bridge.unit)}</strong></p><p class="cn-muted">假设：${escape((bridge.assumptions||[]).join('；'))}。${escape(bridge.note)}</p></div>` : '';
     const plan = c.calculation_plan ? `<p class="cn-muted">计算方案：${escape(c.calculation_plan.reason)}；${escape({formal:'已执行正式计算',trial:'已执行条件试算',rejected:'暂不可执行',proposed:'模型建议'}[c.calculation_plan.status])}。${escape((c.calculation_plan.assumptions||[]).join('；'))}</p>` : '';
     const narrative = c.narrative_test ? `<div class="cn-scenario"><h4>文字与数值方向核对</h4>${c.narrative_test.status==='not_executable' ? `<p>${escape(c.narrative_test.reason)}</p>` : `<p>程序计算变化方向：${escape({increase:'上升',decrease:'下降',stable:'持平'}[c.narrative_test.direction])}；与所绑定主张${c.narrative_test.direction_matches?'方向相符':'方向不同'}。${c.narrative_test.change_percent!==null?`变化${escape(c.narrative_test.change_percent)}%。`:''}</p><p class="cn-muted">${escape(c.narrative_test.note)}</p>`}</div>` : '';
-    return `<div class="cn-equation">${escape(calc.expression || '尚无可执行算式')}</div>${plan}${formal}${adjustmentBlock}${trial}${bridgeBlock}${narrative}<details class="cn-detail-block"><summary>计算明细（机器可读）</summary><pre>${escape(JSON.stringify(calc, null, 2))}</pre></details>`;
+    return `<div class="cn-equation">${escape(calc.expression || '尚无可执行算式')}</div>${plan}${formal}${levelBlock}${adjustmentBlock}${trial}${bridgeBlock}${narrative}<details class="cn-detail-block"><summary>计算明细（机器可读）</summary><pre>${escape(JSON.stringify(calc, null, 2))}</pre></details>`;
   }
 
   function filterIds(run, filter) {

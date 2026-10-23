@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from decimal import Decimal
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -783,7 +784,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                         if not checks:
                             continue
                     response, record = call_role(role, payload)
-                    record.update(batch=batch_index, context_count=len(ids))
+                    record.update(batch=batch_index, context_count=len(ids), call_id=f"{role}-{len(run.provider_calls)+1}")
                     run.provider_calls.append(record)
                     delta['rejected'].extend(record.get('validation_rejections', []))
                     if role == "A3":
@@ -795,6 +796,10 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                             work_ids.update(part.get("accepted_check_ids", []))
                         if role == "single":
                             part.update(integrate_analyses(run, SingleAgentProposals.model_validate(response).analyses, ids, role, PROMPT_VERSION, record.get("model", "")))
+                    for rejection in part.get("analysis_rejections", []):
+                        run.analysis_feedback.append({**rejection, "call_id": record["call_id"], "role": role,
+                            "model": record.get("model", ""), "at": datetime.now(timezone.utc).isoformat(),
+                            "feedback": "程序未采纳该意见，要求按当前绑定与前提修订"})
                     for key in delta:
                         if key in part:
                             delta[key].extend(part[key])
@@ -811,10 +816,16 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                         follow_payload = batch_payload(role, follow, analysis_only=True, feedback=part.get("analysis_rejections", []))
                         follow_ids = {r["occurrence_id"] for r in follow_payload["occurrences"]}
                         follow_result, follow_record = call_role(role, follow_payload)
-                        follow_record.update(batch=batch_index, phase="analysis_completion", context_count=len(follow_ids))
+                        follow_record.update(batch=batch_index, phase="analysis_completion", context_count=len(follow_ids),
+                                             call_id=f"{role}-{len(run.provider_calls)+1}", revision_of=record["call_id"],
+                                             feedback_count=len(part.get("analysis_rejections", [])))
                         run.provider_calls.append(follow_record)
                         follow_delta = integrate_analyses(run, (SingleAgentProposals if role == "single" else FinalSummaries).model_validate(follow_result).analyses,
                                                           follow_ids, role, PROMPT_VERSION, follow_record.get("model", ""))
+                        for rejection in follow_delta.get("analysis_rejections", []):
+                            run.analysis_feedback.append({**rejection, "call_id": follow_record["call_id"], "role": role,
+                                "model": follow_record.get("model", ""), "at": datetime.now(timezone.utc).isoformat(),
+                                "feedback": "补全/修订调用后仍未采纳"})
                         delta["accepted_analysis_ids"].extend(follow_delta["accepted_analysis_ids"])
                         delta["analysis_rejections"].extend(follow_delta["analysis_rejections"])
                 except InterruptedError:

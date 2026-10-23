@@ -22,6 +22,8 @@ STATUS_LABELS = {"supported": "依据齐备", "unknown": "依据待补", "confli
     "adjustment_explained": "有据加性调节后与0相容", "unexplained_difference": "未解释差异",
     "not_comparable": "暂不可比较", "not_executable": "暂不可执行", "not_applicable": "不适用数值计算",
     "unreviewed": "未人工复核", "demo_modified": "演示更正", "read_confirmed": "使用者已阅读"}
+CONCLUSION_LABELS = {"formal_consistent": "一致（前提齐备）", "assumption_compatible": "假设内相容",
+                     "unexplained_difference": "存在差异", "insufficient_basis": "依据不足", "not_applicable": "不适用"}
 AI_LABELS = {"lean_consistent": "倾向一致", "potential_conflict": "存在潜在矛盾", "plausible_explanation": "存在合理解释路径",
              "insufficient_basis": "依据不足但可继续核查", "not_comparable": "当前不可直接比较"}
 
@@ -239,7 +241,17 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
         _table_rows(document, [("核对项及规则", f"{check.check_id} / {check.rule_id}"),
             ("口径状态", STATUS_LABELS.get(check.criteria_status, check.criteria_status)),
             ("计算状态", STATUS_LABELS.get(check.calculation_status, check.calculation_status)),
+            ("结论级别", CONCLUSION_LABELS.get((check.calculation or {}).get("conclusion_level", ""), "未登记")),
             ("复核状态", STATUS_LABELS.get(check.review_status, check.review_status))])
+        assumption = (check.calculation or {}).get("assumption_check") or {}
+        if assumption.get("status") == "not_run":
+            _paragraph(document, "假设检验：未执行；" + assumption.get("reason", "当前关系不适用"))
+        elif assumption:
+            interval = assumption.get("residual_interval") or {}
+            _paragraph(document, "假设检验：" + assumption.get("assumption_note", "按显示精度建立区间") +
+                       f"；差额区间[{interval.get('low')}, {interval.get('high')}]；是否含0：" +
+                       ("是" if assumption.get("contains_zero") else "否") +
+                       "。该检验不改变口径状态，也不等于企业实际舍入方法。")
         for opinion in (a for a in run.ai_analyses if a.check_id == check.check_id):
             _add_heading(document, "AI分析意见：" + AI_LABELS[opinion.verdict], 3)
             _paragraph(document, "仅供核查参考；" + ("输入已变化，需重新分析" if opinion.status == "needs_refresh" else "与本次保存结果绑定"))

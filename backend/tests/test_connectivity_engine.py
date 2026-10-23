@@ -150,3 +150,29 @@ def test_two_ids_cannot_double_count_one_pdf_cell():
     rows[1].bbox = [11, 21, 39, 49]
     with pytest.raises(ValueError, match="同一个原文单元格"):
         calculate(check, rows)
+
+
+def test_display_precision_assumption_is_separate_from_formal_conclusion():
+    rows, check = relationship("EQ-001", ["449183817.50", "4.49"], ["left", "right"], ["元", "亿元"])
+    check.conditions[3].status = "unknown"
+    result = calculate(check, rows)
+    assert result.calculation_status == "not_comparable"
+    assumption = result.calculation["assumption_check"]
+    assert assumption["status"] == "contains_zero"
+    assert assumption["assumption"] == "display_half_up"
+    assert assumption["residual_interval"]["low"] == "-316182.505"
+    assert result.calculation["conclusion_level"] == "assumption_compatible"
+
+
+def test_integer_values_do_not_get_a_rounding_assumption():
+    rows, check = relationship("EQ-001", ["2581", "2581"], ["left", "right"], ["人", "人"])
+    check.conditions[3].status = "unknown"
+    result = calculate(check, rows)
+    assert result.calculation_status == "not_comparable"
+    assert result.calculation["assumption_check"]["status"] == "not_run"
+    assert result.calculation["conclusion_level"] == "insufficient_basis"
+
+
+def test_formal_consistent_has_explicit_conclusion_level():
+    rows, check = relationship("EQ-001", ["100", "100"], ["left", "right"])
+    assert calculate(check, rows).calculation["conclusion_level"] == "formal_consistent"

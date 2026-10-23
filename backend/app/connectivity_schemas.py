@@ -88,6 +88,9 @@ class DisclosureOccurrence(Contract):
     # 年度列解析失败时保持空值并标 unattributed，不得回退成报告期间。
     year_status: Literal["attributed", "unattributed"] = "unattributed"
     scope: str = ""
+    # 范围证据必须能回到表标题/表头或原文；只写结论不留出处视为未证实。
+    scope_source_id: str = ""
+    scope_source_quote: str = ""
     definition: str = ""
     row_header: str = ""
     column_header: str = ""
@@ -428,6 +431,8 @@ class ConnectivityRun(Contract):
     # 新运行的程序提示不计入模型意见；旧ai_opinions仅供历史兼容读取。
     program_hints: list[dict] = Field(default_factory=list)
     analysis_history: list[dict] = Field(default_factory=list)
+    # 程序拒绝/要求修订的具体回执，绑定 provider call，避免事后从最终JSON倒推过程。
+    analysis_feedback: list[dict] = Field(default_factory=list)
     prior_provider_calls: list[dict] = Field(default_factory=list)
     industry_context: dict = Field(default_factory=dict)
     intelligence_trace: list[dict] = Field(default_factory=list)

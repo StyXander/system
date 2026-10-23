@@ -115,6 +115,42 @@ def normalized(occurrence: DisclosureOccurrence) -> tuple[Decimal, str, Interval
     return value, dimension, interval
 
 
+def _display_interval(occurrence: DisclosureOccurrence) -> Interval | None:
+    """按显示小数位构造“假设下区间”，不声称企业实际采用该舍入方法。
+
+    只有原文出现小数位时才建区间；整数（如人数）按精确值处理，不凭空加半个单位。
+    """
+    if occurrence.value is None:
+        return None
+    raw = number(occurrence.value)
+    dimension, factor = numeric_unit(occurrence.unit)
+    if dimension == "unknown":
+        return None
+    exponent = raw.as_tuple().exponent
+    if exponent >= 0:
+        return None
+    value = raw * factor
+    half = Decimal(1).scaleb(exponent) * factor / 2
+    return Interval(value - half, value + half)
+
+
+def _assumption_check(check: RelationshipCheck, found: dict[str, DisclosureOccurrence]) -> dict:
+    """同值关系的“假设下相容”单独记录，不升级为正式结论。"""
+    if check.operator != "equal" or len(check.members) != 2:
+        return {"status": "not_run", "assumption": "none", "reason": "当前算子不适用显示精度假设"}
+    rows = [found[item.occurrence_id] for item in check.members]
+    intervals = [_display_interval(row) for row in rows]
+    if any(item is None for item in intervals):
+        return {"status": "not_run", "assumption": "none",
+                "reason": "至少一侧没有小数显示位；不把整数强行当作舍入值"}
+    residual = intervals[0].minus(intervals[1])
+    return {"status": "contains_zero" if residual.contains_zero() else "not_contains_zero",
+            "assumption": "display_half_up",
+            "assumption_note": "按显示小数位四舍五入；未确认企业实际舍入方法",
+            "left_interval": intervals[0].as_dict(), "right_interval": intervals[1].as_dict(),
+            "residual_interval": residual.as_dict(), "contains_zero": residual.contains_zero()}
+
+
 def validate_refs(refs: list[EvidenceRef], occurrences: dict[str, DisclosureOccurrence]) -> bool:
     """引用必须属于本次报告且逐字存在于对应上下文，不接受模型编造出处。"""
     compact = lambda s: re.sub(r"\s+", "", s)
@@ -189,7 +225,8 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     result.criteria_status = "conflicting" if conflict else "unknown" if result.unresolved else "supported"
     if result.operator == "narrative":
         result.calculation_status = "not_applicable"
-        result.calculation = {"statement": result.explanation, "evidence_supported": validate_refs(result.explanation_evidence, found)}
+        result.calculation = {"statement": result.explanation, "evidence_supported": validate_refs(result.explanation_evidence, found),
+                              "conclusion_level": "not_applicable"}
         return result
     try:
         with localcontext() as ctx:
@@ -198,15 +235,20 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     except (ValueError, InvalidOperation, ZeroDivisionError) as error:
         # 已知的规则性错误保留原提示（如币种不同、量纲不一致），便于页面直接说明。
         result.unresolved.append(str(error))
+        result.calculation = {"conclusion_level": "insufficient_basis"}
         return result
     except (ArithmeticError, AttributeError, KeyError, IndexError, TypeError) as error:
         result.unresolved.append(f"算式未完成：{type(error).__name__}")
+        result.calculation = {"conclusion_level": "insufficient_basis"}
         return result
     # 正式差额硬门禁：任一关键前提 unknown 或 conflicting 时不产出正式差额与残差。
     if result.criteria_status != "supported":
         result.calculation = _gated_calculation(result, trial)
         result.hypothetical = _trial_calculation(trial)
         result.calculation_status = "not_comparable"
+        assumption = _assumption_check(result, found)
+        result.calculation["assumption_check"] = assumption
+        result.calculation["conclusion_level"] = "assumption_compatible" if assumption.get("contains_zero") else "insufficient_basis"
         return result
     result.calculation = trial
     result.hypothetical = None
@@ -223,6 +265,7 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
         result.calculation_status = "unexplained_difference"
         result.unresolved.append("存在重复或覆盖交叉的解释项，本次不作正式闭合")
         result.calculation["residual_interval"] = residual_interval.as_dict()
+        result.calculation["conclusion_level"] = "unexplained_difference"
         return result
     if applied:
         residual = Decimal(adjustments["remaining_residual"])
@@ -248,6 +291,10 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     else:
         result.calculation_status = "unexplained_difference"
         result.unresolved.append("同口径计算仍有未解释差额")
+    result.calculation["conclusion_level"] = (
+        "formal_consistent" if result.calculation_status == "consistent"
+        else "assumption_compatible" if result.calculation_status in {"precision_explained", "adjustment_explained"}
+        else "unexplained_difference")
     return result
 
 
