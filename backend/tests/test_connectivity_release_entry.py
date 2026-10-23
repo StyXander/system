@@ -33,3 +33,32 @@ def test_health_reports_runtime_identity_without_guessing_commit(monkeypatch):
     assert health()['deployment']['commit'] is None
     monkeypatch.setenv('RENDER_GIT_COMMIT', 'a' * 40)
     assert health()['deployment']['commit'] == 'a' * 40
+
+
+def test_public_legacy_start_command_exports_formal_app_in_both_import_orders():
+    """公开服务保存旧命令时仍须具备新搜索与付费授权，且不暴露旧业务。"""
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    env = dict(os.environ, AUDITTRACE_PUBLIC_DEMO='true', AUDITTRACE_DEMO_USE_EXTERNAL_MODEL='false',
+               AUDITTRACE_CONNECTIVITY_CATALOG_PERSISTENCE='local', AUDITTRACE_DEMO_TASK_PERSISTENCE='local')
+    for module in ('backend.app.main', 'backend.app.connectivity_app'):
+        code = f'''import importlib,json
+from fastapi.testclient import TestClient
+m=importlib.import_module({module!r})
+paths=set(m.app.openapi()['paths'])
+assert '/api/connectivity/catalog' in paths and '/api/companies/search' in paths
+assert not any(p.startswith(('/api/rag','/api/cases','/api/demo/runs','/api/industry')) for p in paths)
+client=TestClient(m.app)
+health=client.get('/api/health').json()
+assert health['deployment']['entry']=='backend.app.connectivity_app:app'
+assert client.post('/api/connectivity/runs',json={{'pair_id':'600019-2025','mode':'three_agents'}}).status_code==401
+print(json.dumps({{'entry':health['deployment']['entry'],'release':health['deployment']['release']}}))
+'''
+        result = subprocess.run([sys.executable, '-c', code], cwd=root, env=env,
+                                capture_output=True, text=True, timeout=90)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert json.loads(result.stdout)['release'] == '2026.10.23.enterprise.1'
