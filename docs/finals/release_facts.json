@@ -1,0 +1,164 @@
+{
+  "schema_version": "release_facts_v1",
+  "generated_at": "2026-10-22T23:51:32+08:00",
+  "repository": "https://github.com/StyXander/system",
+  "branch": "feat/financial-connectivity-finals",
+  "base_commit": "6964bc7f3ab74bf1d1d97592a297b6ee66c752c5",
+  "working_tree": "dirty；本轮改动见 git status",
+  "deployment": {
+    "status": "not_deployed",
+    "production_commit": "6abd3d7",
+    "note": "未推送、未部署；所有截图来自本地同SHA服务"
+  },
+  "schema_version_runtime": "connectivity_v5",
+  "financial_version": "financial_bridge_v1",
+  "registered_reports": {
+    "pairs": 5,
+    "documents": 10,
+    "companies": 4
+  },
+  "industry_profiles": [
+    "steel（钢铁/高耗能制造）",
+    "food_beverage（食品饮料/消费品制造）"
+  ],
+  "main_case": {
+    "company": "宝钢股份",
+    "period": "2025",
+    "task_id": "CONNJOB-86307C4D477C",
+    "run_id": "CONN-8BD58E32A0834045",
+    "execution_mode": "calculation_only",
+    "model_status": "not_requested",
+    "duration_ms": 33179,
+    "checks": 5
+  },
+  "innovation_1": {
+    "claims": 14,
+    "financial_nodes": 18,
+    "edges": 14,
+    "graph": {
+      "claims": 9,
+      "performance": 5,
+      "financial": 6,
+      "gaps": 4,
+      "edges": 19,
+      "direct": 0,
+      "semantic": 4,
+      "challenged": 3,
+      "insufficient": 4,
+      "verified_edges": 5,
+      "refuted_edges": 3
+    },
+    "direct_reconciliation": 0,
+    "challenged": 3,
+    "page_verified_claims": 14,
+    "page_verified_nodes": 18,
+    "boundary": "最高只到有限支持/语义关联；32亿元与32.89亿元为数值接近但口径冲突的反例，不能声称直接勾稽成立"
+  },
+  "innovation_2": {
+    "candidates": 13,
+    "refuted": 3,
+    "weakened": 4,
+    "supported": 3,
+    "transitions": 13,
+    "real_change_example": "ESG 32亿元合计 vs 年报 p154 高端取向硅钢项目预算32.89亿元：定义/范围/期间冲突，候选由 plausible→refuted"
+  },
+  "innovation_3": {
+    "primary": "核对年报 p154 表头与附注：在建工程—重要在建工程项目—高端取向硅钢绿色制造结构优化工程",
+    "alternative": "核对ESG p31 主张原句与年报 p154 项目行",
+    "comparison": "第一优先“定义”：核对年报 p154 表头与附注：在建工程—重要在建工程项目—高端取向硅钢绿色制造结构优化工程，比第二优先“范围”高 4 分；理由是它能同时覆盖 3 项缺口、区分 2 个解释，且成本为 1 级。",
+    "execution": "hit",
+    "rerank_changed": true,
+    "budget": {
+      "call_budget": 3,
+      "max_actions": 2
+    }
+  },
+  "scenario": {
+    "available": true,
+    "baseline": {
+      "name": "基础",
+      "value": "2.20",
+      "unit": "亿元",
+      "share_of_cost": "0.0746%"
+    },
+    "scenarios": [
+      {
+        "name": "情景A：价格上浮",
+        "value": "2.58",
+        "unit": "亿元",
+        "share_of_cost": "0.0878%"
+      },
+      {
+        "name": "情景B：节能量按低实现比例",
+        "value": "1.76",
+        "unit": "亿元",
+        "share_of_cost": "0.0597%"
+      }
+    ],
+    "note": "情景模拟用于说明影响方向与量级，不是企业实际损失预测，不进入正式结论，也不是审计调整。"
+  },
+  "screenshots": {
+    "manifest": "决赛提交/证据/shot_manifest.json",
+    "task_id": "CONNJOB-86307C4D477C",
+    "count": 9
+  },
+  "tests": {
+    "new_finals_tests": "66 passed（图谱/情景/桥接/反证/规划/编排/调查/专业硬化）",
+    "core_regression": "133 passed / 3 skipped（关联核验核心）",
+    "delivery_regression": "63 passed（导出与合同）",
+    "real_pdf": "test_demo_finals.py 2 passed；test_financial_pipeline.py 1 passed",
+    "full_suite": "全量pytest在600秒上限内未完成，已终止；不以历史1135 passed代替本轮证据",
+    "ontology_taxonomy_redteam_temporal": "38 passed",
+    "orchestrator": "7 passed"
+  },
+  "unfinished": [
+    "正式直接勾稽仍为0；主案例只到有限支持/语义关联/反例",
+    "本轮未执行真实三角色模型运行；模型路径需另行授权与预算控制",
+    "未推送、未部署；线上仍为6abd3d7",
+    "最新方案书DOCX与答辩PPTX尚未按本轮事实改写/渲染验收",
+    "截图已覆盖1440/1024/768/390布局，但未做全量键盘与读屏验收"
+  ],
+  "notice": "数值接近不等于因果成立；语义关联不等于资金归属；缺口不等于企业未披露；情景模拟不是实际损失预测。",
+  "materials": {
+    "folder": "决赛提交/",
+    "files": [
+      {
+        "file": "审迹智链_方案书_最终版.docx",
+        "kind": "docx",
+        "bytes": 3870139,
+        "sha256": "7417db34f2441877b8a8cc9f3d9caacdefac19e5ffc460fc241806696a96fe05",
+        "pages": null
+      },
+      {
+        "file": "审迹智链_方案书_最终版.pdf",
+        "kind": "pdf",
+        "bytes": 3176294,
+        "sha256": "831b0d6bd56fce1c9df86ab6619bdd0011a89d5399b1652d106ccaa52631b339",
+        "pages": 31
+      },
+      {
+        "file": "审迹智链_答辩PPT_最终版.pptx",
+        "kind": "pptx",
+        "bytes": 44031813,
+        "sha256": "574535054046e05768450e628b8f96177d21792e925568ce9ca4944357170427",
+        "pages": 16
+      },
+      {
+        "file": "审迹智链_答辩PPT_最终版.pdf",
+        "kind": "pdf",
+        "bytes": 8942270,
+        "sha256": "8c45289b0f3e2bb8192ffc27dbd0023dccaae2c0c3a619749f5e8f7224e5cec9",
+        "pages": 16
+      }
+    ],
+    "note": "方案书附录从第27页开始；PPT附录为第14—16页；主干13页结构未改。",
+    "rendered_at": "2026-10-23T00:20:45+08:00"
+  },
+  "adaptive_agents": {
+    "implemented": true,
+    "default_mode": false,
+    "model_run_in_this_session": false,
+    "deterministic_tests": "test_adaptive_investigation 1 passed + test_agent_orchestrator 7 passed",
+    "boundary": "无模型时明确降级为 degraded_no_model；不得显示自适应智能体完成"
+  }
+}
