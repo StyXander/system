@@ -1,0 +1,156 @@
+{
+  "task_id": "CONNJOB-33E6B1317078",
+  "errors": [],
+  "search": [
+    {
+      "query": "隆基绿能",
+      "status": 200,
+      "match_count": 1,
+      "requires_confirmation": true,
+      "identities": [
+        {
+          "ticker": "601012",
+          "name": "隆基绿能",
+          "state": "ready"
+        }
+      ]
+    },
+    {
+      "query": "601012",
+      "status": 200,
+      "match_count": 1,
+      "requires_confirmation": true,
+      "identities": [
+        {
+          "ticker": "601012",
+          "name": "隆基绿能",
+          "state": "ready"
+        }
+      ]
+    },
+    {
+      "query": "隆基绿能科技股份有限公司",
+      "status": 200,
+      "match_count": 1,
+      "requires_confirmation": true,
+      "identities": [
+        {
+          "ticker": "601012",
+          "name": "隆基绿能",
+          "state": "ready"
+        }
+      ]
+    },
+    {
+      "query": "ljln",
+      "status": 200,
+      "match_count": 1,
+      "requires_confirmation": true,
+      "identities": [
+        {
+          "ticker": "601012",
+          "name": "隆基绿能",
+          "state": "ready"
+        }
+      ]
+    },
+    {
+      "query": "福耀玻璃",
+      "status": 200,
+      "match_count": 1,
+      "requires_confirmation": true,
+      "identities": [
+        {
+          "ticker": "600660",
+          "name": "福耀玻璃",
+          "state": "identity_only"
+        }
+      ]
+    },
+    {
+      "query": "中国中",
+      "status": 200,
+      "match_count": 4,
+      "requires_confirmation": true,
+      "identities": [
+        {
+          "ticker": "601390",
+          "name": "中国中铁",
+          "state": "identity_only"
+        },
+        {
+          "ticker": "601618",
+          "name": "中国中冶",
+          "state": "identity_only"
+        },
+        {
+          "ticker": "601766",
+          "name": "中国中车",
+          "state": "ready"
+        },
+        {
+          "ticker": "601888",
+          "name": "中国中免",
+          "state": "identity_only"
+        }
+      ]
+    },
+    {
+      "query": "这是不存在的合成企业ZZQ",
+      "status": 200,
+      "match_count": 0,
+      "requires_confirmation": false,
+      "identities": []
+    }
+  ],
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false,
+      "file": "企业搜索最终_1440x1000.png"
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "file": "企业搜索最终_1024x768.png"
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "overflow": false,
+      "file": "企业搜索最终_768x1024.png"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "file": "企业搜索最终_390x844.png"
+    }
+  ],
+  "switch_preserves_result": true,
+  "actual_model_status": "three_agents_partial",
+  "actual_calls": 3,
+  "complete_three_agents": false,
+  "input_tokens": 157899,
+  "output_tokens": 18784,
+  "final_ai_opinions": 0,
+  "partial_report": {
+    "status": 200,
+    "state": "partial",
+    "missing": [
+      "ESG"
+    ]
+  },
+  "future_year_status": 422,
+  "cross_company_isolated": true,
+  "source_status": 200,
+  "new_company_browser_calculation": {
+    "task_id": "CONNJOB-787561E67D55",
+    "status": "completed",
+    "company": "伊利股份",
+    "provider_calls": 0,
+    "checks": 5
+  }
+}

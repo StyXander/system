@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "backend": "supabase",
+  "local_snapshot_present": false,
+  "fresh_instance_both_pdfs_downloaded": true,
+  "pair_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+  "documents": [
+    {
+      "document_id": "D-601012-2025-AR-10233740d54740b8",
+      "sha256": "10233740d54740b89dfd772eecac5f04d8fef639489acd3b18b1a35e81bce2c1",
+      "pages": 314
+    },
+    {
+      "document_id": "D-601012-2025-ESG-9786609033a1cf21",
+      "sha256": "9786609033a1cf2183e06838361be83c23ff4f628965cd44f3eb6208de4e88ff",
+      "pages": 189
+    }
+  ],
+  "readiness": {
+    "checked_at": "2026-10-23T10:56:03.383068+00:00",
+    "health_kind": "business_sources",
+    "ready": true,
+    "pairs": [
+      {
+        "pair_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+        "documents": [
+          {
+            "document_id": "D-601012-2025-AR-10233740d54740b8",
+            "ready": true,
+            "status": "ready",
+            "expected_pages": 314,
+            "source_kind": "official",
+            "remote_status": "not_probed",
+            "reason": "哈希、页数、逐页解析及预览通过",
+            "actual_pages": 314
+          },
+          {
+            "document_id": "D-601012-2025-ESG-9786609033a1cf21",
+            "ready": true,
+            "status": "ready",
+            "expected_pages": 189,
+            "source_kind": "official",
+            "remote_status": "not_probed",
+            "reason": "哈希、页数、逐页解析及预览通过",
+            "actual_pages": 189
+          }
+        ],
+        "ready": true
+      }
+    ],
+    "remote_status": "not_probed",
+    "note": "业务源就绪与服务存活分开；本接口不探测模型或外网"
+  }
+}

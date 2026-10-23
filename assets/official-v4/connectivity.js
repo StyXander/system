@@ -156,7 +156,7 @@
 
   function render() {
     const run = current(); if (!run) return;
-    const pair = state.bootstrap.pairs.find(p => p.pair_id===run.documents[0]?.case_id);
+    const pair = !state.pendingPair && state.bootstrap.pairs.find(p => p.pair_id===run.documents[0]?.case_id);
     if (pair) { $('cn-pair').value = pair.pair_id; reportCards(); }
     if ([...$('cn-mode').options].some(option => option.value===run.execution_mode)) $('cn-mode').value = run.execution_mode;
     $('cn-results').hidden = false;
@@ -664,14 +664,19 @@
     startRun({retry_of_task_id: state.task?.task_id});
   });
   $('cn-cancel').addEventListener('click', async () => { if (!state.task) return; try { await api(`/runs/${encodeURIComponent(state.task.task_id)}/cancel`, {method:'POST'}); await poll(state.task.task_id); } catch (error) { message(error.message, true); } });
+  document.addEventListener('audittrace:select-pair', async event => {
+    try {
+      state.bootstrap=await api('/bootstrap');
+      $('cn-pair').innerHTML=state.bootstrap.pairs.map(pair=>`<option value="${escape(pair.pair_id)}">${escape(pair.company)} · ${escape(pair.period)}</option>`).join('');
+      if(!state.bootstrap.pairs.some(pair=>pair.pair_id===event.detail.pairId)) throw new Error('报告对尚未完成登记，请稍后重试。');
+      $('cn-pair').value=event.detail.pairId;
+      $('cn-pair').dispatchEvent(new Event('change'));
+    } catch(error){message(error.message,true);}
+  });
   $('cn-pair').addEventListener('change', () => {
-    clearTimeout(state.timer); state.generation++; state.task=null; state.selected=null;
-    $('cn-results').hidden=true; $('cn-stagebar').hidden=true;
-    localStorage.removeItem('audittrace-connectivity-task');
-    const url=new URL(location.href); url.searchParams.delete('connectivity_task'); history.replaceState({},'',url);
+    state.pendingPair=true;
     reportCards();
-    document.dispatchEvent(new CustomEvent('audittrace:connectivity-reset'));
-    message('已切换报告对；上一次任务保留在历史记录，本次尚未分析。');
+    message('已选择下一组报告；当前结果仍属于原任务。点击开始才会创建新核验。');
   });
   // 阅读深度只有两档，不提供会改变排序口径的“视角”，避免同一任务出现不同结论。
   document.querySelectorAll('[data-lens]').forEach(button => button.addEventListener('click', () => {

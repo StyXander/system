@@ -2547,3 +2547,21 @@ dialog::backdrop {
 }
 
 #connectivity-root .cn-fin-scenario-controls{display:grid;gap:14px;border:1px solid #d8dfe5;padding:16px;min-width:0}#connectivity-root .cn-fin-scenario-controls label{display:grid;grid-template-columns:minmax(100px,1fr) 2fr auto;gap:12px;align-items:center}#connectivity-root .cn-fin-scenario-controls input{width:100%;min-width:0;min-height:44px}#connectivity-root [data-investigation] article{border-bottom:1px solid #d8dfe5;padding:12px 0;overflow-wrap:anywhere}#connectivity-root .cn-fin-toolbar select{min-height:44px;max-width:160px}#connectivity-root .cn-fin-toolbar button{min-height:44px}#connectivity-root .cn-fin-block small{overflow-wrap:anywhere}@media(max-width:600px){#connectivity-root .cn-fin-scenario-controls label{grid-template-columns:1fr}#connectivity-root #cn-financial{padding-left:0;padding-right:0}}
+
+/* 企业入口复用工作台字体和色彩；列表与搜索结果不占用核验结果容器。 */
+.cn-company-selector { border-bottom:1px solid #dce2e8; padding-bottom:24px; margin-bottom:24px; }
+.cn-company-selector h2 { font-size:22px; margin:0 0 14px; }
+.cn-company-search>div,.cn-company-filters { display:flex; gap:12px; flex-wrap:wrap; margin:8px 0; }
+.cn-company-search input { flex:1; min-width:200px; padding:12px; border:1px solid #b7c5d4; border-radius:4px; }
+.cn-company-filters label { flex:1; min-width:130px; }
+.cn-company-selector select { max-width:100%; width:100%; }
+.cn-company-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; max-height:340px; overflow:auto; }
+.cn-company-card,.cn-company-results button { text-align:left; display:flex; flex-direction:column; gap:7px; background:white; border:1px solid #cbd5df; padding:13px; color:#16334f; border-radius:4px; white-space:normal; overflow-wrap:anywhere; }
+.cn-company-card:hover,.cn-company-results button:hover { border-color:#245b86; background:#f6f9fc; }
+.cn-company-selector small,.cn-company-selector span { font-size:12px; font-weight:normal; }
+.cn-company-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+#cn-company-confirmed { margin:15px 0; padding:16px; border:1px solid #b7c5d4; }
+#cn-company-confirmed summary { font-weight:bold; margin-bottom:12px; }
+.cn-company-report-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+#cn-company-status,#cn-company-storage { font-size:13px; line-height:1.6; }
+@media(max-width:650px) { .cn-company-cards,.cn-company-results,.cn-company-report-options { grid-template-columns:1fr; } .cn-company-search input { min-width:0; width:100%; } .cn-company-search>div { display:grid; grid-template-columns:1fr auto; } }

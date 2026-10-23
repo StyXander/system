@@ -18,6 +18,7 @@ from .main import (_enforce_public_model_quota, _public_model_ledger, security_h
                    _validate_trusted_proxy_configuration, _configured_cors_origins)
 from .connectivity_api import build_router
 from .connectivity_facts import project_facts
+from .connectivity_catalog_api import build_catalog_router
 
 ROOT = Path(__file__).resolve().parents[2]
 @asynccontextmanager
@@ -27,13 +28,14 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.22', lifespan=lifespan)
+app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.23.enterprise.1', lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(CORSMiddleware, allow_origins=_configured_cors_origins(), allow_credentials=True,
                    allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'Authorization', 'Idempotency-Key'])
 app.middleware('http')(security_headers)
 app.mount('/assets', StaticFiles(directory=ROOT/'assets'), name='assets')
 app.include_router(build_router(ROOT, lambda request: _enforce_public_model_quota(request, force=True), _public_model_ledger))
+app.include_router(build_catalog_router(ROOT))
 
 
 @app.get('/', include_in_schema=False)
@@ -50,5 +52,5 @@ def health():
         'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
         'default_mode': 'three_agents', 'project_facts': project_facts(ROOT),
         'deployment': {'commit': os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') or None,
-            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.22.3',
+            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.23.enterprise.1',
             'identity_source': 'runtime_environment' if os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') else 'unverified'}}

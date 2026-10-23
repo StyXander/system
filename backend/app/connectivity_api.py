@@ -136,6 +136,9 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
 
     @router.post("/runs")
     def create(body: RunRequest, request: Request):
+        if body.mode != 'calculation_only':
+            from .connectivity_catalog_api import authorize_model
+            authorize_model(request)
         if os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE","web").strip().lower() != "web":
             raise HTTPException(503,"关联核对执行器未就绪：当前版本须配置Web执行模式")
         if not request.cookies.get(COOKIE):
@@ -193,6 +196,14 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                         result.versions['quota_settlement'] = {'status': 'failed', 'code': error.code, 'message': str(error)[:240]}
                         runtime.update_stage(item['task_id'], 'structured_output', 'degraded', str(error)[:240])
             degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed", "adaptive_completed", "reused_completed"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
+            from .connectivity_catalog import record_execution
+            from .supabase_adapter import SupabaseError
+            import sqlite3
+            try:
+                result.versions['catalog_execution'] = record_execution(root, result, item['task_id'])
+            except (SupabaseError, sqlite3.Error) as error:
+                # 分析历史保留；目录状态写入失败须显式出现在结果中，不能伪称已同步。
+                result.versions['catalog_execution'] = {'status': 'failed', 'code': type(error).__name__}
             runtime.update_task(item["task_id"], status="degraded" if degraded else "completed", run_id=result.run_id,
                 result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNECTIVITY_RETENTION_SECONDS))
         execute.__audittrace_request__ = request

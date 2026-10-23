@@ -304,10 +304,16 @@ def ensure_source(root: Path, document: ReportDocument) -> Path:
 
 def load_registry(root: Path) -> list[ReportDocument]:
     path = root / "backend/connectivity_reports.json"
-    if not path.exists():
-        return []
-    rows = json.loads(path.read_text(encoding="utf-8"))["documents"]
+    rows = json.loads(path.read_text(encoding="utf-8"))["documents"] if path.exists() else []
     result = [ReportDocument.model_validate(row) for row in rows]
+    from .connectivity_catalog import registered_documents
+    # 历史 document_id 永不被新版本覆盖；动态目录只追加内容绑定的身份。
+    existing = {doc.document_id: doc for doc in result}
+    for document in registered_documents(root):
+        if document.document_id in existing and existing[document.document_id].file_sha256 != document.file_sha256:
+            raise ValueError('动态目录试图覆盖历史原件身份')
+        existing.setdefault(document.document_id, document)
+    result = list(existing.values())
     for doc in result:
         doc.available = source_path(root, doc).is_file()
     return result
@@ -1225,10 +1231,24 @@ def _exclusions(occurrences: list[DisclosureOccurrence],
 
 
 def report_industry_context(root: Path, run) -> dict:
-    """从本公司业务介绍提取行业出处，三行业试点仅提供本项目检索重点。"""
+    """从本公司业务介绍提取行业出处，行业适配仅提供本项目检索重点。"""
     trials = {'白酒': ['用水与取水', '包装材料', '研发投入'],
               '钢铁': ['粗钢产量', '综合能耗', '排放强度', '环保投入'],
-              '电池': ['能源结构', '材料回收', '产能与产量', '排放强度']}
+              '电池': ['能源结构', '材料回收', '产能与产量', '排放强度'],
+              '光伏': ['节能改造', '研发资本化', '产能与能耗'],
+              '水泥': ['环保投入', '在建工程', '余热发电'],
+              '采矿': ['生态修复', '环保资本开支', '矿山主体范围'],
+              '汽车': ['研发费用', '研发资本化', '动力电池'],
+              '机械': ['研发费用', '在建工程', '节能改造'],
+              '电力': ['装机容量', '建设投入', '营业收入'],
+              '化工': ['环保投入', '在建工程', '安全与环保费用'],
+              '家电': ['研发投入', '产品能效', '节能改造'],
+              '银行': ['绿色信贷', '融资排放', '口径与范围'],
+              '轨道交通': ['研发投入', '资本性支出', '绿色产品']}
+    trials.update({'乳制品': ['取水与用水', '包装投入', '研发费用'],
+                   '有色金属': ['生态修复', '环保资本开支', '采矿范围'],
+                   '发电设备': ['研发费用', '在建工程', '节能改造'],
+                   '家用电器': ['研发投入', '产品能效', '节能改造']})
     identity = re.compile(r'公司.{0,18}(主营业务|主要从事|所属|所处|属于)|主营业务为|所属行业|主要业务是')
     for document in run.documents:
         path = root / 'backend/runtime/connectivity/extraction' / f'{document.file_sha256}-{PARSER_CACHE_VERSION}.json'
@@ -1250,7 +1270,7 @@ def report_industry_context(root: Path, run) -> dict:
                         label='公司业务与行业说明',row_header=line['text'],context=context,quality='text_only',topic='basis'))
                 return {'industry': industry, 'evidence_id': oid, 'quote': context,
                         'search_priorities': trials[industry], 'source': 'company_report',
-                        'note': '本项目三行业检索试点；不是评级权重或同业平均值'}
+                        'note': '行业检索适配依据本企业原文；不是评级权重或同业平均值'}
     return {'industry': '未取得明确行业依据', 'search_priorities': [], 'source': 'generic',
             'note': '使用通用指标指导，不猜测行业分类或行业均值'}
 

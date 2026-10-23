@@ -1,0 +1,2264 @@
+{
+  "schema_version": "connectivity_catalog_v1",
+  "generated_from": "supabase_verified_and_local_mirrored",
+  "pairs": [
+    {
+      "pair_id": "CONNPAIR-000651-2025-c11b149265f540c7",
+      "company_id": "000651",
+      "company": "格力电器",
+      "period": "2025",
+      "industry": "家电",
+      "documents": [
+        {
+          "document_id": "D-000651-2025-AR-7cc972f2d199e2ec",
+          "case_id": "CONNPAIR-000651-2025-c11b149265f540c7",
+          "company_id": "000651",
+          "company": "格力电器",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250396.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-29",
+          "retrieved_at": "2026-10-23T10:23:24.647880+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 219,
+          "file_sha256": "7cc972f2d199e2ec3797cc5da479e8268afa59b77875770de3bcd3648242fb8c",
+          "available": true
+        },
+        {
+          "document_id": "D-000651-2025-ESG-b55d77ca642461d7",
+          "case_id": "CONNPAIR-000651-2025-c11b149265f540c7",
+          "company_id": "000651",
+          "company": "格力电器",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年度环境、社会及公司治理（ESG）报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250422.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-29",
+          "retrieved_at": "2026-10-23T10:23:25.818569+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 85,
+          "file_sha256": "b55d77ca642461d7dace9f4953e2aea0bada7376cc6b15f0ddcf8bf66f626e30",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 219,
+          "text_pages": 219,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "珠海格力电器股份有限公司2025 年年度报告全文\n1\n第一节重要提示、目录和释义\n公司董事会及董事、高级管理人员保证年度报告内容的真实、准确、完\n整，不存在虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责\n任。\n公司负责人董明珠、主管会计工作负责人廖建雄及会计机构负责人（会计\n主管人员）刘炎姿声明：保证本年度报告中财务报告的真实、准确、完整。\n所有董事均已出席了审议本报告的董事会会议。\n本报告中所涉及的未来计划、发展战略等前瞻性陈述，不构成公司对投资\n者的实质承诺，投资者及相关人士均应当对此保持足够的风险认识，并且应当\n理解计划、预测与承诺之间的差异，敬请注意投资风险，理性投资。\n公司经本次董事会审议通过的利润分配预案为：以本利润分配预案披露时\n享有利润分配权的股本总额5,585,138,741 股（总股本5,601,405,741 股扣除\n公司回购账户持有的股份16,267,000 股）为基数，向全体股东每10 股派发现\n金红利20 元（含税），送红股0 股（含税），不以公积金转增股本。如在本\n次利润分配预案披露之日起至实施权益分派的股权登记日期间，公司享有利润\n分配权的股本"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 85,
+          "text_pages": 83,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "01\n关于本报告\n走进格力电器\nESG 管理\n合规治理\n健全机制 护航稳健经营\n精研提质\n创新驱动 铸就品质标杆\n协同赋能\n聚力伙伴 同筑共赢平台\n绿色智造\n低碳减排 践行生态责任\n附录\n管理层致辞\n关于本报告\n报告范围\n数据来源\n报告获取\n称谓说明\n本报告是珠海格力电器股份有限公司发布的第3 份环境、社会和公司治理（ESG）报告，重\n点披露公司积极应对可持续发展机遇和挑战，为利益相关方创造经济、社会、环境综合价值\n所做的努力。\n除另有注明外，本报告组织范围涵盖珠海格力电器股份有限公司及下属各子分公司。\n本报告中使用的定性、定量信息均来自格力电器的公开信息、内部文件和相关统计数据，披\n露范围与财务报告合并报表范围一致。其他范围与此有差异的内容，将会在报告中进行说明。\n报告中涉及的货币金额，如无特殊说明，均以人民币为计量单位。\n本报告电子版可在公司官网（http://www.gree.com.cn/）、深圳证券交易所网站（http://\nwww.szse.cn/）及巨潮资讯网（www.cninfo.com.cn）查阅获取。\n为方便表述，本报告中将“珠海格力电器股份有限公司”简称为“格力电",
+            "02\n关于本报告\n走进格力电器\nESG 管理\n合规治理\n健全机制 护航稳健经营\n精研提质\n创新驱动 铸就品质标杆\n协同赋能\n聚力伙伴 同筑共赢平台\n绿色智造\n低碳减排 践行生态责任\n附录\n管理层致辞\n管理层致辞\n完善公司治理，回应投资者关切，夯实企业行稳致远之基。\n规范董事会运作，筑牢合规经营根基。报告期内，公司持续优化董事会运作机制，修订公司章\n程及相关内部管理制度，强化合规与风险管理，夯实经营基础。董事履职勤勉尽责，决策程序\n规范透明，董事会出席率100%。\n强化投资者沟通，提升治理透明度。公司已连续五年获得深交所信息披露年度考核A 级。同时，\n报告期内，公司回复深交所“互动易”平台问题522 个，回复数量位居家电行业第一；组织投\n资者实地参观“领航级”智能工厂等，透明、直观展示中国智造与创新成果。切实回应投资者关切，\n为长期价值创造提供有力支撑。\n坚守以人为本，深化产业链协同，凝聚可持续发展合力。\n重视员工关怀与发展，实现员工与企业共同成长。员工关怀方面，公司为员工打造环境舒适、\n配套完善的员工宿舍，开办格力学校解决员工子女就学问题等；员工成长方面，公司提供AI 赋\n能培训，助力",
+            "03\n关于本报告\n走进格力电器\nESG 管理\n合规治理\n健全机制 护航稳健经营\n精研提质\n创新驱动 铸就品质标杆\n协同赋能\n聚力伙伴 同筑共赢平台\n绿色智造\n低碳减排 践行生态责任\n附录\n管理层致辞\n走进格力电器\n珠海格力电器股份有限公司是一家多元化、科技型的全球工业\n集团，旗下拥有格力、TOSOT、晶弘、凌达、凯邦、新元等品牌，\n产业布局覆盖消费和工业两大领域。目前，格力产品已服务全\n球190 多个国家和地区，坚持以核心科技与高品质服务用户，\n持续满足人们对美好生活的追求。\n在品牌方面，公司彰显行业标杆地位。公司先后获“中国世\n界名牌”“最具市场竞争力品牌”“全国质量奖”“出口免验企\n业”“中国品牌创新奖”“中国轻工业科技百强企业”“中国企\n业信用500 强”等。报告期内，公司再次上榜《福布斯》“全\n球企业2000 强”，位列榜单第346 位；获“2025 EPR 履责\n创新先锋力量企业”等荣誉，根据中国品牌建设促进会、中国\n资产评估协会发布的“2025 中国品牌价值评价信息”榜单数据，\n格力电器品牌价值达2,021.40 亿元，位列轻工业组第二、家\n电行业第一，品牌综合实力与行业领"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年度环境、社会及公司治理（ESG）报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:25.842424+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-2094CD79E6B54BA2",
+        "status": "completed",
+        "elapsed_seconds": 16.0
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-000651-2025-c11b149265f540c7",
+        "company": "格力电器",
+        "company_id": "000651",
+        "period": "2025",
+        "status": "completed",
+        "total": 64,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 4,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 10,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 16.0,
+        "checks": 1,
+        "financial_edges": 5,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "assumption_compatible": 1
+        },
+        "occurrences": 158,
+        "run_id": "CONN-2094CD79E6B54BA2",
+        "raw_file": "CONNPAIR-000651-2025-c11b149265f540c7-calculation.json",
+        "raw_sha256": "d0a2ed6208f56d86a87109eebdea58c475fcaa03a29ec83c1571b1fc6ce1bada",
+        "industry_context": {
+          "industry": "家电",
+          "evidence_id": "D-000651-2025-AR-7cc972f2d199e2ec-10-IND-21",
+          "quote": "品牌”的企业愿景，为股东创造更高价值，为行业高质量发展贡献力量。\n二、报告期内公司所处行业情况\n1.消费领域\n2025 年，家电行业整体承压。国内市场呈现前高后低走势，根据奥维云网（AVC）推总数据，2025 年国内家电（不含",
+          "search_priorities": [
+            "研发投入",
+            "产品能效",
+            "节能改造"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "家电制造",
+      "industry_evidence": {
+        "industry": "家电",
+        "evidence_id": "D-000651-2025-AR-7cc972f2d199e2ec-10-IND-21",
+        "quote": "品牌”的企业愿景，为股东创造更高价值，为行业高质量发展贡献力量。\n二、报告期内公司所处行业情况\n1.消费领域\n2025 年，家电行业整体承压。国内市场呈现前高后低走势，根据奥维云网（AVC）推总数据，2025 年国内家电（不含",
+        "search_priorities": [
+          "研发投入",
+          "产品能效",
+          "节能改造"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "INT-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-002594-2025-3c006b0a228193e4",
+      "company_id": "002594",
+      "company": "比亚迪",
+      "period": "2025",
+      "industry": "电池",
+      "documents": [
+        {
+          "document_id": "D-002594-2025-AR-710d8b2e08e37ba5",
+          "case_id": "CONNPAIR-002594-2025-3c006b0a228193e4",
+          "company_id": "002594",
+          "company": "比亚迪",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225045351.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-28",
+          "retrieved_at": "2026-10-23T10:23:29.285755+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 268,
+          "file_sha256": "710d8b2e08e37ba521f1c4071d2c3e2369d3cadabc21a45073215d9f72138b0b",
+          "available": true
+        },
+        {
+          "document_id": "D-002594-2025-ESG-b3967f468ee50c36",
+          "case_id": "CONNPAIR-002594-2025-3c006b0a228193e4",
+          "company_id": "002594",
+          "company": "比亚迪",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年度可持续发展报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225045371.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-28",
+          "retrieved_at": "2026-10-23T10:23:30.973000+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 182,
+          "file_sha256": "b3967f468ee50c3666b3275255fc39e0a583c738148f5984bdfbb337bbda019e",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 268,
+          "text_pages": 268,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "比亚迪股份有限公司2025 年年度报告全文 \n2 \n \n董事长致辞 \n \n向新出发，向高生长，向远而行 \n尊敬的各位股东、合作伙伴、各界朋友： \n二零二五年，世界格局加速演变，全球汽车工业百年变革驶入深水区。面对愈加复杂多变的内外部环境，中国汽车工\n业顶住压力、奋力前行，全年产销再创历史新高，均超3,400 万辆，连续十七年稳居世界第一。年内，新能源汽车国内新\n车销量占比历史性过半，也就是说每销售两辆新车中就有一辆是新能源。全年汽车出口同比增长超21%，新能源汽车出口\n实现翻倍增长，核心竞争力持续跃升。从二零零九年登顶全球市场至今，中国汽车产业不仅实现了规模的持续领跑，更在\n新赛道中成功构筑了新的全球发展优势。 \n伴随中国汽车产业规模持续扩张、海外市场大爆发，二零二五年，比亚迪继续保持稳健增长，连续四年稳居全球新能\n源汽车销量榜首，连续三年全球汽车集团销量前十，并跻身全球汽车集团销量第五，较上一年度再提升一个名次。比亚迪\n汽车全年出口量首次突破百万，同比增长1.4 倍，新能源汽车出口量位居全国首位，全球化发展迈上新台阶。同时，比亚\n迪品牌高端化也加快向上突破，仰望、腾势和方程豹全年销量",
+            "比亚迪股份有限公司2025 年年度报告全文 \n5 \n \n2025 年年度报告 \n第一节 重要提示、目录和释义 \n公司董事会及董事、高级管理人员保证年度报告内容的真实、准确、完整，\n不存在虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。 \n公司负责人王传福、主管会计工作负责人周亚琳及会计机构负责人（会计\n主管人员）刘惠声明：保证本年度报告中财务报告的真实、准确、完整。 \n所有董事均已出席了审议本报告的董事会会议。 \n公司不存在对生产经营状况、财务状况和持续盈利能力有严重不利影响的\n有关风险因素。关于公司经营中可能面临的风险因素，详见本报告第三节管理\n层讨论与分析之第一项报告期内公司从事的主要业务、第二项报告期内公司所\n处行业情况及第十一项公司未来发展的展望。 \n公司经本次董事会审议通过的利润分配预案为：以9,117,197,565 为基数，\n向全体股东每10 股派发现金红利3.58 元（含税），送红股0 股（含税），不\n以公积金转增股本。 \n \n",
+            "比亚迪股份有限公司2025 年年度报告全文 \n9 \n \n第二节 公司简介和主要财务指标 \n一、公司信息 \n股票简称 \n比亚迪（A 股）、比亚迪股份（H 股） \n股票代码 \n002594、01211、81211 \n股票上市证券交易所 \n深圳证券交易所、香港联合交易所有限公司 \n公司的中文名称 \n比亚迪股份有限公司 \n公司的中文简称 \n比亚迪 \n公司的外文名称 \nBYD COMPANY LIMITED \n公司的外文名称缩写 \nBYD \n公司的法定代表人 \n王传福 \n注册地址 \n深圳市大鹏新区葵涌街道延安路一号 \n注册地址的邮政编码 \n518119 \n公司注册地址历史变更情况 \n公司注册地址未曾变更 \n办公地址 \n深圳市坪山区比亚迪路3009 号 \n办公地址的邮政编码 \n518118 \n公司网址 \nwww.bydglobal.com \n电子信箱 \ndb@byd.com \n二、联系人和联系方式 \n \n董事会秘书 \n证券事务代表 \n姓名 \n李黔 \n程燕/吴越 \n联系地址 \n深圳市坪山区比亚迪路3009 号 \n深圳市坪山区比亚迪路3009 号 \n电话 \n（+86）755-8988 8888-621"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 182,
+          "text_pages": 181,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "1\n2025 比亚迪可持续发展报告\n绿色低碳\n创新变革\n平等机会\n协同合作\n诚信守正\n价值共享\n应对气候变化\n践行绿色运营\n引领行业发展\n坚守产品责任\n专注客户体验\n保障员工权益\n打造平等职场\n坚持人才投资\n增进员工福祉\n规范管理体系\n践行责任采购\n推动协同发展\n健全治理架构\n强化风险管控\n深化合规管理\n恪守商业道德\n保障信息安全\n为股东创造价值\n为客户创造价值\n为社会创造价值\n28\n51\n65\n71\n79\n89\n97\n100\n103\n112\n113\n117\n120\n122\n125\n126\n129\n132\n133\n135\n目录\nCONTENTS\n开篇\n关于本报告\n董事长致辞\n首席可持续发展官致辞\n关于我们\n专题\n可持续发展管理\n02\n04\n05\n06\n12\n18\n145\n180\n附录\n鉴证声明\n",
+            "2\n2025 比亚迪可持续发展报告\n开篇\nD绿色低碳\nR创新变革\nE平等机会\nA协同合作\nM诚信守正\nS价值共享\n附录\n鉴证声明\n关于本报告\n本报告为比亚迪股份有限公司（以下简称“比亚迪”或“本公司”）及其附属公司（以下简称“本集团”“集团”或“我们”）2025年度《可持续发展报告》，上期报告于2025年3月发布。自2010年起，比亚迪每年均通过独立\n报告的形式，积极向社会公众披露我们在环境、社会及治理三大可持续发展领域的治理、策略、目标、实践及绩效，以持续促进比亚迪的信息透明和长效发展。\n报告范围\n本报告为年度报告，覆盖2025年1月1日至2025年12月31日期间（以下简称“报告期间”）。为增强报告内\n容可比性和完善性，部分内容适当溯及以往年份或向未来年份延伸。\n本报告实质性议题管理策略、经济范畴关键绩效指标、社会范畴关键绩效指标报告范围与《比亚迪股份有限公\n司2025年年报》一致，覆盖全集团所有实体，但不包括本公司联营公司和合营公司；涵盖汽车、汽车相关产\n品、电子及其他产品业务。本报告环境关键绩效指标汇报范围则包括本公司及其持有运营控制权的附属公司实\n体的运营场所，但不包括海外基",
+            "3\n2025 比亚迪可持续发展报告\n开篇\nD绿色低碳\nR创新变革\nE平等机会\nA协同合作\nM诚信守正\nS价值共享\n附录\n鉴证声明\n2025 比亚迪可持续发展报告\n3\n报告原则\n本报告遵循联交所《守则》汇报原则，包括：\n•\n重要性：本报告通过重要性评估，重点披露可能对利益相关方和比亚迪业务产生重要影响的相关事宜。\n•\n量化：本报告以量化方式提供主要绩效指标摘要及所用的标准、方法、假设及计算工具等数据，并附带说\n明，以便读者评估和验证比亚迪ESG政策及管理体系的绩效。\n•\n平衡：本报告以客观事实为基础，以可靠信息源及统计方法为前提，全面地披露比亚迪在ESG方面的绩效\n表现，避免可能会不恰当影响读者决策或判断的表述或呈报格式。\n•\n一致性：除非另有说明，本报告披露统计方法与往年一致，以保证信息的可比性。\n同时，本报告参考GRI准则汇报原则，包括：\n•\n准确性：报告正确和足够详细的信息，以便读者评估比亚迪的影响。\n•\n平衡性：无偏见地报告信息，并公允地表述比亚迪的负面和正面影响。\n•\n清晰性：以通俗易懂的方式呈现信息。\n•\n可比性：采用合理的信息选择、编制和报告方式，以便读者分析比亚迪的长期影"
+          ],
+          "period_evidence": "报告范围本报告为年度报告，覆盖2025年1月1日至2025年12月31日",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年度可持续发展报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:31.001528+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-CCEE95A876044BD6",
+        "status": "completed",
+        "elapsed_seconds": 20.05
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-002594-2025-3c006b0a228193e4",
+        "company": "比亚迪",
+        "company_id": "002594",
+        "period": "2025",
+        "status": "completed",
+        "total": 72,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 2,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 20.05,
+        "checks": 5,
+        "financial_edges": 1,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 3,
+          "assumption_compatible": 2
+        },
+        "occurrences": 292,
+        "run_id": "CONN-CCEE95A876044BD6",
+        "raw_file": "CONNPAIR-002594-2025-3c006b0a228193e4-calculation.json",
+        "raw_sha256": "b117cd4d2006bdaddd899d7b4f7ca373a7cf9cc1dc3ca901c90945537770293a",
+        "industry_context": {
+          "industry": "电池",
+          "evidence_id": "D-002594-2025-AR-710d8b2e08e37ba5-9-IND-34",
+          "quote": "四、注册变更情况\n统一社会信用代码 91440300192317458F\n2012 年2 月13 日公司经营范围变更为：锂离子电池以及其他电池、充电器、\n公司上市以来主营业务的变化情况",
+          "search_priorities": [
+            "能源结构",
+            "材料回收",
+            "产能与产量",
+            "排放强度"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "汽车",
+      "industry_evidence": {
+        "industry": "电池",
+        "evidence_id": "D-002594-2025-AR-710d8b2e08e37ba5-9-IND-34",
+        "quote": "四、注册变更情况\n统一社会信用代码 91440300192317458F\n2012 年2 月13 日公司经营范围变更为：锂离子电池以及其他电池、充电器、\n公司上市以来主营业务的变化情况",
+        "search_priorities": [
+          "能源结构",
+          "材料回收",
+          "产能与产量",
+          "排放强度"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "EQ-001",
+        "INT-001",
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-600028-2025-017c9e4fba1de956",
+      "company_id": "600028",
+      "company": "中国石化",
+      "period": "2025",
+      "industry": "化工",
+      "documents": [
+        {
+          "document_id": "D-600028-2025-AR-4b425d76e97f8c15",
+          "case_id": "CONNPAIR-600028-2025-017c9e4fba1de956",
+          "company_id": "600028",
+          "company": "中国石化",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "中国石化2025年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-23",
+          "retrieved_at": "2026-10-23T10:23:33.028807+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 239,
+          "file_sha256": "4b425d76e97f8c151d986a7f1e83ae2d4b22d43f89b950c352240a5aaffea329",
+          "available": true
+        },
+        {
+          "document_id": "D-600028-2025-ESG-0556e4df58ddf41d",
+          "case_id": "CONNPAIR-600028-2025-017c9e4fba1de956",
+          "company_id": "600028",
+          "company": "中国石化",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "中国石化2025年可持续发展报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024073.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-23",
+          "retrieved_at": "2026-10-23T10:23:33.497929+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 95,
+          "file_sha256": "0556e4df58ddf41d063027f276ec628cd83407127d42c292973f23a416a55f09",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 239,
+          "text_pages": 238,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            " \n \n \n \n \n \n3\n公司简介 \n \n中国石化H股于2000年10月18日在中国香港联合交易所上市；A股于2001年8月8日在上海证券\n交易所上市。中国石化是中国最大的一体化能源化工公司之一，主要从事石油与天然气勘探\n开采、管道运输、销售；石油炼制、石油化工、煤化工、化纤及其他化工产品的生产与销售、\n储运；石油、天然气、石油产品、石油化工及其他化工产品和其他商品、技术的进出口、代\n理进出口业务；技术、信息的研究、开发、应用；氢气的制备、储存、运输和销售等氢能业务\n及相关服务；新能源汽车充换电，太阳能、风能等新能源发电业务及相关服务。 \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n释义： \n在本报告书中，除非文义另有所指，下列词语具有如下含义： \n“中国石化”是指中国石油化工股份有限公司 \n“本公司”或“公司”是指中国石化及其附属公司 \n“中国石化集团公司”是指中国石化的控股股东中国石油化工集团有限公司 \n“中国石化集团”是指中国石化集团有限公司及其附属公司 \n“发改委”是指中华人民共和国国家发展和改革委员会 \n“上交所”是指上海证券交易所 \n“储量管理委员会”是指本公",
+            " \n \n \n \n \n \n6\n衍生金融工具及现金\n流量套期工具 \n (858) \n (4,314) \n (3,456) \n 4,093 \n交易性金融资产 \n 4 \n 4 \n - \n 1 \n合计 \n 2,175 \n 8,186 \n 6,011 \n 4,134 \n \n(5) 财务报表项目变动情况表 \n年度间数据变动幅度达30%以上的报表项目具体情况及变动原因说明： \n合并资产负债\n表项目 \n于12月31日 \n增加/（减少） \n变动主要原因 \n2025年 \n2024年 \n金额 \n百分比 \n人民币\n百万元 \n人民币\n百万元 \n人民币百\n万元 \n(%) \n应收款项融资 \n5,340 \n2,613 \n2,727 \n104.4 票据结算规模增加。 \n应付票据 \n66,457 \n47,740 \n18,717 \n39.2 \n其他权益工具\n投资 \n7,156 \n416 \n6,740 1,620.2 战略投资宁德时代股权。 \n短期借款 \n29,455 \n48,231 \n(18,776) \n(38.9) 归还到期短期借款。 \n衍生金融资产 \n1,362 \n2,554 \n(1,192) \n(46.7) 套期保值业",
+            " \n \n \n \n \n \n7\n资产减值损失 \n(12,953) \n(6,702) \n(6,251) \n93.3 本期炼化装置、长期股权投资\n等减值增加。 \n资产处置收益 \n1,040 \n1,967 \n(927) \n(47.1) 本期加油站等资产处置收益同\n比减少。 \n营业外收入 \n6,697 \n2,226 \n4,471 \n200.9 合资公司项目参与收益增加。 \n \n合并现金流量表\n项目 \n截至12月31日止年度 \n增加/（减少） \n变动主要原因 \n2025年 \n2024年 \n金额 \n百分比 \n人民币 \n百万元 \n人民币 \n百万元 \n人民币 \n百万元 \n(%) \n收回投资收到的\n现金 \n91 \n475 \n(384) \n(80.8) 收回联合营企业投资\n减少。 \n处置固定资产、\n无形资产和其他\n长期资产收回的\n现金净额 \n1,241 \n1,864 \n(623) \n(33.4) \n上年同期收到湖南石\n化资产处置收益款，\n本期无此事项。 \n吸收投资收到的\n现金 \n7,702 \n15,458 \n(7,756) \n(50.2) \n上年同期收到定向增\n发股票募集资金，本\n期无此事项。 \n取得借款收到"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "中国石化2025年度报告"
+        },
+        "ESG": {
+          "pages_read": 95,
+          "text_pages": 95,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "本报告是中国石油化工股份有限公司（以下简称“中国石\n化”“公司”或“我们”）发布的第二十份可持续发展报告。\n报告阐述了公司可持续发展理念和政策以及2025 年在环\n境保护、社会责任、公司治理等方面作出的努力，回应利\n益相关方的期望与关切。\n报告信息说明 \n本报告时间跨度为2025 年1 月1 日至2025 年12 月31 日，\n为保持信息的连续性，对部分内容进行了回溯和延展。所\n涉及信息来源于公司内部数据以及公开资料。除特别说明\n外，本报告均以人民币为金额单位。\n除非本报告另有所指，有关数据涵盖中国石化和下属全资\n及控股子公司的数据。\n公司董事会已于2026 年3 月20 日审议批准本报告。报\n告以中、英文版本发布，当两种语言文本有歧义或冲突时，\n请以中文版为准。报告电子版下载地址为：\nhttp://www.sinopec.com/listco/000/000/070/70536.shtml\n报告标准 \n本报告遵循上海证券交易所发布的《上海证券交易所上市\n公司自律监管指引第14 号——可持续发展报告（试行）》\n和香港联合交易所有限公司（以下简称“香港联交所”）\n《环境、社会及管治报告守",
+            "013 SINOPEC - 中国石油化工股份有限公司 - 2025 年可持续发展报告\n中国石油化工股份有限公司 - 2025 年可持续发展报告 - SINOPEC 014\n公司治理结构\n公司治理制度\n公司坚持“两个一以贯之”，持续探索完善现代企业制度，致力于建立权责法定、权责透明、\n协调运转、有效制衡的治理结构，健全系统完备、科学规范、运行高效的制度体系，实现\n股东会、董事会及其专门委员会、管理层各治理主体权责清晰、协同配合、履职尽责。\n公司根据法律法规和上市地监管规则，制定了《公司章程》等18 项治理制度，为公司规\n范运作提供制度保障。报告期内，公司衔接最新监管要求并结合实际经营情况，全面修订\n了《公司章程》等现行公司治理制度。修订完成后，公司不再设置监事会，其职权由审计\n委员会按规定承接，《中国石化监事会议事规则》相应废止。\n《中国石油化工股份有限公司章程》 \n《中国石化股东会议事规则》    |    《中国石化董事会议事规则》  \n《中国石化董事会战略委员会工作规则》\n《中国石化董事会审计委员会工作规则》    |    《中国石化董事会提名委员会工作规则》\n《中国石化董事会薪"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "中国石化2025年可持续发展报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:33.531542+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-0FDEAA7BBF5245BD",
+        "status": "completed",
+        "elapsed_seconds": 23.47
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-600028-2025-017c9e4fba1de956",
+        "company": "中国石化",
+        "company_id": "600028",
+        "period": "2025",
+        "status": "completed",
+        "total": 58,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 8,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 0,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 23.47,
+        "checks": 2,
+        "financial_edges": 0,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 2
+        },
+        "occurrences": 315,
+        "run_id": "CONN-0FDEAA7BBF5245BD",
+        "raw_file": "CONNPAIR-600028-2025-017c9e4fba1de956-calculation.json",
+        "raw_sha256": "360b43a8d793a14a15b8ebac02aafa239b52a73eb2aabe331444502736ba3e71",
+        "industry_context": {
+          "industry": "化工",
+          "evidence_id": "D-600028-2025-AR-4b425d76e97f8c15-4-IND-1",
+          "quote": "公司简介\nH 2000 10 18 A 2001 8 8\n中国石化 股于 年 月 日在中国香港联合交易所上市； 股于 年 月 日在上海证券\n交易所上市。中国石化是中国最大的一体化能源化工公司之一，主要从事石油与天然气勘探",
+          "search_priorities": [
+            "环保投入",
+            "在建工程",
+            "安全与环保费用"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "能源化工",
+      "industry_evidence": {
+        "industry": "化工",
+        "evidence_id": "D-600028-2025-AR-4b425d76e97f8c15-4-IND-1",
+        "quote": "公司简介\nH 2000 10 18 A 2001 8 8\n中国石化 股于 年 月 日在中国香港联合交易所上市； 股于 年 月 日在上海证券\n交易所上市。中国石化是中国最大的一体化能源化工公司之一，主要从事石油与天然气勘探",
+        "search_priorities": [
+          "环保投入",
+          "在建工程",
+          "安全与环保费用"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-600031-2025-c03602438615c986",
+      "company_id": "600031",
+      "company": "三一重工",
+      "period": "2025",
+      "industry": "机械",
+      "documents": [
+        {
+          "document_id": "D-600031-2025-AR-d3f470600ec7d03f",
+          "case_id": "CONNPAIR-600031-2025-c03602438615c986",
+          "company_id": "600031",
+          "company": "三一重工",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "三一重工股份有限公司2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225061378.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-31",
+          "retrieved_at": "2026-10-23T10:23:34.305782+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 250,
+          "file_sha256": "d3f470600ec7d03ff9eb6257a74d1a07486406e02beb55b1f2bab5aaabb173e5",
+          "available": true
+        },
+        {
+          "document_id": "D-600031-2025-ESG-cf3f2c539cfb757e",
+          "case_id": "CONNPAIR-600031-2025-c03602438615c986",
+          "company_id": "600031",
+          "company": "三一重工",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "三一重工股份有限公司2025年可持续发展（ESG）报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257277.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-30",
+          "retrieved_at": "2026-10-23T10:23:35.372973+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 62,
+          "file_sha256": "cf3f2c539cfb757e9ddc7e12eb4b60a6acabf928ca1b987cd3184fefe300673f",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 250,
+          "text_pages": 250,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "三一重工股份有限公司2025 年年度报告\n2 / 250\n重要提示\n一、本公司董事会及董事、高级管理人员保证年度报告内容的真实性、准确性、完整性，不存在\n虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。\n二、公司全体董事出席董事会会议。\n三、安永华明会计师事务所（特殊普通合伙）为本公司出具了标准无保留意见的审计报告。\n四、公司负责人向文波、主管会计工作负责人刘华及会计机构负责人（会计主管人员）蔡盛林\n声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n董事会同意以公告实施2025年年度利润分配的股权登记日当天的总股本，在扣除回购专用账\n户中的回购股份数后为基数，向股权登记日在册全体股东每10股派发1.8元现金红利（含税）。本\n利润分配预案尚须提交股东会审议。\n截至报告期末，母公司存在未弥补亏损的相关情况及其对公司分红等事项的影响\n□适用√不适用\n六、前瞻性陈述的风险声明\n√适用□不适用\n年度报告中所涉及的未来计划、发展战略等前瞻性描述不构成公司对投资者的实质承诺，敬\n请投资者注意投资风险。\n七、是否存在被控股股东及",
+            "三一重工股份有限公司2025 年年度报告\n5 / 250\n第一节\n释义\n一、\n释义\n在本报告书中，除非文义另有所指，下列词语具有如下含义：\n常用词语释义\n三一重工/本公司/公司\n指\n三一重工股份有限公司\n三一集团\n指\n三一集团有限公司\n昆山重机\n指\n三一重机有限公司\n三一汽车起重机\n指\n三一汽车起重机械有限公司\n三一汽车制造\n指\n三一汽车制造有限公司\n三一专汽\n指\n三一专用汽车有限责任公司\n娄底中兴液压件\n指\n娄底市中兴液压件有限公司\n三一国际发展\n指\n三一国际发展有限公司\n普茨迈斯特\n指\nPutzmeister Holding GmbH\n三一汽金\n指\n三一汽车金融有限公司\n三一融资租赁\n指\n三一融资租赁有限公司\n三一智造\n指\n北京三一智造科技有限公司\n中国证监会/证监会\n指\n中国证券监督管理委员会\n上交所\n指\n上海证券交易所\n中登公司上海分公司\n指\n中国证券登记结算有限责任公司上海分公司\n香港联交所\n指\n香港联合交易所有限公司\n报告期\n指\n2025 年1 月1 日至2025 年12 月31 日\n第二节\n公司简介和主要财务指标\n一、公司信息\n公司的中文名称\n三一重工股份有限公司\n公司的",
+            "三一重工股份有限公司2025 年年度报告\n7 / 250\n(二) 主要财务指标\n主要财务指标\n2025年\n2024年\n本期比上年\n同期增减\n(%)\n2023年\n调整后\n调整前\n基本每股收益（元／股）\n0.9834\n0.7038\n0.7061\n39.73\n0.5347\n稀释每股收益（元／股）\n0.9834\n0.7035\n0.7058\n39.79\n0.5347\n扣除非经常性损益后的基本每\n股收益（元／股）\n0.9616\n0.6297\n0.6297\n52.7\n0.5183\n加权平均净资产收益率（%）\n11.18\n8.52\n8.54\n增加2.66个\n百分点\n6.85\n扣除非经常性损益后的加权平\n均净资产收益率（%）\n10.93\n7.62\n7.62\n增加3.31个\n百分点\n6.64\n报告期末公司前三年主要会计数据和财务指标的说明\n□适用√不适用\n八、境内外会计准则下会计数据差异\n(一) 同时按照国际会计准则与按中国会计准则披露的财务报告中净利润和归属于上市公司股东\n的净资产差异情况\n□适用√不适用\n(二) 同时按照境外会计准则与按中国会计准则披露的财务报告中净利润和归属于上市公司股东\n的净资产差"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "三一重工股份有限公司2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 62,
+          "text_pages": 61,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "01\n02\n目录\nCONTENTS\n定量绩效表\n上交所指引索引\n联交所指引索引\nGRI 索引\n公司治理\n风险管控\n商业道德\n创新发展\n卓越品质 \n可持续供应链 \n32\n33\n35\n44\n47\n50\n关于本报告\n董事会声明\n董事长致辞\n关于三一重工\n双重重要性判定\n可持续发展管理\n专题\n\u0001坚持“三化”引领，探索工程机械装备\u0001\n制造业发展新路径\n02\n04\n06\n08\n14\n18\n24\n106\n111\n112\n115\n合规筑基\n一流治理\n科技创新\n一流产品\n03\n04\n05\n应对气候变化\n环境管理\n生态保护\n绿色发展\n合规雇佣\n人才发展\n员工福利\n健康与安全 \n慈善公益\n乡村振兴\n社会救援\n56\n66\n68\n71\n80\n83\n87\n90\n98\n100\n102\n以人为本\n一流人才\n回馈社会\n一流担当\n“碳”索新径\n   一流实践\n",
+            "关于本报告\n三一重工股份有限公司\n2025 年可持续发展报告\n编制依据\n本报告根据上海证券交易所的《上海证券交易所上市公司自律监管指引第14 号——可持续发展报告（试行）》《上海证券\n交易所上市公司自律监管指南第4 号——可持续发展报告编制》及香港联合交易所上市规则附录C2《环境、社会及管治报\n告守则》（以下简称“ESG 报告守则”）《国际财务报告准则可持续披露准则第2 号——气候相关披露》编制 ，同时参考\n全球报告倡议组织GRI《可持续发展报告指南》(GRI-standards) 、中国社会科学院《中国企业社会责任报告编制指南》等\n国内外权威标准。\n称谓说明\n为便于表述和方便阅读，三一重工股份有限公司在报告中的表述分别使用“三一重工”“公司”和“我们”。\n报告获取\n本报告可在上海证券交易所网站(www.sse.com.cn）、香港联合交易所网站（https://www.hkexnews.hk/index_c.htm）\n及公司网站（www.sany.com.cn）下载浏览。\n关于本报告\n本报告系三一重工股份有限公司发布的2025 年度可持续发展报告（以下简称“本报告”）。本报告是三一重",
+            "双重重要性判定\n三一重工股份有限公司\n2025 年可持续发展报告\n财务重要性评估\n双重重要性判定结果\n重大性议题矩阵\n财务重要性评估旨在系统分析可持续议题如何通过公司具体运营转化为实际的财务影响。本评估聚焦于各项议题所直接关\n联的核心业务环节，包括原材料采购、研发、施工、生产制造、物流仓储、后市场服务及下游客户互动等全流程节点，分\n析其在企业日常与整体运营中可能触发的具体财务表现。\n公司的财务重要性评估具体涵盖由风险管理、效率提升、创新与关系维护所带来的各类财务影响，例如潜在的罚款赔偿、\n生产中断损失、质量成本、紧急采购溢价等风险支出，以及通过原材料与能耗节约、绿色产品销售收入、税收优惠、客户\n份额提升及融资成本优化等所实现的效益。同时，我们也关注为保障运营所进行的必要投入，如安全整改、技术研发及员\n工培训等相关成本。\n通过将具体议题、业务环节与清晰的财务影响路径（涉及收入、成本、资产及负债）紧密关联，我们能够精准识别影响公\n司价值的关键财务驱动因素，从而为战略资源配置、运营风险管控与长期价值提升提供实质性决策依据。\n基于上述双重重要性评估，公司最终确定了本报告期内需要优先关注、管理与"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "三一重工股份有限公司2025年可持续发展（ESG）报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:35.404114+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-DD20E4ACC7AC4EEE",
+        "status": "completed",
+        "elapsed_seconds": 20.82
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-600031-2025-c03602438615c986",
+        "company": "三一重工",
+        "company_id": "600031",
+        "period": "2025",
+        "status": "completed",
+        "total": 70,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 8,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 12,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 20.82,
+        "checks": 2,
+        "financial_edges": 6,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 2
+        },
+        "occurrences": 459,
+        "run_id": "CONN-DD20E4ACC7AC4EEE",
+        "raw_file": "CONNPAIR-600031-2025-c03602438615c986-calculation.json",
+        "raw_sha256": "5e648409fd09c6007181921ff675d1109a45c0d5ea890077f279275ddce2f681",
+        "industry_context": {
+          "industry": "机械",
+          "evidence_id": "D-600031-2025-AR-d3f470600ec7d03f-9-IND-3",
+          "quote": "第三节 管理层讨论与分析\n一、报告期内公司从事的业务情况\n1、公司的主要业务\n公司主要从事工程机械的研发、制造、销售和服务。公司产品包括混凝土机械、挖掘机械、",
+          "search_priorities": [
+            "研发费用",
+            "在建工程",
+            "节能改造"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "机械制造",
+      "industry_evidence": {
+        "industry": "机械",
+        "evidence_id": "D-600031-2025-AR-d3f470600ec7d03f-9-IND-3",
+        "quote": "第三节 管理层讨论与分析\n一、报告期内公司从事的业务情况\n1、公司的主要业务\n公司主要从事工程机械的研发、制造、销售和服务。公司产品包括混凝土机械、挖掘机械、",
+        "search_priorities": [
+          "研发费用",
+          "在建工程",
+          "节能改造"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-600036-2025-162fe323ef107f66",
+      "company_id": "600036",
+      "company": "招商银行",
+      "period": "2025",
+      "industry": "银行",
+      "documents": [
+        {
+          "document_id": "D-600036-2025-AR-abe612a273468072",
+          "case_id": "CONNPAIR-600036-2025-162fe323ef107f66",
+          "company_id": "600036",
+          "company": "招商银行",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "招商银行股份有限公司2025年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047590.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-28",
+          "retrieved_at": "2026-10-23T10:23:36.888005+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 350,
+          "file_sha256": "abe612a273468072b176dd51ea460c1e1596f8ca729cbc6db3fa28ba9a57ea79",
+          "available": true
+        },
+        {
+          "document_id": "D-600036-2025-ESG-ac8688498f6ae310",
+          "case_id": "CONNPAIR-600036-2025-162fe323ef107f66",
+          "company_id": "600036",
+          "company": "招商银行",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "招商银行股份有限公司2025年度可持续发展报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225046968.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-28",
+          "retrieved_at": "2026-10-23T10:23:37.714674+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 188,
+          "file_sha256": "ac8688498f6ae310055ecacf9201b95db133e7cd5e2cb1a00b5f0709a3db273f",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 350,
+          "text_pages": 342,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "招商银行股份有限公司\n2025年度报告（A股）\n2\n释义\n释义 / 重大风险提示 / 备查文件目录\n重大风险提示\n本公司、本行、招行、招商银行：\n招商银行股份有限公司\n本集团：\n招商银行及其子公司\n中国证监会：\n中国证券监督管理委员会\n香港联交所：\n香港联合交易所有限公司\n香港上市规则：\n香港联交所证券上市规则\n招商永隆银行：\n招商永隆银行有限公司\n招商永隆集团：\n招商永隆银行及其子公司\n招银金租：\n招银金融租赁有限公司\n招银国际：\n招银国际金融控股有限公司\n招银理财：\n招银理财有限责任公司\n招商基金：\n招商基金管理有限公司\n招商信诺资管：\n招商信诺资产管理有限公司\n招银欧洲：\n招商银行（欧洲）有限公司\n招银投资：\n招银金融资产投资有限公司\n招商信诺：\n招商信诺人寿保险有限公司\n招联消金：\n招联消费金融股份有限公司\n招银云创：\n招银云创信息技术有限公司\n本公司间接持有其100%股权\n招银网络科技：\n招银网络科技（深圳）有限公司\n本公司间接持有其100%股权\n安永华明会计师事务所：\n安永华明会计师事务所（特殊普通合伙）\n公司章程：\n招商银行股份有限公司章程\n企业管治守则：\n香港上市规则附",
+            "招商银行股份有限公司\n2025年度报告（A股）\n3\n重要提示\n重要提示\n1. \n本公司董事会、董事和高级管理人员保证本报告内容的真实、准确、完整，不存在虚假记载、误导性陈述或重大\n遗漏，并承担个别和连带的法律责任。\n2. \n本公司于2026年3月27日召开董事会会议，审议通过了本报告。本公司14名董事出席了会议，邓仁杰非执行董\n事因公务未出席，委托江朝阳非执行董事代为出席会议。\n3. \n本公司审计师安永华明会计师事务所和安永会计师事务所已分别对本公司按照中国会计准则和国际财务报告会计\n准则编制的2025年度财务报告进行了审计，并分别出具了标准无保留意见的审计报告。\n4. \n本报告除特别说明外，货币币种为人民币。\n5. \n本公司董事长缪建民，行长兼首席执行官王良，副行长、财务负责人和董事会秘书彭家文及会计机构负责人孙智\n华保证本报告中财务报告的真实、准确、完整。\n6. \n本公司董事会建议向普通股股东派发2025年度现金股息，全年每股现金分红2.016元（含税），扣除已派发的\n2025年度中期现金股息后，本次每股现金分红1.003元（含税）。2025年度，本公司不实施资本公积金转增股\n本。",
+            "招商银行股份有限公司\n2025年度报告（A股）\n7\n行长致辞\n行长致辞\n2025年是极不平凡的一年。面对国际国内复杂经营环境，全行认真贯彻落实国家宏观经济金融政策、金融监管部门工\n作要求以及董事会确立的目标任务，纵深推进价值银行战略，加快国际化、综合化、差异化、数智化转型，着力提升软\n实力、硬实力，高质量发展呈现崭新局面。\n坚持高质量发展，整体经营稳中有进、进中向好。我们坚持“质量第一、效益优先、规模适度、结构合理” 的经营理\n念，不断巩固堡垒式资产负债表。业务规模站上新台阶，期末总资产突破13万亿元、客户存款总额近10万亿元；资产\n质量保持良好，期末不良贷款率0.94%，拨备覆盖率391.79%，风险抵补能力强健；经营效益稳中向好，报告期实现\n营业收入3,375.32亿元，归属于本行股东的净利润1,501.81亿元，均实现同比正增长；业务结构均衡合理，非息收入\n占比36.13%，零售金融业务对营收和利润的贡献占比保持50%以上；资本实力不断增强，期末核心一级资本充足率达\n14.16%，总资本充足率18.24%。\n践行价值银行战略，与各利益相关方同生共荣。我们统筹兼顾各相关方利益，为客"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "招商银行股份有限公司2025年度报告"
+        },
+        "ESG": {
+          "pages_read": 188,
+          "text_pages": 188,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "招商银行股份有限公司2025 年度可持续发展报告\n04\n报告编制说明\n董事长致辞\n行长致辞\n2025，我们的可持续发展足迹\n关于招商银行\n可持续发展管理\n报告编制说明\n自2007 年起，招商银行每年定期发布社会责任/ 可持续发展报告，重点披露公司在ESG 领域的可持续发展相关信息。本报告是本公司发布的第20 份社会责任/ 可持续发展报告。\n报告组织范围\n与本公司年报合并财务报表范围保持\n一致，涵盖本公司，招商永隆银行、\n招银金租、招银国际、招银理财、招\n商基金、招商信诺资管、招银欧洲、\n招银投资等子公司。招商信诺、招联\n消金等合营公司未纳入本公司合并财\n务报表范围，其相关信息在本报告中\n根据可获得性和重要性原则予以适当\n披露。\n报告时间范围\n2025 年1 月1 日至2025 年12 月\n31 日。为确保报告连贯性，部分内容\n超出该时间范围。\n报告范围\n作为上交所主板上市企业（股份代号：600036）和香港联交所主板上市企业（股份代号：03968），报\n告参考上交所《上海证券交易所上市公司自律监管指引第14 号——可持续发展报告（试行）》《上海证券\n交易所上市公司自律监管指南第4 号—",
+            "07\n招商银行股份有限公司2025 年度可持续发展报告\n报告编制说明\n董事长致辞\n行长致辞\n2025，我们的可持续发展足迹\n关于招商银行\n可持续发展管理\n2025，我们的可持续发展足迹\n经济\n1\n环境\n营业收入\n亿元\n3,391.23\n3,374.88\n3,375.32\n利润总额\n亿元\n1,766.18\n1,786.52\n1,789.93\n净利润\n亿元\n1,480.06\n1,495.59\n1,511.26\n不良贷款率\n%\n0.95\n0.95\n0.94\n总资产/ 亿元\n2023\n2024\n2025\n2023\n2024\n2025\n110,284.83\n121,520.36\n130,705.23\n2023\n2024\n2025\n自有车辆汽油消耗量\n万升\n146.28\n145.03\n95.19\n纸张消耗量\n吨\n1,521.08\n1,448.07\n1,341.31\n废弃物总量\n吨\n30,729.00\n30,164.90\n28,784.26\n废弃物循环利用量\n吨\n/\n149.24\n302.93\n集团口径人均温室气体排放量 \n（范围一+ 范围二）\n吨二氧化碳当量/ 人\n3.66\n3.76\n3.56\n绿"
+          ],
+          "period_evidence": "时间范围2025年1月1日至2025年12月31日",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "招商银行股份有限公司2025年度可持续发展报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:37.745366+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-70FC81B3DBE54C7A",
+        "status": "completed",
+        "elapsed_seconds": 35.91
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-600036-2025-162fe323ef107f66",
+        "company": "招商银行",
+        "company_id": "600036",
+        "period": "2025",
+        "status": "completed",
+        "total": 70,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 0,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 35.91,
+        "checks": 6,
+        "financial_edges": 0,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 5,
+          "assumption_compatible": 1
+        },
+        "occurrences": 330,
+        "run_id": "CONN-70FC81B3DBE54C7A",
+        "raw_file": "CONNPAIR-600036-2025-162fe323ef107f66-calculation.json",
+        "raw_sha256": "e34d115a50d65fa30c6ed2ba6df0ebb7353fa53f69fc591d411aa83b6ac843d7",
+        "industry_context": {
+          "industry": "银行",
+          "evidence_id": "D-600036-2025-AR-abe612a273468072-63-IND-27",
+          "quote": "信有限公司分别持有招联消金 50% 的股权。招联消金的主要业务是发放个人消费贷款。\n截至报告期末，招联消金总资产 1,672.38 亿元，净资产 251.17 亿元；报告期内实现净利润 30.54 亿元。\n3.11 风险管理\n本公司紧紧围绕价值银行战略，坚守稳健审慎的风险文化，强化风险偏好管理和传导，持续巩固堡垒式风险合规",
+          "search_priorities": [
+            "绿色信贷",
+            "融资排放",
+            "口径与范围"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "金融",
+      "industry_evidence": {
+        "industry": "银行",
+        "evidence_id": "D-600036-2025-AR-abe612a273468072-63-IND-27",
+        "quote": "信有限公司分别持有招联消金 50% 的股权。招联消金的主要业务是发放个人消费贷款。\n截至报告期末，招联消金总资产 1,672.38 亿元，净资产 251.17 亿元；报告期内实现净利润 30.54 亿元。\n3.11 风险管理\n本公司紧紧围绕价值银行战略，坚守稳健审慎的风险文化，强化风险偏好管理和传导，持续巩固堡垒式风险合规",
+        "search_priorities": [
+          "绿色信贷",
+          "融资排放",
+          "口径与范围"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "EQ-001",
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-600585-2025-943b925a0fa253b3",
+      "company_id": "600585",
+      "company": "海螺水泥",
+      "period": "2025",
+      "industry": "水泥",
+      "documents": [
+        {
+          "document_id": "D-600585-2025-AR-a50f3e7f150954b2",
+          "case_id": "CONNPAIR-600585-2025-943b925a0fa253b3",
+          "company_id": "600585",
+          "company": "海螺水泥",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-25/1225028852.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-25",
+          "retrieved_at": "2026-10-23T10:23:38.901884+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 268,
+          "file_sha256": "a50f3e7f150954b2b45c44c50afdaa618c4184ebe4bb1e9b3a2b6475267c66d8",
+          "available": true
+        },
+        {
+          "document_id": "D-600585-2025-ESG-d7695cbb269cfe9a",
+          "case_id": "CONNPAIR-600585-2025-943b925a0fa253b3",
+          "company_id": "600585",
+          "company": "海螺水泥",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年度环境、社会及管治报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-25/1225028917.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-25",
+          "retrieved_at": "2026-10-23T10:23:40.502211+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 78,
+          "file_sha256": "d7695cbb269cfe9a696022331f258149c89b762f6590dcef8a0599782981f1c0",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 268,
+          "text_pages": 268,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "2\n重要提示\n一、本公司董事会及董事、高级管理人员保证本报告内容的真实、准确、完整，不存在\n虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。\n二、公司全体董事出席第十届董事会第三次会议。\n三、安永会计师事务所和安永华明会计师事务所（特殊普通合伙）为本公司出具了标准\n无保留意见的审计报告。\n四、公司负责人杨军先生、主管会计工作负责人虞水先生及会计机构负责人凡展先生声\n明：保证本报告中财务报告的真实、准确、完整。\n五、经本公司第十届董事会第三次会议审议的2025 年度末期利润分配预案为：每股派\n发现金红利0.61 元人民币（含税），不实施公积金转增股本。连同2025 年度中期每股\n已派发现金红利0.24 元人民币（含税），2025 年度全年每股派发现金红利0.85 元人民\n币（含税）。\n六、前瞻性陈述的风险声明：本报告涉及的公司2026 年度资本支出及销量目标等计划\n不构成对投资者的实质承诺，请广大投资者注意投资风险。\n七、公司不存在被控股股东及其关联方非经营性占用资金的情况。\n八、公司不存在违反规定决策程序对外提供担保的情况。\n九、公司不存在半数以上董事无法保证本报告内容的真",
+            "4\n一、释义\n本报告中，除非文义另有所指，下列词语具有如下意义：\n本公司/公司/海螺水泥：\n安徽海螺水泥股份有限公司\n本集团：\n本公司及其附属公司\n董事会：\n本公司董事会\n董事：\n本公司董事\n监事会：\n本公司监事会\n监事：\n本公司监事\n薪酬及提名委员会：\n董事会辖下薪酬及提名委员会\n审核委员会：\n董事会辖下审核委员会\nESG 管理委员会：\n董事会辖下环境、社会及管治（ESG）管理委员会\n海螺集团：\n安徽海螺集团有限责任公司\n海螺新材：\n海螺（安徽）节能环保新材料股份有限公司（前称芜\n湖海螺型材科技股份有限公司），系一家于深交所上\n市之公司，股份代码：000619\n海螺环保：\n中国海螺环保控股有限公司，系一家于联交所上市之\n公司，股份代码：0587\n海螺科创材料：\n安徽海螺科创材料有限责任公司（前称安徽海螺投资\n有限责任公司）\n海螺设计院：\n安徽海螺建材设计研究院有限责任公司\n海螺材料科技：\n安徽海螺材料科技股份有限公司（前称安徽海螺新材\n料科技有限公司），系一家于联交所上市之公司，股\n份代码：2560\n海螺材料科技集团：\n海螺材料科技、其分公司及附属公司\n海螺资本：\n安徽海螺资本管理有",
+            "7\n二、公司简介和主要财务指标\n（一）\n公司法定中文名称：\n安徽海螺水泥股份有限公司\n中文简称：\n海螺水泥\n公司法定英文名称：\nANHUI\nCONCH\nCEMENT\nCOMPANY\nLIMITED\n英文名称缩写：\nACC\n（二）\n公司法定代表人：\n杨\n军\n（三）\n董事会秘书（联席公司秘书）：虞\n水\n电话：\n0086 553 8398976\n传真：\n0086 553 8398931\n联席公司秘书（香港）：\n赵不渝\n电话：\n00852 21113220\n传真：\n00852 21113299\n证券事务代表：\n汪满波\n电话：\n0086 553 8398911\n传真：\n0086 553 8398931\n电子信箱：\ndms@chinaconch.com\n（四）\n公司注册地址：\n中国安徽省芜湖市文化路39号\n公司办公地址：\n中国安徽省芜湖市文化路39号\n邮政编码：\n241000\n公司电子信箱：\ndms@chinaconch.com\n公司网址：\nhttp://www.conch.cn\n香港联系地址：\n香港中环康乐广场1号怡和大厦40楼\n（五）\n披露本报告的媒体名称：\n《上海证券报》《证券时报》\n披露本"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年度报告"
+        },
+        "ESG": {
+          "pages_read": 78,
+          "text_pages": 78,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年度环境、社会及管治报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:40.539729+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-6AD208729CE44098",
+        "status": "completed",
+        "elapsed_seconds": 33.7
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-600585-2025-943b925a0fa253b3",
+        "company": "海螺水泥",
+        "company_id": "600585",
+        "period": "2025",
+        "status": "completed",
+        "total": 58,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 8,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 0,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 33.7,
+        "checks": 2,
+        "financial_edges": 0,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 2
+        },
+        "occurrences": 198,
+        "run_id": "CONN-6AD208729CE44098",
+        "raw_file": "CONNPAIR-600585-2025-943b925a0fa253b3-calculation.json",
+        "raw_sha256": "d52d017c27df1d1ff308f6a0f915a691f491c5597c26c25fb2a1db079046c0ba",
+        "industry_context": {
+          "industry": "水泥",
+          "evidence_id": "D-600585-2025-AR-a50f3e7f150954b2-12-IND-16",
+          "quote": "总体来看， 年水泥市场呈震荡下行趋势，行业继续处于去产能、优供给和结构性优\n化并行推进阶段。（数据来源：国家统计局、数字水泥网）\n（二）公司主要业务介绍\n报告期内，本集团的主营业务为水泥、商品熟料、骨料及混凝土的生产、销售。根据市",
+          "search_priorities": [
+            "环保投入",
+            "在建工程",
+            "余热发电"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "建材",
+      "industry_evidence": {
+        "industry": "水泥",
+        "evidence_id": "D-600585-2025-AR-a50f3e7f150954b2-12-IND-16",
+        "quote": "总体来看， 年水泥市场呈震荡下行趋势，行业继续处于去产能、优供给和结构性优\n化并行推进阶段。（数据来源：国家统计局、数字水泥网）\n（二）公司主要业务介绍\n报告期内，本集团的主营业务为水泥、商品熟料、骨料及混凝土的生产、销售。根据市",
+        "search_priorities": [
+          "环保投入",
+          "在建工程",
+          "余热发电"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-600690-2025-68f07089c71a0de0",
+      "company_id": "600690",
+      "company": "海尔智家",
+      "period": "2025",
+      "industry": "家电",
+      "documents": [
+        {
+          "document_id": "D-600690-2025-AR-14186f9f9b47f687",
+          "case_id": "CONNPAIR-600690-2025-68f07089c71a0de0",
+          "company_id": "600690",
+          "company": "海尔智家",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "海尔智家股份有限公司2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038336.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-27",
+          "retrieved_at": "2026-10-23T10:23:42.107478+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 245,
+          "file_sha256": "14186f9f9b47f687c527ba14825664f3b09e51759d581636cddcc248f26e3660",
+          "available": true
+        },
+        {
+          "document_id": "D-600690-2025-ESG-40d566cf551487b7",
+          "case_id": "CONNPAIR-600690-2025-68f07089c71a0de0",
+          "company_id": "600690",
+          "company": "海尔智家",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "海尔智家股份有限公司2025环境、社会及管治报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225215683.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-28",
+          "retrieved_at": "2026-10-23T10:23:43.290406+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 113,
+          "file_sha256": "40d566cf551487b72c5af2367aed0d36d7816bfdcc8b2f9f76ad9736729945d3",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 245,
+          "text_pages": 244,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "海尔智家股份有限公司2025 年年度报告\n2 / 245\n重要提示\n一、本公司董事会及董事、高级管理人员保证年度报告内容的真实性、准确性、完整性，不存在\n虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。\n二、公司全体董事出席董事会会议。\n三、和信会计师事务所（特殊普通合伙）为本公司出具了标准无保留意见的审计报告。\n四、公司负责人李华刚、主管会计工作负责人孙佳程及会计机构负责人（会计主管人员）应珂\n声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n经董事会审议的报告期利润分配预案为：以未来实施分配方案时股权登记日扣除回购专户上\n已回购股份后的总股本为基数，向全体股东按每10股派发现金股利人民币8.867元（含税），拟派\n发分红金额8,248,280,749.27元（含税），与2025年中期已派发红利金额合计占归属于母公司股东\n的净利润比例为55.0%。如在本报告披露之日起至实施权益分派股权登记日期间公司总股本发生\n变动的，公司拟维持分配总额不变，相应调整每股分配比例。\n截至报告期末，母公司存在未弥补亏损的相关情况及",
+            "海尔智家股份有限公司2025 年年度报告\n5 / 245\n海尔智家的使命是为全球消费者交付极致的产品体验，可信赖的全周期服务；海尔早就不仅\n仅是中国的海尔，也将走进全球每一个家庭。在海外市场，公司推动在市场运营、产品研发等全\n球化平台的能力建设，赋能本土化竞争力提升，让品牌扎根于每一个当地市场，以海尔真诚的五\n星级服务来保障用户体验。\n在美国市场，公司连续4 年位居行业TOP1。在行业下滑背景下，公司高端品牌收入增长7%；\n空气和水渠道收入同比大双位数增长，打开新的增长空间。\n在欧洲市场，我们推动产业直达终端的组织转型，总部团队与当地团队并肩作战、统一目标，\n实现对市场的快速反应。2025 年白电产品收入实现两位数增长、平均单价提升10%以上，盈利能\n力大幅改善。\n在南亚的印度市场，家电行业遇到影响空调产品销售的不利季节，但公司通过提升品牌形象、\n布局大滚筒等高端产品、加速连锁渠道渗透，收入增长15%，成为当地市场增长最快的品牌。在\n巴基斯坦市场，公司收入增长30%以上，冰箱、洗衣机、空调等产品份额超过40%。\n在东南亚市场，公司通过上市L+洗衣机、麦浪冰箱、AI VOICE 空调等中",
+            "海尔智家股份有限公司2025 年年度报告\n6 / 245\n价格战、同质化竞争的有效创新路径。也就是对外，向上走，给用户提供超值的体验；对内，做\n出爆款产品，提升全流程效率。\n2025 年，海尔智家的Leader 懒人洗三筒洗衣机被行业誉为现象级产品。作为全球首款三筒洗\n衣机，上市48 分钟零售破万台，16 小时零售额破亿，全年销量超30 万台，单型号稳居行业第一。\n不到半年，从一款单品拓展成一个家族，覆盖了懒人分区洗护的全场景。爆款的背后是来自于用\n户深度参与：从外观、结构、功能到体验，甚至是“懒人洗”这个名字都是用户的创意。他们不再\n是旁观者，而是共创者；产品上市后，他们又成了最好的推广者。\n同样的，麦浪系列冰箱作为行业首款暖色调、治愈系冰箱，总销量突破100 万台、8,000 元以\n上高端市场稳居第一。成功的原因如出一辙：麦浪的功能、颜色、命名，都源于与用户共创。用\n户说想要一个“看着舒服”的冰箱，我们做了暖色调；用户说想要提升冷饮区的情绪氛围，我们推\n出了行业首个的发光搁物架，能调出舞台、惊喜、微醺三种模式。\n2026 年，我们将加速产生爆款的机制的变革，建立在到产业、到链群、到"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "海尔智家股份有限公司2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 113,
+          "text_pages": 113,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "专题一：数智驱动—绿色能源解决方案\n关于本报告\n董事会声明\n管理层信函\n关于海尔智家\n001\n002\n003\n005\n智慧暖通，打造绿色建筑\n智慧冷链，引领行业转型\n017\n019\n篇章二：绿意无界—全生命周期绿色管理与气候韧性构建\n我们的目标\n全生命周期绿色管理\n应对气候变化\n037\n038\n051\n篇章五：智联生态—共建责任共同体\n打造可持续供应链\n建设美好社区\n071\n072\n附录\n附录一：联交所《ESG报告守则》指引\n附录二：上交所ESG指引议题索引表\n附录三：GRI内容索引\n附录四：SASB索引\n附录五：ESG奖项\n附录六：ESG评级\n附录七：中国家用电器行业协会第三方评价\n097\n104\n107\n110\n110\n111\n112\n目录\n/ C O N T E N T\n专题二：智启新程—AI赋能全价值链\n用户服务品质升级\n智能工厂品质护航\n人机协同赋能员工\n021\n022\n023\n篇章三：智享体验—科技助力美好生活\n打造卓越品质\n实现无忧服务\n创新驱动升级\n059\n064\n066\n篇章四：人单合一—点燃个体进化潜能\n我们的目标\n深化多元共融\n保障员工权益\n助力人才成长\n关爱员工",
+            "本报告旨在客观、公允地反映海尔智家股份有限公司及附属子公司（以下简\n称“海尔智家”\n“本公司”\n“公司”或“我们”）于2025 年在环境、社会及管治（以\n下简称“ESG”）方面之表现，有关企业管治内容建议与《海尔智家股份有\n限公司2025 年年度报告》 （以下简称“《2025 年报》”）所载列 《企业管治\n报告》（H 股）或《公司治理、环境和社会》（A 股）章节一并阅读。\n报告编制已遵循“重要性”“量化”“平衡”及“一致性”四大原则。\n我们遵循《ESG 报告守则》《上市公司自律监管指南第4 号——可持续发\n展报告编制》开展重要性评估工作，我们的工作程序包括：i）识别相关的\nESG 议题，ii）评估议题的重要性，iii）董事会审阅及确认评估流程和结果。\n我们依据重要性评估结果对ESG 事宜进行汇报，有关重要性评估工作的\n详情参见后文“双重重要性评估”小节。\n本报告遵循《ESG 报告守则》《上市公司自律监管指南第4 号——可持续\n发展报告编制》，参考适用的量化标准和惯例，采用量化的方法对适用的关\n键绩效指标进行计量并披露，并订立了包括实际数字和方向性声明的环境\n目标。有关本报告中关键绩效指",
+            "董事会是海尔智家ESG 事宜的最高负责及决策机构，高度重视公司的可\n持续发展。董事会下设专业委员会——环境、社会及管治委员会，协助董\n事会开展ESG 治理及信息披露工作，并通过例行会议、专项会议等形式，\n定期向董事会汇报重要的ESG 事项。\n公司定期对ESG 相关事宜（包括对公司业务的风险、重要性）进行评估、\n优次排序及管理，董事会负责审阅评估结果，厘定公司ESG 方面的重大\n风险，明确对公司发展具有重要意义的ESG 议题，知悉所采取的管理措\n施并提出建议。有关风险管理和重要性评估工作的详情参见《2025 年报》\n中《企业管治报告》  （H 股） 或 《公司治理、环境和社会》 （A 股）及本报\n告“双重重要性评估”小节。\n公司已制定有效的ESG 策略，不断探索并提升公司ESG 绩效表现。董\n事会定期审阅ESG 策略，以检讨和确保与公司业务发展战略相一致。有\n关ESG 策略详情可参见“ESG 愿景与策略”小节。由核心管理层组成\n的ESG 执行领导小组定期向环境、社会及管治委员会报告公司ESG 相\n关事宜，负责执行公司的ESG 政策并提供建议。\n公司已设立与业务运营相关联的多维度ESG 目"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "海尔智家股份有限公司2025环境、社会及管治报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:43.317442+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-14D825ABB0F24EA4",
+        "status": "completed",
+        "elapsed_seconds": 12.98
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-600690-2025-68f07089c71a0de0",
+        "company": "海尔智家",
+        "company_id": "600690",
+        "period": "2025",
+        "status": "completed",
+        "total": 68,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 8,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 10,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 12.98,
+        "checks": 2,
+        "financial_edges": 5,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 2
+        },
+        "occurrences": 262,
+        "run_id": "CONN-14D825ABB0F24EA4",
+        "raw_file": "CONNPAIR-600690-2025-68f07089c71a0de0-calculation.json",
+        "raw_sha256": "bb628dd7b80e28c92a91f94d57cf058e4c91ed238469beb61134601e54a8ed58",
+        "industry_context": {
+          "industry": "家电",
+          "evidence_id": "D-600690-2025-AR-14186f9f9b47f687-135-IND-20",
+          "quote": "本公司的注册地为山东省青岛市崂山区海尔科创生态园，总部办公地址为山东省青岛市崂山\n区海尔科创生态园。\n/\n本公司主要从事家电的研发、生产及销售工作，涉及冰箱 冷柜、厨电、空调、洗衣设备、水",
+          "search_priorities": [
+            "研发投入",
+            "产品能效",
+            "节能改造"
+          ],
+          "source": "company_report",
+          "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "家电制造",
+      "industry_evidence": {
+        "industry": "家电",
+        "evidence_id": "D-600690-2025-AR-14186f9f9b47f687-135-IND-20",
+        "quote": "本公司的注册地为山东省青岛市崂山区海尔科创生态园，总部办公地址为山东省青岛市崂山\n区海尔科创生态园。\n/\n本公司主要从事家电的研发、生产及销售工作，涉及冰箱 冷柜、厨电、空调、洗衣设备、水",
+        "search_priorities": [
+          "研发投入",
+          "产品能效",
+          "节能改造"
+        ],
+        "source": "company_report",
+        "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-600875-2025-0c61d05b6ebee186",
+      "company_id": "600875",
+      "company": "东方电气",
+      "period": "2025",
+      "industry": "电力",
+      "documents": [
+        {
+          "document_id": "D-600875-2025-AR-0108f13d8700ae8b",
+          "case_id": "CONNPAIR-600875-2025-0c61d05b6ebee186",
+          "company_id": "600875",
+          "company": "东方电气",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225068291.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-01",
+          "retrieved_at": "2026-10-23T10:23:44.774126+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 280,
+          "file_sha256": "0108f13d8700ae8bfe916fb3fecdfec7bc29a15187aba6c0d0394ff221407f65",
+          "available": true
+        },
+        {
+          "document_id": "D-600875-2025-ESG-bf8bf1fa33b2980a",
+          "case_id": "CONNPAIR-600875-2025-0c61d05b6ebee186",
+          "company_id": "600875",
+          "company": "东方电气",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年度环境、社会及管治报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225068243.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-01",
+          "retrieved_at": "2026-10-23T10:23:45.436872+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 58,
+          "file_sha256": "bf8bf1fa33b2980a6535c5fcbe3d09547ed785d19cc139e70760ffe17c0508cc",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 280,
+          "text_pages": 263,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "东方电气股份有限公司2025 年年度报告\n2\n重要提示\n一、本公司董事会及董事、高级管理人员保证年度报告内容的真实性、准确性、完整性，不存在\n虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。\n二、未出席董事情况\n未出席董事职务\n未出席董事姓名\n未出席董事的原因说明\n被委托人姓名\n董事\n张少峰\n因公出差\n孙国君\n三、立信会计师事务所（特殊普通合伙）为本公司出具了标准无保留意见的审计报告。\n四、公司负责人罗乾宜、主管会计工作负责人吕双及会计机构负责人（会计主管人员）郑兴义\n声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n2025 年度利润分配方案：经立信会计师事务所（特殊普通合伙）审计，公司2025 年度实现\n归属于母公司所有者的净利润3,831,301,222.13 元，母公司实现净利润1,431,920,010.96 元。\n公司拟以当前公司总股本3,458,360,326 股为基数，每10 股派发现金股利5.30 元（含税），共\n计派发现金股利1,832,930,972.78 元，占2025 年合并报表归母净利",
+            "东方电气股份有限公司2025 年年度报告\n4\n第一节\n释义\n一、\n释义\n在本报告书中，除非文义另有所指，下列词语具有如下含义：\n常用词语释义\n东方电气、公司、本公司\n指\n东方电气股份有限公司\n控股股东、东方电气集团\n指\n中国东方电气集团有限公司\n报告期\n指\n2025 年1 月1 日至2025 年12 月31 日\n上交所\n指\n上海证券交易所\n联交所\n指\n香港联合交易所有限公司\n元、万元、亿元\n指\n人民币元、人民币万元、人民币亿元\n第二节\n公司简介和主要财务指标\n一、公司信息\n公司的中文名称\n东方电气股份有限公司\n公司的中文简称\n东方电气\n公司的外文名称\nDongfang Electric Corporation Limited\n公司的外文名称缩写\nDEC.LTD\n公司的法定代表人\n罗乾宜\n二、联系人和联系方式\n董事会秘书\n证券事务代表\n姓名\n冯勇\n刘志\n联系地址\n四川省成都市高新西区西芯大道18号\n四川省成都市高新西区西芯大道18号\n电话\n028-87583666\n028-87583666\n传真\n028-87583551\n028-87583551\n电子信箱\ndsb@dongfang.co",
+            "东方电气股份有限公司2025 年年度报告\n7\n金流量净额\n季度数据与已披露定期报告数据差异说明\n□适用\n√不适用\n十、非经常性损益项目和金额\n□适用□不适用\n单位：元\n币种：人民币\n非经常性损益项目\n2025 年金额\n附注（如\n适用）\n2024 年金额\n2023 年金额\n非流动性资产处置损益，包括已计提资\n产减值准备的冲销部分\n9,644,198.93\n494,718,824.49\n2,675,897.90\n计入当期损益的政府补助，但与公司正\n常经营业务密切相关、符合国家政策规\n定、按照确定的标准享有、对公司损益\n产生持续影响的政府补助除外\n345,159,225.54\n272,660,619.10\n232,628,009.63\n除同公司正常经营业务相关的有效套\n期保值业务外，非金融企业持有金融资\n产和金融负债产生的公允价值变动损\n益以及处置金融资产和金融负债产生\n的损益\n86,561,275.42\n-222,815,806.67\n-11,677,255.48\n计入当期损益的对非金融企业收取的\n资金占用费\n委托他人投资或管理资产的损益\n-\n对外委托贷款取得的损益\n因不可抗力因素，如遭受"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 58,
+          "text_pages": 56,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "CONTENTS\n目  录\n卷首语\n关于我们\n关于本报告\nESG 管理\n责任荣誉\n未来展望\n附录\n01\n03\n07\n09\n16\n17\n深化绿色运营与生态保护\n创新资源利用与循环发展\n强化气候应对与风险管控\n深耕科技突破与数据防护\n构建幸福职场与健康屏障\n赋能伙伴协作与产业升级\n守护客户价值与品质安全\n践行民生担当与社会公益\n拓展海外履责与国际发展\n筑牢治理根基与长效机制\n夯实合规根基与风险防线\n严守商业道德与廉洁底线\n23\n29\n35\n47\n52\n64\n72\n76\n80\n87\n91\n94\nE\nS\nG\n环境篇：“碳”寻新路\n智造绿色新动能\n社会篇：“链”动未来 \n赋能发展新格局\n治理篇：“质”领卓越 \n筑基长青新航程\n责任专题：\n科技赋能“双碳”\n智造绿色能源新生态\n21\n45\n85\n97\n99\n“碳”寻新路 \n“链”动未来\n“质”领卓越\n智造绿色新动能\n赋能发展新格局\n筑基长青新航程\n",
+            "01\n02\n卷首语\n公司治理核心是董事会，我们持续提升董事会ESG治理能力，充分尊重和维护利益相关者的合法权\n益；构建多元与专业的董事结构，建立完善的治理架构和有效的管理流程，明晰权责边界，保障信\n息畅通，确保董事会高效履职、科学决策。我们连续十一年在上交所信息披露工作评价中获最高评\n级（A级），彰显了公司在规范运作、信息透明和投资者关系管理方面的卓越表现。深入推进业务\n监督、职能监督、执纪监督“三道防线”建设，促进监督体系与治理体系深度融合；将风险管理和\n合规管理要求嵌入业务流程，形成全面、全过程的风险防控机制，切实全面提升内控体系有效性，\n为企业行稳致远筑牢“奠基石”。\n我们坚持以科技创新作为第一动力，围绕服务国家战略，突破关键核心技术，全球首台商用超临界\n二氧化碳发电机组成功商运，全球首台700兆瓦超超临界循环流化床锅炉入选“2025年度央企十大\n超级工程”，26兆瓦级半直驱海上风电机组并网发电，全面参与“华龙一号”核电机组建设，在核\n岛与常规岛多项关键设备上实现自主化突破与批量供货，15兆瓦重型燃机实现满负荷运行并具备纯\n氢燃烧能力。连续入围中央企业科技创新优秀企业榜单。我们深",
+            "07\n08\n关于本报告\n电话：028-87583666\n传真：028-87583551\n官网：https://www.dec-ltd.cn/index.htm\n《东方电气股份有限公司环境、社会及管治报告（2025）》是东方电气股份有限公司自2017年以来发布的第10份环\n境、社会及管治报告。\n报告简介\n本报告按年度发布，上一份报告发布时间为2025年4月。\n发布周期\n报告披露范围涵盖东方电气股份有限公司及其下属企业。报告披露的时间范围为2025年1月1日至2025年12月31\n日。部分内容根据披露需要向前后年度适度延伸。\n所有数据均来自东方电气股份有限公司内部统计及对外文件。若非特别说明，财务数据均以人民币为计量单位。\n报告范围\n本报告编制遵循香港联交所《上市规则与指引》所刊《主板上市规则》之附录C2《环境、社会及管治报告守则》\n（简称《ESG守则》）、上交所《上海证券交易所上市公司自律监管指引第14号——可持续发展报告（试行）》（\n简称“《可持续发展报告指引》”）的相关规定，同时参考《中国企业可持续发展报告指南（CASS -ESG 6.0）》、\n全球报告倡议组织（Global Rep"
+          ],
+          "period_evidence": "时间范围为2025年1月1日至2025年12月31日",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年度环境、社会及管治报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:45.475769+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-FC69E8377BF44FAF",
+        "status": "completed",
+        "elapsed_seconds": 13.57
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-600875-2025-0c61d05b6ebee186",
+        "company": "东方电气",
+        "company_id": "600875",
+        "period": "2025",
+        "status": "completed",
+        "total": 78,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 8,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 13.57,
+        "checks": 8,
+        "financial_edges": 4,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 8
+        },
+        "occurrences": 293,
+        "run_id": "CONN-FC69E8377BF44FAF",
+        "raw_file": "CONNPAIR-600875-2025-0c61d05b6ebee186-calculation.json",
+        "raw_sha256": "45785becc47d88369a5119a0067b6e814b521bddf4701b08aa8d6e80950882f9",
+        "industry_context": {
+          "industry": "电力",
+          "evidence_id": "D-600875-2025-AR-0108f13d8700ae8b-12-IND-4",
+          "quote": "续夯实数字化、智能化发展底座。报告期内，公司获评四川省企业技术中心、中国电力规划设计\n协会“电力规划设计行业高质量发展先进企业”。\n4.市场开拓能力强\n公司构建起总部与所属企业协同推进的两级营销体系，形成以贴近用户为特征的国内外营销",
+          "search_priorities": [
+            "装机容量",
+            "建设投入",
+            "营业收入"
+          ],
+          "source": "company_report",
+          "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "机械制造",
+      "industry_evidence": {
+        "industry": "电力",
+        "evidence_id": "D-600875-2025-AR-0108f13d8700ae8b-12-IND-4",
+        "quote": "续夯实数字化、智能化发展底座。报告期内，公司获评四川省企业技术中心、中国电力规划设计\n协会“电力规划设计行业高质量发展先进企业”。\n4.市场开拓能力强\n公司构建起总部与所属企业协同推进的两级营销体系，形成以贴近用户为特征的国内外营销",
+        "search_priorities": [
+          "装机容量",
+          "建设投入",
+          "营业收入"
+        ],
+        "source": "company_report",
+        "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-600887-2025-01511ea0bffacbe0",
+      "company_id": "600887",
+      "company": "伊利股份",
+      "period": "2025",
+      "industry": "待核行业",
+      "documents": [
+        {
+          "document_id": "D-600887-2025-AR-d17b8c541c42f65d-01511ea0",
+          "case_id": "CONNPAIR-600887-2025-01511ea0bffacbe0",
+          "company_id": "600887",
+          "company": "伊利股份",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "内蒙古伊利实业集团股份有限公司2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225259562.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-30",
+          "retrieved_at": "2026-10-23T10:23:46.805547+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 259,
+          "file_sha256": "d17b8c541c42f65d092317093eb0cfbb5aeed4f44eafa2d2f6182041cdcdbaac",
+          "available": true
+        },
+        {
+          "document_id": "D-600887-2025-ESG-42fe56c1ab7944c1-01511ea0",
+          "case_id": "CONNPAIR-600887-2025-01511ea0bffacbe0",
+          "company_id": "600887",
+          "company": "伊利股份",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "内蒙古伊利实业集团股份有限公司2025年度可持续发展报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225259320.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-30",
+          "retrieved_at": "2026-10-23T10:23:47.964351+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 78,
+          "file_sha256": "42fe56c1ab7944c1b8cbb7f3b8b19544d8ad7c8c7557e535bd84c18bc2ade365",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 259,
+          "text_pages": 259,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "内蒙古伊利实业集团股份有限公司2025 年年度报告\n重要提示\n一、本公司董事会及董事、高级管理人员保证年度报告内容的真实性、准确性、完整性，不\n存在虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。\n二、未出席董事情况\n未出席董事职务\n未出席董事姓名\n未出席董事的原因说明\n被委托人姓名\n董事\n高振宇\n因事未能亲自出席\n吕\n刚\n三、信永中和会计师事务所（特殊普通合伙）为本公司出具了标准无保留意见的审计报告。\n四、公司负责人潘刚、主管会计工作负责人赵成霞及会计机构负责人（会计主管人员）邹赢\n声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n根据信永中和会计师事务所（特殊普通合伙）出具的“XYZH/2026XAAA4B0293”审计报告，\n公司母公司2025 年度实现净利润11,200,348,776.89 元，加年初未分配利润27,552,877,909.81\n元，派发2024 年度及2025 年度中期现金红利10,753,113,133.90 元，母公司报表期末未分配利\n润为28,000,113,552.80 元。公",
+            "内蒙古伊利实业集团股份有限公司2025 年年度报告\n九、是否存在半数以上董事无法保证公司所披露年度报告的真实性、准确性和完整性\n否\n十、重大风险提示\n公司已在本报告中描述可能存在的相关风险，敬请查阅本报告第三节“管理层讨论与分析”\n中“可能面对的风险”部分的内容。\n十一、其他\n□适用\n√不适用\n",
+            "内蒙古伊利实业集团股份有限公司2025 年年度报告\n1 / 255\n第一节\n释义\n一、释义\n在本报告书中，除非文义另有所指，下列词语具有如下含义：\n常用词语释义\n本公司、公司、伊利、伊利集团\n指\n内蒙古伊利实业集团股份有限公司\n股东会\n指\n内蒙古伊利实业集团股份有限公司股东会\n董事会\n指\n内蒙古伊利实业集团股份有限公司董事会\n公司章程\n指\n内蒙古伊利实业集团股份有限公司章程\n中国证监会\n指\n中国证券监督管理委员会\n上交所\n指\n上海证券交易所\n元、万元、亿元\n指\n人民币元、人民币万元、人民币亿元\n澳优乳业\n指\n澳优乳业股份有限公司\n"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "内蒙古伊利实业集团股份有限公司2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 78,
+          "text_pages": 75,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "本报告是内蒙古伊利实业集团股份有限公司（简称“伊利集团”“伊利”“集团”“公司”或“我们”）发布的年度可持\n续发展报告，是伊利坚持“让世界共享健康”，全面落实联合国2030 可持续发展目标（SDGs），为社会创造价值，深耕\n可持续发展过程中所做出努力、取得成果的集中展现。《可持续发展报告》《生物多样性保护报告》和《零碳未来报告》\n等专题报告共同构成伊利可持续发展信息披露体系，展示伊利对可持续发展管理的思考和行动，回应利益相关方的期望与\n关切，实现与各利益相关方有效沟通。本报告重点介绍报告期内伊利在环境、社会和可持续发展治理方面的最新进展。\n关于本报告\n报告信息说明\n本报告以伊利集团为主体，包括下属公司（详见公司年度报告）。本报告为年度报告，时间范围覆盖2025 年1 月1 日至\n2025 年12 月31 日，为增强报告可比性和前瞻性，部分内容覆盖时间段有所延伸。本报告所引用的数据和案例均来自公\n司统计报告或公开文件。\n本报告是伊利集团致力于推动可持续发展实践的客观反映。公司保证报告内容不存在任何虚假记载、误导性陈述或重大遗\n漏，并对其内容的真实性、准确性和完整性承担相应责任。\n上次报告",
+            "为适应公司战略与可持续发展需要，进一步增强公司核心竞争力与可持续发展能力，公司将ESG 要素纳入公司决策流程中，\n形成了“决策层- 组织层- 执行层”自上而下的三层可持续发展治理架构，搭建“董事会战略与可持续发展委员会- 可持续\n发展管理办公室- 可持续关键议题工作组”可持续发展组织体系，增强伊利可持续发展能力与管理水平。\n可持续发展工作机制\n伊利的可持续发展承诺与外部合作机构\n联合国\n全球契约组织成员\n世界自然基金会公益\n合作战略伙伴\n联合国COP28《为人类、自然和\n气候转变粮食体系：共同行动倡\n议（CTA）》签署方\n可持续棕榈油\n圆桌倡议组织成员\n联合国生物多样性公约\n《企业与生物多样性承诺书》\n签署方\n联合国全球契约组织\n“加速前进”倡议承诺企业\n全球供应链责任采购\nSedex 会员\n联合国《水行动议程》\n承诺企业\n国际乳品联合会（IDF）和联\n合国粮食及农业组织（FAO）\n发起的《乳业可持续发展巴\n黎宣言》签署方\n决策层\n委员会由八名董事组成（包括两名独立董事），由公司董事长兼总裁潘刚先生担任委员会主任\n委员。\n负责对长期发展战略规划进行研究并提出建议、指导可持续发展工作、审"
+          ],
+          "period_evidence": "时间范围覆盖2025年1月1日至2025年12月31日",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "内蒙古伊利实业集团股份有限公司2025年度可持续发展报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:47.988581+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-9BDE976D4DFD487A",
+        "status": "completed",
+        "elapsed_seconds": 20.74
+      },
+      "runnable_rules": [
+        "OCC-001"
+      ],
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-600887-2025-01511ea0bffacbe0",
+        "company": "伊利股份",
+        "company_id": "600887",
+        "period": "2025",
+        "status": "completed",
+        "total": 80,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 10,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 20.74,
+        "checks": 5,
+        "financial_edges": 5,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 5
+        },
+        "occurrences": 438,
+        "run_id": "CONN-9BDE976D4DFD487A",
+        "raw_file": "CONNPAIR-600887-2025-01511ea0bffacbe0-calculation.json",
+        "raw_sha256": "f53417b2664610a18cd5330e85bf3be8688af25142542fff9585496a4f13e645",
+        "industry_context": {
+          "industry": "未取得明确行业依据",
+          "search_priorities": [],
+          "source": "generic",
+          "note": "使用通用指标指导，不猜测行业分类或行业均值"
+        }
+      },
+      "industry_profile": "食品饮料",
+      "industry_evidence": {
+        "industry": "未取得明确行业依据",
+        "search_priorities": [],
+        "source": "generic",
+        "note": "使用通用指标指导，不猜测行业分类或行业均值"
+      },
+      "last_execution": {
+        "run_id": "CONN-4C05570DA77F415A",
+        "mode": "calculation_only",
+        "model_status": "not_requested",
+        "actual_provider_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "actual_opinion_count": 0,
+        "rules_detected": [
+          "OCC-001"
+        ],
+        "task_reference_sha256": "b99a38db97d2f839dfe14344455a3230257abda181b86c083969d05e260bf5ef"
+      }
+    },
+    {
+      "pair_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+      "company_id": "601012",
+      "company": "隆基绿能",
+      "period": "2025",
+      "industry": "光伏",
+      "documents": [
+        {
+          "document_id": "D-601012-2025-AR-10233740d54740b8",
+          "case_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+          "company_id": "601012",
+          "company": "隆基绿能",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251647.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-29",
+          "retrieved_at": "2026-10-23T10:23:49.262388+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 314,
+          "file_sha256": "10233740d54740b89dfd772eecac5f04d8fef639489acd3b18b1a35e81bce2c1",
+          "available": true
+        },
+        {
+          "document_id": "D-601012-2025-ESG-9786609033a1cf21",
+          "case_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+          "company_id": "601012",
+          "company": "隆基绿能",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "2025年度可持续发展报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251671.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-04-29",
+          "retrieved_at": "2026-10-23T10:23:51.096689+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 189,
+          "file_sha256": "9786609033a1cf2183e06838361be83c23ff4f628965cd44f3eb6208de4e88ff",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 314,
+          "text_pages": 312,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "隆基绿能科技股份有限公司2025 年年度报告\n6 / 314\n重要提示\n一、本公司董事会及董事、高级管理人员保证年度报告内容的真实性、准确性、完整性，不存在\n虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。\n二、公司全体董事出席董事会会议。\n三、毕马威华振会计师事务所（特殊普通合伙）为本公司出具了标准无保留意见的审计报告。\n四、公司负责人钟宝申、主管会计工作负责人刘学文及会计机构负责人（会计主管人员）刘学文\n声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n鉴于公司2025年度合并报表归属于母公司净利润为负，且光伏行业仍处于深度调整期，综合\n考虑宏观经济环境、行业发展现状以及公司日常经营、中长期战略规划的资金需求，为增强公司\n抗风险能力，保障公司持续、稳定、健康发展，更好地维护全体股东的长远利益，公司2025年度\n拟不进行利润分配，也不进行资本公积转增股本。\n以上利润分配预案尚需提交公司股东会批准。\n截至报告期末，母公司存在未弥补亏损的相关情况及其对公司分红等事项的影响\n□适用√不适用\n六、前瞻性陈述的风险声明\n",
+            "隆基绿能科技股份有限公司2025 年年度报告\n7 / 314\n十、重大风险提示\n公司已在本报告中详细描述可能存在的风险，敬请查阅第三节“六、（四）可能面对的风险”\n十一、\n其他\n□适用√不适用\n",
+            "隆基绿能科技股份有限公司2025 年年度报告\n9 / 314\n第一节\n释义\n一、\n释义\n在本报告书中，除非文义另有所指，下列词语具有如下含义：\n常用词语释义\n隆基绿能、隆基、公\n司、本公司、母公司\n指\n隆基绿能科技股份有限公司\n宁夏隆基\n指\n宁夏隆基硅材料有限公司，公司的全资子公司\n鄂尔多斯隆基\n指\n鄂尔多斯市隆基硅材料有限公司，公司的全资子公司\n隆基乐叶\n指\n隆基乐叶光伏科技有限公司，公司的全资子公司\n滁州隆基乐叶\n指\n滁州隆基乐叶光伏科技有限公司，隆基乐叶的全资子公司\n咸阳隆基乐叶\n指\n咸阳隆基乐叶光伏科技有限公司，隆基乐叶的全资子公司\n嘉兴隆基乐叶\n指\n嘉兴隆基乐叶光伏科技有限公司，隆基乐叶的全资子公司\n鄂尔多斯光伏科技\n指\n鄂尔多斯市隆基光伏科技有限公司，隆基乐叶的全资子公司\n西咸新区光伏科技\n指\n隆基绿能光伏科技（西咸新区）有限公司，隆基乐叶的全资子公司\n鹤山光伏科技\n指\n鹤山隆基光伏科技有限公司，隆基乐叶的全资子公司\n铜川光伏科技\n指\n铜川隆基光伏科技有限公司，隆基乐叶的全资子公司\n西安光伏电池\n指\n西安隆基光伏电池有限公司，隆基乐叶的全资子公司\n绿能投资\n指\n西安隆基绿能"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 189,
+          "text_pages": 188,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "实现可持续发展的方法\n公司治理\n商业道德\n合规与风险管理\n应急管理与业务连续性\n011\n013\n020\n024\n1\n可持续发展管理\n利益相关方管理\n重要性评估\n025\n027\n031\n以创新定义产业未来\n创新驱动与智能制造\n产品质量与安全\n038\n049\n2\n用绿色驱动能源脉搏\n应对气候变化与清洁技术开发\n能源管理\n水资源利用与废水管理\n污染物管理\n废弃物管理\n资源使用与循环经济\n生态系统与生物多样性保护\n059\n073\n078\n083\n085\n088\n091\n3\n构建人人皆有归属感的和谐社会 \n劳工权益\n职业健康与安全\n人力资本发展\n社会贡献\n097\n103\n108\n119\n4\n让信赖成为价值链韧性的基石\n可持续供应链\n数据安全与隐私保护\n客户关系管理\n124\n147\n151\n5\n前篇\n关于本报告\n致辞\n走进隆基\n「年度专题」隆基绿能乡村振兴实践\n001\n002\n004\n006\n附录\nESG绩效表及附注\n可持续相关认证\nSDGs目标与进展跟踪\n报告标准应用\n索引表\n报告称谓列表\n第三方鉴证报告\n公司政策文件\n155\n164\n165\n169\n171\n183\n184\n185\n阅读提示\n跳",
+            "关于本报告\n本报告是隆基绿能自2018年以来发\n布的第9份可持续发展/社会责任报\n告。本报告发布于2026年4月28\n日，由公司董事会审议并批准。报\n告中所有数据和信息的报告期间为\n2025年1月1日至2025年12月31\n日，与2025年年报一致。某些与\n报告主题相关的补充信息发生于本\n报告发布日期之前，也在报告中予\n以披露，以确保利益相关方对重大\n信息享有充分的知情权。2025年\n发生的期后事项在正文中均有明确\n标注。\n报告简介\n报告范围\n本报告组织范围为隆基在中华人民\n共和国境内运营的公司及控股公司\n与年报范围一致，当具体数据范围\n与报告范围不一致时，会在正文中\n注明。\n报告使用数据来源包括隆基内部相关统计、公开报告或报道，以及第三方调查或访谈、政府、部门、专业机构等公开数据。本报告经隆基绿能科\n技股份有限公司董事会审议通过。为保证报告的真实性和可靠性，本报告提交通标标准技术服务有限公司按照ISAE 3000审验标准有限保证等\n级对本报告所有指标开展独立第三方鉴证。\n数据说明与保证\n为便于表述和阅读，本报告中的“隆基绿能科技股份有限公司”以“隆基绿能”表示；“隆\n基绿能科技股份有",
+            "首席可持续发展官致辞\n在全球能源转型纵深推进、气候变化挑战愈发\n严峻的当下，隆基以“引领、创新、绿色、和\n谐、信赖”为五大核心支柱，打造LIGHT可\n持续发展理念，并响应联合国2030可持续发\n展目标，从治理引领、技术创新、低碳实践、\n社会责任、价值链互信五大维度落地践行，矢\n志实现“人人享有可负担的清洁能源”的目\n标。2025年，我们持续深化可持续发展与\nESG实践，积极践行企业社会责任，引领行\n业低碳转型，多项可持续发展目标稳步达成。\n“引领”是隆基实现可持续发展的治理根基。\n我们将可持续发展深度融入战略与运营全流\n程，构建权责清晰的治理架构，同时建立 “三\n道防线” 风险管理架构，并将应急管理与业务\n连续性管理纳入风险管理体系中。在董事会战\n略与可持续发展委员会引领下建立可持续治理\n体系，通过利益相关方差异化沟通与双重重要\n性议题评估，推动可持续发展真正转化为企业\n长期价值创造的动力。2025年，公司通过\nISO 37301合规管理体系认证及ISO 37001反\n贿赂管理体系认证。商业道德方面，商业道德\n培训100%覆盖，商业道德举报实现100%处\n理，且公司全年未发生重大信息披"
+          ],
+          "period_evidence": "报告期间为2025年1月1日至2025年12月31日",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "2025年度可持续发展报告"
+        }
+      },
+      "model_status": "three_agents_partial",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:51.122861+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-DB572499DF6645E5",
+        "status": "completed",
+        "elapsed_seconds": 27.96
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+        "company": "隆基绿能",
+        "company_id": "601012",
+        "period": "2025",
+        "status": "completed",
+        "total": 70,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 8,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 12,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 27.96,
+        "checks": 2,
+        "financial_edges": 6,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 2
+        },
+        "occurrences": 463,
+        "run_id": "CONN-DB572499DF6645E5",
+        "raw_file": "CONNPAIR-601012-2025-a03b1a282c408642-calculation.json",
+        "raw_sha256": "8cd050addfcf60fb31331b36c8647fc6f2a3ce8c6369d3e090dada66c4e3ddf1",
+        "industry_context": {
+          "industry": "光伏",
+          "evidence_id": "D-601012-2025-AR-10233740d54740b8-6-IND-8",
+          "quote": "声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n2025\n鉴于公司 年度合并报表归属于母公司净利润为负，且光伏行业仍处于深度调整期，综合",
+          "search_priorities": [
+            "节能改造",
+            "研发资本化",
+            "产能与能耗"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "新能源",
+      "industry_evidence": {
+        "industry": "光伏",
+        "evidence_id": "D-601012-2025-AR-10233740d54740b8-6-IND-8",
+        "quote": "声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n2025\n鉴于公司 年度合并报表归属于母公司净利润为负，且光伏行业仍处于深度调整期，综合",
+        "search_priorities": [
+          "节能改造",
+          "研发资本化",
+          "产能与能耗"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "last_execution": {
+        "run_id": "CONN-54685C235D0148CF",
+        "mode": "three_agents",
+        "model_status": "three_agents_partial",
+        "actual_provider_calls": 3,
+        "input_tokens": 157899,
+        "output_tokens": 18784,
+        "actual_opinion_count": 0,
+        "rules_detected": [
+          "INT-001",
+          "OCC-001"
+        ],
+        "task_reference_sha256": "7004b415c0a0352d9cbc37586332b2b58c9f388d928019894f96dc32fed42598"
+      },
+      "runnable_rules": [
+        "OCC-001"
+      ],
+      "last_model_attempt": {
+        "run_id": "CONN-54685C235D0148CF",
+        "mode": "three_agents",
+        "model_status": "three_agents_partial",
+        "actual_provider_calls": 3,
+        "input_tokens": 157899,
+        "output_tokens": 18784,
+        "actual_opinion_count": 0,
+        "rules_detected": [
+          "INT-001",
+          "OCC-001"
+        ],
+        "task_reference_sha256": "7004b415c0a0352d9cbc37586332b2b58c9f388d928019894f96dc32fed42598"
+      },
+      "last_model_run": {
+        "run_id": "CONN-54685C235D0148CF",
+        "mode": "three_agents",
+        "model_status": "three_agents_partial",
+        "actual_provider_calls": 3,
+        "input_tokens": 157899,
+        "output_tokens": 18784,
+        "actual_opinion_count": 0,
+        "rules_detected": [
+          "INT-001",
+          "OCC-001"
+        ],
+        "task_reference_sha256": "7004b415c0a0352d9cbc37586332b2b58c9f388d928019894f96dc32fed42598"
+      }
+    },
+    {
+      "pair_id": "CONNPAIR-601766-2025-8e4d22e448cf2e66",
+      "company_id": "601766",
+      "company": "中国中车",
+      "period": "2025",
+      "industry": "轨道交通",
+      "documents": [
+        {
+          "document_id": "D-601766-2025-AR-52254f29206ef598",
+          "case_id": "CONNPAIR-601766-2025-8e4d22e448cf2e66",
+          "company_id": "601766",
+          "company": "中国中车",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "中国中车2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225047457.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-28",
+          "retrieved_at": "2026-10-23T10:23:52.661573+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 232,
+          "file_sha256": "52254f29206ef598b0ab52a5f359cc87c2cf8e5a48ff87057015267bda99bf3d",
+          "available": true
+        },
+        {
+          "document_id": "D-601766-2025-ESG-423b46373903c4bb",
+          "case_id": "CONNPAIR-601766-2025-8e4d22e448cf2e66",
+          "company_id": "601766",
+          "company": "中国中车",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "中国中车2025年度可持续发展报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225048226.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-28",
+          "retrieved_at": "2026-10-23T10:23:53.432888+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 121,
+          "file_sha256": "423b46373903c4bbbd96907ed38de2a3ca1bc1eefeb187334ad2bfd4c6a93293",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 232,
+          "text_pages": 232,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "中国中车股份有限公司2025 年年度报告\n2 / 232\n重要提示\n一、本公司董事会及董事、高级管理人员保证年度报告内容的真实性、准确性、完整性，不存在\n虚假记载、误导性陈述或重大遗漏，并承担个别和连带的法律责任。\n二、本年度报告已经公司第四届董事会第八次会议审议通过，公司全体董事出席董事会会议。\n三、毕马威华振会计师事务所（特殊普通合伙）为本公司出具了标准无保留意见的审计报告。\n四、公司负责人孙永才、主管会计工作负责人曲孝利及会计机构负责人（会计主管人员）施建锋\n声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n2025年8月22日，公司召开第三届董事会第三十五次会议，审议通过了《关于中国中车股份有\n限公司2025年半年度利润分配方案的议案》，拟以实施权益分派股权登记日登记的总股本为基数\n，按每10股派发现金红利人民币1.10元（含税），合计派发现金红利人民币31.57亿元（含税）。\n2025年11月20日，2025年半年度利润分配方案实施完毕。\n2026 年3 月27 日，公司召开第四届董事会第八次会议，审议通过了《关于",
+            "中国中车股份有限公司2025 年年度报告\n3 / 232\n本报告中所涉及的未来计划、发展战略等前瞻性描述，不构成公司对投资者的实质承诺，敬\n请投资者注意投资风险。\n七、是否存在被控股股东及其他关联方非经营性占用资金情况\n否\n八、是否存在违反规定决策程序对外提供担保的情况\n否\n九、是否存在半数以上董事无法保证公司所披露年度报告的真实性、准确性和完整性\n否\n十、重大风险提示\n公司存在的风险因素主要有战略风险、市场风险、产品质量风险、汇率风险、境外经营风险，\n有关风险因素已在本报告中详细描述，敬请查阅“第四节管理层讨论与分析”关于公司未来发展\n的讨论与分析中可能面对的风险的内容。\n十一、其他\n□适用√不适用\n",
+            "中国中车股份有限公司2025 年年度报告\n5 / 232\n第一节\n释义\n一、\n释义\n在本报告书中，除非文义另有所指，下列词语具有如下含义：\n常用词语释义\n中国中车、中车、本公司、公\n司\n指\n中国中车股份有限公司\n中国南车\n指\n原中国南车股份有限公司\n中国北车\n指\n原中国北车股份有限公司\n南北车\n指\n中国南车与中国北车\n中车集团\n指\n中国中车集团有限公司\n南车集团\n指\n原中国南车集团公司\n北车集团\n指\n原中国北方机车车辆工业集团公司\n国资委\n指\n国务院国有资产监督管理委员会\n中国证监会\n指\n中国证券监督管理委员会\n财政部\n指\n中华人民共和国财政部\n上交所\n指\n上海证券交易所\n联交所\n指\n香港联合交易所有限公司\n国铁集团\n指\n中国国家铁路集团有限公司\n长江集团\n指\n中车长江运输设备集团有限公司\n株洲所\n指\n中车株洲电力机车研究所有限公司\n财务公司\n指\n中车财务有限公司\n四方股份公司\n指\n中车青岛四方机车车辆股份有限公司\n长客股份公司\n指\n中车长春轨道客车股份有限公司\n株机公司\n指\n中车株洲电力机车有限公司\n时代新材\n指\n株洲时代新材料科技股份有限公司\n时代电气\n指\n株洲中车时代电气股份有限"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "中国中车2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 121,
+          "text_pages": 120,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "目 录 \n1、前 言 ................................................................ 1 \n1.1 关于本报告 ....................................................... 1 \n1.2 董事长致辞 ....................................................... 4 \n1.3 走进中国中车 ..................................................... 7 \n1.4 荣誉与奖项 ....................................................... 8 \n2、可持续发展治理 ........................................................ 9 \n2.1 董事会可持续发展管理声明 ......................................... 9 \n2.2 可持续发展管理与战略",
+            " \n1 \n1、前 言 \n1.1 关于本报告 \n1.1.1 报告说明 \n《中国中车股份有限公司2025 年度可持续发展报告》（以下简称本报告）是中国\n中车股份有限公司（以下简称中国中车、中车、我们或公司）面向社会公众发布的可持\n续发展报告，本报告秉持重要性、量化、平衡、一致性的报告原则，向中国中车所有利\n益相关方披露公司可持续发展理念、政策及2025 年度在环境、社会、经济、公司治理\n等领域的具体实践和关键绩效表现，旨在回应利益相关方对公司可持续发展工作的关切\n和期望、与利益相关方就公司年度可持续发展工作进展进行全面的沟通。 \n1.1.2 时间范围 \n本报告为年度可持续发展报告，每年度随当期年度报告发布一次。除特殊说明外，\n报告时间范围覆盖2025 年1 月1 日至2025 年12 月31 日期间（以下简称2025 年度、\n本年度或报告期）。为增强报告的可比性、完整性及前瞻性，部分内容的覆盖时间往前\n后年度适度延伸。 \n1.1.3 报告范围 \n除特殊说明外，本报告所披露之信息的组织范围涵盖中国中车股份有限公司及其全\n资、控股子公司，与中国中车年度合并财务报表范围一致（具体参见《中国中车股",
+            " \n2 \n准（GRI Standards）》、联合国全球契约组织（UNGC）《联合国可持续发展目标企业行\n动指南》、明晟（MSCI）建筑机械、农用农业机械与重型卡车行业ESG 评价方法、中证\n指数有限公司ESG 评价方法等相关指引、指南或标准进行编制。 \n1.1.5 数据来源与可靠性保证 \n除特殊说明外，本报告所引用及披露之资料和内容均来源于公司统计数据、相关文\n档、内部沟通文件及经由公司统计并审核的可持续发展相关信息。报告中的部分数据摘\n自《中国中车股份有限公司2025 年年度报告》，其他数据来自公司内部系统或人工记\n录，统计数据已经公司审核确认。报告中涉及币种如无特别说明均指人民币元。 \n公司承诺本报告披露之信息和数据均已得到董事会确认，不存在任何虚假记载、误\n导性陈述，并对其内容的真实性、准确性和完整性负责。若本报告披露之数据或表述与\n年度报告存在不一致之处，均以年度报告为准。 \n为增强本报告前瞻性、充分展示公司所面临的潜在可持续发展相关风险与机遇，本\n报告包含部分前瞻性陈述。本报告所披露的前瞻性陈述，包括但不限于除历史事实陈述\n外，公司预期或期望未来可能发生或即将发生的事件的陈"
+          ],
+          "period_evidence": "时间范围覆盖2025年1月1日至2025年12月31日",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "中国中车2025年度可持续发展报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:53.472079+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-657E666C78F84076",
+        "status": "completed",
+        "elapsed_seconds": 46.5
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-601766-2025-8e4d22e448cf2e66",
+        "company": "中国中车",
+        "company_id": "601766",
+        "period": "2025",
+        "status": "completed",
+        "total": 78,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 8,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 46.5,
+        "checks": 12,
+        "financial_edges": 4,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {
+          "insufficient_basis": 11,
+          "assumption_compatible": 1
+        },
+        "occurrences": 480,
+        "run_id": "CONN-657E666C78F84076",
+        "raw_file": "CONNPAIR-601766-2025-8e4d22e448cf2e66-calculation.json",
+        "raw_sha256": "dd8c0030a34907d2a2cca9773d64608894797fdbc621ac17dcb12c0c37e09b54",
+        "industry_context": {
+          "industry": "轨道交通",
+          "evidence_id": "D-601766-2025-AR-52254f29206ef598-14-IND-5",
+          "quote": "确了“一核两商一流”战略定位，构建轨道交通装备和清洁能源装备“双赛道双集群”产业发展\n格局，形成“技术集中研究、产品联合开发、能力共建共享”的两级研发管理模式，建成“开放、\n协同、一体化、全球布局、自主可控”的科技创新体系，形成“两纵两横一贯通”的创新格局。\n报告期内公司新增重要非主营业务的说明",
+          "search_priorities": [
+            "研发投入",
+            "资本性支出",
+            "绿色产品"
+          ],
+          "source": "company_report",
+          "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "装备制造",
+      "industry_evidence": {
+        "industry": "轨道交通",
+        "evidence_id": "D-601766-2025-AR-52254f29206ef598-14-IND-5",
+        "quote": "确了“一核两商一流”战略定位，构建轨道交通装备和清洁能源装备“双赛道双集群”产业发展\n格局，形成“技术集中研究、产品联合开发、能力共建共享”的两级研发管理模式，建成“开放、\n协同、一体化、全球布局、自主可控”的科技创新体系，形成“两纵两横一贯通”的创新格局。\n报告期内公司新增重要非主营业务的说明",
+        "search_priorities": [
+          "研发投入",
+          "资本性支出",
+          "绿色产品"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      },
+      "runnable_rules": [
+        "EQ-001",
+        "OCC-001"
+      ]
+    },
+    {
+      "pair_id": "CONNPAIR-601899-2025-d3d3d5eeea3caf7b",
+      "company_id": "601899",
+      "company": "紫金矿业",
+      "period": "2025",
+      "industry": "有色金属",
+      "documents": [
+        {
+          "document_id": "D-601899-2025-AR-01819e1c7daad939",
+          "case_id": "CONNPAIR-601899-2025-d3d3d5eeea3caf7b",
+          "company_id": "601899",
+          "company": "紫金矿业",
+          "report_type": "AR",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "紫金矿业集团股份有限公司2025年年度报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-21/1225550242.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-21",
+          "retrieved_at": "2026-10-23T10:23:57.211165+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 352,
+          "file_sha256": "01819e1c7daad939d1779a8aa729f50f02151192e609cb28c2c405634a8f343d",
+          "available": true
+        },
+        {
+          "document_id": "D-601899-2025-ESG-8d04c1b786ece21b",
+          "case_id": "CONNPAIR-601899-2025-d3d3d5eeea3caf7b",
+          "company_id": "601899",
+          "company": "紫金矿业",
+          "report_type": "ESG",
+          "period": "2025",
+          "report_period": "2025",
+          "version": "紫金矿业集团股份有限公司2025年度可持续发展报告",
+          "version_role": "original",
+          "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-21/1225023653.PDF",
+          "source_kind": "official",
+          "disclosure_date": "2026-03-21",
+          "retrieved_at": "2026-10-23T10:23:59.709692+00:00",
+          "compilation_basis": "待指标核验阶段从原文核对",
+          "pages": 212,
+          "file_sha256": "8d04c1b786ece21bd7640dde13f4217b26ef2665303fee53368d7e86be4abe4c",
+          "available": true
+        }
+      ],
+      "download_status": "complete",
+      "validation_status": "verified",
+      "parse_status": "complete",
+      "inspection": {
+        "AR": {
+          "pages_read": 352,
+          "text_pages": 335,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "Annual Report 2025\n3\n战略报告\nStrategic Report\n可持续发展报告\nSustainability Report\n治理报告\nGovernance Report\n财务报告\nFinancial Report\n重要提示\n/     Important Notice\n本公司董事会及董事、高级管理人员保证年度报告内容的真实性、准确性、完整性，不存在虚假记载、误导性陈述或重大遗漏，\n并承担个别和连带的法律责任。\n公司全体董事出席董事会会议。\n德勤华永会计师事务所（特殊普通合伙）为本公司出具了标准无保留意见的审计报告。\n公司负责人邹来昌、主管会计工作负责人吴红辉、蔡雪琳及会计机构负责人（会计主管人员）向钊声明：保证年度报告中\n财务报告的真实、准确、完整。\n董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n每10 股派发现金红利3.8 元（含税），上述利润分配预案须提交公司2025 年年度股东会审议。\n前瞻性陈述的风险声明\n本报告涉及的未来计划、发展战略等前瞻性陈述，不构成公司对投资者的实质承诺，敬请投资者注意投资风险。\n是否存在被控股股东及其他关联方非经营性占",
+            "Annual Report 2025\n4\n战略报告\nStrategic Report\n可持续发展报告\nSustainability Report\n治理报告\nGovernance Report\n财务报告\nFinancial Report\n01\n02\n03\n04\n战略报告 \nStrategic Report\n可持续发展报告 \nSustainability Report\n治理报告\nGovernance Report\n财务报告 \nFinancial Report\n董事长致辞 \n报告摘要\n公司简介和主要财务指标 \n资源量和储量 \n主要运营产品 \n金\n铜\n锂\n锌（铅）\n白银、钼、钨、铁、钴、硫酸等\n新能源新材料\n管理层讨论与分析\n2026 年计划及展望 \n行业格局与趋势\n公司发展战略\n经营计划\n可能面对的风险\n07\n10\n14\n17\n25\n34\n55\n62\n65\n68\n83\n89\n94\n105\n113\n116\n118\n120\n122\n124\n125\n127\n129\n已审财务报表\n合并资产负债表\n合并利润表\n合并股东权益变动表\n合并现金流量表\n公司资产负债表\n公司利润表\n公司股东权益变动表\n公司现金",
+            "Annual Report 2025\n5\n战略报告\nStrategic Report\n可持续发展报告\nSustainability Report\n治理报告\nGovernance Report\n财务报告\nFinancial Report\n在本报告书中，除非文义另有所指，下列词语具有如下含义：\n紫金矿业、公司、集团\n紫金矿业集团股份有限公司\n闽西兴杭\n闽西兴杭国有资产投资经营有限公司\n紫金黄金国际\n紫金黄金国际有限公司\n藏格矿业\n藏格矿业股份有限公司\n龙净环保\n福建龙净环保股份有限公司\n大陆黄金\n大陆黄金有限公司哥伦比亚分公司\n罗斯贝尔\n罗斯贝尔金矿有限公司\n诺顿\n诺顿金田有限公司\n阿基姆\n紫金金岭有限公司\n奥同克\n奥同克有限责任公司\n奥罗拉\n圭亚那奥罗拉金矿有限公司\n泽拉夫尚\n中塔泽拉夫尚有限责任公司\n波格拉\n波格拉（泽西）有限公司\n瑞果多\n瑞果多黄金有限公司\n陇南紫金\n陇南紫金矿业有限公司\n山西紫金\n山西紫金矿业有限公司\n新疆紫金黄金\n新疆紫金黄金有限公司\n贵州紫金\n贵州紫金矿业股份有限公司\n洛阳坤宇\n洛阳坤宇矿业有限公司\n珲春紫金\n珲春紫金矿业有限公司\n招金矿业\n招金矿业股份有限公司"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "紫金矿业集团股份有限公司2025年年度报告"
+        },
+        "ESG": {
+          "pages_read": 212,
+          "text_pages": 211,
+          "identity_verified": true,
+          "report_type_verified": true,
+          "scope_evidence": [
+            "CONTENTS\n前篇\n董事长致辞\n2025主要可持续发展绩效\n关于紫金矿业\n可持续发展目标与进展\n紫金矿业可持续发展历程\n01\n02\n04\n08\n10\n利益相关方沟通\n重要性评估\n11\n13\n附录\n关于本报告\n可持续发展报告独立鉴证声明\n数据绩效一览表\n索引表\n企业简称对照表 \n165\n166\n169\n178\n192\nRGMPS年度实施报告\n读者意见反馈单\n193\n209\n管治\n01\n公司治理\n投资者关系与股东权益\nESG风险管理\n人权\n合规与商业道德\n申诉机制\n17\n26\n29\n34\n44\n50\n环境\n02\n环境管理体系\n气候变化\n水资源管理\n土地使用\n生物多样性保护\n废弃物管理与循环经济\n尾矿库管理\n社会\n03\n员工发展\n职业健康与安全\n社区\n负责任供应链\n产品责任\n信息安全\n科技创新\n112\n125\n137\n152\n159\n161\n163\n54\n59\n76\n83\n88\n98\n106\n",
+            "关于紫金矿业\n紫金矿业是一家在全球范围内从事铜、金、锂、锌、银、钼等金属矿产资\n源勘查和开发为主、A+H股整体上市的大型跨国矿业集团，拥有一批世\n界级铜、金、锌（铅）、锂等矿产资源项目。公司坚持以创新尤其是科技创\n新为核心竞争力，在地质勘查、湿法冶金、低品位难选冶资源综合回收\n利用及大规模工程化开发等方面具有丰富的实践经验。公司独创“矿石\n流五环归一”矿业工程管理模式，创建“低品位难处理黄金资源综合利\n用国家重点实验室”，形成全环节的自主技术和工程能力，构建矿业行\n业绿色可持续发展全球竞争力。公司坚持“开发矿业、造福社会”的共同\n发展理念，致力于“为人类美好生活提供低碳矿物原料”，加快构建“绿\n色高技术超一流国际矿业集团”战略总目标，全面推进绿色高质量生态\n矿山发展，努力让更多人因紫金矿业的存在而获益。\n主营业务\n成员身份\n经营业绩\n行业地位\n2,251\n2,703\n2,934\n2021\n2022\n2023\n3,036\n2024\n3,491\n2025\n3,491\n15%\n营业收入（亿元）\n2,086\n3,060\n3,430\n2021\n2022\n2023\n3,966\n2024\n5,120"
+          ],
+          "period_evidence": "封面前三页明确包含 2025 报告年度",
+          "boundary_status": "report_scope_recorded_metric_scope_requires_pipeline",
+          "version_query": "bounded_official_title_query",
+          "language": "Chinese",
+          "title": "紫金矿业集团股份有限公司2025年度可持续发展报告"
+        }
+      },
+      "model_status": "not_run",
+      "demo_status": "not_evaluated",
+      "created_at": "2026-10-23T10:23:59.756211+00:00",
+      "capabilities": [
+        "registered_pdf_extraction",
+        "six_rule_candidate_check",
+        "financial_semantic_mapping",
+        "three_agents"
+      ],
+      "limitations": [
+        "原件技术身份通过不等于指标可比；主体、范围、定义和单位须在每条关系中独立验证",
+        "资本投入与资产增加不作自动等额映射；模型尚未运行",
+        "修订状态基于有界官方标题检索，不保证覆盖所有历史公告",
+        "本轮逐页解析文字层；图像内指标未做 OCR，不代表全指标覆盖"
+      ],
+      "last_program_run": {
+        "run_id": "CONN-343545283FFC4CF3",
+        "status": "completed",
+        "elapsed_seconds": 27.19
+      },
+      "demo_evaluation": {
+        "pair_id": "CONNPAIR-601899-2025-d3d3d5eeea3caf7b",
+        "company": "紫金矿业",
+        "company_id": "601899",
+        "period": "2025",
+        "status": "completed",
+        "total": 50,
+        "dimensions": {
+          "原件完整": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "两份登记原件均有哈希和页数，各10分"
+          },
+          "可复算检查": {
+            "value": 0,
+            "maximum": 20,
+            "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+          },
+          "财务路径": {
+            "value": 0,
+            "maximum": 20,
+            "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+          },
+          "原页解释": {
+            "value": 20,
+            "maximum": 20,
+            "basis": "可定位的不同报告页每页2分，上限20"
+          },
+          "真实智能体": {
+            "value": 0,
+            "maximum": 10,
+            "basis": "本轮三角色实际成功才记10分，否则0"
+          },
+          "现场速度": {
+            "value": 10,
+            "maximum": 10,
+            "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+          }
+        },
+        "elapsed_seconds": 27.19,
+        "checks": 0,
+        "financial_edges": 0,
+        "direct_financial_edges": 0,
+        "model_status": "not_requested",
+        "provider_calls": 0,
+        "outcomes": {},
+        "occurrences": 281,
+        "run_id": "CONN-343545283FFC4CF3",
+        "raw_file": "CONNPAIR-601899-2025-d3d3d5eeea3caf7b-calculation.json",
+        "raw_sha256": "692c813cbc05c1b6b876e031d338b9e6b44f3fb3b7bc51afba9db32db6dae756",
+        "industry_context": {
+          "industry": "有色金属",
+          "evidence_id": "D-601899-2025-AR-01819e1c7daad939-36-IND-13",
+          "quote": "为公司高质量发展筑牢监督防线、提供坚实保障。\n●更多信息：本报告“主要运营产品”、“环境与应对气候改变”、“社会责任”等章节。\n报告期内公司所处行业情况\n2025 年有色金属价格全面上涨，全球宽松周期延续，政策博弈加剧资源品稀缺属性，AI 算力叙事提振需求预期，共同构",
+          "search_priorities": [
+            "生态修复",
+            "环保资本开支",
+            "采矿范围"
+          ],
+          "source": "company_report",
+          "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+        }
+      },
+      "industry_profile": "有色金属采矿",
+      "industry_evidence": {
+        "industry": "有色金属",
+        "evidence_id": "D-601899-2025-AR-01819e1c7daad939-36-IND-13",
+        "quote": "为公司高质量发展筑牢监督防线、提供坚实保障。\n●更多信息：本报告“主要运营产品”、“环境与应对气候改变”、“社会责任”等章节。\n报告期内公司所处行业情况\n2025 年有色金属价格全面上涨，全球宽松周期延续，政策博弈加剧资源品稀缺属性，AI 算力叙事提振需求预期，共同构",
+        "search_priorities": [
+          "生态修复",
+          "环保资本开支",
+          "采矿范围"
+        ],
+        "source": "company_report",
+        "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+      },
+      "runnable_rules": []
+    }
+  ]
+}
