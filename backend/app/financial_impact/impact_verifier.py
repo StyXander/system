@@ -68,7 +68,7 @@ def _identity(event: SustainabilityEvent, item: FinancialItem) -> tuple[str, str
         if locations and not any(subject in location or location in subject for location in locations):
             return 'false', '财务项目行明确指向其他基地或主体'
         if subject not in row_identity:
-            return 'unknown', '具体主体或基地未在财务项目行中证实，不能借用同页其他项目' 
+            return 'unknown', '具体主体或基地未在财务项目行中证实，不能借用同页其他项目'
     name = compact(event.project_name)
     if not name:
         return "unknown", "事项未披露可识别项目名，无法核对业务身份"
