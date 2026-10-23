@@ -76,7 +76,8 @@ def investigate(root, run, invoke, *, mode='three_agents', max_calls=6, max_tool
     items = {row['item_id']: FinancialItem.model_validate(row) for row in data.get('items', [])}
     treatments = {row['treatment_id']: AccountingTreatment.model_validate(row) for row in data.get('treatments', [])}
     relations = {row['relation_id']: ImpactRelation.model_validate(row) for row in data.get('relations', [])}
-    selected = sorted(events.values(), key=lambda event: (not bool(event.project_name), event.pdf_page))[:6]
+    grounded = {relation.event_id for relation in relations.values() if relation.grade.value in {'A','B'}}
+    selected = sorted(events.values(), key=lambda event: (event.event_id not in grounded, not bool(event.project_name), event.stage.value in {'strategy','unknown'}, event.pdf_page))[:6]
     ids = {event.event_id for event in selected} | {'DISCOVERY'}
     roles = ['single'] if mode == 'single_model' else ['A1', 'A2', 'A3']
     trace, receipts, judgments, rejected = [], [], [], []
@@ -209,7 +210,8 @@ def investigate(root, run, invoke, *, mode='three_agents', max_calls=6, max_tool
                     rejected.append({'role': role, 'event_id': event.event_id, 'reason': '双端引用未同时通过逐字校验'})
                     continue
                 quoted = ''.join(ref.quote for ref in refs)
-                unsupported_numbers = [number for number in re.findall(r'\d+(?:[.,]\d+)*', proposal.reason) if number not in quoted]
+                quoted_numbers = {number.replace(',', '') for number in re.findall(r'\d+(?:,\d{3})*(?:\.\d+)?', quoted)}
+                unsupported_numbers = [number for number in re.findall(r'\d+(?:,\d{3})*(?:\.\d+)?', proposal.reason.replace(rule.rule_id, '')) if number.replace(',', '') not in quoted_numbers]
                 if unsupported_numbers or any(word in proposal.reason for word in ('财务造假', '构成舞弊', '违反准则', '信息披露违规')):
                     rejected.append({'role': role, 'event_id': event.event_id, 'reason': '假设包含引用未支持的数值或越界结论'})
                     continue
@@ -241,8 +243,8 @@ def investigate(root, run, invoke, *, mode='three_agents', max_calls=6, max_tool
     data['stats'].update(grades=impact_verifier.summarize(list(relations.values()))['grades'], relations=len(relations),
                          events=len(events), treatments=len(treatments), project_level=len({relation.event_id for relation in relations.values() if relation.grade.value in {'A','B'} and any(condition.key == 'identity' and condition.status == 'true' for condition in relation.conditions)}))
     completed = {row['role'] for row in trace if row.get('status') == 'completed' and row.get('performed')}
-    status = 'partial' if stopped or completed != set(roles) else 'completed' if receipts else 'completed_no_tool_requests'
-    data['agents'] = {'version': 'financial_agents_v1', 'model_status': status, 'calls': calls,
+    status = 'partial' if stopped or completed != set(roles) else ('completed' if judgments else 'completed_no_verified_judgments')
+    data['agents'] = {'version': 'financial_agents_v1.1', 'model_status': status, 'calls': calls,
         'roles': trace, 'tool_receipts': receipts, 'judgments': judgments, 'rejected': rejected,
         'limits': {'calls': max_calls, 'tools': max_tools, 'per_event_tools': 8, 'context_chars': context_chars},
         'note': '模型假设和程序等级独立保存；无专业标签不计算准确率'}

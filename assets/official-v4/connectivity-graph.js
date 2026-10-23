@@ -344,7 +344,8 @@
       <label>选择事项 <select data-fi-select><option value="">全部事项</option>${Object.values(events).map(event=>`<option value="${esc(event.event_id)}">${esc(event.project_name||event.quote?.slice(0,40))}</option>`).join('')}</select></label>
       ${impactPathHtml(impact)}
       <details><summary>当期与预期财务影响</summary><p>${esc(impact.analysis?.note||'')}</p>${['current','expected'].map(kind=>`<h5>${kind==='current'?'当期项目证据与候选路径':'预期影响：企业披露与定性假设'}</h5>${(impact.analysis?.[kind]||[]).map(row=>`<p data-fi-event="${esc(row.event_id)}"><b>${esc(row.project_name)}</b>：${esc(row.financial_item||row.treatments?.join('；')||'')} ${esc(row.value||row.amount?.raw||'')} ${esc(row.note||'')} ${esc(row.state?.next_requirement||'')}</p>`).join('')||'<p>无满足当前证据条件的记录。</p>'}`).join('')}</details>
-      <details><summary>实际模型与工具记录：${esc(impact.agents?.model_status||'not_requested')}，实际请求 ${(impact.agents?.roles||[]).filter(r=>r.performed).length} 次，工具回执 ${(impact.agents?.tool_receipts||[]).length} 项</summary><pre>${esc(JSON.stringify(impact.agents||{model_status:'not_requested'},null,2))}</pre></details>
+      <p class="cn-fin-note">模型有效关联提议：${(impact.agents?.judgments||[]).length} 项，拒绝提议 ${(impact.agents?.rejected||[]).length} 项。角色执行完成不代表已建立有效财务关联，程序关系单独保留。</p>
+      <details><summary>实际模型与工具记录：${esc(({completed:'角色执行完成',partial:'部分完成',not_requested:'未请求模型',completed_no_verified_judgments:'角色已执行、无有效关联意见'})[impact.agents?.model_status]||impact.agents?.model_status||'未请求模型')}，实际请求 ${(impact.agents?.roles||[]).filter(r=>r.performed).length} 次，工具回执 ${(impact.agents?.tool_receipts||[]).length} 项</summary><pre>${esc(JSON.stringify(impact.agents||{model_status:'not_requested'},null,2))}</pre></details>
       <ol class="cn-fi-list">${cards || '<li class="cn-fi-item"><p class="cn-fin-note">本次运行没有可展示的事项级关系。</p></li>'}</ol>
     </section>`;
   }

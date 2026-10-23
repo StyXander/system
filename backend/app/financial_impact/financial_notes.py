@@ -157,11 +157,14 @@ def load_note_pages(pdf_path: Path, *, max_pages: int = MAX_PAGES) -> tuple[list
     """只解析命中财务附注关键词的页面，避免全册表格检测拖垮运行时长。"""
     pages: list[dict] = []
     scanned = 0
+    parse_failures = []
+    textless_pages = []
     with PDF_ACCESS_LOCK, pymupdf.open(pdf_path) as pdf:
         scored: list[tuple[int, int]] = []
         for index, page in enumerate(pdf):
             scanned += 1
             text = page.get_text("text")
+            if not text.strip():textless_pages.append(index+1)
             if not any(term in text for term in NOTE_TERMS) or not re.search(r"单位[:：]|余额|增加|减少|预算|费用", text):
                 continue
             score = sum(3 for term in NOTE_TABLE_TERMS if term in text)
@@ -181,12 +184,13 @@ def load_note_pages(pdf_path: Path, *, max_pages: int = MAX_PAGES) -> tuple[list
                     tables.append({"bbox": [round(v, 2) for v in table.bbox],
                                    "data": [[str(cell or "") for cell in row] for row in table.extract()],
                                    "cells": [row.cells for row in table.rows]})
-            except (RuntimeError, ValueError):
+            except (RuntimeError, ValueError) as error:
+                parse_failures.append({'pdf_page':index+1,'error':type(error).__name__})
                 tables = []
             pages.append({"page": index + 1, "text": text, "blocks_detail": blocks, "tables": tables})
     policies = [{'document_id': '', 'pdf_page': page['page'], 'quote': block['text'][:600], 'bbox': block['bbox']}
         for page in pages for block in page['blocks_detail'] if re.search(r'确认条件|资本化条件|预定可使用|研究阶段|开发阶段', block['text'])][:20]
-    receipt = {"version": NOTES_VERSION, "scanned_pages": scanned, "selected_pages": len(pages), 'policy_sections': policies,
+    receipt = {"version": NOTES_VERSION, "scanned_pages": scanned, "selected_pages": len(pages), "selected_page_numbers": [page["page"] for page in pages], "parse_failures": parse_failures, "textless_pages": textless_pages, "status": "partial" if parse_failures or textless_pages else "bounded_completed", 'policy_sections': policies,
                "note": "只解析命中附注关键词的页面；未命中页不作为没有该项目。"}
     return pages, receipt
 
@@ -277,6 +281,6 @@ def parse_notes(pages: list[dict], document, *, limit: int = MAX_ITEMS) -> tuple
                     if len(items) >= limit:
                         return items, {"version": NOTES_VERSION, "items": len(items), "tables": tables_seen,
                                        "truncated": True}
-    receipt = {"version": NOTES_VERSION, "items": len(items), "tables": tables_seen, "truncated": False,
+    receipt = {"version": NOTES_VERSION, "items": len(items), "tables": tables_seen, "truncated": False, "status": "items_located" if items else "no_supported_tables",
                "note": "只登记原文明确写出的行列与数值；语义为 none 的列不参与金额勾稽。"}
     return items, receipt

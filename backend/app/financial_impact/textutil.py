@@ -122,7 +122,7 @@ NAME_STOPWORDS = ("承诺", "不低于", "分红", "股利", "目标", "议题",
 def project_name(sentence: str) -> str:
     """抽取项目名。只接受书名号、引号或明确的工程类后缀；含财务指标词的片段一律丢弃。"""
     for candidate in re.findall(r"[《“\"]([^》”\"]{4,40})[》”\"]", sentence):
-        if not any(word in candidate for word in NAME_STOPWORDS):
+        if not any(word in candidate for word in NAME_STOPWORDS) and re.search(r"项目|工程|装置|生产线|设施|设备", candidate):
             return candidate
     for match in re.finditer(r"([\u4e00-\u9fffA-Za-z0-9（）()·\-+＋]{4,40}?(?:项目|工程|改造|生产线|装置|设施))", sentence):
         candidate = match.group(1)

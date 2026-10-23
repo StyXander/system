@@ -124,7 +124,7 @@ def collect_candidates(pages: list[dict], document, *, limit: int = MAX_EVENTS) 
             if stage == Stage.UNKNOWN and not amounts and not (project_name(sentence) and page_env):
                 continue
             # 纯财务指标句（分红、股价、品牌价值）没有经济活动动词，不当作可持续事项。
-            if not any(verb in sentence for verb in ("投入", "投资", "建设", "改造", "实施", "开展", "推进",
+            if not any(verb in sentence.replace("投资者", "") for verb in ("投入", "投资", "建设", "改造", "实施", "开展", "推进",
                                                      "采购", "购置", "建成", "投运", "治理", "履约", "研发",
                                                      "修复", "签订", "立项")):
                 continue

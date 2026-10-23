@@ -44,6 +44,8 @@ def run_rule_arm(pairs,max_events,out):
 
 
 def model_arm(name,pairs,args,out):
+    if name not in args.arm and 'all' not in args.arm:
+        return {'arm':name,'status':'not_selected'}
     if not args.allow_models:
         return {'arm':name,'status':'not_run','reason':'本轮没有付费授权；默认不请求模型'}
     if args.max_calls is None or args.token_budget is None:
@@ -109,6 +111,7 @@ def main():
     parser.add_argument('--pair',action='append')
     parser.add_argument('--max-events',type=int,default=14)
     parser.add_argument('--allow-models',action='store_true')
+    parser.add_argument('--arm',action='append',choices=['all','single_model','multi_agent'],default=[])
     parser.add_argument('--max-calls',type=int,choices=range(1,13))
     parser.add_argument('--token-budget',type=int)
     parser.add_argument('--timeout',type=int,default=1200)
@@ -116,6 +119,7 @@ def main():
     parser.add_argument('--labels')
     parser.add_argument('--out',default=str(ROOT/'outputs/financial-impact-acceptance/experiment'))
     args=parser.parse_args()
+    if not args.arm:args.arm=['all']
     if args.token_budget is not None and not 1000<=args.token_budget<=120000:parser.error('每臂停止线限1000到120000 Token')
     out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
     pairs=selected_pairs(args.pair);rule=run_rule_arm(pairs,args.max_events,out)

@@ -264,3 +264,17 @@ def test_production_transport_accepts_financial_contract_without_legacy_role_loo
     assert output['decision_reason']=='合成传输合同' and record['input_tokens']==7
     assert captured[0]['max_tokens']==3000
     assert 'tool_requests' in captured[0]['tools'][0]['function']['parameters']['properties']
+
+
+def test_mission_and_standard_titles_are_not_business_project_names():
+    from backend.app.financial_impact.textutil import project_name
+    assert not project_name('我们秉持“为消费者创造美好，为投资者创造良好回报”的使命。')
+    assert not project_name('推进实施《绿色生态发展企业标准》。')
+    assert project_name('建设“沼气发电项目”，本期投入人民币1亿元。')=='沼气发电项目'
+
+
+def test_completed_roles_without_verified_hypothesis_are_not_success(workspace):
+    root,run,*_=workspace
+    receipt=agents.investigate(root,run,lambda *_:({}, {'performed':True,'model':'OFFLINE_TEST_DOUBLE'}))
+    assert receipt['model_status']=='completed_no_verified_judgments'
+    assert receipt['judgments']==[]

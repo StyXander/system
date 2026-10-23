@@ -15,12 +15,14 @@ fs.mkdirSync(out,{recursive:true});const base=process.env.AUDITTRACE_VERIFY_URL|
  await page.locator('[data-confirm-company]').first().click();
  await page.locator('[data-select-pair="000858-2025"]').first().click();
  await page.locator('#cn-mode').selectOption('calculation_only');
- const created=page.waitForResponse(r=>r.url().endsWith('/api/connectivity/runs')&&r.request().method()==='POST');
- await page.locator('#cn-run').click();let task=await(await created).json();receipt.task_id=task.task_id;
+ let task;
+ if(process.env.AUDITTRACE_REPLAY_TASK){task=await(await context.request.get(base+'/api/connectivity/runs/'+process.env.AUDITTRACE_REPLAY_TASK)).json();receipt.replayed=true;}
+ else{const created=page.waitForResponse(r=>r.url().endsWith('/api/connectivity/runs')&&r.request().method()==='POST');await page.locator('#cn-run').click();task=await(await created).json();}
+ receipt.task_id=task.task_id;
  for(let i=0;i<200&&['running','queued'].includes(task.status);i++){await new Promise(r=>setTimeout(r,3000));task=await(await context.request.get(base+'/api/connectivity/runs/'+task.task_id)).json();}
  fs.writeFileSync(path.join(out,'calculation-task.json'),JSON.stringify(task,null,2));
  if(!task.result?.financial_impact?.events?.length)throw Error('未生成财务穿透结果:'+JSON.stringify(task.error));
- receipt.status=task.status;receipt.stats=task.result.financial_impact.stats;receipt.model_requests=task.result.provider_calls.filter(r=>r.performed).length;
+ receipt.status=task.status;receipt.stats=task.result.financial_impact.stats;receipt.recorded_model_requests=task.result.provider_calls.filter(r=>r.performed).length;receipt.model_requests=0;
  await page.goto(base+'/?connectivity_task='+task.task_id,{waitUntil:'networkidle'});
  await page.locator('#cn-results').waitFor({state:'visible'});
  await page.locator('#cn-financial').scrollIntoViewIfNeeded();
@@ -30,7 +32,7 @@ fs.mkdirSync(out,{recursive:true});const base=process.env.AUDITTRACE_VERIFY_URL|
  if(project){await select.selectOption(project);receipt.project_visible=await page.locator('.cn-fi-item:visible').count();}
  receipt.paths=await page.locator('.cn-fi-evidence-paths article:visible').count();
  for(const [width,height] of [[1440,1000],[1024,768],[768,1024],[390,844]]){
-  await page.setViewportSize({width,height});await page.locator('#cn-financial').scrollIntoViewIfNeeded();
+  await page.setViewportSize({width,height});await page.locator('#cn-financial').evaluate(e=>window.scrollTo(0,e.getBoundingClientRect().top+window.scrollY-20));
   receipt.viewports.push({width,height,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)});
   await page.screenshot({path:path.join(out,`financial-${width}.png`)});
  }
