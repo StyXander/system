@@ -50,6 +50,12 @@ from .connectivity_conditions import upgrade_conditions
 from .connectivity_proof import plan_procedures, procedure_effect
 from .connectivity_collaboration import execute_search_requests, collaboration_summary
 from .connectivity_closure import attach as attach_closure, summarize as summarize_closure
+from .connectivity_financial_bridge import build as build_financial_bridge
+from .connectivity_graph import build_impact_graph
+from .connectivity_financial_scenario import build_scenario
+from .connectivity_revision import build_revision_loop
+from .connectivity_evidence_planner import build_plan, execute_action, rerank
+from .connectivity_agent_orchestrator import ChallengerProposals, run_investigation
 from .connectivity_metrics import compact_label, metric_identity, metric_comparison
 from .connectivity_tables import build_table_composition_candidates
 from .connectivity_intelligence import (METRIC_GUIDANCE, targeted_context, enrich_calculation,
@@ -60,7 +66,7 @@ from .connectivity_claims import (apply_hypothesis_updates, build_claim_ledger, 
 from .connectivity_retrieval import (RETRIEVAL_VERSION, KNOWLEDGE_VERSION,
     knowledge_ablation, knowledge_enabled, retrieval_effect,
     retrieve_targeted_pages, rule_basis_for)
-from .connectivity_schemas import (INTELLIGENCE_VERSION, AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
+from .connectivity_schemas import (INTELLIGENCE_VERSION, FINANCIAL_VERSION, AgentProposals, SingleAgentProposals, ComparisonCondition, ConnectivityRun, DisclosureOccurrence,
     EvidenceRef, FindingAndRequest, FinalSummaries, RelationshipCheck, RelationshipMember, RelationshipProposal,
     AIAnalysis, FinalFinding, CalculationPlan, RunRequest, SourceLineage, NOTICE, SearchDirective)
 
@@ -896,7 +902,8 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
     prompt += {"A1": "识别名称不同但有业务关联的指标，标清关联类型、支持与冲突依据和计算方案，保留有价值的未知候选。兼顾组成、同值、多位置和文字数字主张。",
                "A2": "按retrieval_tasks逐项处理本批候选，定向找定义、范围、正常解释和反证；利用calculated_results提出计算或调节方案。只提交新增或变化关系，不能凭数字凑等式；无变化可返回空checks。",
                "single": "一次完整完成关系识别、口径检查、反证与解释查找，任务及输出要求与三角色相同。",
-               "A3": "你负责独立综合研判，返回analyses和findings。对本批每项现有关系给出明确倾向、具体理由、支持、反证、假设、替代解释和下一步。允许倾向一致、潜在矛盾、存在合理解释、依据不足或不可比。缺正式前提时仍分析hypothetical及scenario_adjustment；不要只重复请人工复核。不新增核对关系、不改程序状态。"}[role]
+               "A3": "你负责独立综合研判，返回analyses和findings。对本批每项现有关系给出明确倾向、具体理由、支持、反证、假设、替代解释和下一步。允许倾向一致、潜在矛盾、存在合理解释、依据不足或不可比。缺正式前提时仍分析hypothetical及scenario_adjustment；不要只重复请人工复核。不新增核对关系、不改程序状态。",
+               "challenger": "你负责对当前财务关联候选提出竞争解释。每条解释必须给出：解释内容、可检验条件、能区分不同解释的具体证据（页码/列名/清单）。只提出解释，不得宣告任何假设已被推翻或证实；状态由程序门禁决定。不得引用输入之外的页码或金额，不得给出审计、鉴证、投资结论。最多2条，不凑数量；没有有价值的新解释时返回空列表。"}[role]
     if role in {"A3", "single"}:
         prompt += "analyses仅绑定输入candidate_checks中已有check_id，引用至少一处对应成员。可以使用calculated_results中的程序数值；假设必须明列，计算闭合不等于业务解释成立。analysis_quality不是正确概率。允许独立决定verdict，不受程序提示倾向限制。量纲冲突、成员角色不完整或成员误绑时，不能输出lean_consistent；应解释当前绑定为何不可比，不评价另一组未绑定的数值。priority给出核查高/中/低与具体priority_reason，材料少本身不能证明企业有问题。文字关系、缺数值和不能正式计算的关系也要分析。"
     if payload.get("analysis_only"):
@@ -908,9 +915,10 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                "A2必须点明A1的具体关系编号、依据及需要反驳的解释；A3须利用collaboration_history核对分歧、实际工具回执与计算。"
                "上轮未命中时调整指标别名或具体条件词，不重复同一查询。"
                "A3可请求一次反馈调查，新原文或首次交付本关系的既有原文均可再次交A2质疑、A3综合；命中仍须逐字引用与专业校验，不能把假设推演写为事实。")
-    contract = FinalSummaries if role == "A3" else SingleAgentProposals if role == "single" else AgentProposals
+    contract = (FinalSummaries if role == "A3" else SingleAgentProposals if role == "single"
+                else ChallengerProposals if role == "challenger" else AgentProposals)
     schema = contract.model_json_schema()
-    if role != "A3":
+    if role not in {"A3", "challenger"}:
         schema["$defs"]["RelationshipProposal"]["properties"]["rule_id"]["description"] = "EQ同值（含研发或环保同一指标）；RD研发组成；ENV环保组成；INT比例；OCC同一指标多位置；NAR解释。不按事项名称直接选组成规则。"
     allowed_ids = [item["occurrence_id"] for item in payload.get("occurrences", [])]
     if allowed_ids:
@@ -1382,6 +1390,8 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                  checkpoint=lambda run: None) -> ConnectivityRun:
     """共享合同一次接通；仅计算、失败与真实模型链保持不同身份。"""
     started = time.perf_counter()
+    direct_single = request.mode == "single_model" and os.getenv("CONNECTIVITY_EXPERIMENT_DIRECT_SINGLE") == "1"
+    retrieval_enabled = os.getenv("CONNECTIVITY_ABLATION_NO_RETRIEVAL") != "1" and not direct_single
     docs = [d for d in load_registry(root) if d.case_id == request.pair_id]
     if len(docs) != 2 or {d.report_type for d in docs} != {"AR", "ESG"}:
         raise ValueError("报告对缺失或类型不匹配")
@@ -1403,6 +1413,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         versions={"pair_id": request.pair_id, "extraction": EXTRACTION_VERSION, "rules": "2026-10-21.1", "prompt": PROMPT_VERSION,
                   "intelligence": INTELLIGENCE_VERSION, "retrieval": RETRIEVAL_VERSION,
                   "knowledge": KNOWLEDGE_VERSION, "candidate_origin_scheme": "rule_plus_model_signature_v1",
+                  "financial": FINANCIAL_VERSION,
                   "period_basis": f"比较期间取指标所属年度{metric_period}" if metric_period else
                   "指标所属年度未登记（两份报告均未填），比较期间退回报告所属年度；各披露行仍按自身年度列归属"})
     progress("evidence_load", "running", "正在读取登记的两份真实PDF")
@@ -1480,7 +1491,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             # 全运行预算包含修复与反馈请求，不能通过额外角色绕过上限。
             if cancelled():
                 raise InterruptedError("用户取消了任务")
-            if len(run.provider_calls) >= 20:
+            if len(run.provider_calls) >= min(20, max(1, int(os.getenv("CONNECTIVITY_EXPERIMENT_MAX_CALLS", "20")))):
                 raise ValueError("MODEL_CALL_BUDGET_EXHAUSTED")
             # 实验可设相同的已消费token停止线；在途请求最多越过一次，绝不伪称精确等额。
             threshold = int(os.getenv('CONNECTIVITY_TOKEN_STOP_THRESHOLD', '0'))
@@ -1513,7 +1524,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                           c.operator == "narrative", bool(c.hypotheses)), reverse=True)
 
         def batch_payload(role, checks, *, analysis_only=False, feedback=None):
-            selected, tasks = targeted_context(run, checks, limit=220 if role == "single" else 160)
+            selected, tasks = targeted_context(run, checks, limit=220 if role == "single" else 160) if retrieval_enabled else (first_context, [])
             combined = {r["occurrence_id"]: r for r in selected}
             if role in {"A1", "single"} and not analysis_only:
                 combined = {r["occurrence_id"]: r for r in [*first_context, *additional, *selected]}
@@ -1555,7 +1566,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 run.agent_steps.append({"role": role, "status": "skipped", "reason": "模型配置或额度阻止后续请求"})
                 agent_progress(stage_role, "skipped", "配置或额度不可用，保留已有结果")
                 continue
-            if role in {"A2", "A3"}:
+            if role in {"A2", "A3"} and retrieval_enabled:
                 round_number = 1 if role == "A2" else 2
                 before_checks = [check.model_copy(deep=True) for check in ordered_checks()]
                 before_ids = {check.check_id for check in before_checks}
@@ -1598,6 +1609,9 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 batches = [ordered]
             skipped = [c.check_id for b in batches[budget:] for c in b]
             batches = batches[:budget]
+            if direct_single:
+                skipped.extend(c.check_id for batch in batches[1:] for c in batch)
+                batches = batches[:1]
             if skipped:
                 any_failure = True
             run.intelligence_trace.append({"role": role, "batch_count": len(batches), "unprocessed_check_ids": skipped,
@@ -1708,7 +1722,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                     missing = [c for c in run.checks if c.check_id not in {a.check_id for a in run.ai_analyses if a.status == "current"}]
                     repair = [c for c in checks if c.check_id not in part.get("accepted_analysis_ids", [])] if role == "A3" else []
                     eligible = {c.check_id for c in checks} | set(part.get("accepted_check_ids", []))
-                    follow = [c for c in missing if c.check_id in eligible][:8] if role == "single" else repair
+                    follow = ([c for c in missing if c.check_id in eligible][:8] if role == "single" else repair) if not direct_single else []
                     if follow and role in {"single", "A3"}:
                         follow_payload = batch_payload(role, follow, analysis_only=True, feedback=part.get("analysis_rejections", []))
                         follow_ids = {r["occurrence_id"] for r in follow_payload["occurrences"]}
@@ -1737,7 +1751,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             run.agent_steps.append({"role": role, "status": status, **delta})
             agent_progress(stage_role, "completed" if status == "completed" else "failed",
                            f"{role}完成{successes}批，保留{len(set(delta['accepted_analysis_ids']))}项模型研判")
-            if role in {"A3", "single"} and pending_searches and not feedback_used and not fatal:
+            if role in {"A3", "single"} and pending_searches and not feedback_used and not fatal and retrieval_enabled:
                 # 首次交付本关系的既有原文也可以重新裁决；仍只允许一轮反馈。
                 feedback_used = True
                 before_feedback = [c.model_copy(deep=True) for c in run.checks]
@@ -1767,13 +1781,13 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         elif not has_success:
             run.model_status = "failed"
         elif any_failure or missing:
-            run.model_status = "single_partial" if request.mode == "single_model" else "three_agents_partial"
+            run.model_status = {"single_model": "single_partial", "adaptive_agents": "adaptive_partial"}.get(request.mode, "three_agents_partial")
         else:
-            run.model_status = "single_completed" if request.mode == "single_model" else "three_agents_completed"
+            run.model_status = {"single_model": "single_completed", "adaptive_agents": "adaptive_completed"}.get(request.mode, "three_agents_completed")
         if request.mode == "single_model":
             for stage in ("counter", "review"):
                 agent_progress(stage, "skipped", "单模型对照：同一模型完成发现与研判")
-        progress("agent_collaboration", "completed" if run.model_status in {"single_completed", "three_agents_completed"} else "degraded", run.model_status)
+        progress("agent_collaboration", "completed" if run.model_status in {"single_completed", "three_agents_completed", "adaptive_completed"} else "degraded", run.model_status)
     progress("evidence_validation", "running", "从原文成员重新计算全部关系")
     recalculate_checks(run, comparison_period, 'final')
     if request.mode != "calculation_only":
@@ -1781,8 +1795,8 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
         if final_missing:
             run.intelligence_trace.append({"role": "final_analysis_coverage", "unprocessed_check_ids": final_missing,
                                            "reason": "以最终复算和意见指纹核对覆盖；过期意见不计为当前研判"})
-            if run.model_status in {"single_completed", "three_agents_completed", "reused_completed"}:
-                run.model_status = "single_partial" if request.mode == "single_model" else "three_agents_partial"
+            if run.model_status in {"single_completed", "three_agents_completed", "adaptive_completed", "reused_completed"}:
+                run.model_status = {"single_model": "single_partial", "adaptive_agents": "adaptive_partial"}.get(request.mode, "three_agents_partial")
     run.findings = merge_final_findings(run)
     progress("evidence_validation", "completed", "引用、算式、未知及多位置差异已分别保留")
     progress("structured_output", "running", "保存同源核对记录及具体问题")
@@ -1803,6 +1817,75 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     run.rule_basis = [dict(check_id=check.check_id, entries=rule_basis_for(check)) for check in run.checks]
     run.next_evidence = [{**action, "check_id": check.check_id} for check in run.checks
                          for action in build_next_evidence(check, rule_basis_for(check))]
+    # 创新一/二/三在同一结果合同上生成：财务穿透层、证据驱动反证、预算约束补证。
+    # 这一层失败只降级新视图，不回滚既有关系与正式结论。
+    progress("financial_bridge", "running", "从两份登记原件建立可持续主张—财务项目关联")
+    try:
+        bridge = build_financial_bridge(root, run)
+        run.financial_claims = bridge.get("claims", [])
+        run.financial_nodes = bridge.get("nodes", [])
+        run.financial_edges = bridge.get("edges", [])
+        run.impact_graph = build_impact_graph(bridge)
+        run.financial_scenario = build_scenario(bridge)
+        from .connectivity_temporal import comparison_summary
+        run.comparison_summary = comparison_summary(root, run)
+        run.revision_loop = build_revision_loop(bridge)
+        plan = build_plan(bridge, run.revision_loop)
+        if plan.get("primary_action") and os.getenv("CONNECTIVITY_ABLATION_NO_RETRIEVAL") != "1":
+            execution = execute_action(root, plan["primary_action"], docs)
+            plan["execution"] = execution
+            plan = rerank(
+                plan, completed_conditions=[],
+                new_evidence_ids=execution.get("matched_terms", []),
+                reviewed_actions=[plan["primary_action"]["action_id"]])
+            plan["execution"] = execution
+            plan["rerank"]["reason"] = (
+                "第一条行动已实际打开登记页并返回回执；该动作退出候选，"
+                "按剩余动作重新计算预算内顺序，不把页面命中当作条件已支持。")
+        run.evidence_plan = plan
+        if request.mode == "adaptive_agents":
+            # adaptive_agents：在财务穿透层之上跑受控调查闭环；失败只降级调查，不回滚既有结果。
+            progress("adaptive_investigation", "running", "A0规划—受控工具—Challenger反证—条件门禁闭环")
+            try:
+                def challenger(payload):
+                    began = time.perf_counter()
+                    try:
+                        return bounded_call("challenger", payload)
+                    except Exception as error:
+                        if not isinstance(error, InterruptedError):
+                            run.provider_calls.append(failure_record(error, "challenger", began))
+                        raise
+                def reserve_investigation():
+                    nonlocal quota_ready
+                    if not quota_ready:
+                        before_model()
+                        quota_ready = True
+                run.investigation = run_investigation(
+                    root, run, bridge=bridge, revision=run.revision_loop, plan=plan,
+                    challenger=challenger, before_model=reserve_investigation,
+                    enable_tools=os.getenv("CONNECTIVITY_ABLATION_NO_RETRIEVAL") != "1",
+                    enable_challenger=os.getenv("CONNECTIVITY_ABLATION_NO_CHALLENGER") != "1")
+                run.evidence_plan = run.investigation["final_plan"]
+                if run.investigation["outcome"] != "completed":
+                    run.model_status = "adaptive_partial"
+                progress("adaptive_investigation",
+                         "completed" if run.investigation["outcome"] == "completed" else "degraded",
+                         f"调查闭环{run.investigation['outcome']}：{run.investigation['summary']}")
+            except Exception as error:
+                if isinstance(error, InterruptedError):
+                    raise
+                run.investigation = {}
+                run.model_status = "adaptive_partial"
+                run.intelligence_trace.append({"kind": "adaptive_investigation_error",
+                                               "error": type(error).__name__, "message": str(error)[:240]})
+                progress("adaptive_investigation", "failed", f"调查闭环未生成：{type(error).__name__}")
+        progress("financial_bridge", "completed",
+                 f"登记{len(run.financial_claims)}条主张、{len(run.financial_nodes)}个财务项目、"
+                 f"{len(run.financial_edges)}条受控关系；反证改变{run.revision_loop['summary']['changed']}项状态")
+    except Exception as error:
+        run.intelligence_trace.append({"kind": "financial_bridge_error", "error": type(error).__name__,
+                                       "message": str(error)[:240]})
+        progress("financial_bridge", "failed", f"财务穿透层未生成：{type(error).__name__}")
     run.overview = build_overview(run)
     run.duration_ms = round((time.perf_counter()-started)*1000)
     progress("structured_output", "completed", "结果已生成，按实际模型状态标识")

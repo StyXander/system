@@ -13,8 +13,10 @@ NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核�
 # 历史业务声明保持原文不变；导出与接口按 task_kind 分派，不互相冒充。
 LEGACY_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 NOTICE_BY_TASK_KIND = {"connectivity": NOTICE, "legacy_audit": LEGACY_NOTICE}
-SCHEMA_VERSION = "connectivity_v4"
+SCHEMA_VERSION = "connectivity_v5"
 INTELLIGENCE_VERSION = "hybrid_v4_counterevidence_grounded"
+# 财务穿透与反证层的合同版本；旧结果缺少这些字段时按空值读取，不改变既有结论。
+FINANCIAL_VERSION = "financial_bridge_v1"
 
 # 本轮事项类型裁决：取方案(b)。海菲曼利润总额只走版本子流程并使用独立事项标识，
 # 不扩 topics 枚举，以免把双报告引擎改造成通用多文档平台。
@@ -492,13 +494,24 @@ class ConnectivityRun(Contract):
     claim_ledger: list[dict] = Field(default_factory=list)
     rule_basis: list[dict] = Field(default_factory=list)
     next_evidence: list[dict] = Field(default_factory=list)
+    # 创新一：可持续主张→财务项目的受控关系与图谱；创新二：证据驱动状态机；
+    # 创新三：预算约束补证计划与情景模拟。全部为只读派生数据，不改变正式结论。
+    financial_claims: list[dict] = Field(default_factory=list)
+    financial_nodes: list[dict] = Field(default_factory=list)
+    financial_edges: list[dict] = Field(default_factory=list)
+    impact_graph: dict = Field(default_factory=dict)
+    revision_loop: dict = Field(default_factory=dict)
+    evidence_plan: dict = Field(default_factory=dict)
+    financial_scenario: dict = Field(default_factory=dict)
+    investigation: dict = Field(default_factory=dict)
+    comparison_summary: dict = Field(default_factory=dict)
     ai_generated_content_notice: str = NOTICE
 
 
 class RunRequest(Contract):
     pair_id: str = Field(min_length=2, max_length=100)
     topics: list[Literal["research", "environment", "intensity"]] = Field(default_factory=lambda: ["research", "environment", "intensity"], min_length=1, max_length=3)
-    mode: Literal["calculation_only", "three_agents", "single_model"] = "three_agents"
+    mode: Literal["calculation_only", "three_agents", "single_model", "adaptive_agents"] = "three_agents"
     retry_of_task_id: str | None = None
 
 

@@ -1,0 +1,6 @@
+{
+  "version": "peer_sources_v1",
+  "authorized": false,
+  "note": "同业样本登记表：只有在取得来源授权并完成登记后才允许同业对标；本表为空时不生成任何同业数值或排名。",
+  "samples": []
+}

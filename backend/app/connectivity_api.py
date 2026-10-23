@@ -35,6 +35,8 @@ from .public_model import PublicModelQuotaError
 
 from .connectivity_facts import project_facts, execution_provenance
 from .connectivity_bootstrap import source_readiness
+from .connectivity_graph import refresh_run_sources
+from .connectivity_financial_scenario import recalculate_scenario
 
 COOKIE = "audittrace_connectivity_session"
 CONNECTIVITY_RETENTION_SECONDS = 30 * 86400
@@ -85,6 +87,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         if isinstance(body, dict):
             body = dict(body)
             normalized = ConnectivityRun.model_validate({k:v for k,v in body.items() if k in ConnectivityRun.model_fields})
+            normalized = refresh_run_sources(root, normalized)
+            body = normalized.model_dump(mode="json")
             body['overview'] = build_overview(normalized)
             body['ai_generated_content_notice'] = NOTICE
             result['result'] = body
@@ -188,7 +192,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                         # 模型响应和预算结算是两种事实；保留已取得意见，明确结算未通过。
                         result.versions['quota_settlement'] = {'status': 'failed', 'code': error.code, 'message': str(error)[:240]}
                         runtime.update_stage(item['task_id'], 'structured_output', 'degraded', str(error)[:240])
-            degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed", "reused_completed"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
+            degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed", "adaptive_completed", "reused_completed"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
             runtime.update_task(item["task_id"], status="degraded" if degraded else "completed", run_id=result.run_id,
                 result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNECTIVITY_RETENTION_SECONDS))
         execute.__audittrace_request__ = request
@@ -217,7 +221,17 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         snapshot = store(task_id).snapshot(task_id) or {}
         if snapshot.get("status") not in {"completed", "degraded"} or not snapshot.get("result"):
             raise HTTPException(409, "任务尚无可读取的完成结果")
-        return item, ConnectivityRun.model_validate(snapshot["result"])
+        return item, refresh_run_sources(root, ConnectivityRun.model_validate(snapshot["result"]))
+
+    @router.get("/runs/{task_id}/scenario")
+    def scenario(task_id: str, price: str = Query(..., max_length=24), usage: str = Query(..., max_length=24)):
+        """情景是只读计算投影；两参数不修改企业原值或历史运行。"""
+        _, run = readable(task_id)
+        try:
+            computed = recalculate_scenario(run.financial_scenario, price, usage)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        return {"run_id": run.run_id, "result_revision": run.result_revision, "scenario": computed}
 
     @router.post("/runs/{task_id}/corrections")
     def correct(task_id: str, body: CorrectionRequest, request: Request):
@@ -331,13 +345,21 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         return public(result, request)
 
     @router.get("/runs/{task_id}/export/{format_name}")
-    def export(task_id: str, format_name: str, request: Request, private: bool = False):
+    def export(task_id: str, format_name: str, request: Request, private: bool = False,
+               scenario_price: str | None = Query(None, max_length=24), scenario_usage: str | None = Query(None, max_length=24)):
         item, run = readable(task_id)
         if format_name not in {"json", "csv", "docx"}:
             raise HTTPException(404, "不支持的导出格式")
         is_owner = bool(request.cookies.get(COOKIE)) and hmac.compare_digest(owner(request), item["run_body"].get("owner", ""))
         # 公共导出默认剔除个人观察正文，只有本人且显式 private=1 才展开。
         include_personal = bool(private and is_owner)
+        if scenario_price is not None or scenario_usage is not None:
+            if scenario_price is None or scenario_usage is None:
+                raise HTTPException(422, "情景导出须同时提供价格与实现比例")
+            try:
+                run.financial_scenario = recalculate_scenario(run.financial_scenario, scenario_price, scenario_usage)
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from error
         from .connectivity_delivery import export_run, verify_export_same_source
         payload, mime = export_run(run, format_name, include_personal=include_personal)
         if format_name == "json":

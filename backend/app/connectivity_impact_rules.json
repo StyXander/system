@@ -1,0 +1,141 @@
+{
+  "version": "impact_rules_v1",
+  "notice": "本规则库描述披露语义的候选许可与排除条件；金额、比例与舍入仍由确定性引擎复算。规则不构成对企业事实的判断。",
+  "forbidden_equivalences": [
+    {
+      "id": "FE-001",
+      "left": "环保投入（ESG合计口径）",
+      "right": "财务报表在建工程",
+      "reason": "环保投入是可持续报告的合计/主题口径，在建工程是资产负债表项目；金额接近不构成资金归属证明。",
+      "allowed_inference": "可召回调查：核对项目清单与在建工程附注，但缺少原文逐项分配不得判金额已对应。"
+    },
+    {
+      "id": "FE-002",
+      "left": "研发投入",
+      "right": "研发费用",
+      "reason": "研发投入通常含资本化部分；未披露构成与调整时两者不可等价。",
+      "allowed_inference": "可召回调查：查研发附注中费用化/资本化拆分。"
+    },
+    {
+      "id": "FE-003",
+      "left": "环保项目预算",
+      "right": "已发生现金流",
+      "reason": "预算数是计划口径，现金流量表是已发生流量；计划不等于执行。",
+      "allowed_inference": "可召回调查：核对本期增加金额与购建资产支付现金。"
+    },
+    {
+      "id": "FE-004",
+      "left": "承诺/目标",
+      "right": "达成结果",
+      "reason": "目标语态不是实绩语态；2030目标与当期投入低不构成目标失败。",
+      "allowed_inference": "建立跨期关联并标注目标年，不计算无前提的完成率。"
+    },
+    {
+      "id": "FE-005",
+      "left": "排放强度下降",
+      "right": "排放总量下降",
+      "reason": "强度以产量/收入为分母；总量上升与强度下降可以并存，须核对分母。",
+      "allowed_inference": "分列总量与强度两条绩效主张，分别绑定分母证据。"
+    },
+    {
+      "id": "FE-006",
+      "left": "项目投入",
+      "right": "经济效果即时发生",
+      "reason": "资本性投入通过折旧/产能逐步影响损益；投入当期不等于经济效果当期。",
+      "allowed_inference": "使用时间滞后政策建立跨期机制假设。"
+    },
+    {
+      "id": "FE-007",
+      "left": "集团ESG披露",
+      "right": "母公司年报数据",
+      "reason": "合并范围与母公司个体口径不同；未证明同主体时禁止混算。",
+      "allowed_inference": "同主体条件未证明时主体条件记 unknown，不得进入一致证据。"
+    }
+  ],
+  "relation_templates": [
+    {
+      "rule_id": "OT-DIRECT-01",
+      "name": "同源披露交叉索引",
+      "source_concept": "可持续披露金额/绩效",
+      "target_concept": "年报财务项目",
+      "relation_kind": "DIRECT_RECONCILIATION",
+      "applicable_industries": ["*"],
+      "prerequisite_conditions": ["原文明示同一项目/同一口径", "主体一致", "期间一致", "定义一致", "范围一致", "单位可确定性换算"],
+      "exclusion_rules": ["FE-001", "FE-002", "FE-003", "FE-004", "FE-007", "仅金额接近且同年不构成直接证实"],
+      "time_lag_policy": "none",
+      "evidence_requirements": ["两侧原文逐字引用", "项目名或交叉索引出现在原文"],
+      "counterevidence_triggers": ["口径变更公告", "重述", "并表范围变化"],
+      "financial_statement_candidates": ["在建工程", "固定资产", "研发费用", "开发支出", "购建固定资产无形资产和其他长期资产支付的现金"]
+    },
+    {
+      "rule_id": "OT-ALLOC-01",
+      "name": "披露归属",
+      "source_concept": "ESG行动/项目",
+      "target_concept": "年报项目级金额",
+      "relation_kind": "DISCLOSED_ALLOCATION",
+      "applicable_industries": ["*"],
+      "prerequisite_conditions": ["原句明确出现项目名或‘其中/用于’", "金额可定位"],
+      "exclusion_rules": ["FE-003", "FE-006"],
+      "time_lag_policy": "same_period_preferred",
+      "evidence_requirements": ["项目名逐字出现", "页码可回查"],
+      "counterevidence_triggers": ["项目清单口径不同", "子项目截止日差异"],
+      "financial_statement_candidates": ["在建工程", "固定资产", "其他非流动资产"]
+    },
+    {
+      "rule_id": "OT-TEMPORAL-01",
+      "name": "跨期投入—运营关联",
+      "source_concept": "ESG投入/行动",
+      "target_concept": "后续期间成本/绩效",
+      "relation_kind": "TEMPORAL_ASSOCIATION",
+      "applicable_industries": ["*"],
+      "prerequisite_conditions": ["事件窗口显式声明", "同一项目可追踪"],
+      "exclusion_rules": ["FE-004", "FE-006"],
+      "time_lag_policy": "explicit_event_window",
+      "evidence_requirements": ["投入期间与效果期间分别登记", "链接标识指向同一项目"],
+      "counterevidence_triggers": ["项目终止公告", "范围重组"],
+      "financial_statement_candidates": ["营业成本", "管理费用", "折旧摊销"]
+    },
+    {
+      "rule_id": "OT-SEMANTIC-01",
+      "name": "语义关联候选",
+      "source_concept": "ESG主题",
+      "target_concept": "年报财务项目",
+      "relation_kind": "SEMANTIC_ASSOCIATION",
+      "applicable_industries": ["*"],
+      "prerequisite_conditions": ["主题/项目名相近"],
+      "exclusion_rules": ["FE-001", "FE-005"],
+      "time_lag_policy": "none",
+      "evidence_requirements": ["主题词重叠须留痕"],
+      "counterevidence_triggers": ["同名异义指标", "分母/口径不同"],
+      "financial_statement_candidates": []
+    },
+    {
+      "rule_id": "OT-MECHANISM-01",
+      "name": "财务传导机制假设",
+      "source_concept": "可持续投入/绩效",
+      "target_concept": "成本/费用/现金流",
+      "relation_kind": "HYPOTHESIZED_MECHANISM",
+      "applicable_industries": ["steel", "food_beverage", "tech_manufacturing"],
+      "prerequisite_conditions": ["存在可检验的经营机制", "标记假设及前提"],
+      "exclusion_rules": ["FE-006"],
+      "time_lag_policy": "explicit_event_window",
+      "evidence_requirements": ["机制方向与科目候选说明", "不提供伪造金额"],
+      "counterevidence_triggers": ["机制反转证据", "价格/产量解释替代"],
+      "financial_statement_candidates": ["营业成本", "燃料及动力费", "销售费用", "管理费用"]
+    }
+  ],
+  "concept_domain": {
+    "绿色转型": ["绿色制造", "低碳", "绿色化", "结构优化"],
+    "污染防治": ["环保", "污染", "减排", "超低排放", "废水", "废气"],
+    "节能": ["节能", "能耗", "标煤", "标准煤", "能源管理"],
+    "碳排放": ["碳达峰", "碳中和", "碳排放", "温室气体", "CO2"],
+    "技术改造": ["改造", "升级", "产线", "工艺优化"],
+    "环保资本性投入": ["环保项目投入", "环保工程", "环保设施"],
+    "费用性支出": ["环保费用", "排污费", "治理费"],
+    "研发": ["研发", "技术创新", "科研"],
+    "产量与能源成本": ["产量", "能耗成本", "燃料", "动力"],
+    "现金流": ["购建固定资产", "支付的现金", "现金流出"],
+    "环境义务": ["预计负债", "环境治理义务", "复垦义务"],
+    "财务风险": ["减值", "成本压力", "资本开支压力"]
+  }
+}
