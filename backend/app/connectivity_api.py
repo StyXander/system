@@ -74,7 +74,10 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(403, "更正请求必须来自当前网站")
 
     def public(item: dict, request: Request | None = None) -> dict:
-        view = store(item["task_id"]).snapshot(item["task_id"])
+        # task() 已读取并处理过期；不要为同一响应再次访问远程台账。
+        view = SupabaseDemoRunTaskStore._public_task(item)
+        view.pop('_file_path', None)
+        view.pop('non_interruptible', None)
         if not view:
             raise HTTPException(404, "任务不存在")
         result = {k: v for k, v in view.items() if k not in {"run_body", "request_payload", "request_sha256", "idempotency_key_sha256"}}
@@ -156,6 +159,12 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                 raise HTTPException(422, "重试报告对必须与原任务一致")
             if set(original.get('run_body', {}).get('topics', body.topics)) != set(body.topics):
                 raise HTTPException(422, '增量重试须沿用原事项选择；改变事项请发起新运行')
+            original_body = original.get('run_body', {})
+            if original_body.get('model_scope', 'combined') != body.model_scope:
+                raise HTTPException(422, '增量重试须沿用原模型分析范围')
+            for budget_field in ('max_model_calls', 'token_stop_threshold'):
+                if original_body.get(budget_field) != getattr(body, budget_field):
+                    raise HTTPException(422, '增量重试须沿用原模型预算限制')
             if snapshot.get("result"):
                 resume = ConnectivityRun.model_validate(snapshot["result"])
                 if resume.execution_mode != body.mode:
@@ -165,6 +174,10 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         def execute(item):
             reservation = None
             result = None
+            latest_checkpoint = None
+            def checkpoint(current):
+                nonlocal latest_checkpoint
+                latest_checkpoint = current
             cancellation = {"checked_at": 0.0, "value": False}
             def cancelled():
                 # 解析器逐页询问取消；远程存储不能每页都发一次数据库请求。
@@ -183,10 +196,15 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                 result = run_pipeline(root, body,
                     progress=lambda *args: runtime.update_stage(item["task_id"], *args),
                     agent_progress=lambda *args: runtime.update_agent_step(item["task_id"], *args),
-                    cancelled=cancelled, before_model=before_model, **resume_options)
+                    cancelled=cancelled, before_model=before_model, checkpoint=checkpoint, **resume_options)
             finally:
                 if reservation:
-                    calls = result.provider_calls if result else []
+                    calls = result.provider_calls if result else latest_checkpoint.provider_calls if latest_checkpoint else []
+                    if result is None and latest_checkpoint and calls:
+                        latest_checkpoint.model_status = 'interrupted_partial'
+                        latest_checkpoint.versions['partial_result'] = '异常中止前的程序与真实调用记录，非完整分析'
+                        runtime.update_task(item['task_id'], run_id=latest_checkpoint.run_id,
+                                            result=latest_checkpoint.model_dump(mode='json'))
                     try:
                         quota_ledger().settle(reservation, input_tokens=sum(c.get("input_tokens") or 0 for c in calls), output_tokens=sum(c.get("output_tokens") or 0 for c in calls))
                     except PublicModelQuotaError as error:

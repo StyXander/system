@@ -28,7 +28,7 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.23.enterprise.1', lifespan=lifespan)
+app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.23.financial.1', lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(CORSMiddleware, allow_origins=_configured_cors_origins(), allow_credentials=True,
                    allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'Authorization', 'Idempotency-Key'])
@@ -52,5 +52,5 @@ def health():
         'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
         'default_mode': 'three_agents', 'project_facts': project_facts(ROOT),
         'deployment': {'commit': os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') or None,
-            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.23.enterprise.1',
+            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.23.financial.1',
             'identity_source': 'runtime_environment' if os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') else 'unverified'}}

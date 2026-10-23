@@ -61,4 +61,4 @@ print(json.dumps({{'entry':health['deployment']['entry'],'release':health['deplo
         result = subprocess.run([sys.executable, '-c', code], cwd=root, env=env,
                                 capture_output=True, text=True, timeout=90)
         assert result.returncode == 0, result.stdout + result.stderr
-        assert json.loads(result.stdout)['release'] == '2026.10.23.enterprise.1'
+        assert json.loads(result.stdout)['release'] == '2026.10.23.financial.1'
