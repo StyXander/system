@@ -1,0 +1,11 @@
+{
+  "docx_opened": true,
+  "paragraphs": 2383,
+  "tables": 96,
+  "font_violations": 0,
+  "has_financial_section": true,
+  "financial_csv_relations": 49,
+  "financial_csv_json_identical": true,
+  "financial_item_source_edges_correct": true,
+  "notice": "结构、字体与同源性检查，不冒充全页排版审定"
+}

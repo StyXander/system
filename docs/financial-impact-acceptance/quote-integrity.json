@@ -1,0 +1,30 @@
+[
+  {
+    "pair_id": "000858-2025",
+    "items": 139,
+    "verified_items": 139,
+    "quote_failures": [],
+    "boundary": "核对引用能否回到原页，不证明会计路径正确或财务金额勾稽成立"
+  },
+  {
+    "pair_id": "600019-2025",
+    "items": 600,
+    "verified_items": 600,
+    "quote_failures": [],
+    "boundary": "核对引用能否回到原页，不证明会计路径正确或财务金额勾稽成立"
+  },
+  {
+    "pair_id": "300750-2025",
+    "items": 137,
+    "verified_items": 137,
+    "quote_failures": [],
+    "boundary": "核对引用能否回到原页，不证明会计路径正确或财务金额勾稽成立"
+  },
+  {
+    "pair_id": "000333-2025",
+    "items": 0,
+    "verified_items": 0,
+    "quote_failures": [],
+    "boundary": "核对引用能否回到原页，不证明会计路径正确或财务金额勾稽成立"
+  }
+]

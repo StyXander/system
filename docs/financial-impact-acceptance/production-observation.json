@@ -1,0 +1,7 @@
+{
+  "target": "https://audittrace-demo.onrender.com",
+  "checked_at": "2026-10-24T00:39:21.791737+08:00",
+  "new_release_verified": false,
+  "status": "unverified_network_failure",
+  "error": "ReadTimeout"
+}

@@ -1,0 +1,836 @@
+{
+  "generated_at": "2026-10-24T00:57:01.717550+08:00",
+  "source_commit": "1bc3f0a16b5e69913f019c1407c87863de720709",
+  "original_trial_requests": 12,
+  "original_trial_tokens": 119877,
+  "runs": [
+    {
+      "stage": "real-trial",
+      "arm": "single_model",
+      "task_id": "CONNJOB-A2D972F12D33",
+      "run_id": "CONN-97CAB7F5FE884403",
+      "task_status": "degraded",
+      "model_status": "single_partial",
+      "agent_status": "partial",
+      "actual_requests": 2,
+      "input_tokens": 17882,
+      "output_tokens": 1291,
+      "verified_judgments": 0,
+      "rejected_judgments": 3,
+      "tools": 5,
+      "provider_records": [
+        {
+          "role": "financial_single",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 8953,
+          "output_tokens": 1088,
+          "cost": null,
+          "input_sha256": "02bac61e9cea20321652ecf9a8c47582cba13fca357095b9c6dabee5265448ef",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "1734cd334e77aa3a712fd0516da1b1a04692e5c862ff676c2cc4a7bb95ab4ee8",
+          "duration_ms": 6272,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_single",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "failed",
+          "input_tokens": 8929,
+          "output_tokens": 203,
+          "cost": null,
+          "input_sha256": "9089b5d8d3fb7836cb6ae64fc27a213ce7e29a67f9edebf62a764e36b6412b71",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "9f6bb56f83616755cf62b3d8c20c2ad0b6b98f54a815645466203b79d2494ad7",
+          "duration_ms": 1319,
+          "failure_code": "MODEL_TOOL_CONTRACT_INVALID"
+        }
+      ],
+      "roles": [
+        {
+          "role": "single",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 8953,
+          "output_tokens": 1088,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "本轮为发现与规则适用阶段：对环保投入汇总披露按AR-12区分预算/披露与实际支出边界；对两个具体环保设施项目分别按AR-01（购建）与AR-02（转固）提出适用前提，均标注待程序验证。同时检索财务附注、反证与项目别名以补齐金额与阶段缺口。",
+          "context_sha256": "0252c59ab3758fa15a2a506877ca853c312f2819d8b5fd3b7ff3991681add65b",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元环保投入的资本性/费用性拆分、对应报表项目及是否含往年累计，原文未披露",
+            "EV-6C4136F206：酒糟生物质热电联产项目的立项时间、预算、已发生支出与在建工程明细对应关系缺失",
+            "EV-D1883246C7：沼气发电示范项目的建成时点、转固金额及折旧起始期间缺失",
+            "EV-7994D02757/EV-87F1B92DA9：同一《绿色生态发展企业标准》在p4与p8重复披露，阶段表述不一致（p4为“推进实施”、p8为“推进实施…系行业首个”），需确认是否同一事项",
+            "EV-B920EDCB10：使命表述属战略口号，非具体经济活动，建议剔除或降级为背景信息"
+          ]
+        },
+        {
+          "role": "single",
+          "round": 2,
+          "status": "failed",
+          "reason": "RoleCallFailure",
+          "failure": "MODEL_TOOL_CONTRACT_INVALID"
+        }
+      ],
+      "tool_summary": [
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_counter_evidence",
+          "role": "single",
+          "status": "no_match",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_project_aliases",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "single",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "single",
+          "status": "ok",
+          "verified": false,
+          "reason": ""
+        }
+      ],
+      "cost_cny": null,
+      "cost_note": "记录真实Token；人民币账单未核对，不虚构费用"
+    },
+    {
+      "stage": "real-trial",
+      "arm": "multi_agent",
+      "task_id": "CONNJOB-4F2184852ECE",
+      "run_id": "CONN-A5BBEFEBFC054D72",
+      "task_status": "completed",
+      "model_status": "three_agents_completed",
+      "agent_status": "completed",
+      "actual_requests": 6,
+      "input_tokens": 54399,
+      "output_tokens": 5524,
+      "verified_judgments": 0,
+      "rejected_judgments": 12,
+      "tools": 18,
+      "provider_records": [
+        {
+          "role": "financial_A1",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 8954,
+          "output_tokens": 560,
+          "cost": null,
+          "input_sha256": "328779d28bef6d92f1f6c02cb74dfaea9a322c73eb5e3f183f2a0c68a4ce87e0",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "8b69f4e0634fda4f659e750d27e817ba2d8b52a63679df01ee1c8e994893cccf",
+          "duration_ms": 4153,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_A1",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9090,
+          "output_tokens": 568,
+          "cost": null,
+          "input_sha256": "d57977023e69ab690cfb65a1cd2bcfdd1ba53dcfc49f0b227a2976dbcd10d148",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "4f6eaaae7044662bb45d6c7c93f82125fc8219da19e32b9988734aef2355f395",
+          "duration_ms": 3253,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_A2",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 8971,
+          "output_tokens": 1116,
+          "cost": null,
+          "input_sha256": "c189486c02cf4b367be7f4b9a502dc86cf07b065f63a1db680f5be6779ce851d",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "d976b0df4b197e8e2bb29bf39cb916cbc148f6218de4ad39e87ecc68a869563a",
+          "duration_ms": 5603,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_A2",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9077,
+          "output_tokens": 1108,
+          "cost": null,
+          "input_sha256": "c2371e4839fc218293a926b36c9e4367bfc6a9b7ed53e406d422a306b0d08c01",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "0aac4a8f60c24772a5a25bed567998a2cc1f722dd68a775f08b83d7f5a908cd0",
+          "duration_ms": 5458,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_A3",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9262,
+          "output_tokens": 1093,
+          "cost": null,
+          "input_sha256": "57c5b884eeea3fdaac4714cf7b402434936578a4a7a20e42d17ea5253a57b8eb",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "908a40b658f9668a92e53e8fc2f2c0605a60bbd7c838138b165f2a58ee78f50d",
+          "duration_ms": 4981,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_A3",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9045,
+          "output_tokens": 1079,
+          "cost": null,
+          "input_sha256": "70576ce5ceececf7d1760496c8aefe043dec53f3a7d55d97e994a1b049739c46",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "e0b930f83d5a1d3e4b49b47c962d814f5aa736fa1cc8d1a49536d09c9f01f1b6",
+          "duration_ms": 5297,
+          "cost_note": "实际账单未核对"
+        }
+      ],
+      "roles": [
+        {
+          "role": "A1",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 8954,
+          "output_tokens": 560,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "首轮A1：对6个事件做发现与字段核验。EV-357FA96C62的1.8亿元为“环保投入”总额口径，性质未明，需财务附注区分资本化/费用化；EV-6C4136F206与EV-D1883246C7为具体环保设施项目，需项目别名与在建工程明细匹配；EV-7994D02757与EV-87F1B92DA9为同一标准重复披露；EV-B920EDCB10为使命表述，非经济活动。本轮仅发起只读检索，不提出规则适用结论。",
+          "context_sha256": "3f86bf47f762a334fea3cb8e622b7697a4daaf091059ff9640fa52fee0936978",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元“环保投入”未明示是资本性支出还是费用性支出，也未明示是否包含在建工程/固定资产，需财务附注或环保投入明细表佐证",
+            "EV-6C4136F206、EV-D1883246C7：ESG原文未披露预算、发生额、开工/完工状态，需在建工程明细或项目台账",
+            "EV-7994D02757、EV-87F1B92DA9：同一《绿色生态发展企业标准》在p4与p8重复披露，阶段表述不一致（p4为“推进实施”、p8为“推进实施”），需确认是否为同一事项",
+            "EV-B920EDCB10：使命表述非具体经济活动，缺少项目、期间与金额，建议剔除或降级为背景信息",
+            "全部事件：scope（合并范围/母公司）未明示，需核对报告范围章节"
+          ]
+        },
+        {
+          "role": "A1",
+          "round": 2,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9090,
+          "output_tokens": 568,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "第2轮A1：上轮search_financial_notes对“环保投入/能源结构优化/智慧环保”零命中，项目别名检索亦无财务明细匹配。本轮改以更贴近附注用词的关键词（环保支出费用化/资本化、热电联产、沼气发电）分别检索三个设施类事件，尝试把ESG项目与在建工程明细表（p101-102）建立对应。本轮不提出规则适用结论，仅补检索缺口。",
+          "context_sha256": "d8098516d54d6153614570766caf0ff4351f3e833882e6dc6a77ff9adccad069",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元“环保投入”未明示资本性/费用性，也未明示是否含在建工程或固定资产，需环保投入明细表或附注分项",
+            "EV-6C4136F206、EV-D1883246C7：ESG原文无预算、发生额、开工/完工状态，需在建工程明细表或项目台账匹配",
+            "EV-7994D02757与EV-87F1B92DA9：同一《绿色生态发展企业标准》p4与p8重复披露，需确认是否同一事项并合并",
+            "EV-B920EDCB10：使命表述非具体经济活动，缺项目、期间、金额，建议剔除或降级为背景",
+            "全部事件：scope（合并/母公司）未明示，需核对报告范围章节",
+            "EV-357FA96C62：1.8亿元与在建工程期末余额7,033,625,017.49元口径关系未明，需确认是否包含于在建工程"
+          ]
+        },
+        {
+          "role": "A2",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 8971,
+          "output_tokens": 1116,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "A2首轮：对三个设施类事件分别绑定规则前提。EV-357FA96C62以AR-12处理“投入总额≠已发生资本性支出”的口径问题，并引用在建工程原页说明口径差异；EV-6C4136F206、EV-D1883246C7以AR-01为候选，但明确其适用前提（实际发生建造支出）尚未被原文证实。本轮仅发起只读检索补缺口，不确认金额、不判定等级。",
+          "context_sha256": "13ea6d7e8bd80bcf00423fa3efcf1d8c46d1fec37b37a1acdb8378d531d056ca",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元“环保投入”未区分资本性/费用性，也未明示是否含在建工程或固定资产，需环保投入分项明细表或附注",
+            "EV-6C4136F206、EV-D1883246C7：ESG无预算、发生额、开工/完工状态，财务附注两轮检索零命中，需在建工程明细表或项目台账",
+            "EV-7994D02757与EV-87F1B92DA9：同一《绿色生态发展企业标准》p4与p8重复披露，需确认是否同一事项并合并",
+            "EV-B920EDCB10：使命表述非具体经济活动，缺项目、期间、金额，建议剔除或降级为背景",
+            "全部事件：scope（合并/母公司）未明示，需核对报告范围章节"
+          ]
+        },
+        {
+          "role": "A2",
+          "round": 2,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9077,
+          "output_tokens": 1108,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "A2第2轮：上轮在建工程原页quote校验未通过，本轮改以inspect_financial_table重取p101原页；对热电联产项目补检索附注，对沼气发电项目主动检索反证（预算/进度/在建工程）。规则仅作候选前提绑定，不确认金额、不判定等级。",
+          "context_sha256": "90489a569f30a706bec46dd87fa057363976d12b396aff29e026dedad48182b9",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元“环保投入”未区分资本性/费用性，也未明示是否含在建工程或固定资产，需环保投入分项明细表或附注；与在建工程期末余额7,033,625,017.49元的口径关系未明",
+            "EV-6C4136F206、EV-D1883246C7：ESG无预算、发生额、开工/完工状态，财务附注多轮检索零命中，需在建工程明细表或项目台账",
+            "EV-7994D02757与EV-87F1B92DA9：同一《绿色生态发展企业标准》p4与p8重复披露，需确认是否同一事项并合并",
+            "EV-B920EDCB10：使命表述非具体经济活动，缺项目、期间、金额，建议剔除或降级为背景",
+            "全部事件：scope（合并/母公司）未明示，需核对报告范围章节",
+            "在建工程原页quote在verify_evidence中verified=false，需以inspect_financial_table重新取原页文本后再引用"
+          ]
+        },
+        {
+          "role": "A3",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9262,
+          "output_tokens": 1093,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "A3首轮：承接A1/A2缺口。对EV-357FA96C62改以“环保投入”检索财务附注分项；对两个设施项目改以项目别名检索（热电联产、沼气发电），尝试与在建工程明细建立对应。规则仅作候选前提绑定，不确认金额、不判定等级。EV-7994D02757/EV-87F1B92DA9为同一标准重复披露、EV-B920EDCB10为使命表述，本轮不提出规则适用。",
+          "context_sha256": "251c3c6f3364ce4a38df4a2915063ec079860c30548efd26bf962b1715aee77b",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元“环保投入”未区分资本性/费用性，也未明示是否含在建工程或固定资产，需环保投入分项明细表或附注；与在建工程期末余额7,033,625,017.49元的口径关系未明",
+            "EV-6C4136F206、EV-D1883246C7：ESG无预算、发生额、开工/完工状态，财务附注多轮检索零命中，需在建工程明细表或项目台账",
+            "EV-7994D02757与EV-87F1B92DA9：同一《绿色生态发展企业标准》p4与p8重复披露，需确认是否同一事项并合并",
+            "EV-B920EDCB10：使命表述非具体经济活动，缺项目、期间、金额，建议剔除或降级为背景",
+            "全部事件：scope（合并/母公司）未明示，需核对报告范围章节",
+            "在建工程原页quote在verify_evidence中verified=false，需以inspect_financial_table重新取原页文本后再引用"
+          ]
+        },
+        {
+          "role": "A3",
+          "round": 2,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9045,
+          "output_tokens": 1079,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "A3第2轮：上轮“环保投入”附注检索与项目别名检索均零命中。本轮改以inspect_financial_table重取p101在建工程原页文本（解决上轮quote校验未通过问题），并对两个设施项目主动调用search_counter_evidence检索预算/进度/在建工程反证。规则仅作候选前提绑定，不确认金额、不判定等级。",
+          "context_sha256": "0f3bbfeb5ed7ad71bc3f54a1822a839f2a08fbaf21bed905f83b85eaec9d395c",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元“环保投入”未区分资本性/费用性，也未明示是否含在建工程或固定资产，需环保投入分项明细表或附注；与在建工程期末余额7,033,625,017.49元的口径关系未明",
+            "EV-6C4136F206、EV-D1883246C7：ESG无预算、发生额、开工/完工状态，财务附注多轮检索零命中，需在建工程明细表或项目台账",
+            "EV-7994D02757与EV-87F1B92DA9：同一《绿色生态发展企业标准》p4与p8重复披露，需确认是否同一事项并合并",
+            "EV-B920EDCB10：使命表述非具体经济活动，缺项目、期间、金额，建议剔除或降级为背景",
+            "全部事件：scope（合并/母公司）未明示，需核对报告范围章节",
+            "在建工程原页quote在verify_evidence中verified=false，需以inspect_financial_table重新取原页文本后再引用"
+          ]
+        }
+      ],
+      "tool_summary": [
+        {
+          "tool": "search_financial_notes",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_project_aliases",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_project_aliases",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A2",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "inspect_financial_table",
+          "role": "A2",
+          "status": "rejected",
+          "verified": null,
+          "reason": "item_id不属于本次报告版本"
+        },
+        {
+          "tool": "search_project_aliases",
+          "role": "A2",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "A2",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "A2",
+          "status": "ok",
+          "verified": false,
+          "reason": ""
+        },
+        {
+          "tool": "inspect_financial_table",
+          "role": "A2",
+          "status": "rejected",
+          "verified": null,
+          "reason": "item_id不属于本次报告版本"
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A2",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_counter_evidence",
+          "role": "A2",
+          "status": "no_match",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A3",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_project_aliases",
+          "role": "A3",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_project_aliases",
+          "role": "A3",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_counter_evidence",
+          "role": "A3",
+          "status": "no_match",
+          "verified": null,
+          "reason": ""
+        }
+      ],
+      "cost_cny": null,
+      "cost_note": "记录真实Token；人民币账单未核对，不虚构费用"
+    },
+    {
+      "stage": "real-single-repair",
+      "arm": "single_model",
+      "task_id": "CONNJOB-E1759B25D943",
+      "run_id": "CONN-D20232B2F7D540C4",
+      "task_status": "degraded",
+      "model_status": "single_partial",
+      "agent_status": "partial",
+      "actual_requests": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "verified_judgments": 0,
+      "rejected_judgments": 0,
+      "tools": 0,
+      "provider_records": [
+        {
+          "role": "financial_single",
+          "performed": false,
+          "status": "failed",
+          "failure_code": "MODEL_QUOTA_UNAVAILABLE",
+          "failure_message": "当前访问来源的模型额度已达上限，请稍后再试。",
+          "duration_ms": 117,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost": null
+        }
+      ],
+      "roles": [
+        {
+          "role": "single",
+          "round": 1,
+          "status": "failed",
+          "reason": "HTTPException",
+          "failure": "429: 当前访问来源的模型额度已达上限，请稍后再试。"
+        }
+      ],
+      "tool_summary": [],
+      "cost_cny": null,
+      "cost_note": "记录真实Token；人民币账单未核对，不虚构费用"
+    },
+    {
+      "stage": "remaining-authorized-single",
+      "arm": "single_model",
+      "task_id": "CONNJOB-CFCCE9537E2B",
+      "run_id": "CONN-8AF633A856F940FC",
+      "task_status": "degraded",
+      "model_status": "single_partial",
+      "agent_status": "partial",
+      "actual_requests": 4,
+      "input_tokens": 35976,
+      "output_tokens": 4805,
+      "verified_judgments": 0,
+      "rejected_judgments": 14,
+      "tools": 17,
+      "provider_records": [
+        {
+          "role": "financial_single",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 8853,
+          "output_tokens": 849,
+          "cost": null,
+          "input_sha256": "b7702006d9f5a46f5f505699c0ef5af662b1eda2d2977d1596cac7097157f1d8",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "307f5d845c989a7d9829c1247f1cbacb696d0f9f2c819a1d7ab8420121fc9004",
+          "duration_ms": 4853,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_single",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9022,
+          "output_tokens": 1263,
+          "cost": null,
+          "input_sha256": "1bfdbdc2cb8846b00fefe2e03136d519ac9f48bd07ae9218e7f0081afc034b82",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "16ee5b390bb6d518f66d7e350d7648e978348271f4719e5b4f6bed246af592e5",
+          "duration_ms": 6255,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_single",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9082,
+          "output_tokens": 1356,
+          "cost": null,
+          "input_sha256": "e9e9a8afe9cfaebd29cd2146df22dfa67085e02156c83e559bab5e1704372168",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "9abb4778cb789f39af209b6419ca635c85aac355c764429288f083c7283b8a6f",
+          "duration_ms": 7101,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_single",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9019,
+          "output_tokens": 1337,
+          "cost": null,
+          "input_sha256": "370ed8433a0515a1b611ef9baa7f3f70bc9e03cc05ca949adda6a6cf3711e806",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "f303e14f8842f0db6b501a8f93507b1783c060dd7cedd6ca09996c0c5e88f11f",
+          "duration_ms": 6648,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_single",
+          "performed": false,
+          "status": "failed",
+          "failure_code": "MODEL_CALL_BUDGET_EXHAUSTED",
+          "duration_ms": 0,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost": null
+        }
+      ],
+      "roles": [
+        {
+          "role": "single",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 8853,
+          "output_tokens": 849,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "本轮先为已识别事件绑定财务附注与反证检索，仅提出规则适用候选，不作等级或金额确认。",
+          "context_sha256": "88a979cf271db8f5c08f168a4598b4662b261564f0c48538992468841abda286",
+          "unresolved": [
+            "EV-357FA96C62：1.8亿元环保投入的资本性/费用性拆分及对应报表项目（在建工程、管理费用、制造费用等）未见原文",
+            "EV-FC46EDB1BF：沼气发电项目“已建成…等待投运”与stage=completed不一致，需确认是否已转固及转固金额",
+            "EV-32ED79D762与EV-471E05DBA2：同一中水回用项目两条原文回用率分别为20%与15%，需核对口径与期间",
+            "EV-6C4136F206：酒糟生物质热电联产项目阶段与发生额均未明示",
+            "各事件scope均为未明示，需确认合并范围口径"
+          ]
+        },
+        {
+          "role": "single",
+          "round": 2,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9022,
+          "output_tokens": 1263,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "本轮针对上轮缺口定向检索：项目行原文定位、环保投入拆分、生物质热电联产项目财务对应；仅提出规则适用候选，不作等级或金额确认。",
+          "context_sha256": "ef26bc4cf042e18be09cc0c85909cbacaa7984d7a907df261047729ae98cf74f",
+          "unresolved": [
+            "EV-199C2992C7：ESG第19页仅称“配套建设”，财务附注第102页项目行原文校验未通过（verify_evidence返回verified=false），需重新定位该行原文页码与列名",
+            "EV-FC46EDB1BF：stage=completed与“等待投运”矛盾，需确认是否已转固、转固金额及折旧起始",
+            "EV-357FA96C62：1.8亿元环保投入的资本性/费用性拆分及对应报表项目未见原文",
+            "EV-32ED79D762与EV-471E05DBA2：同一中水回用项目回用率20%与15%两条原文口径与期间需核对",
+            "EV-6C4136F206：项目阶段与发生额均未明示",
+            "各事件scope均为未明示，需确认合并范围口径"
+          ]
+        },
+        {
+          "role": "single",
+          "round": 3,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9082,
+          "output_tokens": 1356,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "本轮针对上轮缺口定向检索：成品酒包装项目财务行定位、环保投入拆分、生物质热电联产反证；仅提出规则适用候选，不作等级或金额确认。",
+          "context_sha256": "be049ea2daa1983e07c45a178b3e1b040924ca117147aa68e56659cb635ca539",
+          "unresolved": [
+            "EV-199C2992C7：财务附注在建工程项目行原文未定位（第101页总额行verify_evidence返回verified=false），需重新定位项目行页码与列名",
+            "EV-FC46EDB1BF：stage=completed与“等待投运”矛盾，需确认是否已转固、转固金额及折旧起始",
+            "EV-357FA96C62：1.8亿元环保投入的资本性/费用性拆分及对应报表项目未见原文",
+            "EV-32ED79D762与EV-471E05DBA2：同一中水回用项目回用率20%与15%两条原文口径与期间需核对",
+            "EV-6C4136F206：项目阶段与发生额均未明示，财务附注检索0条",
+            "各事件scope均为未明示，需确认合并范围口径"
+          ]
+        },
+        {
+          "role": "single",
+          "round": 4,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9019,
+          "output_tokens": 1337,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "本轮为成品酒包装项目绑定在建工程/转固规则候选，为环保投入汇总数绑定预算与资本性/费用性边界规则候选，并定向检索沼气发电、热电联产、环保支出的财务附注；仅提出适用候选，不作等级或金额确认。",
+          "context_sha256": "8c8227c71b9e3ebbd0420933a5645952b16f78efdf776ccd79180cfad4b6586a",
+          "unresolved": [
+            "EV-199C2992C7：ESG“配套建设”与财务附注在建工程行（第102页，本期增加96,752,274.86元、转固21,538,979.92元）已建立候选关联，但该行原文页码/列名仍需verify_evidence复核；转固部分是否达到预定可使用状态及折旧起始未见原文",
+            "EV-FC46EDB1BF：stage=completed与“等待投运”矛盾，需确认是否已转固、转固金额及折旧起始",
+            "EV-357FA96C62：1.8亿元环保投入的资本性/费用性拆分及对应报表项目未见原文",
+            "EV-32ED79D762与EV-471E05DBA2：同一中水回用项目回用率20%与15%两条原文口径与期间需核对",
+            "EV-6C4136F206：项目阶段与发生额均未明示，财务附注检索0条",
+            "各事件scope均为未明示，需确认合并范围口径"
+          ]
+        },
+        {
+          "role": "single",
+          "round": 5,
+          "status": "failed",
+          "reason": "ValueError",
+          "failure": "MODEL_CALL_BUDGET_EXHAUSTED"
+        }
+      ],
+      "tool_summary": [
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_counter_evidence",
+          "role": "single",
+          "status": "no_match",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "single",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "single",
+          "status": "ok",
+          "verified": false,
+          "reason": ""
+        },
+        {
+          "tool": "inspect_financial_table",
+          "role": "single",
+          "status": "rejected",
+          "verified": null,
+          "reason": "item_id不属于本次报告版本"
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "single",
+          "status": "ok",
+          "verified": false,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "single",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_counter_evidence",
+          "role": "single",
+          "status": "no_match",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "single",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "single",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        }
+      ],
+      "cost_cny": null,
+      "cost_note": "记录真实Token；人民币账单未核对，不虚构费用"
+    }
+  ],
+  "post_fix_multi_verified": false,
+  "professional_labels": "not_completed",
+  "accuracy_metrics": null,
+  "vector_status": "degraded_no_vector",
+  "expert_rule_review": "pending_human_review",
+  "release_gate": "blocked_pending_real_model_acceptance",
+  "deployed": false
+}
