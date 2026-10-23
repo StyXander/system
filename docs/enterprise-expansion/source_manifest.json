@@ -64,7 +64,7 @@
   "backend/app/knowledge_rag.py": "a8ccaa824f90c917c3ef9e87f4f3d29e707de51c1011be88dc6668d6a7223326",
   "backend/app/knowledge_sources.py": "3196b2fae58506daecd72403f6f7b83256dcbc003ce832f2288d10a651146569",
   "backend/app/legacy_ai_opinion.py": "8350327a3655dcce251803ce0645a2273a37b8aae820914d186c3808fffe6f7a",
-  "backend/app/main.py": "ebe1446aba89ba58ee3805222a612f23129238f26a591dbe3c3e1e9b638bbc77",
+  "backend/app/main.py": "7ab5f0eec1bd9cad5c320b47d85f09249853ea37e19b26da6f6a638285bb1b2c",
   "backend/app/manifest_hash.py": "a55d351070a27c9439e2a6849e76f2d5898ef76de5875e1137020e3aecd7595b",
   "backend/app/model_quality.py": "0f461155fe3e0aa853fbf0575bb2ae39b87bb6b9d4583de175ca5cc6b1f99563",
   "backend/app/numeric_gate.py": "0ee8d9f8793ab3efa4e380274e7a8d5aff0d5d94a7453b18c88d57401dea1baa",

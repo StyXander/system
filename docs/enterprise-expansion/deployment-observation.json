@@ -1,12 +1,28 @@
 {
   "target": "https://audittrace-demo.onrender.com",
-  "checked_at": "2026-10-23T11:18:20.315079+00:00",
+  "checked_at": "2026-10-23T11:42:48.561145+00:00",
   "requests": [
     {
       "path": "/api/health",
       "status": 200,
-      "deployment": {},
-      "project_facts": null
+      "deployment": {
+        "commit": "7eb8c6235bba552ff6328eec048b7972d0708a8e",
+        "entry": "backend.app.connectivity_app:app",
+        "release": "2026.10.23.enterprise.1",
+        "identity_source": "runtime_environment"
+      },
+      "project_facts": {
+        "task_kind": "connectivity",
+        "formal_scope": "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、完成可复算检查、定位证据及待补条件。",
+        "pair_count": 17,
+        "document_count": 34,
+        "company_count": 16,
+        "topic_count": 3,
+        "rule_count": 6,
+        "schema_version": "connectivity_v5",
+        "notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
+        "capability_boundary": "已登记公开报告专项核验；未承诺任意上传、全指标覆盖或审计鉴证意见"
+      }
     },
     {
       "path": "/",
@@ -14,10 +30,10 @@
     },
     {
       "path": "/api/connectivity/catalog",
-      "status": 404,
-      "pair_count": 0,
-      "ready_count": 0,
-      "persistence": null
+      "status": 200,
+      "pair_count": 17,
+      "ready_count": 17,
+      "persistence": "supabase"
     },
     {
       "path": "/api/connectivity/bootstrap",
@@ -25,20 +41,20 @@
       "project_facts": {
         "task_kind": "connectivity",
         "formal_scope": "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、完成可复算检查、定位证据及待补条件。",
-        "pair_count": 5,
-        "document_count": 10,
-        "company_count": 4,
+        "pair_count": 17,
+        "document_count": 34,
+        "company_count": 16,
         "topic_count": 3,
         "rule_count": 6,
-        "schema_version": "connectivity_v4",
+        "schema_version": "connectivity_v5",
         "notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
         "capability_boundary": "已登记公开报告专项核验；未承诺任意上传、全指标覆盖或审计鉴证意见"
       }
     }
   ],
-  "runtime_commit": null,
-  "new_company_entry_present": false,
-  "catalog_available": false,
-  "new_version_verified": false,
+  "runtime_commit": "7eb8c6235bba552ff6328eec048b7972d0708a8e",
+  "new_company_entry_present": true,
+  "catalog_available": true,
+  "new_version_verified": true,
   "model_requests_sent": 0
 }

@@ -97,6 +97,16 @@ with (DOCS / 'B_企业原件清单.csv').open('w', encoding='utf-8-sig', newline
         for d in row['documents']:
             writer.writerow({key: ('、'.join(row[key]) if isinstance(row.get(key), list) else row.get(key, d.get(key, ''))) for key in fields})
 
+deployment = load(DOCS / 'deployment-observation.json') if (DOCS / 'deployment-observation.json').exists() else {}
+production_browser = load(OUT / 'production-browser.json') if (OUT / 'production-browser.json').exists() else {}
+production_browser_verified = bool(deployment.get('new_version_verified') and production_browser.get('new_entry')
+    and production_browser.get('health', {}).get('deployment', {}).get('commit') == deployment.get('runtime_commit')
+    and production_browser.get('calculation_status') == 'completed' and production_browser.get('company_isolated')
+    and production_browser.get('calculation_model_calls') == 0 and not production_browser.get('errors')
+    and production_browser.get('result_visible') and production_browser.get('source_status') == 200
+    and all(production_browser.get('exports', {}).get(kind) == 200 for kind in ('json', 'csv', 'docx')))
+online_summary = ('线上新版运行时身份、新搜索、17组原件及新增企业程序流水线已验证'
+                  if production_browser_verified else '线上新版完整业务流程尚未验证')
 facts = {'generated_at': datetime.now(timezone(timedelta(hours=8))).isoformat(), 'counts': stats,
     'backend_tests': dict(counts), 'frontend_tests_passed': 29, 'live_model_status': model['model_status'],
     'paid_trial_authorized': {'company': '601012', 'year': 2025, 'model': 'deepseek-flash',
@@ -104,7 +114,10 @@ facts = {'generated_at': datetime.now(timezone(timedelta(hours=8))).isoformat(),
     'trial_task_id': model_task['task_id'], 'trial_run_id': model['run_id'],
     'formal_ai_opinions_this_trial': len(model['ai_opinions']), 'model_billing_verified': False,
     'source_recovery': fresh, 'shared_catalog_recovery': recovery,
-    'production_deployed': False, 'deployment_verification': 'see separate deployment-observation.json',
+    'production_deployed': bool(deployment.get('new_version_verified')),
+    'production_application_commit': deployment.get('runtime_commit'),
+    'production_browser_verified': production_browser_verified,
+    'deployment_verification': 'see separate deployment-observation.json and evidence/production-browser.json',
     'synthetic_tests_are_business_evidence': False}
 dump(DOCS / 'release_facts.json', facts)
 manifest = {str(p.relative_to(ROOT)).replace('\\', '/'): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -183,7 +196,7 @@ for order, score in enumerate(chosen,1):
         residual = calculation.get('residual')
         text.append(f"- 程序记录：{clean(check['title'])}；结论 `{check['conclusion_level']}`；输入与过程 `{clean(calculation.get('expression','未形成正式计算'))}`。正式差额：{residual if residual is not None else '未输出（前提未齐），空值不当作零'}。")
     if score['company_id']=='601012':
-        text.append(f"本轮真实 A1/A2/A3 共 {len(calls)} 次调用。候选由程序初始 {len(raw['checks'])} 条变为真实运行保存的 {len(model['checks'])} 条，新增或细化了合并/母公司收入、研发费用及研发占比分母的核验线索。最终 AI 意见 {len(model['ai_opinions'])} 条；状态 `{model['model_status']}`，A3 收尾因 Token 停止线未完成，不能演示成完整成功。")
+        text.append(f"本轮真实 A1/A2/A3 共 {len(calls)} 次调用。候选由程序初始 {len(raw['checks'])} 条变为真实运行保存的 {len(model['checks'])} 条，新增或细化了合并/母公司收入、研发费用及研发占比分母的核验线索。最终 AI 意见 {len(model['ai_opinions'])} 条；状态 `{model['model_status']}`。A3 意见未通过年度、原文、数值及专业边界校验，修复请求受 Token 停止线阻止，不能演示成完整成功。")
     else:
         text.append('本轮只验证程序链，未对此企业调用模型；没有可声称的本轮智能体增益。')
     gaps=list(dict.fromkeys(g for c in raw['checks'] for g in c.get('unresolved',[])))[:5]
@@ -198,7 +211,7 @@ write('C_搜索与运行演示.md', f'''# 搜索与运行实际操作
 
 本机正式入口 http://127.0.0.1:8893 。本轮新增隆基绿能在页面中完成“搜索 → 确认 601012 → 查询 2025 双报告 → 选择公告版本 → 后台校验并登记 → three_agents → 查看结果”。页面复验准备时复用本轮此前已经验证的同版本原件，没有把缓存命中称为重新下载。
 
-真实任务：{model_task['task_id']}；run_id：{model['run_id']}。真实模型调用 {len(calls)} 次，输入 {stats['input_tokens']}、输出 {stats['output_tokens']} Token；状态 `{model['model_status']}`。A3 返回后越过 12万已消费 Token 停止线，后续请求被阻止；这是一轮部分完成的真实试跑，绝不是完整三角色成功。实际人民币账单未核对，不把未知费用写成0。
+真实任务：{model_task['task_id']}；run_id：{model['run_id']}。真实模型调用 {len(calls)} 次，输入 {stats['input_tokens']}、输出 {stats['output_tokens']} Token；状态 `{model['model_status']}`。A3 返回内容包含年度错配及未通过原文、数值和专业边界校验的意见，最终未采纳为有效 AI 意见。A3 返回后越过 12万已消费 Token 停止线，修复请求被阻止；这是一轮部分完成的真实试跑，绝不是完整三角色成功。实际人民币账单未核对，不把未知费用写成0。
 
 ![企业身份搜索](evidence/01-企业搜索.png)
 ![双报告候选](evidence/02-双报告候选.png)
@@ -208,10 +221,12 @@ write('C_搜索与运行演示.md', f'''# 搜索与运行实际操作
 最终浏览器复验覆盖名称、代码、全称、ljln、近似名称、未登记福耀玻璃、不存在的明确合成名称；身份候选需点击确认。中国神华仅找到年报时明确缺 ESG；未来年度返回422。切换企业不清空原任务；原页与 JSON/CSV/DOCX 导出均200，引用均属本企业。另从页面实际启动伊利的 calculation_only，零模型调用并得到程序结果。
 
 1440×1000、1024×768、768×1024、390×844 均无横向溢出。公网登录与权限使用现有 Supabase 组织账号；身份搜索和已完成结果读取不等于拥有新下载或付费模型权限。本轮没有使用真人账号密码执行公网登录，相关 Cookie 和权限边界由隔离合同测试验证。
+
+公网验收：{online_summary}。运行提交 `{deployment.get('runtime_commit')}`；浏览器程序任务 `{production_browser.get('calculation_task_id', '未完成')}`，状态 `{production_browser.get('calculation_status', '未验证')}`。公网没有追加真实模型请求；本轮隆基模型试跑保留为本机运行证据。生产截图与回执见 evidence/production-*。
 ''')
 write('E_验收报告.md', f'''# 企业扩容与正式搜索验收
 
-结论：本轮代码、原件、程序流水线和本地浏览器验收通过；**完整真实 three_agents 成功门槛尚未通过，线上新版尚未验证部署**。不能把这两项写成全部完成。
+结论：本轮代码、原件、程序流水线和本地浏览器验收通过；{online_summary}。**完整真实 three_agents 成功门槛尚未通过**，不能把整体任务写成全部完成。
 
 |范围|实际结果|
 |---|---|
@@ -222,6 +237,7 @@ write('E_验收报告.md', f'''# 企业扩容与正式搜索验收
 |共享持久化|Supabase恢复 {recovery['recovered_without_local_snapshot']} 对新增登记；无本地快照空实例实际重取隆基 AR/ESG，哈希与页数通过|
 |浏览器|七类身份搜索、缺 ESG、未来年度、企业切换保留结果、四屏、原页与三格式导出通过；无页面异常|
 |真实付费模型|仅获准一次隆基试跑；{len(calls)} 个真实请求，最终部分完成，完整成功0家|
+|生产部署|运行提交 `{deployment.get('runtime_commit')}`；{online_summary}；没有新增付费调用|
 
 自动化负例覆盖：身份/期间错配、摘要及英文版、非白名单与私网 URL、旧版本身份覆盖、同 AR 多版 ESG、重复任务、队列限制、存储预算、离线恢复、坏缓存、公共目录任务链接隐私、匿名付费调用、HttpOnly 会话与同源约束。故障输入和测试 PDF 明确合成，不计入真实企业数量。
 
@@ -229,9 +245,9 @@ write('E_验收报告.md', f'''# 企业扩容与正式搜索验收
 
 性能与边界：下载、解析有独立后台任务与有界槽位，身份查询不等待整份 PDF 的表格处理；同哈希和同版官方 URL 复用原件。固定演示评分使用本机真实运行耗时，不承诺公网或无缓存90秒完成。共享数据库不可达时，目录可展示已核实离线记录；公网任务写入仍需存储服务，本机离线模式可继续运行已缓存案例。
 
-本轮保留的失败：万华正文身份未通过；三家候选尚缺本轮查询可接入的 ESG；紫金未形成适合展示的财务路径；隆基 A3 收尾被预算阻止。真实模型试跑之前曾因未明确模型/目的地/预算被自动权限审核拒绝，随后用户明确授权一次，执行范围没有扩大。
+本轮保留的失败：万华正文身份未通过；三家候选尚缺本轮查询可接入的 ESG；紫金未形成适合展示的财务路径；隆基 A3 意见未通过年度、原文、数值及专业边界校验，修复请求被预算阻止。真实模型试跑之前曾因未明确模型/目的地/预算被自动权限审核拒绝，随后用户明确授权一次，执行范围没有扩大。
 
-代码版本见 source_manifest.json 和本分支 Git 提交，不把旧基线 SHA 当成本轮成果身份。生产观察另见 deployment-observation.json；推送不等于部署。正式上线前仍应核实 Render 实际提交与业务原件就绪，不以静态页面200替代验收。
+代码版本见 source_manifest.json 和本分支 Git 提交，不把旧基线 SHA 当成本轮成果身份。生产观察另见 deployment-observation.json、evidence/production-browser.json 与 F_GitHub与部署.md；推送、部署平台 success 和真实业务完成分别核对。公网同一伊利任务原文状态为 {production_browser.get('source_status', '未验证')}，逐格式导出回执为 {production_browser.get('exports', '未验证')}；本机原文和三格式导出已实测通过。
 ''')
 evidence = DOCS / 'evidence'
 evidence.mkdir(exist_ok=True)
@@ -239,6 +255,9 @@ for name in ['01-企业搜索.png','02-双报告候选.png','03-原件接入完�
              '企业搜索最终_1440x1000.png','企业搜索最终_390x844.png',
              'browser-company-final.json','supabase-catalog-recovery.json','fresh-instance-pair-recovery.json']:
     shutil.copyfile(OUT / name, evidence / name)
+for name in ['production-browser.json', 'production-desktop.png', 'production-mobile.png']:
+    if (OUT / name).exists():
+        shutil.copyfile(OUT / name, evidence / name)
 dump(evidence / 'model-trial-receipt.json', {'task_id':model_task['task_id'],'run_id':model['run_id'],
     'model_status':model['model_status'],'provider_calls':model['provider_calls'],'final_ai_opinions':len(model['ai_opinions'])})
 dump(evidence / 'test-summary.json', dict(counts))
