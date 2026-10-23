@@ -1594,7 +1594,7 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             from .financial_impact.agents import investigate
             progress('financial_impact', 'running', '先核对事项、会计路径与项目级证据，再执行模型工具调查')
             run.financial_impact = build_financial_impact(root, documents=docs, model_runner=None)
-            investigate(root, run, financial_invoke, mode=request.mode)
+            investigate(root, run, financial_invoke, mode=request.mode, max_calls=min(request.max_model_calls or 6,6))
         except InterruptedError:
             raise
         except Exception as error:

@@ -298,3 +298,24 @@ def test_table_title_cannot_be_a_fragment_of_column_header():
     from backend.app.financial_impact.financial_notes import _title_above
     assert _title_above([{'text':'重要在建工程项目本期变动情况','bbox':[0,50,400,70]},
         {'text':'息','bbox':[0,85,20,97]}, {'text':'转入固定资产','bbox':[20,90,200,110]}],[0,95,500,400])=='重要在建工程项目本期变动情况'
+
+
+def test_structured_row_quote_is_actual_pdf_text_not_a_pipe_serialization():
+    from backend.app.financial_impact.financial_notes import original_row_quote
+    text='重要在建工程项目变动\n项目名称 预算数\n包装仓储项目（注1）\n8,596,655,000.00\n899,834,791.90\n后续项目'
+    quote=original_row_quote(text,'包装仓储项目（注1）','8,596,655,000.00')
+    from backend.app.financial_impact.textutil import compact
+    assert compact(quote) in compact(text) and '|' not in quote
+    assert '8,596,655,000.00' in quote
+    assert agents.TOOL_ARGUMENTS['inspect_financial_table']['required'].get('item_id')
+
+
+def test_three_call_budget_allocates_one_turn_to_each_role(workspace):
+    root,run,*_=workspace
+    seen=[]
+    def invoke(role,payload):
+        seen.append(role)
+        return {},{'performed':True,'model':'OFFLINE_TEST_DOUBLE'}
+    receipt=agents.investigate(root,run,invoke,max_calls=3)
+    assert seen==['financial_A1','financial_A2','financial_A3']
+    assert receipt['calls']==3 and receipt['model_status']=='completed_no_verified_judgments'

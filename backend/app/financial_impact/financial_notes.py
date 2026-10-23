@@ -195,6 +195,17 @@ def load_note_pages(pdf_path: Path, *, max_pages: int = MAX_PAGES) -> tuple[list
     return pages, receipt
 
 
+def original_row_quote(text: str, row_header: str, raw_value: str) -> str:
+    """引文必须是PDF原文的连续片段；表格分隔符和列标签只保存在结构字段。"""
+    source, label, value = compact(text), compact(row_header), compact(raw_value)
+    start = source.find(label) if label else -1
+    while start >= 0:
+        if value in source[start:start+600]:
+            return source[start:start+300]
+        start = source.find(label, start+len(label))
+    return label if label and label in source else ''
+
+
 def parse_notes(pages: list[dict], document, *, limit: int = MAX_ITEMS) -> tuple[list[FinancialItem], dict]:
     items: list[FinancialItem] = []
     seen: set[str] = set()
@@ -274,7 +285,7 @@ def parse_notes(pages: list[dict], document, *, limit: int = MAX_ITEMS) -> tuple
                         scope=scope, currency=currency,
                         document_id=document.document_id, file_sha256=getattr(document, "file_sha256", ""),
                         pdf_page=page_no, bbox=bbox,
-                        quote=compact(" | ".join(cell for cell in row if cell))[:300],
+                        quote=original_row_quote(text, row_header, raw),
                         page_verified=bool(compact(row_header)) and compact(row_header) in compact(text) and compact(raw) in compact(text),
                         table_title=(title or ("跨页续表" if inherited else ""))[:60],
                     ))

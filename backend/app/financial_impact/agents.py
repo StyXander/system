@@ -17,6 +17,19 @@ TOOLS = ('search_esg_events', 'search_financial_notes', 'search_project_aliases'
          'search_counter_evidence', 'recalculate_financial_bridge')
 
 
+TOOL_ARGUMENTS = {
+ 'search_esg_events': {'required':{'query':'具体活动关键词'},'optional':{'limit':'1到10'}},
+ 'search_financial_notes': {'required':{'query':'项目名或会计科目'},'optional':{'limit':'1到10'}},
+ 'search_project_aliases': {'required':{'event_id':'本批事项ID'}},
+ 'get_accounting_rules': {'optional':{'keyword':'会计事项词','activity_type':'输入规则中的活动类型'}},
+ 'inspect_financial_table': {'required':{'item_id':'输入或检索返回的FI-开头真实ID；不能自造'}},
+ 'compare_reporting_scope': {'required':{'event_id':'本批事项ID','item_id':'真实财务项目ID'}},
+ 'verify_evidence': {'required':{'document_id':'登记文档ID','page':'整数PDF顺序页','quote':'PDF实际连续原文，不能拼接表格竖线或改写'}},
+ 'search_counter_evidence': {'required':{'event_id':'本批事项ID'}},
+ 'recalculate_financial_bridge': {'required':{'event_id':'本批事项ID','item_id':'真实财务项目ID'}}
+}
+
+
 class Contract(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
@@ -118,11 +131,12 @@ def investigate(root, run, invoke, *, mode='three_agents', max_calls=6, max_tool
         if stopped:
             trace.append({'role': role, 'status': 'skipped', 'reason': '共享预算或配置阻止继续请求'})
             continue
-        for round_number in range(1, (6 if role == 'single' else 2) + 1):
+        role_rounds = max_calls if role == 'single' else (1 if max_calls <= 3 else 2)
+        for round_number in range(1, role_rounds + 1):
             if calls >= max_calls:
                 stopped = True
                 break
-            payload = {'role': role, 'round': round_number, 'tools': list(TOOLS),
+            payload = {'role': role, 'round': round_number, 'tools': TOOL_ARGUMENTS, 'remaining_model_calls':max_calls-calls,
                 'events': [event.model_dump(mode='json', include={'event_id','document_id','file_sha256','pdf_page','quote','project_name','activity_type','period','scope','stage','amount_nature','amounts'}) for event in selected],
                 'disclosure_candidates': data.get('retrieval', {}).get('disclosure_candidates', [])[:8],
                 'items': [item.model_dump(mode='json', exclude={'bbox','currency','scope'}) for item in sorted(items.values(), key=lambda item: not any(event.project_name and event.project_name in item.row_header for event in selected))][:12],
