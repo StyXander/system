@@ -12,10 +12,32 @@ OUT = ROOT / "outputs/model_arms"
 
 
 def load_index() -> list[dict]:
-    path = OUT / "index.json"
-    if not path.exists():
-        return []
-    return json.loads(path.read_text(encoding="utf-8")).get("results", [])
+    """扫描逐次落盘的结果文件；index.json 只记录最后一次调用，不能作为全集。"""
+    rows = []
+    for path in sorted(OUT.glob("*.json")):
+        if path.name == "index.json":
+            continue
+        try:
+            run = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        calls = run.get("provider_calls") or []
+        rows.append({
+            "pair_id": path.stem.split("_")[0],
+            "mode": "_".join(path.stem.split("_")[1:]),
+            "status": "completed",
+            "run_id": run.get("run_id"),
+            "model_status": run.get("model_status"),
+            "provider_calls": len(calls),
+            "input_tokens": sum(int(c.get("input_tokens") or 0) for c in calls),
+            "output_tokens": sum(int(c.get("output_tokens") or 0) for c in calls),
+            "duration_ms": run.get("duration_ms"),
+            "ai_analyses": len(run.get("ai_analyses") or []),
+            "financial_assessments": [
+                {"verdict": entry.get("verdict"), "project_name": entry.get("project_name")}
+                for entry in run.get("intelligence_trace", []) if entry.get("kind") == "financial_assessment"],
+        })
+    return rows
 
 
 def latest_by_arm(results: list[dict]) -> dict[tuple[str, str], dict]:

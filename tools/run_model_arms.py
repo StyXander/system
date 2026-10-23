@@ -89,7 +89,14 @@ def main() -> int:
             results.append(record)
             print(json.dumps(record, ensure_ascii=False)[:600], flush=True)
     index = out_dir / "index.json"
-    index.write_text(json.dumps({"schema": "model_arms_v1", "results": results}, ensure_ascii=False, indent=2),
+    previous = []
+    if index.exists():
+        try:
+            previous = json.loads(index.read_text(encoding="utf-8")).get("results", [])
+        except Exception:
+            previous = []
+    merged = previous + results
+    index.write_text(json.dumps({"schema": "model_arms_v1", "results": merged}, ensure_ascii=False, indent=2),
                      encoding="utf-8")
     print(f"written: {index}")
     return 0
