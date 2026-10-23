@@ -1,0 +1,456 @@
+{
+  "pairs": [
+    {
+      "pair_id": "",
+      "occurrences": 228,
+      "checks": 7,
+      "formal": 0,
+      "assumption_compatible": 4,
+      "unexplained_difference": 0,
+      "insufficient_basis": 3,
+      "not_comparable": 0,
+      "not_applicable": 0,
+      "calculation_status": {
+        "not_comparable": 7
+      },
+      "levels": {
+        "insufficient_basis": 3,
+        "assumption_compatible": 4
+      },
+      "conditions": {
+        "主体:supported": 7,
+        "期间:supported": 7,
+        "定义:supported": 3,
+        "范围:unknown": 7,
+        "单位:supported": 7,
+        "定义:unknown": 4,
+        "公式:supported": 2
+      },
+      "unresolved_top": {
+        "范围依据尚未充分说明": 7,
+        "货币成员币种尚未证实，金额换算只能列假设试算": 4,
+        "定义依据尚未充分说明": 4,
+        "该关系由同报告内多处同名披露得到，尚缺原文对两者关系本身的说明": 2
+      },
+      "rejections": 20,
+      "rejection_reasons": {
+        "列头同时含多个年度，无法确定该值属于哪一期": 6,
+        "指标“报≤营业收入总额的”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑": 4,
+        "指标“营业收入（元）”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 1,
+        "指标“研发费用”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 1,
+        "指标“研发投入金额（元）”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑": 1,
+        "指标“研发投入资本化的金额（元）”与单位量纲冲突：应为money，实际为ratio；需校正原": 1,
+        "已登记的非企业自身指标：macro": 1,
+        "指标“司实现营业总收入”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 1
+      },
+      "money_rows": 0,
+      "currency_unknown": 0,
+      "ai_analyses": 0,
+      "provider_calls": 0,
+      "checks_brief": [
+        {
+          "rule_id": "EQ-001",
+          "title": "研发人员数量 · 年报与ESG披露数值核对",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入占营业收入比例 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入金额 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "营业收入 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发费用 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · 公式与分母",
+          "level": "assumption_compatible",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · 公式与分母",
+          "level": "assumption_compatible",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        }
+      ]
+    },
+    {
+      "pair_id": "",
+      "occurrences": 320,
+      "checks": 2,
+      "formal": 0,
+      "assumption_compatible": 0,
+      "unexplained_difference": 0,
+      "insufficient_basis": 2,
+      "not_comparable": 0,
+      "not_applicable": 0,
+      "calculation_status": {
+        "not_comparable": 2
+      },
+      "levels": {
+        "insufficient_basis": 2
+      },
+      "conditions": {
+        "主体:supported": 2,
+        "期间:supported": 2,
+        "定义:unknown": 1,
+        "范围:supported": 1,
+        "单位:supported": 2,
+        "定义:supported": 1,
+        "范围:unknown": 1
+      },
+      "unresolved_top": {
+        "该关系由同报告内多处同名披露得到，尚缺原文对两者关系本身的说明": 2,
+        "货币成员币种尚未证实，金额换算只能列假设试算": 2,
+        "定义依据尚未充分说明": 1,
+        "范围依据尚未充分说明": 1
+      },
+      "rejections": 25,
+      "rejection_reasons": {
+        "列头同时含多个年度，无法确定该值属于哪一期": 13,
+        "指标“营业收入合计”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 3,
+        "指标“营业总收入”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 2,
+        "指标“营业收入（千元）”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 1,
+        "指标“球奖。此外，通过持续加大对人形机器人关节模组的研发投入，已取得多项突破”与单位量纲冲突": 1,
+        "指标“美的持续加大研发投入，优化“三个一代”研发模式，完善研究组织 TP”与单位量纲冲突：应": 1,
+        "指标“研发费用”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 1,
+        "指标“研发人员数量（人）”与单位量纲冲突：应为people，实际为ratio；需校正原文行列": 1
+      },
+      "money_rows": 0,
+      "currency_unknown": 0,
+      "ai_analyses": 0,
+      "provider_calls": 0,
+      "checks_brief": [
+        {
+          "rule_id": "OCC-001",
+          "title": "营业收入 · 同一报告内3处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发费用 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        }
+      ]
+    },
+    {
+      "pair_id": "",
+      "occurrences": 246,
+      "checks": 7,
+      "formal": 0,
+      "assumption_compatible": 3,
+      "unexplained_difference": 0,
+      "insufficient_basis": 4,
+      "not_comparable": 0,
+      "not_applicable": 0,
+      "calculation_status": {
+        "not_comparable": 7
+      },
+      "levels": {
+        "assumption_compatible": 3,
+        "insufficient_basis": 4
+      },
+      "conditions": {
+        "主体:supported": 7,
+        "期间:supported": 7,
+        "定义:supported": 1,
+        "范围:unknown": 6,
+        "单位:supported": 7,
+        "定义:unknown": 6,
+        "范围:supported": 1,
+        "公式:supported": 2
+      },
+      "unresolved_top": {
+        "范围依据尚未充分说明": 6,
+        "定义依据尚未充分说明": 6,
+        "货币成员币种尚未证实，金额换算只能列假设试算": 5,
+        "该关系由同报告内多处同名披露得到，尚缺原文对两者关系本身的说明": 2
+      },
+      "rejections": 34,
+      "rejection_reasons": {
+        "列头同时含多个年度，无法确定该值属于哪一期": 10,
+        "指标“研发人员”与单位量纲冲突：应为people，实际为money；需校正原文行列绑定": 7,
+        "指标“营业收入合计”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 3,
+        "指标“研发费用”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 3,
+        "已登记的非企业自身指标：macro": 2,
+        "宽泛财务分母指标不作为独立待查关系；只在比例/强度关系中保留": 2,
+        "指标“营业收入”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 1,
+        "指标“期营业收入”与单位量纲冲突：应为money，实际为ratio；需校正原文行列绑定": 1
+      },
+      "money_rows": 0,
+      "currency_unknown": 0,
+      "ai_analyses": 0,
+      "provider_calls": 0,
+      "checks_brief": [
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入占营业收入比例 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "营业收入 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发费用 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · 公式与分母",
+          "level": "assumption_compatible",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · 公式与分母",
+          "level": "assumption_compatible",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发人员数量 · 非同名指标映射候选",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入金额 · 非同名指标映射候选",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        }
+      ]
+    },
+    {
+      "pair_id": "",
+      "occurrences": 691,
+      "checks": 5,
+      "formal": 0,
+      "assumption_compatible": 0,
+      "unexplained_difference": 0,
+      "insufficient_basis": 5,
+      "not_comparable": 0,
+      "not_applicable": 0,
+      "calculation_status": {
+        "not_comparable": 5
+      },
+      "levels": {
+        "insufficient_basis": 5
+      },
+      "conditions": {
+        "主体:supported": 5,
+        "期间:supported": 5,
+        "定义:unknown": 5,
+        "范围:supported": 1,
+        "单位:supported": 5,
+        "范围:unknown": 4
+      },
+      "unresolved_top": {
+        "定义依据尚未充分说明": 5,
+        "该关系由同报告内多处同名披露得到，尚缺原文对两者关系本身的说明": 5,
+        "范围依据尚未充分说明": 4
+      },
+      "rejections": 32,
+      "rejection_reasons": {
+        "列头同时含多个年度，无法确定该值属于哪一期": 22,
+        "指标“营业收入 营业成本 毛利率（%）”与单位量纲冲突：应为money，实际为ratio；需": 2,
+        "指标“研发人员”与单位量纲冲突：应为people，实际为money；需校正原文行列绑定": 2,
+        "指标“研发人员·合计”与单位量纲冲突：应为people，实际为money；需校正原文行列绑定": 2,
+        "宽泛财务分母指标不作为独立待查关系；只在比例/强度关系中保留": 2,
+        "指标“本集团将与开展研发活动直接相关的各项支出归集为研发支出，包括人员人工费用、直接投入费”": 1,
+        "指标“司（宝武碳业）等单位的环境、社会及管治方面的管理和绩效成果。本报告披露范围覆盖公司总营": 1
+      },
+      "money_rows": 0,
+      "currency_unknown": 0,
+      "ai_analyses": 0,
+      "provider_calls": 0,
+      "checks_brief": [
+        {
+          "rule_id": "OCC-001",
+          "title": "营业收入 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发人员数量 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发人员比例 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "2025年度本集团研发支出投入合计为人民币 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发费用 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        }
+      ]
+    },
+    {
+      "pair_id": "",
+      "occurrences": 711,
+      "checks": 8,
+      "formal": 0,
+      "assumption_compatible": 0,
+      "unexplained_difference": 0,
+      "insufficient_basis": 7,
+      "not_comparable": 0,
+      "not_applicable": 0,
+      "calculation_status": {
+        "not_comparable": 8
+      },
+      "levels": {
+        "insufficient_basis": 7,
+        "limited_support": 1
+      },
+      "conditions": {
+        "主体:supported": 8,
+        "期间:supported": 8,
+        "定义:unknown": 8,
+        "范围:unknown": 7,
+        "单位:supported": 8,
+        "范围:supported": 1,
+        "组成完整:unknown": 1,
+        "互不重叠:unknown": 1
+      },
+      "unresolved_top": {
+        "定义依据尚未充分说明": 8,
+        "范围依据尚未充分说明": 7,
+        "该关系由同报告内多处同名披露得到，尚缺原文对两者关系本身的说明": 7,
+        "组成完整依据尚未充分说明": 1,
+        "互不重叠依据尚未充分说明": 1,
+        "该关系由表内结构自动生成；合计/分项覆盖仍需指标定义、统计范围与期间原文确认": 1
+      },
+      "rejections": 35,
+      "rejection_reasons": {
+        "列头同时含多个年度，无法确定该值属于哪一期": 14,
+        "标签属于全国/行业统计，不是公司自身指标": 4,
+        "上下文来自行业统计或协会数据，不是公司自身披露": 2,
+        "指标“营业收入 营业成本 毛利率（%）”与单位量纲冲突：应为money，实际为ratio；需": 2,
+        "指标“研发人员”与单位量纲冲突：应为people，实际为money；需校正原文行列绑定": 2,
+        "指标“研发人员·合计”与单位量纲冲突：应为people，实际为money；需校正原文行列绑定": 2,
+        "指标“社会及管治方面的管理和绩效成果。本报告披露范围覆盖公司总营业收入的”与单位量纲冲突：应": 2,
+        "宽泛财务分母指标不作为独立待查关系；只在比例/强度关系中保留": 2
+      },
+      "money_rows": 0,
+      "currency_unknown": 0,
+      "ai_analyses": 0,
+      "provider_calls": 0,
+      "checks_brief": [
+        {
+          "rule_id": "OCC-001",
+          "title": "年度总用水量－地表水 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "年度总用水量－雨水回用 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "温室气体排放量（类别 1） · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "营业收入 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "2024 年度本集团研发支出投入合计为人民币 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发投入金额 · 同一报告内2处披露",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发费用 · 同一报告内2处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        },
+        {
+          "rule_id": "ENV-001",
+          "title": "环保资本化项目投入 · 表内合计列与分项列",
+          "level": "limited_support",
+          "status": "not_comparable",
+          "criteria": "unknown"
+        }
+      ]
+    }
+  ]
+}

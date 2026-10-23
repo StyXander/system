@@ -1,0 +1,162 @@
+{
+  "schema_version": "baseline_manifest_v1",
+  "created_at": "2026-10-22T22:33:35+08:00",
+  "repository": "https://github.com/StyXander/system",
+  "worktree": "C:\\Users\\86135\\Desktop\\大学\\大三上\\数智竞赛\\worktrees\\integration",
+  "branch": "feat/financial-connectivity-finals",
+  "base_commit": "6964bc7f3ab74bf1d1d97592a297b6ee66c752c5",
+  "base_commit_subject": "fix(agents): reserve bounded execution for final review",
+  "origin_main_commit": "6abd3d7e816bdf60c3fa4eb464e3787ac9a039b8",
+  "deployment_commit_observed": "6abd3d7",
+  "deployment_note": "线上仍为 origin/main 6abd3d7；本分支未推送、未部署",
+  "model": {
+    "provider": "deepseek",
+    "configured": true,
+    "model_env_present": true,
+    "secret_exposed": false,
+    "mode_note": "模型密钥仅从本地 .env 读取，不写入本清单"
+  },
+  "registered_reports": [
+    {
+      "document_id": "WLY_AR_2025",
+      "company": "五粮液",
+      "report_type": "AR",
+      "period": "2025",
+      "pages": 141,
+      "file_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "cached": true,
+      "cached_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF"
+    },
+    {
+      "document_id": "WLY_ESG_2025",
+      "company": "五粮液",
+      "report_type": "ESG",
+      "period": "2025",
+      "pages": 59,
+      "file_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
+      "cached": true,
+      "cached_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273113.PDF"
+    },
+    {
+      "document_id": "MIDEA_AR_2025",
+      "company": "美的集团",
+      "report_type": "AR",
+      "period": "2025",
+      "pages": 276,
+      "file_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+      "cached": true,
+      "cached_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF"
+    },
+    {
+      "document_id": "MIDEA_ESG_2025",
+      "company": "美的集团",
+      "report_type": "ESG",
+      "period": "2025",
+      "pages": 82,
+      "file_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+      "cached": true,
+      "cached_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225058130.PDF"
+    },
+    {
+      "document_id": "CATL_AR_2025",
+      "company": "宁德时代",
+      "report_type": "AR",
+      "period": "2025",
+      "pages": 232,
+      "file_sha256": "c15272977147dee7e6935a38ea0e4fd6855370aabb106f54cfe20f7cf6048ec9",
+      "cached": true,
+      "cached_sha256": "c15272977147dee7e6935a38ea0e4fd6855370aabb106f54cfe20f7cf6048ec9",
+      "source_url": "https://disc.static.szse.cn/disc/disk03/finalpage/2026-03-10/f019f96b-b960-410b-b88f-08838a36d81b.PDF"
+    },
+    {
+      "document_id": "CATL_ESG_2025",
+      "company": "宁德时代",
+      "report_type": "ESG",
+      "period": "2025",
+      "pages": 197,
+      "file_sha256": "b5cd5663566e2ba112796d90c7da40c0657e7826b1bab5ad0f3bd51c6564ccb0",
+      "cached": true,
+      "cached_sha256": "b5cd5663566e2ba112796d90c7da40c0657e7826b1bab5ad0f3bd51c6564ccb0",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-10/1225002239.PDF"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "company": "宝钢股份",
+      "report_type": "AR",
+      "period": "2025",
+      "pages": 245,
+      "file_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "cached": true,
+      "cached_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257227.PDF"
+    },
+    {
+      "document_id": "BAOSTEEL_ESG_2025",
+      "company": "宝钢股份",
+      "report_type": "ESG",
+      "period": "2025",
+      "pages": 102,
+      "file_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "cached": true,
+      "cached_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257234.PDF"
+    },
+    {
+      "document_id": "BAO24_AR",
+      "company": "宝钢股份",
+      "report_type": "AR",
+      "period": "2024",
+      "pages": 272,
+      "file_sha256": "0f607360d5977d9ede8ade0fc4c9de176545b04c30ec269059dd7754b4ebebaa",
+      "cached": true,
+      "cached_sha256": "0f607360d5977d9ede8ade0fc4c9de176545b04c30ec269059dd7754b4ebebaa",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329102.PDF"
+    },
+    {
+      "document_id": "BAO24_ESG",
+      "company": "宝钢股份",
+      "report_type": "ESG",
+      "period": "2024",
+      "pages": 90,
+      "file_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+      "cached": true,
+      "cached_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329096.PDF"
+    }
+  ],
+  "office_masters": [
+    {
+      "path": "C:/Users/86135/Desktop/大学/大三上/数智竞赛/outputs/决赛最终候选交付_2026-10-22/审迹智链_决赛最终项目方案书_多智能体强化版.docx",
+      "exists": true,
+      "bytes": 2743914,
+      "sha256": "c5986f728bb96726ffc436020715d4829f53503807fda21fde07a06d7af81507"
+    },
+    {
+      "path": "C:/Users/86135/Desktop/大学/大三上/数智竞赛/outputs/决赛最终候选交付_2026-10-22/审迹智链_决赛最终答辩PPT_多智能体强化版.pptx",
+      "exists": true,
+      "bytes": 42268851,
+      "sha256": "8022b16627b0053941da758f8b6fb67ad1d89f3df27c0d9129953f095e5d543a"
+    },
+    {
+      "path": "C:/Users/86135/Desktop/大学/大三上/数智竞赛/outputs/决赛最终候选交付_2026-10-22/审迹智链_决赛7分钟逐字演讲稿_最终版.docx",
+      "exists": true,
+      "bytes": 41094,
+      "sha256": "1ec83b52a3cdbbb99b4ba0b1602a11938c26d1dad26df1f1493d5aaa811c8af2"
+    }
+  ],
+  "frozen_regression": {
+    "command": "python -m pytest -q backend/tests",
+    "historical_baseline": "1135 passed / 29 skipped at 730cd1d",
+    "rollback_branch": "finals/autonomous-evidence-20261022",
+    "rollback_commit": "6964bc7"
+  },
+  "untracked_policy": "不清理、不重置、不删除历史代码、PDF、演示数据与Office母版",
+  "working_tree_dirty": true,
+  "changed_files_note": "本轮新增财务穿透/图谱/反证/补证/调查闭环与前端财务穿透区；未提交",
+  "finals_facts": "docs/finals/release_facts.json",
+  "acceptance": "docs/finals/验收报告.md"
+}

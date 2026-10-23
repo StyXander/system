@@ -1,185 +1,33 @@
 # 审迹智链 AuditTrace
 
-基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、完成可复算检查、定位证据及待补条件。
+证据驱动的跨报告自主核验智能体系统。输入为已登记的上市公司年报与可持续发展报告，默认多智能体模式。
 
-当前主入口为根目录 `index.html` 和 `/api/connectivity`。先核对主体、期间、定义、范围、单位，再进行程序计算。AI意见独立于程序事实；数字相符不表示口径已获证实。“依据不足”和“不可比”不等于未发现矛盾。
+## 启动
+
+```powershell
+pip install -r requirements-dev.txt
+python -m backend.app.connectivity_bootstrap --allow-missing-sources
+python -m uvicorn backend.app.connectivity_app:app --host 127.0.0.1 --port 8877
+```
+
+服务入口为根目录index.html；业务API仅公开/api/connectivity与/api/health。模型密钥放在未入库的.env中；默认模式three_agents，必须以provider_calls判断实际调用，配置存在不等于模型成功。生产沿用原有Supabase任务与额度台账，不能静默改成本地台账。
+
+## 核验机制
+
+A1发现关系并申请取证，A2质疑可比性并查找反证，A3综合证据和程序复算后形成意见。各角色可以提交本报告内的检索请求；每次最多4项，重复查询不再执行，只有取得新原文才触发一次反馈调查。全运行最多20次模型请求（含修复与意见补全）。正式数值由Decimal引擎计算，反事实结果只存于closure，不回写正式结论。
+
+程序核验为离线/测试模式，单模型为实验基线。模型失败时保留程序结果并显示AI分析未完成；离线、历史和真实模型运行分别留痕。协作视图显示真实回执，不模拟推理进度。
+
+## 验收与边界
+
+```powershell
+python -m pytest backend/tests -q
+python scripts/check_chinese_comments.py
+python scripts/run_closure_experiment.py
+```
+
+真实模型对照脚本为scripts/run_final_comparison.py，需要具备合法的资料外发授权及供应商配置。预算仍受每日额度台账约束。独立人工金标准、准确率、节时和商业采用效果不能由工程测试推断。
+
+旧主模块仍因额度、安全头及导出公共依赖保留；旧页面和旧业务API已退出正式发布入口，物理去旧尚未全部完成。删除明细和恢复包见本轮交付目录。禁止把保留的历史实验当作新系统验收。
 
 AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。
-
-## 安装与检查
-
-在Python虚拟环境中安装 `python -m pip install -r requirements-dev.txt`。从仓库根目录运行：
-
-- 快速检查：`python -m pytest backend/tests/test_release_contract.py -q`。目标为常规环境60秒内；本机实际耗时以交接报告为准。
-- 完整回归：`python -m pytest -q --junitxml=outputs/ai4/full.xml`。
-- 冻结合成程序对照：`python scripts/eval_release_contract.py`。不联网、不调用模型，专业标签仍待双人标注。
-- 报告源准备：`python -m backend.app.connectivity_bootstrap --allow-missing-sources`。缺原件允许服务启动不代表业务就绪；`/api/connectivity/readiness` 单独核验哈希、页数和逐页解析，接口不探测远端。
-- 新本地无模型演示：`python scripts/prepare_release_demo.py`。要求原件已缓存，不会把历史模型记录改为本次调用。真实产物位于 `outputs/ai4/demo/`，未部署时只能用于该本地实例。
-
-## 数据与授权
-
-真实数量从登记表和规则表生成，由bootstrap的 `project_facts` 与 `/api/status` 提供；旧销售收款案例数、旧RAG片段数不代表当前双报告能力。登记来源、镜像身份、版本和哈希保存在 `backend/connectivity_reports.json`；存在登记不等于原件就绪。当前不提供通用企业内部草稿上传承诺。
-
-历史列表 `GET /api/connectivity/runs?limit=5&offset=0` 只列当前浏览器会话任务；无会话409。已知高熵任务链接按既有规则公开读取，不能据此枚举其他会话历史。新建关联结果至少保存30天；旧任务不自动续期。个人观察默认不进入公共导出。
-
-公开模型沿用既有IP、并发、全局和每日预算约束。只读预存结果不触发付费请求。未确认本轮付费预算时不自动运行模型对照。不得分发 `.env`、私有数据或默认打包PDF全文；公开展示不代表项目已授予开源许可证。
-
-## 本轮交付与真实边界
-
-交接、63项矩阵和当前发布状态见 `docs/ai_handoff/`。材料中的真实运行、历史快照、无模型计算、合成测试和真人评价分别记录。多阶段协作是否优于强单模型、真实用户节时与一般行业适用性尚需相应实测，不能由程序测试通过代替。
-
-## 历史业务说明 superseded
-
-下面保留此前销售与收款循环等工程记录，供历史兼容和溯源。旧案例、版本链、调节与知识库能力不能自动算作当前关联核对成果。
-
-## 2026年10月17日工作台更新
-
-当前主入口为年度报告与可持续发展报告关联核对工作台。本轮补齐前提依据、概览与版本模块，修复事项列表列位和首页模型缩放漂移，增加事务所核对视角并移除工作台右上角历史业务按钮。五粮液真实登记报告仅计算重跑8项关系，其中研发人员数量和研发投入占营业收入比例两项披露数值一致；这不等于数据真实性或独立复算已确认。本轮未新增模型调用。详见[本轮验收说明](docs/2026-10-17_披露核对规则与列表修复验收.md)。
-
-以下早期业务定位与结果为历史说明，不覆盖当前关联核对业务的范围。
-
-审迹智链是北京市大学生数智会计创新应用竞赛项目，面向会计师事务所审计项目组，在审计计划阶段对销售与收款循环进行证据约束型预筛查。
-
-对外 AI 声明按业务类型分派，两条并列、互不替换：
-- 关联核对业务（年度报告与可持续发展报告关联核对）：AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。
-- 历史审计业务（早期流水线）：AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。
-
-当前本地整改与决赛证据以 [README_RUN.md](README_RUN.md) 和 [2026-10-11整改总记录](决赛准备/整改_2026-10-11/整改总记录.md) 为准。本轮已获用户授权同步至GitHub和Render；发布身份与分发边界见[发布说明](docs/2026-10-11_整改提交与部署.md)。
-
-## 历史整改发布候选（2026-08-29）
-
-该历史快照发布候选为 `RELEASE-CANDIDATE-20260828-V1`，模型统一为 `deepseek-v4-flash`（DeepSeek 官方直连）；15 案由冻结 manifest 驱动，公开任务/结果/质量事件目标使用 Supabase，Render 保持免费 Web 执行。完成结果可跨刷新和重启读取，运行中实例中断后必须显式重跑。provider probe、真实 B3、专业签字、人工评分和最终批准仍为 pending；`configured` 不等于真实模型成功，当前不得写成正式效果提升。历史段落保留用于溯源。
-
-## 2026-08-13 验收快照
-
-本轮源码仓库全量回归 **201 passed、1 warning、146.22s**；前端契约 **210 unique ids、369 refs、9 views**，JavaScript、CSS、Python 编译、中文说明比例 **1737/17325=10.03%** 和差异卫生检查通过。真实 FastAPI 与浏览器完成 1440×1000、1024×768、768×1024、390×844 四档视口及 9 个视图验收，console error、失败请求、文档横向溢出和 axe violation 均为 0；桌面和手机均实测 RAG prepare/retrieve 与仅计算运行。
-
-历史 `agent_prompt_v3` 批次已严格核对为 51/51 真实外部模型三角色链成功，但它使用本轮字段质量闸门上线前的候选，只能作为传输、Schema 与留痕的技术证据，不能证明 51 家字段正确、风险识别准确率或有效 B3。当前种子有 128 条自动候选（涉及 30 家，其中 72 条为启发式跨年数量级异常）被保守闸门排除并等待真人回页复核。本轮没有再次调用付费模型，也未重验真实 Supabase/RLS、登录 consent 或线上部署。详细边界见 `PROJECT_STATUS.json` 和《archive/2026-09-02/历史报告/审迹智链_51案例AI全链复核与Bug修复报告_2026-08-13.md》。
-
-## 项目边界
-
-- 正式场景：审计计划阶段—销售与收款循环。
-- 主要输出：预审风险备忘录、最多 5 项待核查事项、资料索取清单。
-- 主链：确定性计算 → 案例隔离 RAG → 质疑/反证/复核 Agent → Schema 与事实语言硬校验 → 人工处理。
-- 不做：舞弊认定、重大错报认定、审计意见、业务承接决定、续聘决定、投资建议和全市场实时扫描。
-- 项目所有者已于 2026-08-07 对合法公开案例授予完整分析与最小必要模型传输许可；许可记录保存在 `PROJECT_AUTHORIZATION.json`，新来源快照仍按哈希重新核验。
-
-## 运行要求
-
-- Windows 10/11；
-- Python **3.10 或更高版本**；
-- 首次安装需要访问 Python 包源；
-- 需要本地浏览器查看页面；
-- 模型 Key 可选。没有 Key 或案例禁止模型传输时，仍可运行仅计算预检。
-
-## 安装与启动
-
-推荐双击根目录的 `启动审迹智链.bat`。也可以在 PowerShell 中执行：
-
-```powershell
-backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-Copy-Item .env.example .env -ErrorAction SilentlyContinue
-backend\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
-```
-
-然后访问 `http://127.0.0.1:8000`。不要直接双击 `index.html`，正式网页必须由 FastAPI 提供。
-
-若第一步提示“巨潮股票清单请求失败”并包含 `network_permission_denied` 或 Windows `10013`，说明启动服务的进程没有外网访问权限，并非企业不存在。请先关闭旧服务窗口，再双击根目录 `启动审迹智链.bat`；失败任务可在工作台保留并重新执行。系统会把当前步骤同步标为失败，不再停留在“进行中”。
-
-若需要复现实测版本，可使用 `backend\requirements-lock.txt`。真实 Key 只能写入本机 `.env`，不得写入网页、日志、压缩包或聊天消息；对外包只允许携带空的 `.env.example`。
-
-## 演示路径
-
-1. 打开“项目与资料”，输入企业名称或股票代码，默认执行巨潮公开年报预筛；
-2. 系统自动搜索、下载、校验、建立 RAG 并运行可用规则；缺失字段只影响对应规则或趋势，不会猜测金额；
-3. 查看分析截止年度、已运行规则、跳过规则、缺失字段、RAG 片段和资料索取清单；
-4. 在“原文检索”按文档编号和页码回查原文片段；
-5. 取得补充资料后，先完成授权/脱敏，再以独立证据绑定原运行续分析；补充资料不会静默覆盖公开年报原字段；
-6. 字段人工复核是正式采用、证据冻结、缓存或导出前的步骤，不是首次公开预筛的前置门槛；
-7. 真人复核并批准后，才可缓存或导出 `report_v2`。
-
-## 巨潮新企业自动流程
-
-已新增基于[巨潮资讯网](https://www.cninfo.com.cn/)公开来源的自动流程：输入股票代码或企业名称后，系统依次完成企业确认、年度报告公告搜索、全文版本选择、PDF 文件头/页数/企业/年度校验、SHA-256 记录、独立案例登记、案例隔离 RAG 建库和固定问题检索烟测。
-
-网页和 API 默认使用 `full_analysis`；API 调用者仍可显式选择 `rag_only`，只完成下载、校验与本地 RAG。启动服务后，可以在 PowerShell 中执行：
-
-```powershell
-$body = @{
-    company_query = "603337"
-    years = 3
-    latest_year = 2024
-    analysis_mode = "full_analysis"
-    rule_ids = @("R1")
-} | ConvertTo-Json
-
-$job = Invoke-RestMethod http://127.0.0.1:8000/api/pipelines/cninfo `
-    -Method Post -ContentType "application/json" -Body $body
-$job.task_id
-Invoke-RestMethod "http://127.0.0.1:8000/api/pipelines/$($job.task_id)"
-Invoke-RestMethod "http://127.0.0.1:8000/api/pipelines/$($job.task_id)/result"
-```
-
-公开预筛采用规则级、年度级优雅降级：最近两年具备 R1 所需字段时直接计算；第三年缺失只关闭三年趋势；最新年度不完整时使用最近一组完整连续年度并显示分析截止年度；单条规则缺字段时只跳过该规则，其余规则和 RAG 继续。所有缺失金额保持空缺，不估算、不补造。项目所有者许可只允许公开来源的最小必要证据进入已配置模型；新企业、新报告或来源哈希变化后，字段页码、单位和合并口径仍生成新的核验状态，不能沿用旧快照结论。
-
-### 行业闸门与 50 家热缓存
-
-系统现在在规则前增加 `industry_gate_v1`：普通工商企业直接进入 R1/R2，房地产/建筑等条件适用企业保留口径限制，银行/保险/证券等金融企业返回 `NOT_APPLICABLE` 并保留公开年报 RAG，行业元数据不足时返回 `INDUSTRY_UNKNOWN`，不猜测行业。中国海油按能源类直接适配；中国人寿按金融类跳过当前 R1/R2，二者都不会再被混成“字段缺失”。
-
-常用企业可以进入 SQLite 热缓存目录。数据库保存企业、年报年度、官方 URL、SHA-256、页码证据、结构化字段、行业闸门和 RAG 指纹；PDF 通过内容寻址保存到 `backend/runtime/pdf_store/<SHA256>.pdf`，案例目录只保留稳定的案例链接，不把二进制文件提交到 GitHub。`backend\cache_seed.example.json` 是可重复预热的 50 家白名单；`backend\cache_seed.lock.json` 是从已校验目录导出的最终元数据锁定清单，不含 PDF/FAISS。2026-08-07 已完成真实联网校验，白名单去重后 **50/50 条目为 `ready`**，每家均具备 2025/2024/2023 快照。新企业仍走巨潮实时路径，成功后自动进入目录。
-
-```text
-POST /api/cache/resolve          查询是否命中已校验快照
-GET  /api/cache/status            查看目录条目和版本
-POST /api/cache/prewarm           批量排队预热白名单
-GET  /api/cache/prewarm/{batch_id}  查看批次成功、缺报、不适用、字段缺口和耗时
-POST /api/cache/refresh/{ticker}  强制刷新一家企业
-GET  /api/cache/companies/{ticker}
-GET  /api/industry-gates/{case_id}
-```
-
-命中热缓存时，巨潮任务会明确显示“已复用本地已校验 PDF；本次未重复下载”，然后直接进入 RAG 烟测、字段校验和分析；需要追踪最新公告时提交 `force_refresh`，不能把旧快照伪装成现场搜索。`prefer_cache` 会命中新鲜快照；`refresh_if_stale` 会把过期快照标成待刷新；`force_refresh` 才会重新搜索和下载。服务重启会把遗留的预热任务标记为 `needs_human/SERVICE_RESTART_RECOVERY`，预热并发限制为 2 家，运行目录默认配额为 5GB。
-
-2026-08-05 真实烟测以 603337 杰克科技为例完成 2022—2024 年报搜索、下载、校验和 RAG 建库，共生成 1103 个检索片段；公开预筛允许候选继续进入规则链，但 `passed_technical_pending_human` 只代表字段仍建议回查，不代表正式专业定稿。正式缓存与导出仍由真人复核闸门控制。
-
-## 自动化验证
-
-2026-08-13 历史一次性复验（已由 2026-08-28 整改候选 supersede）：**201 passed、1 warning、146.22s**；前端契约 **210 unique ids、369 refs、9 views**；当时的前端语法命令已校正为当前入口 `node --check assets/official-v4/demo-app.js`。中文说明性行检查：**1737/17325 = 10.03%**。当前事实请读取 `README_RUN.md`、`PROJECT_STATUS.md` 和 `backend/release_records/`。
-
-```powershell
-backend\.venv\Scripts\python.exe -m pytest backend\tests -q
-backend\.venv\Scripts\python.exe scripts\check_chinese_comments.py
-backend\.venv\Scripts\python.exe scripts\export_cninfo_cache_manifest.py --output backend\cache_seed.lock.json
-```
-
-若 Windows 系统临时目录权限导致 `pytest` 在夹具初始化阶段报 `PermissionError`，可使用项目内一次性临时目录：
-
-```powershell
-backend\.venv\Scripts\python.exe -m pytest backend\tests -q --basetemp tmp\pytest-local
-```
-
-2026-08-09 重建的无密钥清洁运行包独立解包结果为 **171 passed、1 warning**；它与源码仓库测试分开登记，清洁包不含仓库级交付构建/取证测试。
-
-## 真实状态与人工门槛
-
-`PROJECT_STATUS.json` 是机器可读单一事实源，`PROJECT_STATUS.md` 是人工阅读版，`GET /api/status` 会在此基础上叠加实时案例、RAG 和模型配置状态。
-
-当前 B0—B3 事实：B0 未执行；B1 已完成确定性计算；B2 因 5 条 claims 超过最多 4 条而失败；历史 B3 因确定性事实语言闸门失败，不具备正式比较资格。R1 专业签字、第二案例冻结、合法样例确认、新 B3、真人报告批准和 B0—B3 人工评分仍必须由真人完成。
-
-## 资料和许可边界
-
-- 根目录年报全文仅用于本地开发和受控技术复验；真人确认全文再分发边界前，不得放入对外包。
-- 公开阶段只处理巨潮等公开来源；内部客户资料默认不上传公共网站。产品化部署应优先采用审计师本机、事务所内网或私有部署，并执行最小化传输、脱敏、短期留存、访问审计和可审计删除。
-- 竞赛演示只使用公开年报与合成补充资料；真实内部文件如需续分析，应由资料所有者确认授权和脱敏后进入受控环境。
-- 官方来源 URL、公告标题和 SHA-256 记录在 `PROJECT_STATUS.json` 和案例注册表中。
-- Python 依赖和网页图标的许可说明见 `THIRD_PARTY_NOTICES.md`。
-- 项目自身授权边界见 `PROJECT_LICENSE.md`。
-- 公开部署说明仅是部署前检查清单；线上地址必须重新部署并通过真实 HTTP 验收后才能对外宣称可用。
-
-## 主要文件
-
-- `index.html`：正式网页入口；
-- `backend/app/`：FastAPI、案例、RAG、Agent 和报告链；
-- `02_最终确定方案/`：方案书、详细计划、分工和案例说明；
-- `02_最终确定方案/14_审迹智链_V4方案书与B1-B3执行总计划_2026-08-25.md`：当前 V4 方案与评估执行总计划；
-- `README_RUN.md`：较完整的本地启动与验收说明。

@@ -73,8 +73,24 @@ def refresh_analysis_status(run: ConnectivityRun, prompt_version: str | None = N
 def pack_role_context(payload: dict, char_budget: int = 62000) -> dict:
     """压缩重复原文与服务端计算回显，保留成员身份、关键引文和实际覆盖记录。"""
     result = dict(payload)
+    # 完整回执留在运行轨迹；模型只需上一轮任务、失败原因、证据ID与判断变化。
+    history = []
+    for event in payload.get('collaboration_history', []):
+        item = {k:v for k,v in event.items() if k in {'kind', 'role', 'check_id', 'check_ids',
+            'producer_role', 'consumer_role', 'request_id', 'metric', 'terms', 'reason', 'rejection',
+            'status', 'outcome', 'stop_reason', 'new_evidence_ids', 'delivered_evidence_ids',
+            'new_to_relation_ids', 'accepted_check_ids', 'rejected', 'condition_changes', 'hypothesis_changes'}}
+        if event.get('analyses'):
+            item['analyses'] = [{k:v for k,v in a.items() if k in {'check_id', 'verdict', 'summary', 'next_actions'}}
+                                for a in event['analyses']]
+        history.append(item)
+    result['collaboration_history'] = history
     checks = payload.get('candidate_checks', [])
     essential = set()
+    check_ids = {c['check_id'] for c in checks}
+    for event in payload.get('collaboration_history', []):
+        if event.get('check_id') in check_ids:
+            essential.update(event.get('delivered_evidence_ids', []))
     for check in checks:
         essential.update(m['occurrence_id'] for m in check.get('members', []))
         refs = check.get('relationship_evidence', []) + check.get('explanation_evidence', [])
@@ -82,6 +98,12 @@ def pack_role_context(payload: dict, char_budget: int = 62000) -> dict:
         refs += [r for p in check.get('adjustment_proposals', []) for r in p.get('evidence', [])]
         refs += [r for h in check.get('hypotheses', []) for r in h.get('supporting_evidence', []) + h.get('counter_evidence', [])]
         essential.update(r['occurrence_id'] for r in refs)
+    for record in payload.get('hypothesis_ledger', []):
+        essential.update(record.get('supporting_ids', []))
+        essential.update(record.get('counter_ids', []))
+    pool = payload.get('structured_candidate_pool', [])
+    for candidate in pool[:8]:
+        essential.update(member['occurrence_id'] for member in candidate.get('members', []))
     rows = payload.get('occurrences', [])
     ordered = sorted(enumerate(rows), key=lambda pair: (pair[1]['occurrence_id'] not in essential, pair[0]))
     selected = [row for _, row in ordered if row['occurrence_id'] in essential]
@@ -115,8 +137,13 @@ def pack_role_context(payload: dict, char_budget: int = 62000) -> dict:
             if key not in blocks:
                 blocks[key] = {'block_id': f'B{len(blocks)+1}', 'document_id': row.get('document_id'),
                     'pdf_page': row.get('pdf_page'), 'text': excerpt(row.get('context',''), row.get('label',''), width)}
-            fields = {k:row[k] for k in ('occurrence_id','document_id','pdf_page','label','value','unit','year','year_status',
-                      'currency','scope','column_header','definition','quality') if k in row and (row[k] not in ('',[]) or k=='value')}
+            fields = {k:row[k] for k in ('occurrence_id','document_id','pdf_page','bbox','label','value','unit','year','year_status',
+                      'currency','currency_status','currency_source_id','currency_source_quote',
+                      'unit_status','unit_source','unit_source_quote','scope','scope_level','scope_source_id','scope_source_quote',
+                      'report_boundary','report_boundary_source_id','report_boundary_source_quote','table_scope',
+                      'column_header','full_table_header','header_path','table_id','row_index','column_index','row_role',
+                      'column_role','row_parent_label','metric_id','metric_identity','display_precision','rounding_method',
+                      'definition','quality') if k in row and (row[k] not in ('',[]) or k=='value')}
             fields['context'] = row.get('row_header') or excerpt(row.get('context',''), row.get('label',''), min(width,220))
             fields['context_ref'] = blocks[key]['block_id']
             if row.get('footnote_scope'):
@@ -139,9 +166,16 @@ def pack_role_context(payload: dict, char_budget: int = 62000) -> dict:
     result['context_packing'] = {'input_occurrences': len(rows), 'sent_occurrences': len(ids),
         'omitted_occurrences': len(rows)-len(ids), 'char_budget': char_budget,
         'note': '完整原文留在结果中；模型只读取本批压缩片段与逐字引文'}
+    if 'structured_candidate_pool' in payload:
+        result['structured_candidate_pool'] = [candidate for candidate in pool
+            if all(member['occurrence_id'] in ids for member in candidate.get('members', []))]
+        result['context_packing']['candidate_pool_input_count'] = len(pool)
+        result['context_packing']['candidate_pool_sent_count'] = len(result['structured_candidate_pool'])
+        result['context_packing']['candidate_pool_omitted_count'] = len(pool) - len(result['structured_candidate_pool'])
     for task in result.get('retrieval_tasks', []):
         task['sent_ids'] = [oid for oid in task.get('sent_ids', []) if oid in ids]
     result['context_packing']['actual_chars'] = len(json.dumps(result,ensure_ascii=False))
+    result['context_packing']['essential_budget_exceeded'] = result['context_packing']['actual_chars'] > char_budget
     return result
 
 
@@ -166,6 +200,12 @@ def targeted_context(run: ConnectivityRun, checks: list[RelationshipCheck], limi
         for ref_id in [m.occurrence_id for m in check.members] + bound + [r.occurrence_id for r in refs]:
             if ref_id in found:
                 selected.setdefault(ref_id, found[ref_id])
+    check_ids = {c.check_id for c in checks}
+    for event in run.intelligence_trace:
+        if event.get('kind') == 'agent_tool_result' and event.get('check_id') in check_ids:
+            for oid in event.get('delivered_evidence_ids', []):
+                if oid in found:
+                    selected.setdefault(oid, found[oid])
     essential_count = len(selected)
     # 模型可能新增调节项或反证，必须能看到同主题、同指标词根的邻近原文；
     # 否则它只能在未见过的 ADJ 上编造 ID。该召回只扩上下文，不自动成为关系成员。
@@ -389,6 +429,35 @@ def unsupported_numbers(text: str, allowed: set[Decimal]) -> list[str]:
     return missing
 
 
+def merge_hypotheses(previous: list, incoming: list, check_id: str = "") -> tuple[list, list[dict]]:
+    """同ID沿用解释身份和历史反证，后续角色不能用一次覆盖抹掉先前的撤回。"""
+    known = {hypothesis.hypothesis_id: hypothesis.model_copy(deep=True) for hypothesis in previous}
+    notices = []
+    for candidate in incoming:
+        old = known.get(candidate.hypothesis_id)
+        if old is None:
+            if len(known) < 3:
+                known[candidate.hypothesis_id] = candidate.model_copy(deep=True)
+            else:
+                notices.append({"check_id": check_id, "field": "hypotheses", "reason": "竞争解释台账已满，保留既有解释及反证；请先处理已有解释"})
+            continue
+        merged = candidate.model_copy(deep=True)
+        if merged.explanation != old.explanation:
+            merged.explanation = old.explanation
+            notices.append({"check_id": check_id, "field": "hypotheses", "reason": "同一假设ID沿用原解释；不同解释应使用新ID，历史反证仍保留"})
+        for field in ("supporting_evidence", "counter_evidence"):
+            unique = {(ref.occurrence_id, ref.quote): ref for ref in getattr(old, field)}
+            for ref in getattr(merged, field):
+                unique.setdefault((ref.occurrence_id, ref.quote), ref)
+            setattr(merged, field, list(unique.values())[:6])
+        for field, limit in (("reasons", 4), ("assumptions", 5), ("retrieval_queries", 3)):
+            setattr(merged, field, list(dict.fromkeys(getattr(old, field) + getattr(merged, field)))[:limit])
+        if old.status == "refuted" and old.counter_evidence:
+            merged.status = "refuted"
+        known[merged.hypothesis_id] = merged
+    return list(known.values()), notices
+
+
 def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed_ids: set[str], role: str, prompt_version: str,
                        model: str = "") -> dict:
     checks = {c.check_id: c for c in run.checks}
@@ -423,7 +492,7 @@ def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed
             continue
         allowed = grounded_numbers(check, run.occurrences, refs)
         for derived in pre_ledger.get("derived_checks", []):
-            if derived.get("matches") and derived.get("computed"):
+            if derived.get("matches") and derived.get("computed") is not None:
                 try:
                     allowed.add(Decimal(derived["computed"]))
                 except (ValueError, ArithmeticError):
@@ -433,7 +502,12 @@ def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed
             if PROCESSING_NOTE.search(text):
                 rejected.append({"check_id": item.check_id, "field": field, "reason": "该条回传了系统字段或批次诊断，已移除，需用原文含义重述"})
                 return False
-            if unsupported_numbers(text, allowed) or re.search(r"认定舞弊|存在重大错报|保证真实|建议买入|不存在风险", text):
+            # 已逐个验证操作数来源和结果的算式不再按孤立数字重判；其余文本照常过闸。
+            numeric_text = text
+            for derived in pre_ledger.get("derived_checks", []):
+                if derived.get("matches") and derived.get("inputs_grounded"):
+                    numeric_text = numeric_text.replace(derived["raw"], "")
+            if unsupported_numbers(numeric_text, allowed) or re.search(r"认定舞弊|存在重大错报|保证真实|建议买入|不存在风险", text):
                 rejected.append({"check_id": item.check_id, "field": field, "reason": "该断言含非来源/程序数值或超出关联核查用途，已单独移除"})
                 return False
             return True
@@ -467,6 +541,8 @@ def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed
                 continue
             if hypothesis.status == "refuted" and not hypothesis.counter_evidence:
                 hypothesis.status = "open"
+            if hypothesis.status == "refuted" and not hypothesis.reasons:
+                hypothesis.reasons = item.reasons[:4]
             hypotheses.append(hypothesis)
         item.hypotheses = hypotheses
         if item.verdict == "lean_consistent" and check.criteria_status == "conflicting" and not (item.assumptions or item.counter_evidence):
@@ -482,17 +558,32 @@ def integrate_analyses(run: ConnectivityRun, analyses: list[AIAnalysis], allowed
         item.prompt_version = prompt_version
         item.producer_model = model
         if item.hypotheses:
-            known = {h.hypothesis_id: h for h in check.hypotheses}
-            known.update((h.hypothesis_id, h) for h in item.hypotheses)
-            check.hypotheses = list(known.values())[-3:]
+            before_status = {hypothesis.hypothesis_id: hypothesis.status for hypothesis in check.hypotheses}
+            check.hypotheses, merge_notices = merge_hypotheses(check.hypotheses, item.hypotheses, check.check_id)
+            rejected.extend(merge_notices)
             enrich_calculation(check, run.occurrences)
             updates = apply_hypothesis_updates(check, run.occurrences)
+            updated_ids = {update["hypothesis_id"] for update in updates}
+            for hypothesis in check.hypotheses:
+                before = before_status.get(hypothesis.hypothesis_id)
+                if before and before != hypothesis.status and hypothesis.hypothesis_id not in updated_ids:
+                    updates.append({"check_id": check.check_id, "hypothesis_id": hypothesis.hypothesis_id,
+                                    "before": before, "after": hypothesis.status,
+                                    "reason": "本轮AI依据已定位引文更新竞争解释，语义判断未独立核验",
+                                    "counter_ids": [ref.occurrence_id for ref in hypothesis.counter_evidence],
+                                    "semantic_status": "ai_assessed_not_independently_verified"})
+            incoming_ids = {hypothesis.hypothesis_id for hypothesis in item.hypotheses}
+            item.hypotheses = [hypothesis.model_copy(deep=True) for hypothesis in check.hypotheses if hypothesis.hypothesis_id in incoming_ids]
             if updates:
                 run.intelligence_trace.append({"kind": "hypothesis_update", "role": role,
                                                "check_id": check.check_id, "updates": updates})
             run.intelligence_trace.append({"kind": "hypothesis_ledger", "role": role,
                                            "check_id": check.check_id,
                                            "hypotheses": hypothesis_ledger(check)})
+            if item.hypotheses and all(hypothesis.status == "refuted" for hypothesis in item.hypotheses) and item.verdict in {"lean_consistent", "plausible_explanation"}:
+                rejected.append({"check_id": item.check_id, "field": "verdict",
+                                 "reason": "本意见依赖的解释已记录为撤回且历史反证仍在；请根据反证更新意见，或提出独立新解释并给出依据"})
+                continue
         ledger = build_claim_ledger(check, item, run.occurrences, role=role, model=model)
         run.intelligence_trace.append({"kind": "claim_ledger", "role": role,
                                        "check_id": check.check_id, **ledger})

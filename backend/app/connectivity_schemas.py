@@ -13,7 +13,10 @@ NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核�
 # 历史业务声明保持原文不变；导出与接口按 task_kind 分派，不互相冒充。
 LEGACY_NOTICE = "AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。"
 NOTICE_BY_TASK_KIND = {"connectivity": NOTICE, "legacy_audit": LEGACY_NOTICE}
-SCHEMA_VERSION = "connectivity_v4"
+SCHEMA_VERSION = "connectivity_v5"
+INTELLIGENCE_VERSION = "hybrid_v4_counterevidence_grounded"
+# 财务穿透与反证层的合同版本；旧结果缺少这些字段时按空值读取，不改变既有结论。
+FINANCIAL_VERSION = "financial_bridge_v1"
 
 # 本轮事项类型裁决：取方案(b)。海菲曼利润总额只走版本子流程并使用独立事项标识，
 # 不扩 topics 枚举，以免把双报告引擎改造成通用多文档平台。
@@ -79,6 +82,8 @@ class DisclosureOccurrence(Contract):
     page_height: float = 0
     label: str
     value: str | None = None
+    # 约数和上下界保留原文性质，不能伪装为精确点值进入差额计算。
+    value_qualifier: Literal["unspecified", "exact", "approximate", "lower_bound", "upper_bound"] = "unspecified"
     unit: str = ""
     unit_source: str = ""
     currency: str = ""
@@ -116,6 +121,9 @@ class DisclosureOccurrence(Contract):
     row_parent_label: str = ""
     definition: str = ""
     row_header: str = ""
+    # 所选列与整表头分存，避免把其他年度误当作本值所属列。
+    full_table_header: str = ""
+    year_binding: Literal["cell_header", "coordinate", "inline", "unattributed"] = "unattributed"
     column_header: str = ""
     header_path: list[str] = Field(default_factory=list)
     context: str
@@ -295,9 +303,10 @@ class RelationshipCheck(Contract):
     members: list[RelationshipMember] = Field(default_factory=list, max_length=100)
     conditions: list[ComparisonCondition] = Field(default_factory=list, max_length=12)
     relationship_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
-    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构。
-    # 自动配对与表内结构只产生候选，成员行不能充当"关系本身有原文依据"。
-    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure"] = "text_statement"
+    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构 /
+    # 受控指标身份字典映射。自动配对、多位置与表内结构只产生候选，成员行不能
+    # 充当"关系本身有原文依据"；字典映射属于可复核的受控依据。
+    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure", "metric_identity"] = "text_statement"
     ratio_scale: str = "1"
     explanation: str = ""
     explanation_evidence: list[EvidenceRef] = Field(default_factory=list)
@@ -330,6 +339,9 @@ class RelationshipCheck(Contract):
     narrative_claim: NarrativeClaim | None = None
     narrative_test: dict | None = None
     hypotheses: list[ExplanationHypothesis] = Field(default_factory=list, max_length=3)
+    # 反事实闭合推演：证据需求、上限预测、单项补证效果与归因候选。
+    # 只读派生数据，不参与任何正式结论；结构见 connectivity_closure.py。
+    closure: dict = Field(default_factory=dict)
 
 
 class RelationshipProposal(Contract):
@@ -351,12 +363,23 @@ class RelationshipProposal(Contract):
     hypotheses: list[ExplanationHypothesis] = Field(default_factory=list, max_length=3)
 
 
+class SearchDirective(Contract):
+    """模型申请的本报告内检索；不接受网址、路径或可执行代码。"""
+    check_id: str = Field(min_length=1, max_length=100)
+    metric: str = Field(min_length=2, max_length=50)
+    terms: list[str] = Field(min_length=1, max_length=5)
+    kind: Literal["support", "counter"] = "counter"
+    reason: str = Field(min_length=4, max_length=200)
+
+
 class AgentProposals(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     checks: list[RelationshipProposal] = Field(max_length=8)
     notes: list[str] = Field(default_factory=list, max_length=6)
 
 
 class SingleAgentProposals(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     """单模型可一次提出两轮角色合计的八项关系，不人为压低输出容量。"""
     checks: list[RelationshipProposal] = Field(max_length=8)
     notes: list[str] = Field(default_factory=list, max_length=6)
@@ -372,6 +395,7 @@ class FinalFinding(Contract):
 
 
 class FinalSummaries(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
     findings: list[FinalFinding] = Field(default_factory=list, max_length=30)
     analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
 
@@ -470,13 +494,24 @@ class ConnectivityRun(Contract):
     claim_ledger: list[dict] = Field(default_factory=list)
     rule_basis: list[dict] = Field(default_factory=list)
     next_evidence: list[dict] = Field(default_factory=list)
+    # 创新一：可持续主张→财务项目的受控关系与图谱；创新二：证据驱动状态机；
+    # 创新三：预算约束补证计划与情景模拟。全部为只读派生数据，不改变正式结论。
+    financial_claims: list[dict] = Field(default_factory=list)
+    financial_nodes: list[dict] = Field(default_factory=list)
+    financial_edges: list[dict] = Field(default_factory=list)
+    impact_graph: dict = Field(default_factory=dict)
+    revision_loop: dict = Field(default_factory=dict)
+    evidence_plan: dict = Field(default_factory=dict)
+    financial_scenario: dict = Field(default_factory=dict)
+    investigation: dict = Field(default_factory=dict)
+    comparison_summary: dict = Field(default_factory=dict)
     ai_generated_content_notice: str = NOTICE
 
 
 class RunRequest(Contract):
     pair_id: str = Field(min_length=2, max_length=100)
     topics: list[Literal["research", "environment", "intensity"]] = Field(default_factory=lambda: ["research", "environment", "intensity"], min_length=1, max_length=3)
-    mode: Literal["calculation_only", "three_agents", "single_model"] = "three_agents"
+    mode: Literal["calculation_only", "three_agents", "single_model", "adaptive_agents"] = "three_agents"
     retry_of_task_id: str | None = None
 
 

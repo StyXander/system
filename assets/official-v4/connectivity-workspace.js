@@ -379,4 +379,7 @@
     heroSample.addEventListener('click', event => { event.preventDefault(); openTask(sampleRow.id); });
   }
   setStep(1); showView('new');
+  // 初始视图就绪之后才允许恢复任务，避免结果事件被初始化的新建视图覆盖。
+  document.documentElement.dataset.connectivityWorkspaceReady = 'true';
+  document.dispatchEvent(new Event('audittrace:connectivity-workspace-ready'));
 })();

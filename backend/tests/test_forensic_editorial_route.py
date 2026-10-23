@@ -38,14 +38,13 @@ def test_root_page_still_returns_the_original_file() -> None:
 def test_root_index_contains_the_current_main_workbench() -> None:
     """主页面是竞赛演示版工作台：单一主按钮、抽屉式证据/Agent 明细，不含旧控制台控件。"""
     text = (WORKSPACE_ROOT / "index.html").read_text(encoding="utf-8")
-    assert "上市公司年报风险预筛" in text
-    assert 'id="demo-start"' in text
-    assert 'id="demo-open-all-cases"' in text
-    assert 'id="demo-open-evidence"' in text
-    assert 'id="demo-open-agents"' in text
-    assert 'id="demo-tech-drawer"' in text
+    assert 'id="connectivity-root"' in text
+    assert 'id="cn-form"' in text
+    assert 'id="cn-collaboration"' in text
+    assert 'id="legacy-workspace"' not in text
+    assert 'demo-app.js' not in text
     assert 'id="case-import-form"' not in text
     # 0.10.0 增加由本机现场开关保护的巨潮公开样例入口，但仍不恢复旧上传/导入控制台。
-    assert 'id="demo-live-sample-form"' in text
+    assert 'id="cn-pair"' in text
     assert 'type="file"' not in text
 

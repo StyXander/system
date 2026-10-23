@@ -307,7 +307,8 @@ def _formula_checks(text: str) -> list[dict]:
                     "raw": match.group(), "span": [match.start(), match.end()],
                     "formula": raw_formula, "claimed": text_number(claimed),
                     "inputs": [{"symbol": "a", "value": text_number(a)},
-                               {"symbol": "b", "value": text_number(b)}],
+                               {"symbol": "b", "value": text_number(b)}] +
+                              ([{"symbol": "b2", "value": text_number(denominator)}] if groups.get("b2") else []),
                     "computed": text_number(computed),
                     "computed_at_claim_precision": text_number(rounded),
                     "precision": str(precision), "matches": rounded == claimed,
@@ -321,6 +322,53 @@ def _formula_checks(text: str) -> list[dict]:
                                "computed": None, "matches": False, "status": "insufficient_basis",
                                "reason": "算式无法用明确十进制数复算"})
     return checks
+
+
+def _ground_formulas(formulas: list[dict], allowed: set[Decimal]) -> None:
+    """算术正确还不够：每个操作数必须来自本关系原文或程序结果。"""
+    for formula in formulas:
+        if not formula.get("matches"):
+            continue
+        missing = [item["value"] for item in formula.get("inputs", [])
+                   if not _matches_allowed(Decimal(item["value"]), allowed)]
+        formula["inputs_grounded"] = not missing
+        if missing:
+            formula.update(matches=False, status="insufficient_basis",
+                           reason="算式虽加平，但操作数没有本关系原文或程序依据：" + "、".join(missing))
+
+
+def _unit_conversion_checks(text: str, check, occurrences: list, refs: list) -> list[dict]:
+    """有来源的金额等值换算单列算式依据，不通过额外放行任意数字实现兼容。"""
+    unit = r"(?:百万元|亿元|万元|千元|元)"
+    pattern = re.compile(r"(?P<a>\d[\d,]*(?:\.\d+)?)\s*(?P<au>" + unit + r")\s*(?:=|＝|折合|换算为|等于)\s*"
+                         r"(?P<c>\d[\d,]*(?:\.\d+)?)\s*(?P<cu>" + unit + r")")
+    ids = {member.occurrence_id for member in check.members} | {ref.occurrence_id for ref in refs}
+    sources = [row for row in occurrences if row.occurrence_id in ids and row.value is not None]
+    records = []
+    for match in pattern.finditer(text):
+        a, c = number(match["a"]), number(match["c"])
+        _, af = numeric_unit(match["au"])
+        _, cf = numeric_unit(match["cu"])
+        bound = []
+        for row in sources:
+            try:
+                value, dimension, _ = normalized(row)
+            except (ValueError, ArithmeticError):
+                continue
+            if dimension == "money" and a == value / af:
+                bound.append(row.occurrence_id)
+        computed = a * af / cf
+        matches = _matches_allowed(c, {computed})
+        status = "supported" if bound and matches else "contradicted" if bound else "insufficient_basis"
+        records.append({"raw": match.group(), "span": [match.start(), match.end()],
+                        "formula": f"{text_number(a)}×{text_number(af)}÷{text_number(cf)}",
+                        "claimed": text_number(c), "computed": text_number(computed),
+                        "inputs": [{"symbol": "a", "value": text_number(a), "unit": match["au"]}],
+                        "source_occurrence_ids": bound, "output_unit": match["cu"],
+                        "matches": bool(bound) and matches, "inputs_grounded": bool(bound), "status": status,
+                        "reason": "原文金额与确定性单位倍率支持换算" if status == "supported" else
+                                  "换算结果与确定性单位倍率不符" if status == "contradicted" else "换算起点没有绑定原文金额"})
+    return records
 
 
 def parse_claimed_magnitude(text: str) -> dict | None:
@@ -470,7 +518,13 @@ def _column_claims(check, text: str, occurrences: list, refs: list) -> list[dict
                 elif re.search(r"(?:20\d{2}\s*年|年度|本期|本年|当期|金额|绝对额|占比为)", window):
                     status, reason = "contradicted", "把变动/同比列当作年度值或绝对值使用"
             elif semantics in {"share", "intensity"}:
-                if MATERIAL_UNIT.search(window) or re.search(r"金额|绝对额|达到", window):
+                # 一句中可同时出现比例和分子金额，只检查当前数值的直接语义。
+                # 例如“1.11%以4.49亿元复算”不能因另一数值带亿元就否定比例。
+                suffix = text[end:end + 14].lstrip()
+                prefix = text[max(0, start - 16):start].rstrip(' ：:')
+                direct_amount = bool(MATERIAL_UNIT.match(suffix)) or bool(re.search(
+                    r"(?:金额|绝对额|人数|数量)(?:为|达到|达|是)?$", prefix))
+                if direct_amount:
                     status, reason = "contradicted", "把占比或强度当作绝对金额/数量使用"
                 else:
                     status, reason = "supported", "按占比或强度语义引用"
@@ -577,7 +631,10 @@ def build_claim_ledger(check, analysis, occurrences: list, *, role: str = "", mo
     texts = [analysis.summary, *analysis.reasons, *analysis.assumptions,
              *analysis.alternative_explanations, *analysis.next_actions]
     text = "\n".join(str(item) for item in texts if item)
+    allowed = _grounded_values(check, occurrences, refs)
     formulas = _formula_checks(text)
+    _ground_formulas(formulas, allowed)
+    formulas.extend(_unit_conversion_checks(text, check, occurrences, refs))
     claims = _column_claims(check, text, occurrences, refs)
     claims.extend(_year_claims(check, text, occurrences, refs))
     for formula in formulas:
@@ -590,7 +647,6 @@ def build_claim_ledger(check, analysis, occurrences: list, *, role: str = "", mo
             "inputs": formula.get("inputs", []), "computed": formula.get("computed"),
             "text": formula["raw"],
         })
-    allowed = _grounded_values(check, occurrences, refs)
     for formula in formulas:
         if formula.get("matches") and formula.get("computed") is not None:
             try:
@@ -737,11 +793,8 @@ def hypothesis_ledger(check) -> list[dict]:
         if not discriminating:
             discriminating = "；".join(ref.quote[:60] for ref in hypothesis.counter_evidence) or "尚未找到可区分证据"
         status = hypothesis.status
-        reason = "保留模型给出的状态"
-        if hypothesis.counter_evidence:
-            status = "refuted"
-            reason = "存在指向该解释不成立的原文/反证"
-        elif not hypothesis.supporting_evidence:
+        reason = "保留AI解释状态；原文引用真实性与反证含义分别记录"
+        if not hypothesis.supporting_evidence:
             status = "open" if status == "supported" else status
             reason = "没有支持证据，不能标记为已支持"
         elif status == "supported":
@@ -753,7 +806,8 @@ def hypothesis_ledger(check) -> list[dict]:
             "supporting_ids": [ref.occurrence_id for ref in hypothesis.supporting_evidence],
             "counter_ids": [ref.occurrence_id for ref in hypothesis.counter_evidence],
             "update_reason": reason,
-            "unverified_note": "未找到反证不等于解释成立" if not hypothesis.counter_evidence else "",
+            "semantic_status": "ai_assessed_not_independently_verified",
+            "unverified_note": "未找到反证不等于解释成立" if not hypothesis.counter_evidence else "引文存在不等于反证语义已成立；状态为AI解释层判断",
         })
     return records
 
@@ -766,15 +820,20 @@ def apply_hypothesis_updates(check, occurrences: list) -> list[dict]:
         before = hypothesis.status
         counter_valid = bool(hypothesis.counter_evidence) and validate_refs(hypothesis.counter_evidence, found)
         support_valid = bool(hypothesis.supporting_evidence) and validate_refs(hypothesis.supporting_evidence, found)
-        if counter_valid:
-            hypothesis.status = "refuted"
+        refutation_explained = any(len(reason.strip()) >= 6 for reason in hypothesis.reasons)
+        if hypothesis.status == "refuted" and not (counter_valid and refutation_explained):
+            hypothesis.status = "plausible" if support_valid else "open"
+        elif hypothesis.status == "supported" and counter_valid:
+            # 只知道有待处理的相反材料，不推断其语义已经推翻原解释。
+            hypothesis.status = "plausible"
         elif hypothesis.status == "supported" and not support_valid:
             hypothesis.status = "open"
         if hypothesis.status != before:
             updates.append({
                 "check_id": check.check_id, "hypothesis_id": hypothesis.hypothesis_id,
                 "before": before, "after": hypothesis.status,
-                "reason": "新增反证使解释撤回" if hypothesis.status == "refuted" else "支持依据未能复核，退回未决",
+                "reason": "存在未解决的相反材料，解释退回待验证" if counter_valid else "支持或反证引文未能复核，退回未决",
                 "counter_ids": [ref.occurrence_id for ref in hypothesis.counter_evidence],
+                "semantic_status": "ai_assessed_not_independently_verified",
             })
     return updates

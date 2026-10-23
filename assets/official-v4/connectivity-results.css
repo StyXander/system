@@ -492,3 +492,10 @@ body[data-route="workspace"]{overflow-anchor:none}
   #connectivity-root .cn-exports{width:100%}
   #connectivity-root .cn-exports a{flex:1 1 auto;text-align:center}
 }
+
+/* 协作轨迹使用现有纸白、石墨和铜色，状态色保持原定义。 */
+.cn-collaboration{border-top:1px solid var(--line,#dedbd4);padding:24px 0;margin-top:20px}
+.cn-collaboration-list{display:grid;gap:12px;padding-left:24px;max-height:540px;overflow:auto}
+.cn-collaboration-list li{padding:12px;border-left:2px solid #916e53;background:#faf9f6;overflow-wrap:anywhere}
+.cn-collaboration-list p{margin:8px 0}.cn-collaboration-list small{line-height:1.7;color:#52575b}
+@media(max-width:600px){.cn-collaboration-list{padding-left:18px}.cn-collaboration-list li{padding:10px}}

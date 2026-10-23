@@ -27,7 +27,7 @@ from docx import Document
 from docx.shared import Pt, RGBColor, Cm
 
 from .connectivity_schemas import ConnectivityRun, notice_for
-from .delivery import _add_heading, _table_rows, _set_run_font
+from .delivery import _add_heading as _shared_heading, _table_rows as _shared_table, _set_run_font
 from .connectivity_overview import build_overview
 from .connectivity_facts import execution_provenance
 
@@ -73,9 +73,22 @@ def verify_export_same_source(run: ConnectivityRun, payload: bytes) -> list[str]
     return problems
 
 
+def _word_text(value) -> str:
+    """PDF可能含XML非法控制字符；仅净化Word显示，不改JSON中的原始证据。"""
+    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]", "", str(value))
+
+
+def _add_heading(document, text, level=1):
+    return _shared_heading(document, _word_text(text), level)
+
+
+def _table_rows(document, rows):
+    return _shared_table(document, [(_word_text(key), _word_text(value)) for key, value in rows])
+
+
 def _paragraph(document, text):
     """每段明确设正文宋体小四，避免继承系统默认字体。"""
-    run = document.add_paragraph().add_run(str(text))
+    run = document.add_paragraph().add_run(_word_text(text))
     _set_run_font(run)
     run.font.size = Pt(12)
 
@@ -114,6 +127,9 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             entry = run.overview[key]
             writer.writerow(['overview_count', run.run_id, run.result_revision, '', '', '', key, entry['value'], '项', '', '',
                              entry.get('label', key), '', '', '', '', ''])
+        for key, entry in run.overview["program_levels"].items():
+            writer.writerow(["program_level_count", run.run_id, run.result_revision, "", "", "", key,
+                             entry["value"], "项", "", "", "六级互斥分类", "", "", "", "", ""])
         for check in run.checks:
             base = [run.run_id, run.result_revision, check.check_id, check.rule_id, check.title]
             tail = [check.calculation.get("expression", ""), check.calculation.get("residual") or "", check.criteria_status, check.calculation_status, check.review_status]
@@ -134,6 +150,8 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
                 writer.writerow([_cell(v) for v in ["adjustment", *base, item["effect_id"], f"{item['sign']}{item['amount']}", item["unit"], "", "", item["label"] + "；" + item["note"], *tail]])
             for item in (check.calculation.get("adjustment") or {}).get("rejected", []):
                 writer.writerow([_cell(v) for v in ["adjustment_rejected", *base, item.get("adjustment_id", ""), "已拒绝", "", "", "", item["reason"], *tail]])
+            if check.closure:
+                writer.writerow([_cell(v) for v in ["closure_probe", *base, "假设推演", "非正式结论", "", "", "", json.dumps(check.closure, ensure_ascii=False), *tail]])
             if check.hypothetical:
                 writer.writerow([_cell(v) for v in ["hypothetical_only", *base, "假设试算", "非正式结论", check.hypothetical.get("normalized_unit", ""), "", "",
                     check.hypothetical.get("expression", "") + "；残差" + str(check.hypothetical.get("residual")), check.hypothetical.get("expression", ""), check.hypothetical.get("residual") or "", "假设", "不进入已衔接统计", ""]])
@@ -185,6 +203,15 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
         for kind in ("claim_ledger", "rule_basis", "next_evidence"):
             for entry in getattr(run, kind):
                 writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision, entry.get("check_id", ""), "", "", "", "", "", "", "", json.dumps(entry, ensure_ascii=False)]])
+        # 新财务合同完整导出，不能只有旧checks而丢失图谱、情景及调查过程。
+        for kind in ("financial_claims", "financial_nodes", "financial_edges"):
+            for entry in getattr(run, kind):
+                writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision, entry.get("edge_id", ""),
+                    "", "", "", "", "", entry.get("document_id", ""), entry.get("pdf_page", ""), json.dumps(entry, ensure_ascii=False, default=str)]])
+        for kind in ("impact_graph", "financial_scenario", "investigation", "evidence_plan", "revision_loop", "comparison_summary"):
+            if getattr(run, kind):
+                writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision, "", "", "", "", "", "", "", "",
+                    json.dumps(getattr(run, kind), ensure_ascii=False, default=str)]])
         writer.writerow(["notice", notice])
         payload = stream.getvalue().encode("utf-8-sig")
         _assert_notice(payload, notice)
@@ -202,24 +229,24 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
     _set_run_font(title, "黑体")
     title.font.size = Pt(16)
     title.font.color.rgb = RGBColor(0, 0, 0)
+    if run.versions.get("source_validity", {}).get("status") == "invalid":
+        _paragraph(document, "历史结果 来源已失效：以下保留原运行的事实与判断，不能作为换版后原件的有效核验结果；请重新运行。")
     _paragraph(document, f"{run.company} · {run.period} · {run.run_id} · 结果版本{run.result_revision}")
     _paragraph(document, notice)
     _paragraph(document, execution_provenance(run)["label"])
     _add_heading(document, "阅读摘要", 2)
-    labels = {"confirmable": "可确认", "limited_support": "有限支持", "conditional_trial": "条件试算", "not_comparable": "不可比", "pending": "待查"}
-    for key, label in labels.items():
-        _paragraph(document, f"{label}：{run.overview['summary_bands'][key]['value']} / {len(run.checks)}项。")
-    _paragraph(document, "上述五类互斥；条件试算项仍可能暂不可比，不可比栏仅统计没有试算记录的不可比关系。条件试算依赖所列假设；正式复算为0时表示当前前提不足或没有可执行数值关系，不能解读为没有问题。")
-    _paragraph(document, "页面同口径六级统计（互斥，分母为全部关系）：" + "；".join(
-        label + str(run.overview["program_levels"][key]["value"]) + "项"
-        for key, label in [("formal", "正式复算"), ("conditional", "条件试算"), ("limited", "有限支持"),
-                            ("insufficient", "依据不足·不可比"), ("conflict", "潜在矛盾"), ("not_applicable", "不适用数值计算")]))
+    _paragraph(document, "可确认关系与其他状态采用同一六级分类，以下各类互斥，分母为全部关系：")
+    for key, label in [("formal", "正式复算且数值相容"), ("conditional", "条件试算"), ("limited", "有限支持"),
+                       ("insufficient", "依据不足·不可比"), ("conflict", "明确口径冲突或未解释差额"),
+                       ("not_applicable", "不适用数值计算")]:
+        _paragraph(document, f"{label}：{run.overview['program_levels'][key]['value']} / {len(run.checks)}项。")
+    _paragraph(document, "条件试算依赖明确列出的假设；报告层声明不证明指标范围一致。正式一致为0不代表没有问题。")
     _paragraph(document, f"本次从登记报告中发现{len(run.occurrences)}处候选及上下文，形成{len(run.checks)}项关系记录、{len(run.findings)}项待查问题。数字相符不替代定义与范围依据。")
     overview = run.overview
     _paragraph(document, f'程序事实记录{len(run.program_hints)}条（含无差异登记）；正式复算{overview["formal_calculations"]["value"]}项；'
                f'仅条件试算{overview["trial_calculations"]["value"]}项；程序差异或限制提示{overview["program_hints"]["value"]}项。')
     _paragraph(document, f'当前模型意见覆盖{overview["model_opinions"]["value"]}/{len(run.checks)}项关系；中高优先级{overview["priority_checks"]["value"]}项。覆盖不等于异常，数量不相加为成果总数。')
-    if run.versions.get('intelligence') and run.versions.get('rules') not in {'2026-10-18.2', '2026-10-19.1'}:
+    if run.versions.get('intelligence') and run.versions.get('rules') not in {'2026-10-18.2', '2026-10-19.1', '2026-10-20.3', '2026-10-21.1'}:
         _paragraph(document, '历史规则结果：原范围支持与意见未按本次缺陷修复重新验证。此处保留原计算，不应引用其正式支持数量作为当前成果。')
     overview = run.overview or {}
     if overview:
@@ -230,6 +257,92 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
         not_found = overview.get("not_found") or {}
         _paragraph(document, f"未归属披露：{not_found.get('unattributed', {}).get('value', 0)}处 / 已提取{len(run.occurrences)}处；解析失败：{not_found.get('failed_pages', {}).get('value', 0)}页 / 总计{not_found.get('total_pages', 0)}页。")
         _paragraph(document, overview.get("note", ""))
+    if run.financial_edges:
+        _add_heading(document, "财务穿透：可持续主张与财务项目", 2)
+        _paragraph(document, "本节是只读投影：每条关系都能回到ESG与年报页码；数值接近只产生候选或反例，不证明经济因果，也不构成审计结论。")
+        claims = {item.get("claim_id"): item for item in run.financial_claims}
+        nodes = {item.get("node_id"): item for item in run.financial_nodes}
+        _table_rows(document, [("行业配置", (run.impact_graph or {}).get("industry_name", "")),
+                               ("主张数", len(run.financial_claims)), ("财务项目数", len(run.financial_nodes)),
+                               ("受控关系数", len(run.financial_edges)),
+                               ("反证状态变化", (run.revision_loop or {}).get("summary", {}).get("changed", 0))])
+        relation_labels = {"DIRECT_RECONCILIATION": "直接证实（候选）", "DISCLOSED_ALLOCATION": "披露归属",
+                           "TEMPORAL_ASSOCIATION": "跨期关联", "SEMANTIC_ASSOCIATION": "语义关联",
+                           "HYPOTHESIZED_MECHANISM": "机制假设", "CONTRADICTED": "被证据挑战",
+                           "INSUFFICIENT": "依据不足"}
+        for edge in run.financial_edges:
+            claim = claims.get(edge.get("claim_id"), {})
+            node = nodes.get(edge.get("financial_node_id"), {})
+            _add_heading(document, f"{relation_labels.get(edge.get('relation_type'), edge.get('relation_type'))}｜"
+                                    f"{claim.get('text', '')[:80]}", 3)
+            _table_rows(document, [
+                ("状态", "来源失效，历史状态为" + edge.get("status", "") if edge.get("invalid") else edge.get("status", "")),
+                ("关系说明", edge.get("invalid_reason") or edge.get("why", "")),
+                ("ESG出处", f"{claim.get('document_id', '')} p{claim.get('pdf_page', '')}：{claim.get('quote', '')[:160]}"),
+                ("年报出处", f"{node.get('document_id', '')} p{node.get('pdf_page', '')}：{node.get('quote', '')[:160]}"),
+                ("金额差额率", "" if edge.get("numeric_gap") is None else f"{edge['numeric_gap'] * 100:.2f}%"),
+                ("置信标签", edge.get("confidence_label", "")),
+            ])
+            for item in edge.get("missing_conditions", []):
+                _paragraph(document, "仍缺：" + str(item))
+        scenario = run.financial_scenario or {}
+        if scenario.get("available"):
+            _add_heading(document, "风险传导情景模拟（参数化，不是实际损失预测）", 3)
+            _paragraph(document, scenario.get("formula", ""))
+            for item in [scenario.get("baseline"), *(scenario.get("scenarios") or scenario.get("ranges", [])), scenario.get("scenario_result")]:
+                if not item:
+                    continue
+                _paragraph(document, f"{item.get('name')}：{item.get('value')}亿元，占营业成本{item.get('share_of_cost')}。")
+            for item in scenario.get("assumptions", []):
+                _paragraph(document, "假设：" + (f"{item.get('name')}：{item.get('value')}；来源：{item.get('source')}" if isinstance(item, dict) else str(item)))
+            for key in ("base", "target"):
+                source = scenario.get(key, {})
+                _paragraph(document, f"披露原值：{source.get('label', '')} {source.get('value', '')}{source.get('unit', '')}；{source.get('document_id', '')} p{source.get('pdf_page', '')}")
+            for row in scenario.get("sensitivity", []):
+                _paragraph(document, f"敏感性：单价{row.get('price_change')}、实现比例{row.get('usage_change')}；双参数结果{(row.get('two_param') or row).get('value')}亿元。")
+            _paragraph(document, scenario.get("note", ""))
+        if (run.impact_graph or {}).get("invalidations"):
+            _add_heading(document, "历史证据来源失效", 3)
+            for invalidation in run.impact_graph["invalidations"]:
+                _paragraph(document, f"{invalidation.get('edge_id')}：{invalidation.get('reason')}")
+        if run.investigation:
+            _add_heading(document, "自适应调查真实过程", 3)
+            _paragraph(document, f"本次调查：{run.investigation.get('outcome')}；停机原因：{run.investigation.get('stop_reason')}")
+            for event in run.investigation.get("events", []):
+                _paragraph(document, f"{event.get('round_id')}｜{event.get('role')}｜{event.get('tool_name')}｜{event.get('outcome')}：{event.get('decision_reason')}；调用ID：{event.get('actual_provider_call_id') or '未调用'}")
+            for receipt in run.investigation.get("tool_receipts", []):
+                for ref in (receipt.get("result") or {}).get("evidence_refs", []):
+                    _paragraph(document, f"工具原文：{ref.get('document_id')} p{ref.get('pdf_page')}；SHA256 {ref.get('source_sha256')}；{ref.get('quote')}")
+        if run.comparison_summary:
+            _add_heading(document, "跨年与行业资格矩阵", 3)
+            _paragraph(document, run.comparison_summary.get("notice", ""))
+            _paragraph(document, "跨年：" + str(run.comparison_summary.get("temporal", {}).get("reason") or "年度原件已登记，逐指标仍需资格核验"))
+            _paragraph(document, "同业：" + str(run.comparison_summary.get("peer", {}).get("reason", "")))
+            for source in run.comparison_summary.get("industry_sources", []):
+                _paragraph(document, f"{source.get('company')} {source.get('period')}｜{source.get('industry')}｜原件已缓存{source.get('cached_documents')}份；仅说明来源覆盖。")
+        revision = run.revision_loop or {}
+        if revision.get("transitions"):
+            _add_heading(document, "证据驱动的反证状态变化", 3)
+            _paragraph(document, f"撤回{revision['summary'].get('refuted', 0)}条、降级{revision['summary'].get('weakened', 0)}条、"
+                                  f"获支持{revision['summary'].get('supported', 0)}条；模型文字不能改变状态。")
+            for item in revision["transitions"][:12]:
+                _paragraph(document, f"{item.get('hypothesis_id')}：{item.get('before')} → {item.get('after')}；{item.get('reason')}")
+        plan = run.evidence_plan or {}
+        if plan.get("primary_action"):
+            _add_heading(document, "补证优先级（预算内可复算）", 3)
+            _paragraph(document, plan.get("comparison", ""))
+            for key, label in (("primary_action", "第一优先"), ("alternative_action", "第二优先")):
+                action = plan.get(key) or {}
+                if action:
+                    _paragraph(document, f"{label}：{action.get('condition')}｜{action.get('exact_target')}｜"
+                                          f"总分{(action.get('score_breakdown') or {}).get('total')}。{action.get('purpose', '')}")
+            execution = plan.get("execution") or {}
+            if execution:
+                _paragraph(document, f"实际执行回执：{execution.get('status')}；页码{execution.get('page', '')}；"
+                                      f"命中{ '、'.join(execution.get('matched_terms', [])) }。")
+            rerank = plan.get("rerank") or {}
+            if rerank:
+                _paragraph(document, f"执行后重排：{'已改变' if rerank.get('changed') else '未改变'}；{rerank.get('reason', '')}")
     if run.ai_opinions:
         _add_heading(document, "AI意见（程序刻度＋规则/模型解释，仅供参考）", 2)
         _paragraph(document, "AI意见不改变口径状态、正式差额与已衔接统计，不构成审计结论、鉴证结论或鉴证意见。")
@@ -340,6 +453,14 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
                      'residual_interval':'差额区间','precision_compatible':'是否可由披露精度解释','denominator_check':'分母检查'}
             for key,value in facts.items():
                 _paragraph(document, names[key] + '：' + (json.dumps(value,ensure_ascii=False) if isinstance(value,dict) else str(value)))
+        if check.closure:
+            _add_heading(document, "补证闭合推演（假设分析）", 3)
+            probe = check.closure
+            ceiling = probe.get('ceiling', {})
+            _paragraph(document, f"{probe.get('tier_label', '')}：{probe.get('tier_reason', '')}")
+            _paragraph(document, f"假定前提补齐后的上限：{ceiling.get('label', '')}；差额{ceiling.get('residual')} {ceiling.get('normalized_unit', '')}。不作为正式结论。")
+            for demand in probe.get('demands', []):
+                _paragraph(document, f"待补{demand.get('condition', '')}：{demand.get('procedure', '')}")
         if check.hypothetical:
             _add_heading(document, "假设试算（非正式结论，不进入已衔接统计）", 3)
             _paragraph(document, "假设：" + "；".join(check.hypothetical.get("assumptions") or []))
@@ -388,6 +509,13 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
                    f'研判{len(set(step.get("accepted_analysis_ids",[])))}项，失败批次{len(step.get("failed_batches",[]))}。')
         for rejection in step.get('analysis_rejections',[]):
             _paragraph(document, f'意见局部未采纳 {rejection.get("check_id", "")} / {rejection.get("field", "")}：{rejection.get("reason", "")}')
+    collaboration = overview.get('collaboration', {})
+    _add_heading(document, "自主补证与反证回执", 2)
+    _paragraph(document, collaboration.get('notice', '未记录自主工具执行'))
+    for event in collaboration.get('events', []):
+        _paragraph(document, f"{event.get('producer_role', event.get('role', '程序'))} / {event.get('kind')} / {event.get('check_id', '')}："
+                   f"{event.get('reason', event.get('stop_reason', event.get('note', '')))}；"
+                   f"工具{event.get('tool', '—')}；新增原文{len(event.get('new_evidence_ids', []))}处；条件升级关系{event.get('upgraded', '—')}。")
     for call in run.provider_calls:
         _paragraph(document, f'{call.get("role")} / {call.get("model", "未发出模型请求")} / {call.get("status")}；'
                    f'输入{call.get("input_tokens", "未知")}、输出{call.get("output_tokens", "未知")} tokens；'

@@ -1,0 +1,259 @@
+{
+  "selection_rule": "fixed_demo_score_then_company_industry_diversity_plus_one_real_model_case",
+  "selected": [
+    {
+      "pair_id": "CONNPAIR-600887-2025-01511ea0bffacbe0",
+      "company": "伊利股份",
+      "company_id": "600887",
+      "period": "2025",
+      "status": "completed",
+      "total": 80,
+      "dimensions": {
+        "原件完整": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "两份登记原件均有哈希和页数，各10分"
+        },
+        "可复算检查": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+        },
+        "财务路径": {
+          "value": 10,
+          "maximum": 20,
+          "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+        },
+        "原页解释": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "可定位的不同报告页每页2分，上限20"
+        },
+        "真实智能体": {
+          "value": 0,
+          "maximum": 10,
+          "basis": "本轮三角色实际成功才记10分，否则0"
+        },
+        "现场速度": {
+          "value": 10,
+          "maximum": 10,
+          "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+        }
+      },
+      "elapsed_seconds": 20.74,
+      "checks": 5,
+      "financial_edges": 5,
+      "direct_financial_edges": 0,
+      "model_status": "not_requested",
+      "provider_calls": 0,
+      "outcomes": {
+        "insufficient_basis": 5
+      },
+      "occurrences": 438,
+      "run_id": "CONN-9BDE976D4DFD487A",
+      "raw_file": "CONNPAIR-600887-2025-01511ea0bffacbe0-calculation.json",
+      "raw_sha256": "f53417b2664610a18cd5330e85bf3be8688af25142542fff9585496a4f13e645",
+      "industry_context": {
+        "industry": "未取得明确行业依据",
+        "search_priorities": [],
+        "source": "generic",
+        "note": "使用通用指标指导，不猜测行业分类或行业均值"
+      }
+    },
+    {
+      "pair_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+      "company": "隆基绿能",
+      "company_id": "601012",
+      "period": "2025",
+      "status": "completed",
+      "total": 70,
+      "dimensions": {
+        "原件完整": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "两份登记原件均有哈希和页数，各10分"
+        },
+        "可复算检查": {
+          "value": 8,
+          "maximum": 20,
+          "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+        },
+        "财务路径": {
+          "value": 12,
+          "maximum": 20,
+          "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+        },
+        "原页解释": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "可定位的不同报告页每页2分，上限20"
+        },
+        "真实智能体": {
+          "value": 0,
+          "maximum": 10,
+          "basis": "本轮三角色实际成功才记10分，否则0"
+        },
+        "现场速度": {
+          "value": 10,
+          "maximum": 10,
+          "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+        }
+      },
+      "elapsed_seconds": 27.96,
+      "checks": 2,
+      "financial_edges": 6,
+      "direct_financial_edges": 0,
+      "model_status": "not_requested",
+      "provider_calls": 0,
+      "outcomes": {
+        "insufficient_basis": 2
+      },
+      "occurrences": 463,
+      "run_id": "CONN-DB572499DF6645E5",
+      "raw_file": "CONNPAIR-601012-2025-a03b1a282c408642-calculation.json",
+      "raw_sha256": "8cd050addfcf60fb31331b36c8647fc6f2a3ce8c6369d3e090dada66c4e3ddf1",
+      "industry_context": {
+        "industry": "光伏",
+        "evidence_id": "D-601012-2025-AR-10233740d54740b8-6-IND-8",
+        "quote": "声明：保证年度报告中财务报告的真实、准确、完整。\n五、董事会决议通过的本报告期利润分配预案或公积金转增股本预案\n2025\n鉴于公司 年度合并报表归属于母公司净利润为负，且光伏行业仍处于深度调整期，综合",
+        "search_priorities": [
+          "节能改造",
+          "研发资本化",
+          "产能与能耗"
+        ],
+        "source": "company_report",
+        "note": "本项目三行业检索试点；不是评级权重或同业平均值"
+      }
+    },
+    {
+      "pair_id": "CONNPAIR-600875-2025-0c61d05b6ebee186",
+      "company": "东方电气",
+      "company_id": "600875",
+      "period": "2025",
+      "status": "completed",
+      "total": 78,
+      "dimensions": {
+        "原件完整": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "两份登记原件均有哈希和页数，各10分"
+        },
+        "可复算检查": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+        },
+        "财务路径": {
+          "value": 8,
+          "maximum": 20,
+          "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+        },
+        "原页解释": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "可定位的不同报告页每页2分，上限20"
+        },
+        "真实智能体": {
+          "value": 0,
+          "maximum": 10,
+          "basis": "本轮三角色实际成功才记10分，否则0"
+        },
+        "现场速度": {
+          "value": 10,
+          "maximum": 10,
+          "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+        }
+      },
+      "elapsed_seconds": 13.57,
+      "checks": 8,
+      "financial_edges": 4,
+      "direct_financial_edges": 0,
+      "model_status": "not_requested",
+      "provider_calls": 0,
+      "outcomes": {
+        "insufficient_basis": 8
+      },
+      "occurrences": 293,
+      "run_id": "CONN-FC69E8377BF44FAF",
+      "raw_file": "CONNPAIR-600875-2025-0c61d05b6ebee186-calculation.json",
+      "raw_sha256": "45785becc47d88369a5119a0067b6e814b521bddf4701b08aa8d6e80950882f9",
+      "industry_context": {
+        "industry": "电力",
+        "evidence_id": "D-600875-2025-AR-0108f13d8700ae8b-12-IND-4",
+        "quote": "续夯实数字化、智能化发展底座。报告期内，公司获评四川省企业技术中心、中国电力规划设计\n协会“电力规划设计行业高质量发展先进企业”。\n4.市场开拓能力强\n公司构建起总部与所属企业协同推进的两级营销体系，形成以贴近用户为特征的国内外营销",
+        "search_priorities": [
+          "装机容量",
+          "建设投入",
+          "营业收入"
+        ],
+        "source": "company_report",
+        "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+      }
+    },
+    {
+      "pair_id": "CONNPAIR-600690-2025-68f07089c71a0de0",
+      "company": "海尔智家",
+      "company_id": "600690",
+      "period": "2025",
+      "status": "completed",
+      "total": 68,
+      "dimensions": {
+        "原件完整": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "两份登记原件均有哈希和页数，各10分"
+        },
+        "可复算检查": {
+          "value": 8,
+          "maximum": 20,
+          "basis": "每条保存程序计算过程的关系4分，上限20；不代表正式一致"
+        },
+        "财务路径": {
+          "value": 10,
+          "maximum": 20,
+          "basis": "双方来源均属于当前报告对的财务候选每条2分，上限20；缺口边不计分，候选不等于因果或支持"
+        },
+        "原页解释": {
+          "value": 20,
+          "maximum": 20,
+          "basis": "可定位的不同报告页每页2分，上限20"
+        },
+        "真实智能体": {
+          "value": 0,
+          "maximum": 10,
+          "basis": "本轮三角色实际成功才记10分，否则0"
+        },
+        "现场速度": {
+          "value": 10,
+          "maximum": 10,
+          "basis": "本机该次程序运行≤90秒10分，≤180秒5分；不作线上速度承诺"
+        }
+      },
+      "elapsed_seconds": 12.98,
+      "checks": 2,
+      "financial_edges": 5,
+      "direct_financial_edges": 0,
+      "model_status": "not_requested",
+      "provider_calls": 0,
+      "outcomes": {
+        "insufficient_basis": 2
+      },
+      "occurrences": 262,
+      "run_id": "CONN-14D825ABB0F24EA4",
+      "raw_file": "CONNPAIR-600690-2025-68f07089c71a0de0-calculation.json",
+      "raw_sha256": "bb628dd7b80e28c92a91f94d57cf058e4c91ed238469beb61134601e54a8ed58",
+      "industry_context": {
+        "industry": "家电",
+        "evidence_id": "D-600690-2025-AR-14186f9f9b47f687-135-IND-20",
+        "quote": "本公司的注册地为山东省青岛市崂山区海尔科创生态园，总部办公地址为山东省青岛市崂山\n区海尔科创生态园。\n/\n本公司主要从事家电的研发、生产及销售工作，涉及冰箱 冷柜、厨电、空调、洗衣设备、水",
+        "search_priorities": [
+          "研发投入",
+          "产品能效",
+          "节能改造"
+        ],
+        "source": "company_report",
+        "note": "行业检索适配依据本企业原文；不是评级权重或同业平均值"
+      }
+    }
+  ]
+}

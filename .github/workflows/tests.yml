@@ -16,6 +16,13 @@ jobs:
         run: python -m pytest backend/tests/test_release_contract.py -q --junitxml=outputs/ai4/smoke.xml
       - name: Full regression
         run: python -m pytest -q --junitxml=outputs/ai4/full.xml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Formal workspace frontend contracts
+        run: |
+          node --check assets/official-v4/connectivity-companies.js
+          node --test tests/frontend/connectivity-status.test.mjs tests/frontend/connectivity-view-model.test.mjs tests/frontend/test_round3_frontend_status.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:

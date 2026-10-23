@@ -4,8 +4,8 @@ services:
     runtime: python
     plan: free
     # 官方年报源可用时照常校验并建库；Render 收到官方 HTTP 403 时只降级标准样例，继续发布公开演示站。
-    buildCommand: pip install -r backend/requirements.txt && python -m backend.app.public_demo_bootstrap --allow-missing-sources && python -m backend.app.company_discovery && python -m backend.app.public_catalog_bootstrap && python -m backend.app.connectivity_bootstrap --allow-missing-sources
-    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r backend/requirements.txt && python -m backend.app.connectivity_bootstrap --allow-missing-sources
+    startCommand: uvicorn backend.app.connectivity_app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
@@ -54,7 +54,7 @@ services:
       - key: DEEPSEEK_BASE_URL
         value: https://api.deepseek.com
       - key: DEEPSEEK_MODEL
-        value: deepseek-v4-flash
+        value: deepseek-flash
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

@@ -11,15 +11,18 @@ import re
 
 from .connectivity_schemas import DisclosureOccurrence, EvidenceRef, RelationshipCheck
 from .connectivity_rules import RULES, required_conditions
+from .connectivity_metrics import metric_comparison, metric_identity
 
 # 单位表只包含确定倍率；不同币种不能靠数量级换算。
 UNITS = {
     "元": ("money", "1"), "千元": ("money", "1000"), "万元": ("money", "10000"),
     "百万元": ("money", "1000000"), "亿元": ("money", "100000000"),
+    "千克": ("mass", "0.001"), "公斤": ("mass", "0.001"),
     "吨": ("mass", "1"), "万吨": ("mass", "10000"),
     "千瓦时": ("electric_energy", "1"), "万千瓦时": ("electric_energy", "10000"), "兆瓦时": ("electric_energy", "1000"),
     "吉焦": ("heat_energy", "1"), "太焦": ("heat_energy", "1000"),
     "吨标准煤": ("standard_coal", "1"), "万吨标准煤": ("standard_coal", "10000"),
+    "千克二氧化碳当量": ("co2e", "0.001"),
     "吨二氧化碳当量": ("co2e", "1"), "万吨二氧化碳当量": ("co2e", "10000"),
     "吨粗钢": ("crude_steel_mass", "1"), "万吨粗钢": ("crude_steel_mass", "10000"),
     "吨产品": ("product_mass", "1"), "万吨产品": ("product_mass", "10000"),
@@ -101,6 +104,16 @@ def numeric_unit(unit: str) -> tuple[str, Decimal]:
     return "unknown", Decimal(1)
 
 
+def identity_dimension_problem(occurrence: DisclosureOccurrence) -> str:
+    """金额和人数的明示指标不能被绑定成占比；强度/比例有独立身份，不据分母判断。"""
+    identity = metric_identity(occurrence.label)
+    expected = identity.get("dimension")
+    actual = numeric_unit(occurrence.unit)[0]
+    if expected in {"money", "people"} and actual != "unknown" and actual != expected:
+        return f"指标“{occurrence.label}”与单位量纲冲突：应为{expected}，实际为{actual}；需校正原文行列绑定"
+    return ""
+
+
 def normalized(occurrence: DisclosureOccurrence) -> tuple[Decimal, str, Interval]:
     raw = number(occurrence.value)
     dimension, factor = numeric_unit(occurrence.unit)
@@ -143,12 +156,14 @@ def display_interval(occurrence: DisclosureOccurrence) -> Interval | None:
         return None
     value = number(occurrence.value) * factor
     half = Decimal(1).scaleb(-precision) * factor / 2
-    return Interval(value - half, value + half)
+    return Interval(value - half, value + half, value > 0, value < 0)
 
 
 def display_precision_assumption(check: RelationshipCheck, occurrences: list[DisclosureOccurrence]) -> dict:
     """独立记录显示精度假设下的相容区间，不改变正式差额或口径状态。"""
     found = {row.occurrence_id: row for row in occurrences}
+    if check.operator == "ratio":
+        return _ratio_precision_assumption(check, found)
     if check.operator != "equal" or len(check.members) != 2:
         return {"status": "not_run", "assumption": "none", "reason": "当前算子不适用显示精度假设"}
     rows = [found.get(member.occurrence_id) for member in check.members]
@@ -171,6 +186,56 @@ def display_precision_assumption(check: RelationshipCheck, occurrences: list[Dis
             "residual_interval": residual.as_dict(), "contains_zero": residual.contains_zero(),
             "limitations": ["若企业采用截断、特殊取整或尾随零并非显示精度，区间结论不成立",
                             "相容不等于口径可比，也不等于企业披露正确"]}
+
+
+def _divide_interval(numerator: Interval, denominator: Interval) -> Interval | None:
+    """有界区间相除；极值的开闭来自实际达到该极值的端点组合。"""
+    if denominator.low <= 0 <= denominator.high:
+        return None
+    corners = [(n / d, nc and dc)
+               for n, nc in ((numerator.low, numerator.low_closed), (numerator.high, numerator.high_closed))
+               for d, dc in ((denominator.low, denominator.low_closed), (denominator.high, denominator.high_closed))]
+    low, high = min(value for value, _ in corners), max(value for value, _ in corners)
+    return Interval(low, high, any(closed for value, closed in corners if value == low),
+                    any(closed for value, closed in corners if value == high))
+
+
+def _ratio_precision_assumption(check: RelationshipCheck, found: dict[str, DisclosureOccurrence]) -> dict:
+    """三个成员共同参与比例精度试算；未知舍入只给条件区间，不改写正式算术。"""
+    roles = {member.role: found.get(member.occurrence_id) for member in check.members}
+    if set(roles) != {"numerator", "denominator", "reported_ratio"} or any(row is None for row in roles.values()):
+        return {"status": "not_run", "assumption": "none", "reason": "比例成员不完整"}
+    intervals, assumed = {}, []
+    try:
+        for role, row in roles.items():
+            _, _, interval = normalized(row)
+            method = row.rounding_method if row.rounding_method != "unknown" else row.rounding
+            if method == "unknown":
+                candidate = display_interval(row)
+                if candidate is not None:
+                    interval = candidate
+                    assumed.append(row.occurrence_id)
+            intervals[role] = interval
+    except (ValueError, ArithmeticError):
+        return {"status": "not_run", "assumption": "none", "reason": "比例成员数值或单位不足"}
+    if not assumed:
+        return {"status": "not_run", "assumption": "none", "reason": "没有需要假设舍入方法的小数显示成员"}
+    calculated = _divide_interval(intervals["numerator"], intervals["denominator"])
+    if calculated is None:
+        return {"status": "not_run", "assumption": "none", "reason": "分母精度区间跨零，不能作有界比例试算"}
+    reported = intervals["reported_ratio"]
+    implied = _implied_denominator(intervals["numerator"], reported)
+    residual = reported.minus(calculated)
+    return {"status": "contains_zero" if residual.contains_zero() else "not_contains_zero",
+            "assumption": "display_half_up", "basis_level": "L0",
+            "assumption_note": "按各成员显示小数位假设四舍五入；未确认企业实际舍入方法，不作为正式一致依据",
+            "assumed_occurrence_ids": assumed,
+            "left_interval": reported.as_dict(), "right_interval": calculated.as_dict(),
+            "residual_interval": residual.as_dict(), "contains_zero": residual.contains_zero(),
+            "denominator_check": {"implied": implied.as_dict() if implied else None,
+                                  "disclosed": intervals["denominator"].as_dict(),
+                                  "compatible": intervals["denominator"].overlaps(implied) if implied else None},
+            "limitations": ["相容只表示显示精度可能解释差异，不能证明定义、范围与舍入方法一致"]}
 
 
 def member_boundary(occurrence: DisclosureOccurrence) -> str:
@@ -246,18 +311,43 @@ def _conditions_summary(check: RelationshipCheck) -> dict:
 def validate_refs(refs: list[EvidenceRef], occurrences: dict[str, DisclosureOccurrence]) -> bool:
     """引用必须属于本次报告且逐字存在于对应上下文，不接受模型编造出处。"""
     compact = lambda s: re.sub(r"\s+", "", s)
-    return bool(refs) and all(ref.occurrence_id in occurrences and
-        compact(ref.quote) in compact(occurrences[ref.occurrence_id].context)
-        for ref in refs)
+    return bool(refs) and all(
+        ref.occurrence_id in occurrences
+        and len(compact(ref.quote)) >= 2  # 空白引文不能成为任何口径条件的证据
+        and compact(ref.quote) in compact(occurrences[ref.occurrence_id].context)
+        for ref in refs
+    )
 
 
-def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence]) -> RelationshipCheck:
+def non_exact_value(row: DisclosureOccurrence) -> bool:
+    """数值限定沿用提取结果；旧记录只回看紧贴数值的行名末尾。
+
+    不扫描整段上下文，避免把其他指标的“超过”错误绑定到本数值。
+    """
+    if row.value_qualifier in {"approximate", "lower_bound", "upper_bound"}:
+        return True
+    return bool(re.search(r"(?:不超过|不低于|不高于|至少|至多|超过|多于|少于|不足|大约|约|近)\s*$", row.label))
+
+
+def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence], *,
+              assume_supported: set[str] | None = None,
+              disregard_gaps: bool = False) -> RelationshipCheck:
     """从原始关系重建状态，忽略前端或模型提交的既有计算结论。
 
     数值、口径和解释分别记录：无依据解释不会改写差额，显示精度假设不会
     升级为正式结论，报告边界/表内分组/指标统计范围也不会互相冒充。
+
+    两个仅用于反事实推演的开关，默认关闭时与既有行为逐字段一致：
+    - assume_supported：假定这些前提已获原文支持。用于回答"只补这一项够不够"。
+    - disregard_gaps：假定全部形式前提（含关系依据）均已成立。用于给出算术
+      上限预测——"即使纸面前提全部补齐，剩余差额是多少"。
+    推演结果绝不写入 conclusion_level 等正式字段；调用方必须把它放进 closure
+    预测块，并保留"这是假设、不是结论"的标注。
     """
     result = check.model_copy(deep=True)
+    assumed = {name for name in (assume_supported or ()) if name}
+    if disregard_gaps:
+        assumed = {condition.name for condition in result.conditions}
     result.calculation = {}
     result.hypothetical = None
     result.unresolved = []
@@ -290,6 +380,13 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     for condition in result.conditions:
         if condition.name in conditions:
             raise ValueError("同一比较条件不能重复提交")
+        if condition.name in assumed:
+            # 反事实推演：把该前提按"已获原文支持"参与算术，但不冒充任何原文证据。
+            condition.status = "supported"
+            condition.evidence_kind = "derived"
+            condition.reason = f"反事实推演：假设「{condition.name}」前提已成立，不构成本次事实认定"
+            conditions[condition.name] = condition
+            continue
         if condition.status != "unknown" and not validate_refs(condition.evidence, found):
             condition.status = "unknown"
             condition.reason = "所引依据缺失、越界或原文不匹配"
@@ -305,6 +402,12 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     elif result.relationship_basis == "table_structure":
         # 表内结构只证明合计与分项的几何覆盖，不证明指标定义、统计范围与期间。
         result.unresolved.append("该关系由表内结构自动生成；合计/分项覆盖仍需指标定义、统计范围与期间原文确认")
+    elif result.relationship_basis == "metric_identity":
+        # 关系来自受控指标身份字典（含“不得等同”反例）的映射，属于可复核的
+        # 受控依据，不再因“非原文明示同一指标”整体否决；五项前提仍逐项生效。
+        result.calculation["relationship_basis_note"] = (
+            "关系由受控指标身份字典映射得到，不是原文明示同一指标；"
+            "简称/异名只在字典登记的别名范围内成立")
     else:
         # 自动配对/多位置只是候选：成员行只能证明两处各自披露了什么，
         # 不能证明"这两处应当相互对照"。关系本身仍需原文或人工说明。
@@ -316,12 +419,14 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     if result.operator == "equal" and len(document_ids) < 2:
         result.unresolved.append("同值关系需要来自不同报告的两处披露；同一报告内的重复位置只作多位置核对")
     money_members = [found[m.occurrence_id] for m in result.members if "money" in numeric_unit(found[m.occurrence_id].unit)[0]]
-    if any(not row.currency for row in money_members):
+    if any(not row.currency or row.currency_status == "assumed" for row in money_members):
         result.unresolved.append("货币成员币种尚未证实，金额换算只能列假设试算")
     result.comparability["currency"] = {
-        "status": "missing" if any(not row.currency for row in money_members) else "supported" if money_members else "not_applicable",
+        "status": "missing" if any(not row.currency or row.currency_status == "assumed" for row in money_members) else "supported" if money_members else "not_applicable",
         "members": {row.occurrence_id: {"currency": row.currency, "status": row.currency_status} for row in money_members},
     }
+    unit_identity_problems = [problem for row in located_members if (problem := identity_dimension_problem(row))]
+    result.unresolved.extend(unit_identity_problems)
     explicit_years = {found[m.occurrence_id].year for m in result.members if found[m.occurrence_id].year}
     if len(explicit_years) > 1:
         result.unresolved.append("成员明确属于不同期间，不能作为本期同口径关系")
@@ -339,7 +444,15 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     result.comparability["table_structure_present"] = bool(result.table_structure)
     result.comparability["relationship_basis"] = result.relationship_basis
     result.comparability["scope_note"] = "报告边界、表内分组与指标统计范围分别登记；前者不能替代后者"
-    conflict = any(c.status == "conflicting" for c in result.conditions)
+    # 同值及多位置核对必须保留指标限定；组成与比例允许成员本来就属于不同概念。
+    identity_checks = []
+    if result.operator in {"equal", "occurrences"} and located_members:
+        identity_checks = [metric_comparison(located_members[0].label, row.label) for row in located_members[1:]]
+        for item in identity_checks:
+            if item["status"] != "compatible":
+                result.unresolved.append(item["reason"])
+    result.comparability["metric_identity"] = identity_checks
+    conflict = bool(unit_identity_problems) or any(c.status == "conflicting" for c in result.conditions) or any(item["status"] == "conflicting" for item in identity_checks)
     result.criteria_status = "conflicting" if conflict else "unknown" if result.unresolved else "supported"
     result.comparability["conditions"] = _conditions_summary(result)
     if result.operator == "narrative":
@@ -348,6 +461,15 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
                               "evidence_supported": validate_refs(result.explanation_evidence, found),
                               "explanation_status": explanation["status"]}
         _set_levels(result, "not_applicable", "L0", "not_applicable")
+        return result
+    # 范围值不是一个可相减的点，缺失前提时也不得输出误导性的条件差额。
+    bounded = [row.occurrence_id for row in located_members if non_exact_value(row)]
+    if bounded:
+        message = "成员包含约数或上下界，不能按精确点值计算差额"
+        result.unresolved.append(message)
+        result.criteria_status = "unknown" if not conflict else "conflicting"
+        result.calculation = {"error": message, "non_exact_members": bounded}
+        _set_levels(result, "insufficient_basis", "L0", "not_computed")
         return result
     try:
         with localcontext() as ctx:
@@ -364,6 +486,11 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
         result.calculation = {"error": f"算式未完成：{type(error).__name__}"}
         _set_levels(result, "insufficient_basis", "L0", "not_computed")
         return result
+    if disregard_gaps and not conflict:
+        # 上限预测：把闸门视为已打开，让同一个算式走完整分支，只求"剩多少差额"。
+        # 不在此处写任何标记：后面 result.calculation = trial 会整体覆盖，
+        # 写入即成为死字段。调用方（connectivity_closure）负责标注这是假设。
+        result.criteria_status = "supported"
     # 正式差额硬门禁：任一关键前提 unknown 或 conflicting 时不产出正式差额与残差。
     if result.criteria_status != "supported":
         result.calculation = _gated_calculation(result, trial)
@@ -377,7 +504,9 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
         composition_only = (bool(result.table_structure) and set(missing) <= {"组成完整", "互不重叠"}
                             and all(item.status == "supported" for item in result.conditions
                                     if item.name not in {"组成完整", "互不重叠"}))
-        if composition_only:
+        if conflict:
+            conclusion, basis = "insufficient_basis", "L0"
+        elif composition_only:
             conclusion, basis = "limited_support", "L1"
         elif assumption.get("status") == "contains_zero":
             conclusion, basis = "assumption_compatible", "L0"
@@ -429,6 +558,8 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     elif trial.get("precision_compatible"):
         result.calculation_status = "precision_explained"
     else:
+        # 比例显示精度只在下方 conclusion_level 层给 L0 条件解释，
+        # 不在 calculation_status 层声称“已解释”；企业未声明舍入方法时差额仍算未解释。
         result.calculation_status = "unexplained_difference"
         result.unresolved.append("同口径计算仍有未解释差额")
     if result.calculation_status == "consistent":
@@ -438,7 +569,12 @@ def calculate(check: RelationshipCheck, occurrences: list[DisclosureOccurrence])
     elif result.calculation_status == "adjustment_explained":
         _set_levels(result, "assumption_compatible", "L1", "adjustment_compatible")
     elif result.calculation_status == "unexplained_difference":
-        _set_levels(result, "unexplained_difference", "L2", "different")
+        # 未声明舍入的比例可以给出条件解释，但保留点值差额及原始计算状态。
+        if result.operator == "ratio" and assumption.get("status") == "contains_zero":
+            _set_levels(result, "assumption_compatible", "L0", "precision_compatible")
+            result.unresolved.append("比例差异可在显示精度假设下解释；企业实际舍入方法尚未证实")
+        else:
+            _set_levels(result, "unexplained_difference", "L2", "different")
     else:
         _set_levels(result, "insufficient_basis", "L0", "not_computed")
     return result
@@ -523,6 +659,8 @@ def _apply_adjustments(check: RelationshipCheck, trial: dict, found: dict[str, D
         rejected.append({"adjustment_id": "*", "reason": "关系量纲尚未确定，不能登记金额调节"})
         return {**empty, "rejected": rejected}
     seen_effects: dict[str, str] = {}
+    # 同一原文数值不能以不同效果编号被扣两次；重复扣减会人为把差额做平。
+    seen_sources: dict[str, str] = {}
     total = Decimal(0)
     total_interval = Interval(Decimal(0), Decimal(0))
     interval_status = "known"
@@ -540,6 +678,9 @@ def _apply_adjustments(check: RelationshipCheck, trial: dict, found: dict[str, D
             problems.append("调节额与关系量纲不一致")
         if item.effect_id in seen_effects:
             problems.append("同一解释效果不能在分组剔除后从金额中再次扣除")
+        reused = sorted({ref.occurrence_id for ref in item.evidence} & set(seen_sources))
+        if reused:
+            problems.append("同一原文数值不得重复扣减：已用于" + "、".join(seen_sources[item_id] for item_id in reused[:2]))
         # 重叠须有互斥依据；仅当与本项已采纳的效果重叠时才拒绝叠加。
         if item.overlap_with:
             if not item.overlap_basis.strip():
@@ -554,6 +695,9 @@ def _apply_adjustments(check: RelationshipCheck, trial: dict, found: dict[str, D
             rejected.append({"adjustment_id": item.adjustment_id, "reason": "；".join(problems)})
             continue
         seen_effects[item.effect_id] = item.adjustment_id
+        for ref in item.evidence:
+            if ref.occurrence_id in found:
+                seen_sources.setdefault(ref.occurrence_id, item.adjustment_id)
         if item.path == "grouping":
             # 分组本身不扣减金额，只登记父基准下的新基准，供后续同基准关系使用。
             partitions.append({"adjustment_id": item.adjustment_id, "effect_id": item.effect_id, "label": item.label,
@@ -645,9 +789,11 @@ def _arithmetic(check: RelationshipCheck, found: dict[str, DisclosureOccurrence]
             # 百分数及常见单位已在规范化阶段处理，额外倍率要有公式依据。
             raise ValueError("额外比例倍率须转换为明确单位后计算")
         b = n / d
-        candidates = [ni.low / di.low, ni.low / di.high, ni.high / di.low, ni.high / di.high]
-        closed = ni.low_closed and ni.high_closed and di.low_closed and di.high_closed
-        ib = Interval(min(candidates), max(candidates), closed, closed)
+        # 区间除法保留来源一的端点开闭推导（比逐个端点枚举更严谨，不在边界上放宽）。
+        # 注意：不能用“显示位半单位”替换披露比例区间 ia——否则 ia.overlaps(ib) 必为真，
+        # precision_compatible 会把未声明舍入的差额直接升为正式 precision_explained。
+        # 比例显示精度的条件解释统一由 _ratio_precision_assumption 在 L0 层给出。
+        ib = _divide_interval(ni, di)
         expression = f"披露{ text_number(a) } − ({text_number(n)} ÷ {text_number(d)})"
         # 分母相容区间逆推：由披露比例与分子区间反推分母区间，再与披露分母比较。
         implied = _implied_denominator(ni, ia)
@@ -678,18 +824,16 @@ def _arithmetic(check: RelationshipCheck, found: dict[str, DisclosureOccurrence]
             "precision_compatible": all(x["precision_compatible"] for x in comparisons) if comparisons else ia.overlaps(ib),
             "left_interval": ia.as_dict(), "right_interval": ib.as_dict(), "positions": comparisons}
     if check.operator == "ratio":
+        conditional = _ratio_precision_assumption(check, found)
+        if conditional.get("assumption") == "display_half_up":
+            ratio_implied["conditional_compatible"] = conditional.get("denominator_check", {}).get("compatible")
+            ratio_implied["conditional_check"] = conditional.get("denominator_check")
+            ratio_implied["precision_basis"] = "display_assumption"
+            ratio_implied["note"] = "正式区间使用已声明舍入；条件区间按显示精度假设，不能升级正式结论"
         payload["denominator_check"] = ratio_implied
     return payload
 
 
 def _implied_denominator(numerator: Interval, ratio: Interval) -> Interval | None:
     """由 n 与披露比例的区间反推分母区间；比例区间跨零时不逆推，避免放大成无穷区间。"""
-    if ratio.low <= 0 <= ratio.high:
-        return None
-    candidates = [numerator.low / ratio.low, numerator.low / ratio.high,
-                  numerator.high / ratio.low, numerator.high / ratio.high]
-    closed = numerator.low_closed and numerator.high_closed and ratio.low_closed and ratio.high_closed
-    low, high = min(candidates), max(candidates)
-    if low > high:
-        low, high = high, low
-    return Interval(low, high, closed, closed)
+    return _divide_interval(numerator, ratio)

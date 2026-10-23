@@ -24,11 +24,11 @@
     conditional: {key: 'conditional', label: '条件试算', tone: 'conditional', definition: '仅在写明假设（如显示精度、调节项）时相容，不等于正式确认'},
     limited: {key: 'limited', label: '有限支持', tone: 'limited', definition: '仅有表级或结构依据，或口径支持但算式不可执行，不能作为正式确认'},
     insufficient: {key: 'insufficient', label: '依据不足·不可比', tone: 'neutral', definition: '关键前提缺原文依据，程序不输出正式差额'},
-    conflict: {key: 'conflict', label: '潜在矛盾', tone: 'warn', definition: '存在明确冲突前提，或同口径下仍有未解释差额'},
+    conflict: {key: 'conflict', label: '口径冲突或未解释差额', tone: 'warn', definition: '口径冲突表示不能直接比较；同口径下的未解释差额另行核查'},
     not_applicable: {key: 'not_applicable', label: '不适用数值计算', tone: 'neutral', definition: '叙述类关系，只记录文字主张，不生成算式'}
   };
   const CONFLICT = {
-    potential: {key: 'potential', label: '潜在矛盾', tone: 'warn', definition: '存在明确冲突前提或未解释差额，需要核查'},
+    potential: {key: 'potential', label: '口径冲突或未解释差额', tone: 'warn', definition: '范围或指标不同不直接说明企业披露错误；须区分口径冲突与数值差异'},
     none: {key: 'none', label: '暂未发现矛盾', tone: 'ok', definition: '前提齐备且程序完成复算，数值上未见差异'},
     unknown: {key: 'unknown', label: '依据不足·不可比', tone: 'neutral', definition: '前提不足或口径不可比，不能判断是否存在矛盾'}
   };
@@ -37,6 +37,7 @@
     stale: {key: 'stale', label: 'AI 意见待刷新', tone: 'ai-none', note: '证据或计算已变化，旧意见不作为倾向依据'},
     potential: {key: 'potential', label: 'AI 倾向：可能有矛盾', tone: 'ai-warn', note: '模型判断，可能不准确，不替代程序状态'},
     lean: {key: 'lean', label: 'AI 倾向：未见矛盾', tone: 'ai', note: '模型倾向，不等于程序已确认；依据不足时不得读成“没问题”'},
+    plausible: {key: 'plausible', label: 'AI 倾向：存在合理解释', tone: 'ai', note: '解释尚需验证，不等于数值一致，也不替代程序状态'},
     insufficient: {key: 'insufficient', label: 'AI：依据不足', tone: 'ai-none', note: '模型未能取得足够依据，不构成“未发现矛盾”'},
     not_comparable: {key: 'not_comparable', label: 'AI：当前不可比', tone: 'ai-none', note: '模型认为口径不可比，与程序的不可比状态一致'}
   };
@@ -55,12 +56,13 @@
 
   function programLevel(check) {
     const calc = (check && check.calculation) || {};
+    if (check && check.criteria_status === 'conflicting') return LEVELS.conflict;
     const declared = check && (check.conclusion_level && check.conclusion_level !== "not_assessed" ? check.conclusion_level : calc.conclusion_level);
     if (declared === "limited_support") return LEVELS.limited;
     if (declared === "insufficient_basis") return LEVELS.insufficient;
     if (declared && LEVELS[declared]) return LEVELS[declared];
     if (declared === 'unexplained_difference') return LEVELS.conflict;
-    if (declared === 'formal_consistent') return LEVELS.formal;
+    if (declared === 'formal_consistent') return check.criteria_status === 'supported' && !calc.gate ? LEVELS.formal : LEVELS.insufficient;
     if (declared === 'assumption_compatible') return LEVELS.conditional;
 
     if (!check) return LEVELS.insufficient;
@@ -113,7 +115,10 @@
     if (['potential_conflict', 'unexplained', 'likely_error', 'human_review', 'needs_human'].includes(verdict)) {
       return Object.assign({}, AI_STATES.potential, {opinion});
     }
-    if (['lean_consistent', 'consistent', 'explainable_difference', 'plausible_explanation', 'probable_explainable'].includes(verdict)) {
+    if (['plausible_explanation', 'explainable_difference', 'probable_explainable'].includes(verdict)) {
+      return Object.assign({}, AI_STATES.plausible, {opinion});
+    }
+    if (['lean_consistent', 'consistent'].includes(verdict)) {
       return Object.assign({}, AI_STATES.lean, {opinion});
     }
     if (verdict === 'not_comparable') return Object.assign({}, AI_STATES.not_comparable, {opinion});
@@ -124,7 +129,7 @@
   function aiCoversProgram(run, check) {
     const level = programLevel(check).key;
     const ai = aiState(run, check);
-    return ['insufficient', 'limited', 'conditional'].includes(level) && ai.key === 'lean';
+    return ['insufficient', 'limited', 'conditional'].includes(level) && ['lean', 'plausible'].includes(ai.key);
   }
 
   function relationType(check) {
@@ -193,7 +198,7 @@
     const parts = [];
     parts.push(`本次共 ${total} 项关系`);
     if (levels.formal.value) parts.push(`${levels.formal.value} 项在前提支持下完成复算且未见差异`);
-    if (levels.conflict.value) parts.push(`${levels.conflict.value} 项存在明确矛盾或未解释差额`);
+    if (levels.conflict.value) parts.push(`${levels.conflict.value} 项存在口径冲突或未解释差额`);
     const unclear = [];
     if (levels.conditional.value) unclear.push(`${levels.conditional.value} 项仅在写明假设时相容`);
     if (levels.limited.value) unclear.push(`${levels.limited.value} 项仅获有限证据支持`);

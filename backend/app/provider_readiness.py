@@ -257,7 +257,7 @@ class ProviderSnapshot:
     provider_kind: str = "deepseek_direct"
     provider_label: str = "DeepSeek 官方直连"
     provider_host: str = "api.deepseek.com"
-    model_id: str = "deepseek-v4-flash"
+    model_id: str = "deepseek-flash"
     paid_probe_performed: bool = False
     last_runtime_failure_code: str | None = None
     next_action_code: str = "ready"
@@ -327,7 +327,7 @@ def probe_provider(
     # 提取 API Key：优先使用传入参数，其次读取环境变量
     key = (api_key if api_key is not None else os.getenv("DEEPSEEK_API_KEY", "")).strip()
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).strip()
-    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")).strip()
+    target_model = (model_id if model_id is not None else os.getenv("DEEPSEEK_MODEL", "deepseek-flash")).strip()
     base_url_error = provider_base_url_error(target_base_url)
     if base_url_error is not None:
         return ProviderSnapshot(
@@ -645,7 +645,7 @@ def get_provider_snapshot(*, force_refresh: bool = False) -> ProviderSnapshot:
 
     global _current_snapshot, _last_probe_timestamp
     target_base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    target_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash").strip()
+    target_model = os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip()
     channel_info = classify_provider_channel(target_base_url)
 
     if not is_provider_probe_enabled():
@@ -750,7 +750,7 @@ def record_provider_success(model_id: str = "", base_url: str | None = None) -> 
     global _current_snapshot, _last_probe_timestamp
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
     channel_info = classify_provider_channel(target_base_url)
-    used_model = model_id or os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    used_model = model_id or os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
 
     with _lock:
         # 当真实 Agent 运行成功返回有效输出时，重置快照为就绪状态
@@ -780,7 +780,7 @@ def record_provider_failure(failure_code: str, message: str = "", base_url: str 
     target_base_url = (base_url if base_url is not None else os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
     channel_info = classify_provider_channel(target_base_url)
     guidance = get_provider_error_guidance(failure_code, base_url=target_base_url)
-    used_model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    used_model = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
 
     with _lock:
         # 立即写入熔断快照，使后续前端轮询能够及时感知到供应商不可用

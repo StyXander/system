@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "backend": "supabase",
+  "written_pairs": 12,
+  "recovered_without_local_snapshot": 12,
+  "hashes_unchanged": true,
+  "stores_pdf_bytes": false,
+  "recovery": "registered_official_url_plus_sha256",
+  "boundary": "数据库恢复已实测；远端原件仍须按登记 URL 和哈希恢复，官方删除时明确失败"
+}

@@ -1,0 +1,252 @@
+{
+  "pair": "000858-2025",
+  "runs": [
+    {
+      "mode": "single_model",
+      "pair_id": "CONN-A422499D2D924ECA",
+      "elapsed_seconds": 31.4,
+      "occurrences": 228,
+      "checks": 8,
+      "levels": {
+        "assumption_compatible": 5,
+        "insufficient_basis": 3
+      },
+      "formal": 0,
+      "assumption_compatible": 5,
+      "limited_support": 0,
+      "insufficient_basis": 3,
+      "unexplained_difference": 0,
+      "rejections": 20,
+      "ai_analyses": 8,
+      "ai_verdicts": {
+        "plausible_explanation": 2,
+        "lean_consistent": 5,
+        "insufficient_basis": 1
+      },
+      "claim_total": 8,
+      "claim_support": {
+        "insufficient_basis": 4,
+        "supported": 3,
+        "not_verified": 1
+      },
+      "claim_material_contradictions": 0,
+      "provider_calls": 1,
+      "provider_details": [
+        {
+          "role": "single",
+          "status": "completed",
+          "failure_code": null,
+          "duration_ms": 26485,
+          "input_tokens": 52225,
+          "output_tokens": 8869,
+          "batch": 0
+        }
+      ],
+      "tokens": 0,
+      "model_status": "single_completed",
+      "checks_brief": [
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入占营业收入比例 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "营业收入 · 同一报告内3处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入金额 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · 年报公式核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · ESG公式核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发人员数量 · 年报与ESG披露数值核对",
+          "level": "insufficient_basis",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发人员数量占比 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发费用 · 年报内两处披露",
+          "level": "insufficient_basis",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        }
+      ]
+    },
+    {
+      "mode": "three_agents",
+      "pair_id": "CONN-EE7DC1D535244C0C",
+      "elapsed_seconds": 186.4,
+      "occurrences": 228,
+      "checks": 8,
+      "levels": {
+        "insufficient_basis": 3,
+        "assumption_compatible": 5
+      },
+      "formal": 0,
+      "assumption_compatible": 5,
+      "limited_support": 0,
+      "insufficient_basis": 3,
+      "unexplained_difference": 0,
+      "rejections": 20,
+      "ai_analyses": 6,
+      "ai_verdicts": {
+        "lean_consistent": 6
+      },
+      "claim_total": 10,
+      "claim_support": {
+        "insufficient_basis": 4,
+        "contradicted": 4,
+        "supported": 2
+      },
+      "claim_material_contradictions": 0,
+      "provider_calls": 6,
+      "provider_details": [
+        {
+          "role": "A1",
+          "status": "completed",
+          "failure_code": null,
+          "duration_ms": 18562,
+          "input_tokens": 51127,
+          "output_tokens": 6280,
+          "batch": 0
+        },
+        {
+          "role": "A1",
+          "status": "completed",
+          "failure_code": null,
+          "duration_ms": 18354,
+          "input_tokens": 51243,
+          "output_tokens": 6429,
+          "batch": 0
+        },
+        {
+          "role": "A2",
+          "status": "completed",
+          "failure_code": null,
+          "duration_ms": 19132,
+          "input_tokens": 53514,
+          "output_tokens": 6816,
+          "batch": 0
+        },
+        {
+          "role": "A2",
+          "status": "completed",
+          "failure_code": null,
+          "duration_ms": 19064,
+          "input_tokens": 53614,
+          "output_tokens": 7047,
+          "batch": 0
+        },
+        {
+          "role": "A3",
+          "status": "completed",
+          "failure_code": null,
+          "duration_ms": 17741,
+          "input_tokens": 51991,
+          "output_tokens": 4901,
+          "batch": 0
+        },
+        {
+          "role": "A3",
+          "status": "completed",
+          "failure_code": null,
+          "duration_ms": 13242,
+          "input_tokens": 29340,
+          "output_tokens": 3111,
+          "batch": 0
+        }
+      ],
+      "tokens": 0,
+      "model_status": "three_agents_partial",
+      "checks_brief": [
+        {
+          "rule_id": "OCC-001",
+          "title": "营业收入 · 同一报告内3处披露（可能不同口径）",
+          "level": "insufficient_basis",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入金额 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · 年报公式核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "INT-001",
+          "title": "研发投入占营业收入比例 · ESG公式核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发人员数量 · 年报与ESG披露数值核对",
+          "level": "insufficient_basis",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发人员数量占比 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "EQ-001",
+          "title": "研发投入占营业收入比例 · 年报与ESG披露数值核对",
+          "level": "assumption_compatible",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        },
+        {
+          "rule_id": "OCC-001",
+          "title": "研发费用 · 年报内两处披露",
+          "level": "insufficient_basis",
+          "criteria": "unknown",
+          "calc": "not_comparable"
+        }
+      ]
+    }
+  ]
+}

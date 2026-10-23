@@ -226,6 +226,8 @@ def test_public_demo_source_request_includes_cninfo_referer(
             }
         },
     )
+    # 本用例只验证巨潮来源请求；私有缓存另有独立测试，不受本机真实凭据影响。
+    monkeypatch.setattr(source_cache_module, "_private_storage_reader", lambda: None)
     observed_headers: dict[str, str | None] = {}
 
     def respond(request: httpx.Request) -> httpx.Response:
@@ -1167,9 +1169,10 @@ def test_case_template_and_formal_frontend_expose_the_same_ai_notice() -> None:
     assert manifest["ai_generated_content_notice"] == AI_GENERATED_CONTENT_NOTICE
 
     index_text = (WORKSPACE_ROOT / "index.html").read_text(encoding="utf-8")
-    app_text = (WORKSPACE_ROOT / "assets" / "official-v4" / "demo-app.js").read_text(encoding="utf-8")
-    assert AI_GENERATED_CONTENT_NOTICE in index_text
-    assert AI_GENERATED_CONTENT_NOTICE in app_text
+    from backend.app.connectivity_schemas import NOTICE
+    assert 'id="cn-notice"' in index_text
+    assert NOTICE in (WORKSPACE_ROOT / "backend/app/connectivity_schemas.py").read_text(encoding="utf-8")
+    assert 'demo-app.js' not in index_text
 
 
 def test_openapi_json_carries_ai_generated_content_notice() -> None:
