@@ -113,7 +113,7 @@ def _title_above(blocks: list[dict], table_bbox: list[float]) -> str:
         if not block.get("bbox") or not text or len(text) > 48 or TITLE_NOISE.search(text):
             continue
         gap = table_bbox[1] - block["bbox"][3]
-        if -25 <= gap <= 90:
+        if 0 <= gap <= 90 and any(term in compact(text) for term in NOTE_TABLE_TERMS):
             candidates.append(block)
     if not candidates:
         return ""

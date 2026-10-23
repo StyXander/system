@@ -278,3 +278,23 @@ def test_completed_roles_without_verified_hypothesis_are_not_success(workspace):
     receipt=agents.investigate(root,run,lambda *_:({}, {'performed':True,'model':'OFFLINE_TEST_DOUBLE'}))
     assert receipt['model_status']=='completed_no_verified_judgments'
     assert receipt['judgments']==[]
+
+
+def test_financial_csv_contains_individual_source_identical_relations(workspace):
+    import csv
+    from io import StringIO
+    from backend.app.connectivity_delivery import export_run
+    root,run,source,target=workspace
+    relation=impact_verifier.build_relation(source,target,treatment(),support=SUPPORT).model_dump(mode='json')
+    run.financial_impact['relations']=[relation]
+    payload,_=export_run(run,'csv')
+    rows=list(csv.reader(StringIO(payload.decode('utf-8-sig'))))
+    saved=[json.loads(row[11]) for row in rows if row and row[0]=='financial_relation']
+    assert saved==[relation]
+    assert not any(row[0]=='financial_impact' for row in rows if row)
+
+
+def test_table_title_cannot_be_a_fragment_of_column_header():
+    from backend.app.financial_impact.financial_notes import _title_above
+    assert _title_above([{'text':'重要在建工程项目本期变动情况','bbox':[0,50,400,70]},
+        {'text':'息','bbox':[0,85,20,97]}, {'text':'转入固定资产','bbox':[20,90,200,110]}],[0,95,500,400])=='重要在建工程项目本期变动情况'

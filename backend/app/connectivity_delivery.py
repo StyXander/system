@@ -210,10 +210,23 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             for entry in getattr(run, kind):
                 writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision, entry.get("edge_id", ""),
                     "", "", "", "", "", entry.get("document_id", ""), entry.get("pdf_page", ""), json.dumps(entry, ensure_ascii=False, default=str)]])
-        for kind in ("impact_graph", "financial_scenario", "investigation", "evidence_plan", "revision_loop", "comparison_summary", "financial_impact"):
+        for kind in ("impact_graph", "financial_scenario", "investigation", "evidence_plan", "revision_loop", "comparison_summary"):
             if getattr(run, kind):
                 writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision, "", "", "", "", "", "", "", "",
                     json.dumps(getattr(run, kind), ensure_ascii=False, default=str)]])
+        impact = run.financial_impact or {}
+        for field, kind in (('events','financial_event'),('items','financial_item'),('treatments','financial_treatment'),('relations','financial_relation')):
+            for entry in impact.get(field, []):
+                writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision,
+                    entry.get('relation_id') or entry.get('event_id') or entry.get('item_id') or entry.get('treatment_id'),
+                    '', '', entry.get('grade') or entry.get('stage') or entry.get('value_semantics') or '',
+                    entry.get('raw_value',''), entry.get('unit',''), entry.get('document_id',''), entry.get('pdf_page',''),
+                    json.dumps(entry,ensure_ascii=False,default=str)]])
+        if impact:
+            writer.writerow(['financial_impact_summary',run.run_id,run.result_revision,'','','','','','','','',
+                json.dumps({'stats':impact.get('stats'),'model_status':impact.get('agents',{}).get('model_status'),
+                    'verified_judgments':len(impact.get('agents',{}).get('judgments',[])),
+                    'notice':'CSV逐事项、附注项目、会计路径与关系列示；完整图谱与工具回执见同次JSON'},ensure_ascii=False)])
         writer.writerow(["notice", notice])
         payload = stream.getvalue().encode("utf-8-sig")
         _assert_notice(payload, notice)
