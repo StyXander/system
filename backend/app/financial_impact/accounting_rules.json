@@ -1,0 +1,558 @@
+{
+  "version": "accounting_rules_v1.1",
+  "notice": "12条候选路径已有官方位置索引；专业人工复核仍待完成。确认条件与企业事实逐项分开，准则版本按报告期间和采用政策判断。",
+  "rules": [
+    {
+      "rule_id": "AR-01",
+      "scene": "环保设施购建（资本性支出）",
+      "activity_types": [
+        "facility_retrofit",
+        "green_equipment"
+      ],
+      "applies_when": [
+        "项目已立项并实际发生建造或购置支出",
+        "该设施用于生产经营且预计使用超过一个会计年度",
+        "与该资产有关的经济利益很可能流入企业",
+        "成本能够可靠计量"
+      ],
+      "accounts": [
+        "在建工程",
+        "固定资产",
+        "银行存款",
+        "应付账款"
+      ],
+      "recognition": [
+        "建造期间先在在建工程归集",
+        "达到预定可使用状态时转入固定资产并计提折旧",
+        "未达到确认条件的前期支出不得挂账为资产"
+      ],
+      "required_evidence": [
+        "项目立项或合同",
+        "在建工程/固定资产附注的项目级明细",
+        "转固时点与验收文件",
+        "本期增加额与现金支付额"
+      ],
+      "counter_examples": [
+        "只有预算数没有实际支出",
+        "支出属于日常维护且不提升产能或延长寿命",
+        "项目已停建且无经济利益流入"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第4号——固定资产",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第二章第三、四条；第三章第七至九条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/2006zcfb/200805/t20080519_23104.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "投资活动——购建固定资产、无形资产和其他长期资产支付的现金"
+    },
+    {
+      "rule_id": "AR-02",
+      "scene": "在建工程转固",
+      "activity_types": [
+        "facility_retrofit",
+        "efficiency_retrofit"
+      ],
+      "applies_when": [
+        "工程已达到预定可使用状态",
+        "转固金额有附注本期减少/转入固定资产列支持",
+        "转固后开始计提折旧"
+      ],
+      "accounts": [
+        "在建工程",
+        "固定资产",
+        "累计折旧"
+      ],
+      "recognition": [
+        "达到预定可使用状态即转固，不以竣工决算为唯一条件"
+      ],
+      "required_evidence": [
+        "在建工程附注的本期转入固定资产列",
+        "固定资产附注的本期增加列",
+        "验收或投产公告"
+      ],
+      "counter_examples": [
+        "仅列示期末余额，没有本期增加与转出",
+        "工程仍处于调试阶段"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第4号——固定资产",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第九条、第十四至十八条；转固时点仍需企业会计政策和原文证据",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/2006zcfb/200805/t20080519_23104.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "不影响当期现金流（非现金结转）"
+    },
+    {
+      "rule_id": "AR-03",
+      "scene": "固定资产后续支出：资本化与费用化区分",
+      "activity_types": [
+        "efficiency_retrofit",
+        "facility_retrofit"
+      ],
+      "applies_when": [
+        "符合固定资产第四条的经济利益很可能流入和成本可靠计量条件",
+        "不符合确认条件的后续支出于发生时计入当期损益"
+      ],
+      "accounts": [
+        "固定资产",
+        "管理费用",
+        "制造费用",
+        "银行存款"
+      ],
+      "recognition": [
+        "符合资本化条件的计入固定资产成本",
+        "日常修理维护计入当期费用"
+      ],
+      "required_evidence": [
+        "支出性质说明",
+        "改造前后产能或能耗对比",
+        "费用明细账或附注"
+      ],
+      "counter_examples": [
+        "把日常维护费用计入在建工程",
+        "把设备更新支出全部费用化"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第4号——固定资产",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第六条、第二十四条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/2006zcfb/200805/t20080519_23104.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "资本化部分属投资活动；费用化部分属经营活动"
+    },
+    {
+      "rule_id": "AR-04",
+      "scene": "日常污染治理与环保运行费用",
+      "activity_types": [
+        "pollution_treatment"
+      ],
+      "applies_when": [
+        "支出不形成长期资产",
+        "属于维持合规运行的经常性支出"
+      ],
+      "accounts": [
+        "管理费用",
+        "制造费用",
+        "营业成本"
+      ],
+      "recognition": [
+        "按受益对象计入当期费用或生产成本"
+      ],
+      "required_evidence": [
+        "费用明细或附注",
+        "治理设施运行记录",
+        "与环境支出相关的现金流"
+      ],
+      "counter_examples": [
+        "把治理设施建造支出直接费用化",
+        "把费用性支出挂账为在建工程"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第1号——存货",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第五至九条；仅在确属存货成本时适用",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/2006zcfb/200805/t20080519_23107.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "经营活动"
+    },
+    {
+      "rule_id": "AR-05",
+      "scene": "研究阶段与开发阶段支出",
+      "activity_types": [
+        "green_rnd"
+      ],
+      "applies_when": [
+        "研究阶段支出全部费用化",
+        "开发阶段须同时满足技术可行性、使用或出售意图、经济利益可能性、资源支持与支出可可靠计量"
+      ],
+      "accounts": [
+        "研发费用",
+        "开发支出",
+        "无形资产"
+      ],
+      "recognition": [
+        "不满足资本化条件的开发支出计入当期损益",
+        "满足条件的转入无形资产"
+      ],
+      "required_evidence": [
+        "研发费用附注",
+        "开发支出附注的本期增加与转出",
+        "资本化政策与项目进度"
+      ],
+      "counter_examples": [
+        "把研发投入总额直接等同于研发费用",
+        "把政府补助金额当作研发支出"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第6号——无形资产",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第七至九条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/2006zcfb/200805/t20080519_23149.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "经营活动（费用化部分）；资本化部分不形成当期现金流出分类变化"
+    },
+    {
+      "rule_id": "AR-06",
+      "scene": "无形资产确认（含绿色工艺、软件、专利权）",
+      "activity_types": [
+        "green_rnd",
+        "green_equipment"
+      ],
+      "applies_when": [
+        "可辨认且无实物形态",
+        "经济利益很可能流入",
+        "成本能够可靠计量"
+      ],
+      "accounts": [
+        "无形资产",
+        "开发支出",
+        "银行存款"
+      ],
+      "recognition": [
+        "按成本初始计量",
+        "使用寿命有限的无形资产按期摊销"
+      ],
+      "required_evidence": [
+        "无形资产附注明细",
+        "购置合同或研发资本化依据"
+      ],
+      "counter_examples": [
+        "内部产生的品牌与客户关系不得确认为无形资产"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第6号——无形资产",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第三、四条、第十二条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/2006zcfb/200805/t20080519_23149.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "投资活动"
+    },
+    {
+      "rule_id": "AR-07",
+      "scene": "环境修复与退役义务（预计负债）",
+      "activity_types": [
+        "restoration_obligation"
+      ],
+      "applies_when": [
+        "存在法定或推定义务",
+        "该义务很可能导致经济利益流出",
+        "金额能够可靠计量"
+      ],
+      "accounts": [
+        "预计负债",
+        "固定资产",
+        "营业外支出"
+      ],
+      "recognition": [
+        "按履行义务所需支出的最佳估计数计量",
+        "符合条件时计入相关资产成本"
+      ],
+      "required_evidence": [
+        "预计负债附注",
+        "矿山复垦或封场方案",
+        "监管要求文件"
+      ],
+      "counter_examples": [
+        "只有环保承诺没有具体义务与金额估计"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第13号——或有事项",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第四至六条；弃置因素参照固定资产准则第十三条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://kjs.mof.gov.cn/zt/kjzzss/kuaijizhunzeshishi/200806/t20080618_46235.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "经营活动（实际支付时）"
+    },
+    {
+      "rule_id": "AR-08",
+      "scene": "长期资产减值",
+      "activity_types": [
+        "facility_retrofit",
+        "green_equipment",
+        "restoration_obligation"
+      ],
+      "applies_when": [
+        "资产存在减值迹象",
+        "可收回金额低于账面价值"
+      ],
+      "accounts": [
+        "资产减值损失",
+        "固定资产减值准备",
+        "在建工程减值准备"
+      ],
+      "recognition": [
+        "按可收回金额低于账面价值的差额计提",
+        "减值损失一经确认不得转回"
+      ],
+      "required_evidence": [
+        "减值测试说明",
+        "停产或闲置证据",
+        "资产组划分"
+      ],
+      "counter_examples": [
+        "政策变化但资产仍正常使用即计提减值"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第8号——资产减值",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第二条、第四至七条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://kjs.mof.gov.cn/zt/kjzzss/kuaijizhunzeshishi/200806/t20080618_46240.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "不影响当期现金流"
+    },
+    {
+      "rule_id": "AR-09",
+      "scene": "现金流量分类",
+      "activity_types": [
+        "facility_retrofit",
+        "green_equipment",
+        "efficiency_retrofit",
+        "pollution_treatment",
+        "green_rnd"
+      ],
+      "applies_when": [
+        "购建长期资产支付的现金属投资活动",
+        "日常环保运行支出属经营活动"
+      ],
+      "accounts": [
+        "购建固定资产、无形资产和其他长期资产支付的现金",
+        "经营活动现金流量"
+      ],
+      "recognition": [
+        "按现金流性质分类，不按项目名称分类"
+      ],
+      "required_evidence": [
+        "现金流量表",
+        "现金流量表附注",
+        "在建工程本期增加与现金支付的差异"
+      ],
+      "counter_examples": [
+        "把投资活动支出计入经营活动",
+        "用本期增加额直接当作现金支付"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第31号——现金流量表",
+          "issuer": "财政部",
+          "version": "2006年发布",
+          "locator": "第四条、第十二至十三条、第十八条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://kjs.mof.gov.cn/zt/kjzzss/kuaijizhunzeshishi/200806/t20080618_46250.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "见规则说明"
+    },
+    {
+      "rule_id": "AR-10",
+      "scene": "与可持续项目相关的政府补助",
+      "activity_types": [
+        "facility_retrofit",
+        "efficiency_retrofit",
+        "green_rnd"
+      ],
+      "applies_when": [
+        "与资产相关的补助确认为递延收益并在资产使用寿命内分摊",
+        "与收益相关的补助计入当期损益或冲减成本"
+      ],
+      "accounts": [
+        "递延收益",
+        "其他收益",
+        "银行存款"
+      ],
+      "recognition": [
+        "按补助性质分别处理，不直接冲减资产成本（除非明文规定）"
+      ],
+      "required_evidence": [
+        "政府补助附注",
+        "补助文件与到账凭证"
+      ],
+      "counter_examples": [
+        "把补助金额当作企业自有投入"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第16号——政府补助",
+          "issuer": "财政部",
+          "version": "2017年修订",
+          "locator": "第六至九条、第十一条",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/gkml/caizhengwengao/2017wg/wg201707/201710/P020171012520134882063.pdf",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "经营活动（收到时）"
+    },
+    {
+      "rule_id": "AR-11",
+      "scene": "碳排放配额与碳资产",
+      "activity_types": [
+        "carbon_compliance"
+      ],
+      "applies_when": [
+        "属于规定适用的重点排放企业",
+        "区分购入与免费分配取得的配额",
+        "区分购入、履约、出售和自愿注销"
+      ],
+      "accounts": [
+        "碳排放权资产",
+        "其他流动资产",
+        "银行存款",
+        "其他应付款",
+        "营业外收入",
+        "营业外支出"
+      ],
+      "recognition": [
+        "按现行会计处理规定区分无偿取得与购入配额",
+        "履约支出在实际发生时确认"
+      ],
+      "required_evidence": [
+        "配额分配文件",
+        "履约与交易记录",
+        "碳资产相关附注或说明"
+      ],
+      "counter_examples": [
+        "免费分配取得配额不得按购买金额入账",
+        "不能把该规定不经判断套用于所有碳信用和所有企业"
+      ],
+      "basis": [
+        {
+          "title": "碳排放权交易有关会计处理暂行规定",
+          "issuer": "财政部",
+          "version": "2019年",
+          "locator": "财会〔2019〕22号：一、适用范围；二、会计处理原则；四、账务处理；五、披露",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://www.mof.gov.cn/gkml/caizhengwengao/wg201901/wg201912/202005/t20200522_3518364.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "购入配额属投资活动，履约支出属经营活动"
+    },
+    {
+      "rule_id": "AR-12",
+      "scene": "预算、资本性支出与费用性支出的边界",
+      "activity_types": [
+        "facility_retrofit",
+        "efficiency_retrofit",
+        "green_equipment",
+        "pollution_treatment",
+        "green_rnd",
+        "restoration_obligation",
+        "carbon_compliance"
+      ],
+      "applies_when": [
+        "披露金额为预算或计划投资时，不得视为已发生支出",
+        "资本性支出与费用性支出分别对应不同报表项目"
+      ],
+      "accounts": [
+        "在建工程",
+        "固定资产",
+        "管理费用",
+        "研发费用"
+      ],
+      "recognition": [
+        "预算不产生会计确认",
+        "只有实际发生的交易才进入账务与报表"
+      ],
+      "required_evidence": [
+        "预算数与实际发生额的并列披露",
+        "本期增加额",
+        "现金支付额"
+      ],
+      "counter_examples": [
+        "用预算数减实际数计算节约额",
+        "把预算数当作当期投资额"
+      ],
+      "basis": [
+        {
+          "title": "企业会计准则第30号——财务报表列报",
+          "issuer": "财政部",
+          "version": "2014年修订",
+          "locator": "2014版第四条、第十三条；预算和披露不能替代实际交易的确认与计量",
+          "note": "已核对官方来源位置；不等于会计专家人工复核，也不证明企业满足确认条件",
+          "source_url": "https://kjs.mof.gov.cn/zt/kjzzss/kuaijizhunzeshishi/200806/t20080618_46218.htm",
+          "source_verification": "official_locator_checked",
+          "checked_at": "2026-10-23",
+          "reviewer": "automated_source_check",
+          "effective_version_note": "用于2024/2025报告的2014版；财会〔2026〕11号分批于2027/2029/2030施行且允许提前执行，实际采用情况须核对报告政策",
+          "successor_url": "https://kjs.mof.gov.cn/zhengcefabu/202608/t20260805_3994927.htm"
+        }
+      ],
+      "verification": "pending_human_review",
+      "cash_flow_class": "不适用（边界规则）"
+    }
+  ]
+}

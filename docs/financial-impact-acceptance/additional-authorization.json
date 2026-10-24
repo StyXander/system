@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-10-24T10:48:37.462460+08:00",
+  "human_confirmation": "明确授权追加这3次付费调用",
+  "company": "五粮液",
+  "year": "2025",
+  "max_actual_requests": 3,
+  "consumed_token_stop_line": 30000,
+  "inflight_notice": "最后一个在途请求可能越过一次停止线",
+  "destination": "api.deepseek.com",
+  "model": "deepseek-flash",
+  "respect_existing_quota": true,
+  "previous_auto_review_rejection_resolved_by_explicit_human_confirmation": true
+}

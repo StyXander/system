@@ -903,7 +903,7 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                "A2": "按retrieval_tasks逐项处理本批候选，定向找定义、范围、正常解释和反证；利用calculated_results提出计算或调节方案。只提交新增或变化关系，不能凭数字凑等式；无变化可返回空checks。",
                "single": "一次完整完成关系识别、口径检查、反证与解释查找，任务及输出要求与三角色相同。",
                "A3": "你负责独立综合研判，返回analyses和findings。对本批每项现有关系给出明确倾向、具体理由、支持、反证、假设、替代解释和下一步。允许倾向一致、潜在矛盾、存在合理解释、依据不足或不可比。缺正式前提时仍分析hypothetical及scenario_adjustment；不要只重复请人工复核。不新增核对关系、不改程序状态。",
-               "challenger": "你负责对当前财务关联候选提出竞争解释。每条解释必须给出：解释内容、可检验条件、能区分不同解释的具体证据（页码/列名/清单）。只提出解释，不得宣告任何假设已被推翻或证实；状态由程序门禁决定。不得引用输入之外的页码或金额，不得给出审计、鉴证、投资结论。最多2条，不凑数量；没有有价值的新解释时返回空列表。"}[role]
+               "challenger": "你负责对当前财务关联候选提出竞争解释。每条解释必须给出：解释内容、可检验条件、能区分不同解释的具体证据（页码/列名/清单）。只提出解释，不得宣告任何假设已被推翻或证实；状态由程序门禁决定。不得引用输入之外的页码或金额，不得给出审计、鉴证、投资结论。最多2条，不凑数量；没有有价值的新解释时返回空列表。"}.get(role, "")
     if role in {"A3", "single"}:
         prompt += "analyses仅绑定输入candidate_checks中已有check_id，引用至少一处对应成员。可以使用calculated_results中的程序数值；假设必须明列，计算闭合不等于业务解释成立。analysis_quality不是正确概率。允许独立决定verdict，不受程序提示倾向限制。量纲冲突、成员角色不完整或成员误绑时，不能输出lean_consistent；应解释当前绑定为何不可比，不评价另一组未绑定的数值。priority给出核查高/中/低与具体priority_reason，材料少本身不能证明企业有问题。文字关系、缺数值和不能正式计算的关系也要分析。"
     if payload.get("analysis_only"):
@@ -915,25 +915,45 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
                "A2必须点明A1的具体关系编号、依据及需要反驳的解释；A3须利用collaboration_history核对分歧、实际工具回执与计算。"
                "上轮未命中时调整指标别名或具体条件词，不重复同一查询。"
                "A3可请求一次反馈调查，新原文或首次交付本关系的既有原文均可再次交A2质疑、A3综合；命中仍须逐字引用与专业校验，不能把假设推演写为事实。")
-    contract = (FinalSummaries if role == "A3" else SingleAgentProposals if role == "single"
-                else ChallengerProposals if role == "challenger" else AgentProposals)
-    schema = contract.model_json_schema()
-    if role not in {"A3", "challenger"}:
-        schema["$defs"]["RelationshipProposal"]["properties"]["rule_id"]["description"] = "EQ同值（含研发或环保同一指标）；RD研发组成；ENV环保组成；INT比例；OCC同一指标多位置；NAR解释。不按事项名称直接选组成规则。"
-    allowed_ids = [item["occurrence_id"] for item in payload.get("occurrences", [])]
-    if allowed_ids:
-        schema["$defs"]["EvidenceRef"]["properties"]["occurrence_id"]["enum"] = allowed_ids
-        if role != "A3":
-            schema["$defs"]["RelationshipMember"]["properties"]["occurrence_id"]["enum"] = allowed_ids
-            schema["$defs"]["AdjustmentProposal"]["properties"]["occurrence_id"]["enum"] = allowed_ids
-            for field in ("current_id", "previous_id"):
-                schema["$defs"]["NarrativeClaim"]["properties"][field]["enum"] = allowed_ids
-    if role == "A3":
-        schema["$defs"]["FinalFinding"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
-    if role in {"A3", "single"}:
-        schema["$defs"]["AIAnalysis"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
+    financial_role = role.startswith('financial_')
+    if financial_role:
+        from .financial_impact.agents import Turn, PROMPT
+        contract, prompt = Turn, PROMPT
+        schema = contract.model_json_schema()
+        defs=schema.get('$defs',{})
+        event_ids=[entry['event_id'] for entry in payload.get('events',[]) if entry.get('event_id')]
+        item_ids={entry['item_id'] for entry in payload.get('items',[]) if entry.get('item_id')}
+        for receipt in payload.get('tool_receipts',[]):
+            item_ids.update(entry['item_id'] for entry in (receipt.get('result') or {}).get('items',[]) if entry.get('item_id'))
+            found_item=(receipt.get('result') or {}).get('item') or {}
+            if found_item.get('item_id'):item_ids.add(found_item['item_id'])
+        if event_ids:
+            defs['Proposal']['properties']['event_id']['enum']=event_ids
+            defs['Request']['properties']['event_id']['enum']=[*event_ids,'DISCOVERY']
+        if payload.get('items') or payload.get('tool_receipts'):
+            defs['Proposal']['properties']['item_id']['enum']=[*sorted(item_ids),None]
+        rule_ids=[entry['rule_id'] for entry in payload.get('rules',[]) if entry.get('rule_id')]
+        if rule_ids:defs['Proposal']['properties']['rule_id']['enum']=rule_ids
+    else:
+        contract = (FinalSummaries if role == "A3" else SingleAgentProposals if role == "single"
+                    else ChallengerProposals if role == "challenger" else AgentProposals)
+        schema = contract.model_json_schema()
+        if role not in {"A3", "challenger"}:
+            schema["$defs"]["RelationshipProposal"]["properties"]["rule_id"]["description"] = "EQ同值（含研发或环保同一指标）；RD研发组成；ENV环保组成；INT比例；OCC同一指标多位置；NAR解释。不按事项名称直接选组成规则。"
+        allowed_ids = [item["occurrence_id"] for item in payload.get("occurrences", [])]
+        if allowed_ids:
+            schema["$defs"]["EvidenceRef"]["properties"]["occurrence_id"]["enum"] = allowed_ids
+            if role != "A3":
+                schema["$defs"]["RelationshipMember"]["properties"]["occurrence_id"]["enum"] = allowed_ids
+                schema["$defs"]["AdjustmentProposal"]["properties"]["occurrence_id"]["enum"] = allowed_ids
+                for field in ("current_id", "previous_id"):
+                    schema["$defs"]["NarrativeClaim"]["properties"][field]["enum"] = allowed_ids
+        if role == "A3":
+            schema["$defs"]["FinalFinding"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
+        if role in {"A3", "single"}:
+            schema["$defs"]["AIAnalysis"]["properties"]["check_id"]["enum"] = [c["check_id"] for c in payload.get("candidate_checks", [])]
     tool_name = "submit_connectivity_relationships"
-    body = {"model": model, "temperature": .1, "max_tokens": 14000, "stream": False, "thinking": {"type": "disabled"},
+    body = {"model": model, "temperature": .1, "max_tokens": 3000 if financial_role else 14000, "stream": False, "thinking": {"type": "disabled"},
         "tools": [{"type": "function", "function": {"name": tool_name, "description": "提交原文约束的关系候选，计算由程序执行", "parameters": schema}}],
         "tool_choice": {"type": "function", "function": {"name": tool_name}},
         "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}]}
@@ -978,6 +998,10 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
             arguments = json.loads(arguments)
         if not isinstance(arguments, dict):
             raise ValueError("模型参数必须为对象")
+        if financial_role:
+            result = contract.model_validate(arguments)
+            record.update(status='completed', model=response_data.get('model', model), cost_note='实际账单未核对')
+            return result.model_dump(), record
         if role != "A3" and isinstance(arguments, dict):
             # 已有计算仅供角色理解；模型回显这些服务端字段时不采纳，仍全部重算。
             allowed_proposal_fields = set(RelationshipProposal.model_fields)
@@ -1482,6 +1506,9 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
     else:
         run.model_status = "running"
         roles = [("single", "challenge")] if request.mode == "single_model" else [("A1", "challenge"), ("A2", "counter"), ("A3", "review")]
+        if request.model_scope == 'financial_impact':
+            roles = []  # 明示财务实验臂仍执行六项程序规则，不为旧数值模型角色另花预算。
+            run.versions['model_scope'] = 'financial_impact'
         any_failure = False
         quota_ready = False
         fatal = False
@@ -1491,10 +1518,14 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
             # 全运行预算包含修复与反馈请求，不能通过额外角色绕过上限。
             if cancelled():
                 raise InterruptedError("用户取消了任务")
-            if len(run.provider_calls) >= min(20, max(1, int(os.getenv("CONNECTIVITY_EXPERIMENT_MAX_CALLS", "20")))):
+            call_limit = min(request.max_model_calls or 20, min(20, max(1, int(os.getenv("CONNECTIVITY_EXPERIMENT_MAX_CALLS", "20")))))
+            if len(run.provider_calls) >= call_limit:
                 raise ValueError("MODEL_CALL_BUDGET_EXHAUSTED")
             # 实验可设相同的已消费token停止线；在途请求最多越过一次，绝不伪称精确等额。
             threshold = int(os.getenv('CONNECTIVITY_TOKEN_STOP_THRESHOLD', '0'))
+            threshold = min([value for value in (threshold, request.token_stop_threshold or 0) if value > 0], default=0)
+            run.versions['model_limits'] = {'calls': call_limit, 'consumed_token_stop_line': threshold,
+                'notice': '已消费Token达到停止线后不启动新请求；一个在途请求可能越过停止线'}
             used = sum((c.get('input_tokens') or 0) + (c.get('output_tokens') or 0) for c in run.provider_calls)
             if threshold > 0 and used >= threshold:
                 raise ValueError('MODEL_TOKEN_BUDGET_EXHAUSTED')
@@ -1557,6 +1588,31 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 [row for row in run.occurrences if row.occurrence_id in combined], comparison_period)
             return pack_role_context(payload)
 
+        def financial_invoke(role, payload):
+            nonlocal quota_ready
+            began = time.perf_counter()
+            try:
+                if not quota_ready:
+                    before_model()
+                    quota_ready = True
+                output, record = bounded_call(role, payload)
+                run.provider_calls.append(record)
+                checkpoint(run)
+                return output, record
+            except Exception as error:
+                run.provider_calls.append(failure_record(error, role, began))
+                checkpoint(run)
+                raise
+        try:
+            from .financial_impact import build as build_financial_impact
+            from .financial_impact.agents import investigate
+            progress('financial_impact', 'running', '先核对事项、会计路径与项目级证据，再执行模型工具调查')
+            run.financial_impact = build_financial_impact(root, documents=docs, model_runner=None)
+            investigate(root, run, financial_invoke, mode=request.mode, max_calls=min(request.max_model_calls or 6,6))
+        except InterruptedError:
+            raise
+        except Exception as error:
+            run.intelligence_trace.append({'kind': 'financial_agent_error', 'error': type(error).__name__, 'message': str(error)[:160]})
         for role, stage_role in roles:
             if resume and role == "A1" and any(s.get("role") == "A1" and s.get("status") == "completed" for s in resume.agent_steps):
                 run.agent_steps.append({"role": role, "status": "reused", "reason": "关系发现已完成，本次只续分析缺失或过期意见"})
@@ -1843,6 +1899,38 @@ def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None
                 "第一条行动已实际打开登记页并返回回执；该动作退出候选，"
                 "按剩余动作重新计算预算内顺序，不把页面命中当作条件已支持。")
         run.evidence_plan = plan
+        # 财务穿透层：事项抽取→附注结构化→会计路径→混合检索→九项条件裁决→当期/预期影响。
+        # 独立失败域：这一层失败只清空新视图，不影响既有关系、反证与正式结论。
+        progress("financial_impact", "running", "识别可持续事项并检索项目级财务附注")
+        try:
+            from .financial_impact import build as build_financial_impact
+            # 模型字段补全接口已实现并单测；真实运行需预算授权，默认只跑规则抽取，不伪装成模型抽取。
+            if not run.financial_impact:
+                run.financial_impact = build_financial_impact(root, documents=docs, model_runner=None)
+            if request.mode != 'calculation_only':
+                financial_receipt = run.financial_impact.get('agents', {'model_status': 'partial'})
+                if request.model_scope == 'financial_impact':
+                    outcome = 'completed' if financial_receipt['model_status'] == 'completed' else 'partial'
+                    run.model_status = ('single_' if request.mode == 'single_model' else 'three_agents_') + outcome
+                    run.agent_steps.extend({'role': 'financial_' + row['role'], 'status': row['status'],
+                        'reason': row.get('reason', row.get('decision_reason', ''))} for row in financial_receipt.get('roles', []))
+                if financial_receipt['model_status'] == 'partial' and run.model_status.endswith('_completed'):
+                    run.model_status = run.model_status.replace('_completed', '_partial')
+            else:
+                run.financial_impact['agents'] = {'model_status': 'not_requested', 'calls': 0,
+                    'tool_receipts': [], 'note': '仅计算模式没有调用模型'}
+            impact_stats = run.financial_impact.get("stats", {})
+            progress("financial_impact", "completed",
+                     f"事项{impact_stats.get('events', 0)}项、附注项目{impact_stats.get('items', 0)}个、"
+                     f"项目级关联{impact_stats.get('project_level', 0)}条、"
+                     f"等级{impact_stats.get('grades', {})}")
+        except Exception as error:
+            if isinstance(error, InterruptedError):
+                raise
+            run.financial_impact = {}
+            run.intelligence_trace.append({"kind": "financial_impact_error", "error": type(error).__name__,
+                                           "message": str(error)[:240]})
+            progress("financial_impact", "failed", f"财务穿透层未生成：{type(error).__name__}")
         if request.mode == "adaptive_agents":
             # adaptive_agents：在财务穿透层之上跑受控调查闭环；失败只降级调查，不回滚既有结果。
             progress("adaptive_investigation", "running", "A0规划—受控工具—Challenger反证—条件门禁闭环")

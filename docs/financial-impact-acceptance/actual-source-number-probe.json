@@ -1,0 +1,14 @@
+{
+  "type": "deterministic_validation_probe",
+  "constructed_reason_not_model_output": true,
+  "source_task": "CONNJOB-6EBD6B273E27",
+  "source_run": "CONN-D8CC663CC5664DAC",
+  "known_column_value": "8,596,655,000.00",
+  "actual_source_quotes": 2,
+  "known_value_rejected_numbers": [],
+  "invented_value_rejected_numbers": [
+    "8,596,655,001.00"
+  ],
+  "new_model_calls": 0,
+  "changes_to_saved_model_result": false
+}

@@ -55,6 +55,8 @@ def verify_export_same_source(run: ConnectivityRun, payload: bytes) -> list[str]
     if len(rows) != len(left):
         return [f"导出关系数{len(rows)}与结果{len(left)}不一致"]
     problems = []
+    if exported.get('financial_impact', {}) != run.financial_impact:
+        problems.append('财务穿透、九项条件或模型工具记录与保存结果不一致')
     for field in ('program_hints', 'analysis_history'):
         if exported.get(field, []) != getattr(run, field):
             problems.append(f'{field}与保存结果不一致')
@@ -212,6 +214,19 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             if getattr(run, kind):
                 writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision, "", "", "", "", "", "", "", "",
                     json.dumps(getattr(run, kind), ensure_ascii=False, default=str)]])
+        impact = run.financial_impact or {}
+        for field, kind in (('events','financial_event'),('items','financial_item'),('treatments','financial_treatment'),('relations','financial_relation')):
+            for entry in impact.get(field, []):
+                writer.writerow([_cell(v) for v in [kind, run.run_id, run.result_revision,
+                    entry.get('relation_id') or entry.get('event_id') or entry.get('item_id') or entry.get('treatment_id'),
+                    '', '', entry.get('grade') or entry.get('stage') or entry.get('value_semantics') or '',
+                    entry.get('raw_value',''), entry.get('unit',''), entry.get('document_id',''), entry.get('pdf_page',''),
+                    json.dumps(entry,ensure_ascii=False,default=str)]])
+        if impact:
+            writer.writerow(['financial_impact_summary',run.run_id,run.result_revision,'','','','','','','','',
+                json.dumps({'stats':impact.get('stats'),'model_status':impact.get('agents',{}).get('model_status'),
+                    'verified_judgments':len(impact.get('agents',{}).get('judgments',[])),
+                    'notice':'CSV逐事项、附注项目、会计路径与关系列示；完整图谱与工具回执见同次JSON'},ensure_ascii=False)])
         writer.writerow(["notice", notice])
         payload = stream.getvalue().encode("utf-8-sig")
         _assert_notice(payload, notice)
@@ -343,6 +358,61 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
             rerank = plan.get("rerank") or {}
             if rerank:
                 _paragraph(document, f"执行后重排：{'已改变' if rerank.get('changed') else '未改变'}；{rerank.get('reason', '')}")
+    impact = run.financial_impact or {}
+    if impact.get("events"):
+        _add_heading(document, "财务穿透分析：事项、会计路径、附注项目与证据等级", 2)
+        stats = impact.get("stats") or {}
+        _paragraph(document, (f"识别可持续事项{stats.get('events', 0)}项、附注项目{stats.get('items', 0)}个、"
+                              f"候选关系{stats.get('relations', 0)}条；其中项目级关联{stats.get('project_level', 0)}条。"
+                              "等级只表示证据支持程度（A明确/B间接/C假设/D不足），不是模型正确概率，也不构成审计结论。"))
+        labels = {"A": "明确财务关联", "B": "有证据的间接关联", "C": "合理关联假设", "D": "公开证据不足",
+                  "incompatible": "明确不兼容", "contradicted": "存在反证冲突", "not_applicable": "不适用"}
+        by_id = {event["event_id"]: event for event in impact.get("events", [])}
+        items = {item["item_id"]: item for item in impact.get("items", [])}
+        treatments = {entry['treatment_id']: entry for entry in impact.get('treatments', [])}
+        for relation in impact.get("relations", []):
+            event = by_id.get(relation.get("event_id"), {})
+            item = items.get(relation.get("financial_item_id") or "", {})
+            treatment = treatments.get(relation.get('treatment_id'), {})
+            unmet = [check.get("label", "") for check in relation.get("conditions", [])
+                     if check.get("status") != "true" and check.get("key") != "no_counter_evidence"]
+            _add_heading(document, f"{labels.get(relation.get('grade'), relation.get('grade'))}｜"
+                                    f"{event.get('project_name') or event.get('quote', '')[:24]}", 3)
+            _table_rows(document, [
+                ("事项原文", f"{event.get('quote', '')[:120]}（{event.get('document_id', '')} p{event.get('pdf_page', '')}）"),
+                ("事项阶段与金额性质", f"{event.get('stage', '')}／{event.get('amount_nature', '')}"),
+                ("财务项目", f"{item.get('table_title', '')}·{item.get('row_header', '')}".strip("·") or "未定位"),
+                ("列语义与金额", f"{item.get('column_header', '')}｜{item.get('raw_value', '')}{item.get('unit', '')}"
+                                 if item else "无"),
+                ("金额勾稽", (relation.get("numeric_reconciliation") or {}).get("status", "")),
+                ("财务出处", f"{item.get('document_id', '')} p{item.get('pdf_page', '')}；SHA256 {item.get('file_sha256', '')}"),
+                ("会计路径", treatment.get('scene', '')),
+                ("会计依据", '；'.join(f"{entry.get('title')} {entry.get('locator')} {entry.get('source_url')}" for entry in treatment.get('basis', []))),
+                ("补证材料", '；'.join(treatment.get('required_evidence', []))),
+                ("尚未满足", "、".join(unmet[:5]) or "无"),
+            ])
+            for condition in relation.get('conditions', []):
+                _paragraph(document, f"{condition.get('label')}：{condition.get('status')}；{condition.get('reason')}")
+            if relation.get("counter"):
+                _paragraph(document, "反向证据：" + "；".join(
+                    str(entry.get("quote", ""))[:80] for entry in relation.get("counter", [])[:2]))
+        analysis = impact.get("analysis") or {}
+        _paragraph(document, '模型调查实际状态：' + str(impact.get('agents', {}).get('model_status', 'rule_only')))
+        for role in impact.get('agents', {}).get('roles', []):
+            _paragraph(document, f"财务调查角色 {role.get('role')} 第{role.get('round', '')}轮：{role.get('status')}；真实执行{role.get('performed', False)}；{role.get('decision_reason', role.get('failure', ''))}")
+        for receipt in impact.get('agents', {}).get('tool_receipts', []):
+            _paragraph(document, f"财务工具 {receipt.get('requested_by')} / {receipt.get('tool_name')} / {receipt.get('status')}；来源SHA256 {receipt.get('source_hash', '')}；输出摘要 {receipt.get('output_digest', '')}；事项{receipt.get('event_id', '')}")
+        for judgment in impact.get('agents', {}).get('judgments', []):
+            _paragraph(document, '模型假设（不等于会计确认）：' + str(judgment.get('reason', '')))
+        for category in ('current', 'expected'):
+            for entry in analysis.get(category, []):
+                _paragraph(document, ('当期有证据的潜在影响：' if category == 'current' else '预期影响：') + json.dumps(entry, ensure_ascii=False))
+        buckets = analysis.get("buckets") or {}
+        _paragraph(document, ("预期影响分类：企业已量化披露{}项、情景试算{}项、仅定性{}项；三类不混用，"
+                              "不预测净利润、未来现金流改善额或投资回报率。").format(
+            buckets.get("disclosed_quantified", 0), buckets.get("scenario_trial", 0), buckets.get("qualitative_only", 0)))
+        _paragraph(document, "边界：找不到项目级财务项目只记为证据不足，不据此认定企业披露不实；"
+                             "预算数、期末余额与本期的发生额不得互相替代。")
     if run.ai_opinions:
         _add_heading(document, "AI意见（程序刻度＋规则/模型解释，仅供参考）", 2)
         _paragraph(document, "AI意见不改变口径状态、正式差额与已衔接统计，不构成审计结论、鉴证结论或鉴证意见。")

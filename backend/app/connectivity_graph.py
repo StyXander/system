@@ -338,7 +338,8 @@ def refresh_run_sources(root, run):
         if not path.is_file():
             changed[original.document_id] = "missing"
             continue
-        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        with path.open('rb') as handle:
+            actual = hashlib.file_digest(handle, 'sha256').hexdigest()
         if actual != original.file_sha256 or doc.file_sha256 != original.file_sha256:
             changed[original.document_id] = actual if actual != original.file_sha256 else "registry_changed"
     if changed:
@@ -353,6 +354,24 @@ def refresh_run_sources(root, run):
                 node.update(invalid=True, verified=False)
         child.versions["source_validity"] = {"status": "invalid", "documents": changed,
             "notice": "依赖来源已变化或不可读取；当前为历史结果，不得作为有效新证据。"}
+        if child.financial_impact:
+            impact = child.financial_impact
+            impact['source_validity'] = child.versions['source_validity']
+            for relation in impact.get('relations', []):
+                relation.setdefault('historical_grade', relation.get('grade'))
+                relation['grade'] = 'D'
+                relation['numeric_reconciliation'] = {'status': 'not_comparable', 'reason': '原件失效，历史金额不作为当前证据'}
+                relation['explanation'] = '原件失效；历史等级单独保留，不作为当前关联结论'
+            for row in impact.get('events', []) + impact.get('items', []):
+                if row.get('document_id') in changed:
+                    row['page_verified'] = False
+            for path in impact.get('graph', {}).get('paths', []):
+                path.update(verified=False, source_invalid=True)
+            for node in impact.get('graph', {}).get('nodes', []):
+                if node.get('document_id') in changed:
+                    node.update(verified=False, invalid=True)
+            impact.setdefault('stats', {})['grades'] = {'D': len(impact.get('relations', []))}
+            impact['analysis'] = {'current': [], 'expected': [], 'note': '原件失效，禁用当前财务影响输出；历史记录保留'}
         if child.financial_scenario:
             child.financial_scenario.update(available=False, reason="来源失效，禁用金额情景；原历史记录保留。")
     return child

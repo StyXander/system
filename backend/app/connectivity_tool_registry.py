@@ -24,6 +24,13 @@ TOOL_NAMES = (
     "recompute_decimal",
     "lookup_annual_comparison",
     "lookup_peer_sample",
+    # 财务穿透工具：只读本次运行已生成的事项、附注项目与规则库。
+    "search_esg_events",
+    "search_financial_notes",
+    "get_accounting_rules",
+    "verify_evidence",
+    "search_project_aliases", "inspect_financial_table", "compare_reporting_scope",
+    "search_counter_evidence", "recalculate_financial_bridge",
 )
 
 
@@ -75,6 +82,16 @@ def _validate_common(run, arguments: dict) -> tuple[None, None] | tuple[str, str
 
 
 def execute_tool(root, run, request: ToolRequest) -> dict:
+    """模型参数属于不可信边界；非法参数返回拒绝回执，不能使整次运行崩溃。"""
+    try:
+        return _execute_tool(root, run, request)
+    except (ValueError, TypeError, KeyError, OverflowError) as error:
+        return {'tool_name': request.tool_name, 'args_hash': request.validated_args_hash(),
+                'status': 'rejected', 'reason': '工具参数无效：' + type(error).__name__,
+                'source_hash': '', 'output_digest': '', 'elapsed_ms': 0, 'result': None}
+
+
+def _execute_tool(root, run, request: ToolRequest) -> dict:
     """执行白名单工具并返回统一回执；未知工具直接拒绝。"""
     started = time.perf_counter()
     receipt = {"tool_name": request.tool_name, "args_hash": request.validated_args_hash(),
@@ -85,7 +102,7 @@ def execute_tool(root, run, request: ToolRequest) -> dict:
         return receipt
     args = request.arguments
     error = None
-    if request.tool_name in {"search_registered_reports", "open_source_page"}:
+    if request.tool_name in {"search_registered_reports", "open_source_page", "verify_evidence"}:
         error, reason = _validate_common(run, args)
         if error:
             receipt["reason"] = reason
@@ -95,7 +112,12 @@ def execute_tool(root, run, request: ToolRequest) -> dict:
             from .connectivity_extraction import source_path
             doc = _find_document(run, args.get("document_id"))
             path = source_path(root, doc)
-            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != doc.file_sha256:
+            if path.is_file():
+                with path.open('rb') as handle:
+                    actual_hash = hashlib.file_digest(handle, 'sha256').hexdigest()
+            else:
+                actual_hash = None
+            if actual_hash != doc.file_sha256:
                 receipt["reason"] = "来源原件缺失或哈希已变化；本次工具拒绝使用失效证据。"
                 return _finish(receipt, started)
     if request.tool_name == "search_registered_reports":
@@ -108,7 +130,129 @@ def execute_tool(root, run, request: ToolRequest) -> dict:
         return _recompute_decimal(args, receipt, started)
     if request.tool_name == "lookup_annual_comparison":
         return _lookup_annual_comparison(root, run, args, receipt, started)
+    if request.tool_name == "search_esg_events":
+        return _search_esg_events(root, run, args, receipt, started)
+    if request.tool_name == "search_financial_notes":
+        return _search_financial_notes(run, args, receipt, started)
+    if request.tool_name == "get_accounting_rules":
+        return _get_accounting_rules(args, receipt, started)
+    if request.tool_name == "verify_evidence":
+        return _verify_evidence(root, run, args, receipt, started)
+    if request.tool_name in {"search_project_aliases", "inspect_financial_table", "compare_reporting_scope",
+                            "search_counter_evidence", "recalculate_financial_bridge"}:
+        from .financial_impact.tools import execute
+        result = execute(root, run, request.tool_name, args)
+        receipt.update(result)
+        receipt['output_digest'] = _digest(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return _finish(receipt, started)
     return _lookup_peer_sample(run, args, receipt, started)
+
+
+def _impact(run) -> dict:
+    payload = getattr(run, "financial_impact", None) or {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _search_esg_events(root, run, args, receipt, started):
+    """在本次运行已抽取的可持续事项内检索；不重新访问网络。"""
+    query = str(args.get("query") or "").strip()
+    limit = max(1, min(int(args.get("limit") or 5), 10))
+    events = _impact(run).get("events") or []
+    if not query:
+        receipt["reason"] = "缺少 query。"
+        return _finish(receipt, started)
+    from .financial_impact.textutil import compact
+    key = compact(query)
+    hits = [event for event in events if key in compact(
+        " ".join([event.get("project_name", ""), event.get("quote", ""), event.get("activity_type", "")]))]
+    receipt.update({"status": "ok", "result": {"query": query, "count": len(hits), "events": [
+        {"event_id": event.get("event_id"), "project_name": event.get("project_name"),
+         "pdf_page": event.get("pdf_page"), "stage": event.get("stage"),
+         "amount_nature": event.get("amount_nature"), "quote": str(event.get("quote"))[:400],
+         "document_id": event.get('document_id'), "file_sha256": event.get('file_sha256')}
+        for event in hits[:limit]]}})
+    receipt["output_digest"] = _digest(json.dumps(receipt["result"], ensure_ascii=False, sort_keys=True))
+    if not hits and root is not None:
+        # 未被规则抽取的活动仍可由Agent主动查找原报告，不局限于已有候选名称。
+        receipt['result']['disclosures'] = []
+        for doc in run.documents:
+            if doc.report_type == 'ESG':
+                original = execute_tool(root, run, ToolRequest('search_registered_reports',
+                    {'document_id': doc.document_id, 'terms': [query[:60]]}))
+                receipt['result']['disclosures'].append(original)
+    return _finish(receipt, started)
+
+
+def _search_financial_notes(run, args, receipt, started):
+    """在本次运行已解析的附注项目内检索；返回列语义，避免把余额当投入。"""
+    query = str(args.get("query") or "").strip()
+    limit = max(1, min(int(args.get("limit") or 5), 10))
+    items = _impact(run).get("items") or []
+    if not query:
+        receipt["reason"] = "缺少 query。"
+        return _finish(receipt, started)
+    from .financial_impact.textutil import compact
+    key = compact(query)
+    hits = [item for item in items if key in compact(
+        " ".join([str(item.get("table_title", "")), str(item.get("row_header", "")), str(item.get("quote", ""))]))]
+    receipt.update({"status": "ok", "result": {"query": query, "count": len(hits), "items": [
+        {"item_id": item.get("item_id"), "table_title": item.get("table_title"),
+         "row_header": item.get("row_header"), "column_header": item.get("column_header"),
+         "value_semantics": item.get("value_semantics"), "raw_value": item.get("raw_value"),
+         "unit": item.get("unit"), "pdf_page": item.get("pdf_page"),
+         "document_id": item.get('document_id'), "file_sha256": item.get('file_sha256'),
+         "quote": item.get('quote'), "scope": item.get('scope'), "period": item.get('period')}
+        for item in hits[:limit]]}})
+    policies = _impact(run).get('retrieval', {}).get('note_pages', {}).get('policy_sections', [])
+    receipt['result']['policies'] = [row for row in policies if key in compact(row.get('quote', ''))][:5]
+    receipt["output_digest"] = _digest(json.dumps(receipt["result"], ensure_ascii=False, sort_keys=True))
+    return _finish(receipt, started)
+
+
+def _get_accounting_rules(args, receipt, started):
+    """查询会计规则库；只返回规则与依据，不返回“已确认”结论。"""
+    from .financial_impact.accounting_mapping import load_rules
+    activity = str(args.get("activity_type") or "").strip()
+    keyword = str(args.get("keyword") or "").strip()
+    rules = [rule for rule in load_rules()
+             if (not activity or activity in rule.activity_types)
+             and (not keyword or keyword in rule.scene or keyword in "".join(rule.accounts))]
+    receipt.update({"status": "ok", "result": {"count": len(rules), "rules": [
+        {"rule_id": rule.rule_id, "scene": rule.scene, "accounts": rule.accounts,
+         "applies_when": rule.applies_when, "required_evidence": rule.required_evidence,
+         "basis": rule.basis, "verification": rule.verification}
+        for rule in rules[:5]]}})
+    receipt["output_digest"] = _digest(json.dumps(receipt["result"], ensure_ascii=False, sort_keys=True))
+    return _finish(receipt, started)
+
+
+def _verify_evidence(root, run, args, receipt, started):
+    """逐字核验：引文必须出现在指定页原文，且文档已登记。"""
+    receipt["status"] = "rejected"
+    error, reason = _validate_common(run, args)
+    if error:
+        receipt["reason"] = reason
+        return _finish(receipt, started)
+    quote = str(args.get("quote") or "").strip()
+    page_no = int(args.get("page") or 0)
+    if not quote or page_no <= 0:
+        receipt["reason"] = "需要 quote 与 page。"
+        return _finish(receipt, started)
+    doc = _find_document(run, args.get("document_id"))
+    if page_no > int(getattr(doc, "pages", 0) or 0) and int(getattr(doc, "pages", 0) or 0) > 0:
+        receipt["reason"] = "页码超出原件范围。"
+        return _finish(receipt, started)
+    text = _load_page_text(root, doc, page_no)
+    if text is None:
+        receipt["reason"] = "原件不可读或页码无效。"
+        return _finish(receipt, started)
+    from .financial_impact.textutil import compact
+    verified = bool(compact(quote)) and len(quote) <= 1200 and compact(quote) in compact(text)
+    receipt.update({"status": "ok", "verified": verified, "source_hash": doc.file_sha256,
+                    "result": {"document_id": doc.document_id, "page": page_no,
+                               "quote": quote[:120], "verified": verified}})
+    receipt["output_digest"] = _digest(json.dumps(receipt["result"], ensure_ascii=False, sort_keys=True))
+    return _finish(receipt, started)
 
 
 def _finish(receipt: dict, started: float) -> dict:

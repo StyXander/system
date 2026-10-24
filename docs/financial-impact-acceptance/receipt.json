@@ -1,0 +1,98 @@
+{
+  "target": "http://127.0.0.1:8893",
+  "time": "2026-10-24T03:05:11.721Z",
+  "errors": [],
+  "model_requests": 0,
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "overflow": false
+    }
+  ],
+  "search": "五粮液 · 000858\n已验证可运行 · 已有 1 组报告对 · 点击确认身份",
+  "task_id": "CONNJOB-34D68A283DC1",
+  "status": "completed",
+  "stats": {
+    "events": 14,
+    "items": 139,
+    "treatments": 72,
+    "relations": 49,
+    "support_candidates": 140,
+    "counter_candidates": 0,
+    "grades": {
+      "C": 31,
+      "B": 18
+    },
+    "project_level": 1,
+    "verified_items": 139,
+    "duration_ms": 30117
+  },
+  "recorded_model_requests": 0,
+  "options": 15,
+  "project_options": [
+    "全部事项",
+    "能源结构优化与智慧环保设施",
+    "沼气发电项目",
+    "成品酒包装及智能仓储配送一体化项目",
+    "中水回用项目",
+    "中水回用项目",
+    "绿色低碳运营：全年环保投入达1.8亿元；",
+    "国内最大的固态白酒生产企业酿酒废水沼气发电示范项目",
+    "酒糟生物质热电联产项目",
+    "行业规模最大的固态发酵酿酒废水沼气发电示范项目",
+    "节能减排项目",
+    "技术风险中长期低中等低碳技术改造",
+    "表计升级改造",
+    "能源计量表计已完成升级改造",
+    "酒糟生物质热电联产项目"
+  ],
+  "project_visible": 18,
+  "paths": 3,
+  "exports": {
+    "json": 200,
+    "csv": 200,
+    "docx": 200
+  },
+  "source_status": 200,
+  "health": {
+    "service_status": "ready",
+    "product": "connectivity",
+    "model_status": "configured",
+    "model_id": "deepseek-flash",
+    "default_mode": "three_agents",
+    "project_facts": {
+      "task_kind": "connectivity",
+      "formal_scope": "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、完成可复算检查、定位证据及待补条件。",
+      "pair_count": 17,
+      "document_count": 34,
+      "company_count": 16,
+      "topic_count": 3,
+      "rule_count": 6,
+      "schema_version": "connectivity_v6",
+      "notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
+      "capability_boundary": "已登记公开报告专项核验；未承诺任意上传、全指标覆盖或审计鉴证意见"
+    },
+    "deployment": {
+      "commit": "0bc6b06a3d79b085442c8ef5fb872d0c8834a493",
+      "entry": "backend.app.connectivity_app:app",
+      "release": "2026.10.23.financial.1",
+      "identity_source": "runtime_environment"
+    }
+  }
+}
