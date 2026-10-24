@@ -27,10 +27,11 @@ summary={'generated_at':datetime.now(timezone(timedelta(hours=8))).isoformat(),'
  'original_trial_requests':sum(r['actual_requests'] for r in runs if r['stage']!='post-fix-three-call'),
  'original_trial_tokens':sum(r['input_tokens']+r['output_tokens'] for r in runs if r['stage']!='post-fix-three-call'),
  'runs':runs,'post_fix_multi_verified':any(r['stage']=='post-fix-three-call' and r['verified_judgments']>0 and r['agent_status']=='completed' for r in runs),
+ 'total_actual_requests':sum(r['actual_requests'] for r in runs),'total_actual_tokens':sum(r['input_tokens']+r['output_tokens'] for r in runs),
  'professional_labels':'not_completed','accuracy_metrics':None,'vector_status':'degraded_no_vector','expert_rule_review':'pending_human_review',
  'release_gate':'blocked_pending_real_model_acceptance','deployed':False}
 (OUT/'acceptance-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf-8')
-for name in ('source-manifest.json','acceptance-summary.json','ci-summary.json','quote-integrity.json','production-observation.json'):
+for name in ('source-manifest.json','acceptance-summary.json','ci-summary.json','quote-integrity.json','production-observation.json','additional-authorization.json','actual-source-number-probe.json'):
  if (OUT/name).exists():shutil.copyfile(OUT/name,DOC/name)
 for name in ('receipt.json','export-verification.json','financial-1440.png','financial-390.png'):
  if (OUT/'browser'/name).exists():shutil.copyfile(OUT/'browser'/name,DOC/name)
@@ -42,7 +43,7 @@ report=f'''# 财务穿透任务验收报告
 
 日期：{summary['generated_at']}。应用源码：`{summary['source_commit']}`。草稿PR：[#10](https://github.com/StyXander/system/pull/10)。
 
-**当前结论：工程修复已提交，完整业务验收尚未通过；保持候选分支，不合并main、不发布Render。** 原提交所称“已完成”需要收窄：原先缺少生产模型工具循环、公平实验和真实模型验收。详细逐项状态见[基线与11项验收矩阵](基线与11项验收矩阵.md)。
+**当前结论：工程修复已提交，完整业务验收尚未通过；保持候选分支，不合并main、不发布Render。** 原提交所称“已完成”需要收窄：原先缺少生产模型工具循环、公平实验和真实模型验收。详细逐项状态见[基线与11项验收矩阵](基线与11项验收矩阵.md)。交付前新发现f497ad8并行增量，已选择性吸收安全改动，未覆盖原分支，见[并行增量复核](并行增量复核.md)。
 
 ## 已交付的实际代码
 
@@ -88,12 +89,12 @@ report=f'''# 财务穿透任务验收报告
 
 实际工具闭环已经运行，但原12次中的有效模型关联提议为0。拒绝不是专业成功。复核原始失败回执发现：程序提供的表格串含`|`，并非PDF连续引文；模型还在缺少参数说明时提交了无效inspect参数。两项已在最终代码修复，原件逐字门禁保持严格，原失败记录没有回填为成功。
 
-追加的修复后三请求验证须单独预算授权；在没有新回执前保持未执行。原单/多模型运行与修复后版本不同，不拼成同版本公平对照。没有独立会计专业人工标签，不计算准确率、Recall/F1或提升比例。测试替身不计为供应商调用。
+本次总计实际调用{summary['total_actual_requests']}次、消费{summary['total_actual_tokens']} Token。追加三次的明确授权和调用记录单列，首次自动审批拒绝时未发出请求，后在明确授权下才执行。用户随后明确授权追加3次，实际A1/A2/A3各执行1次，双报告引用通过逐字核验，但有效结构化意见仍为0：数值守卫误将连在一起的PDF表格数字当成一个数值，拒绝了已核实原列中的合法预算数。该守卫已改为同时核对逐字原文与核实后的原列数值；新增提议原文、拒绝原因及来源ID回执保留，并给模型限定已提供的事项/项目/规则ID。数值守卫修复后没有再新增模型消费，不能把旧失败回填为成功。另以真实回执和原列数值做了[确定性验证探针](actual-source-number-probe.json)：合法预算数通过、改1元的伪造数值被拒；探针文字为程序构造，明确不计为真实模型意见。原单/多模型运行与修复后版本不同，不拼成同版本公平对照。没有独立会计专业人工标签，不计算准确率、Recall/F1或提升比例。测试替身不计为供应商调用。
 
 ## 工程验收
 
 - 最终应用提交CI：[{ci_run}](https://github.com/StyXander/system/actions/runs/{ci_run})，完整pytest **{ci_pass} passed / {ci_skip} skipped**，前端 **29 passed**；日志摘要见[ci-summary.json](ci-summary.json)。这些跳过项有材料缺失原因，不计为通过。
-- 本地真实报告及主链曾完成113项聚焦检查；后续引用格式及工具合同修复另完成80项相关回归、37项低预算角色合同检查。存在重叠，不相加为总通过数。所有本地JUnit保存在`outputs/financial-impact-acceptance/`。
+- 本地真实报告及主链曾完成113项聚焦检查；后续引用格式及工具合同修复另完成80项相关回归、37项低预算角色合同检查；追加真实三次后的数值及诊断修复完成60项相关检查。存在重叠，不相加为总通过数。所有本地JUnit保存在`outputs/financial-impact-acceptance/`。
 - 两轮本地分批全库的各批退出码均为0，但执行中继续修复，源指纹发生变化，因此不作为最终冻结版本全库门禁。最终完整回归以对应提交的CI为准。
 - 浏览器：真实企业搜索→确认→选择报告对→仅计算任务→按事项筛选→原文/三格式导出，1440/1024/768/390四屏宽检查；实际结果以[receipt.json](receipt.json)为准。模型历史也有独立回放，回放不会发出新模型请求。[桌面截图](financial-1440.png) / [手机截图](financial-390.png)。
 - Word重新打开、字体字号和CSV/JSON逐关系一致性结果见[export-verification.json](export-verification.json)。Word布局未按全部页面逐页专业审阅，不能把结构/字体检查写成完整排版审定。
@@ -101,12 +102,12 @@ report=f'''# 财务穿透任务验收报告
 
 ## 尚未通过的门禁与部署
 
-- 修复后真实三智能体必须产生经双端证据校验的有用分析，才能宣称专业链路验收通过；旧的角色执行完成标记不能代替它。
+- 数值守卫修复后的真实三智能体尚未再运行；已有追加三次完成了引用核验，但未形成通过全部校验的结构化意见。只有新运行产生可追溯且有用的分析，才能宣称完整专业链路验收通过；角色执行完成或离线测试不能代替它。
 - 会计规则12条仍待专业人工复核；已核对官方来源位置不等于专家已审定。CSMAR未接入，向量模型未启用，扫描件未支持。
 - 独立专业标签和同版本公平效果实验仍未完成，所有提升指标为空。
 - 本轮没有合并main，也没有请求Render部署。当前线上运行时核查遇网络失败，见[production-observation.json](production-observation.json)；不沿用旧记忆宣称线上版本已确认。本地版本可用与线上发布是两种状态。
 
-复现规则实验：`python tools/financial_impact_experiment.py`。模型调用默认关闭，必须显式传`--allow-models`、指定实验臂、次数和Token停止线，并具备实际授权及项目额度。详细原件清单如下。
+复现规则实验：`python tools/financial_impact_experiment.py`。模型调用默认关闭，必须显式传`--allow-models`、指定实验臂、次数和Token停止线，并具备实际授权及项目额度。本轮模型命令明确限制为`--pair 000858-2025`；通用脚本的预算按每个报告对、每个实验臂设置，不能把多企业调用误称同一个三次总额。详细原件清单如下。
 
 |原件|document_id|登记页数|官方地址/版本|实测SHA-256|
 |---|---|---:|---|---|

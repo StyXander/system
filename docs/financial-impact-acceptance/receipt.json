@@ -1,6 +1,6 @@
 {
   "target": "http://127.0.0.1:8893",
-  "time": "2026-10-23T16:53:53.318Z",
+  "time": "2026-10-24T03:05:11.721Z",
   "errors": [],
   "model_requests": 0,
   "viewports": [
@@ -26,7 +26,7 @@
     }
   ],
   "search": "五粮液 · 000858\n已验证可运行 · 已有 1 组报告对 · 点击确认身份",
-  "task_id": "CONNJOB-21ECF417F2B0",
+  "task_id": "CONNJOB-34D68A283DC1",
   "status": "completed",
   "stats": {
     "events": 14,
@@ -41,7 +41,7 @@
     },
     "project_level": 1,
     "verified_items": 139,
-    "duration_ms": 12969
+    "duration_ms": 30117
   },
   "recorded_model_requests": 0,
   "options": 15,
@@ -89,7 +89,7 @@
       "capability_boundary": "已登记公开报告专项核验；未承诺任意上传、全指标覆盖或审计鉴证意见"
     },
     "deployment": {
-      "commit": "1bc3f0a16b5e69913f019c1407c87863de720709",
+      "commit": "0bc6b06a3d79b085442c8ef5fb872d0c8834a493",
       "entry": "backend.app.connectivity_app:app",
       "release": "2026.10.23.financial.1",
       "identity_source": "runtime_environment"

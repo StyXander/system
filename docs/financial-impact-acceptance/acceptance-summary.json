@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-24T00:57:01.717550+08:00",
-  "source_commit": "1bc3f0a16b5e69913f019c1407c87863de720709",
+  "generated_at": "2026-10-24T11:13:41.078215+08:00",
+  "source_commit": "0bc6b06a3d79b085442c8ef5fb872d0c8834a493",
   "original_trial_requests": 12,
   "original_trial_tokens": 119877,
   "runs": [
@@ -824,9 +824,230 @@
       ],
       "cost_cny": null,
       "cost_note": "记录真实Token；人民币账单未核对，不虚构费用"
+    },
+    {
+      "stage": "post-fix-three-call",
+      "arm": "multi_agent",
+      "task_id": "CONNJOB-6EBD6B273E27",
+      "run_id": "CONN-D8CC663CC5664DAC",
+      "task_status": "degraded",
+      "model_status": "three_agents_partial",
+      "agent_status": "completed_no_verified_judgments",
+      "actual_requests": 3,
+      "input_tokens": 27130,
+      "output_tokens": 2697,
+      "verified_judgments": 0,
+      "rejected_judgments": 5,
+      "tools": 13,
+      "provider_records": [
+        {
+          "role": "financial_A1",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9025,
+          "output_tokens": 447,
+          "cost": null,
+          "input_sha256": "d472e178322e6de5eac8d36e77a8f1895baf3d220af996d1b0c3b823a3637430",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "3554cd637487ada5e676244bf2355a9c6ab0f30d8da46db5a2084c6390b44136",
+          "duration_ms": 3392,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_A2",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9076,
+          "output_tokens": 1058,
+          "cost": null,
+          "input_sha256": "ba456217c575546df7acb96b4252055406b650b96afa5ed738059e020eec6a56",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "d67628f4fafa12610ab57173f159d5475ce38afce275f57b74f5f2ec2c691eaa",
+          "duration_ms": 5516,
+          "cost_note": "实际账单未核对"
+        },
+        {
+          "role": "financial_A3",
+          "performed": true,
+          "request_attempted": true,
+          "model": "deepseek-flash",
+          "requested_model": "deepseek-flash",
+          "status": "completed",
+          "input_tokens": 9029,
+          "output_tokens": 1192,
+          "cost": null,
+          "input_sha256": "1bb410664b486f34f0f5459f6b9cb9be0472dbe53593d92e2f1d5b2ccd0ce05b",
+          "returned_model": "deepseek-flash",
+          "response_sha256": "c73109cfb204f8a66eedac813f47d26512a145df2abb13187d0c1997bdc9eac6",
+          "duration_ms": 6319,
+          "cost_note": "实际账单未核对"
+        }
+      ],
+      "roles": [
+        {
+          "role": "A1",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9025,
+          "output_tokens": 447,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "A1发现阶段：本批6项环保设施类活动均来自ESG报告原文，金额与阶段多为未明示；本轮检索财务附注中对应项目名与环保投入，以建立ESG事项与在建工程/费用科目的对应关系，并核对中水回用两处回用率差异。",
+          "context_sha256": "6734729a074f4924ad590a233fe5644115e68d2502c057040ac327721c9ae761",
+          "unresolved": [
+            "EV-32ED79D762与EV-471E05DBA2同为第19页中水回用项目，但引文分别称回用率20%与15%，需核对原文确认是否为不同园区/不同口径，或其中一处为笔误",
+            "EV-FC46EDB1BF原文称“已建成沼气发电项目、电极锅炉，等待投运”，建成与投运状态并存，stage=completed需程序按原文核实",
+            "EV-357FA96C62的1.8亿元为“全年环保投入”总额，非该项目单独发生额，且未明示资本化/费用化性质",
+            "各事项均未明示报告主体范围（合并/母公司）与预算金额，需财务附注在建工程明细与预算披露补证"
+          ]
+        },
+        {
+          "role": "A2",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9076,
+          "output_tokens": 1058,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "A2第1轮：将ESG设施类事项与财务附注在建工程明细建立对应，区分预算数与本期发生额，并对汇总性环保投入金额标注不可视为已发生支出；同时补查环保费用科目与主体范围。",
+          "context_sha256": "674c27c8a2eada97652352ffa92a6d85849ce9f3eb8c104976c7bd412480f408",
+          "unresolved": [
+            "EV-32ED79D762与EV-471E05DBA2同为第19页中水回用项目，引文回用率分别为20%与15%，需核对原文确认口径差异",
+            "EV-FC46EDB1BF“已建成沼气发电项目、电极锅炉，等待投运”，建成与投运状态并存，stage需程序核实",
+            "EV-357FA96C62的1.8亿元为全年环保投入总额，非单一项目发生额，资本化/费用化性质未明示",
+            "EV-6C4136F206酒糟生物质热电联产项目在财务附注检索无命中，缺在建工程或费用科目对应证据",
+            "各事项均未明示报告主体范围（合并/母公司），需compare_reporting_scope补证"
+          ]
+        },
+        {
+          "role": "A3",
+          "round": 1,
+          "status": "completed",
+          "model": "deepseek-flash",
+          "input_tokens": 9029,
+          "output_tokens": 1192,
+          "cost": null,
+          "performed": true,
+          "decision_reason": "A3第1轮：对已取得ESG与财务原页双证据的成品酒包装项目提出AR-01对应候选，对汇总性1.8亿元环保投入按AR-12标注预算/披露不得视为已发生支出；同时补查酒糟热电联产与沼气发电的财务附注对应，并对中水回用事项主动检索反证。金额性质与阶段仍由程序裁决。",
+          "context_sha256": "cdbd8b05e6d0b2ff71f407302a1f74334f55d0d7c3e67452f1a28f40fef30797",
+          "unresolved": [
+            "EV-32ED79D762与EV-471E05DBA2同为第19页中水回用项目，引文回用率分别为20%与15%，需核对原文确认是否为不同园区/不同口径或笔误",
+            "EV-FC46EDB1BF“已建成沼气发电项目、电极锅炉，等待投运”，建成与投运并存，stage=completed需程序按原文核实",
+            "EV-357FA96C62的1.8亿元为全年环保投入总额，非单一项目发生额，资本化/费用化性质未明示，缺环保投入明细表",
+            "EV-6C4136F206酒糟生物质热电联产项目在财务附注尚无命中，缺在建工程或费用科目对应证据",
+            "各事项均未明示报告主体范围（合并/母公司），需compare_reporting_scope补证",
+            "EV-199C2992C7财务附注金额为预算数与在建工程余额，缺本期转固/完工进度与资本化确认条件的直接证据"
+          ]
+        }
+      ],
+      "tool_summary": [
+        {
+          "tool": "search_financial_notes",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A1",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "inspect_financial_table",
+          "role": "A2",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "compare_reporting_scope",
+          "role": "A2",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A2",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "A2",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "A2",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A3",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_financial_notes",
+          "role": "A3",
+          "status": "ok",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "search_counter_evidence",
+          "role": "A3",
+          "status": "no_match",
+          "verified": null,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "A3",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        },
+        {
+          "tool": "verify_evidence",
+          "role": "A3",
+          "status": "ok",
+          "verified": true,
+          "reason": ""
+        }
+      ],
+      "cost_cny": null,
+      "cost_note": "记录真实Token；人民币账单未核对，不虚构费用"
     }
   ],
   "post_fix_multi_verified": false,
+  "total_actual_requests": 15,
+  "total_actual_tokens": 149704,
   "professional_labels": "not_completed",
   "accuracy_metrics": null,
   "vector_status": "degraded_no_vector",
