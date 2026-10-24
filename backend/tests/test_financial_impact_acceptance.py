@@ -219,6 +219,8 @@ def test_ai_hypothesis_cannot_add_unquoted_numbers(workspace):
                 {'document_id':target.document_id,'pdf_page':2,'quote':target.row_header}]}]}, {'performed':True,'model':'OFFLINE_TEST_DOUBLE'}
     receipt=agents.investigate(root,run,invoke,mode='single_model')
     assert not receipt['judgments'] and receipt['rejected']
+    assert receipt['proposed_judgments'][0]['proposal']['reason']=='本期增加999亿元，已全部确认'
+    assert receipt['rejected'][0]['proposal_id']==receipt['proposed_judgments'][0]['proposal_id']
 
 
 def test_api_read_uses_one_store_lookup_and_hides_internal_fields(tmp_path,monkeypatch):
@@ -260,10 +262,14 @@ def test_production_transport_accepts_financial_contract_without_legacy_role_loo
     def offline(request,**kwargs):
         captured.append(json.loads(request.data));return Response()
     monkeypatch.setattr(pipeline,'urlopen',offline)
-    output,record=pipeline.call_role(role,{'role':role})
+    output,record=pipeline.call_role(role,{'role':role,'events':[{'event_id':'SYN-E'}],'items':[{'item_id':'SYN-I'}],'rules':[{'rule_id':'AR-01'}],'tool_receipts':[{'result':{'items':[{'item_id':'SYN-TOOL'}]}}]})
     assert output['decision_reason']=='合成传输合同' and record['input_tokens']==7
     assert captured[0]['max_tokens']==3000
     assert 'tool_requests' in captured[0]['tools'][0]['function']['parameters']['properties']
+    proposal=captured[0]['tools'][0]['function']['parameters']['$defs']['Proposal']['properties']
+    assert proposal['event_id']['enum']==['SYN-E']
+    assert set(proposal['item_id']['enum'])=={'SYN-I','SYN-TOOL',None}
+    assert proposal['rule_id']['enum']==['AR-01']
 
 
 def test_mission_and_standard_titles_are_not_business_project_names():
@@ -350,3 +356,14 @@ def test_same_project_at_different_bases_and_another_row_cannot_supply_subject()
     assert _identity(source,item(row_header='北方基地羧甲基纤维素改造项目'))[0]=='false'
     assert _identity(source,item(quote='同页其他项目属于南方基地'))[0]=='unknown'
     assert _identity(source,item(row_header='南方基地羧甲基纤维素改造项目'))[0]=='true'
+
+
+def test_budget_number_can_be_grounded_in_verified_column_despite_joined_pdf_text():
+    from backend.app.financial_impact.models import EvidenceRef
+    source=event(period='2025')
+    target=item(raw_value='8,596,655,000.00',value='8596655000',normalized='8596655000',page_verified=True)
+    refs=[EvidenceRef(document_id=target.document_id,pdf_page=target.pdf_page,quote='8,596,655,000.00899,834,791.90',verified=True)]
+    assert not agents.unsupported_reason_numbers('2025年按AR-01考虑候选路径，预算数8,596,655,000.00元不是支出',refs,source,target,['AR-01'])
+    assert agents.unsupported_reason_numbers('预算8,596,655,001.00元',refs,source,target,['AR-01'])
+    target.page_verified=False
+    assert agents.unsupported_reason_numbers('预算8,596,655,000.00元',refs,source,target,['AR-01'])

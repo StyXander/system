@@ -920,6 +920,20 @@ def call_role(role: str, payload: dict) -> tuple[dict, dict]:
         from .financial_impact.agents import Turn, PROMPT
         contract, prompt = Turn, PROMPT
         schema = contract.model_json_schema()
+        defs=schema.get('$defs',{})
+        event_ids=[entry['event_id'] for entry in payload.get('events',[]) if entry.get('event_id')]
+        item_ids={entry['item_id'] for entry in payload.get('items',[]) if entry.get('item_id')}
+        for receipt in payload.get('tool_receipts',[]):
+            item_ids.update(entry['item_id'] for entry in (receipt.get('result') or {}).get('items',[]) if entry.get('item_id'))
+            found_item=(receipt.get('result') or {}).get('item') or {}
+            if found_item.get('item_id'):item_ids.add(found_item['item_id'])
+        if event_ids:
+            defs['Proposal']['properties']['event_id']['enum']=event_ids
+            defs['Request']['properties']['event_id']['enum']=[*event_ids,'DISCOVERY']
+        if payload.get('items') or payload.get('tool_receipts'):
+            defs['Proposal']['properties']['item_id']['enum']=[*sorted(item_ids),None]
+        rule_ids=[entry['rule_id'] for entry in payload.get('rules',[]) if entry.get('rule_id')]
+        if rule_ids:defs['Proposal']['properties']['rule_id']['enum']=rule_ids
     else:
         contract = (FinalSummaries if role == "A3" else SingleAgentProposals if role == "single"
                     else ChallengerProposals if role == "challenger" else AgentProposals)
