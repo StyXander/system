@@ -23,7 +23,7 @@ for directory,arm in [('real-trial','single_model'),('real-trial','multi_agent')
   'rejected_judgments':len(agents.get('rejected',[])),'tools':len(agents.get('tool_receipts',[])),
   'provider_records':calls,'roles':agents.get('roles',[]),'tool_summary':[{'tool':x.get('tool_name'),'role':x.get('requested_by'),'status':x.get('status'),'verified':x.get('verified'),'reason':x.get('reason')} for x in agents.get('tool_receipts',[])],
   'cost_cny':None,'cost_note':'记录真实Token；人民币账单未核对，不虚构费用'})
-summary={'generated_at':datetime.now(timezone(timedelta(hours=8))).isoformat(),'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode().strip(),
+summary={'generated_at':datetime.now(timezone(timedelta(hours=8))).isoformat(),'source_commit':ci.get('commit') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode().strip(),
  'original_trial_requests':sum(r['actual_requests'] for r in runs if r['stage']!='post-fix-three-call'),
  'original_trial_tokens':sum(r['input_tokens']+r['output_tokens'] for r in runs if r['stage']!='post-fix-three-call'),
  'runs':runs,'post_fix_multi_verified':any(r['stage']=='post-fix-three-call' and r['verified_judgments']>0 and r['agent_status']=='completed' for r in runs),
@@ -75,7 +75,7 @@ report=f'''# 财务穿透任务验收报告
 3. **宁德时代：跨行业与补证问题。** 展示研发/节能活动的会计候选路径和附注检索；当前未形成可确认的项目级财务对应，留存具体材料缺口，不作研发资本化已确认的结论。
 4. **美的：解析失败恢复示例。** 原件存在且哈希正确，但当前附注结构化结果为0，不推荐作为核心财务穿透演示案例；可展示系统如何明确说明处理限制。
 
-五粮液的合并范围、项目投入构成、付款与应付款、转固验收、费用/资本化判断及ESG口径仍是评委可提出的有效质疑。没有这些资料，不能把候选财务科目说成真实入账确认，更不能推断舞弊或披露违规。
+五粮液的合并范围、项目投入构成、付款与应付款、转固验收、费用/资本化判断及ESG口径仍是评委可提出的有效质疑。包装仓储项目的整体预算不能全额视为环保投入，还需配套设施的成本拆分。没有这些资料，不能把候选财务科目说成真实入账确认，更不能推断舞弊或披露违规。
 
 ## 真实模型实验与失败原因
 
@@ -89,7 +89,7 @@ report=f'''# 财务穿透任务验收报告
 
 实际工具闭环已经运行，但原12次中的有效模型关联提议为0。拒绝不是专业成功。复核原始失败回执发现：程序提供的表格串含`|`，并非PDF连续引文；模型还在缺少参数说明时提交了无效inspect参数。两项已在最终代码修复，原件逐字门禁保持严格，原失败记录没有回填为成功。
 
-本次总计实际调用{summary['total_actual_requests']}次、消费{summary['total_actual_tokens']} Token。追加三次的明确授权和调用记录单列，首次自动审批拒绝时未发出请求，后在明确授权下才执行。用户随后明确授权追加3次，实际A1/A2/A3各执行1次，双报告引用通过逐字核验，但有效结构化意见仍为0：数值守卫误将连在一起的PDF表格数字当成一个数值，拒绝了已核实原列中的合法预算数。该守卫已改为同时核对逐字原文与核实后的原列数值；新增提议原文、拒绝原因及来源ID回执保留，并给模型限定已提供的事项/项目/规则ID。数值守卫修复后没有再新增模型消费，不能把旧失败回填为成功。另以真实回执和原列数值做了[确定性验证探针](actual-source-number-probe.json)：合法预算数通过、改1元的伪造数值被拒；探针文字为程序构造，明确不计为真实模型意见。原单/多模型运行与修复后版本不同，不拼成同版本公平对照。没有独立会计专业人工标签，不计算准确率、Recall/F1或提升比例。测试替身不计为供应商调用。
+本次总计实际调用{summary['total_actual_requests']}次、消费{summary['total_actual_tokens']} Token。追加三次的明确授权和调用记录单列，首次自动审批拒绝时未发出请求；用户明确授权后，实际A1/A2/A3各执行1次，双报告引用通过逐字核验，但有效结构化意见仍为0：数值守卫误将连在一起的PDF表格数字当成一个数值，拒绝了已核实原列中的合法预算数。该守卫已改为同时核对逐字原文与核实后的原列数值；新增提议原文、拒绝原因及来源ID回执保留，并给模型限定已提供的事项/项目/规则ID。数值守卫修复后没有再新增模型消费，不能把旧失败回填为成功。另以真实回执和原列数值做了[确定性验证探针](actual-source-number-probe.json)：合法预算数通过、改1元的伪造数值被拒；探针文字为程序构造，明确不计为真实模型意见。原单/多模型运行与修复后版本不同，不拼成同版本公平对照。没有独立会计专业人工标签，不计算准确率、Recall/F1或提升比例。测试替身不计为供应商调用。
 
 ## 工程验收
 

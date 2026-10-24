@@ -11,7 +11,9 @@
     "pages": 141,
     "registered_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
     "actual_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 141,
+    "page_count_matches_registry": true
   },
   {
     "company": "五粮液",
@@ -25,7 +27,9 @@
     "pages": 59,
     "registered_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
     "actual_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 59,
+    "page_count_matches_registry": true
   },
   {
     "company": "美的集团",
@@ -39,7 +43,9 @@
     "pages": 276,
     "registered_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
     "actual_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 276,
+    "page_count_matches_registry": true
   },
   {
     "company": "美的集团",
@@ -53,7 +59,9 @@
     "pages": 82,
     "registered_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
     "actual_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 82,
+    "page_count_matches_registry": true
   },
   {
     "company": "宁德时代",
@@ -67,7 +75,9 @@
     "pages": 232,
     "registered_sha256": "c15272977147dee7e6935a38ea0e4fd6855370aabb106f54cfe20f7cf6048ec9",
     "actual_sha256": "c15272977147dee7e6935a38ea0e4fd6855370aabb106f54cfe20f7cf6048ec9",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 232,
+    "page_count_matches_registry": true
   },
   {
     "company": "宁德时代",
@@ -81,7 +91,9 @@
     "pages": 197,
     "registered_sha256": "b5cd5663566e2ba112796d90c7da40c0657e7826b1bab5ad0f3bd51c6564ccb0",
     "actual_sha256": "b5cd5663566e2ba112796d90c7da40c0657e7826b1bab5ad0f3bd51c6564ccb0",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 197,
+    "page_count_matches_registry": true
   },
   {
     "company": "宝钢股份",
@@ -95,7 +107,9 @@
     "pages": 245,
     "registered_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
     "actual_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 245,
+    "page_count_matches_registry": true
   },
   {
     "company": "宝钢股份",
@@ -109,6 +123,8 @@
     "pages": 102,
     "registered_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
     "actual_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
-    "verified": true
+    "verified": true,
+    "actual_pdf_pages": 102,
+    "page_count_matches_registry": true
   }
 ]
