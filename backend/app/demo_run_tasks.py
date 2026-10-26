@@ -28,6 +28,12 @@ STAGE_ORDER = (
     "structured_output",
 )
 AGENT_ROLE_ORDER = ("challenge", "counter", "review")
+MATTER_ROLE_ORDER = ("A1", "A2", "A3", "A4", "A5")
+def roles_for(body):
+    if body.get("analysis_scope")!="matter_connectivity":return AGENT_ROLE_ORDER
+    return {"five_agents":MATTER_ROLE_ORDER,"three_agents":("A1","A2","A5"),"single_model":("A1","A5"),"calculation_only":()} .get(body.get("mode"),MATTER_ROLE_ORDER)
+
+
 STAGE_STATUSES = ("pending", "running", "completed", "skipped", "degraded", "failed")
 TASK_STATUSES = (
     "queued", "running", "completed", "degraded", "failed", "cancelled", "interrupted",
@@ -150,7 +156,7 @@ class DemoRunTaskStore:
                     task["status"] = "interrupted"
                     task["failure_code"] = "TASK_INTERRUPTED_BY_RESTART"
                     task["error"] = "服务重启前的后台任务无法安全续接，已如实关闭。"
-                    task["result"] = None
+                    if task.get("run_body",{}).get("analysis_scope")!="matter_connectivity":task["result"] = None
                     for stage in STAGE_ORDER:
                         item = task["steps"].setdefault(stage, {"status": "pending", "detail": "未记录"})
                         if item.get("status") in {"pending", "running"}:
@@ -159,7 +165,7 @@ class DemoRunTaskStore:
                                 "detail": "服务重启导致任务中断，后续阶段未执行。",
                                 "updated_at": _iso_now(),
                             }
-                    for role in AGENT_ROLE_ORDER:
+                    for role in roles_for(task.get("run_body",{})):
                         item = task["agent_steps"].setdefault(role, {"status": "pending", "detail": "未记录"})
                         if item.get("status") in {"pending", "running"}:
                             task["agent_steps"][role] = {
@@ -195,7 +201,7 @@ class DemoRunTaskStore:
             "updated_at": now,
             "non_interruptible": False,
             "steps": {stage: {"status": "pending", "detail": "等待开始"} for stage in STAGE_ORDER},
-            "agent_steps": {role: {"status": "pending", "detail": "等待开始"} for role in AGENT_ROLE_ORDER},
+            "agent_steps": {role: {"status": "pending", "detail": "等待开始"} for role in roles_for(run_body)},
             "run_id": None,
             "failure_code": None,
             "error": None,
@@ -319,7 +325,7 @@ class DemoRunTaskStore:
             self._save_file(task)
 
     def update_agent_step(self, task_id: str, role: str, status: str, detail: str) -> None:
-        if role not in AGENT_ROLE_ORDER:
+        if role not in (*AGENT_ROLE_ORDER, *MATTER_ROLE_ORDER):
             return
         with self._lock:
             task = self._tasks.get(task_id) or self._load_file(task_id)
@@ -365,7 +371,7 @@ class DemoRunTaskStore:
                         "detail": "任务已取消，阶段未执行。",
                         "updated_at": _iso_now(),
                     }
-            for role in AGENT_ROLE_ORDER:
+            for role in roles_for(task.get("run_body",{})):
                 item = task["agent_steps"].setdefault(role, {"status": "pending", "detail": "等待开始"})
                 if item.get("status") in {"pending", "running"}:
                     task["agent_steps"][role] = {
@@ -408,7 +414,8 @@ class DemoRunTaskStore:
         view.pop("run_body", None)
         view.pop("non_interruptible", None)
         view.pop("_file_path", None)
-        if view.get("status") in {"failed", "cancelled", "interrupted", "expired"}:
+        matter_partial=(task.get("run_body") or task.get("request_payload") or {}).get("analysis_scope")=="matter_connectivity" and view.get("status")!="expired" and bool((view.get("result") or {}).get("matter_schema_version"))
+        if view.get("status") in {"failed", "cancelled", "interrupted", "expired"} and not matter_partial:
             # 失败或不可读终态只展示阶段和失败码；结果正文不能被下载接口或
             # 任务轮询误当作可导出成果。
             view["result"] = None
@@ -461,7 +468,8 @@ class SupabaseDemoRunTaskStore:
         view.pop("lease_owner", None)
         view.pop("lease_until", None)
         view.pop("version", None)
-        if view.get("status") in {"failed", "cancelled", "interrupted", "expired"}:
+        matter_partial=(task.get("run_body") or task.get("request_payload") or {}).get("analysis_scope")=="matter_connectivity" and view.get("status")!="expired" and bool((view.get("result") or {}).get("matter_schema_version"))
+        if view.get("status") in {"failed", "cancelled", "interrupted", "expired"} and not matter_partial:
             view["result"] = None
         return view
 
@@ -569,7 +577,7 @@ class SupabaseDemoRunTaskStore:
                 "updated_at": now,
                 "non_interruptible": False,
                 "steps": {stage: {"status": "pending", "detail": "等待开始"} for stage in STAGE_ORDER},
-                "agent_steps": {role: {"status": "pending", "detail": "等待开始"} for role in AGENT_ROLE_ORDER},
+                "agent_steps": {role: {"status": "pending", "detail": "等待开始"} for role in roles_for(run_body)},
                 "run_id": None,
                 "failure_code": None,
                 "error": None,
@@ -734,7 +742,7 @@ class SupabaseDemoRunTaskStore:
         self._mutate(task_id, updater)
 
     def update_agent_step(self, task_id: str, role: str, status: str, detail: str) -> None:
-        if role not in AGENT_ROLE_ORDER:
+        if role not in (*AGENT_ROLE_ORDER, *MATTER_ROLE_ORDER):
             return
 
         def updater(task: dict[str, Any]) -> None:

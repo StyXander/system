@@ -29,10 +29,10 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import Field
 
 from . import company_discovery as discovery
-from .cninfo import CNInfoError
+from .cninfo import CNInfoError, china_today
 from .connectivity_catalog import company_cards, remote_enabled
 from .connectivity_onboarding import discover_pair, prepare_pair
-from .connectivity_schemas import Contract
+from .connectivity_schemas import Contract, ReportDocument
 from .demo_run_tasks import DemoRunTaskStore, SupabaseDemoRunTaskStore, IdempotencyConflict
 from .supabase_adapter import get_demo_task_client, SupabaseError, SupabaseAuthError
 from .auth import session_access_token, CASE_WRITE_ROLES, REFRESH_COOKIE_NAME
@@ -45,6 +45,12 @@ class ImportRequest(Contract):
     confirmed_identity: bool = False
     annual_url: str = Field(default='', max_length=500)
     sustainability_url: str = Field(default='', max_length=500)
+
+
+class ReportRangeImportRequest(Contract):
+    ticker: str = Field(pattern=r'^\d{6}$')
+    years: list[int] = Field(min_length=1, max_length=5)
+    confirmed_identity: bool = False
 
 
 def can_import(request: Request) -> str:
@@ -287,4 +293,50 @@ def build_catalog_router(root: Path) -> APIRouter:
             raise HTTPException(403, '只能查看当前账号创建的接入任务。')
         snapshot = runtime().snapshot(task_id) or {}
         return {k: snapshot.get(k) for k in ('task_id', 'status', 'stages', 'result', 'error', 'failure_code', 'updated_at')}
+
+    @router.post('/api/connectivity/catalog/report-set-imports', status_code=202)
+    def start_range(body: ReportRangeImportRequest, request: Request):
+        user = can_import(request)
+        same_origin(request)
+        quota(request)
+        if not body.confirmed_identity or any(year < 2000 or year > china_today().year for year in body.years):
+            raise HTTPException(422, '请确认企业身份并选择有效年度')
+        years = sorted(set(body.years))
+        store = runtime()
+        owner = hashlib.sha256(user.encode()).hexdigest()
+        def execute(item):
+            documents = []
+            gaps = []
+            for year in years:
+                discovered = discover_pair(root, body.ticker, year)
+                if not discovered.get('query_complete'):
+                    raise ValueError(f'{year}年官方查询不完整，未选择任意首个候选')
+                if not discovered.get('annual') and not discovered.get('sustainability'):
+                    gaps.append(f'{year}年未查到报告候选')
+                    continue
+                prepared = prepare_pair(root, discovered, allow_partial=True)
+                documents.extend(ReportDocument.model_validate(d) for d in prepared['documents'])
+                gaps.extend(f'{year}年缺少{kind}' for kind in discovered.get('missing', []))
+                store.update_task(item['task_id'], result={'import_progress': {'year': year, 'documents': len(documents)}, 'coverage_gaps': gaps})
+            if not documents:
+                raise ValueError('所选年度没有通过原件核验的资料')
+            from .connectivity_report_sets import canonical_documents, make_report_set, save_report_set
+            documents = canonical_documents(documents)
+            report_set = make_report_set(documents, china_today())
+            save_report_set(root, report_set, documents)
+            store.update_task(item['task_id'], status='completed', result={'report_set': report_set.model_dump(mode='json'), 'coverage_gaps': gaps, 'model_status': 'not_run'})
+        with pending_lock:
+            for key in list(pending):
+                row=store.get(key)
+                if not row or row['status'] not in {'queued','running'}:pending.pop(key,None)
+            active = [store.get(key) for key in pending]
+            if len(active) >= 4:
+                raise HTTPException(429, '报告准备任务已满，请稍后重试')
+            try:
+                item = store.create('IMPORT-SET-' + body.ticker, {'kind': 'connectivity_import', 'owner': owner, 'ticker': body.ticker, 'years': years},
+                    execute, idempotency_key=request.headers.get('idempotency-key'))
+            except IdempotencyConflict as error:
+                raise HTTPException(409,str(error)) from error
+            pending[item['task_id']] = True
+        return {'task_id': item['task_id'], 'status': item['status']}
     return router

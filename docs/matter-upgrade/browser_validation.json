@@ -1,0 +1,31 @@
+{
+  "origin": "synthetic_engineering_only",
+  "real_model_calls": 0,
+  "viewports": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "result_visible": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "result_visible": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "result_visible": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "result_visible": true
+    }
+  ],
+  "errors": [],
+  "provider_records": 16,
+  "status": "passed",
+  "temporary_test_task_id": "CONNJOB-F26ABD94DEC7",
+  "replay": "python scripts/verify_matter_browser.py; fixture source and task are temporary, not a public historical task"
+}

@@ -5,7 +5,7 @@ from .connectivity_extraction import load_registry
 from .connectivity_rules import TOPICS, RULES
 from .connectivity_schemas import NOTICE, SCHEMA_VERSION
 
-PRODUCT_SCOPE = "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、完成可复算检查、定位证据及待补条件。"
+PRODUCT_SCOPE = "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、追踪可持续事项的财务传导、跨期承诺、竞争解释，完成可复算检查并定位证据及待补条件。"
 
 
 def project_facts(root):
@@ -16,6 +16,8 @@ def project_facts(root):
             "company_count": len({d.company_id for d in documents}),
             "topic_count": len(TOPICS), "rule_count": len(RULES),
             "schema_version": SCHEMA_VERSION, "notice": NOTICE,
+            "matter_schema_version":"matter_connectivity_v1","matter_agent_count":5,
+            "default_mode":"five_agents","matter_types":["climate_risk","transition_project","commitment","resource_efficiency","other"],
             "capability_boundary": "已登记公开报告专项核验；未承诺任意上传、全指标覆盖或审计鉴证意见"}
 
 

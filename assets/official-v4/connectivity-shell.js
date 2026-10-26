@@ -13,7 +13,7 @@
   const setup=document.createElement('section');setup.id='cn-view-new';setup.dataset.workspaceView='new';setup.dataset.atPanel='1';
   const intro=document.querySelector('.cn-intro'),start=document.querySelector('.cn-start');
   intro.before(setup);setup.append(intro,start,$('cn-message'));
-  intro.innerHTML='<p class="at-eyebrow">01 / REPORT SELECTION</p><h2>从可持续披露，追踪财务影响的依据。</h2><p>选择同一企业与期间的报告，定位可持续事项和财务项目。AI 寻找关联、解释与反证；程序检查引用、比较前提与计算。</p>';
+  intro.innerHTML='<p class="at-eyebrow">01 / REPORT SELECTION</p><h2>从可持续披露，追踪财务影响的依据。</h2><p>选择同一企业多个年度的报告，定位可持续事项和财务项目。AI 寻找关联、解释与反证；程序检查引用、比较前提与计算。</p>';
   const execution=document.createElement('section');execution.id='at-execution';execution.dataset.atPanel='2';execution.hidden=true;
   execution.innerHTML='<div class="at-section-head"><div><p class="at-eyebrow">02 / MULTI-AGENT COLLABORATION</p><h2>看见判断怎样形成</h2></div><button type="button" data-at-stage="3" id="at-to-insights" disabled>查看已有结果 ↗</button></div><p id="at-execution-note">尚未启动分析。角色节点与执行记录在服务端回执到达后显示。</p>';
   setup.after(execution);execution.append($('cn-stagebar'),document.querySelector('.cn-collaboration'),$('cn-task-error'));
@@ -64,12 +64,18 @@
   function search() {
     const q=$('aw-search').value.trim().toLowerCase(),run=task?.result,target=$('aw-search-results');
     if(!q || !run){target.hidden=true;target.replaceChildren();return;}
+    if(run.matter_schema_version){
+      const hits=(run.matters||[]).filter(m=>[m.name,m.identity_basis,...(run.matter_evidence||[]).filter(b=>m.evidence_ids.includes(b.evidence_id)).map(b=>b.quote),...(run.matter_assessments||[]).filter(a=>a.matter_id===m.matter_id).map(a=>a.summary)].join(' ').toLowerCase().includes(q));
+      target.hidden=false;target.innerHTML=`<p role="status">本任务保存内容中找到 ${hits.length} 项事项；未命中不代表企业未披露。</p>${hits.map(m=>`<button type="button" data-cm-select="${esc(m.matter_id)}">${esc(m.name)} ↗</button>`).join('')}`;
+      return;
+    }
     const occurrences=new Map((run.occurrences||[]).map(o=>[o.occurrence_id,o]));
     const hits=(run.checks||[]).filter(c=>[c.title,c.mapping_reason,c.explanation,...(c.members||[]).map(m=>occurrences.get(m.occurrence_id)?.context),...(run.ai_analyses||[]).filter(a=>a.check_id===c.check_id&&a.status!=='needs_refresh').map(a=>a.summary)].join(' ').toLowerCase().includes(q));
     target.hidden=false;target.innerHTML=`<p role="status">本任务已提取内容中找到 ${hits.length} 项；未命中不代表报告未披露。</p>${hits.map(c=>`<button type="button" data-search-check="${esc(c.check_id)}">${esc(c.title)} ↗</button>`).join('')}`;
   }
   root.addEventListener('click',e=>{
     const control=e.target.closest('button,a');if(!control)return;
+    if(control.dataset.cmSelect){showStage(3);$('aw-search-results').hidden=true;}
     if(control.dataset.atStage)showStage(Number(control.dataset.atStage),true);
     if(control.dataset.atView)showView(control.dataset.atView);
     if(control.dataset.openTask)openTask(control.dataset.openTask);

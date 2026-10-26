@@ -713,6 +713,14 @@ class SupabaseClient:
             payload = payload[0] if payload and isinstance(payload[0], dict) else {}
         return payload if isinstance(payload, dict) else {}
 
+    def checkpoint_public_model_usage(self, *, reservation_id: str, input_tokens: int, output_tokens: int,
+                                      daily_input_tokens: int, daily_output_tokens: int) -> dict[str, Any]:
+        payload=self._request("POST","rest/v1/rpc/checkpoint_public_model_usage",service=True,json_body={
+            "p_reservation_id":reservation_id,"p_input_tokens":int(input_tokens),"p_output_tokens":int(output_tokens),
+            "p_daily_input_tokens":int(daily_input_tokens),"p_daily_output_tokens":int(daily_output_tokens)})
+        if isinstance(payload,list):payload=payload[0] if payload else {}
+        return payload if isinstance(payload,dict) else {}
+
     def settle_public_model_usage(
         self,
         *,

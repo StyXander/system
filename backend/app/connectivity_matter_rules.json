@@ -1,0 +1,198 @@
+{
+  "version": "matter_rules_20261026.1",
+  "rules": [
+    {
+      "rule_id": "MAT-EST-01",
+      "name": "气候风险与估计假设",
+      "terms": [
+        "气候",
+        "减值",
+        "现金流预测",
+        "资产组"
+      ],
+      "candidate_path": [
+        "经营风险",
+        "现金流假设",
+        "可收回金额"
+      ],
+      "financial_statement_candidates": [
+        "固定资产减值",
+        "商誉减值"
+      ],
+      "prerequisite_conditions": [
+        "同一资产或资产组",
+        "具体预测和敏感性披露"
+      ],
+      "exclusion_rules": [
+        "一般减值政策不证明气候已纳入估值",
+        "无单列金额不等于无财务影响"
+      ],
+      "source": {
+        "publisher": "IFRS Foundation",
+        "title": "Effects of climate-related matters on financial statements",
+        "version": "Republished July 2023",
+        "url": "https://www.ifrs.org/content/dam/ifrs/supporting-implementation/documents/effects-of-climate-related-matters-on-financial-statements.pdf",
+        "framework": "IFRS教育材料；只作比较与调查方向，不自动适用中国会计准则",
+        "verified_at": "2026-10-26",
+        "status": "primary_document_checked",
+        "locator": "PDF第2—3页的估计不确定性与资产减值示例"
+      },
+      "boundary": "候选调查模板，不证明企业事实，也不放行正式计算"
+    },
+    {
+      "rule_id": "MAT-LIFE-01",
+      "name": "转型与使用寿命",
+      "terms": [
+        "转型",
+        "寿命",
+        "残值",
+        "折旧"
+      ],
+      "candidate_path": [
+        "替代或退出计划",
+        "预计使用期限",
+        "折旧和残值"
+      ],
+      "financial_statement_candidates": [
+        "固定资产",
+        "折旧摊销"
+      ],
+      "prerequisite_conditions": [
+        "具体资产身份",
+        "已披露的寿命或残值判断"
+      ],
+      "exclusion_rules": [
+        "计划淘汰不等于本期已变更折旧估计"
+      ],
+      "source": {
+        "publisher": "IFRS Foundation",
+        "title": "Effects of climate-related matters on financial statements",
+        "version": "Republished July 2023",
+        "url": "https://www.ifrs.org/content/dam/ifrs/supporting-implementation/documents/effects-of-climate-related-matters-on-financial-statements.pdf",
+        "framework": "IFRS教育材料；只作比较与调查方向，不自动适用中国会计准则",
+        "verified_at": "2026-10-26",
+        "status": "primary_document_checked",
+        "locator": "PDF第3页固定资产与无形资产示例"
+      },
+      "boundary": "候选调查模板，不证明企业事实，也不放行正式计算"
+    },
+    {
+      "rule_id": "MAT-OBL-01",
+      "name": "治理行动与义务",
+      "terms": [
+        "治理",
+        "预计负债",
+        "恢复",
+        "退役"
+      ],
+      "candidate_path": [
+        "治理或退役事项",
+        "义务和计量条件",
+        "负债或支出"
+      ],
+      "financial_statement_candidates": [
+        "预计负债",
+        "环境治理支出"
+      ],
+      "prerequisite_conditions": [
+        "适用会计框架",
+        "义务来源和估计依据"
+      ],
+      "exclusion_rules": [
+        "公开承诺不自动满足负债确认条件"
+      ],
+      "source": {
+        "publisher": "IFRS Foundation",
+        "title": "Effects of climate-related matters on financial statements",
+        "version": "Republished July 2023",
+        "url": "https://www.ifrs.org/content/dam/ifrs/supporting-implementation/documents/effects-of-climate-related-matters-on-financial-statements.pdf",
+        "framework": "IFRS教育材料；只作比较与调查方向，不自动适用中国会计准则",
+        "verified_at": "2026-10-26",
+        "status": "primary_document_checked",
+        "locator": "PDF第4页准备及或有事项示例"
+      },
+      "boundary": "候选调查模板，不证明企业事实，也不放行正式计算"
+    },
+    {
+      "rule_id": "MAT-TIME-01",
+      "name": "转型计划与跨期财务后果",
+      "terms": [
+        "改造",
+        "投入",
+        "转固",
+        "资本开支"
+      ],
+      "candidate_path": [
+        "计划",
+        "实施资源",
+        "运营或估计变化",
+        "当期与预期财务后果"
+      ],
+      "financial_statement_candidates": [
+        "在建工程",
+        "固定资产",
+        "营业成本",
+        "现金流"
+      ],
+      "prerequisite_conditions": [
+        "事项身份跨年连续",
+        "披露期和发生期分列",
+        "区分流量存量与转固"
+      ],
+      "exclusion_rules": [
+        "资本开支、在建余额、转固和现金流不得直接相加",
+        "投运不证明绩效达成"
+      ],
+      "source": {
+        "publisher": "财政部等十部门",
+        "title": "企业可持续披露准则第1号——气候（试行）",
+        "version": "财会〔2025〕34号",
+        "url": "https://kjs.mof.gov.cn/zhengcefabu/202512/t20251225_3980202.htm",
+        "framework": "适用范围与企业采纳情况须另核；通知明确在实施范围及要求规定前自愿实施",
+        "verified_at": "2026-10-26",
+        "status": "primary_document_checked",
+        "locator": "第十二至十三条；候选机制由本系统编制"
+      },
+      "boundary": "候选调查模板，不证明企业事实，也不放行正式计算"
+    },
+    {
+      "rule_id": "MAT-TARGET-01",
+      "name": "目标进展与期望差距",
+      "terms": [
+        "目标",
+        "承诺",
+        "基准年",
+        "修订",
+        "进展"
+      ],
+      "candidate_path": [
+        "原始目标",
+        "修订目标",
+        "行动",
+        "绩效证据"
+      ],
+      "financial_statement_candidates": [],
+      "prerequisite_conditions": [
+        "基期、目标期、指标和范围可定位",
+        "原目标与新目标均保留"
+      ],
+      "exclusion_rules": [
+        "未到期不判目标失败",
+        "投入金额不代替减排绩效",
+        "修订基准和统计范围后不得机械计算完成率"
+      ],
+      "source": {
+        "publisher": "财政部等十部门",
+        "title": "企业可持续披露准则第1号——气候（试行）",
+        "version": "财会〔2025〕34号",
+        "url": "https://kjs.mof.gov.cn/zhengcefabu/202512/t20251225_3980202.htm",
+        "framework": "适用范围与企业采纳情况须另核；通知明确在实施范围及要求规定前自愿实施",
+        "verified_at": "2026-10-26",
+        "status": "primary_document_checked",
+        "locator": "第四十二至四十六条；系统不据此自动判断违规"
+      },
+      "boundary": "候选调查模板，不证明企业事实，也不放行正式计算"
+    }
+  ],
+  "draft_boundary": "2026年9月气候应用及行业指南仍为征求意见稿；本版不将其作为生效义务。"
+}

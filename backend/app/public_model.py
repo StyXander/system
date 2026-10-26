@@ -153,6 +153,8 @@ class PublicModelLedger:
                 );
                 """
             )
+            if "last_activity_at" not in {row[1] for row in connection.execute("pragma table_info(model_usage)")}:
+                connection.execute("alter table model_usage add column last_activity_at real")
 
     def _prune(self, connection: sqlite3.Connection, now: float) -> None:
         connection.execute(
@@ -180,9 +182,10 @@ class PublicModelLedger:
         ip_hash = self.hash_client(client_id)
         reservation_id = secrets.token_urlsafe(18)
         with self._lock, self._connect() as connection:
+            connection.execute("begin immediate")
             self._prune(connection, now)
             connection.execute(
-                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
+                "update model_usage set released=case when input_tokens=0 and output_tokens=0 then 1 else 0 end,settled=1 where settled=0 and released=0 and coalesce(last_activity_at,reserved_at) < ?",
                 (now - self.config.reservation_ttl_seconds,),
             )
             recent_ip = connection.execute(
@@ -194,7 +197,7 @@ class PublicModelLedger:
                 (now - self.config.window_seconds,),
             ).fetchone()[0]
             active = connection.execute(
-                "select count(*) from model_usage where settled=0 and released=0 and reserved_at >= ?",
+                "select count(*) from model_usage where settled=0 and released=0 and coalesce(last_activity_at,reserved_at) >= ?",
                 (now - self.config.reservation_ttl_seconds,),
             ).fetchone()[0]
             day_runs = connection.execute(
@@ -229,13 +232,14 @@ class PublicModelLedger:
         ip_hash = self.hash_client(f"server-prewarm:{batch_id}")
         reservation_id = secrets.token_urlsafe(18)
         with self._lock, self._connect() as connection:
+            connection.execute("begin immediate")
             self._prune(connection, now)
             connection.execute(
-                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
+                "update model_usage set released=case when input_tokens=0 and output_tokens=0 then 1 else 0 end,settled=1 where settled=0 and released=0 and coalesce(last_activity_at,reserved_at) < ?",
                 (now - self.config.reservation_ttl_seconds,),
             )
             active = connection.execute(
-                "select count(*) from model_usage where settled=0 and released=0 and reserved_at >= ?",
+                "select count(*) from model_usage where settled=0 and released=0 and coalesce(last_activity_at,reserved_at) >= ?",
                 (now - self.config.reservation_ttl_seconds,),
             ).fetchone()[0]
             day_runs = connection.execute(
@@ -260,9 +264,23 @@ class PublicModelLedger:
         if used[0] >= self.config.daily_input_tokens or used[1] >= self.config.daily_output_tokens:
             raise PublicModelQuotaError('今日 token 预算已用完。')
 
+    def checkpoint_usage(self, reservation_id: str, *, input_tokens: int, output_tokens: int) -> None:
+        """为本运行的已用量与在途上界原子占额，租约保持活动。"""
+        with self._lock, self._connect() as connection:
+            connection.execute("begin immediate")
+            row=connection.execute("select input_tokens,output_tokens from model_usage where reservation_id=? and released=0 and settled=0",(reservation_id,)).fetchone()
+            if row is None:raise PublicModelQuotaError("额度租约失效，停止发送新请求")
+            used=connection.execute("select coalesce(sum(input_tokens),0),coalesce(sum(output_tokens),0) from model_usage where reserved_at>=? and released=0",(self._day_start(),)).fetchone()
+            new_input,new_output=max(0,int(input_tokens)),max(0,int(output_tokens))
+            if used[0]-row[0]+new_input>self.config.daily_input_tokens or used[1]-row[1]+new_output>self.config.daily_output_tokens:
+                raise PublicModelQuotaError("后续调用的预留 token 将超出今日预算，已停止发送")
+            connection.execute("update model_usage set input_tokens=?,output_tokens=?,last_activity_at=? where reservation_id=?",(new_input,new_output,time.time(),reservation_id))
+            connection.commit()
+
     def settle(self, reservation_id: str, *, input_tokens: int = 0, output_tokens: int = 0) -> None:
         exceeded = ''
         with self._lock, self._connect() as connection:
+            connection.execute("begin immediate")
             row = connection.execute(
                 "select input_tokens,output_tokens from model_usage where reservation_id=? and released=0",
                 (reservation_id,),
@@ -300,7 +318,7 @@ class PublicModelLedger:
         with self._lock, self._connect() as connection:
             self._prune(connection, now)
             connection.execute(
-                "update model_usage set released=1,settled=1 where settled=0 and released=0 and reserved_at < ?",
+                "update model_usage set released=case when input_tokens=0 and output_tokens=0 then 1 else 0 end,settled=1 where settled=0 and released=0 and coalesce(last_activity_at,reserved_at) < ?",
                 (now - self.config.reservation_ttl_seconds,),
             )
             global_count = connection.execute(
@@ -312,7 +330,7 @@ class PublicModelLedger:
                 (self._day_start(),),
             ).fetchone()[0]
             active = connection.execute(
-                "select count(*) from model_usage where settled=0 and released=0 and reserved_at >= ?",
+                "select count(*) from model_usage where settled=0 and released=0 and coalesce(last_activity_at,reserved_at) >= ?",
                 (now - self.config.reservation_ttl_seconds,),
             ).fetchone()[0]
             return {
@@ -429,6 +447,12 @@ class SupabasePublicModelLedger:
 
     def reserve_batch(self, batch_id: str) -> str:
         return self._reserve(f"server-prewarm:{batch_id}", batch=True)
+
+    def checkpoint_usage(self, reservation_id: str, *, input_tokens: int, output_tokens: int) -> None:
+        result=self.client.checkpoint_public_model_usage(reservation_id=reservation_id,
+            input_tokens=max(0,int(input_tokens)),output_tokens=max(0,int(output_tokens)),
+            daily_input_tokens=self.config.daily_input_tokens,daily_output_tokens=self.config.daily_output_tokens)
+        if not bool(result.get("ok")):raise self._quota_error(result)
 
     def settle(self, reservation_id: str, *, input_tokens: int = 0, output_tokens: int = 0) -> None:
         result = self.client.settle_public_model_usage(

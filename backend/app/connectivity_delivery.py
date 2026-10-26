@@ -109,6 +109,9 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
     # 只更新展示计数定义，不重写历史计算或模型意见。
     run = run.model_copy(update={'overview': build_overview(run)})
     notice = notice_for(run.task_kind)
+    if run.matter_schema_version and format_name != "json":
+        from .connectivity_matter_delivery import export_matter_run
+        return export_matter_run(run, format_name)
     if format_name == "json":
         body = run.model_dump(mode="json")
         body["ai_generated_content_notice"] = notice

@@ -24,6 +24,8 @@ TOOL_NAMES = (
     "recompute_decimal",
     "lookup_annual_comparison",
     "lookup_peer_sample",
+    "search_matter_reports",
+    "locate_matter_numbers",
 )
 
 
@@ -74,7 +76,7 @@ def _validate_common(run, arguments: dict) -> tuple[None, None] | tuple[str, str
     return None, None
 
 
-def execute_tool(root, run, request: ToolRequest) -> dict:
+def execute_tool(root, run, request: ToolRequest, *, corpus=None) -> dict:
     """执行白名单工具并返回统一回执；未知工具直接拒绝。"""
     started = time.perf_counter()
     receipt = {"tool_name": request.tool_name, "args_hash": request.validated_args_hash(),
@@ -84,6 +86,53 @@ def execute_tool(root, run, request: ToolRequest) -> dict:
         receipt["reason"] = f"工具不在白名单：{request.tool_name}"
         return receipt
     args = request.arguments
+    if getattr(run,"matter_schema_version", "") and request.tool_name == "locate_matter_numbers":
+        doc = _find_document(run, args.get("document_id"))
+        pages = args.get("pages") or []
+        if doc is None or not isinstance(pages,list) or any(type(p) is not int or p<1 for p in pages):
+            receipt["reason"]="须选择登记文档及有效PDF页码"
+            return _finish(receipt,started)
+        from .connectivity_extraction import extract_document
+        rows,coverage,exclusions=extract_document(root,doc,["research","environment","intensity"])
+        selected=[r for r in rows if not pages or r.pdf_page in pages]
+        result={"occurrences":[r.model_dump() for r in selected[:80]],"total_matches":len(selected),
+                "truncated":len(selected)>80,"coverage":coverage.model_dump(),
+                "notice":"定位数值不是可比性确认；未取得数值不等于没有金额披露"}
+        receipt.update(status="hit" if selected else "no_match",result=result,source_hash=doc.file_sha256,
+                       output_digest=_digest(json.dumps(result,ensure_ascii=False)))
+        return _finish(receipt,started)
+    if getattr(run,"matter_schema_version", "") and request.tool_name == "recompute_decimal":
+        from .connectivity_matter_schemas import MatterReconciliation
+        from .connectivity_matter_revision import reconcile_matter
+        try:
+            from .connectivity_extraction import ensure_source
+            for doc in run.documents:ensure_source(root,doc)
+            result=reconcile_matter(run,MatterReconciliation.model_validate(args.get("plan",{})))
+        except (ValueError, OSError) as error:
+            receipt["reason"]=str(error)[:350]
+            return _finish(receipt,started)
+        receipt.update(status="hit",result=result,output_digest=_digest(json.dumps(result,ensure_ascii=False)))
+        return _finish(receipt,started)
+    if request.tool_name == "search_matter_reports":
+        from .connectivity_matter_extraction import read_corpus, search_corpus
+        query = str(args.get("query") or "").strip()
+        ids = args.get("document_ids") or []
+        if not query or len(query) > 300 or not isinstance(ids, list) or not set(ids) <= {d.document_id for d in run.documents}:
+            receipt["reason"] = "查询或登记文档范围无效"
+            return _finish(receipt, started)
+        # 仍验证实际字节，不能以已缓存证据绕过原件换版。
+        from .connectivity_extraction import ensure_source
+        for doc in run.documents:
+            if not ids or doc.document_id in ids:
+                ensure_source(root, doc)
+        if corpus is None:
+            corpus, _ = read_corpus(root, run.documents)
+        result = search_corpus(corpus, query, document_ids=ids, report_type=args.get("report_type"),
+            periods=args.get("periods"), limit=max(1, min(12, int(args.get("limit", 8)))))
+        receipt.update(status="hit" if result["evidence"] else "no_match", result=result,
+            output_digest=_digest(json.dumps(result, ensure_ascii=False)),
+            source_hash=_digest("|".join(d.file_sha256 for d in run.documents)))
+        return _finish(receipt, started)
     error = None
     if request.tool_name in {"search_registered_reports", "open_source_page"}:
         error, reason = _validate_common(run, args)
@@ -101,7 +150,13 @@ def execute_tool(root, run, request: ToolRequest) -> dict:
     if request.tool_name == "search_registered_reports":
         return _search_registered_reports(root, run, args, receipt, started)
     if request.tool_name == "open_source_page":
-        return _open_source_page(root, run, args, receipt, started)
+        receipt=_open_source_page(root, run, args, receipt, started)
+        if getattr(run,"matter_schema_version", "") and receipt["status"]=="hit":
+            from .connectivity_matter_extraction import read_corpus
+            if corpus is None:corpus,_=read_corpus(root,[_find_document(run,args.get("document_id"))])
+            receipt["result"]["evidence"]=[e.model_dump() for e in corpus if e.document_id==args["document_id"] and e.pdf_page==int(args["page"])]
+            receipt["output_digest"]=_digest(json.dumps(receipt["result"],ensure_ascii=False))
+        return receipt
     if request.tool_name == "lookup_ontology_rule":
         return _lookup_ontology_rule(args, receipt, started)
     if request.tool_name == "recompute_decimal":

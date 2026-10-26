@@ -1,5 +1,9 @@
 # 测试清单
 
+2026年10月26日事项升级的本次实测见 `docs/matter-upgrade/release_facts.json`。新增事项、跨期、来源失效、额度与恢复测试位于 `test_matter_connectivity.py` 和 `test_connectivity_quota_accounting.py`；浏览器通过真实本地API与合成PDF运行。以下原统计保留为历史记录。
+
+## 2026年9月历史统计
+
 - 测试文件数：48
 - 测试项数：509（2026-09-15 实测 508 passed / 1 skipped；跳过项为内部签字原件不随交付包分发）
 - 需要外网的测试文件数：10

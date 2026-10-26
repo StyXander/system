@@ -13,7 +13,7 @@ def test_main_page_has_no_legacy_workspace():
     page = (Path(__file__).resolve().parents[2] / 'index.html').read_text(encoding='utf-8')
     assert 'id="legacy-workspace"' not in page
     assert 'demo-app.js' not in page
-    assert '多智能体智能审计（推荐）' in page
+    assert '可持续事项调查 · 五Agent（推荐）' in page
 
 
 def test_new_entry_keeps_proxy_configuration_fail_closed(monkeypatch):
@@ -61,4 +61,4 @@ print(json.dumps({{'entry':health['deployment']['entry'],'release':health['deplo
         result = subprocess.run([sys.executable, '-c', code], cwd=root, env=env,
                                 capture_output=True, text=True, timeout=90)
         assert result.returncode == 0, result.stdout + result.stderr
-        assert json.loads(result.stdout)['release'] == '2026.10.23.enterprise.1'
+        assert json.loads(result.stdout)['release'] == '2026.10.26.matter.1'

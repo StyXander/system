@@ -58,6 +58,10 @@ def lookup_rule(keyword: str) -> list[dict]:
     for concept, aliases in domain.items():
         if body == concept or body in aliases:
             hits.append({"kind": "concept", "concept": concept, "aliases": aliases})
+    # 事项规则保留适用框架和原文定位，不将IFRS示例包装为中国企业会计结论。
+    for rule in matter_rules():
+        if body in rule["rule_id"] or body in rule["name"] or any(body in term or term in body for term in rule["terms"]):
+            hits.append({"kind":"matter_template",**rule})
     return hits
 
 
@@ -160,3 +164,9 @@ def evaluate_mapping(claim: dict, node: dict, *, relation_kind: str,
             "supporting_factors": supporting or ["未发现支持性原文；保留候选。"],
             "exclusion_factors": [],
             "explanation": "未命中禁止等价与排除条件。"}
+
+
+@lru_cache(maxsize=1)
+def matter_rules() -> list[dict]:
+    path=Path(__file__).with_name("connectivity_matter_rules.json")
+    return json.loads(path.read_text(encoding="utf-8"))["rules"]

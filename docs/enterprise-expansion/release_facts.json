@@ -108,5 +108,7 @@
   "production_application_commit": "7eb8c6235bba552ff6328eec048b7972d0708a8e",
   "production_browser_verified": true,
   "deployment_verification": "see separate deployment-observation.json and evidence/production-browser.json",
-  "synthetic_tests_are_business_evidence": false
+  "synthetic_tests_are_business_evidence": false,
+  "historical_scope_note": "本记录保留原日期与实验口径，不作为2026年10月26日五Agent效果证明",
+  "current_matter_scope_facts": "docs/matter-upgrade/release_facts.json"
 }

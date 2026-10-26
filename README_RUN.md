@@ -1,39 +1,66 @@
-# 审迹智链 AuditTrace
+# 审迹智链运行与发布说明
 
-证据驱动的跨报告自主核验智能体系统。输入为已登记的上市公司年报与可持续发展报告，默认多智能体模式。
+本说明适用于 `2026.10.26.matter.1` 候选版本。程序入口为 `backend.app.connectivity_app:app`，根页面为 `index.html`。当前版本尚未取得生产迁移、真实五Agent及人工专业评价的验收证据。
 
-## 启动
+## 环境与启动
 
-```powershell
+```bash
 pip install -r requirements-dev.txt
 python -m backend.app.connectivity_bootstrap --allow-missing-sources
 python -m uvicorn backend.app.connectivity_app:app --host 127.0.0.1 --port 8877
 ```
 
-服务入口为根目录index.html；业务API仅公开/api/connectivity与/api/health。模型密钥放在未入库的.env中；默认模式three_agents，必须以provider_calls判断实际调用，配置存在不等于模型成功。生产沿用原有Supabase任务与额度台账，不能静默改成本地台账。
+复制 `.env.example` 后仅在服务端填写配置。五Agent只向 `api.deepseek.com` 发送已登记报告上下文；密钥不进入浏览器、Git或调用记录。模型名称与接口配置由操作方核实，不把配置存在当作真实调用成功。
 
-## 核验机制
+本机可明确选择 `AUDITTRACE_DEMO_TASK_PERSISTENCE=local`。生产沿用Supabase任务、公开目录和额度台账；远端不可用时不得静默改用本地写入。旧主模块仍提供额度、登录、安全响应头和导出依赖，不能整目录删除。
 
-A1发现关系并申请取证，A2质疑可比性并查找反证，A3综合证据和程序复算后形成意见。各角色可以提交本报告内的检索请求；每次最多4项，重复查询不再执行，只有取得新原文才触发一次反馈调查。全运行最多20次模型请求（含修复与意见补全）。正式数值由Decimal引擎计算，反事实结果只存于closure，不回写正式结论。
+## 多年资料与运行合同
 
-程序核验为离线/测试模式，单模型为实验基线。模型失败时保留程序结果并显示AI分析未完成；离线、历史和真实模型运行分别留痕。协作视图显示真实回执，不模拟推理进度。
+`POST /api/connectivity/report-sets` 接收已登记 `document_ids` 与 `as_of_date`，返回不可变集合。`GET /api/connectivity/report-sets` 返回集合及登记文档。不同企业、同年同类型的多个版本、无指纹或晚于观察时点的资料均拒绝。
 
-新增 `adaptive_agents` 为可选实验模式：共享补证动作池驱动白名单工具，竞争解释进入同一假设账本，最终排序与实际回执同时保存。未配置模型时明确降级；实际请求、token和模型解释不冒充程序事实。原有三种模式继续保留。
+`POST /api/connectivity/catalog/report-set-imports` 接收证券代码、至多5个年度及已确认企业身份标志。它沿用原接入权限、同源限制、来源核验和异步任务。官方查询不完整会停止，不选择任意首个候选。允许某年度只准备一类报告，缺口单列。
 
-财务图谱默认展示最多12个节点，支持完整图谱、年度和证据状态筛选。读取结果和导出时重新核验两端原件身份，来源失效时保留历史并禁用金额情景。情景单价和实现比例使用同一后端十进制公式，导出通过 `scenario_price` 与 `scenario_usage` 携带相同参数；调整假设不会改写已保存的企业原值。
-
-跨年和同业比较须具备主体、期间、范围、定义、分母及原件身份。登记覆盖矩阵不代表数值已经可比，缺少资格时不生成同比或排名。B组实验脚本默认不调用模型；真实运行必须显式使用 `--allow-models` 并确认预算，未执行的条件保留 `not_run`。
-
-## 验收与边界
-
-```powershell
-python -m pytest backend/tests -q
-python scripts/check_chinese_comments.py
-python scripts/run_closure_experiment.py
+```json
+{
+  "report_set_id": "由登记接口返回的集合ID",
+  "mode": "five_agents",
+  "analysis_scope": "matter_connectivity",
+  "matter_types": ["climate_risk", "transition_project", "commitment", "resource_efficiency", "other"],
+  "budget": {"max_provider_calls":20,"max_parallel_calls":2,"max_matters":3,"max_role_rounds":2}
+}
 ```
 
-真实模型对照脚本为scripts/run_final_comparison.py，需要具备合法的资料外发授权及供应商配置。预算仍受每日额度台账约束。独立人工金标准、准确率、节时和商业采用效果不能由工程测试推断。
+旧请求仍用 `pair_id`，缺省模式继续是原三角色。事项范围内的 `single_model` 与 `three_agents` 是显式对照，不剥夺它们的检索工具。`adaptive_agents` 保持原实验流程，不与多年事项合同混用。
 
-旧主模块仍因额度、安全头及导出公共依赖保留；旧页面和旧业务API已退出正式发布入口，物理去旧尚未全部完成。删除明细和恢复包见本轮交付目录。禁止把保留的历史实验当作新系统验收。
+`GET /runs/{task_id}/matters` 及其事项详情接口读取同一保存结果。归并、拆分、采用和驳回写入 `matter-revisions` 子版本，要求输入版本、动作编号和理由。一个父版本只接受一个直接子修订；继续修改必须读取子版本。新事项任务只允许创建会话读取，历史旧公开链接策略不变。
 
-AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。
+## 检索与扫描页
+
+默认进行中文双字词项BM25、别名扩展和过滤，记录零命中及覆盖。设置 `CONNECTIVITY_MATTER_EMBEDDING_MODEL` 可加载指定本地sentence-transformers模型并融合排序；需单独安装对应依赖与模型文件，不会自动下载或向其他供应商发送资料。当前未进行真实语义模型质量验证。
+
+扫描页设置 `CONNECTIVITY_MATTER_OCR=true` 后，服务器须具备Tesseract及 `chi_sim`、`eng` 语言包。OCR不可用或未启用时记录未解析页。跨页段落分成各自带页码的证据，以相邻证据编号关联，不拼造单页引文。
+
+## 数据库迁移与额度
+
+Render配置默认关闭新事项入口，待迁移与真实验收后显式启用。生产启用新模型流程前，在既有schema上执行 `supabase/connectivity_matter_migration.sql`，并确认既有 `connectivity_revision_migration.sql` 或等效幂等约束已应用。新部署从完整 `supabase/schema.sql` 初始化。迁移复用原表，增加活动时间和逐请求占额RPC，不删除业务数据。数据库函数仅向service_role开放。
+
+每次供应商发送前，原子记录本运行已知用量与在途上界；响应后更新实际usage。未知usage保留为空，上界只用于额度占用。过期租约有非零用量时保留记账，不按零消费释放。取消后不继续发送，已在途请求等待回执及结算。检查点保留调用和事项对象，重启后显示中断，显式重试才继续。
+
+该迁移已经过SQL解析检查及本地账本多实例测试，尚未在真实Supabase实例执行。生产必须验证两个实例同时占额、超限拒绝、崩溃后费用不丢、修订并发和租约失效；当前不能据本地测试宣布生产通过。
+
+## 对照与消融
+
+```bash
+# 默认只做离线程序检查。不会自行覆盖生产持久化设置。
+python scripts/run_final_comparison.py --report-set 实际集合ID --as-of 2026-10-26
+# 有配置和授权后执行同资料对照，全部请求受原额度台账控制。
+python scripts/run_final_comparison.py --report-set 实际集合ID --as-of 2026-10-26 --allow-models --ablations
+```
+
+仅需独立本地实验账本时显式添加 `--local`。脚本记录单模型、事项三角色、五角色及移除跨期/反证角色的消融，保存回执、token、耗时、失败及检查点。未配置有效计价时费用保持空值，人工评分未做时专业指标保持未评价。默认运行不自动宣称对照或消融已经执行。
+
+## 发布与回退
+
+先部署到测试环境，检查 `/api/health` 的实际提交、版本、模型配置性质，再验证一条新建路径和一条历史回查路径。核对同一事项的页面、原文及JSON/CSV/Word导出。启用真实流量前补齐真实报告、真实供应商及专业评价证据。
+
+`CONNECTIVITY_MATTER_ENABLED=false` 会关闭新事项运行，默认选择退回原三角色，仍允许读取历史事项结果。它不会把五Agent请求暗换为旧流程。也可回退到本轮基线提交 `6dd5fb26599105946bac1b5c4f6e8759fea5a571`。新增列和RPC可以保留，旧入口不依赖它们；历史数据不因回退而删除。
