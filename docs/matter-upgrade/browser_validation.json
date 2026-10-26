@@ -24,7 +24,8 @@
     }
   ],
   "errors": [],
-  "task_id": "CONNJOB-EE3C847CBA87",
+  "late_script_initialization": "passed",
+  "task_id": "CONNJOB-BAE36A338F80",
   "provider_records": 16,
   "status": "passed"
 }

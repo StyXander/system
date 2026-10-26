@@ -79,6 +79,17 @@ def main():
                 overflow=page.evaluate('document.documentElement.scrollWidth>innerWidth+1')
                 assert not overflow,f'{width}有横向溢出'
                 result['viewports'].append({'width':width,'overflow':overflow,'result_visible':page.locator('#cn-matter-results').is_visible()})
+            late=browser.new_page(viewport={'width':1440,'height':1000})
+            late.route('**/connectivity-matters.js*',lambda route:route.abort())
+            late.goto(f'http://127.0.0.1:{port}/',wait_until='networkidle')
+            late.unroute('**/connectivity-matters.js*')
+            late.add_script_tag(url=f'http://127.0.0.1:{port}/assets/official-v4/connectivity-matters.js')
+            late.wait_for_selector('#cm-documents input',state='attached')
+            assert late.locator('.cm-setup').count()==1
+            late.add_script_tag(url=f'http://127.0.0.1:{port}/assets/official-v4/connectivity-matters.js')
+            assert late.locator('.cm-setup').count()==1
+            result['late_script_initialization']='passed'
+            late.close()
             page.set_viewport_size({'width':1440,'height':1000})
             page.locator('[data-at-stage="3"]').first.click()
             page.screenshot(path=str(output/'result-top.png'),full_page=False)

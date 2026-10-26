@@ -24,7 +24,7 @@
     },
     {
       "path": "assets/official-v4/connectivity-matters.js",
-      "sha256": "e334bc55efc8122b1dbe6f994dabfff312832adb1d5934e428a5a530a9839471"
+      "sha256": "c24cb8c76921b23d528eb526a5140b0374705a1c167c8e79d0cabea75c48c720"
     },
     {
       "path": "assets/official-v4/connectivity-shell.js",
@@ -176,7 +176,7 @@
     },
     {
       "path": "docs/matter-upgrade/browser_validation.json",
-      "sha256": "0b0141902d2809567603d2098b244b4cf78af0f1382c56b98e31036151995921"
+      "sha256": "5dbf004f62b82992a0451a539313879ff07a2a84b9bc3d54c7e4a01f02b92b67"
     },
     {
       "path": "docs/matter-upgrade/feature_gap_matrix.md",
@@ -188,11 +188,11 @@
     },
     {
       "path": "docs/matter-upgrade/release_facts.json",
-      "sha256": "5df77c4f383dd2167f7e507d6dfc5473c3368f65f42ddfe37925f1c285d1c83d"
+      "sha256": "ec0dc4f41077f6de033ecae41cc16af75ae8e088dac657ae149ccf994e1f5629"
     },
     {
       "path": "index.html",
-      "sha256": "f7dc73cc9d32b9fdc29704cc2cdf5e7b2a7d520574e76abdce06bd8518eb14c6"
+      "sha256": "7302e3fd14d2dd6c52be910e026848ddeed56dbb0238c1d3ced81cfe6fe64171"
     },
     {
       "path": "render.yaml",
@@ -204,7 +204,7 @@
     },
     {
       "path": "scripts/verify_matter_browser.py",
-      "sha256": "7370842c45bba4af9234aa1f22f56902ea894382e3b90ccdb14bbd7d7ac8fe32"
+      "sha256": "ddb6512fc03eb702308af9f46d683ad04574f561d7faa9a20d8cf2465576f76b"
     },
     {
       "path": "supabase/connectivity_matter_migration.sql",

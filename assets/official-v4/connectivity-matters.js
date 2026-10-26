@@ -96,6 +96,7 @@
   }
   function activateLegacy(){document.body.classList.remove('cm-active');['cn-matter-results','cn-matter-evidence'].forEach(id=>{if($(id))$(id).hidden=true;});document.querySelectorAll('.cn-overview').forEach(n=>n.hidden=false);if($('cn-all-relations'))$('cn-all-relations').hidden=false;}
   function init(){
+    if(document.querySelector('.cm-setup'))return;
     const setup=document.createElement('details');setup.className='cm-setup';setup.open=true;
     setup.innerHTML=`<summary>事项调查与多年资料范围</summary><label><input id="cm-matter-scope" type="checkbox" checked>按可持续事项调查财务影响与跨期进展</label><p>同一企业可选多个年度，允许缺年或只有一类报告。每年同类型请选择一个版本。</p><fieldset id="cm-matter-types"><legend>调查事项</legend><label><input type="checkbox" name="matter_type" value="climate_risk" checked>气候风险与会计估计</label><label><input type="checkbox" name="matter_type" value="transition_project" checked>绿色改造与转型项目</label><label><input type="checkbox" name="matter_type" value="commitment" checked>目标与跨年承诺</label><label><input type="checkbox" name="matter_type" value="resource_efficiency" checked>资源效率与绩效</label><label><input type="checkbox" name="matter_type" value="other" checked>其他财务线索</label></fieldset><label>观察截至日期<input id="cm-as-of" type="date" value="${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'})}"></label><div id="cm-documents" class="cm-document-choices"></div><button type="button" id="cm-refresh-docs">刷新登记资料</button><details><summary>接入尚未登记的年度报告</summary><label>证券代码<input id="cm-import-ticker" pattern="[0-9]{6}" maxlength="6"></label><label>年度 用逗号分隔<input id="cm-import-years" placeholder="2023,2024,2025"></label><label><input id="cm-import-confirm" type="checkbox">已确认企业身份</label><button type="button" id="cm-import-start">准备多年资料</button><p id="cm-import-message" role="status"></p></details>`;
     $('cn-form').after(setup);$('cm-refresh-docs').addEventListener('click',()=>loadDocuments().catch(e=>{$('cm-documents').textContent=e.message;}));
@@ -118,6 +119,9 @@
     $('cm-import-start').addEventListener('click',async()=>{const message=$('cm-import-message');try{const job=await api('/catalog/report-set-imports',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({ticker:$('cm-import-ticker').value,years:$('cm-import-years').value.split(/[,，]/).map(v=>Number(v.trim())).filter(Boolean),confirmed_identity:$('cm-import-confirm').checked})});message.textContent='资料准备任务 '+job.task_id;const poll=async()=>{try{const value=await api('/catalog/imports/'+encodeURIComponent(job.task_id));message.textContent=value.status+' · '+(value.error||JSON.stringify(value.result?.import_progress||{}));if(['queued','running'].includes(value.status))setTimeout(poll,2000);else loadDocuments().catch(()=>{});}catch(error){message.textContent=error.message;}};poll();}catch(error){message.textContent=error.message;}});
     loadDocuments().catch(e=>{$('cm-documents').textContent=e.message;});
   }
-  if(typeof document!=='undefined')document.addEventListener('DOMContentLoaded',init);
+  if(typeof document!=='undefined'){
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+    else init();
+  }
   return{project,render,prepareRequest,activateLegacy,labels};
 });

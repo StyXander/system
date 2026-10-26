@@ -105,6 +105,7 @@
     "workspace": "botanical_archive_green",
     "browser_validation": "passed_1440_1024_768_390",
     "source": "1082429^:index.html home fragment; retained current matter controller",
-    "model_calls_in_visual_test": 0
+    "model_calls_in_visual_test": 0,
+    "late_script_initialization": "passed"
   }
 }
