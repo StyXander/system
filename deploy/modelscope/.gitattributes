@@ -1,2 +1,8 @@
 # 部署快照按原始字节核验，Linux 克隆时不得改写冻结证据与源码换行。
 * -text whitespace=cr-at-eol
+*.png filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+backend/cache_seed.lock.json filter=lfs diff=lfs merge=lfs -text
+backend/cache_seed.materialized.json filter=lfs diff=lfs merge=lfs -text
+backend/company_directory.snapshot.json filter=lfs diff=lfs merge=lfs -text
+backend/source_corrections_20261009.json filter=lfs diff=lfs merge=lfs -text
