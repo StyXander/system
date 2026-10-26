@@ -18,11 +18,12 @@
     "matter_schema": "matter_connectivity_v1",
     "ui_default_mode": "five_agents",
     "legacy_request_default_mode": "three_agents",
-    "render_new_matter_enabled": false,
+    "render_new_matter_enabled": true,
     "provider_calls_cap": 20,
     "parallel_requests_cap_per_run": 2,
     "process_provider_slots": 2,
-    "default_deep_matter_limit": 3
+    "default_deep_matter_limit": 3,
+    "frontend_release": "2026.10.26.green.1"
   },
   "baseline_seed": {
     "companies": 4,
@@ -65,7 +66,7 @@
     "postgres_sql_parse": {
       "schema": 159,
       "matter_migration": 9,
-      "database_execution": false
+      "database_execution": true
     }
   },
   "professional_evaluation": {
@@ -82,11 +83,11 @@
   },
   "limits": {
     "real_three_year_cases": "not_verified_official_discovery_connection_failed",
-    "provider_key": "not_configured",
-    "supabase_credentials": "not_configured",
+    "provider_key": "not_configured_locally_existing_hosted_secrets_retained",
+    "supabase_credentials": "existing_dashboard_session_migration_applied_no_secrets_in_source",
     "supabase_multi_instance_smoke": "not_run",
-    "production_migration": "not_applied",
-    "production_deployment": "not_performed",
+    "production_migration": "applied_verified_column_rpc_and_privileges",
+    "production_deployment": "publishing_authorized_by_user",
     "semantic_model": "optional_not_quality_validated",
     "ocr_real_original": "not_verified",
     "matter_reconciliation": "conditional_only_no_automatic_formal_release"
@@ -98,5 +99,12 @@
     "final_full_run": "passed",
     "code_workaround_added": false
   },
-  "notice": "工程测试不替代真实模型及专业效果评价；历史实验不转记为本次五Agent效果。"
+  "notice": "工程测试不替代真实模型及专业效果评价；历史实验不转记为本次五Agent效果。",
+  "frontend_restore": {
+    "home": "original_canvas_dual_models",
+    "workspace": "botanical_archive_green",
+    "browser_validation": "passed_1440_1024_768_390",
+    "source": "1082429^:index.html home fragment; retained current matter controller",
+    "model_calls_in_visual_test": 0
+  }
 }

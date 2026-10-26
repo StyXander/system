@@ -12,11 +12,15 @@
     },
     {
       "path": "README_RUN.md",
-      "sha256": "362bafa2c84e1ad976fd1dd63a99479634355fd5577ea3c1620dfe82e2b422eb"
+      "sha256": "e15f116d946d72c3cb84f10721a7bd5e691fddc122c7eccc7f90e37df78d195e"
+    },
+    {
+      "path": "assets/official-v4/botanical-matters.css",
+      "sha256": "4274f588345a8339ecde319066f7e5dc133173901a8e2a3a8cbf219b1822cf7c"
     },
     {
       "path": "assets/official-v4/connectivity-matters.css",
-      "sha256": "55bf6cc3679772cc821d96ab9b68a9691b7a35c795f6f679c8eca70e5d68fcd5"
+      "sha256": "8d172dab3f2292c2d7d5c9d2f1f09a228a02cc12393b8ef50dbbeaed17c8971b"
     },
     {
       "path": "assets/official-v4/connectivity-matters.js",
@@ -24,7 +28,7 @@
     },
     {
       "path": "assets/official-v4/connectivity-shell.js",
-      "sha256": "edf4bcfb032e5ec12436988ed8f8ad242df8b6c5d78eb0c83a1c84f3502d2553"
+      "sha256": "254fc78380dc3cabe300d81d7709d4dbc12995ac440a9532575f839354c836ee"
     },
     {
       "path": "assets/official-v4/connectivity.js",
@@ -36,7 +40,7 @@
     },
     {
       "path": "backend/app/connectivity_app.py",
-      "sha256": "933dfc40269da7c90b057e9f3789e174e7ac04e9431ee2f46375c54efdc26cdc"
+      "sha256": "f0f10bb497fc871c01891974439224ea91d6ff41e677257ee1dac5722b9a45dc"
     },
     {
       "path": "backend/app/connectivity_catalog.py",
@@ -151,6 +155,10 @@
       "sha256": "b9a598946fab235cd1b207b77d840797c2b88b6a19ae64551d4852744c48783a"
     },
     {
+      "path": "deploy/modelscope/app.py",
+      "sha256": "01718ff8abc7ca92df8cbbba2b83205480347ef6bd81e3e92241548b373ee829"
+    },
+    {
       "path": "docs/TEST_INVENTORY.md",
       "sha256": "37f7499c25cc89658505a30f8f6453b5af89bb43ff53880eccb1bca29a41c3d8"
     },
@@ -168,7 +176,7 @@
     },
     {
       "path": "docs/matter-upgrade/browser_validation.json",
-      "sha256": "c47243d0b4893fd58d348afc392edcbec9e07c3d1a0345756e07db27722af9bb"
+      "sha256": "0b0141902d2809567603d2098b244b4cf78af0f1382c56b98e31036151995921"
     },
     {
       "path": "docs/matter-upgrade/feature_gap_matrix.md",
@@ -180,15 +188,15 @@
     },
     {
       "path": "docs/matter-upgrade/release_facts.json",
-      "sha256": "3afae13f74460d124b27d7baccb52b4b093f31ba580db1326796c2cf556b409a"
+      "sha256": "5df77c4f383dd2167f7e507d6dfc5473c3368f65f42ddfe37925f1c285d1c83d"
     },
     {
       "path": "index.html",
-      "sha256": "5c49848b1db8dbe5ace45cb792d868823ca1d84469c1127bba369048b5a03842"
+      "sha256": "f7dc73cc9d32b9fdc29704cc2cdf5e7b2a7d520574e76abdce06bd8518eb14c6"
     },
     {
       "path": "render.yaml",
-      "sha256": "d27dcf600bd397806414b64a8c92dbf3d3b129baae3350edd09e6bc918b29896"
+      "sha256": "2152172a910327eb114aa641861f6d11b21ad01dd00eb3484b0e443b912d5957"
     },
     {
       "path": "scripts/run_final_comparison.py",
@@ -196,7 +204,7 @@
     },
     {
       "path": "scripts/verify_matter_browser.py",
-      "sha256": "2e32efac0230296d71b047bb781ddb982c3ac1c146c9a8f872d8f31ec7d35edf"
+      "sha256": "7370842c45bba4af9234aa1f22f56902ea894382e3b90ccdb14bbd7d7ac8fe32"
     },
     {
       "path": "supabase/connectivity_matter_migration.sql",

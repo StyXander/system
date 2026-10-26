@@ -24,8 +24,7 @@
     }
   ],
   "errors": [],
+  "task_id": "CONNJOB-EE3C847CBA87",
   "provider_records": 16,
-  "status": "passed",
-  "temporary_test_task_id": "CONNJOB-F26ABD94DEC7",
-  "replay": "python scripts/verify_matter_browser.py; fixture source and task are temporary, not a public historical task"
+  "status": "passed"
 }

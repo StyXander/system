@@ -51,7 +51,10 @@ def health():
     return {'service_status': 'ready', 'product': 'connectivity',
         'model_status': 'configured' if os.getenv('DEEPSEEK_API_KEY', '').strip() else 'config_missing',
         'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
-        'default_mode': 'five_agents' if matter_enabled() else 'three_agents', 'matter_schema_version': 'matter_connectivity_v1', 'project_facts': project_facts(ROOT),
+        'default_mode': 'five_agents' if matter_enabled() else 'three_agents', 'matter_schema_version': 'matter_connectivity_v1', 'frontend_release': '2026.10.26.green.1', 'project_facts': project_facts(ROOT),
         'deployment': {'commit': os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') or None,
+            'platform': os.getenv('AUDITTRACE_DEPLOYMENT_PLATFORM') or ('render' if os.getenv('RENDER_GIT_COMMIT') else 'local'),
+            'source_baseline_commit': os.getenv('AUDITTRACE_SOURCE_BASELINE_COMMIT') or None,
+            'source_snapshot_sha256': os.getenv('AUDITTRACE_SOURCE_SNAPSHOT_SHA256') or None,
             'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.26.matter.1',
             'identity_source': 'runtime_environment' if os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') else 'unverified'}}

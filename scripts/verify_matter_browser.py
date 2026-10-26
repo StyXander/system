@@ -43,12 +43,17 @@ def main():
             if server.started:break
             time.sleep(.025)
         with sync_playwright() as pw:
-            browser=pw.chromium.launch(args=['--no-sandbox'])
+            browser=pw.chromium.launch(executable_path=os.getenv('AUDITTRACE_TEST_CHROMIUM') or None,args=['--no-sandbox','--disable-dev-shm-usage'])
             page=browser.new_page(viewport={'width':1440,'height':1000})
             page.on('pageerror',lambda error:result['errors'].append(str(error)))
             page.route('**/*',lambda route:route.continue_() if route.request.url.startswith(f'http://127.0.0.1:{port}/') else route.abort())
             page.goto(f'http://127.0.0.1:{port}/',wait_until='networkidle')
+            assert page.locator('#world').is_visible()
+            page.screenshot(path=str(output/'home.png'),full_page=False)
+            assert page.locator('#connectivity-root').is_visible()
             page.locator('[data-enter-connectivity]').first.click()
+            assert page.locator('.cn-sidebar').is_visible()
+            assert page.locator('.cn-sidebar').evaluate('(el)=>getComputedStyle(el).backgroundColor')=='rgb(25, 59, 52)'
             page.wait_for_selector('#cm-documents input')
             assert page.locator('#cn-mode').input_value()=='five_agents'
             assert page.locator('#cm-documents input:checked').count()==6
