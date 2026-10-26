@@ -32,7 +32,7 @@ python -m uvicorn backend.app.connectivity_app:app --host 127.0.0.1 --port 8877
 
 旧请求仍用 `pair_id`，缺省模式继续是原三角色。事项范围内的 `single_model` 与 `three_agents` 是显式对照，不剥夺它们的检索工具。`adaptive_agents` 保持原实验流程，不与多年事项合同混用。
 
-`GET /runs/{task_id}/matters` 及其事项详情接口读取同一保存结果。归并、拆分、采用和驳回写入 `matter-revisions` 子版本，要求输入版本、动作编号和理由。一个父版本只接受一个直接子修订；继续修改必须读取子版本。新事项任务只允许创建会话读取，历史旧公开链接策略不变。
+`GET /runs/{task_id}/matters` 及其事项详情接口读取同一保存结果。归并、拆分、采用和驳回写入 `matter-revisions` 子版本，要求输入版本、动作编号和理由。一个父版本只接受一个直接子修订；继续修改必须读取子版本。个人演示模式允许在不同浏览器读取、导出和继续整理同一工作区的历史任务。
 
 ## 检索与扫描页
 
@@ -40,20 +40,20 @@ python -m uvicorn backend.app.connectivity_app:app --host 127.0.0.1 --port 8877
 
 扫描页设置 `CONNECTIVITY_MATTER_OCR=true` 后，服务器须具备Tesseract及 `chi_sim`、`eng` 语言包。OCR不可用或未启用时记录未解析页。跨页段落分成各自带页码的证据，以相邻证据编号关联，不拼造单页引文。
 
-## 数据库迁移与额度
+## 个人演示模式
 
-Render配置默认关闭新事项入口，待迁移与真实验收后显式启用。生产启用新模型流程前，在既有schema上执行 `supabase/connectivity_matter_migration.sql`，并确认既有 `connectivity_revision_migration.sql` 或等效幂等约束已应用。新部署从完整 `supabase/schema.sql` 初始化。迁移复用原表，增加活动时间和逐请求占额RPC，不删除业务数据。数据库函数仅向service_role开放。
+本次Render与ModelScope均设置`AUDITTRACE_SINGLE_USER=true`。报告接入、多年资料选择、真实模型运行、历史读取、修订及导出不要求组织登录，历史任务不再按浏览器会话限制访问。平台原有的每日输入/输出token、每日次数和频率配额不再参与放行；即使旧环境变量仍存在，也不会拦截演示。
 
-每次供应商发送前，原子记录本运行已知用量与在途上界；响应后更新实际usage。未知usage保留为空，上界只用于额度占用。过期租约有非零用量时保留记账，不按零消费释放。取消后不继续发送，已在途请求等待回执及结算。检查点保留调用和事项对象，重启后显示中断，显式重试才继续。
+模型实际调用与usage仍随运行保存，不把未知用量填成零。单次调查的结束条件、工具循环和并行调度属于执行逻辑，不累计成每日使用额度。`/api/health`及bootstrap公开返回实际`access_mode`与`usage_quotas_enabled`，用于确认托管平台已加载个人模式。
 
-2026-10-26已在现有Supabase实例执行该迁移，新增列与RPC、service_role执行权限和anon禁用均已核实；SQL解析检查及本地账本多实例测试通过。生产必须验证两个实例同时占额、超限拒绝、崩溃后费用不丢、修订并发和租约失效；当前不能据本地测试宣布生产通过。
+2026-10-26已执行的Supabase额度迁移保留；个人模式不申请、检查或结算额度租约，不受旧预算台账与旧租约阻断。任务、检查点和来源仍保存，证据资格与来源哈希检查继续执行。
 
 ## 对照与消融
 
 ```bash
 # 默认只做离线程序检查。不会自行覆盖生产持久化设置。
 python scripts/run_final_comparison.py --report-set 实际集合ID --as-of 2026-10-26
-# 有配置和授权后执行同资料对照，全部请求受原额度台账控制。
+# 有模型配置后执行同资料对照，个人模式不设每日用量配额。
 python scripts/run_final_comparison.py --report-set 实际集合ID --as-of 2026-10-26 --allow-models --ablations
 ```
 

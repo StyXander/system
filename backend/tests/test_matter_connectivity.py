@@ -196,6 +196,47 @@ def test_matter_api_owner_export_and_refresh(reports):
             assert other.get(f'/api/connectivity/runs/{tid}/export/json').status_code==403
 
 
+def test_single_user_public_report_selection_and_five_agent_run_without_login(reports,monkeypatch):
+    from backend.app import connectivity_matter_pipeline as pipeline, main
+    from backend.app.connectivity_api import build_router
+    from backend.app.connectivity_catalog_api import build_catalog_router
+    root,rs=reports
+    monkeypatch.setenv('AUDITTRACE_SINGLE_USER','true')
+    monkeypatch.setenv('AUDITTRACE_PUBLIC_DEMO','true')
+    monkeypatch.setenv('AUDITTRACE_DEMO_EXECUTOR_MODE','web')
+    monkeypatch.setenv('AUDITTRACE_MODEL_DAILY_INPUT_TOKENS','1')
+    monkeypatch.setenv('AUDITTRACE_MODEL_DAILY_RUN_LIMIT','1')
+    def forbidden():raise AssertionError('single-user requests must not consult the old quota ledger')
+    monkeypatch.setattr(main,'_public_model_ledger',forbidden)
+    original=pipeline.run_matter_pipeline
+    monkeypatch.setattr(pipeline,'run_matter_pipeline',lambda *a,**k:original(*a,**k,caller=fake_provider))
+    app=FastAPI();app.include_router(build_router(root,lambda r:main._enforce_public_model_quota(r,force=True),forbidden));app.include_router(build_catalog_router(root))
+    with TestClient(app) as client:
+        client.get('/api/connectivity/bootstrap')
+        me=client.get('/api/auth/me').json()
+        assert not me['authentication_required'] and me['can_import'] and not me['authenticated']
+        selected=client.post('/api/connectivity/report-sets',json={'document_ids':rs.document_ids,'as_of_date':'2026-10-26'})
+        assert selected.status_code==200,selected.text
+        # 连续两次运行，低至1的旧日次数/token变量也不阻断演示。
+        for _ in range(2):
+            created=client.post('/api/connectivity/runs',json={'report_set_id':selected.json()['report_set_id'],'mode':'five_agents','budget':{'max_matters':1}})
+            assert created.status_code==200,created.text
+            tid=created.json()['task_id']
+            for _ in range(200):
+                current=client.get('/api/connectivity/runs/'+tid).json()
+                if current['status'] not in {'queued','running'}:break
+                time.sleep(.02)
+            assert current['result']['dataset_role']=='synthetic'
+            assert {t['role'] for t in current['result']['matter_tasks']}=={'A1','A2','A3','A4','A5'}
+            assert current['result']['provider_calls']
+        # 同一个人的另一浏览器和另一个部署可直接读、导出并继续整理历史事项。
+        with TestClient(app) as second:
+            opened=second.get('/api/connectivity/runs/'+tid)
+            assert opened.status_code==200 and opened.json()['can_modify']
+            assert second.get(f'/api/connectivity/runs/{tid}/export/json').status_code==200
+            assert tid in [r['task_id'] for r in second.get('/api/connectivity/runs').json()['items']]
+
+
 def test_identity_merge_rejects_generic_note_mixed_with_project(reports):
     from backend.app.connectivity_matter_schemas import MatterProposal
     root,rs=reports;run=run_matter_pipeline(root,RunRequest(report_set_id=rs.report_set_id,mode='calculation_only'))

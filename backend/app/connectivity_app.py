@@ -20,6 +20,7 @@ from .connectivity_api import build_router
 from .connectivity_facts import project_facts
 from .connectivity_catalog_api import build_catalog_router
 from .connectivity_matter_schemas import matter_enabled
+from .connectivity_access import access_policy
 
 ROOT = Path(__file__).resolve().parents[2]
 @asynccontextmanager
@@ -49,6 +50,7 @@ def home():
 def health():
     """配置存在只报告 configured，不等同真实模型验收。"""
     return {'service_status': 'ready', 'product': 'connectivity',
+        **access_policy(),
         'model_status': 'configured' if os.getenv('DEEPSEEK_API_KEY', '').strip() else 'config_missing',
         'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
         'default_mode': 'five_agents' if matter_enabled() else 'three_agents', 'matter_schema_version': 'matter_connectivity_v1', 'frontend_release': '2026.10.26.green.1', 'project_facts': project_facts(ROOT),

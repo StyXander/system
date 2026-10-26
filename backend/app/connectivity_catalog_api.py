@@ -37,6 +37,7 @@ from .demo_run_tasks import DemoRunTaskStore, SupabaseDemoRunTaskStore, Idempote
 from .supabase_adapter import get_demo_task_client, SupabaseError, SupabaseAuthError
 from .auth import session_access_token, CASE_WRITE_ROLES, REFRESH_COOKIE_NAME
 from .schemas import AuthLoginRequest
+from .connectivity_access import single_user_enabled
 
 
 class ImportRequest(Contract):
@@ -55,6 +56,8 @@ class ReportRangeImportRequest(Contract):
 
 def can_import(request: Request) -> str:
     """公网不以会话 Cookie 代替认证；管理员或审核员才可触发新 PDF 下载。"""
+    if single_user_enabled():
+        return 'single_user_operator'
     public = os.getenv('AUDITTRACE_PUBLIC_DEMO', '').lower() in {'true', '1', 'yes'}
     if not public and request.client and request.client.host in {'127.0.0.1', '::1', 'testclient'}:
         return 'local_operator'
@@ -76,7 +79,7 @@ def can_import(request: Request) -> str:
 
 def authorize_model(request: Request) -> None:
     """公开实例的付费新调用必须有真实登录；原有配额仍在调用前统一预留。"""
-    if os.getenv('AUDITTRACE_PUBLIC_DEMO', '').lower() not in {'true', '1', 'yes'}:
+    if single_user_enabled() or os.getenv('AUDITTRACE_PUBLIC_DEMO', '').lower() not in {'true', '1', 'yes'}:
         return
     token = session_access_token(request)
     if not token:
@@ -132,6 +135,9 @@ def build_catalog_router(root: Path) -> APIRouter:
 
     @router.get('/api/auth/me')
     def me(request: Request):
+        if single_user_enabled():
+            return {'authenticated': False, 'authentication_required': False,
+                    'single_user': True, 'local_operator': True, 'can_import': True}
         required = os.getenv('AUDITTRACE_PUBLIC_DEMO', '').lower() in {'true', '1', 'yes'}
         token = session_access_token(request)
         if not token:

@@ -23,6 +23,7 @@ import httpx
 
 from .cninfo import CNInfoClient, CNInfoError, STOCK_LIST_URLS, _market_for_code, _column_and_plate, match_companies, normalize_company_query
 from .seed_catalog import load_seed_cases
+from .connectivity_access import single_user_enabled
 
 DIRECTORY_TTL = 86400
 EXPANDED_TICKERS = ("600276", "000333", "600588", "300015", "601668", "000002", "601398", "688111")
@@ -40,6 +41,8 @@ _report_inflight: set[tuple[str, int, str]] = set()
 def enforce_discovery_quota(identity: str) -> None:
     """单进程限流与有界身份台账，避免匿名检索占用无限网络与内存。"""
 
+    if single_user_enabled():
+        return
     now = time.monotonic()
     with _rate_lock:
         for key, limit in (("__global__", 180), ("ip:" + identity, 30)):

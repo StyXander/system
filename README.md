@@ -4,6 +4,8 @@
 
 2026年10月26日事项升级版使用五Agent主管线。当前已完成工程验证及原Supabase额度迁移，正式发布使用双塔首页和绿色工作台。真实模型对照、人工专业评价及生产多实例压力测试仍待完成。[修改对照与验证范围](docs/matter-upgrade/implementation.md)、[能力差距](docs/matter-upgrade/feature_gap_matrix.md)、[发布事实](docs/matter-upgrade/release_facts.json)分别记录。
 
+个人演示部署无需登录，不设置每日token、运行次数或频率配额；实际模型用量仍随任务记录。开关为`AUDITTRACE_SINGLE_USER=true`，健康接口可核对实际策略。
+
 ## 本地运行
 
 ```bash

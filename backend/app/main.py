@@ -895,6 +895,10 @@ def _authorize_model_prewarm(request: Request) -> None:
 
 
 def _enforce_public_model_quota(request: Request, *, force: bool = False) -> str | None:
+    # 个人演示不读取旧日预算或窗口配额；实际供应商用量仍由运行回执记录。
+    from .connectivity_access import single_user_enabled
+    if single_user_enabled():
+        return None
     if not _public_demo_enabled() and not force:
         return None
     # 只有具备供应商密钥、确实可能发生外部调用时才占用真实模型额度账本。

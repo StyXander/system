@@ -23,7 +23,13 @@
     "parallel_requests_cap_per_run": 2,
     "process_provider_slots": 2,
     "default_deep_matter_limit": 3,
-    "frontend_release": "2026.10.26.green.1"
+    "frontend_release": "2026.10.26.green.1",
+    "access_mode": "single_user",
+    "authentication_required": false,
+    "usage_quotas_enabled": false,
+    "daily_token_limit": null,
+    "daily_run_limit": null,
+    "request_frequency_limit": null
   },
   "baseline_seed": {
     "companies": 4,
@@ -32,12 +38,12 @@
     "originals_reverified_this_round": false
   },
   "backend": {
-    "tests": 1400,
+    "tests": 1402,
     "failures": 0,
     "errors": 0,
     "skipped": 33,
-    "passed": 1367,
-    "duration_seconds": 67.957
+    "passed": 1369,
+    "duration_seconds": 45.613
   },
   "frontend": {
     "passed": 29,
@@ -120,5 +126,18 @@
       "csv",
       "docx"
     ]
+  },
+  "single_user_rollout": {
+    "status": "publishing",
+    "authorization": "user_explicit_request",
+    "scope": [
+      "report_import",
+      "report_sets",
+      "model_runs",
+      "history",
+      "revision",
+      "export"
+    ],
+    "usage_quotas_enabled": false
   }
 }

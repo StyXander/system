@@ -45,3 +45,19 @@ def test_settled_lease_cannot_reopen_for_more_calls(tmp_path):
     ledger=PublicModelLedger(tmp_path);reservation=ledger.reserve_batch('done')
     ledger.settle(reservation,input_tokens=3)
     with pytest.raises(PublicModelQuotaError):ledger.checkpoint_usage(reservation,input_tokens=5,output_tokens=1)
+
+
+def test_single_user_skips_stale_daily_and_frequency_quotas(monkeypatch):
+    from starlette.requests import Request
+    from backend.app import main, company_discovery
+    monkeypatch.setenv('AUDITTRACE_SINGLE_USER','true')
+    monkeypatch.setenv('AUDITTRACE_PUBLIC_DEMO','true')
+    monkeypatch.setenv('AUDITTRACE_DEMO_USE_EXTERNAL_MODEL','true')
+    monkeypatch.setenv('DEEPSEEK_API_KEY','test-not-sent')
+    monkeypatch.setenv('AUDITTRACE_PUBLIC_QUOTA_SECRET','')
+    def forbidden():raise AssertionError('must not open a quota ledger')
+    monkeypatch.setattr(main,'_public_model_ledger',forbidden)
+    request=Request({'type':'http','method':'POST','path':'/','headers':[],'client':('203.0.113.4',1234)})
+    for _ in range(200):
+        assert main._enforce_public_model_quota(request,force=True) is None
+        company_discovery.enforce_discovery_quota('single-user-test')

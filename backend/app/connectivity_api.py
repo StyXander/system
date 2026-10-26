@@ -39,6 +39,7 @@ from .connectivity_graph import refresh_run_sources
 from .connectivity_financial_scenario import recalculate_scenario
 from .connectivity_matter_schemas import ReportSetRequest, MatterRevisionRequest, MatterReconciliation
 from .connectivity_report_sets import create_report_set, report_set_records, resolve_documents
+from .connectivity_access import single_user_enabled
 
 COOKIE = "audittrace_connectivity_session"
 CONNECTIVITY_RETENTION_SECONDS = 30 * 86400
@@ -69,7 +70,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         return result
 
     def authorize(request: Request, item: dict):
-        if not request.cookies.get(COOKIE) or not hmac.compare_digest(owner(request), item["run_body"].get("owner", "")):
+        if not single_user_enabled() and (not request.cookies.get(COOKIE) or not hmac.compare_digest(owner(request), item["run_body"].get("owner", ""))):
             raise HTTPException(403, "只能更正或取消当前浏览器创建的任务")
         origin = request.headers.get("origin")
         if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
@@ -81,7 +82,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(404, "任务不存在")
         result = {k: v for k, v in view.items() if k not in {"run_body", "request_payload", "request_sha256", "idempotency_key_sha256"}}
         result["parent_task_id"] = item.get("run_body", {}).get("parent_task_id")
-        is_owner = bool(request and request.cookies.get(COOKIE)
+        is_owner = single_user_enabled() or bool(request and request.cookies.get(COOKIE)
                         and hmac.compare_digest(owner(request), item.get("run_body", {}).get("owner", "")))
         if item.get("run_body", {}).get("analysis_scope") == "matter_connectivity" and not is_owner:
             raise HTTPException(403, "事项调查任务仅当前创建会话可读取")
@@ -109,6 +110,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         return result
 
     from .connectivity_matter_schemas import matter_enabled
+    from .connectivity_access import access_policy
 
     @router.get("/bootstrap")
     def bootstrap(response: Response, request: Request):
@@ -119,7 +121,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             pair = grouped.setdefault(doc.case_id, {"pair_id": doc.case_id, "company": doc.company, "period": doc.period, "documents": []})
             pair["documents"].append(doc.model_dump())
         rule_cards = {key: {**rule, "conditions": list(required_conditions(rule["operator"]))} for key, rule in RULES.items()}
-        return {"pairs": list(grouped.values()), "topics": TOPICS, "rules": rule_cards, "notice": NOTICE,
+        return {"pairs": list(grouped.values()), "topics": TOPICS, "rules": rule_cards, "notice": NOTICE, **access_policy(),
                 "matter_enabled":matter_enabled(),"default_mode": "five_agents" if matter_enabled() else "three_agents", "matter_schema_version": "matter_connectivity_v1",
                 "task_persistence": "supabase" if demo_task_supabase_enabled() else "local", "schema_version": SCHEMA_VERSION,
                 "intelligence_version": INTELLIGENCE_VERSION, "prompt_version": PROMPT_VERSION,
@@ -150,14 +152,14 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     @router.get("/runs")
     def history(request: Request, limit: int = Query(5, ge=1, le=20), offset: int = Query(0, ge=0, le=10000)):
         # 无会话不能用空串哈希探测历史；已知链接读取沿用原有公开策略。
-        if not request.cookies.get(COOKIE):
+        if not single_user_enabled() and not request.cookies.get(COOKIE):
             raise HTTPException(409, "请先加载工作台以建立当前浏览器会话")
-        rows = store().list_owned(owner(request), limit=limit + 1, offset=offset)
+        rows = store().list_owned(None if single_user_enabled() else owner(request), limit=limit + 1, offset=offset)
         items = [{k: row.get(k) for k in ("task_id", "case_id", "status", "created_at", "updated_at", "result_expires_at", "run_id", "failure_code")}
                  for row in rows[:limit]]
         return {"items": items, "limit": limit, "offset": offset,
                 "next_offset": offset + limit if len(rows) > limit else None,
-                "notice": NOTICE, "read_policy": "known_link_public; history_session_owned"}
+                "notice": NOTICE, "read_policy": "single_user_workspace" if single_user_enabled() else "known_link_public; history_session_owned"}
 
     @router.post("/runs")
     def create(body: RunRequest, request: Request):

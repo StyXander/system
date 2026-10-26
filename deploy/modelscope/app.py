@@ -15,6 +15,8 @@ def main() -> None:
     os.environ["AUDITTRACE_DEPLOYMENT_SERVICE"] = "burgerhaamm/audittrace"
     os.environ["AUDITTRACE_SOURCE_SNAPSHOT_SHA256"] = manifest["source_snapshot_sha256"]
     os.environ["AUDITTRACE_SOURCE_BASELINE_COMMIT"] = manifest["source_baseline_commit"]
+    # 队长个人演示无需组织登录，也不启用每日token或次数配额。
+    os.environ.setdefault("AUDITTRACE_SINGLE_USER", "true")
     from backend.app.public_demo_bootstrap import prepare_public_demo
     from backend.app import company_discovery, public_catalog_bootstrap
 

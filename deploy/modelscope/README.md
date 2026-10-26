@@ -18,7 +18,7 @@ python deploy/modelscope/prepare.py
 
 将打包目录同步至现有创空间仓库master并提交推送后，在“空间管理”点击“重新部署”，核对文件变化，再点击“确认部署”。推送文件本身不会更新正在运行的镜像。构建成功与服务实际启动也须分别确认。
 
-Docker监听`0.0.0.0:7860`，沿用现有免费2v CPU/8G内存实例。依赖通过阿里云镜像安装，并使用项目约束文件。服务密钥仍由平台管理：`DEEPSEEK_API_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_URL`、`AUDITTRACE_PUBLIC_QUOTA_SECRET`；不得写进镜像。真实模型调用仍按组织登录和额度台账控制。
+Docker监听`0.0.0.0:7860`，沿用现有免费2v CPU/8G内存实例。依赖通过阿里云镜像安装，并使用项目约束文件。服务密钥仍由平台管理：`DEEPSEEK_API_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_URL`、`AUDITTRACE_PUBLIC_QUOTA_SECRET`；不得写进镜像。个人演示设置`AUDITTRACE_SINGLE_USER=true`，报告接入、模型运行与历史操作无需组织登录，取消每日token、次数和频率配额。旧平台配额变量即使存在也不会生效。
 
 新事项入口默认启用；关闭`CONNECTIVITY_MATTER_ENABLED`可阻止新事项运行并保留历史读取。Supabase须先执行`supabase/connectivity_matter_migration.sql`；2026-10-26已在原项目执行，新增列、检查点RPC及角色权限已核实。生产多实例并发与专业效果验收仍另行记录。
 
