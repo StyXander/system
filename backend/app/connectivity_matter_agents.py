@@ -14,6 +14,8 @@ import json
 import os
 import re
 import time
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
@@ -84,20 +86,35 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         with urlopen(request,timeout=_provider_timeout_seconds()) as response:
             raw=response.read()
         record.update(performed=True,response_sha256=hashlib.sha256(raw).hexdigest())
+        record['parse_stage']='provider_json'
         value=json.loads(raw);usage=value.get("usage") or {}
         record.update(input_tokens=usage.get("prompt_tokens"),output_tokens=usage.get("completion_tokens"),model=value.get("model",model))
+        if value["choices"][0].get("finish_reason")=="length":
+            record["failure_code"]="MODEL_OUTPUT_TRUNCATED"
+            raise ValueError("供应商输出截断")
         message=value["choices"][0]["message"];calls=message.get("tool_calls") or []
         if len(calls)!=1 or calls[0]["function"]["name"]!="submit_matter_investigation":
             raise ValueError("结构化结果缺失")
+        record['parse_stage']='role_arguments'
         result=AgentMatterResult.model_validate(json.loads(calls[0]["function"]["arguments"]))
     except HTTPError as error:
-        record.update(performed=True,failure_code=f"MODEL_HTTP_{error.code}")
+        retry_after=error.headers.get("Retry-After", "1") if error.headers else "1"
+        try:delay=max(0,float(retry_after))
+        except ValueError:
+            try:delay=max(0,(parsedate_to_datetime(retry_after)-datetime.now(timezone.utc)).total_seconds())
+            except (ValueError,TypeError):delay=1
+        record.update(performed=True,failure_code=f"MODEL_HTTP_{error.code}",http_status=error.code,
+            error_category="authentication" if error.code in {401,403} else "rate_limit" if error.code==429 else "provider_http",
+            retryable=error.code in {429,502,503,504},retry_after_seconds=delay)
         raise MatterCallFailure(record) from error
     except (URLError,TimeoutError,OSError) as error:
-        record["failure_code"]="MODEL_TRANSPORT_ERROR"
+        record.update(failure_code="MODEL_TRANSPORT_ERROR",error_category="transport",retryable=True,retry_after_seconds=1)
         raise MatterCallFailure(record) from error
     except (ValueError,KeyError,IndexError,TypeError) as error:
-        record["failure_code"]="MODEL_SCHEMA_INVALID"
+        record.setdefault("failure_code","MODEL_SCHEMA_INVALID")
+        record.update(error_category="output_contract",retryable=False)
+        if hasattr(error,'errors'):
+            record['invalid_fields']=[{'location':list(item['loc']),'type':item['type']} for item in error.errors()[:20]]
         raise MatterCallFailure(record) from error
     finally:
         record["duration_ms"]=round((time.perf_counter()-started)*1000)

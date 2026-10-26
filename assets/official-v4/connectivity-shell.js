@@ -82,7 +82,7 @@
 
 
   main.insertAdjacentHTML('afterbegin',`<div class="at-workspace-top"><div><p class="at-eyebrow">AUDITTRACE / RESEARCH WORKSPACE</p><h1>可持续信息与财务关联分析</h1></div><label class="at-search">搜索本次事项<input id="aw-search" type="search" placeholder="指标、原文或 AI 意见" aria-label="搜索当前核对结果" autocomplete="off"></label></div>
-    <nav class="at-stages" aria-label="分析工作流">${['选择企业与报告','多智能体协同分析','关联分析与审计研判','证据回查与结果导出'].map((name,i)=>`<button type="button" data-at-stage="${i+1}" aria-current="${i===0?'step':'false'}"><span>0${i+1}</span><strong>${name}</strong><small id="at-stage-state-${i+1}">${i===0?'开始':'待开始'}</small></button>`).join('')}</nav>
+    <nav class="at-stages" aria-label="分析工作流">${['资料准备','事项与五Agent调查','关注点与资料需求','原文回查与导出'].map((name,i)=>`<button type="button" data-at-stage="${i+1}" aria-current="${i===0?'step':'false'}"><span>0${i+1}</span><strong>${name}</strong><small id="at-stage-state-${i+1}">${i===0?'开始':'待开始'}</small></button>`).join('')}</nav>
     <div id="aw-search-results" class="at-search-results" hidden></div>`);
   const setup=document.createElement('section');setup.id='cn-view-new';setup.dataset.workspaceView='new';setup.dataset.atPanel='1';
   const intro=document.querySelector('.cn-intro'),start=document.querySelector('.cn-start');

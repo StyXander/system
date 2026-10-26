@@ -1,0 +1,125 @@
+{
+  "origin": "pending_scenarios_not_test_results",
+  "rows": [
+    {
+      "scenario": "D01-D10",
+      "scope": "日期专项",
+      "status": "not_executed",
+      "reason": "未执行，遵守用户不用测试的要求",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "A",
+      "scope": "既有双报告企业",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "B",
+      "scope": "官方现场发现新企业",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "C",
+      "scope": "缺AR或ESG的有限调查",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "D",
+      "scope": "扫描/加密/复杂封面",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "E",
+      "scope": "标题变化与版本冲突",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "F",
+      "scope": "三年度与缺年",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "G",
+      "scope": "官方403/429/超时",
+      "status": "not_executed",
+      "reason": "未注入；仅日期证据查询实际HTTP500",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "H",
+      "scope": "模型401/429/5xx/超时/JSON",
+      "status": "not_executed",
+      "reason": "未注入、未调用",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "I",
+      "scope": "断网/进程中断/持久化失败",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "J",
+      "scope": "取消/续跑/刷新/导出",
+      "status": "not_executed",
+      "reason": "未运行",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    },
+    {
+      "scenario": "K",
+      "scope": "Render/ModelScope对照",
+      "status": "not_executed",
+      "reason": "未操作、未验收",
+      "task_id": null,
+      "company": null,
+      "duration_ms": null,
+      "deployment_sha": null
+    }
+  ]
+}

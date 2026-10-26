@@ -1,16 +1,21 @@
 {
-  "schema_version": "matter_release_facts_v1",
-  "release": "2026.10.26.matter.1",
-  "generated_at": "2026-10-26T12:01:19.472725+00:00",
+  "schema_version": "matter_release_facts_v2",
+  "release": "2026.10.27.planning.1",
+  "generated_at": "2026-10-26T18:04:23.193275+00:00",
   "repository": "https://github.com/StyXander/system",
-  "branch": "codex/five-agent-matter-upgrade-20261026",
-  "base_commit": "6dd5fb26599105946bac1b5c4f6e8759fea5a571",
-  "source_binding": "本文件及source_manifest.json由同一个Git提交保存；Git提交是最终版本身份，不预填尚未生成的SHA",
-  "status": "deployed_engineering_validated_professional_acceptance_pending",
+  "branch": "main",
+  "base_commit": "33858a9e8792e57147e565ee645bb3dbfbf9e629",
+  "source_binding": "最终Git提交是版本身份；未预填尚未生成的SHA",
+  "status": "source_only_static_checks_no_runtime_acceptance",
   "scope_exclusions": [
     "方案书",
     "PPT",
-    "口播稿"
+    "口播稿",
+    "额外Render发布操作",
+    "ModelScope发布操作",
+    "真实模型验收",
+    "浏览器验收",
+    "大规模回归"
   ],
   "runtime": {
     "entry": "backend.app.connectivity_app:app",
@@ -22,8 +27,8 @@
     "provider_calls_cap": 20,
     "parallel_requests_cap_per_run": 2,
     "process_provider_slots": 2,
-    "default_deep_matter_limit": 3,
-    "frontend_release": "2026.10.26.green.1",
+    "default_deep_matter_limit": 1,
+    "frontend_release": "2026.10.27.planning.1",
     "access_mode": "single_user",
     "authentication_required": false,
     "usage_quotas_enabled": false,
@@ -31,113 +36,174 @@
     "daily_run_limit": null,
     "request_frequency_limit": null
   },
-  "baseline_seed": {
-    "companies": 4,
-    "pairs": 5,
-    "documents": 10,
-    "originals_reverified_this_round": false
-  },
-  "backend": {
-    "tests": 1402,
-    "failures": 0,
-    "errors": 0,
-    "skipped": 33,
-    "passed": 1369,
-    "duration_seconds": 45.613
-  },
-  "frontend": {
-    "passed": 29,
-    "failures": 0,
-    "command": "node --test tests/frontend/*.mjs tests/frontend/test_round3_frontend_status.js"
-  },
-  "browser": {
-    "status": "passed",
-    "origin": "synthetic_engineering_only",
-    "real_model_calls": 0,
-    "widths": [
-      1440,
-      1024,
-      768,
-      390
-    ],
-    "javascript_errors": [],
-    "horizontal_overflow": false,
-    "report": "docs/matter-upgrade/browser_validation.json"
-  },
-  "other_checks": {
-    "python_compile": "passed",
+  "current_validation": {
+    "python_syntax": "passed",
     "javascript_syntax": "passed",
     "diff_whitespace": "passed",
-    "chinese_comments": "passed",
-    "postgres_sql_parse": {
-      "schema": 159,
-      "matter_migration": 9,
-      "database_execution": true
-    }
+    "local_metadata_audit": {
+      "records": 34,
+      "issues": 1,
+      "missing_document": "BAO24_AR",
+      "production_scanned": false
+    },
+    "tests": "not_run_user_instruction",
+    "paid_model_calls": 0,
+    "browser": "not_run",
+    "production": "not_run",
+    "p50_ms": null,
+    "p95_ms": null,
+    "professional_acceptance": "not_performed"
   },
-  "professional_evaluation": {
-    "scenario_specifications": 24,
-    "specification_file": "backend/evaluation/connectivity/matter_cases.json",
-    "independent_annotations": 0,
-    "accuracy": null,
-    "precision": null,
-    "recall": null,
-    "time_saving": null,
-    "actual_model_comparison": "not_run",
-    "ablations": "not_run",
-    "billed_cost": null
+  "date_backfill": {
+    "BAO24_AR": "not_applied_official_date_evidence_unavailable",
+    "policy": "do_not_infer_from_url_or_today"
   },
-  "limits": {
-    "real_three_year_cases": "not_verified_official_discovery_connection_failed",
-    "provider_key": "not_configured_locally_existing_hosted_secrets_retained",
-    "supabase_credentials": "existing_dashboard_session_migration_applied_no_secrets_in_source",
-    "supabase_multi_instance_smoke": "not_run",
-    "production_migration": "applied_verified_column_rpc_and_privileges",
-    "production_deployment": "render_and_modelscope_live_verified",
-    "semantic_model": "optional_not_quality_validated",
-    "ocr_real_original": "not_verified",
-    "matter_reconciliation": "conditional_only_no_automatic_formal_release"
+  "deployment": {
+    "Render": "not_operated_or_verified_this_round",
+    "ModelScope": "not_operated_or_verified_this_round",
+    "automatic_deployment": "main推送可能触发平台既有自动部署；本轮未查看或确认其结果"
   },
-  "previous_transient_failure": {
-    "test": "test_judge_package_can_build_without_legacy_office_files",
-    "failure": "BadZipFile during archive manifest read",
-    "isolated_rerun": "passed",
-    "final_full_run": "passed",
-    "code_workaround_added": false
-  },
-  "notice": "工程测试不替代真实模型及专业效果评价；历史实验不转记为本次五Agent效果。",
-  "frontend_restore": {
-    "home": "original_canvas_dual_models",
-    "workspace": "botanical_archive_green",
-    "browser_validation": "passed_1440_1024_768_390",
-    "source": "1082429^:index.html home fragment; retained current matter controller",
-    "model_calls_in_visual_test": 0,
-    "late_script_initialization": "passed"
-  },
-  "production_acceptance": "docs/matter-upgrade/deployment_acceptance.json",
-  "production_actual_model_calls": 0,
-  "production_program_smoke": {
-    "company": "五粮液",
-    "period": "2025",
-    "status": "completed",
-    "matter_candidates": 90,
-    "export_formats": [
-      "json",
-      "csv",
-      "docx"
-    ]
-  },
-  "single_user_rollout": {
-    "status": "publishing",
-    "authorization": "user_explicit_request",
-    "scope": [
-      "report_import",
-      "report_sets",
-      "model_runs",
-      "history",
-      "revision",
-      "export"
+  "previous_release_evidence_not_current_tests": {
+    "schema_version": "matter_release_facts_v1",
+    "release": "2026.10.26.matter.1",
+    "generated_at": "2026-10-26T12:01:19.472725+00:00",
+    "repository": "https://github.com/StyXander/system",
+    "branch": "codex/five-agent-matter-upgrade-20261026",
+    "base_commit": "6dd5fb26599105946bac1b5c4f6e8759fea5a571",
+    "source_binding": "本文件及source_manifest.json由同一个Git提交保存；Git提交是最终版本身份，不预填尚未生成的SHA",
+    "status": "deployed_engineering_validated_professional_acceptance_pending",
+    "scope_exclusions": [
+      "方案书",
+      "PPT",
+      "口播稿"
     ],
-    "usage_quotas_enabled": false
+    "runtime": {
+      "entry": "backend.app.connectivity_app:app",
+      "legacy_schema": "connectivity_v5",
+      "matter_schema": "matter_connectivity_v1",
+      "ui_default_mode": "five_agents",
+      "legacy_request_default_mode": "three_agents",
+      "render_new_matter_enabled": true,
+      "provider_calls_cap": 20,
+      "parallel_requests_cap_per_run": 2,
+      "process_provider_slots": 2,
+      "default_deep_matter_limit": 3,
+      "frontend_release": "2026.10.26.green.1",
+      "access_mode": "single_user",
+      "authentication_required": false,
+      "usage_quotas_enabled": false,
+      "daily_token_limit": null,
+      "daily_run_limit": null,
+      "request_frequency_limit": null
+    },
+    "baseline_seed": {
+      "companies": 4,
+      "pairs": 5,
+      "documents": 10,
+      "originals_reverified_this_round": false
+    },
+    "backend": {
+      "tests": 1402,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 33,
+      "passed": 1369,
+      "duration_seconds": 45.613
+    },
+    "frontend": {
+      "passed": 29,
+      "failures": 0,
+      "command": "node --test tests/frontend/*.mjs tests/frontend/test_round3_frontend_status.js"
+    },
+    "browser": {
+      "status": "passed",
+      "origin": "synthetic_engineering_only",
+      "real_model_calls": 0,
+      "widths": [
+        1440,
+        1024,
+        768,
+        390
+      ],
+      "javascript_errors": [],
+      "horizontal_overflow": false,
+      "report": "docs/matter-upgrade/browser_validation.json"
+    },
+    "other_checks": {
+      "python_compile": "passed",
+      "javascript_syntax": "passed",
+      "diff_whitespace": "passed",
+      "chinese_comments": "passed",
+      "postgres_sql_parse": {
+        "schema": 159,
+        "matter_migration": 9,
+        "database_execution": true
+      }
+    },
+    "professional_evaluation": {
+      "scenario_specifications": 24,
+      "specification_file": "backend/evaluation/connectivity/matter_cases.json",
+      "independent_annotations": 0,
+      "accuracy": null,
+      "precision": null,
+      "recall": null,
+      "time_saving": null,
+      "actual_model_comparison": "not_run",
+      "ablations": "not_run",
+      "billed_cost": null
+    },
+    "limits": {
+      "real_three_year_cases": "not_verified_official_discovery_connection_failed",
+      "provider_key": "not_configured_locally_existing_hosted_secrets_retained",
+      "supabase_credentials": "existing_dashboard_session_migration_applied_no_secrets_in_source",
+      "supabase_multi_instance_smoke": "not_run",
+      "production_migration": "applied_verified_column_rpc_and_privileges",
+      "production_deployment": "render_and_modelscope_live_verified",
+      "semantic_model": "optional_not_quality_validated",
+      "ocr_real_original": "not_verified",
+      "matter_reconciliation": "conditional_only_no_automatic_formal_release"
+    },
+    "previous_transient_failure": {
+      "test": "test_judge_package_can_build_without_legacy_office_files",
+      "failure": "BadZipFile during archive manifest read",
+      "isolated_rerun": "passed",
+      "final_full_run": "passed",
+      "code_workaround_added": false
+    },
+    "notice": "工程测试不替代真实模型及专业效果评价；历史实验不转记为本次五Agent效果。",
+    "frontend_restore": {
+      "home": "original_canvas_dual_models",
+      "workspace": "botanical_archive_green",
+      "browser_validation": "passed_1440_1024_768_390",
+      "source": "1082429^:index.html home fragment; retained current matter controller",
+      "model_calls_in_visual_test": 0,
+      "late_script_initialization": "passed"
+    },
+    "production_acceptance": "docs/matter-upgrade/deployment_acceptance.json",
+    "production_actual_model_calls": 0,
+    "production_program_smoke": {
+      "company": "五粮液",
+      "period": "2025",
+      "status": "completed",
+      "matter_candidates": 90,
+      "export_formats": [
+        "json",
+        "csv",
+        "docx"
+      ]
+    },
+    "single_user_rollout": {
+      "status": "publishing",
+      "authorization": "user_explicit_request",
+      "scope": [
+        "report_import",
+        "report_sets",
+        "model_runs",
+        "history",
+        "revision",
+        "export"
+      ],
+      "usage_quotas_enabled": false
+    }
   }
 }

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import sqlite3
 import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -13,14 +15,17 @@ from backend.app.disclosure_dates import normalize_disclosure_date
 
 
 def audit(root, *, supabase=False):
+    root=root.resolve()
     rows, coverage = [], []
-    def visit(value, source, pointer=''):
+    observation_date=datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
+    def visit(value, source, pointer='', as_of_date=None):
         if isinstance(value, dict):
+            as_of_date=(value.get('report_set') or {}).get('as_of_date',as_of_date) if isinstance(value.get('report_set'),dict) else as_of_date
             if value.get('document_id') and ('disclosure_date' in value or value.get('report_type') in {'AR', 'ESG'}):
                 raw = value.get('disclosure_date')
                 try:
                     normalized = normalize_disclosure_date(raw)
-                    issue = 'MISSING_DISCLOSURE_DATE' if not normalized else 'NON_CANONICAL' if raw != normalized else ''
+                    issue = 'MISSING_DISCLOSURE_DATE' if not normalized else 'FUTURE_DISCLOSURE_DATE' if normalized>(as_of_date or observation_date) else 'NON_CANONICAL' if raw != normalized else ''
                 except ValueError:
                     normalized, issue = '', 'INVALID_DISCLOSURE_DATE'
                 rows.append(dict(source=source, pointer=pointer, document_id=value['document_id'],
@@ -28,10 +33,10 @@ def audit(root, *, supabase=False):
                     report_type=value.get('report_type', ''), case_id=value.get('case_id', ''),
                     raw_value=raw, normalized=normalized, issue=issue, source_url=value.get('source_url', '')))
             for key, item in value.items():
-                visit(item, source, pointer+'/'+key)
+                visit(item, source, pointer+'/'+key,as_of_date)
         elif isinstance(value, list):
             for i, item in enumerate(value):
-                visit(item, source, pointer+'/'+str(i))
+                visit(item, source, pointer+'/'+str(i),as_of_date)
     files = [root/'backend/connectivity_reports.json', root/'backend/connectivity_catalog.snapshot.json']
     runtime = root/'backend/runtime/connectivity'
     files += list(runtime.glob('report_sets/*.json')) + list(runtime.glob('catalog*.json'))
@@ -70,8 +75,8 @@ def audit(root, *, supabase=False):
         coverage.append({'source': 'supabase:cases', 'status': 'scanned'})
     else:
         coverage.append({'source': 'production_supabase_and_platform_caches', 'status': 'not_scanned'})
-    return {'mode': 'dry_run', 'coverage': coverage, 'records': rows,
-            'summary': {'records': len(rows), 'issues': sum(bool(r['issue']) for r in rows)},
+    return {'mode': 'dry_run', 'as_of_date': observation_date, 'coverage': coverage, 'records': rows,
+            'summary': {'records': len(rows), 'unique_documents':len({r['document_id'] for r in rows}), 'issues': sum(bool(r['issue']) for r in rows)},
             'migration': 'No writes. Missing dates require verified official evidence; immutable saved sets are never rewritten.'}
 
 

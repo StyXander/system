@@ -5,7 +5,7 @@ from .connectivity_extraction import load_registry
 from .connectivity_rules import TOPICS, RULES
 from .connectivity_schemas import NOTICE, SCHEMA_VERSION
 
-PRODUCT_SCOPE = "基于已登记、公开的年度报告与可持续发展报告，辅助专业人员判断披露关系是否可比、追踪可持续事项的财务传导、跨期承诺、竞争解释，完成可复算检查并定位证据及待补条件。"
+PRODUCT_SCOPE = "面向可持续信息鉴证项目组，在详细鉴证程序前开展跨报告风险调查，追踪事项、潜在财务影响与跨期证据，生成风险关注点和资料需求清单，支持进一步核查。"
 
 
 def project_facts(root):

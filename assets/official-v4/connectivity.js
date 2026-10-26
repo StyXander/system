@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = {bootstrap:null, task:null, selected:null, timer:null, generation:0, detailTab:'conditions', reader:null, filter:'all', lens:'plain'};
+  const state = {bootstrap:null, task:null, selected:null, timer:null, generation:0, pollFailures:0, detailTab:'conditions', reader:null, filter:'all', lens:'plain'};
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const labels = {supported:'有依据支持',unknown:'未说明',conflicting:'明确冲突',consistent:'所选关系计算一致',precision_explained:'已知精度可解释',
     adjustment_explained:'有据调节后与0相容',unexplained_difference:'未解释差异',not_comparable:'暂不可比较',not_executable:'暂不可执行',
@@ -13,8 +13,8 @@
   const roles = {left:'左侧',right:'右侧',total:'总额',component:'组成项',numerator:'分子',denominator:'分母',reported_ratio:'披露比例',occurrence:'披露位置'};
   const aiVerdicts = {lean_consistent:'倾向一致',potential_conflict:'存在潜在矛盾',plausible_explanation:'存在合理解释路径',insufficient_basis:'依据不足但可继续核查',not_comparable:'当前不可直接比较'};
   // 六个阶段与后端 steps 键一一对应，名称即阶段含义，不由前端估算。
-  const phases = {evidence_load:'报告识别与披露定位',rule_calculation:'前提判断与关系计算',knowledge_retrieval:'原文补查（解释与反证）',
-    agent_collaboration:'角色协作',evidence_validation:'核实与重算',structured_output:'未决与记录生成'};
+  const phases = {evidence_load:'报告准备与原文解析',rule_calculation:'事项筛选',knowledge_retrieval:'调查工具准备',
+    agent_collaboration:'事项调查与角色协作',evidence_validation:'综合复核',structured_output:'生成清单'};
   const STATE_ICON = {supported:'✓',consistent:'✓',precision_explained:'≈',adjustment_explained:'≈',unknown:'?',not_comparable:'!',
     conflicting:'×',unexplained_difference:'×',pending:'·',running:'▶',completed:'✓',degraded:'!',failed:'×',skipped:'–'};
   const status = value => `<span class="cn-badge" data-state="${escape(value)}"><span aria-hidden="true">${escape(STATE_ICON[value]||'·')}</span> ${escape(labels[value]||value)}</span>`;
@@ -64,7 +64,7 @@
     try {
       const task = await api(`/runs/${encodeURIComponent(taskId)}`);
       if (generation!==state.generation) return;
-      state.task = task; renderProgress(task);
+      state.pollFailures=0;state.task = task; renderProgress(task);
       if (['queued','running'].includes(task.status)) {
         document.dispatchEvent(new CustomEvent('audittrace:connectivity-task', {detail:task}));
         busy(true); state.timer = setTimeout(() => poll(taskId, generation), 1800); return;
@@ -96,7 +96,9 @@
       }
       $('cn-progress-state').textContent = '连接暂时中断 · 保留原阶段，正在重试读取';
       busy(true); message(`读取暂时失败：${error.message}。保留任务编号，正在重试读取原任务。`, true);
-      state.timer = setTimeout(() => poll(taskId, generation), 4500);
+      state.pollFailures++;
+      if(state.pollFailures>=7){busy(false);$('cn-progress-state').textContent='读取已暂停，原任务可能仍在服务端运行';message('连续读取失败，已暂停自动轮询。原任务编号保留，重新读取不会发起模型请求。',true);$('cn-progress-details').insertAdjacentHTML('beforeend','<button type="button" id="cn-reconnect">重新读取原任务</button>');return;}
+      state.timer = setTimeout(() => poll(taskId, generation), Math.min(15000,1500*2**state.pollFailures));
     }
   }
 
@@ -649,7 +651,7 @@
     if(state.submitting) return;
     const topics = [...document.querySelectorAll('#cn-form input[name="topic"]:checked')].map(n => n.value);
     if (!topics.length) { message('至少选择一个关注事项。', true); return; }
-    state.submitting=true;
+    state.pollFailures=0;state.submitting=true;
     clearTimeout(state.timer); state.generation++; state.selected=null; state.task=null; busy(true);
     document.dispatchEvent(new CustomEvent('audittrace:connectivity-start'));
     $('cn-results').hidden=true; $('cn-progress').hidden=true; $('cn-cancel').disabled=true;
@@ -663,6 +665,8 @@
     } catch (error) { message(error.message, true); busy(false); document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{status:error.preflight?'preflight_failed':'failed',message:error.message,code:error.code,documents:error.documents}})); }
     finally { state.submitting=false; }
   }
+  document.addEventListener('audittrace:connectivity-start-run',e=>startRun(e.detail||{}));
+  document.addEventListener('click',e=>{if(e.target.closest('#cn-reconnect')){const id=state.task?.task_id||localStorage.getItem('audittrace-connectivity-task');if(id){state.pollFailures=0;poll(id);}}});
   $('cn-form').addEventListener('submit', event => { event.preventDefault(); startRun(); });
   $('cn-stagebar').addEventListener('click', event => {
     if (!event.target.closest('#cn-retry')) return;

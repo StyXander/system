@@ -22,7 +22,19 @@ def revise_matters(run, body):
     if run.result_revision!=body.expected_revision:raise ValueError("事项结果版本已变化")
     selected=[m for m in run.matters if m.matter_id in body.matter_ids]
     if len(selected)!=len(set(body.matter_ids)):raise ValueError("事项未登记")
-    if body.action in {"accept","reject"}:
+    if body.action.startswith("planning_"):
+        from .connectivity_assurance_planning import build_assurance_planning
+        from .connectivity_schemas import now_iso
+        planning=build_assurance_planning(run)
+        entries={row['entry_id']:row for key in ('risk_findings','evidence_requests') for row in planning[key]}
+        if not body.planning_entry_ids or not set(body.planning_entry_ids)<=entries.keys():
+            raise ValueError("清单条目未登记")
+        if any(not set(entries[key]['matter_ids'])<=set(body.matter_ids) for key in body.planning_entry_ids):
+            raise ValueError("清单条目与所选事项不一致")
+        for key in body.planning_entry_ids:
+            run.assurance_planning_reviews[key]={'status':{'planning_adopt':'adopted','planning_defer':'deferred','planning_exclude':'excluded'}[body.action],
+                'actor':body.actor,'reason':body.reason,'updated_at':now_iso()}
+    elif body.action in {"accept","reject"}:
         count=0
         for assessment in run.matter_assessments:
             if assessment.matter_id in body.matter_ids:
@@ -52,7 +64,8 @@ def revise_matters(run, body):
             m.investigation_status="pending";m.event_ids=[];attach_events(run,m)
         run.model_status="five_agents_partial"
     run.matter_revisions.append({"action_id":body.action_id,"action":body.action,"matter_ids":body.matter_ids,
-        "reason":body.reason,"input_revision":body.expected_revision})
+        "reason":body.reason,"actor":body.actor,"planning_entry_ids":body.planning_entry_ids,
+        "input_revision":body.expected_revision})
     finish_projection(run)
 
 

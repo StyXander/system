@@ -32,7 +32,7 @@ class InvestigationBudget(MatterContract):
     """
     max_provider_calls: int = Field(default=20, ge=1, le=20)
     max_parallel_calls: int = Field(default=2, ge=1, le=2)
-    max_matters: int = Field(default=3, ge=1, le=10)
+    max_matters: int = Field(default=1, ge=1, le=10)
     max_role_rounds: int = Field(default=2, ge=1, le=3)
 
 
@@ -265,7 +265,9 @@ class AgentMatterResult(MatterContract):
 class MatterRevisionRequest(MatterContract):
     expected_revision: int = Field(ge=1)
     action_id: str = Field(min_length=8, max_length=100)
-    action: Literal["merge", "split", "accept", "reject"]
+    action: Literal["merge", "split", "accept", "reject", "planning_adopt", "planning_defer", "planning_exclude"]
+    planning_entry_ids: list[str] = Field(default_factory=list, max_length=50)
+    actor: str = Field(default="个人演示用户", min_length=1, max_length=100)
     matter_ids: list[str] = Field(min_length=1, max_length=20)
     evidence_ids: list[str] = Field(default_factory=list)
     reason: str = Field(min_length=3, max_length=2000)

@@ -34,34 +34,45 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         period="—".join([report_set.periods[0],report_set.periods[-1]]) if len(report_set.periods)>1 else report_set.periods[0],
         documents=documents,execution_mode=request.mode,report_set=report_set,matter_schema_version=MATTER_VERSION,
         versions={"pair_id":request.pair_id,"report_set_id":report_set.report_set_id,"matter_prompt":PROMPT_VERSION,
-                  "analysis_scope":"matter_connectivity","result_origin":"original"})
+                  "analysis_scope":"matter_connectivity","result_origin":"original","matter_types":list(request.matter_types)})
+    progress_callback=progress
+    stage_started={}
+    run.versions['stage_timings']={}
+    def progress(stage,status,detail):
+        if status=='running':stage_started[stage]=time.perf_counter()
+        row=run.versions['stage_timings'].setdefault(stage,{})
+        row.update(status=status,updated_at=time.time())
+        if stage in stage_started:row['duration_ms']=round((time.perf_counter()-stage_started[stage])*1000)
+        progress_callback(stage,status,detail)
     if caller is not None:
         run.dataset_role="synthetic"
         run.versions["provider_origin"]="injected_test_caller"
     from .connectivity_financial_ontology import matter_rules
     run.versions["matter_rule_fingerprints"]={r["rule_id"]:digest(json.dumps(r,sort_keys=True,ensure_ascii=False)) for r in matter_rules()}
     run.source_lineage=[SourceLineage(document_id=d.document_id,producer=d.company,category=d.source_kind) for d in documents]
+    if resume:
+        if resume.report_set!=report_set or resume.execution_mode!=request.mode:
+            raise ValueError("续分析的资料集合或模式已变化")
+        for name in ("matter_evidence","matters","matter_events","matter_commitments","matter_paths","matter_relations",
+                     "matter_explanations","matter_assessments","assurance_planning_reviews","matter_tasks","matter_tool_receipts","matter_rejections","matter_revisions","occurrences"):
+            setattr(run,name,deepcopy(getattr(resume,name)))
+        run.parent_run_id=resume.run_id;run.result_revision=resume.result_revision+1
+        run.prior_provider_calls=[*resume.prior_provider_calls,*resume.provider_calls]
+        run.versions["result_origin"]="incremental_retry"
+    checkpoint(run)
     progress("evidence_load","running","读取多年登记原件与叙述证据")
     corpus,run.matter_coverage=read_corpus(root,documents,cancelled=cancelled)
     progress("evidence_load","completed",f"已索引{len(corpus)}个原文块，扫描页与失败覆盖单列")
     progress("rule_calculation","running","建立事项证据身份与候选，不要求存在金额")
     seeds,seed_coverage=relevant_evidence(corpus)
-    run.matter_evidence=seeds;run.matters=seed_matters(seeds,request.matter_types)
-    for matter in run.matters:attach_events(run,matter)
+    if not resume:
+        run.matter_evidence=seeds;run.matters=seed_matters(seeds,request.matter_types)
+        for matter in run.matters:attach_events(run,matter)
     run.versions["seed_coverage"]=seed_coverage
     progress("rule_calculation","completed",f"建立{len(run.matters)}项披露候选；身份归并待调查")
     progress("knowledge_retrieval","running","准备事项检索、专业规则与补证工具")
     progress("knowledge_retrieval","completed","支持与反证分别查询，检索命中不等于关系证实")
-    if resume:
-        if resume.report_set!=report_set or resume.execution_mode!=request.mode:
-            raise ValueError("续分析的资料集合或模式已变化")
-        for name in ("matter_evidence","matters","matter_events","matter_commitments","matter_paths","matter_relations",
-                     "matter_explanations","matter_assessments","matter_tasks","matter_tool_receipts","matter_rejections","matter_revisions","occurrences"):
-            setattr(run,name,deepcopy(getattr(resume,name)))
-        run.parent_run_id=resume.run_id;run.result_revision=resume.result_revision+1
-        run.prior_provider_calls=[*resume.prior_provider_calls,*resume.provider_calls]
-        run.versions["result_origin"]="incremental_retry"
-    lock=threading.RLock();attempts=0;quota_ready=False;dedupe=set()
+    lock=threading.RLock();attempts=0;quota_ready=False;tool_cache={}
     call=caller or call_matter_role
     budget=request.budget
     # 消融是显式实验条件，跳过角色不能被包装为五角色全部完成。
@@ -76,7 +87,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         中断或失败依旧保存已取得回执，后续角色按剩余额度执行。
         """
         nonlocal attempts,quota_ready
+        queued_at=time.perf_counter()
         with _PROVIDER_SLOTS:
+            queue_ms=round((time.perf_counter()-queued_at)*1000)
             with lock:
                 if cancelled():raise InterruptedError("用户取消事项调查")
                 if attempts>=budget.max_provider_calls:raise ValueError("MODEL_CALL_BUDGET_EXHAUSTED")
@@ -87,7 +100,8 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 if not quota_ready:before_model();quota_ready=True
                 attempts+=1
                 receipt={"provider_call_id":"MCALL-"+uuid.uuid4().hex,"role":role,"task_id":task_id,
-                    "status":"started","performed":False,"request_attempted":None,"input_tokens":None,"output_tokens":None}
+                    "status":"started","performed":False,"request_attempted":None,"queue_ms":queue_ms,
+                    "started_at":time.time(),"input_characters":len(json.dumps(payload,ensure_ascii=False)),"input_tokens":None,"output_tokens":None}
                 run.provider_calls.append(receipt);save()
             try:
                 def preflight(record):
@@ -111,12 +125,34 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 receipt.update(record);save()
                 provider_budget(run)
             return result
+    def bounded_call(role,payload,task_id):
+        # 每次重试重新进入model_call，独立记录并计入单次调用预算。
+        for attempt in range(2):
+            try:
+                return model_call(role,payload,task_id)
+            except MatterCallFailure as error:
+                record=error.record
+                delay=record.get("retry_after_seconds",1)
+                if attempt or not record.get("retryable") or delay>8 or cancelled():
+                    raise
+                deadline=time.monotonic()+max(1,delay)
+                while time.monotonic()<deadline:
+                    if cancelled():raise InterruptedError("用户取消事项调查")
+                    time.sleep(min(.2,max(0,deadline-time.monotonic())))
+
     def payload_for(role,matter=None,extension=""):
         # 每波读同一快照；worker只提交建议，不直接覆盖另一角色的结果。
         with lock:
             if matter:
                 discovered=search_corpus(corpus,matter.name+" "+" ".join(matter.aliases),limit=18)["evidence"]
-                focused={b.evidence_id:b for b in run.matter_evidence if b.evidence_id in matter.evidence_ids}
+                from .connectivity_matters import _all_refs
+                referenced=set(matter.evidence_ids)
+                for field in ('matter_paths','matter_events','matter_commitments','matter_explanations','matter_assessments'):
+                    for value in getattr(run,field):
+                        if value.matter_id==matter.matter_id:referenced.update(_all_refs(value.model_dump()))
+                for task in run.matter_tasks:
+                    if task.get('matter_id')==matter.matter_id and task.get('result'):referenced.update(_all_refs(task['result']))
+                focused={b.evidence_id:b for b in run.matter_evidence if b.evidence_id in referenced}
                 for value in discovered:
                     b=MatterEvidence.model_validate(value);focused.setdefault(b.evidence_id,b)
                     if not any(old.evidence_id==b.evidence_id for old in run.matter_evidence):run.matter_evidence.append(b)
@@ -125,12 +161,12 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 context_evidence=run.matter_evidence[:90]
             return {"matter_id":matter.matter_id if matter else "","input_revision":run.result_revision,
                 "as_of_date":str(report_set.as_of_date),
-                "citation_instruction":"跨页内容按独立证据ID引用；原文块带adjacent_evidence_ids，可打开相邻原页补查。paths.rule_ids仅选工具返回的登记模板编号。","documents":[d.model_dump() for d in documents],
+                "citation_instruction":"跨页内容按独立证据ID引用；原文块带adjacent_evidence_ids，可打开相邻原页补查。paths.rule_ids仅选工具返回的登记模板编号。","documents":[{key:getattr(d,key) for key in ("document_id","company_id","company","report_type","report_period","disclosure_date","file_sha256","pages")} for d in documents],
                 "matter":matter.model_dump() if matter else None,
                 "evidence":[b.model_dump() for b in context_evidence],
-                "upstream_results":[t for t in run.matter_tasks if t.get("matter_id")==getattr(matter,"matter_id",None) and t.get("result")],
+                "upstream_results":list({t["role"]:{"role":t["role"],"status":t["status"],"result":t["result"]} for t in run.matter_tasks if t.get("matter_id")==getattr(matter,"matter_id",None) and t.get("result")}.values()),
                 "paths":[p.model_dump() for p in run.matter_paths if matter and p.matter_id==matter.matter_id],
-                "occurrences":[o.model_dump() for o in run.occurrences],
+                "occurrences":[o.model_dump() for o in run.occurrences if o.document_id in {b.document_id for b in context_evidence} and o.pdf_page in {b.pdf_page for b in context_evidence if b.document_id==o.document_id}],
                 "commitments":[c.model_dump() for c in run.matter_commitments if matter and c.matter_id==matter.matter_id],
                 "events":[e.model_dump() for e in run.matter_events if matter and e.matter_id==matter.matter_id],
                 "coverage_gaps":report_set.coverage_gaps,"role_extension":extension}
@@ -140,6 +176,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         角色不直接覆盖共享档案，最终建议经统一校验后整体合并。
         失败和轮次耗尽保留停止原因，不自动生成已完成状态。
         """
+        role_started=time.perf_counter()
         payload=payload_for(role,matter,extension);task_id="MTASK-"+uuid.uuid4().hex[:16]
         task={"task_id":task_id,"role":role,"role_name":ROLE_NAMES[role],"matter_id":getattr(matter,"matter_id",""),
             "input_revision":run.result_revision,"status":"running","rounds":0,"stop_reason":""}
@@ -147,7 +184,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         result=None
         try:
             for round_no in range(budget.max_role_rounds):
-                result=model_call(role,payload,task_id);task["rounds"]=round_no+1
+                result=bounded_call(role,payload,task_id);task["rounds"]=round_no+1
                 if not result.tool_requests:
                     task.update(status="completed",stop_reason=result.stop_reason or "本轮建议已提交");break
                 returned=[]
@@ -155,9 +192,8 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     from .connectivity_tool_registry import execute_tool,ToolRequest
                     marker=digest(json.dumps({"set":report_set.report_set_id,"tool":request_tool.tool_name,"arguments":request_tool.arguments},sort_keys=True,ensure_ascii=False))
                     with lock:
-                        if marker in dedupe:
-                            returned.append({"status":"duplicate","reason":"同集合相同查询已执行"});continue
-                        dedupe.add(marker)
+                        if marker in tool_cache:
+                            returned.append(dict(tool_cache[marker],cache_hit=True));continue
                     try:receipt=execute_tool(root,run,ToolRequest(request_tool.tool_name,request_tool.arguments),corpus=corpus)
                     except InterruptedError:raise
                     except Exception as error:
@@ -165,6 +201,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                                  "reason":"工具未完成："+type(error).__name__,"failure_code":type(error).__name__}
                     receipt.update(task_id=task_id,matter_id=getattr(matter,"matter_id",""),role=role,round=round_no+1)
                     with lock:
+                        tool_cache[marker]=deepcopy(receipt)
                         run.matter_tool_receipts.append(receipt)
                         for b in (receipt.get("result") or {}).get("evidence",[]):
                             item=MatterEvidence.model_validate(b)
@@ -176,8 +213,15 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     returned.append(receipt)
                 payload["tool_results"]=returned
                 payload["previous_proposal"]=result.model_dump()
-                payload["evidence"]=[b.model_dump() for b in run.matter_evidence]
-                payload["occurrences"]=[o.model_dump() for o in run.occurrences]
+                # 工具续轮只扩充当前角色已经看到的证据，不再次发送所有事项全文。
+                known={b["evidence_id"]:b for b in payload["evidence"]}
+                for receipt in returned:
+                    for block in (receipt.get("result") or {}).get("evidence",[]):known[block["evidence_id"]]=block
+                payload["evidence"]=list(known.values())
+                occurrences={o["occurrence_id"]:o for o in payload["occurrences"]}
+                for receipt in returned:
+                    for row in (receipt.get("result") or {}).get("occurrences",[]):occurrences[row["occurrence_id"]]=row
+                payload["occurrences"]=list(occurrences.values())
                 task.update(status="partial",stop_reason="达到单角色调查轮次上限，尚需综合工具反馈")
             if result:
                 with lock:
@@ -194,11 +238,15 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         except InterruptedError:
             task.update(status="cancelled",stop_reason="用户取消，已取得回执保留")
         except (ValueError,MatterCallFailure) as error:
-            task.update(status="failed",stop_reason=str(error)[:200])
+            task.update(status="failed",stop_reason=str(error)[:200],failure_code=str(error)[:200])
+            if isinstance(error,MatterCallFailure):
+                task.update(retryable=error.record.get("retryable",False),retry_after_seconds=error.record.get("retry_after_seconds"),error_category=error.record.get("error_category"))
             with lock:run.matter_rejections.append({"role":role,"matter_id":getattr(matter,"matter_id",""),"reason":task["stop_reason"]})
         except Exception as error:
             task.update(status="failed",stop_reason=type(error).__name__)
         finally:
+            task["duration_ms"]=round((time.perf_counter()-role_started)*1000)
+            task["updated_at"]=time.time()
             with lock:
                 agent_progress(role,"completed" if task["status"]=="completed" else "failed",task["stop_reason"]);save()
         return task
@@ -217,8 +265,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     else:
         progress("agent_collaboration","running","事项建档后并行调查财务与跨期信息")
         if not resume or not any(t.get("role")=="A1" and t.get("status")=="completed" for t in run.matter_tasks):role_task("A1")
-        selected=[m for m in run.matters if not request.selected_matter_ids or m.matter_id in request.selected_matter_ids]
-        if request.selected_matter_ids and not set(request.selected_matter_ids)<={m.matter_id for m in run.matters}:
+        selected=[m for m in run.matters if not request.selected_matter_ids or m.matter_id in request.selected_matter_ids or set(m.lineage)&set(request.selected_matter_ids)]
+        resolved_ids={m.matter_id for m in selected}|{key for m in selected for key in m.lineage}
+        if request.selected_matter_ids and not set(request.selected_matter_ids)<=resolved_ids:
             raise ValueError("选择了当前档案中不存在的事项")
         # 优先深查有明确项目身份或风险的事项，未深查项仍保留队列。
         selected.sort(key=lambda m:(m.identity_status=="candidate",m.matter_type!="climate_risk",m.matter_id))
@@ -230,13 +279,18 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 parallel=("A2",) if request.ablation=="no_temporal" else ("A2","A3")
                 if request.ablation=="no_temporal":
                     run.matter_tasks.append({"role":"A3","matter_id":matter.matter_id,"status":"skipped","stop_reason":"实验消融移除跨期角色"})
+                previous={t.get("role"):t for t in run.matter_tasks if t.get("matter_id")==matter.matter_id} if resume else {}
+                reusable={r:t for r,t in previous.items() if t.get("status")=="completed" and t.get("result")}
+                changed=any(role not in reusable for role in parallel)
                 with ThreadPoolExecutor(max_workers=budget.max_parallel_calls) as pool:
-                    jobs=[pool.submit(role_task,role,matter) for role in parallel]
-                    tasks=[job.result() for job in jobs]
+                    jobs={role:pool.submit(role_task,role,matter) for role in parallel if role not in reusable}
+                    tasks=[jobs[role].result() if role in jobs else reusable[role] for role in parallel]
                 if request.ablation=="no_counterevidence":
                     run.matter_tasks.append({"role":"A4","matter_id":matter.matter_id,"status":"skipped","stop_reason":"实验消融移除反证角色"})
-                else:tasks.append(role_task("A4",matter))
-                tasks.append(role_task("A5",matter,"实验消融条件："+request.ablation if request.ablation!="none" else ""))
+                else:
+                    tasks.append(reusable["A4"] if not changed and "A4" in reusable else role_task("A4",matter))
+                changed=changed or "A4" not in reusable
+                tasks.append(reusable["A5"] if not changed and "A5" in reusable else role_task("A5",matter,"实验消融条件："+request.ablation if request.ablation!="none" else ""))
             elif request.mode=="three_agents":
                 tasks=[role_task("A2",matter,"本对照角色同时调查财务路径、跨期事件与竞争解释。"),role_task("A5",matter)]
             else:
@@ -245,7 +299,10 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
             # 一次有具体目标的反馈调查，预算仍归同一计数器。
             if assessment and assessment.next_actions and attempts<budget.max_provider_calls and request.mode=="five_agents" and request.ablation=="none":
                 action=next((a for a in assessment.next_actions if a.target_role in {"A2","A3"}),None)
-                if action:
+                # 需要内部底稿的动作只进入资料清单；公开原件没有新线索时不重复付费补查。
+                available=search_corpus(corpus,action.question+" "+action.requested_material,limit=6)["evidence"] if action else []
+                known_ids={b.evidence_id for b in run.matter_evidence}
+                if action and any(b["evidence_id"] not in known_ids for b in available):
                     before_ids={b.evidence_id for b in run.matter_evidence}
                     before_digests={r.get("output_digest") for r in run.matter_tool_receipts if r.get("status")=="hit"}
                     tasks.append(role_task(action.target_role,matter,"定向补查任务："+action.model_dump_json()))
@@ -260,7 +317,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
             if not any(a.matter_id==matter.matter_id for a in run.matter_assessments):
                 run.matter_assessments.append(missing_assessment(matter,"综合复核未完成，见角色失败及预算记录"))
             save()
-        incomplete=any(m.investigation_status!="completed" for m in run.matters)
+        run.versions["investigation_scope"]={"selected_matter_ids":[m.matter_id for m in selected[:budget.max_matters]],
+            "pending_outside_scope":[m.matter_id for m in run.matters if m not in selected[:budget.max_matters]]}
+        incomplete=any(m.investigation_status!="completed" for m in selected[:budget.max_matters]) or not any(t.get("role")=="A1" and t.get("status")=="completed" for t in run.matter_tasks)
         prefix={"five_agents":"five_agents","three_agents":"matter_three","single_model":"matter_single"}[request.mode]
         run.model_status=prefix+("_partial" if incomplete or not run.matters else "_completed")
         progress("agent_collaboration","degraded" if incomplete else "completed",run.model_status)
@@ -273,5 +332,5 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     run.versions["budget"]={"attempts":attempts,"limit":budget.max_provider_calls,"deep_matter_limit":budget.max_matters,
                              "remaining":max(0,budget.max_provider_calls-attempts)}
     run.overview={"relation_total":0,"matter_summary":run.matter_overview}
-    save();progress("structured_output","completed","事项结果已保存，真实调用与未调查范围单列")
+    progress("structured_output","completed","事项结果已保存，真实调用与未调查范围单列");save()
     return run

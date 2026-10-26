@@ -93,6 +93,9 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             body = dict(body)
             normalized = ConnectivityRun.model_validate({k:v for k,v in body.items() if k in ConnectivityRun.model_fields})
             normalized = refresh_run_sources(root, normalized)
+            if normalized.matter_schema_version:
+                from .connectivity_assurance_planning import build_assurance_planning
+                normalized.assurance_planning=build_assurance_planning(normalized)
             body = normalized.model_dump(mode="json")
             body['overview'] = build_overview(normalized)
             body['ai_generated_content_notice'] = NOTICE
@@ -458,6 +461,9 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     return public(task(head["task_id"]), request)
                 raise HTTPException(409, "该结果已有新修订，请读取子运行后再更正")
             def save_child(row):
+                if child.matter_schema_version:
+                    from .connectivity_matters import finish_projection
+                    finish_projection(child)
                 refresh_analysis_status(child)
                 child.versions['result_origin'] = 'user_revision'
                 child.program_hints = build_program_hints(child)

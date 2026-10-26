@@ -525,6 +525,8 @@ class ConnectivityRun(Contract):
     matter_revisions: list[dict] = Field(default_factory=list)
     matter_graph: dict = Field(default_factory=dict)
     matter_overview: dict = Field(default_factory=dict)
+    assurance_planning: dict = Field(default_factory=dict)
+    assurance_planning_reviews: dict = Field(default_factory=dict)
     ai_generated_content_notice: str = NOTICE
 
 

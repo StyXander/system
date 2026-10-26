@@ -21,10 +21,16 @@ def export_matter_run(run,format_name):
     from .connectivity_delivery import _cell,_add_heading,_paragraph,_table_rows
     from .delivery import _set_run_font
     notice=run.ai_generated_content_notice
+    # 只投影保存字段，不调用模型。旧运行没有清单时也不更改历史意见。
+    from .connectivity_assurance_planning import build_assurance_planning
+    planning=run.assurance_planning or build_assurance_planning(run)
     if format_name=="csv":
         stream=StringIO(newline="");writer=csv.writer(stream)
         writer.writerow(["记录类型","运行ID","版本","事项或证据ID","保存结果JSON"])
         writer.writerow(["metadata",run.run_id,run.result_revision,"",_cell(json.dumps({"notice":notice,"report_set":run.report_set.model_dump(mode="json"),"model_status":run.model_status,"overview":run.matter_overview},ensure_ascii=False))])
+        for field in ("risk_findings","evidence_requests"):
+            for row in planning[field]:
+                writer.writerow([field,run.run_id,run.result_revision,row['entry_id'],_cell(json.dumps(row,ensure_ascii=False))])
         for field in ("matters","matter_events","matter_commitments","matter_paths","matter_relations","matter_explanations",
                       "matter_assessments","matter_evidence","matter_tasks","matter_tool_receipts","matter_revisions",
                       "matter_coverage","matter_rejections","occurrences","provider_calls","prior_provider_calls"):
@@ -44,6 +50,26 @@ def export_matter_run(run,format_name):
     _paragraph(doc,"事项、证据、时间线和意见均来自该保存版本；支持状态描述披露对具体主张的支持程度。")
     _table_rows(doc,[(label,str(run.matter_overview.get(key,0))) for label,key in
         (("事项数","matter_total"),("已深查","investigated"),("待调查","pending"),("综合意见数","assessment_count"))])
+    _paragraph(doc,planning['notice'])
+    _add_heading(doc,"风险关注点清单",1)
+    for row in planning['risk_findings']:
+        _add_heading(doc,row['matter'],2)
+        _paragraph(doc,row['reason'])
+        _paragraph(doc,f"调查优先级 {row['priority']}；工作状态 {row['review_status']}；调查状态 {row['investigation_status']}")
+        for explanation in row['alternative_explanations']:_paragraph(doc,"竞争解释："+explanation)
+        for field,title in (("evidence","现有依据"),("counter_evidence","反证")):
+            for source in row[field]:_paragraph(doc,f"{title} {source['evidence_id']}；{source['document_id']} PDF {source['pdf_page']}；{source['quote']}；{source['invalid_reason']}")
+    if not planning['risk_findings']:_paragraph(doc,"当前保存版本没有可列示关注点，不代表没有风险或已完成调查。")
+    _add_heading(doc,"资料需求清单",1)
+    for row in planning['evidence_requests']:
+        _add_heading(doc,row['requested_material'],2)
+        _paragraph(doc,"对应事项："+'；'.join(row['matters']))
+        _paragraph(doc,"待解决问题："+'；'.join(row['questions']))
+        _paragraph(doc,"取得资料后建议核查："+'；'.join(row['purposes']))
+        _paragraph(doc,"区分解释所需证据："+'；'.join(row['distinguishing_explanations']))
+        _paragraph(doc,f"调查优先级 {row['priority']}；取得状态 {row['acquisition_status']}；处理状态 {row['review_status']}；{row['responsible_person']}")
+    if not planning['evidence_requests']:_paragraph(doc,"综合复核尚未生成具体资料需求；不得据此认为资料齐备。")
+    _add_heading(doc,"逐事项调查档案",1)
     evidence={b.evidence_id:b for b in run.matter_evidence}
     for matter in run.matters:
         _add_heading(doc,matter.name,1)
@@ -57,7 +83,7 @@ def export_matter_run(run,format_name):
             _paragraph(doc,"承诺进展："+a.commitment_progress+"；财务阶段："+a.financial_stage)
             for label,items in (("假设",a.assumptions),("分歧",a.disagreements),("待补证",a.unresolved)):
                 for item in items:_paragraph(doc,label+"："+item)
-            for action in a.next_actions:_paragraph(doc,f"下一步 {action.target_role}：{action.question}；资料：{action.requested_material}；用途：{action.purpose}")
+            for action in a.next_actions:_paragraph(doc,f"项目组进一步核查：{action.question}；资料：{action.requested_material}；用途：{action.purpose}")
         if not assessments:_paragraph(doc,"当前未形成综合复核意见，候选披露不能视为已完成调查。")
         _add_heading(doc,"财务影响路径",2)
         for path in run.matter_paths:

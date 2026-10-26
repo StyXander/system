@@ -70,6 +70,14 @@ def verify_export_same_source(run: ConnectivityRun, payload: bytes) -> list[str]
         for field in ("calculation_plan", "scenario_adjustment", "narrative_test"):
             if expected.model_dump(mode="json").get(field) != actual.get(field):
                 problems.append(f"{expected.check_id}的{field}与保存结果不一致")
+    if run.matter_schema_version:
+        from .connectivity_assurance_planning import build_assurance_planning
+        expected_planning=run.assurance_planning or build_assurance_planning(run)
+        if exported.get('assurance_planning') != expected_planning:
+            problems.append('两份清单与保存事项结果不同源')
+        for field in ('matters','matter_assessments','matter_evidence','matter_paths'):
+            if exported.get(field) != [item.model_dump(mode='json') for item in getattr(run,field)]:
+                problems.append(field+'与保存事项结果不同源')
     return problems
 
 
@@ -109,6 +117,9 @@ def export_run(run: ConnectivityRun, format_name: str, include_personal: bool = 
     # 只更新展示计数定义，不重写历史计算或模型意见。
     run = run.model_copy(update={'overview': build_overview(run)})
     notice = notice_for(run.task_kind)
+    if run.matter_schema_version and not run.assurance_planning:
+        from .connectivity_assurance_planning import build_assurance_planning
+        run = run.model_copy(update={'assurance_planning': build_assurance_planning(run)})
     if run.matter_schema_version and format_name != "json":
         from .connectivity_matter_delivery import export_matter_run
         return export_matter_run(run, format_name)

@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import re
 import uuid
+import time
 
 from .connectivity_matter_schemas import MatterEvidence
 
@@ -54,16 +55,27 @@ def read_corpus(root, documents, *, cancelled=lambda: False):
     import pymupdf
     corpus, coverage = [], []
     ocr = os.getenv("CONNECTIVITY_MATTER_OCR", "false").lower() in {"true", "1"}
+    try:ocr_limit=max(0,min(100,int(os.getenv("CONNECTIVITY_MATTER_OCR_MAX_PAGES","30"))))
+    except ValueError:ocr_limit=30
     cache = root / "backend/runtime/connectivity/matter_index"
     cache.mkdir(parents=True, exist_ok=True)
     for doc in documents:
         if cancelled():
             raise InterruptedError("事项解析已取消")
+        document_started=time.perf_counter()
         path = ensure_source(root, doc)
-        target = cache / f"{doc.file_sha256}-{INDEX_VERSION}-ocr{int(ocr)}.json"
+        source_ms=round((time.perf_counter()-document_started)*1000)
+        target = cache / f"{doc.file_sha256}-{INDEX_VERSION}-ocr{int(ocr)}-limit{ocr_limit}.json"
+        cache_hit=False
+        record=None
         if target.exists():
-            record = json.loads(target.read_text(encoding="utf-8"))
-        else:
+            try:
+                record=json.loads(target.read_text(encoding="utf-8"))
+                if not isinstance(record.get('blocks'),list) or not isinstance(record.get('coverage'),dict):record=None
+                cache_hit=record is not None
+            except (ValueError,OSError):
+                record=None
+        if record is None:
             blocks, failed, scanned = [], [], []
             section = ""
             with PDF_ACCESS_LOCK, pymupdf.open(path) as pdf:
@@ -75,14 +87,14 @@ def read_corpus(root, documents, *, cancelled=lambda: False):
                     raw = page.get_text("blocks")
                     if len("".join(str(b[4]) for b in raw if len(b) > 6 and b[6] == 0).strip()) < 20:
                         scanned.append(number)
-                        if ocr:
+                        if ocr and len(scanned)<=ocr_limit:
                             try:
                                 textpage = page.get_textpage_ocr(language="chi_sim+eng", full=True)
                                 raw, method = page.get_text("blocks", textpage=textpage), "ocr"
                             except RuntimeError as error:
                                 failed.append({"page": number, "reason": "OCR不可用：" + type(error).__name__})
                         else:
-                            failed.append({"page": number, "reason": "文字层不足，OCR未启用"})
+                            failed.append({"page": number, "reason": "文字层不足，OCR未启用或已达到本次页数边界"})
                     for block in raw:
                         if len(block) <= 6 or block[6] != 0:
                             continue
@@ -104,7 +116,8 @@ def read_corpus(root, documents, *, cancelled=lambda: False):
             temporary = target.with_suffix("." + uuid.uuid4().hex + ".tmp")
             temporary.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
             temporary.replace(target)
-        cov = dict(record["coverage"], document_id=doc.document_id)
+        cov = dict(record["coverage"], document_id=doc.document_id, cache_hit=cache_hit,
+                   source_verification_ms=source_ms, duration_ms=round((time.perf_counter()-document_started)*1000))
         coverage.append(cov)
         begin=len(corpus)
         for block in record["blocks"]:

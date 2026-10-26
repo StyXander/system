@@ -118,7 +118,7 @@ def discover_pair(root: Path, ticker: str, year: int) -> dict:
     key = (str(root.resolve()), ticker, year)
     with _lock:
         cached = _metadata_cache.get(key)
-        if cached and time.monotonic() - cached[0] < 600:
+        if cached and time.monotonic() - cached[0] < (600 if cached[1].get("state")=="paired" else 90):
             return json.loads(json.dumps(cached[1]))
         if key in _inflight or len(_inflight) >= 2:
             raise CNInfoError('DISCOVERY_BUSY', '官方双报告查询正在进行，请稍后重试。')
@@ -236,8 +236,9 @@ def prepare_pair(root: Path, discovered: dict, *, industry: str = '待核行业'
                 types = ('年度报告', '年报') if kind == 'AR' else ('可持续发展', 'ESG', '社会责任', '环境、社会', '环境社会')
                 if not any(t in heading for t in types):
                     raise ValueError(f'{kind} 正文报告性质未确认')
-                if sum(n > 40 for n in page_characters) / len(pdf) < .7:
-                    raise ValueError('可读文本覆盖不足 70%，需要 OCR，未标为完整解析')
+                readability = sum(n > 40 for n in page_characters) / len(pdf)
+                if readability < .7 and not allow_partial:
+                    raise ValueError('NEEDS_OCR：可读文本覆盖不足70%，可改用多年资料有限调查；未标为完整解析')
                 pages = len(pdf)
                 if kind == 'AR':
                     # ESG 有时只写法定全称。仅从已验证年报封面前三页提取同简称的法定名称。
@@ -250,6 +251,8 @@ def prepare_pair(root: Path, discovered: dict, *, industry: str = '待核行业'
                             if len(core) >= 2 and core in name)
                 scope = [t[:500] for t in texts if re.search('范围|边界|合并|本报告', t)][:3]
                 inspections[kind] = {'pages_read': pages, 'text_pages': sum(n > 40 for n in page_characters),
+                    'parse_status': 'partial_readable' if readability < .7 else 'complete',
+                    'needs_ocr_pages': [i+1 for i,n in enumerate(page_characters) if n<=40],
                     'identity_verified': True, 'report_type_verified': True, 'scope_evidence': scope,
                     'period_evidence': period_declaration.group(0) if period_declaration else f'封面前三页明确包含 {year} 报告年度',
                     'boundary_status': 'report_scope_recorded_metric_scope_requires_pipeline',
@@ -273,10 +276,11 @@ def prepare_pair(root: Path, discovered: dict, *, industry: str = '待核行业'
                 'retrieved_at': datetime.now(timezone.utc).isoformat(), 'compilation_basis': '待指标核验阶段从原文核对',
                 'pages': pages, 'file_sha256': digest, 'available': True})
             cache_document(root, documents[-1])
-        if len(documents) < 2 and allow_partial:
+        limited_readability=any(item.get('parse_status')=='partial_readable' for item in inspections.values())
+        if allow_partial and (len(documents) < 2 or limited_readability):
             for document in documents:
                 document['case_id'] = 'CONNDOC-' + document['document_id']
-            return {'documents': documents, 'inspection': inspections, 'state': 'partial',
+            return {'documents': documents, 'inspection': inspections, 'state': 'partial_readable' if limited_readability else 'documents_partial',
                 'missing': discovered.get('missing', []), 'period': year, 'company_id': company['ticker']}
         identity = hashlib.sha256('|'.join(d['file_sha256'] for d in sorted(documents, key=lambda d: d['report_type'])).encode()).hexdigest()[:16]
         pair_id = f"CONNPAIR-{company['ticker']}-{year}-{identity}"

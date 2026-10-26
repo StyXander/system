@@ -313,24 +313,54 @@ def build_catalog_router(root: Path) -> APIRouter:
         def execute(item):
             documents = []
             gaps = []
+            events=[]
+            def save_progress(year, status, message):
+                from .connectivity_schemas import now_iso
+                events.append({'year':year,'status':status,'message':message,'updated_at':now_iso()})
+                store.update_task(item['task_id'], result={'import_progress':events[-1], 'import_events':list(events),
+                    'documents':[d.model_dump(mode='json') for d in documents], 'coverage_gaps':list(gaps),'model_status':'not_run'})
             for year in years:
-                discovered = discover_pair(root, body.ticker, year)
+                save_progress(year,'source_candidates','正在查询官方公告；此前年度资料保留')
+                try:
+                    discovered = discover_pair(root, body.ticker, year)
+                except CNInfoError as error:
+                    # 主体与参数错误仍是硬门禁；仅官方临时失败不取消其他年份。
+                    if any(marker in error.code for marker in ('TIMEOUT','NETWORK','HTTP','RATE','BUSY','UNAVAILABLE')):
+                        gaps.append(f'{year}年官方源暂不可达（{error.code}），不代表企业未披露')
+                        save_progress(year,'source_unavailable',gaps[-1]);continue
+                    raise
                 if not discovered.get('query_complete'):
-                    raise ValueError(f'{year}年官方查询不完整，未选择任意首个候选')
+                    gaps.append(f'{year}年官方查询被截断，需补查后再纳入')
+                    save_progress(year,'source_unavailable',gaps[-1]);continue
                 if not discovered.get('annual') and not discovered.get('sustainability'):
-                    gaps.append(f'{year}年未查到报告候选')
-                    continue
-                prepared = prepare_pair(root, discovered, allow_partial=True)
-                documents.extend(ReportDocument.model_validate(d) for d in prepared['documents'])
-                gaps.extend(f'{year}年缺少{kind}' for kind in discovered.get('missing', []))
-                store.update_task(item['task_id'], result={'import_progress': {'year': year, 'documents': len(documents)}, 'coverage_gaps': gaps})
+                    gaps.append(f'{year}年本次查询未检索到报告候选，不等于企业未披露')
+                    save_progress(year,'unsupported_or_missing',gaps[-1]);continue
+                prepared = prepare_pair(root, discovered, allow_partial=True,
+                    progress=lambda stage,status,message:save_progress(year,stage,message))
+                candidates=[ReportDocument.model_validate(d) for d in prepared['documents']]
+                from .disclosure_dates import document_date_issue
+                for document in candidates:
+                    issue=document_date_issue(document,china_today())
+                    if issue:
+                        gaps.append(f"{document.document_id}：{issue['code']}；{issue['message']}")
+                    else:documents.append(document)
+                gaps.extend(f'{year}年本次资料缺少{kind}' for kind in discovered.get('missing', []))
+                if prepared.get('state')=='partial_readable':
+                    gaps.append(f'{year}年部分页面需OCR，仅对可读证据有限调查')
+                # 每年立即保存合格资料集合，下一年硬错误也不会丢失已核实年度。
+                if documents:
+                    from .connectivity_report_sets import canonical_documents, make_report_set, save_report_set
+                    partial_docs=canonical_documents(documents)
+                    partial_set=make_report_set(partial_docs,china_today())
+                    save_report_set(root,partial_set,partial_docs)
+                save_progress(year,'needs_ocr' if prepared.get('state')=='partial_readable' else 'documents_partial' if discovered.get('missing') else 'documents_ready',f'{year}年已保存{len(candidates)}份原件；本次累计{len(documents)}份日期合格资料')
             if not documents:
                 raise ValueError('所选年度没有通过原件核验的资料')
             from .connectivity_report_sets import canonical_documents, make_report_set, save_report_set
             documents = canonical_documents(documents)
             report_set = make_report_set(documents, china_today())
             save_report_set(root, report_set, documents)
-            store.update_task(item['task_id'], status='completed', result={'report_set': report_set.model_dump(mode='json'), 'coverage_gaps': gaps, 'model_status': 'not_run'})
+            store.update_task(item['task_id'], status='completed', result={'report_set': report_set.model_dump(mode='json'), 'coverage_gaps': gaps, 'import_events':events,'model_status': 'not_run'})
         with pending_lock:
             for key in list(pending):
                 row=store.get(key)

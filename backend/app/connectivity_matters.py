@@ -104,7 +104,8 @@ def apply_identification(run, proposals):
             run.matter_rejections.append({"role":"A1","reason":"重复事项身份建议","name":proposal.name});continue
         identified.append(SustainabilityMatter(matter_id=key,company_id=refs[0].company_id,name=proposal.name,
             matter_type=proposal.matter_type,subject=proposal.subject,location=proposal.location,aliases=proposal.aliases,
-            identity_status="evidence_linked",identity_basis=proposal.identity_basis,evidence_ids=proposal.evidence_ids))
+            identity_status="evidence_linked",identity_basis=proposal.identity_basis,evidence_ids=proposal.evidence_ids,
+            lineage=[m.matter_id for m in run.matters if set(m.evidence_ids)<=set(proposal.evidence_ids)]))
         used.update(proposal.evidence_ids)
     if identified:
         # 未归并候选保留，不能通过删除未调查资料改善覆盖数字。
@@ -267,6 +268,9 @@ def finish_projection(run):
         "assessment_count":len(assessed),"supported_paths":sum(p.support=="supported" for p in run.matter_paths),
         "unresolved":sum(len(a.unresolved) for a in assessed.values()),"indexed_blocks":sum(c.get("indexed_blocks",0) for c in run.matter_coverage),
         "notice":"关联状态描述公开材料对具体主张的支持程度，不构成会计确认或鉴证结论"}
+
+    from .connectivity_assurance_planning import build_assurance_planning
+    run.assurance_planning=build_assurance_planning(run)
 
 
 def missing_assessment(matter, reason):

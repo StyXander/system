@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-ui-version="2026.10.26.green.1">
+<html lang="zh-CN" data-ui-version="2026.10.27.planning.1">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,9 +14,9 @@
   <script src="/assets/official-v4/connectivity-status.js?v=2026.10.21.1" defer></script>
   <script src="/assets/official-v4/connectivity-view-model.js?v=2026.10.23.10" defer></script>
   <script src="/assets/official-v4/connectivity-workbench.js?v=2026.10.23.10" defer></script>
-  <script src="/assets/official-v4/connectivity-matters.js?v=2026.10.26.2" defer></script>
-  <script src="/assets/official-v4/connectivity.js?v=2026.10.26.1" defer></script>
-  <script src="/assets/official-v4/connectivity-shell.js?v=2026.10.26.green.1" defer></script>
+  <script src="/assets/official-v4/connectivity-matters.js?v=2026.10.27.planning.1" defer></script>
+  <script src="/assets/official-v4/connectivity.js?v=2026.10.27.planning.1" defer></script>
+  <script src="/assets/official-v4/connectivity-shell.js?v=2026.10.27.planning.1" defer></script>
   <link rel="stylesheet" href="/assets/official-v4/redesign-home.css?v=2026.10.26.green.1">
   <link rel="stylesheet" href="/assets/official-v4/archive-workbench.css?v=2026.10.26.green.1">
   <link rel="stylesheet" href="/assets/official-v4/botanical-matters.css?v=2026.10.26.green.1">
@@ -52,8 +52,8 @@
     <div class="kicker">跨年度报告 · 可持续事项 · 财务影响追踪</div>
     <h1 class="mega" aria-label="审迹智链"><span class="ghost" aria-hidden="true">审迹智链</span>审迹智链</h1>
     <div class="title-row"><i class="rule"></i><span>AUDITTRACE</span><i class="rule"></i></div>
-    <p class="hero-sub hero-sub-lead">从一项可持续行动出发，追踪承诺、投入与财务影响。</p>
-    <p class="hero-sub hero-sub-detail">年度报告 × 可持续发展报告 · 五Agent协作 · 每个判断回到原文</p>
+    <p class="hero-sub hero-sub-lead">为可持续信息鉴证项目组，开展前期跨报告风险调查。</p>
+    <p class="hero-sub hero-sub-detail">详细鉴证程序前 · 五Agent追踪事项与跨期证据 · 输出关注点和资料需求</p>
     <div class="hero-actions">
       <a class="hero-cta" href="#connectivity-root" data-enter-connectivity>进入可持续事项工作台 ↗</a>
       <a class="hero-sample" id="hero-sample" href="#connectivity-root" hidden>查看一条真实核验记录</a>
@@ -112,7 +112,7 @@
     <a class="cn-skip" href="#cn-workspace">跳到关联核对工作台</a>
     <header class="cn-header"><a href="#top" class="cn-brand" data-home>审迹智链 <span>AUDITTRACE</span></a><nav aria-label="工作台导航"><button type="button" data-at-view="workflow">分析工作台</button><button type="button" data-at-view="history">历史真实任务</button><button type="button" data-at-view="method">方法与边界</button><a href="#top" data-home>返回首页 ↗</a></nav></header>
     <main id="cn-workspace" tabindex="-1">
-      <section class="cn-intro" aria-labelledby="cn-title"><p class="cn-eyebrow">ANNUAL REPORT × SUSTAINABILITY REPORT</p><h1 id="cn-title">看清数字之间的关系。</h1><p>帮助股东、投资者与环保组织，核对年报和可持续发展报告中的投入、构成与指标口径。<br>AI识别关联并提出解释，程序复算；条件不完整时，继续给出带假设的分析。</p><div class="cn-principles"><span>01 比较前提有出处</span><span>02 关系计算可追溯</span><span>03 差异解释留余项</span></div></section>
+      <section class="cn-intro" aria-labelledby="cn-title"><p class="cn-eyebrow">ANNUAL REPORT × SUSTAINABILITY REPORT</p><h1 id="cn-title">看清数字之间的关系。</h1><p>面向可持续信息鉴证项目组，在详细鉴证程序前整理事项、财务影响线索和跨期变化。<br>生成可回查的风险关注点与资料需求清单，支持项目组安排进一步核查。</p><div class="cn-principles"><span>01 比较前提有出处</span><span>02 关系计算可追溯</span><span>03 差异解释留余项</span></div></section>
       <section class="cn-start" aria-label="选择报告并运行"><div id="cn-company-selector" class="cn-company-selector"><h2>选择或搜索企业</h2><details id="cn-company-login" hidden><summary>登录以接入新报告或启动真实模型</summary><form id="cn-company-login-form"><label>组织账号邮箱<input id="cn-company-email" type="email" autocomplete="username" required maxlength="254"></label><label>密码<input id="cn-company-password" type="password" autocomplete="current-password" required></label><button type="submit">登录</button><button type="button" id="cn-company-logout">退出登录</button><p id="cn-company-auth-status" role="status">使用现有 Supabase 组织账号；密码不会进入报告或分析记录。</p></form></details><form id="cn-company-search" class="cn-company-search"><label for="cn-company-query">搜索企业名称、简称、证券代码或拼音</label><div><input id="cn-company-query" type="search" maxlength="120" autocomplete="off" placeholder="例如：紫金矿业 / 601899"><button type="submit">搜索企业</button></div></form><p id="cn-company-status" role="status" aria-live="polite">正在读取企业目录…</p><div id="cn-company-results" class="cn-company-results"></div><details id="cn-company-confirmed" open hidden><summary id="cn-company-name">已确认企业</summary><div id="cn-company-existing"></div><label>报告年度<select id="cn-company-report-year"></select></label><button type="button" id="cn-company-find-reports">查询该年度双报告</button><div id="cn-company-reports"></div></details><div class="cn-company-filters"><label>行业<select id="cn-company-industry"><option value="">全部行业</option></select></label><label>年度<select id="cn-company-year-filter"><option value="">全部年度</option></select></label><label>原件状态<select id="cn-company-state"><option value="">全部状态</option><option value="ready">已验证可运行</option><option value="paired">资料已配对、待处理</option><option value="partial">部分资料可用</option></select></label></div><p id="cn-company-storage"></p><div id="cn-company-cards" class="cn-company-cards"></div></div><form id="cn-form"><div class="cn-form-row"><label>公司与报告期间<select aria-label="公司与报告期间" id="cn-pair" required><option value="">正在读取登记报告…</option></select></label><label>运行方式<select aria-label="运行方式" id="cn-mode"><option value="five_agents">可持续事项调查 · 五Agent（推荐）</option><option value="three_agents">三Agent对照 / 原三角色核对</option><option value="adaptive_agents">自适应智能体调查（实验模式）</option><option value="calculation_only">程序核验（离线/测试模式）</option><option value="single_model">单模型基线对照（实验模式）</option></select></label><button type="submit" id="cn-run" class="cn-primary" disabled>开始关联核对 <span aria-hidden="true">↗</span></button></div><fieldset class="cn-topics"><legend>本次关注事项</legend><label><input type="checkbox" name="topic" value="research" checked>研发投入</label><label><input type="checkbox" name="topic" value="environment" checked>环保投入</label><label><input type="checkbox" name="topic" value="intensity" checked>强度与分母</label></fieldset></form><div id="cn-documents" class="cn-documents"></div></section>
       <div id="cn-message" class="cn-message" role="status" aria-live="polite">选择同公司、同期间的两份报告，开始定位原文。</div>
       <section id="cn-stagebar" class="cn-stagebar" aria-label="核验阶段进度" hidden><h2 id="cn-stage-toggle">运行阶段与记录</h2><ol id="cn-stagebar-list"></ol><p id="cn-stagebar-note"></p><details id="cn-progress" class="cn-run-record"><summary id="cn-progress-summary">运行记录与取消</summary><p id="cn-progress-state"></p><div id="cn-progress-details"></div><button id="cn-cancel" type="button">取消尚未开始的模型调用</button></details></section>
@@ -179,7 +179,7 @@
         <footer class="cn-reader-foot"><button type="button" id="cn-reader-prev">← 上一页</button><span id="cn-reader-note"></span><button type="button" id="cn-reader-next">下一页 →</button></footer>
       </div>
 
-      <details class="cn-about"><summary>方法、使用群体与边界</summary><p>股东与投资者可查看投入构成及跨报告衔接；环保组织可查看环保投入、强度分母与统计范围；专业人员可展开完整核对记录。切换阅读视角不会改变事实、计算和未决条件。</p><p>六类规则：同值、研发组成、环保组成、比例与强度、多位置关联、叙述解释。企业报告证明具体关系，程序负责计算，三角色查找依据及反证。数字相近不能证明口径一致，找到解释也不会自动消除尚未说明的余差。</p><p id="cn-notice"></p></details>
+      <details class="cn-about"><summary>方法、使用群体与边界</summary><p>主要用于可持续信息鉴证项目组接受委托后的准备与风险识别。输出是后续核查线索和资料要求，不是自动鉴证意见。</p><p>六类规则：同值、研发组成、环保组成、比例与强度、多位置关联、叙述解释。企业原文提供可回查依据，五Agent围绕事项分工调查、质疑和复核；原数值核对仍由程序执行。数字相近不能证明口径一致，找到解释也不会自动消除尚未说明的余差。</p><p id="cn-notice"></p></details>
     </main><footer class="cn-footer">审迹智链 · 每个判断，回到原文。<span>公开报告阅读与研究工具</span></footer>
     <dialog id="cn-correction"><form id="cn-correction-form"><div class="cn-dialog-head"><h2>更正当前关系</h2><button id="cn-close-correction" type="button" aria-label="关闭更正窗口">关闭</button></div><p>更正依据须来自本次原文。原始自动结果保留，更正后生成子运行；修改不等于正式专业批准。</p><div id="cn-correction-impact" class="cn-impact"></div><div id="cn-correction-fields"></div><label>更正理由<textarea id="cn-correction-reason" required minlength="3" rows="3"></textarea></label><button class="cn-primary" type="submit">保存依据并重新计算</button><p id="cn-correction-message" role="status"></p></form></dialog>
   </div>
