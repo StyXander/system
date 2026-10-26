@@ -20,9 +20,9 @@
     $('cn-fourq').innerHTML = `<div class="at-verdict-meta"><span>分析研判 / DISCLOSURE INSIGHTS</span>${chip(VM.provenance(task,started.has(task.task_id)))}</div>
       <h2 class="at-main-verdict" id="at-main-verdict">${esc(model.sentence)}</h2>
       <p class="at-verdict-boundary">披露关系有证据支持，仍不等于已证明财务因果影响。程序结论与 AI 意见分别保留。</p>
-      <div class="at-findings-grid"><section><span>01 / 关联发现</span><strong><b class="at-summary-number">${model.covered.length}</b> 项双报告证据路径</strong><p>${model.supported.length ? `${model.supported.length} 项达到已支持的披露关系条件。` : '尚无达到全部条件的已支持披露关系。'}点击路径查看实际报告项目。</p></section>
+      <div class="at-findings-grid"><section><span>01 / 关联发现</span><strong>${model.covered.length} 项双报告证据路径</strong><p>${model.supported.length ? `${model.supported.length} 项达到已支持的披露关系条件。` : '尚无达到全部条件的已支持披露关系。'}点击路径查看实际报告项目。</p></section>
       <section><span>02 / 优先核查</span><strong>${model.priorities.length ? model.priorities.length+' 项优先事项' : '未登记高优先级事项'}</strong><p>沿用程序 / 模型登记的优先级，并纳入程序差异；不自造风险评分。</p></section>
-      <section><span>03 / 证据缺口</span><strong><b class="at-summary-number">${model.gaps.length}</b> 项需补充依据</strong><p>报告单侧定位、缺失比较前提分别展示；缺口不记为核验成功。</p></section></div>`;
+      <section><span>03 / 证据缺口</span><strong>${model.gaps.length} 项需补充依据</strong><p>报告单侧定位、缺失比较前提分别展示；缺口不记为核验成功。</p></section></div>`;
     $('cn-nextq').innerHTML = `<section class="at-graph-section" aria-labelledby="at-graph-title"><header class="at-section-head"><div><p class="at-eyebrow">SUSTAINABILITY → FINANCIAL DISCLOSURES</p><h2 id="at-graph-title">可持续信息—财务影响穿透图</h2></div><span>选择事项，再点击路径节点回查依据</span></header>
       <div class="at-legend">${Object.entries(edgeLabels).map(([key,text])=>`<span data-edge="${key}"><i></i>${text}</span>`).join('')}</div>
       <div id="at-paths" class="at-paths" role="group" aria-label="选择完整关联路径">${model.paths.map(p=>`<button type="button" data-path="${esc(p.id)}" aria-pressed="${p.id===selected}"><strong>${esc(p.check.title)}</strong><small>${esc(p.level.label)} · ${p.both?'双报告证据':'单侧 / 未定位'}</small></button>`).join('')}</div>
