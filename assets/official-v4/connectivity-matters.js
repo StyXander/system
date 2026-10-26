@@ -120,7 +120,7 @@
     loadDocuments().catch(e=>{$('cm-documents').textContent=e.message;});
   }
   if(typeof document!=='undefined'){
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+    if(document.readyState==='loading'&&!document.getElementById('cn-form'))document.addEventListener('DOMContentLoaded',init,{once:true});
     else init();
   }
   return{project,render,prepareRequest,activateLegacy,labels};
