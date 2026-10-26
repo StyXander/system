@@ -31,7 +31,8 @@
   const $=id=>document.getElementById(id);
   async function api(path,options={}){
     const response=await fetch('/api/connectivity'+path,{credentials:'same-origin',...options,headers:{'Content-Type':'application/json',...options.headers}});
-    const data=await response.json();if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail));return data;
+    const data=await response.json().catch(()=>({detail:'服务未返回可读取结果'}));
+    if(!response.ok){const detail=data.detail,error=new Error(typeof detail==='string'?detail:(detail?.message||'请求未完成')+(detail?.documents||[]).map(d=>`；${d.company||''} ${d.period||''} ${d.report_type||''}（${d.document_id}）：${d.message||''}`).join(''));error.status=response.status;error.code=detail?.code;error.documents=detail?.documents;error.preflight=path==='/report-sets';throw error;}return data;
   }
   function refs(ids,run){return(ids||[]).map(id=>{const b=(run.matter_evidence||[]).find(e=>e.evidence_id===id);return b?`<a href="/api/connectivity/sources/${encodeURIComponent(b.document_id)}?page=${b.pdf_page}" target="_blank" rel="noopener">${esc(b.report_period)} ${esc(b.report_type)} PDF ${b.pdf_page} ↗</a>`:'';}).join(' · ');}
   function list(values){return values?.length?`<ul>${values.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:'<p class="cm-muted">当前没有保存的记录。</p>';}
@@ -78,8 +79,23 @@
     const pair=$('cn-pair')?.value,selectedDoc=documents.find(d=>d.case_id===pair),company=selectedDoc?.company_id;
     choicesCompany=company;
     const seen=new Set(),docs=documents.filter(d=>!company||d.company_id===company).sort((a,b)=>String(b.disclosure_date).localeCompare(String(a.disclosure_date))).filter(d=>{const k=[d.company_id,d.report_type,d.period,d.file_sha256].join('|');if(seen.has(k))return false;seen.add(k);return true;});
+    const asOf=$('cm-as-of')?.value||'',groups=new Map();
+    docs.forEach(d=>{const key=(d.report_period||d.period)+d.report_type;if(!groups.has(key))groups.set(key,new Set());groups.get(key).add(d.file_sha256);});
+    function issue(d){
+      const raw=String(d.disclosure_date||'').trim();if(!raw)return '发布日期未登记｜需补齐或取消选择';
+      const match=raw.match(/^(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})日?$/);
+      if(!match)return '发布日期待核验';
+      const iso=`${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}`,parsed=new Date(iso+'T00:00:00Z');
+      if(Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==iso)return '发布日期无效';
+      if(iso>asOf)return '发布日晚于观察时点';
+      if(!/^[a-fA-F0-9]{64}$/.test(d.file_sha256||'')||!['official','announcement_mirror'].includes(d.source_kind))return '来源身份待核验';
+      if(groups.get((d.report_period||d.period)+d.report_type).size>1)return '同年度存在不同版本｜请明确选一份';
+      return '';
+    }
     const defaults=new Set();
-    $('cm-documents').innerHTML=docs.map(d=>{const k=d.period+d.report_type;const checked=!defaults.has(k);defaults.add(k);return`<label><input type="checkbox" value="${esc(d.document_id)}" ${checked?'checked':''}>${esc(d.company)} · ${esc(d.report_period||d.period)} ${esc(d.report_type)} · ${esc(d.version)}</label>`;}).join('')||'<p>没有已登记的资料。</p>';
+    $('cm-documents').innerHTML=docs.map(d=>{const reason=issue(d),k=(d.report_period||d.period)+d.report_type,checked=!reason&&!defaults.has(k);if(checked)defaults.add(k);return`<label><input type="checkbox" value="${esc(d.document_id)}" ${checked?'checked':''}>${esc(d.company)} · ${esc(d.report_period||d.period)} ${esc(d.report_type)} · ${esc(d.version)} · ${esc(reason||d.disclosure_date)}</label>`;}).join('')||'<p>没有已登记的资料。</p>';
+    if(docs.some(issue))$('cm-documents').insertAdjacentHTML('beforeend','<p>待核资料仍保留在列表中，未默认纳入。本次可继续使用其余已勾选的合格年度；有版本冲突时请明确选择一份。</p><button type="button" id="cm-use-qualified">仅保留合格资料</button>');
+    $('cm-use-qualified')?.addEventListener('click',()=>{document.querySelectorAll('#cm-documents input').forEach(n=>{if(issue(docs.find(d=>d.document_id===n.value)))n.checked=false;});});
   }
   async function prepareRequest(body){
     if(body.retry_of_task_id&&task?.result?.report_set){delete body.pair_id;body.report_set_id=task.result.report_set.report_set_id;body.analysis_scope='matter_connectivity';return body;}
@@ -102,7 +118,7 @@
     $('cn-form').after(setup);$('cm-refresh-docs').addEventListener('click',()=>loadDocuments().catch(e=>{$('cm-documents').textContent=e.message;}));
     const scopeChanged=()=>{const active=$('cn-mode').value==='five_agents'||($('cm-matter-scope').checked&&$('cn-mode').value!=='adaptive_agents');document.querySelector('.cn-topics').hidden=active;$('cm-matter-types').hidden=!active;};
     $('cm-matter-scope').addEventListener('change',scopeChanged);$('cn-mode').addEventListener('change',scopeChanged);scopeChanged();
-    $('cn-pair').addEventListener('change',drawDocumentChoices);
+    $('cn-pair').addEventListener('change',drawDocumentChoices);$('cm-as-of').addEventListener('change',drawDocumentChoices);
     document.addEventListener('audittrace:connectivity-ready',e=>{if(e.detail?.matter_enabled===false){setup.hidden=true;$('cm-matter-scope').checked=false;const option=$('cn-mode').querySelector('[value=five_agents]');if(option)option.disabled=true;scopeChanged();}drawDocumentChoices();});
     document.addEventListener('audittrace:select-pair',()=>setTimeout(()=>loadDocuments().catch(()=>{}),0));
     document.addEventListener('audittrace:connectivity-task',e=>{if(e.detail.result?.matter_schema_version){task=e.detail;const c=$('cn-collaboration');if(c)c.innerHTML=collaborationHtml(task.result);}});

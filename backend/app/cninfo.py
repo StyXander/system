@@ -167,16 +167,11 @@ def _timestamp_date(value: int | float | str) -> str:
 def _date_from_value(value: Any) -> str:
     """把公告秒/毫秒时间戳或日期文本转换为 ISO 日期。"""
 
-    if isinstance(value, (int, float)):
-        return _timestamp_date(value)
-    text = _safe_text(value)
-    # 巨潮有时把毫秒时间戳序列化为字符串；不能把它当成普通日期文本丢弃。
-    if re.fullmatch(r"\d{10,}", text):
-        return _timestamp_date(text)
-    match = re.search(r"20\d{2}[-/]\d{1,2}[-/]\d{1,2}", text)
-    if not match:
-        return text[:10] if re.match(r"^20\d{2}-\d{2}-\d{2}", text) else ""
-    return match.group(0).replace("/", "-")
+    from .disclosure_dates import normalize_disclosure_date
+    try:
+        return normalize_disclosure_date(value)
+    except ValueError:
+        return ""
 
 
 def _report_year_from_title(title: str) -> int | None:

@@ -12,6 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from app.connectivity_schemas import ReportDocument
+from app.disclosure_dates import normalize_disclosure_date
 
 
 def register() -> dict:
@@ -21,6 +22,10 @@ def register() -> dict:
     target.mkdir(parents=True, exist_ok=True)
     rows = json.loads((library / "报告登记.json").read_text(encoding="utf-8"))["reports"]
     documents = []
+    # 只复用已经人工核实的元数据；缺失值保持待核，不从URL或系统日期推算。
+    existing_path = ROOT / "backend/connectivity_reports.json"
+    existing = {d['document_id']: d for d in json.loads(existing_path.read_text())['documents']} if existing_path.exists() else {}
+
     for row in rows:
         if row.get("type") not in {"AR", "ESG"} or row.get("role") != "配对主版本":
             continue
@@ -35,7 +40,7 @@ def register() -> dict:
         doc = ReportDocument(document_id=f"{row['id']}_{row['report_year']}", case_id=pair_id,
             company_id=row["code"], company=row["company"], report_type=row["type"], period=str(row["report_year"]),
             version=row.get("version_note", row.get("name", "登记公开版本")), source_url=row["url"],
-            disclosure_date=row.get("disclosure_date", ""), retrieved_at=row.get("retrieved_at", ""),
+            disclosure_date=normalize_disclosure_date(row.get("disclosure_date")), retrieved_at=row.get("retrieved_at", ""),
             compilation_basis=json.dumps(row.get("standard_declaration", row.get("accounting_basis", "待从原文核对")), ensure_ascii=False),
             pages=row.get("pages", 0), file_sha256=digest, available=True)
         documents.append(doc.model_dump())
@@ -59,10 +64,15 @@ def register() -> dict:
             pages = len(pdf)
         documents.append(ReportDocument(document_id=identity, case_id="600019-2024", company_id="600019",
             company="宝钢股份", report_type=kind, period="2024", source_url=url, source_kind=source_kind,
+            disclosure_date=normalize_disclosure_date(existing.get(identity, {}).get("disclosure_date")),
             version="2024年度公告原件" if source_kind == "official" else "2024年度公告镜像，未冒充官方字节副本",
             pages=pages, file_sha256=digest, available=True).model_dump())
     manifest = {"schema_version": "connectivity_sources_v1", "documents": documents}
     path = ROOT / "backend/connectivity_reports.json"
+    if path.exists():
+        backup = path.with_suffix('.json.pre-registration.bak')
+        if not backup.exists():
+            shutil.copy2(path, backup)
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"documents": len(documents), "pairs": len({d['case_id'] for d in documents}), "manifest": str(path)}, ensure_ascii=False))
     return manifest

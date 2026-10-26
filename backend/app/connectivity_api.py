@@ -143,7 +143,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         try:
             return create_report_set(root, body).model_dump(mode="json")
         except ValueError as error:
-            raise HTTPException(422, str(error)) from error
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
 
     @router.get("/readiness")
     def readiness(pair_id: str | None = None):
@@ -176,7 +176,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             try:
                 resolve_documents(root, body)
             except ValueError as error:
-                raise HTTPException(422, str(error)) from error
+                raise HTTPException(422, getattr(error, "detail", str(error))) from error
         elif body.pair_id not in {d.case_id for d in load_registry(root)}:
             raise HTTPException(404, "报告对未登记")
         runtime = store()
@@ -334,7 +334,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         try:
             revise_matters(child, body)
         except ValueError as error:
-            raise HTTPException(422, str(error)) from error
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
         child.parent_run_id = run.run_id
         child.run_id = "CONN-" + uuid.uuid4().hex[:16].upper()
         child.result_revision += 1
@@ -350,7 +350,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         try:
             return reconcile_matter(run, body)
         except ValueError as error:
-            raise HTTPException(422, str(error)) from error
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
 
     @router.get("/runs/{task_id}/scenario")
     def scenario(task_id: str, request: Request, price: str = Query(..., max_length=24), usage: str = Query(..., max_length=24)):
@@ -361,7 +361,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         try:
             computed = recalculate_scenario(run.financial_scenario, price, usage)
         except ValueError as error:
-            raise HTTPException(422, str(error)) from error
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
         return {"run_id": run.run_id, "result_revision": run.result_revision, "scenario": computed}
 
     @router.post("/runs/{task_id}/corrections")
@@ -375,7 +375,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         try:
             validated = calculate(body.check, run.occurrences)
         except ValueError as error:
-            raise HTTPException(422, str(error)) from error
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
         # 引用校验不通过时不能把更正标成有依据的人工确认。
         if any("引用" in gap or "有效原文" in gap for gap in validated.unresolved):
             raise HTTPException(422, "更正所用依据未能在本次原文核实")
@@ -492,7 +492,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             try:
                 run.financial_scenario = recalculate_scenario(run.financial_scenario, scenario_price, scenario_usage)
             except ValueError as error:
-                raise HTTPException(422, str(error)) from error
+                raise HTTPException(422, getattr(error, "detail", str(error))) from error
         from .connectivity_delivery import export_run, verify_export_same_source
         payload, mime = export_run(run, format_name, include_personal=include_personal)
         if format_name == "json":

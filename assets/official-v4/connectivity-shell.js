@@ -134,7 +134,7 @@
       $('cn-stagebar').hidden=true;
       window.AuditTraceWorkbench.reset();
     }
-    target.innerHTML=detail?`<h3 id="cn-task-error-title">${esc(({expired:'任务已过期或不存在',forbidden:'当前浏览器无法读取',failed:'分析失败',unavailable:'服务暂时不可用'})[detail.status] || '任务未完成')}</h3><p>${esc(detail.message || detail.error || '服务端未返回可用结果。')}</p><p>没有分析结果，不代表零异常。</p><button type="button" data-at-stage="1">返回选择报告</button>`:'';
+    target.innerHTML=detail?`<h3 id="cn-task-error-title">${esc(({expired:'任务已过期或不存在',forbidden:'当前浏览器无法读取',preflight_failed:'报告资料需要修正',failed:'本次分析未完成',unavailable:'服务暂时不可用'})[detail.status] || '任务未完成')}</h3><p>${esc(detail.message || detail.error || '服务端未返回可用结果。')}</p><p>${detail.preflight||detail.status==='preflight_failed'?'尚未创建分析任务。请调整资料选择；其余勾选不会因此丢失。':'已取得的结果以保存版本为准，未完成不代表没有风险线索。'}</p><button type="button" data-at-stage="1">返回选择报告</button>`:'';
   }
   function search() {
     const q=$('aw-search').value.trim().toLowerCase(),run=task?.result,target=$('aw-search-results');

@@ -17,6 +17,14 @@ from pathlib import Path
 
 from .connectivity_matter_schemas import ReportSet, ReportSetRequest
 from .connectivity_schemas import ReportDocument
+from .disclosure_dates import document_date_issue, normalize_disclosure_date
+
+
+class ReportSetValidationError(ValueError):
+    def __init__(self, code, message, documents):
+        self.detail = {"code": code, "message": message, "documents": documents}
+        super().__init__(message)
+
 
 
 def _identity(doc):
@@ -37,16 +45,19 @@ def make_report_set(documents: list[ReportDocument], as_of_date: date) -> Report
         raise ValueError("资料集合必须包含同一企业的已登记报告")
     if any(not re.fullmatch(r"[a-fA-F0-9]{64}",d.file_sha256) or not re.fullmatch(r"20\d{2}",d.effective_period) for d in docs):
         raise ValueError("资料缺少有效原件指纹或四位报告年度")
-    try:
-        for d in docs:date.fromisoformat(d.disclosure_date[:10])
-    except ValueError as error:raise ValueError("资料发布日期无效") from error
-    if any(not d.disclosure_date or d.disclosure_date[:10] > as_of_date.isoformat() for d in docs):
-        raise ValueError("资料缺少发布日期或发布日晚于观察时点，请明确选择可用版本")
+    issues = [issue for d in docs if (issue := document_date_issue(d, as_of_date))]
+    if issues:
+        raise ReportSetValidationError(issues[0]["code"], "报告资料需要修正；尚未启动分析。可取消待核文档，继续使用其余合格资料。", issues)
+    # 新集合使用规范日期副本，不重写旧目录、旧任务或原件指纹。
+    docs = [d.model_copy(update={"disclosure_date": normalize_disclosure_date(d.disclosure_date)}) for d in docs]
     versions = {}
     for doc in docs:
         key = (doc.report_type, doc.effective_period)
         if key in versions and versions[key] != doc.file_sha256:
-            raise ValueError("同年度同类型包含多个版本，请先选择本次使用的版本")
+            raise ReportSetValidationError("REPORT_VERSION_CONFLICT", "同年度同类型包含多个版本，请先选择本次使用的版本",
+                [{"document_id": d.document_id, "company": d.company, "period": d.effective_period,
+                  "report_type": d.report_type, "message": "存在不同原件版本，请仅选择一个"}
+                 for d in docs if (d.report_type, d.effective_period) == key])
         versions[key] = doc.file_sha256
     periods = sorted({d.effective_period for d in docs})
     missing = [f"{year}年缺少{kind}报告" for year in range(int(periods[0]), int(periods[-1]) + 1)
@@ -126,6 +137,7 @@ def create_report_set(root: Path, body: ReportSetRequest):
         raise ValueError("资料集合包含未登记文档")
     selected = canonical_documents([docs[key] for key in body.document_ids])
     report_set = make_report_set(selected, body.as_of_date)
+    selected = [d.model_copy(update={"disclosure_date": normalize_disclosure_date(d.disclosure_date)}) for d in selected]
     return save_report_set(root, report_set, selected)
 
 

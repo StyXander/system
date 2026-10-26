@@ -660,7 +660,7 @@
         body:JSON.stringify(requestBody)});
       document.dispatchEvent(new CustomEvent('audittrace:connectivity-created',{detail:{task_id:task.task_id}}));
       rememberTask(task.task_id); await poll(task.task_id);
-    } catch (error) { message(error.message, true); busy(false); document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{status:'failed',message:error.message}})); }
+    } catch (error) { message(error.message, true); busy(false); document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{status:error.preflight?'preflight_failed':'failed',message:error.message,code:error.code,documents:error.documents}})); }
     finally { state.submitting=false; }
   }
   $('cn-form').addEventListener('submit', event => { event.preventDefault(); startRun(); });

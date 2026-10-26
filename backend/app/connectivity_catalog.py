@@ -67,6 +67,8 @@ def cached_documents(root: Path) -> list[dict]:
 
 
 def cache_document(root: Path, document: dict) -> None:
+    from .disclosure_dates import normalize_disclosure_date
+    document = dict(document, disclosure_date=normalize_disclosure_date(document.get('disclosure_date')))
     with _lock, _database(root) as db:
         db.execute('INSERT INTO source_cache VALUES (?,?) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload',
             (document['source_url'], json.dumps(document, ensure_ascii=False)))
@@ -132,6 +134,9 @@ def list_pairs(root: Path, *, refresh: bool = False) -> tuple[list[dict], str]:
 
 def save_pair(root: Path, record: dict) -> dict:
     """先完整校验合同再持久化；任何后端写入失败均不宣称成功。"""
+    from .disclosure_dates import normalize_disclosure_date
+    record = dict(record)
+    record['documents'] = [dict(d, disclosure_date=normalize_disclosure_date(d.get('disclosure_date'))) for d in record['documents']]
     documents = [ReportDocument.model_validate(d) for d in record['documents']]
     if len(documents) != 2 or {d.report_type for d in documents} != {'AR', 'ESG'}:
         raise ValueError('必须是同公司同年度的 AR/ESG 双报告')
