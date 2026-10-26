@@ -169,9 +169,10 @@ def save_pair(root: Path, record: dict) -> dict:
 
 def registered_documents(root: Path) -> list[ReportDocument]:
     records, _ = list_pairs(root)
-    return [ReportDocument.model_validate(d) for record in records
+    from .connectivity_report_sets import registered_set_documents
+    return [*registered_set_documents(root), *[ReportDocument.model_validate(d) for record in records
         if record.get('validation_status') == 'verified' and record.get('parse_status') == 'complete'
-        for d in record.get('documents', [])]
+        for d in record.get('documents', [])]]
 
 
 def record_execution(root: Path, run, task_id: str) -> dict:

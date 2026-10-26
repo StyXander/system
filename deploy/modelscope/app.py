@@ -22,7 +22,7 @@ def main() -> None:
     print(json.dumps(company_discovery.refresh_deployment_snapshot(root), ensure_ascii=False), flush=True)
     public_catalog_bootstrap.main()
     # 单个 Web 执行器保持现有任务租约与中断语义；完成结果使用 Supabase。
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=7860, proxy_headers=True)
+    uvicorn.run("backend.app.connectivity_app:app", host="0.0.0.0", port=7860, proxy_headers=True)
 
 
 if __name__ == "__main__":

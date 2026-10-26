@@ -1,0 +1,45 @@
+/* 自然档案馆接入五Agent工作区；保留同一套运行、证据与导出控件。 */
+:root{--ink:#243a35;--muted:#6d8276;--line:#dce6da;--paper:#fffefb;--wash:#f3f5ef;--navy:#193b34;--teal:#2e715b;--blue:#2e715b;--quiet:#e8f2e7}
+#connectivity-root{--navy:#193b34;--teal:#2e715b;--quiet:#e8f2e7;--radius:12px}
+#connectivity-root .cn-sidebar{max-width:250px}
+#connectivity-root .cn-sidebar button{background:none}
+#connectivity-root .cn-sidebar [aria-current=page]{background:rgba(204,234,209,.12);color:#e1f4d9}
+#connectivity-root #cn-workspace{padding-top:28px}
+#connectivity-root .at-workspace-top h1{font-family:var(--serif);font-size:27px;color:var(--aw-green-2)}
+#connectivity-root .at-stages{border-radius:14px;margin:22px 0;background:var(--aw-card);box-shadow:0 6px 20px #193b3405}
+#connectivity-root .at-stages [aria-current=step]{background:#193b34;color:#f2f7ea}
+#connectivity-root .at-stages [aria-current=step] span,#connectivity-root .at-stages [aria-current=step] small{color:#bed9bb}
+#connectivity-root .aw-hero{height:auto;min-height:240px;margin-bottom:22px}
+#connectivity-root .aw-hero-copy{width:64%;padding:28px 30px}
+#connectivity-root .aw-hero .cn-intro h2{font:600 31px/1.5 var(--serif);color:#193b34;margin:12px 0}
+#connectivity-root .aw-hero .cn-intro p{font-size:14px;line-height:1.9;color:#527563}
+#connectivity-root .aw-hero .at-eyebrow{font-size:11px;letter-spacing:2px}
+#connectivity-root .cn-start{padding:26px;border-radius:16px;margin-bottom:18px}
+#connectivity-root .cn-primary{background:#2e715b;color:#fffefb;border-color:#2e715b}
+#connectivity-root .cn-primary:hover:not(:disabled){background:#193b34}
+#connectivity-root .cn-company-selector,#connectivity-root .cm-selection{background:#fffefb;border-color:#dce6da;border-radius:14px}
+#connectivity-root .cn-company-card{border-color:#dce6da;background:#f8fbf5;border-radius:12px}
+#connectivity-root .cn-form-row{margin-top:20px}
+#connectivity-root .cm-heading h2,#connectivity-root .cm-counts strong,#connectivity-root .cm-detail h3{color:#193b34}
+#connectivity-root .cm-counts>div,#connectivity-root .cm-agent-grid>div{background:#f8fbf5;border-color:#dce6da;border-radius:12px}
+#connectivity-root .cm-list{border-color:#dce6da}
+#connectivity-root .cm-list button{background:transparent;color:#243a35}
+#connectivity-root .cm-list button[aria-current=true]{background:#e8f2e7;border-color:#2e715b}
+#connectivity-root .cm-path,#connectivity-root .cm-evidence,#connectivity-root .cm-revision{border-color:#dce6da;background:#fffefb;border-radius:12px}
+#connectivity-root .at-technical,#connectivity-root .at-export-toolbar{border-color:#dce6da;background:#f8fbf5}
+#connectivity-root .cm-muted,#connectivity-root .cm-detail small{color:#647b6b}
+@media(max-width:1100px){#connectivity-root .cn-app-layout{grid-template-columns:200px minmax(0,1fr)}#connectivity-root .cn-sidebar{max-width:200px}#connectivity-root .at-stages button{padding:12px 8px;grid-template-columns:24px 1fr}#connectivity-root .at-stages strong{font-size:12px}}
+@media(max-width:800px){#connectivity-root .cn-app-layout{grid-template-columns:minmax(0,1fr)}#connectivity-root .cn-sidebar{max-width:none;height:auto;position:relative;padding:16px 18px}#connectivity-root .aw-brand{padding-bottom:12px}#connectivity-root .aw-side-section,#connectivity-root .aw-note,#connectivity-root .aw-side-user{display:none}#connectivity-root .aw-nav{display:flex;flex-wrap:wrap}#connectivity-root .aw-nav button{flex:1;min-width:110px}#connectivity-root .at-workspace-top{align-items:flex-start;flex-direction:column;gap:12px}#connectivity-root .at-workspace-top h1{font-size:24px}#connectivity-root .at-search{width:100%;min-width:0}#connectivity-root .aw-hero-copy{width:100%;padding:24px}#connectivity-root .aw-hero-vis{display:none}#connectivity-root .aw-hero .cn-intro h2{font-size:27px}#connectivity-root .cn-start{padding:18px}#connectivity-root .at-stages{grid-template-columns:1fr 1fr}#connectivity-root .at-stages button{border-bottom:1px solid var(--aw-line)}#connectivity-root .cn-form-row{display:flex;flex-direction:column;align-items:stretch}#connectivity-root .cm-counts{gap:8px}#connectivity-root .cm-counts>div{padding:12px}}
+
+/* 双塔首页沿用原版业务文案及入口样式。 */
+#redesign-home .hero-sub-lead{margin-top:16px;font-size:clamp(14px,1.15vw,18px);line-height:1.6;letter-spacing:.02em;color:#3f3c37;font-weight:500}
+#redesign-home .hero-sub-detail{margin-top:8px;font-size:11px;letter-spacing:.16em;color:var(--silver-dd)}
+#redesign-home .hero-actions{display:flex;gap:18px;align-items:center;justify-content:center;margin-top:22px;pointer-events:auto;flex-wrap:wrap}
+#redesign-home .hero-cta{display:inline-flex;align-items:center;min-height:46px;padding:0 22px;background:#1c1b19;color:#f7f5f0;font-size:12px;letter-spacing:.1em;text-decoration:none;border:1px solid #1c1b19}
+#redesign-home .hero-cta:hover{background:#8c4a2f;border-color:#8c4a2f}
+#redesign-home .hero-sample{font-size:12px;letter-spacing:.06em;color:#4a463f;text-decoration:underline;text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center}
+#redesign-home .hero-sample:hover{color:#8c4a2f}
+#redesign-home .hero-sub-lead,#redesign-home .hero-sub-detail,#redesign-home .hero-actions{opacity:0;transform:translateY(20px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+#redesign-home .hero.s3 .hero-sub-lead,#redesign-home .hero.s3 .hero-sub-detail,#redesign-home .hero.s3 .hero-actions{opacity:1;transform:none}
+#redesign-home .hero-mechanism{display:none}
+

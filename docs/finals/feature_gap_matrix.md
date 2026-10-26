@@ -1,5 +1,7 @@
 # 决赛三项创新 · 实现差距矩阵（Gate 0）
 
+当前事项升级请见 `docs/matter-upgrade/feature_gap_matrix.md`。以下保留2026年10月22日历史记录，不代表本次五Agent验收。方案书、PPT和口播稿按用户最新要求不修改。
+
 基线：`feat/financial-connectivity-finals`，父提交 `6964bc7`；线上仍为 `6abd3d7`，本分支未推送、未部署。
 标记口径：`已实现可调用` / `代码存在但未接主链` / `合成测试通过` / `实际PDF通过` / `真实模型通过` / `线上通过`。
 

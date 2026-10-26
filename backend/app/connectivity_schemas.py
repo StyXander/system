@@ -5,9 +5,12 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from .connectivity_matter_schemas import (InvestigationBudget, MatterType, ReportSet, MatterEvidence,
+    SustainabilityMatter, MatterEvent, MatterCommitment, FinancialImpactPath, MatterRelation,
+    CompetingExplanation, MatterAssessment)
 
 NOTICE = "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。"
 # 历史业务声明保持原文不变；导出与接口按 task_kind 分派，不互相冒充。
@@ -505,14 +508,49 @@ class ConnectivityRun(Contract):
     financial_scenario: dict = Field(default_factory=dict)
     investigation: dict = Field(default_factory=dict)
     comparison_summary: dict = Field(default_factory=dict)
+    matter_schema_version: str = ""
+    report_set: ReportSet | None = None
+    matter_evidence: list[MatterEvidence] = Field(default_factory=list)
+    matters: list[SustainabilityMatter] = Field(default_factory=list)
+    matter_events: list[MatterEvent] = Field(default_factory=list)
+    matter_commitments: list[MatterCommitment] = Field(default_factory=list)
+    matter_paths: list[FinancialImpactPath] = Field(default_factory=list)
+    matter_relations: list[MatterRelation] = Field(default_factory=list)
+    matter_explanations: list[CompetingExplanation] = Field(default_factory=list)
+    matter_assessments: list[MatterAssessment] = Field(default_factory=list)
+    matter_tasks: list[dict] = Field(default_factory=list)
+    matter_tool_receipts: list[dict] = Field(default_factory=list)
+    matter_coverage: list[dict] = Field(default_factory=list)
+    matter_rejections: list[dict] = Field(default_factory=list)
+    matter_revisions: list[dict] = Field(default_factory=list)
+    matter_graph: dict = Field(default_factory=dict)
+    matter_overview: dict = Field(default_factory=dict)
     ai_generated_content_notice: str = NOTICE
 
 
 class RunRequest(Contract):
-    pair_id: str = Field(min_length=2, max_length=100)
+    pair_id: str | None = Field(default=None, min_length=2, max_length=100)
+    report_set_id: str | None = Field(default=None, min_length=2, max_length=100)
     topics: list[Literal["research", "environment", "intensity"]] = Field(default_factory=lambda: ["research", "environment", "intensity"], min_length=1, max_length=3)
-    mode: Literal["calculation_only", "three_agents", "single_model", "adaptive_agents"] = "three_agents"
+    mode: Literal["calculation_only", "three_agents", "single_model", "adaptive_agents", "five_agents"] = "three_agents"
+    analysis_scope: Literal["legacy_checks", "matter_connectivity"] = "legacy_checks"
+    as_of_date: date | None = None
+    matter_types: list[MatterType] = Field(default_factory=lambda: ["climate_risk", "transition_project", "commitment", "resource_efficiency", "other"], min_length=1, max_length=5)
+    selected_matter_ids: list[str] = Field(default_factory=list, max_length=30)
+    ablation: Literal["none","no_temporal","no_counterevidence"] = "none"
+    budget: InvestigationBudget = Field(default_factory=InvestigationBudget)
     retry_of_task_id: str | None = None
+
+    @model_validator(mode="after")
+    def source_selection(self):
+        if bool(self.pair_id) == bool(self.report_set_id):
+            raise ValueError("请选择一个报告对或一个多年资料集合")
+        if self.report_set_id or self.mode == "five_agents":
+            self.analysis_scope = "matter_connectivity"
+        if self.ablation!="none" and self.mode!="five_agents":raise ValueError("角色消融仅适用于五Agent实验")
+        if self.analysis_scope == "matter_connectivity" and self.mode == "adaptive_agents":
+            raise ValueError("事项调查请选择五Agent、三Agent对照或单模型对照")
+        return self
 
 
 class CorrectionRequest(Contract):

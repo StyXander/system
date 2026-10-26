@@ -196,4 +196,5 @@ def build_overview(run: ConnectivityRun) -> dict:
         "closure": summarize_closure(checks),
         "next_questions": [{"check_id": f.check_id, "question": f.question} for f in run.findings[:3]],
         "note": "同一关系可能同时计入多个状态；四问不合成综合分数，也不做排行。",
+        "matter_summary": run.matter_overview,
     }

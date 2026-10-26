@@ -296,6 +296,8 @@ create table if not exists public.public_model_usage (
   released boolean not null default false
 );
 
+alter table public.public_model_usage add column if not exists last_activity_at timestamptz;
+
 create table if not exists public.public_model_cache (
   cache_key_hash text primary key,
   created_at timestamptz not null default now(),
@@ -640,9 +642,9 @@ begin
   end if;
   lock table public.public_model_usage in share row exclusive mode;
   update public.public_model_usage
-  set released = true, settled = true
+  set released = (input_tokens = 0 and output_tokens = 0), settled = true
   where settled = false and released = false
-    and reserved_at < now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+    and coalesce(last_activity_at,reserved_at) < now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
   select count(*) into recent_ip
   from public.public_model_usage
   where client_hash = p_client_hash and released = false
@@ -654,7 +656,7 @@ begin
   select count(*) into active_count
   from public.public_model_usage
   where settled = false and released = false
-    and reserved_at >= now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+    and coalesce(last_activity_at,reserved_at) >= now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
   select count(*) into day_runs
   from public.public_model_usage
   where released = false and reserved_at >= day_start;
@@ -697,6 +699,7 @@ declare
   new_output integer := greatest(coalesce(p_output_tokens, 0), 0);
 begin
   perform public.assert_service_role();
+  lock table public.public_model_usage in share row exclusive mode;
   select * into current_row from public.public_model_usage
   where reservation_id = p_reservation_id and released = false for update;
   if current_row.reservation_id is null then
@@ -706,20 +709,48 @@ begin
     into used_input, used_output
   from public.public_model_usage
   where reserved_at >= day_start and released = false;
-  if used_input - current_row.input_tokens + new_input > greatest(p_daily_input_tokens, 1) then
-    update public.public_model_usage set settled = true, released = true where reservation_id = p_reservation_id;
-    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_INPUT_TOKENS', 'message', '今日输入 token 预算已用完。');
-  end if;
-  if used_output - current_row.output_tokens + new_output > greatest(p_daily_output_tokens, 1) then
-    update public.public_model_usage set settled = true, released = true where reservation_id = p_reservation_id;
-    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_OUTPUT_TOKENS', 'message', '今日输出 token 预算已用完。');
-  end if;
   update public.public_model_usage
   set input_tokens = new_input, output_tokens = new_output, settled = true
   where reservation_id = p_reservation_id;
+  if used_input - current_row.input_tokens + new_input > greatest(p_daily_input_tokens, 1) then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_INPUT_TOKENS', 'message', '今日输入 token 预算已用完。');
+  end if;
+  if used_output - current_row.output_tokens + new_output > greatest(p_daily_output_tokens, 1) then
+    return jsonb_build_object('ok', false, 'code', 'PUBLIC_QUOTA_OUTPUT_TOKENS', 'message', '今日输出 token 预算已用完。');
+  end if;
   return jsonb_build_object('ok', true, 'reservation_id', p_reservation_id);
 end;
 $$;
+
+-- 每次请求的在途上界纳入同一日预算；本函数保持运行租约活动。
+create or replace function public.checkpoint_public_model_usage(
+  p_reservation_id text, p_input_tokens integer, p_output_tokens integer,
+  p_daily_input_tokens integer, p_daily_output_tokens integer
+) returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  current_row public.public_model_usage;
+  day_start timestamptz := date_trunc('day',now() at time zone 'Asia/Shanghai') at time zone 'Asia/Shanghai';
+  used_input bigint; used_output bigint;
+begin
+  perform public.assert_service_role();
+  lock table public.public_model_usage in share row exclusive mode;
+  select * into current_row from public.public_model_usage
+    where reservation_id=p_reservation_id and released=false and settled=false for update;
+  if current_row.reservation_id is null then
+    return jsonb_build_object('ok',false,'code','PUBLIC_QUOTA_RESERVATION_MISSING','message','额度租约失效');
+  end if;
+  select coalesce(sum(input_tokens),0),coalesce(sum(output_tokens),0) into used_input,used_output
+    from public.public_model_usage where reserved_at>=day_start and released=false;
+  if used_input-current_row.input_tokens+greatest(p_input_tokens,0)>p_daily_input_tokens
+     or used_output-current_row.output_tokens+greatest(p_output_tokens,0)>p_daily_output_tokens then
+    return jsonb_build_object('ok',false,'code','PUBLIC_QUOTA_TOKENS','message','后续请求的预留将超过今日预算');
+  end if;
+  update public.public_model_usage set input_tokens=greatest(p_input_tokens,0),output_tokens=greatest(p_output_tokens,0),last_activity_at=now()
+    where reservation_id=p_reservation_id;
+  return jsonb_build_object('ok',true,'reservation_id',p_reservation_id);
+end; $$;
+revoke all on function public.checkpoint_public_model_usage(text,integer,integer,integer,integer) from public,anon,authenticated;
+grant execute on function public.checkpoint_public_model_usage(text,integer,integer,integer,integer) to service_role;
 
 create or replace function public.release_public_model_usage(p_reservation_id text)
 returns boolean
@@ -754,9 +785,9 @@ declare
 begin
   perform public.assert_service_role();
   update public.public_model_usage
-  set settled = true, released = true
+  set settled = true, released = (input_tokens = 0 and output_tokens = 0)
   where settled = false and released = false
-    and reserved_at < now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+    and coalesce(last_activity_at,reserved_at) < now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
   select count(*) into global_count from public.public_model_usage
   where released = false and reserved_at >= now_ts - make_interval(secs => greatest(p_window_seconds, 60));
   select count(*) into client_count from public.public_model_usage
@@ -764,7 +795,7 @@ begin
     and reserved_at >= now_ts - make_interval(secs => greatest(p_window_seconds, 60));
   select count(*) into active_count from public.public_model_usage
   where settled = false and released = false
-    and reserved_at >= now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
+    and coalesce(last_activity_at,reserved_at) >= now_ts - make_interval(secs => greatest(p_reservation_ttl_seconds, 30));
   select count(*) into daily_count from public.public_model_usage
   where released = false and reserved_at >= day_start;
   return jsonb_build_object(

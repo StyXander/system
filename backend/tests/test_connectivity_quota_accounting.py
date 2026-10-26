@@ -14,3 +14,34 @@ def test_exceeded_consumption_is_saved_and_blocks_both_admission_paths(tmp_path)
     for reserve in (lambda: ledger.reserve_batch('next'), lambda: ledger.reserve('next')):
         with pytest.raises(PublicModelQuotaError, match='token'):
             reserve()
+
+
+def test_inflight_estimates_are_shared_across_ledger_instances(tmp_path):
+    config=QuotaConfig(daily_input_tokens=100,max_concurrent=2)
+    first=PublicModelLedger(tmp_path,config=config);second=PublicModelLedger(tmp_path,config=config)
+    a=first.reserve_batch('a');b=second.reserve_batch('b')
+    first.checkpoint_usage(a,input_tokens=70,output_tokens=10)
+    with pytest.raises(PublicModelQuotaError):second.checkpoint_usage(b,input_tokens=40,output_tokens=1)
+    first.checkpoint_usage(a,input_tokens=20,output_tokens=5)
+    second.checkpoint_usage(b,input_tokens=40,output_tokens=1)
+    with first._connect() as db:
+        assert db.execute('select sum(input_tokens) from model_usage').fetchone()[0]==60
+        assert db.execute('select sum(settled) from model_usage').fetchone()[0]==0
+
+
+def test_crashed_inflight_usage_survives_lease_expiry(tmp_path):
+    import time
+    ledger=PublicModelLedger(tmp_path,config=QuotaConfig(reservation_ttl_seconds=1,daily_input_tokens=50))
+    reservation=ledger.reserve_batch('crash')
+    ledger.checkpoint_usage(reservation,input_tokens=50,output_tokens=4)
+    with ledger._connect() as db:db.execute('update model_usage set last_activity_at=?,reserved_at=?',(time.time()-5,time.time()-5))
+    ledger.quota_snapshot()
+    with pytest.raises(PublicModelQuotaError):ledger.reserve_batch('after-crash')
+    with ledger._connect() as db:
+        assert tuple(db.execute('select input_tokens,released,settled from model_usage').fetchone())==(50,0,1)
+
+
+def test_settled_lease_cannot_reopen_for_more_calls(tmp_path):
+    ledger=PublicModelLedger(tmp_path);reservation=ledger.reserve_batch('done')
+    ledger.settle(reservation,input_tokens=3)
+    with pytest.raises(PublicModelQuotaError):ledger.checkpoint_usage(reservation,input_tokens=5,output_tokens=1)

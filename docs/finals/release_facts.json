@@ -160,5 +160,7 @@
     "model_run_in_this_session": false,
     "deterministic_tests": "test_adaptive_investigation 1 passed + test_agent_orchestrator 7 passed",
     "boundary": "无模型时明确降级为 degraded_no_model；不得显示自适应智能体完成"
-  }
+  },
+  "historical_scope_note": "本记录保留原日期与实验口径，不作为2026年10月26日五Agent效果证明",
+  "current_matter_scope_facts": "docs/matter-upgrade/release_facts.json"
 }

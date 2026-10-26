@@ -172,10 +172,10 @@ def discover_pair(root: Path, ticker: str, year: int) -> dict:
             _inflight.discard(key)
 
 
-def prepare_pair(root: Path, discovered: dict, *, industry: str = '待核行业', progress=None) -> dict:
+def prepare_pair(root: Path, discovered: dict, *, industry: str = '待核行业', progress=None, allow_partial: bool = False) -> dict:
     """只接收服务端发现结果；下载及所有页解析通过后一次发布双报告。"""
     emit = progress or (lambda *args: None)
-    if discovered.get('state') != 'paired' or not discovered.get('query_complete'):
+    if (discovered.get('state') != 'paired' and not (allow_partial and (discovered.get('annual') or discovered.get('sustainability')))) or not discovered.get('query_complete'):
         raise ValueError('双报告缺失或官方查询不完整，不能启动接入')
     capacity = import_capacity(root)
     capacity.__enter__()
@@ -193,6 +193,8 @@ def prepare_pair(root: Path, discovered: dict, *, industry: str = '待核行业'
         issuer_names = set()
         for kind, field in [('AR', 'annual'), ('ESG', 'sustainability')]:
             metadata = discovered[field]
+            if metadata is None and allow_partial:
+                continue
             url = metadata['source_url']
             if metadata.get('ticker') != company['ticker'] or str(metadata.get('report_year')) != year or not allowed_source(url):
                 raise ValueError('来源身份或年度不匹配')
@@ -271,6 +273,11 @@ def prepare_pair(root: Path, discovered: dict, *, industry: str = '待核行业'
                 'retrieved_at': datetime.now(timezone.utc).isoformat(), 'compilation_basis': '待指标核验阶段从原文核对',
                 'pages': pages, 'file_sha256': digest, 'available': True})
             cache_document(root, documents[-1])
+        if len(documents) < 2 and allow_partial:
+            for document in documents:
+                document['case_id'] = 'CONNDOC-' + document['document_id']
+            return {'documents': documents, 'inspection': inspections, 'state': 'partial',
+                'missing': discovered.get('missing', []), 'period': year, 'company_id': company['ticker']}
         identity = hashlib.sha256('|'.join(d['file_sha256'] for d in sorted(documents, key=lambda d: d['report_type'])).encode()).hexdigest()[:16]
         pair_id = f"CONNPAIR-{company['ticker']}-{year}-{identity}"
         previous = next((r for r in records if r['pair_id'] == pair_id), None)

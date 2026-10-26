@@ -37,6 +37,8 @@ from .connectivity_facts import project_facts, execution_provenance
 from .connectivity_bootstrap import source_readiness
 from .connectivity_graph import refresh_run_sources
 from .connectivity_financial_scenario import recalculate_scenario
+from .connectivity_matter_schemas import ReportSetRequest, MatterRevisionRequest, MatterReconciliation
+from .connectivity_report_sets import create_report_set, report_set_records, resolve_documents
 
 COOKIE = "audittrace_connectivity_session"
 CONNECTIVITY_RETENTION_SECONDS = 30 * 86400
@@ -81,6 +83,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         result["parent_task_id"] = item.get("run_body", {}).get("parent_task_id")
         is_owner = bool(request and request.cookies.get(COOKIE)
                         and hmac.compare_digest(owner(request), item.get("run_body", {}).get("owner", "")))
+        if item.get("run_body", {}).get("analysis_scope") == "matter_connectivity" and not is_owner:
+            raise HTTPException(403, "事项调查任务仅当前创建会话可读取")
         result["can_modify"] = is_owner
         # 公共视图默认不含个人观察正文，只列条数；本人视图才展开。
         body = result.get("result")
@@ -104,6 +108,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             result["result"] = body
         return result
 
+    from .connectivity_matter_schemas import matter_enabled
+
     @router.get("/bootstrap")
     def bootstrap(response: Response, request: Request):
         if not request.cookies.get(COOKIE):
@@ -114,9 +120,28 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             pair["documents"].append(doc.model_dump())
         rule_cards = {key: {**rule, "conditions": list(required_conditions(rule["operator"]))} for key, rule in RULES.items()}
         return {"pairs": list(grouped.values()), "topics": TOPICS, "rules": rule_cards, "notice": NOTICE,
+                "matter_enabled":matter_enabled(),"default_mode": "five_agents" if matter_enabled() else "three_agents", "matter_schema_version": "matter_connectivity_v1",
                 "task_persistence": "supabase" if demo_task_supabase_enabled() else "local", "schema_version": SCHEMA_VERSION,
                 "intelligence_version": INTELLIGENCE_VERSION, "prompt_version": PROMPT_VERSION,
                 "project_facts": project_facts(root)}
+
+    @router.get("/report-sets")
+    def report_sets(company_id: str | None = None):
+        records, persistence = report_set_records(root)
+        return {"items": [r["report_set"] for r in records if not company_id or r["report_set"]["company_id"] == company_id],
+            "documents": [d.model_dump(mode="json") for d in load_registry(root) if not company_id or d.company_id == company_id],
+            "persistence": persistence}
+
+    @router.post("/report-sets")
+    def new_report_set(body: ReportSetRequest, request: Request):
+        from .connectivity_catalog_api import can_import
+        can_import(request)
+        if request.headers.get("origin") and request.headers["origin"].rstrip("/") != str(request.base_url).rstrip("/"):
+            raise HTTPException(403, "资料集合请求必须来自当前工作台")
+        try:
+            return create_report_set(root, body).model_dump(mode="json")
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
 
     @router.get("/readiness")
     def readiness(pair_id: str | None = None):
@@ -136,6 +161,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
 
     @router.post("/runs")
     def create(body: RunRequest, request: Request):
+        if body.analysis_scope=="matter_connectivity" and not matter_enabled():raise HTTPException(503,"事项调查入口已关闭；历史结果仍可读取")
         if body.mode != 'calculation_only':
             from .connectivity_catalog_api import authorize_model
             authorize_model(request)
@@ -143,19 +169,28 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(503,"关联核对执行器未就绪：当前版本须配置Web执行模式")
         if not request.cookies.get(COOKIE):
             raise HTTPException(409, "请先加载工作台以建立当前浏览器会话")
-        if body.pair_id not in {d.case_id for d in load_registry(root)}:
+        case_identity = body.report_set_id or body.pair_id
+        if body.analysis_scope == "matter_connectivity":
+            try:
+                resolve_documents(root, body)
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from error
+        elif body.pair_id not in {d.case_id for d in load_registry(root)}:
             raise HTTPException(404, "报告对未登记")
         runtime = store()
-        run_body = {**body.model_dump(), "kind": "connectivity", "owner": owner(request)}
+        run_body = {**body.model_dump(mode="json"), "kind": "connectivity", "owner": owner(request)}
         resume = None
         if body.retry_of_task_id:
             original = task(body.retry_of_task_id)
             authorize(request, original)
             snapshot = store(body.retry_of_task_id).snapshot(body.retry_of_task_id) or {}
-            if original.get("case_id") != body.pair_id:
+            if original.get("case_id") != case_identity:
                 raise HTTPException(422, "重试报告对必须与原任务一致")
             if set(original.get('run_body', {}).get('topics', body.topics)) != set(body.topics):
                 raise HTTPException(422, '增量重试须沿用原事项选择；改变事项请发起新运行')
+            if original.get("run_body",{}).get("ablation","none")!=body.ablation:raise HTTPException(422,"重试不能改变消融条件")
+            if body.analysis_scope=="matter_connectivity" and set(original.get("run_body",{}).get("matter_types",body.matter_types))!=set(body.matter_types):
+                raise HTTPException(422,"增量重试须沿用事项类型；改变范围请创建新运行")
             if snapshot.get("result"):
                 resume = ConnectivityRun.model_validate(snapshot["result"])
                 if resume.execution_mode != body.mode:
@@ -165,12 +200,18 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         def execute(item):
             reservation = None
             result = None
+            latest_run = None
+            def checkpoint(run):
+                nonlocal latest_run
+                latest_run = run.model_copy(deep=True)
+                runtime.update_task(item["task_id"], run_id=run.run_id, result=run.model_dump(mode="json"))
             cancellation = {"checked_at": 0.0, "value": False}
             def cancelled():
                 # 解析器逐页询问取消；远程存储不能每页都发一次数据库请求。
                 now = time.monotonic()
                 if not cancellation["checked_at"] or now-cancellation["checked_at"] >= 1:
-                    cancellation["value"] = runtime.is_cancelled(item["task_id"])
+                    current_task = runtime.get(item["task_id"]) or {}
+                    cancellation["value"] = runtime.is_cancelled(item["task_id"]) or current_task.get("failure_code") == "CANCEL_REQUESTED"
                     cancellation["checked_at"] = time.monotonic()
                 return cancellation["value"]
             def before_model():
@@ -178,24 +219,40 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                 if runtime.is_cancelled(item["task_id"]):
                     raise InterruptedError("原任务已取消，未发送模型请求")
                 reservation = reserve_model(request)
+            def provider_budget(run):
+                if not reservation:return
+                def amount(call,name):
+                    if call.get(name) is not None:return call[name]
+                    return call.get(name.replace("_tokens","_token_upper_bound"),0) if call.get("request_attempted") else 0
+                quota_ledger().checkpoint_usage(reservation,input_tokens=sum(amount(c,"input_tokens") for c in run.provider_calls),
+                    output_tokens=sum(amount(c,"output_tokens") for c in run.provider_calls))
             try:
                 resume_options = {"resume": resume} if resume is not None else {}
+                if body.analysis_scope=="matter_connectivity":resume_options["provider_budget"]=provider_budget
                 result = run_pipeline(root, body,
                     progress=lambda *args: runtime.update_stage(item["task_id"], *args),
                     agent_progress=lambda *args: runtime.update_agent_step(item["task_id"], *args),
-                    cancelled=cancelled, before_model=before_model, **resume_options)
+                    cancelled=cancelled, before_model=before_model, checkpoint=checkpoint, **resume_options)
             finally:
                 if reservation:
-                    calls = result.provider_calls if result else []
+                    calls = (result or latest_run).provider_calls if (result or latest_run) else []
+                    unknown_usage = any(c.get("request_attempted") and (c.get("input_tokens") is None or c.get("output_tokens") is None) for c in calls)
+                    if unknown_usage and (result or latest_run):
+                        (result or latest_run).versions["usage_completeness"] = "provider_usage_unknown"
                     try:
-                        quota_ledger().settle(reservation, input_tokens=sum(c.get("input_tokens") or 0 for c in calls), output_tokens=sum(c.get("output_tokens") or 0 for c in calls))
+                        # 未知usage不冒充零消耗；用量上界只用于额度占用，实际回执仍保留None。
+                        def accounted(c, name):
+                            if c.get(name) is not None:
+                                return c[name]
+                            return c.get(name.replace("_tokens", "_token_upper_bound"), 0) if c.get("request_attempted") else 0
+                        quota_ledger().settle(reservation, input_tokens=sum(accounted(c, "input_tokens") for c in calls), output_tokens=sum(accounted(c, "output_tokens") for c in calls))
                     except PublicModelQuotaError as error:
                         if result is None:
                             raise
                         # 模型响应和预算结算是两种事实；保留已取得意见，明确结算未通过。
                         result.versions['quota_settlement'] = {'status': 'failed', 'code': error.code, 'message': str(error)[:240]}
                         runtime.update_stage(item['task_id'], 'structured_output', 'degraded', str(error)[:240])
-            degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed", "adaptive_completed", "reused_completed"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
+            degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed", "adaptive_completed", "reused_completed", "five_agents_completed", "matter_three_completed", "matter_single_completed"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
             from .connectivity_catalog import record_execution
             from .supabase_adapter import SupabaseError
             import sqlite3
@@ -204,11 +261,11 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             except (SupabaseError, sqlite3.Error) as error:
                 # 分析历史保留；目录状态写入失败须显式出现在结果中，不能伪称已同步。
                 result.versions['catalog_execution'] = {'status': 'failed', 'code': type(error).__name__}
-            runtime.update_task(item["task_id"], status="degraded" if degraded else "completed", run_id=result.run_id,
+            runtime.update_task(item["task_id"], status="cancelled" if result.versions.get("cancellation_requested") else "degraded" if degraded else "completed", run_id=result.run_id,
                 result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNECTIVITY_RETENTION_SECONDS))
         execute.__audittrace_request__ = request
         try:
-            item = runtime.create(body.pair_id, run_body, execute, idempotency_key=request.headers.get("idempotency-key"))
+            item = runtime.create(case_identity, run_body, execute, idempotency_key=request.headers.get("idempotency-key"))
         except IdempotencyConflict as error:
             raise HTTPException(409, str(error)) from error
         return public(item, request)
@@ -217,10 +274,42 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     def read(task_id: str, request: Request):
         return public(task(task_id), request)
 
+    @router.get("/runs/{task_id}/matters")
+    def matters(task_id: str, request: Request):
+        item = task(task_id)
+        authorize(request, item)
+        view = public(item, request).get("result") or {}
+        return {"items": view.get("matters", []), "overview": view.get("matter_overview", {}), "result_revision": view.get("result_revision")}
+
+    @router.get("/runs/{task_id}/matters/{matter_id}")
+    def matter_detail(task_id: str, matter_id: str, request: Request):
+        item = task(task_id)
+        authorize(request, item)
+        view = public(item, request).get("result") or {}
+        matter = next((m for m in view.get("matters", []) if m["matter_id"] == matter_id), None)
+        if matter is None:
+            raise HTTPException(404, "事项不存在")
+        result = {"matter": matter, "result_revision": view["result_revision"]}
+        for field in ("matter_events", "matter_commitments", "matter_paths", "matter_relations", "matter_explanations", "matter_assessments", "matter_tasks"):
+            result[field] = [r for r in view.get(field, []) if r.get("matter_id") == matter_id]
+        ids = set(matter["evidence_ids"])
+        from .connectivity_matters import _all_refs
+        ids.update(_all_refs(result))
+        result["evidence"] = [e for e in view.get("matter_evidence", []) if e["evidence_id"] in ids]
+        return result
+
     @router.post("/runs/{task_id}/cancel")
     def cancel(task_id: str, request: Request):
         item = task(task_id)
         authorize(request, item)
+        if item.get("run_body", {}).get("analysis_scope") == "matter_connectivity":
+            if item.get("status") not in {"queued","running"}:return public(item,request)
+            if not item.get("non_interruptible"):
+                store(task_id).cancel(task_id)
+                return public(task(task_id),request)
+            # 已发出的请求等待回执并结算，拒绝继续发送；保留可恢复检查点。
+            store(task_id).update_task(task_id, failure_code="CANCEL_REQUESTED")
+            return public(task(task_id), request)
         result = store(task_id).cancel(task_id)
         if result and result.get("cancel_rejected"):
             raise HTTPException(409, "模型调用已经开始，当前阶段不可中断；请等待实际结果")
@@ -230,14 +319,43 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         """修订与导出读取完整结果；公共视图的裁剪只在响应层做，不能反过来丢数据。"""
         item = task(task_id)
         snapshot = store(task_id).snapshot(task_id) or {}
-        if snapshot.get("status") not in {"completed", "degraded"} or not snapshot.get("result"):
+        if snapshot.get("status") not in {"completed", "degraded", "cancelled", "interrupted", "failed"} or not snapshot.get("result"):
             raise HTTPException(409, "任务尚无可读取的完成结果")
         return item, refresh_run_sources(root, ConnectivityRun.model_validate(snapshot["result"]))
 
+    @router.post("/runs/{task_id}/matter-revisions")
+    def matter_revision(task_id: str, body: MatterRevisionRequest, request: Request):
+        item, run = readable(task_id)
+        authorize(request, item)
+        child = run.model_copy(deep=True)
+        from .connectivity_matter_revision import revise_matters
+        try:
+            revise_matters(child, body)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        child.parent_run_id = run.run_id
+        child.run_id = "CONN-" + uuid.uuid4().hex[:16].upper()
+        child.result_revision += 1
+        child.prior_provider_calls = [*run.prior_provider_calls, *run.provider_calls]
+        child.provider_calls = []
+        return save_revision(item, run, body, request, child)
+
+    @router.post("/runs/{task_id}/matter-reconciliations")
+    def matter_reconciliation(task_id: str, body: MatterReconciliation, request: Request):
+        item, run = readable(task_id)
+        authorize(request, item)
+        from .connectivity_matter_revision import reconcile_matter
+        try:
+            return reconcile_matter(run, body)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+
     @router.get("/runs/{task_id}/scenario")
-    def scenario(task_id: str, price: str = Query(..., max_length=24), usage: str = Query(..., max_length=24)):
+    def scenario(task_id: str, request: Request, price: str = Query(..., max_length=24), usage: str = Query(..., max_length=24)):
         """情景是只读计算投影；两参数不修改企业原值或历史运行。"""
-        _, run = readable(task_id)
+        scenario_item, run = readable(task_id)
+        if run.matter_schema_version:
+            authorize(request, scenario_item)
         try:
             computed = recalculate_scenario(run.financial_scenario, price, usage)
         except ValueError as error:
@@ -343,7 +461,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                 child.program_hints = build_program_hints(child)
                 child.overview = build_overview(child)
                 runtime.update_task(row["task_id"], status="completed", run_id=child.run_id, result=child.model_dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNECTIVITY_RETENTION_SECONDS))
-            correction_body = {"kind": "connectivity", "owner": owner(request), "parent_run_id": run.run_id, "parent_task_id": item["task_id"], "action_id": body.action_id, "mutation_digest": mutation_digest}
+            correction_body = {"kind": "connectivity", "owner": owner(request), "analysis_scope": run.versions.get("analysis_scope", "legacy_checks"), "parent_run_id": run.run_id, "parent_task_id": item["task_id"], "action_id": body.action_id, "mutation_digest": mutation_digest}
             try:
                 # 每个父版本使用一个稳定修订键，复用共享任务表既有唯一约束。
                 result = runtime.create(item["case_id"], correction_body, save_child, idempotency_key=f"connectivity-revision-{run.run_id}")
@@ -359,6 +477,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     def export(task_id: str, format_name: str, request: Request, private: bool = False,
                scenario_price: str | None = Query(None, max_length=24), scenario_usage: str | None = Query(None, max_length=24)):
         item, run = readable(task_id)
+        if run.matter_schema_version:
+            authorize(request, item)
         if format_name not in {"json", "csv", "docx"}:
             raise HTTPException(404, "不支持的导出格式")
         is_owner = bool(request.cookies.get(COOKIE)) and hmac.compare_digest(owner(request), item["run_body"].get("owner", ""))

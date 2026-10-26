@@ -73,7 +73,7 @@
       if (task.result) {
         render();
         document.dispatchEvent(new CustomEvent('audittrace:connectivity-task', {detail:task}));
-        message(`${labels[task.status]||task.status}。${task.result.occurrences.length}处候选、${task.result.checks.length}项关系；模型状态：${labels[task.result.model_status]||task.result.model_status}。`);
+        message(task.result.matter_schema_version ? `${labels[task.status]||task.status}。${task.result.matters.length}项事项，已深查${task.result.matter_overview?.investigated||0}项；模型状态：${task.result.model_status}。` : `${labels[task.status]||task.status}。${task.result.occurrences.length}处候选、${task.result.checks.length}项关系；模型状态：${labels[task.result.model_status]||task.result.model_status}。`);
       } else {
         document.dispatchEvent(new CustomEvent('audittrace:connectivity-task', {detail:task}));
         document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error', {detail:{task_id:task.task_id, status:task.status,
@@ -162,7 +162,7 @@
     $('cn-results').hidden = false;
     $('cn-result-title').textContent = `${run.company} · ${run.period} 关联核对`;
     if(run.versions?.source_validity?.status==='invalid') $('cn-result-title').textContent='历史结果 来源已变更 · '+$('cn-result-title').textContent;
-    const modes = {calculation_only:'自动发现 · 仅计算',three_agents:'自动发现 · 三角色核对',adaptive_agents:'自动发现 · 自适应调查',single_model:'自动发现 · 完整单模型对照'};
+    const modes = {five_agents:'事项调查 · 五Agent协作',calculation_only:'自动发现 · 仅计算',three_agents:'自动发现 · 三角色核对',adaptive_agents:'自动发现 · 自适应调查',single_model:'自动发现 · 完整单模型对照'};
     const revised = run.versions?.result_origin==='user_revision' || (run.parent_run_id && !run.prior_provider_calls?.length);
     $('cn-run-meta').textContent = `版本${run.result_revision} / ${modes[run.execution_mode]||run.execution_mode} / ${(run.duration_ms/1000).toFixed(1)}秒${revised?'；使用者修订未新增模型调用':run.prior_provider_calls?.length?'；本次为增量续分析':''}`;
     if(run.versions?.intelligence&&!['2026-10-18.2','2026-10-19.1','2026-10-20.3','2026-10-21.1'].includes(run.versions?.rules)) $('cn-run-meta').textContent+='；历史规则结果：范围支持与意见尚未按本次修复重验，请勿引用旧正式支持数量';
@@ -184,6 +184,11 @@
     $('cn-exports').innerHTML = `<span class="cn-export-note" title="导出内容与本次运行方式一致">${escape(runType)}</span>`
       + ['docx','csv','json'].map(format => `<a href="${exportBase}/${format}" title="${escape(exportNames[format])} · ${escape(runType)}">${escape(exportNames[format])}</a>`).join('')
       + (state.task.can_modify ? `<a href="${exportBase}/json?private=1" title="仅本人可见：导出含个人观察正文">JSON（含个人观察）</a>` : '');
+    if (run.matter_schema_version) {
+      window.AuditTraceMatters.render(state.task);
+      return;
+    }
+    window.AuditTraceMatters?.activateLegacy();
     if (!run.checks.some(c => c.check_id===state.selected)) {
       const hints=Object.fromEntries((run.program_hints||[]).map(h=>[h.check_id,h]));
       const weights={high:2,medium:1,low:0};
@@ -650,8 +655,9 @@
     $('cn-results').hidden=true; $('cn-progress').hidden=true; $('cn-cancel').disabled=true;
     message('正在提交核验请求；收到任务编号后展示实际阶段。');
     try {
+      const requestBody = await window.AuditTraceMatters.prepareRequest({pair_id:$('cn-pair').value, topics, mode:$('cn-mode').value, ...extra});
       const task = await api('/runs', {method:'POST', headers:{'Idempotency-Key':crypto.randomUUID()},
-        body:JSON.stringify({pair_id:$('cn-pair').value, topics, mode:$('cn-mode').value, ...extra})});
+        body:JSON.stringify(requestBody)});
       document.dispatchEvent(new CustomEvent('audittrace:connectivity-created',{detail:{task_id:task.task_id}}));
       rememberTask(task.task_id); await poll(task.task_id);
     } catch (error) { message(error.message, true); busy(false); document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{status:'failed',message:error.message}})); }
@@ -675,6 +681,7 @@
   });
   $('cn-pair').addEventListener('change', () => {
     state.pendingPair=true;
+    if(state.task?.result?.matter_schema_version){state.task=null;state.selected=null;$('cn-results').hidden=true;document.dispatchEvent(new CustomEvent('audittrace:connectivity-reset'));}
     reportCards();
     message('已选择下一组报告；当前结果仍属于原任务。点击开始才会创建新核验。');
   });
@@ -823,6 +830,8 @@
       $('cn-notice').textContent = state.bootstrap.notice;
       $('cn-pair').innerHTML = state.bootstrap.pairs.map(pair => `<option value="${escape(pair.pair_id)}">${escape(pair.company)} · ${escape(pair.period)}</option>`).join('');
       $('cn-run').disabled = !state.bootstrap.pairs.length;
+      $('cn-mode').value=state.bootstrap.default_mode||'three_agents';
+      document.dispatchEvent(new CustomEvent('audittrace:connectivity-ready',{detail:state.bootstrap}));
       reportCards();
       const shared = new URL(location.href).searchParams.get('connectivity_task');
       const saved = shared && /^(?:CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}$/.test(shared) ? shared : localStorage.getItem('audittrace-connectivity-task');

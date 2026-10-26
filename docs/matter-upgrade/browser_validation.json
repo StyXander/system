@@ -1,0 +1,30 @@
+{
+  "origin": "synthetic_engineering_only",
+  "real_model_calls": 0,
+  "viewports": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "result_visible": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "result_visible": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "result_visible": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "result_visible": true
+    }
+  ],
+  "errors": [],
+  "task_id": "CONNJOB-EE3C847CBA87",
+  "provider_records": 16,
+  "status": "passed"
+}

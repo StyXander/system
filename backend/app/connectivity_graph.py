@@ -341,7 +341,54 @@ def refresh_run_sources(root, run):
         actual = hashlib.sha256(path.read_bytes()).hexdigest()
         if actual != original.file_sha256 or doc.file_sha256 != original.file_sha256:
             changed[original.document_id] = actual if actual != original.file_sha256 else "registry_changed"
+    if child.matter_schema_version:
+        from .connectivity_financial_ontology import matter_rules
+        from .connectivity_matter_extraction import digest
+        import json
+        old_rules=child.versions.get("matter_rule_fingerprints",{})
+        current_rules={r["rule_id"]:digest(json.dumps(r,sort_keys=True,ensure_ascii=False)) for r in matter_rules()}
+        invalid_paths={p.path_id for p in child.matter_paths if any(old_rules.get(r)!=current_rules.get(r) for r in p.rule_ids)}
+        affected={p.matter_id for p in child.matter_paths if p.path_id in invalid_paths}
+        for path in child.matter_paths:
+            if path.path_id in invalid_paths:path.support="invalid"
+        for assessment in child.matter_assessments:
+            if assessment.matter_id in affected:
+                assessment.relation_support="invalid";assessment.unresolved.append("所依赖专业规则已变化，需重新调查")
+        for matter in child.matters:
+            if matter.matter_id in affected:matter.investigation_status="partial"
+        if affected:
+            child.versions["rule_validity"]={"status":"invalid","matter_ids":sorted(affected)}
+            from .connectivity_matters import finish_projection
+            finish_projection(child)
     if changed:
+        if child.matter_schema_version:
+            for evidence in child.matter_evidence:
+                if evidence.document_id in changed:
+                    evidence.source_verified = False
+                    evidence.invalid_reason = "原件缺失、换版或登记身份变化"
+            invalid_ids = {e.evidence_id for e in child.matter_evidence if e.invalid_reason}
+            invalid_matters = set()
+            for event in [*child.matter_events,*child.matter_commitments]:
+                if invalid_ids.intersection(event.evidence_ids):event.evidence_status="invalid"
+            for path in child.matter_paths:
+                for step in path.steps:
+                    if invalid_ids.intersection(step.evidence_ids):step.support="invalid"
+                if any(invalid_ids.intersection(step.evidence_ids) for step in path.steps):
+                    path.support = "invalid"
+                    invalid_matters.add(path.matter_id)
+            for matter in child.matters:
+                if invalid_ids.intersection(matter.evidence_ids):
+                    invalid_matters.add(matter.matter_id)
+                    matter.investigation_status = "partial"
+            for assessment in child.matter_assessments:
+                if assessment.matter_id in invalid_matters or invalid_ids.intersection(assessment.supporting_evidence_ids):
+                    assessment.relation_support = "invalid"
+                    assessment.unresolved.append("依赖来源已变化；本意见仅作历史回查")
+            for relation in child.matter_relations:
+                if invalid_ids.intersection(relation.evidence_ids):
+                    relation.evidence_status = "invalid"
+            from .connectivity_matters import finish_projection
+            finish_projection(child)
         invalidate_graph(child.impact_graph, changed)
         invalid_edges = {edge["id"]: edge for edge in child.impact_graph.get("edges", []) if edge.get("invalid")}
         for edge in child.financial_edges:

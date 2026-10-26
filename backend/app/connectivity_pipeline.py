@@ -1387,8 +1387,12 @@ def integrate_proposals(run: ConnectivityRun, response: dict, allowed_ids: set[s
 
 def run_pipeline(root: Path, request: RunRequest, *, progress=lambda *args: None, agent_progress=lambda *args: None,
                  cancelled=lambda: False, before_model=lambda: None, resume: ConnectivityRun | None = None,
-                 checkpoint=lambda run: None) -> ConnectivityRun:
+                 checkpoint=lambda run: None, provider_budget=lambda run: None) -> ConnectivityRun:
     """共享合同一次接通；仅计算、失败与真实模型链保持不同身份。"""
+    if request.analysis_scope == "matter_connectivity":
+        from .connectivity_matter_pipeline import run_matter_pipeline
+        return run_matter_pipeline(root, request, progress=progress, agent_progress=agent_progress,
+            cancelled=cancelled, before_model=before_model, resume=resume, checkpoint=checkpoint, provider_budget=provider_budget)
     started = time.perf_counter()
     direct_single = request.mode == "single_model" and os.getenv("CONNECTIVITY_EXPERIMENT_DIRECT_SINGLE") == "1"
     retrieval_enabled = os.getenv("CONNECTIVITY_ABLATION_NO_RETRIEVAL") != "1" and not direct_single

@@ -19,6 +19,7 @@ from .main import (_enforce_public_model_quota, _public_model_ledger, security_h
 from .connectivity_api import build_router
 from .connectivity_facts import project_facts
 from .connectivity_catalog_api import build_catalog_router
+from .connectivity_matter_schemas import matter_enabled
 
 ROOT = Path(__file__).resolve().parents[2]
 @asynccontextmanager
@@ -28,7 +29,7 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.23.enterprise.1', lifespan=lifespan)
+app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.26.matter.1', lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(CORSMiddleware, allow_origins=_configured_cors_origins(), allow_credentials=True,
                    allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'Authorization', 'Idempotency-Key'])
@@ -50,7 +51,10 @@ def health():
     return {'service_status': 'ready', 'product': 'connectivity',
         'model_status': 'configured' if os.getenv('DEEPSEEK_API_KEY', '').strip() else 'config_missing',
         'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
-        'default_mode': 'three_agents', 'project_facts': project_facts(ROOT),
+        'default_mode': 'five_agents' if matter_enabled() else 'three_agents', 'matter_schema_version': 'matter_connectivity_v1', 'frontend_release': '2026.10.26.green.1', 'project_facts': project_facts(ROOT),
         'deployment': {'commit': os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') or None,
-            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.23.enterprise.1',
+            'platform': os.getenv('AUDITTRACE_DEPLOYMENT_PLATFORM') or ('render' if os.getenv('RENDER_GIT_COMMIT') else 'local'),
+            'source_baseline_commit': os.getenv('AUDITTRACE_SOURCE_BASELINE_COMMIT') or None,
+            'source_snapshot_sha256': os.getenv('AUDITTRACE_SOURCE_SNAPSHOT_SHA256') or None,
+            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.26.matter.1',
             'identity_source': 'runtime_environment' if os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') else 'unverified'}}
