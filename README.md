@@ -2,7 +2,7 @@
 
 面向年度报告与可持续发展报告的财务影响关联与跨期追踪系统。系统围绕可持续事项整理财务路径、承诺进展、竞争解释和下一步证据要求，供财务、ESG及审计鉴证人员复核。
 
-2026年10月26日事项升级版使用五Agent主管线。当前是完成本地工程验证的候选版本，真实模型对照、人工专业评价与生产数据库迁移仍待验收。[修改对照与验证范围](docs/matter-upgrade/implementation.md)、[能力差距](docs/matter-upgrade/feature_gap_matrix.md)、[发布事实](docs/matter-upgrade/release_facts.json)分别记录。
+2026年10月26日事项升级版使用五Agent主管线。当前已完成工程验证及原Supabase额度迁移，正式发布使用双塔首页和绿色工作台。真实模型对照、人工专业评价及生产多实例压力测试仍待完成。[修改对照与验证范围](docs/matter-upgrade/implementation.md)、[能力差距](docs/matter-upgrade/feature_gap_matrix.md)、[发布事实](docs/matter-upgrade/release_facts.json)分别记录。
 
 ## 本地运行
 

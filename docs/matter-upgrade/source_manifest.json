@@ -8,7 +8,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "588d087d954220ae39b036dcc1f42781d3782920ecd035e99e1919a572032550"
+      "sha256": "c57117e544e9e6d7f438ab0a5ac441b6cc1c9a65be5d4f792ec55634e9d99f78"
     },
     {
       "path": "README_RUN.md",
@@ -155,8 +155,20 @@
       "sha256": "b9a598946fab235cd1b207b77d840797c2b88b6a19ae64551d4852744c48783a"
     },
     {
+      "path": "deploy/modelscope/.gitattributes",
+      "sha256": "51329d77d0a73c1e28dcabbfab822a46f110f1ce4b271a1bddc4616ff559ddf5"
+    },
+    {
+      "path": "deploy/modelscope/README.md",
+      "sha256": "d914a14992baa8850bdc77b4df4d0970b4e677b6e454241e9ce3b16272b4dcc4"
+    },
+    {
       "path": "deploy/modelscope/app.py",
       "sha256": "01718ff8abc7ca92df8cbbba2b83205480347ef6bd81e3e92241548b373ee829"
+    },
+    {
+      "path": "deploy/modelscope/verify_http.py",
+      "sha256": "70fa153fa9c8c81ee09df441086b715561fe6c9e33c1e02d07574de5194a9c2f"
     },
     {
       "path": "docs/TEST_INVENTORY.md",
@@ -179,16 +191,20 @@
       "sha256": "5dbf004f62b82992a0451a539313879ff07a2a84b9bc3d54c7e4a01f02b92b67"
     },
     {
+      "path": "docs/matter-upgrade/deployment_acceptance.json",
+      "sha256": "cb84ed8658d2c1125cc5c64c9a8650e62ca7308cde4e58b67fa2b28201854ca4"
+    },
+    {
       "path": "docs/matter-upgrade/feature_gap_matrix.md",
-      "sha256": "cd96e7adc661cf5ed18cd00d1460b155a27b5d4b95e49815e07cae3042facffa"
+      "sha256": "bc7d01e0563121cade7d7dcfea16732d38de0d9c58b784bb80bf1fde71577da9"
     },
     {
       "path": "docs/matter-upgrade/implementation.md",
-      "sha256": "a9fbb72dad2c93ebcc2bc3e8e724990d91d3c9f3dd4bf2e791eece3345e43f0c"
+      "sha256": "bb4072fa5eafd528690d4c5230248a382e211c8c16c19de83f4fefd4abb97bc1"
     },
     {
       "path": "docs/matter-upgrade/release_facts.json",
-      "sha256": "ec0dc4f41077f6de033ecae41cc16af75ae8e088dac657ae149ccf994e1f5629"
+      "sha256": "0a8022c69523e68c866cd8480baaa04f99d9881e526ea97a3ea7242a06db86c8"
     },
     {
       "path": "index.html",

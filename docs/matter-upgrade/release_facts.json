@@ -6,7 +6,7 @@
   "branch": "codex/five-agent-matter-upgrade-20261026",
   "base_commit": "6dd5fb26599105946bac1b5c4f6e8759fea5a571",
   "source_binding": "本文件及source_manifest.json由同一个Git提交保存；Git提交是最终版本身份，不预填尚未生成的SHA",
-  "status": "candidate_engineering_validated_external_acceptance_pending",
+  "status": "deployed_engineering_validated_professional_acceptance_pending",
   "scope_exclusions": [
     "方案书",
     "PPT",
@@ -87,7 +87,7 @@
     "supabase_credentials": "existing_dashboard_session_migration_applied_no_secrets_in_source",
     "supabase_multi_instance_smoke": "not_run",
     "production_migration": "applied_verified_column_rpc_and_privileges",
-    "production_deployment": "publishing_authorized_by_user",
+    "production_deployment": "render_and_modelscope_live_verified",
     "semantic_model": "optional_not_quality_validated",
     "ocr_real_original": "not_verified",
     "matter_reconciliation": "conditional_only_no_automatic_formal_release"
@@ -107,5 +107,18 @@
     "source": "1082429^:index.html home fragment; retained current matter controller",
     "model_calls_in_visual_test": 0,
     "late_script_initialization": "passed"
+  },
+  "production_acceptance": "docs/matter-upgrade/deployment_acceptance.json",
+  "production_actual_model_calls": 0,
+  "production_program_smoke": {
+    "company": "五粮液",
+    "period": "2025",
+    "status": "completed",
+    "matter_candidates": 90,
+    "export_formats": [
+      "json",
+      "csv",
+      "docx"
+    ]
   }
 }

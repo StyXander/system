@@ -10,7 +10,7 @@ import httpx
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "决赛准备" / "ModelScope部署_2026-10-14"
+OUT = ROOT / "outputs" / "matter-production-20261026" / "modelscope-http"
 BASE = "https://burgerhaamm-audittrace.ms.show"
 
 
@@ -18,17 +18,20 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--direct", action="store_true")
     parser.add_argument("--session-file", type=Path)
+    parser.add_argument("--base-url", default=BASE)
+    parser.add_argument("--output-dir", type=Path, default=OUT)
     args = parser.parse_args()
-    OUT.mkdir(parents=True, exist_ok=True)
-    audit = {"base": BASE, "direct_without_proxy": args.direct, "requests": [], "provider_calls_created": 0}
-    with httpx.Client(base_url=BASE, timeout=90, follow_redirects=True, trust_env=not args.direct, headers={"Referer": "https://www.modelscope.cn/", "User-Agent": "Mozilla/5.0"}) as client:
+    output = args.output_dir
+    output.mkdir(parents=True, exist_ok=True)
+    audit = {"base": args.base_url, "direct_without_proxy": args.direct, "requests": [], "provider_calls_created": 0}
+    with httpx.Client(base_url=args.base_url, timeout=90, follow_redirects=True, trust_env=not args.direct, headers={"Referer": "https://www.modelscope.cn/", "User-Agent": "Mozilla/5.0"}) as client:
         # 平台要求先用页面生成的短期 Studio 会话建立 Cookie；不使用账户 API 密钥。
         if args.session_file:
             entry = args.session_file.read_text(encoding="utf-8").strip()
             opened = client.get(entry)
             if opened.status_code != 200:
                 raise RuntimeError(f"平台会话入口 HTTP {opened.status_code}")
-        for endpoint in ["/", "/api/health", "/api/status", "/api/demo/bootstrap", "/api/evidence-scenarios"]:
+        for endpoint in ["/", "/api/health", "/api/connectivity/bootstrap", "/api/connectivity/report-sets"]:
             response = client.get(endpoint)
             audit["requests"].append({"path": endpoint, "status": response.status_code})
             if response.status_code != 200:
@@ -44,10 +47,12 @@ def main() -> None:
                 audit["frame_policy"] = response.headers.get("content-security-policy")
             else:
                 filename = endpoint.strip("/").replace("/", "_") + ("_direct" if args.direct else "") + ".json"
-                (OUT / filename).write_text(json.dumps(response.json(), ensure_ascii=False, indent=2), encoding="utf-8")
-                if endpoint == "/api/status":
+                (output / filename).write_text(json.dumps(response.json(), ensure_ascii=False, indent=2), encoding="utf-8")
+                if endpoint == "/api/health":
                     audit["deployment"] = response.json().get("deployment")
-    destination = OUT / ("HTTP直接连接验收.json" if args.direct else "HTTP接口验收.json")
+                    audit["default_mode"] = response.json().get("default_mode")
+                    audit["frontend_release"] = response.json().get("frontend_release")
+    destination = output / ("HTTP直接连接验收.json" if args.direct else "HTTP接口验收.json")
     destination.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     assert audit["index_matches_workspace"]
     assert all(row.get("matches_workspace", True) for row in audit["requests"])

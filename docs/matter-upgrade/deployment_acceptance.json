@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-26",
+  "github_pr": "https://github.com/StyXander/system/pull/11",
+  "github_runtime_commit": "2c1606f654ae42284343a629d63bf70986cceb40",
+  "frontend_release": "2026.10.26.green.1",
+  "render": {
+    "url": "https://audittrace-demo.onrender.com/",
+    "initial_runtime_verified": "da612fbab0ae229f8e577f0048cfed7d875f5eb3",
+    "latest_patch_status": "live_verified",
+    "index_and_visual_assets_match": true,
+    "default_mode": "five_agents",
+    "offline_task": "DEMO-RUN-98E2B274440E",
+    "offline_task_status": "completed",
+    "matter_candidates": 90,
+    "export_json_csv_docx": "HTTP_200",
+    "real_model_calls": 0,
+    "model_auth_check": "401_unauthenticated_no_provider_call",
+    "offline_exports": {
+      "json": 366883,
+      "csv": 232733,
+      "docx": 57541
+    },
+    "runtime_commit": "2c1606f654ae42284343a629d63bf70986cceb40",
+    "browser_final_check": {
+      "matter_script": "2026.10.26.2",
+      "setup_panels": 1,
+      "selected_company": "五粮液2025",
+      "document_choices": 2
+    },
+    "http_contract": "all_18_resources_200_and_all_14_assets_match"
+  },
+  "modelscope": {
+    "url": "https://modelscope.cn/studios/burgerhaamm/audittrace?mode=full",
+    "repository_commit": "fd2017017e130c05b7277cec3dbfb267d261e4c5",
+    "source_baseline_commit": "2c1606f654ae42284343a629d63bf70986cceb40",
+    "source_snapshot_sha256": "5a61483ade8e1700953b47aaddaf56871a816d73690a43f1b012d2bc78a0faf5",
+    "latest_patch_status": "live_verified",
+    "browser_final_check": {
+      "setup_panels": 1,
+      "document_choices": 2,
+      "home_dual_models": true,
+      "green_workspace": true
+    },
+    "http_contract": "all_18_resources_200_and_all_14_assets_match"
+  },
+  "database": {
+    "migration": "supabase/connectivity_matter_migration.sql",
+    "status": "applied",
+    "last_activity_column": true,
+    "checkpoint_rpc": true,
+    "service_role_can_execute": true,
+    "anon_can_execute": false
+  },
+  "professional_quality": "real_five_agent_comparison_and_human_labels_pending",
+  "excluded": [
+    "proposal",
+    "PPT",
+    "speech"
+  ],
+  "github_checks_latest": "passed",
+  "verified_at": "2026-10-26T13:57:20.780753+00:00",
+  "both_platforms_index_sha256": "7302e3fd14d2dd6c52be910e026848ddeed56dbb0238c1d3ced81cfe6fe64171",
+  "both_platforms_match": true,
+  "known_data_limits": [
+    "BAO24_AR lacks a registered disclosure date and is rejected for as-of matter sets until verified metadata is supplied"
+  ]
+}

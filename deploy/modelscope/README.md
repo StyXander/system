@@ -1,29 +1,41 @@
 # 审迹智链 ModelScope 部署
 
-2026年10月16日新版关联核对仍在本机联调，以下10月14日线上记录属于历史版本。本轮Supabase保存、独立实例读取、服务进程重启恢复及修订导出已验证；当前原PDF定位质量和关系识别仍未达到完整验收要求，尚未部署。新版任务执行模式须为 `web`，不交给历史付费Worker。登记原件已在本机隔离空缓存中全部取得过，平台网络获取仍须在部署后另验。
+正式空间：https://modelscope.cn/studios/burgerhaamm/audittrace
 
-空间：https://modelscope.cn/studios/burgerhaamm/audittrace
+全屏入口：https://modelscope.cn/studios/burgerhaamm/audittrace?mode=full
 
-推荐全屏网站：https://modelscope.cn/studios/burgerhaamm/audittrace?mode=full
+当前运行同一套五Agent可持续事项调查、双塔Canvas首页与自然档案馆绿色工作台。前端仍为根目录`index.html`及`assets/official-v4/`；后端正式入口为`backend.app.connectivity_app:app`。不建立另一套业务网页。
 
-容器服务域名为 `burgerhaamm-audittrace.ms.show`，平台对该域名使用短期 Studio 会话校验；分享时使用上面的官方空间或全屏地址，不分享短期 Token 链接。
+## 打包与发布
 
-部署类型为 Docker，免费硬件为平台当前返回的 `platform/2v-cpu-8g-mem`；入口监听 `0.0.0.0:7860`。费用资源不在本次范围内。Docker 需要本人完成阿里云绑定与实名认证。
+在已提交、运行文件干净的工作区执行：
 
-运行前端仍为工作区根目录 `index.html` 和 `assets/official-v4/`，后端仍为 `backend.app.main:app`。本目录只提供托管适配，不建立第二套网页。
+```bash
+python deploy/modelscope/prepare.py
+```
 
-`prepare.py` 从已提交的运行文件白名单构建 `tmp/modelscope-deploy/repo/`，阻止未提交的运行修改、扫描密钥、排除全文 PDF 和本机运行目录，并写入逐文件 SHA-256 清单。其 Git master 分支同步到该创空间，禁止强推。`.gitattributes` 保留源文件字节；云端 `deployment.source_snapshot_sha256` 与包中清单核对，`source_baseline_commit` 表示源码所在 GitHub 提交，与创空间自己的部署提交分别记录。
+输出在`tmp/modelscope-deploy/repo/`。白名单只收集运行文件，扫描密钥，排除全文PDF、本地运行目录与私有会话。`.gitattributes`保留原始换行及创空间要求的LFS规则；推送时保留原创空间Git历史，禁止强推。上传凭据不进入代码或远端URL。
 
-生产依赖采用 `backend/requirements.txt` 和 `requirements-lock.txt` 的约束，通过阿里云国内软件镜像安装。`app.py` 在运行阶段准备标准来源、公司目录和现有案例台账，再启动网站；构建镜像时不注入密钥。
+将打包目录同步至现有创空间仓库master并提交推送后，在“空间管理”点击“重新部署”，核对文件变化，再点击“确认部署”。推送文件本身不会更新正在运行的镜像。构建成功与服务实际启动也须分别确认。
 
-平台 Secret：`DEEPSEEK_API_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_URL`、独立生成的 `AUDITTRACE_PUBLIC_QUOTA_SECRET`。模型与任务台账延用现有 DeepSeek、Supabase 配置；完成结果可恢复，运行中任务不自动重放。来源缓存仍按哈希验证，禁止把下载失败写成来源就绪。
+Docker监听`0.0.0.0:7860`，沿用现有免费2v CPU/8G内存实例。依赖通过阿里云镜像安装，并使用项目约束文件。服务密钥仍由平台管理：`DEEPSEEK_API_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_URL`、`AUDITTRACE_PUBLIC_QUOTA_SECRET`；不得写进镜像。真实模型调用仍按组织登录和额度台账控制。
 
-新公开入口使用项目受控默认额度：每来源每15分钟2次、全局10次、并发2、每日60次，输入140万及输出15万 token 上限。Render 原评委试用窗口的大额度未复制到此空间。平台免费资源不代表模型调用免费。
+新事项入口默认启用；关闭`CONNECTIVITY_MATTER_ENABLED`可阻止新事项运行并保留历史读取。Supabase须先执行`supabase/connectivity_matter_migration.sql`；2026-10-26已在原项目执行，新增列、检查点RPC及角色权限已核实。生产多实例并发与专业效果验收仍另行记录。
 
-服务器只在明确设定 `AUDITTRACE_DEPLOYMENT_PLATFORM=modelscope` 时允许两个 ModelScope 社区域名嵌入；其他部署继续禁止嵌入。状态接口分别标记 ModelScope、源码快照和工作区基线。
+## 核验
 
-验收使用 `verify_http.py --session-file 本地短期会话文件`，加 `--direct` 可核对不经过代理的连接。会话文件由实际页面的 iframe 入口取得，验收结束删除。脚本不创建模型调用。还须在真实浏览器检查四个视口、资料条件检验、原文回查、模型分析、控制台与网络。
+`deployment-source.json`保存逐文件SHA-256、`source_snapshot_sha256`和`source_baseline_commit`。后两者在`/api/health`分别返回；创空间部署提交与GitHub源代码提交是不同身份。配置存在不等于真实模型调用成功。
 
-2026年10月14日已验证23案加载、资料条件变化、JSON/CSV下载及原文第7页。当天 ModelScope 真实运行 `RUN-V7-7B97487A0326` 的三个角色完成，包含3次模型调用。该记录是当天已完成运行，重新打开页面不代表新增调用。平台外壳在平板与手机宽度仍维持约1280像素布局，窄屏验收未通过；现场使用电脑全屏入口。
+平台域名`burgerhaamm-audittrace.ms.show`需要短期Studio会话。分享使用上面的官方空间地址，不分享短期Token链接。通过实际页面iframe取得会话入口，放入权限受限的临时文件后运行：
 
-AI生成内容，仅供审计计划阶段进一步核查，不构成审计结论或审计意见。
+```bash
+python deploy/modelscope/verify_http.py --session-file /path/to/private-session-file
+```
+
+验证器只读取正式健康、bootstrap、资料集合、首页及静态资源，比较实际字节，不启动模型调用；结束后删除会话文件。Render也可使用同一验证器：
+
+```bash
+python deploy/modelscope/verify_http.py --base-url https://audittrace-demo.onrender.com --output-dir outputs/render-http
+```
+
+只有ModelScope部署允许两个官方社区域名嵌入；其他部署继续禁止嵌入。真实浏览器还须确认双塔首页、绿色工作区、五Agent资料选择、原文与导出。历史2026-10-14三角色记录不计为本次五Agent效果。真实多年度模型对照、消融及人工专业评价尚未完成。
