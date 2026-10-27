@@ -1,0 +1,26 @@
+name: AuditTrace independent live case acceptance
+on:
+  push:
+    branches:
+      - audit/live-case-acceptance-20261027
+    paths:
+      - .github/workflows/live-case-acceptance.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise real registered report pairs against live Render
+        env:
+          ACCEPTANCE_BASE: https://audittrace-demo.onrender.com
+        run: python scripts/live_case_acceptance.py
+      - name: Preserve redacted acceptance summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audittrace-live-case-acceptance
+          path: outputs/live-case-acceptance.json
