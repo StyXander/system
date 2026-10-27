@@ -1,0 +1,24 @@
+name: Post-fix actual DeepSeek Baosteel 5Agent acceptance
+on:
+  push:
+    branches: [audit/baosteel-final-real-model-20261027]
+    paths: [.github/workflows/baosteel-final-actual-model.yml]
+permissions: {contents: read}
+concurrency:
+  group: baosteel-production-agent-verification
+  cancel-in-progress: false
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify production version then run exactly one real model investigation
+        env:
+          ACCEPTANCE_REQUIRED_COMMIT: bc7e4f49be0756592bb0630d00299abbb3734898
+        run: python -u scripts/live_baosteel_five_agent_final.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baosteel-post-fix-real-deepseek-results
+          path: outputs/real-baosteel-five-agents-20261027.json
