@@ -211,6 +211,26 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             log.warning("baosteel_dossier unavailable code=%s",type(error).__name__)
             raise HTTPException(503, "官方资料核验或专项证据索引尚未完成，请检查原件可用性及服务日志。") from error
 
+    @router.get("/demo/baosteel/runs")
+    def baosteel_saved_runs(request: Request):
+        """Only list the current user's own real persisted tasks; no synthetic snapshots."""
+        if not single_user_enabled() and not request.cookies.get(COOKIE):
+            raise HTTPException(409, "请先加载工作台，建立本浏览器会话")
+        owner_id = None if single_user_enabled() else owner(request)
+        rows = store().list_owned(owner_id, limit=20, offset=0)
+        items = []
+        for row in rows:
+            body = row.get("run_body") or row.get("request_payload") or {}
+            company = str(row.get("company") or body.get("company") or "")
+            if row.get("case_id") != "600019-2025" and "宝钢" not in company:
+                continue
+            items.append({"task_id":row["task_id"],"status":row.get("status"),
+                "created_at":row.get("created_at"),"model_mode":body.get("mode"),
+                "analysis_scope":body.get("analysis_scope"),
+                "parent_task_id":body.get("parent_task_id"),
+                "result_expires_at":row.get("result_expires_at")})
+        return {"items":items[:8],"notice":"真实台账，只列当前会话有权查看的任务；部分完成和失败状态照实保留。"}
+
     @router.get("/readiness")
     def readiness(pair_id: str | None = None):
         return source_readiness(root, pair_id=pair_id)
