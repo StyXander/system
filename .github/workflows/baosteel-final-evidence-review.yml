@@ -1,0 +1,39 @@
+name: Read-only Baosteel final model evidence quality review
+on:
+  push:
+    branches: [audit/real-baosteel-five-agents-20261027]
+    paths: [.github/workflows/baosteel-final-evidence-review.yml]
+permissions: {contents: read}
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect persisted real task, no new model calls
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          tid="DEMO-RUN-C68F395377A0"
+          with urllib.request.urlopen("https://audittrace-demo.onrender.com/api/connectivity/runs/"+tid,timeout=90) as f:
+              full=json.load(f)
+          run=full.get("result") or {}
+          print("FINAL_META",json.dumps({"task":tid,"status":full.get("status"),
+               "model_status":run.get("model_status"),"run_id":run.get("run_id"),
+               "selected":(run.get("versions") or {}).get("investigation_scope"),
+               "counts":{k:len(run.get(k) or []) for k in
+                         ("matter_paths","matter_relations","matter_assessments",
+                          "matter_explanations","matter_tool_receipts","matter_rejections","occurrences")},
+               "rules":(run.get("versions") or {}).get("role_budgets")},ensure_ascii=False),flush=True)
+          for category in ("matter_paths","matter_relations","matter_assessments","matter_explanations",
+                           "matter_rejections","matter_tool_receipts"):
+              rows=run.get(category) or []
+              for index,row in enumerate(rows[:8]):
+                  keep={}
+                  for k,v in row.items():
+                      if k in ("input","payload","prompt","raw","content","source_url","response"): continue
+                      if isinstance(v,(dict,list)):
+                          keep[k]=json.dumps(v,ensure_ascii=False)[:700]
+                      else:keep[k]=str(v)[:700]
+                  print("EVIDENCE_REVIEW",category,index,json.dumps(keep,ensure_ascii=False)[:1800],flush=True)
+          PY
