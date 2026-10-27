@@ -1,4 +1,5 @@
 name: Finals Baosteel strict-evidence DeepSeek five-Agent run
+# Re-run after Render deployment 7a22a5f0 ended successfully; preserve strict evidence gate.
 on:
   push:
     branches: [audit/baosteel-live-a3-final-20261027]
