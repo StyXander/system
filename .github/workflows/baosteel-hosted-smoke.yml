@@ -1,0 +1,40 @@
+name: Hosted Baosteel acceptance (read-only)
+on:
+  push:
+    branches: [audit/baosteel-hosted-smoke-20261027]
+    paths: [.github/workflows/baosteel-hosted-smoke.yml]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise live deployed URL without model calls
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.error,urllib.request
+          base="https://audittrace-demo.onrender.com"
+          def get(path,timeout=150):
+              now=time.monotonic()
+              with urllib.request.urlopen(urllib.request.Request(base+path,headers={"User-Agent":"AuditTrace-final-demo-acceptance/1.0"}),timeout=timeout) as r:
+                  obj=json.load(r)
+              return obj,round(time.monotonic()-now,3)
+          health,th=get("/api/health",60)
+          print("HEALTH",json.dumps({"commit":health.get("deployment",{}).get("commit"),"model":health.get("model_status"),"elapsed":th},ensure_ascii=False),flush=True)
+          r,sec=get("/api/connectivity/demo/baosteel")
+          selected=[{"doc":z["document_id"],"page":z["pdf_page"],"terms":z["matched_terms"]} for z in r.get("evidence",[])]
+          evidence={(x["doc"],x["page"]) for x in selected}
+          assert len(selected)>=4
+          assert ("BAOSTEEL_AR_2025",154) in evidence
+          val=r["reconciliation"]
+          assert val["source_row_matched"]
+          assert val["known_component_subtotal_yuan"]=="0.00"
+          assert val["status"] in {"subtotal_computed","balanced"}
+          assert r["project_mapping"]=="annual_explicit_subproject"
+          print("CASE",json.dumps({"seconds":sec,"project":r["project_label"],
+              "sources":selected,"reconciliation":val,
+              "mapping":r["project_mapping"]},ensure_ascii=False),flush=True)
+          PY
