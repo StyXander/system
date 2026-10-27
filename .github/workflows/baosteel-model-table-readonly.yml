@@ -1,0 +1,32 @@
+name: Verify live Baosteel financial cells were supplied to agents
+on:
+  push:
+    branches: [audit/baosteel-final-real-model-20261027]
+    paths: [.github/workflows/baosteel-model-table-readonly.yml]
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read saved running case, no model calls
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          url='https://audittrace-demo.onrender.com/api/connectivity/runs/DEMO-RUN-C5319BAE2FA7'
+          with urllib.request.urlopen(url,timeout=80) as r: task=json.load(r)
+          d=task.get('result') or {}
+          x=(d.get('versions') or {}).get('verified_project_table') or {}
+          print('VERIFIED_FINANCIAL_DATA',json.dumps({
+              'task_state':task.get('status'),'model_status':d.get('model_status'),
+              'verified_table_status':x.get('status'),'verified_source_page':x.get('source_page'),
+              'source_sha256':x.get('source_sha256'),
+              'verified_values_yuan':x.get('values_yuan'),
+              'project_row_label':x.get('source_row_label'),
+              'roles':[{k:z.get(k) for k in ('role','status','failure_code','identity_outcome')} for z in d.get('matter_tasks') or []],
+              'models':sorted({str(z.get('model')) for z in d.get('provider_calls') or [] if z.get('model')})
+          },ensure_ascii=False),flush=True)
+          assert x.get('status') in ('subtotal_computed','balanced','difference'),'Verified table not joined into live Agent payload'
+          assert x.get('source_page')==154
+          assert x.get('values_yuan',{}).get('to_fixed')=='1087415200.00'
+          PY
