@@ -1,0 +1,24 @@
+name: Finals Baosteel strict-evidence DeepSeek five-Agent run
+on:
+  push:
+    branches: [audit/baosteel-live-a3-final-20261027]
+    paths: [.github/workflows/finals-a3-real-run.yml]
+permissions: {contents: read}
+concurrency:
+  group: baosteel-finals-real-a3-single-run
+  cancel-in-progress: false
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+      - name: Real DeepSeek one-matter investigation with strict citations
+        shell: bash
+        run: python -u scripts/verify_finals_a3_real_run.py
+      - name: Archive role and source evidence without secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finals-baosteel-real-five-agent-result
+          path: outputs/finals-baosteel-a3-live-20261027.json
