@@ -1,0 +1,36 @@
+name: Check existing Baosteel concrete matter candidates
+on:
+  push:
+    branches: [audit/live-case-acceptance-20261027]
+    paths: [.github/workflows/demo-candidate-read-only.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect saved original source references without model calls
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          base="https://audittrace-demo.onrender.com"
+          tasks={"BaoSteel_2025":"DEMO-RUN-9F22823424F2","WLY_2025":"DEMO-RUN-20440896B3BA","Midea_2025":"DEMO-RUN-78938244F5F7"}
+          needles=("零碳","湛江","硅钢","节能","环境","碳","新能源","投资","改造","项目")
+          for name,tid in tasks.items():
+              try:
+                  with urllib.request.urlopen(base+"/api/connectivity/runs/"+tid,timeout=60) as r: body=json.load(r)
+                  run=body.get("result") or {}
+                  ev={e["evidence_id"]:e for e in run.get("matter_evidence",[]) if e.get("evidence_id")}
+                  hits=[]
+                  for m in run.get("matters",[]):
+                      matched=[ev.get(eid,{}) for eid in m.get("evidence_ids",[])]
+                      data=" ".join([m.get("name","")]+[e.get("quote","") for e in matched])
+                      if any(q in data for q in needles):
+                          hits.append({"id":m.get("matter_id"),"name":m.get("name"),"kind":m.get("matter_type"),
+                               "evidence":[{"pdf":e.get("pdf_page"),"type":e.get("report_type"),"snippet":e.get("quote","")[:220]} for e in matched[:1]]})
+                  named=[x for x in hits if any(term in x["name"] for term in ("零碳","湛江","硅钢","电炉","项目"))]
+                  specific=[x for x in hits if any(term in " ".join(e["snippet"] for e in x["evidence"]) for term in ("零碳高等级薄钢板","绿色电炉","零碳工厂","在建工程","湛江"))]
+                  print("CANDIDATE_CASE",json.dumps({"company":name,"state":body.get("status"),"total":len(run.get("matters") or []),"named":named[:16],"specific":specific[:12]},ensure_ascii=False),flush=True)
+              except Exception as e:print("CANDIDATE_ERROR",name,repr(e),flush=True)
+          PY
