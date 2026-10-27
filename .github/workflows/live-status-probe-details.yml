@@ -21,7 +21,8 @@ jobs:
                             ("Midea initial","DEMO-RUN-78938244F5F7"),
                             ("Midea 5Agent","DEMO-RUN-738DF7655EF4"),
                             ("CATL initial","DEMO-RUN-90B5FE933C50"),
-                            ("BaoSteel initial","DEMO-RUN-9F22823424F2")]:
+                            ("BaoSteel initial","DEMO-RUN-9F22823424F2"),
+                            ("BaoSteel 5Agent","DEMO-RUN-37E6F1E181C3")]:
               try:
                   with urllib.request.urlopen(base+"/api/connectivity/runs/"+tid,timeout=65) as res:
                       obj=json.load(res)
