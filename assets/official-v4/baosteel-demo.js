@@ -5,7 +5,7 @@
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c];});}
   function html(lines){return lines.join('');}
   function origin(row){return '/api/connectivity/sources/'+encodeURIComponent(row.document_id)+'?page='+encodeURIComponent(row.pdf_page);}
-  function panel(name,body){return '<section class="ba-panel"><h3>'+esc(name)+'</h3>'+body+'</section>';}
+  function panel(name,body,theme){return '<section class="ba-panel" data-ba-theme="'+esc(theme||'history')+'"><h3>'+esc(name)+'</h3>'+body+'</section>';}
   var root=$('connectivity-root'), main=$('cn-workspace');
   if(!root || !main || !document.querySelector('.aw-nav'))return;
   var nav=document.querySelector('.aw-nav');
@@ -19,6 +19,7 @@
       '<div class="ba-header"><p class="ba-eyebrow">EVIDENCE-DRIVEN INVESTIGATION / 决赛专项案例</p>',
       '<h1>宝钢股份零碳工厂<span>从可持续披露，追到财务附注</span></h1>',
       '<p>围绕一个真实项目回答三件事：建设承诺有没有实施线索？钱进入了哪些资产？工程进度与转固时点还要核实什么？</p>',
+      '<figure class="ba-hero-media" hidden><img id="ba-zero-carbon-image" src="/assets/official-v4/baosteel-zero-carbon.png" alt="宝钢零碳项目" width="1280" height="480" decoding="async"><figcaption>宝钢零碳项目</figcaption></figure>',
       '<div class="ba-actions"><button type="button" id="ba-read" class="ba-primary">读取已登记官方原件，生成专项证据清单</button>',
       '<button type="button" id="ba-saved">查看当前会话其他宝钢运行记录</button>',
       '<button type="button" id="ba-new">创建新的真实五Agent任务</button></div></div>',
@@ -27,6 +28,11 @@
       '<div id="ba-saved-runs"></div>',
       '<div id="ba-output"></div>'
     ]);
+    // Optional supplied photo: reveal only after it loads; a missing asset leaves no broken-image gap.
+    var photo=$('ba-zero-carbon-image'), figure=photo.parentElement;
+    photo.addEventListener('load',function(){if(photo.naturalWidth)figure.hidden=false;});
+    photo.addEventListener('error',function(){figure.hidden=true;});
+    if(photo.complete && photo.naturalWidth)figure.hidden=false;
   }
   splash();
   function flash(s){$('ba-message').textContent=s;}
@@ -149,12 +155,12 @@
     var docs=(data.coverage||[]).map(function(c){return '<span>'+esc(c.document_id)+' · '+esc(c.total_pages)+' 页 · 解析限制 '+esc((c.failed_pages||[]).length)+' 页</span>';}).join('');
     $('ba-output').innerHTML=html([
       '<div class="ba-metrics">',metrics,'</div>',
-      panel('本次具体核查发现',findings),
-      panel('财务穿透 · 年报在建工程',financial(data)),
-      panel('跨报告证据链', '<div class="ba-chain"><span>项目披露</span><b>›</b><span>建设进展</span><b>›</b><span>在建工程</span><b>›</b><span>转固及折旧条件</span></div><p>这是一条待核机制路径，不代表每个节点已被证实。项目整体与炼钢子项目映射：<strong>'+esc(data.project_mapping==='annual_explicit_subproject'?'年报附注直接列明子项目':'仍待原文确认')+'</strong>。</p>'),
-      panel('原文回查 · 已核验 PDF', evidence(data)),
-      panel('建议审计人员取得的资料',investigations(data)),
-      panel('真实五 Agent 与版本', '<p>专项只读页不调用模型，因此本页没有 A1–A5 执行回执。历史五 Agent 结果须在实际任务页面查看，失败或降级不得隐藏。</p><p>'+esc(data.mapping_note)+'</p>'),
+      panel('本次具体核查发现',findings,'findings'),
+      panel('财务穿透 · 年报在建工程',financial(data),'finance'),
+      panel('跨报告证据链', '<div class="ba-chain"><span>项目披露</span><b>›</b><span>建设进展</span><b>›</b><span>在建工程</span><b>›</b><span>转固及折旧条件</span></div><p>这是一条待核机制路径，不代表每个节点已被证实。项目整体与炼钢子项目映射：<strong>'+esc(data.project_mapping==='annual_explicit_subproject'?'年报附注直接列明子项目':'仍待原文确认')+'</strong>。</p>','chain'),
+      panel('原文回查 · 已核验 PDF', evidence(data),'evidence'),
+      panel('建议审计人员取得的资料',investigations(data),'procedures'),
+      panel('真实五 Agent 与版本', '<p>专项只读页不调用模型，因此本页没有 A1–A5 执行回执。历史五 Agent 结果须在实际任务页面查看，失败或降级不得隐藏。</p><p>'+esc(data.mapping_note)+'</p>','agents'),
       '<div class="ba-footer">','调查价值：',esc(data.investigation_value||'C'),' · ',
       esc((data.ranking_reasons||[]).join('；')),' · ',esc(data.case_scope),'</div>',
       '<p class="ba-muted">',esc(data.source_warnings?.join('；')||''),'</p>',
