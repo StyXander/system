@@ -220,7 +220,7 @@
       }
       const investigation=e.target.closest('[data-cm-investigate]');if(investigation&&task){
         const run=task.result,extra={mode:'five_agents',report_set_id:run.report_set.report_set_id,as_of_date:run.report_set.as_of_date,selected_matter_ids:[investigation.dataset.cmInvestigate],matter_types:run.versions?.matter_types};
-        if(run.execution_mode==='five_agents')extra.retry_of_task_id=task.task_id;
+        if(run.execution_mode==='five_agents')extra.retry_of_task_id=task.task_id;else extra.parent_task_id=task.task_id;
         document.dispatchEvent(new CustomEvent('audittrace:connectivity-start-run',{detail:extra}));return;
       }
       const planningAction=e.target.closest('[data-cm-planning]');if(planningAction&&task){
