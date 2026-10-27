@@ -1,0 +1,27 @@
+name: Real DeepSeek Baosteel five-Agent end-to-end acceptance
+on:
+  push:
+    branches: [audit/real-baosteel-five-agents-20261027]
+    paths:
+      - .github/workflows/real-baosteel-fiveagents.yml
+permissions:
+  contents: read
+concurrency:
+  group: baosteel-real-five-agent-once
+  cancel-in-progress: false
+jobs:
+  live:
+    name: Exercise real PDFs and hosted model, exactly one project
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Actually invoke live five-Agent analysis on one grounded Baosteel matter
+        shell: bash
+        run: python -u scripts/live_baosteel_five_agent_acceptance_20261027.py
+      - name: Archive non-sensitive source, role and budget evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-baosteel-deepseek-five-agent-audit
+          path: outputs/real-baosteel-five-agents-20261027.json
