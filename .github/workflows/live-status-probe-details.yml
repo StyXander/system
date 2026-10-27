@@ -1,0 +1,52 @@
+name: AuditTrace live task detail read-only audit
+on:
+  push:
+    branches: [audit/live-case-acceptance-20261027]
+    paths: [.github/workflows/live-status-probe-details.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read only live persisted run details
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          base="https://audittrace-demo.onrender.com"
+          for label,tid in [("WLY initial","DEMO-RUN-20440896B3BA"),
+                            ("WLY 5Agent","DEMO-RUN-34217E223E30"),
+                            ("Midea initial","DEMO-RUN-78938244F5F7"),
+                            ("Midea 5Agent","DEMO-RUN-738DF7655EF4"),
+                            ("CATL initial","DEMO-RUN-90B5FE933C50")]:
+              try:
+                  with urllib.request.urlopen(base+"/api/connectivity/runs/"+tid,timeout=65) as res:
+                      obj=json.load(res)
+                  result=obj.get("result") or {}
+                  calls=result.get("provider_calls") or []
+                  tasks=result.get("matter_tasks") or []
+                  entry={
+                      "name":label,"task_id":tid,
+                      "state":obj.get("status"),"error":str(obj.get("error") or "")[:300],
+                      "failure_code":obj.get("failure_code"),
+                      "model_status":result.get("model_status"),
+                      "matters":len(result.get("matters") or []),
+                      "coverage":[{"doc":x.get("document_id"),"pages":x.get("total_pages"),"cache":x.get("cache_hit"),
+                                   "duration_ms":x.get("duration_ms"),"failed_pages":len(x.get("failed_pages") or [])}
+                                  for x in result.get("matter_coverage") or []],
+                      "calls":len(calls),
+                      "requests_attempted":sum(bool(c.get("request_attempted")) for c in calls),
+                      "call_codes":[{"role":c.get("role"),"code":c.get("failure_code"),
+                                     "status":c.get("status"),"stage":c.get("parse_stage"),
+                                     "invalid_fields":c.get("invalid_fields",[])[:3]}
+                                    for c in calls if c.get("status")=="failed"][:12],
+                      "roles":[{"role":t.get("role"),"status":t.get("status"),
+                                "code":t.get("failure_code"),"reason":str(t.get("stop_reason") or "")[:100]}
+                               for t in tasks[-15:]],
+                  }
+                  print("CASE_REPORT",json.dumps(entry,ensure_ascii=False),flush=True)
+              except Exception as e:
+                  print("CASE_REPORT_ERROR",label,repr(e),flush=True)
+          PY
