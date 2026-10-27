@@ -237,15 +237,16 @@ def build_baosteel_dossier(root: Path):
                     ("近零碳示范产线","零碳工厂","绿色电炉")) for s in sources)
     basis=[x for x in ["已定位年报项目披露" if ar_project else "",
                        "已定位可持续报告项目披露" if esg_project else "",
-                       "在建工程表格具备可复算字段" if reconciliation["status"] in {"balanced","difference"} else "在建工程明细尚需核对"] if x]
+                       "在建工程已按原表数值完成已知金额试算" if reconciliation["status"] in {"balanced","difference","subtotal_computed"} else "在建工程明细尚需核对"] if x]
     dossier={"case_id":cfg["case_id"], "company":cfg["company"],"project_label":cfg["project_label"],
         "pair_id":cfg["pair_id"],"title":cfg["title"],"questions":cfg["questions"],
         "source_type":"registered_public_pdf","data_origin":"fresh_verified_pdf_or_verified_index",
         "case_scope":"2025年两份已登记报告；不声称完成2024跨年验证",
         "evidence":sources,"evidence_count":len(sources),"total_matching_blocks":len(hits),
         "coverage":coverage,"reconciliation":reconciliation,
-        "project_mapping":"unconfirmed","mapping_note":cfg["matching_policy"],
-        "investigation_value":"A" if ar_project and esg_project and reconciliation["status"]=="balanced" else "B" if sources else "C",
+        "project_mapping":"annual_explicit_subproject" if reconciliation.get("source_row_matched") else "unconfirmed",
+        "mapping_note":("2025年报同一表格单行明确将炼钢工程列于宝钢湛江钢铁零碳高等级薄钢板工厂项目下；该原文身份不自动证明与ESG所有披露的统计范围一致。" if reconciliation.get("source_row_matched") else cfg["matching_policy"]),
+        "investigation_value":"A" if ar_project and esg_project and reconciliation["status"] in {"balanced","subtotal_computed"} else "B" if sources else "C",
         "ranking_reasons":basis,"rule_checks":[
           {"rule":"R1 转固与确认时点","status":"needs_evidence","question":"是否取得验收日期、达到预定可使用状态的依据及折旧起点？"},
           {"rule":"R2 工程范围差异","status":"needs_evidence","question":"零碳项目整体与炼钢工程部分完工是否属于不同工程边界？"},
