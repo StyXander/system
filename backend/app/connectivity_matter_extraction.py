@@ -143,6 +143,12 @@ def relevant_evidence(corpus, *, limit=90):
     for block in corpus:
         text = compact(block.quote)
         score = sum(min(3, text.count(t)) for values in MATTER_TERMS.values() for t in values)
+        # Focus the Baosteel demo on concrete project disclosures, not generic policies.
+        # This changes investigation order only; it does not establish project identity.
+        if block.company_id == '600019' and block.report_period == '2025':
+            precise = ('近零碳示范产线', '零碳高等级薄钢板', '绿色电炉', '湛江钢铁', '炼钢工程')
+            if any(term in text for term in precise):
+                score += 40
         if score:
             scores.append((score, block))
     # 先各文档轮转，避免长年报挤掉往年和ESG。
