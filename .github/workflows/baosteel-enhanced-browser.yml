@@ -1,0 +1,25 @@
+name: Baosteel enhanced history browser acceptance
+on:
+  push:
+    branches: [fix/baosteel-evidence-linked-agent-history-20261027]
+    paths: [.github/workflows/baosteel-enhanced-browser.yml]
+permissions: {contents: read}
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r backend/requirements.txt playwright
+      - run: python -m playwright install chromium --with-deps
+      - name: Exercise source-backed Baosteel case, Agent section and UI
+        run: python scripts/verify_baosteel_demo_browser.py
+      - name: Preserve actual browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baosteel-enhanced-browser
+          path: outputs/baosteel-browser
