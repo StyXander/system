@@ -88,7 +88,10 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
                      '使用page_evidence_ids提供原页引用，并注明金额来自结构化单元格；'
                      '破折号不等于已确认零，禁止声称完整金额勾稽通过或投资金额等于ESG汇总投入。')
         elif role=='A3':
-            prompt+='项目财务发生额可使用已验证的表格数据，但只就实际披露确认进度，建设计划年份不得当作验收日期。'
+            prompt+=('项目财务发生额可使用已验证的表格数据；仅就实际披露确认进度。'
+                     '每个events.occurred_period必须由此事件自身evidence_ids引用的quote逐字支持；'
+                     '如果没有直接事件年月，必须填空字符串，即使报告年份或其他页出现年份；'
+                     '建设计划年份绝不等于投运或验收年份。')
         elif role=='A4':
             prompt+='请核查已验证炼钢子工程财务明细与ESG项目的范围差别；同一表格里的其他项目不可自动归并。'
         elif role=='A5':
