@@ -46,6 +46,15 @@
       var claims=(run.next_actions||[]).map(function(a){
         return '<li><strong>'+esc(a.question)+'</strong><p>'+esc(a.requested_material)+'</p></li>';
       }).join('');
+      var realPaths=(run.path_examples||[]).map(function(p){
+        var steps=(p.steps||[]).map(function(step){
+          return '<li>'+esc(step.label)+'<p>'+esc(step.explanation||'')+'</p><small>证据等级：'+esc(step.support||'未判定')+' · 来源类型：'+esc(step.origin||'未知')+'</small></li>';
+        }).join('');
+        return '<details class="ba-evidence"><summary><strong>'+esc(p.financial_item)+'</strong> · '+esc(p.support||'待核')+'</summary><ol class="ba-procedures">'+steps+'</ol></details>';
+      }).join('');
+      var realCounter=(run.counter_explanations||[]).map(function(e){
+        return '<li><strong>'+esc(e.explanation)+'</strong><p>需要的判别证据：'+esc(e.required_evidence||'未提出')+'</p><small>状态：'+esc(e.status||'待核')+'</small></li>';
+      }).join('');
       var table=run.verified_table_detail||null;
       var cells=table?.values_yuan||{};
       var sourceRows=table?'<div class="ba-calculation"><h4>独立核验的原表金额（不是模型编造）</h4>'+
@@ -58,6 +67,8 @@
       return '<details class="ba-real-run" '+(n===0?'open':'')+'><summary><strong>'+esc(status)+'</strong><span>'+esc(run.models?.join(', ')||'模型未记录')+' · '+esc(run.actual_model_requests)+' 次真实请求 · '+total+'/5 角色完成</span><small>'+esc(run.task_id)+'</small></summary>'+
        '<p>来源：生产数据库保存的真实模型调用回执。财务结构化表格已传入模型：<strong>'+esc(run.verified_financial_table?'是':'否')+'</strong></p>'+sourceRows+
        '<div class="ba-agent-list">'+(run.role_results||[]).map(roleBadge).join('')+'</div>'+
+       '<h4>A2 · 真实财务穿透路径</h4>'+(realPaths||'<p>本次未登记可用路径。</p>')+
+       '<h4>A4 · 竞争解释与反证</h4><ol class="ba-procedures">'+(realCounter||'<li>本次未登记可用反证解释。</li>')+'</ol>'+
        '<h4>模型实际综合意见</h4><p>'+esc(run.assessment_summary||'没有有效综合意见')+'</p>'+
        '<h4>财务关联阶段</h4><p>'+esc(run.financial_stage||'未形成可用财务阶段')+'</p>'+
        '<h4>实际产生的后续核查任务</h4><ol class="ba-procedures">'+(claims||'<li>无有效建议</li>')+'</ol>'+
