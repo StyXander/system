@@ -2,7 +2,7 @@
 from decimal import Decimal
 from pathlib import Path
 
-from backend.app.connectivity_project_demo import reconcile_construction, load_demo_config
+from backend.app.connectivity_project_demo import reconcile_construction, load_demo_config, _table_amount
 
 
 def test_reconciliation_matches_real_example_without_ai():
@@ -48,3 +48,12 @@ def test_demo_config_contains_hints_not_prefilled_conclusions():
     assert set(cfg["document_ids"]) == {"BAOSTEEL_AR_2025", "BAOSTEEL_ESG_2025"}
     assert "verified_amounts" not in cfg
     assert "ai_conclusion" not in cfg
+
+
+def test_actual_pdf_cell_representation_reassembles_decimals():
+    # Actual PyMuPDF table.extract format for BaoSteel 2025, PDF 154.
+    assert _table_amount("1 326 600 000 00\n, , , .") == Decimal("1326600000.00")
+    assert _table_amount("240 078 904 49\n, , .") == Decimal("240078904.49")
+    assert _table_amount("847 336 295 51\n, , .") == Decimal("847336295.51")
+    assert _table_amount("1 087 415 200 00\n, , , .") == Decimal("1087415200.00")
+    assert _table_amount("-") is None
