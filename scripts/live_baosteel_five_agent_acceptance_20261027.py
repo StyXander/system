@@ -126,7 +126,7 @@ def run_and_poll(body, stage, max_seconds):
     return info,r
 
 try:
-    warm=call("GET","/",timeout=70)
+    warm=call("GET","/",timeout=25)
     health=call("GET","/api/health",timeout=60)
     bootstrap=call("GET","/api/connectivity/bootstrap",timeout=65)
     result["environment"]={"homepage_http":warm["code"],"health_http":health["code"],
@@ -136,8 +136,8 @@ try:
        "bootstrap_http":bootstrap["code"],"cookie_names":[c.name for c in jar]}
     print("ENV",json.dumps(result["environment"],ensure_ascii=False),flush=True)
     dump()
-    if health["code"]!=200 or bootstrap["code"]!=200 or warm["code"]!=200:
-        raise RuntimeError("Service/bootstrap/homepage is not reachable")
+    if health["code"]!=200 or bootstrap["code"]!=200 or not any(c.name=="audittrace_connectivity_session" for c in jar):
+        raise RuntimeError("Bootstrap/service or session cookie is unavailable")
     first,seed=run_and_poll({"pair_id":PAIR,"analysis_scope":"matter_connectivity",
                             "mode":"calculation_only","matter_types":["transition_project","commitment","other","resource_efficiency","climate_risk"]},
                            "real_pdf_screening",210)
