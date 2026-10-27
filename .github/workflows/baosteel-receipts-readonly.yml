@@ -1,0 +1,34 @@
+name: Read current Baosteel real Agent receipts
+on:
+  push:
+    branches: [audit/real-baosteel-five-agents-20261027]
+    paths: [.github/workflows/baosteel-receipts-readonly.yml]
+permissions:
+  contents: read
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read existing active task once, without model calls
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          tid="DEMO-RUN-C68F395377A0"
+          url="https://audittrace-demo.onrender.com/api/connectivity/runs/"+tid
+          with urllib.request.urlopen(url,timeout=90) as r:
+              x=json.load(r)
+          y=x.get("result") or {}
+          print("SAVED_RUN",json.dumps({
+            "task":tid,"status":x.get("status"),"model_status":y.get("model_status"),
+            "model_names":sorted({str(z.get("model")) for z in y.get("provider_calls",[]) if z.get("model")}),
+            "attempts":sum(bool(z.get("request_attempted")) for z in y.get("provider_calls",[])),
+            "calls":[{"role":z.get("role"),"model":z.get("model"),"status":z.get("status"),
+                      "code":z.get("failure_code"),"performed":z.get("performed")} for z in y.get("provider_calls",[])],
+            "roles":[{"role":z.get("role"),"status":z.get("status"),"code":z.get("failure_code")}
+                     for z in y.get("matter_tasks",[])],
+            "matters":[{"name":z.get("name"),"id":z.get("matter_id"),"status":z.get("investigation_status")}
+                      for z in y.get("matters",[]) if z.get("investigation_status") in ("running","completed","partial")][:4]
+          },ensure_ascii=False),flush=True)
+          PY
