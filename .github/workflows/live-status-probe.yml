@@ -1,0 +1,47 @@
+name: AuditTrace live result read-only probe
+on:
+  push:
+    branches:
+      - audit/live-case-acceptance-20261027
+    paths:
+      - .github/workflows/live-status-probe.yml
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect live stored five-agent outcome without starting another task
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request
+          base="https://audittrace-demo.onrender.com"
+          tid="DEMO-RUN-34217E223E30"
+          for n in range(20):
+              try:
+                  with urllib.request.urlopen(base+"/api/connectivity/runs/"+tid+"/status",timeout=35) as f:
+                      state=json.load(f)
+                  print("STATUS",n,state.get("status"),state.get("current_stage"),flush=True)
+                  if state.get("status") in ("completed","degraded","failed","cancelled"):break
+              except Exception as e:print("POLL_ERROR",repr(e),flush=True)
+              time.sleep(6)
+          with urllib.request.urlopen(base+"/api/connectivity/runs/"+tid,timeout=70) as f:
+              record=json.load(f)
+          data=record.get("result") or {}
+          calls=data.get("provider_calls") or []
+          tasks=data.get("matter_tasks") or []
+          print("FINAL",json.dumps({
+              "task_id":tid,
+              "status":record.get("status"),
+              "failure_code":record.get("failure_code"),
+              "model_status":data.get("model_status"),
+              "provider_call_count":len(calls),
+              "provider_request_attempts":sum(bool(x.get("request_attempted")) for x in calls),
+              "provider_failures":[{"role":x.get("role"),"code":x.get("failure_code"),"http":x.get("http_status")} for x in calls if x.get("status")=="failed"],
+              "roles":[{"role":t.get("role"),"status":t.get("status"),"code":t.get("failure_code")} for t in tasks],
+              "matter_count":len(data.get("matters") or []),
+              "unresolved_count":len(data.get("matter_rejections") or []),
+          },ensure_ascii=False),flush=True)
+          PY
