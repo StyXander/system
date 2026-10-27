@@ -208,6 +208,10 @@ def build_baosteel_dossier(root: Path):
             annual_pages.update([ev.pdf_page-1, ev.pdf_page+1])
         if not matched:
             continue
+        # Do not drown the case in unrelated Dongshan-base mentions.
+        concrete = any(term in quote for term in ("零碳高等级薄钢板","近零碳示范产线","绿色电炉","炼钢工程"))
+        if not concrete and not ("零碳" in quote and ("湛江钢铁" in quote or "东山基地" in quote)):
+            continue
         score = sum(5 if term in {"零碳高等级薄钢板", "近零碳示范产线", "绿色电炉", "炼钢工程"} else 2 for term in matched)
         if ev.report_type == "ESG":
             score += 1
