@@ -145,50 +145,6 @@ def _all_refs(value):
         for item in value:yield from _all_refs(item)
 
 
-def suppress_unsupported_temporal_fields(result, evidence_by_id):
-    """Downgrade ONLY unsupported dates to unknown; preserve citations and audit why.
-
-    This is not a pass for unsupported years. Numeric/citation/subject checks in
-    _integrate_result still run unchanged, and unknown is the only accepted date.
-    """
-    corrections = []
-    def supported(value, evidence_ids):
-        cited = [evidence_by_id.get(eid) for eid in evidence_ids]
-        return bool(cited) and all(e is not None for e in cited) and any(
-            compact(value) in compact(e.quote) for e in cited
-        )
-
-    for n, event in enumerate(result.events):
-        value = event.occurred_period
-        if value and not supported(value, event.evidence_ids):
-            event.occurred_period = ""
-            corrections.append({
-                "role": "A3", "code": "EVENT_PERIOD_UNSUPPORTED_DOWNGRADED",
-                "field_path": f"events.{n}.occurred_period",
-                "proposed_value": value, "accepted_value": "",
-                "resolution": "发生期间无逐字引文，保留未知，不使用报告年度代填",
-                "evidence_ids": list(event.evidence_ids),
-            })
-    for n, commitment in enumerate(result.commitments):
-        cited = [evidence_by_id.get(eid) for eid in commitment.evidence_ids]
-        quotes = " ".join(e.quote for e in cited if e is not None)
-        if len(cited) != len([e for e in cited if e is not None]):
-            continue  # Unknown citations must still fail the normal validator.
-        for field in ("baseline_year", "target_year"):
-            value = getattr(commitment, field)
-            if value and value not in quotes:
-                setattr(commitment, field, "")
-                commitment.status = "needs_review"
-                corrections.append({
-                    "role": "A3", "code": "EVENT_PERIOD_UNSUPPORTED_DOWNGRADED",
-                    "field_path": f"commitments.{n}.{field}",
-                    "proposed_value": value, "accepted_value": "",
-                    "resolution": "承诺年份无直接引文，保留未知，不评价目标是否到期",
-                    "evidence_ids": list(commitment.evidence_ids),
-                })
-    return corrections
-
-
 def integrate_result(run, matter, role, result:AgentMatterResult, expected_revision):
     # 一份角色建议整体校验，失败不得留下半份路径或修改共享状态。
     """在副本上校验并整体提交角色建议。
@@ -199,17 +155,9 @@ def integrate_result(run, matter, role, result:AgentMatterResult, expected_revis
     working=run.model_copy(deep=True)
     target=next(m for m in working.matters if m.matter_id==matter.matter_id)
     normalized=result.model_copy(deep=True)
-    temporal_corrections=[]
-    if role=="A3":
-        verified_evidence={e.evidence_id:e for e in working.matter_evidence
-                           if e.source_verified and not e.invalid_reason}
-        temporal_corrections=suppress_unsupported_temporal_fields(normalized,verified_evidence)
     _integrate_result(working,target,role,normalized,expected_revision)
     for field in ("matter_paths","matter_events","matter_commitments","matter_explanations","matter_relations","matter_assessments"):
         setattr(run,field,getattr(working,field))
-    if temporal_corrections:
-        run.matter_rejections.extend({**row,"matter_id":matter.matter_id}
-                                      for row in temporal_corrections)
     return normalized
 
 
