@@ -245,6 +245,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                  for row in rows[:limit]]
         for value, row in zip(items, rows):
             value["company"] = row.get("company") or (row.get("result") or {}).get("company") or row.get("run_body", {}).get("company")
+            value["parent_task_id"] = (row.get("run_body") or {}).get("parent_task_id")
+            value["execution_mode"] = (row.get("run_body") or {}).get("mode")
         return {"items": items, "limit": limit, "offset": offset,
                 "next_offset": offset + limit if len(rows) > limit else None,
                 "notice": NOTICE, "read_policy": "single_user_workspace" if single_user_enabled() else "known_link_public; history_session_owned"}
