@@ -1,0 +1,54 @@
+name: Baosteel audited table row inspection
+on:
+  push:
+    branches: [feature/baosteel-finals-20261027]
+    paths: [.github/workflows/baosteel-table-inspect.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install pymupdf fastapi pydantic httpx python-dotenv
+      - name: Read actual page text and table geometry only
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from backend.app.connectivity_extraction import load_registry,ensure_source
+          import pymupdf
+          root=Path.cwd()
+          doc=next(x for x in load_registry(root) if x.document_id=='BAOSTEEL_AR_2025')
+          path=ensure_source(root,doc)
+          with pymupdf.open(path) as pdf:
+              for idx in (152,153,154):
+                  page=pdf[idx]
+                  txt=page.get_text("text")
+                  positions=[]
+                  pos=0
+                  while True:
+                      n=txt.find("炼钢工程",pos)
+                      if n<0:break
+                      positions.append(n);pos=n+4
+                  print('PAGE',idx+1,'CHARS',len(txt),'ROWS',positions,flush=True)
+                  for k in positions[:3]:
+                      print('CONTEXT',idx+1,repr(txt[max(0,k-500):k+1500]),flush=True)
+                  words=page.get_text('words')
+                  for w in words:
+                      if '炼钢' in str(w[4]):
+                          near=[v for v in words if abs(v[1]-w[1])<10 and v[0]>=w[0]-15]
+                          print('ROW_WORDS',idx+1,repr(sorted([(round(x[0]),round(x[1]),x[4]) for x in near],key=lambda x:x[0])[:35]),flush=True)
+                  try:
+                      tables=page.find_tables().tables
+                      print('TABLE_COUNT',idx+1,len(tables),flush=True)
+                      for table in tables[:5]:
+                          rows=table.extract()
+                          for n,row in enumerate(rows):
+                              if any('炼钢' in str(v or '') for v in row):
+                                  print('TABLE_ROW',idx+1,n,repr(rows[max(0,n-4):n+2])[:5000],flush=True)
+                  except Exception as e: print('TABLE_ERROR',type(e).__name__,str(e)[:100],flush=True)
+          PY
