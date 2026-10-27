@@ -20,6 +20,19 @@ from backend.app.connectivity_matters import integrate_result, apply_identificat
 from backend.app.connectivity_matter_revision import revise_matters
 
 
+@pytest.mark.parametrize('text,expected', [
+    ('在建工程达到预定可使用状态时，根据工程预算转入固定资产。', False),
+    ('项目尚未正式投运。', False),
+    ('预计2027年投产。', False),
+    ('当工程完成转固时开始计提折旧。', False),
+    ('节能改造项目已正式投运。', True),
+    ('甲工厂项目于2025年完成转固。', True),
+])
+def test_policy_and_future_conditions_are_not_completed_project_events(text, expected):
+    from backend.app.connectivity_matters import _reported_commissioning
+    assert _reported_commissioning(text) is expected
+
+
 @pytest.fixture
 def reports(tmp_path, monkeypatch):
     monkeypatch.setenv('AUDITTRACE_CONNECTIVITY_CATALOG_PERSISTENCE','local')
@@ -131,6 +144,28 @@ def test_parallel_workers_share_one_call_budget(reports):
     assert run.versions['budget']['remaining']==0
     assert any(t['status']=='failed' for t in run.matter_tasks)
     assert run.model_status=='five_agents_partial'
+
+
+@pytest.mark.parametrize('persistent_error', [False, True])
+def test_schema_repair_is_bounded_and_preserves_failure_receipt(reports, persistent_error):
+    from backend.app.connectivity_matter_agents import MatterCallFailure
+    root,rs=reports;attempts=[]
+    def caller(role,payload):
+        assert payload['investigation_round']['remaining_tool_rounds'] >= 0
+        if role=='A3':
+            attempts.append(payload)
+            if persistent_error or len(attempts)==1:
+                raise MatterCallFailure({'failure_code':'MODEL_SCHEMA_INVALID','status':'failed',
+                    'performed':True,'request_attempted':True,'retryable':False,
+                    'invalid_fields':[{'location':['tool_arguments'],'type':'json_invalid'}]})
+        return fake_provider(role,payload)
+    run=run_matter_pipeline(root,request(rs),caller=caller)
+    assert len(attempts)==2
+    assert attempts[1]['output_validation_feedback']['code']=='MODEL_SCHEMA_INVALID'
+    receipts=[c for c in run.provider_calls if c['role']=='A3']
+    assert len(receipts)==2 and receipts[0]['failure_code']=='MODEL_SCHEMA_INVALID'
+    assert receipts[-1]['status']==('failed' if persistent_error else 'completed')
+    assert next(t for t in run.matter_tasks if t['role']=='A3')['status']==('failed' if persistent_error else 'completed')
 
 
 def test_missing_key_never_creates_fake_role_completion(reports,monkeypatch):

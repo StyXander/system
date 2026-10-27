@@ -132,6 +132,14 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 return model_call(role,payload,task_id)
             except MatterCallFailure as error:
                 record=error.record
+                if not attempt and record.get('failure_code')=='MODEL_SCHEMA_INVALID' and not cancelled():
+                    # 重生成仍走同一调用预算；不修补供应商原值或放宽证据校验。
+                    payload=deepcopy(payload)
+                    payload['output_validation_feedback']={
+                        'code':'MODEL_SCHEMA_INVALID',
+                        'invalid_fields':record.get('invalid_fields',[]),
+                        'instruction':'上次工具参数未通过JSON或Schema校验。请重新提交一个合法JSON对象，严格使用工具Schema的字段、枚举和长度；不得编造证据。'}
+                    continue
                 delay=record.get("retry_after_seconds",1)
                 if attempt or not record.get("retryable") or delay>8 or cancelled():
                     raise
@@ -158,11 +166,22 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     if not any(old.evidence_id==b.evidence_id for old in run.matter_evidence):run.matter_evidence.append(b)
                 context_evidence=list(focused.values())
             else:
-                context_evidence=run.matter_evidence[:90]
+                if request.selected_matter_ids:
+                    targets=[m for m in run.matters if m.matter_id in request.selected_matter_ids or set(m.lineage)&set(request.selected_matter_ids)]
+                    selected_refs={eid for m in targets for eid in m.evidence_ids}
+                    focused={b.evidence_id:b for b in run.matter_evidence if b.evidence_id in selected_refs}
+                    for original in list(focused.values()):
+                        for value in search_corpus(corpus,original.quote[:300],limit=12)['evidence']:
+                            block=MatterEvidence.model_validate(value);focused.setdefault(block.evidence_id,block)
+                            if not any(b.evidence_id==block.evidence_id for b in run.matter_evidence):run.matter_evidence.append(block)
+                    context_evidence=list(focused.values())
+                else:
+                    context_evidence=run.matter_evidence[:90]
             return {"matter_id":matter.matter_id if matter else "","input_revision":run.result_revision,
                 "as_of_date":str(report_set.as_of_date),
                 "citation_instruction":"跨页内容按独立证据ID引用；原文块带adjacent_evidence_ids，可打开相邻原页补查。paths.rule_ids仅选工具返回的登记模板编号。","documents":[{key:getattr(d,key) for key in ("document_id","company_id","company","report_type","report_period","disclosure_date","file_sha256","pages")} for d in documents],
                 "matter":matter.model_dump() if matter else None,
+                "selection_instruction":"只围绕所选事项建档与补查，其他披露保留待调查；不要扩展为全部事项调查。" if request.selected_matter_ids else "",
                 "evidence":[b.model_dump() for b in context_evidence],
                 "upstream_results":list({t["role"]:{"role":t["role"],"status":t["status"],"result":t["result"]} for t in run.matter_tasks if t.get("matter_id")==getattr(matter,"matter_id",None) and t.get("result")}.values()),
                 "paths":[p.model_dump() for p in run.matter_paths if matter and p.matter_id==matter.matter_id],
@@ -184,6 +203,8 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         result=None
         try:
             for round_no in range(budget.max_role_rounds):
+                payload['investigation_round']={'current':round_no+1,'maximum':budget.max_role_rounds,
+                    'remaining_tool_rounds':budget.max_role_rounds-round_no-1}
                 result=bounded_call(role,payload,task_id);task["rounds"]=round_no+1
                 if not result.tool_requests:
                     task.update(status="completed",stop_reason=result.stop_reason or "本轮建议已提交");break
@@ -248,7 +269,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
             task["duration_ms"]=round((time.perf_counter()-role_started)*1000)
             task["updated_at"]=time.time()
             with lock:
-                agent_progress(role,"completed" if task["status"]=="completed" else "failed",task["stop_reason"]);save()
+                agent_progress(role,task["status"],task["stop_reason"]);save()
         return task
     if request.mode=="calculation_only":
         progress("agent_collaboration","skipped","本次事项候选离线检查，未调用任何Agent")

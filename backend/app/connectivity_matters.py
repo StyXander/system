@@ -54,6 +54,18 @@ def seed_matters(evidence, matter_types):
     return list(found.values())
 
 
+def _reported_commissioning(text):
+    """投运事件须有已发生表述；条件政策、否定和计划不是项目进展。"""
+    for sentence in re.split(r"[。；;\n]", text):
+        if re.search(r"(?:未|尚未|尚不|不具备|预计|拟|计划|将于|待)[^。；]{0,24}(?:投运|投产|转固|达到预定可使用状态)", sentence):
+            continue
+        if re.search(r"达到预定可使用状态[时后]|(?:若|如|当)[^。；]{0,40}(?:投运|投产|转固)", sentence):
+            continue
+        if re.search(r"(?:已|正式|建成|完成)[^。；]{0,20}(?:投运|投产|转固|达到预定可使用状态)|(?:本期|本年|报告期内|20\d{2}年)[^。；]{0,24}(?:投运|投产|转固)", sentence):
+            return True
+    return False
+
+
 def attach_events(run, matter):
     evidence = {b.evidence_id:b for b in run.matter_evidence}
     for eid in matter.evidence_ids:
@@ -62,7 +74,7 @@ def attach_events(run, matter):
         if re.search(r"(?:调整目标|修订目标|重述|变更基准年)",text):kind="revision"
         elif re.search(r"(?:终止|取消项目|停止建设)",text):kind="termination"
         elif re.search(r"(?:目标|承诺|计划|拟|将于|到20\d{2}年)", text):kind="promise"
-        elif re.search(r"(?:投运|投产|转固|达到预定可使用状态)",text):kind="commissioning"
+        elif _reported_commissioning(text):kind="commissioning"
         elif re.search(r"(?:减值|折旧|寿命|预计负债|在建工程|资本开支)",text):kind="financial"
         elif matter.matter_type=="climate_risk":kind="risk"
         elif re.search(r"(?:实际|完成|降低|节约|下降)",text):kind="performance"

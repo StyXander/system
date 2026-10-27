@@ -30,6 +30,7 @@
     $('cn-company-industry').value=preserve;
     $('cn-company-year-filter').innerHTML='<option value="">全部年度</option>'+[...new Set(data.items.map(r=>r.period))].sort().reverse().map(v=>`<option>${esc(v)}</option>`).join('');
     drawCards();
+    status(`已读取 ${data.items.length} 组登记报告，可选择企业或搜索。`);
     $('cn-company-storage').textContent=data.persistence==='snapshot_only_remote_unavailable'?'远端目录暂不可用，当前使用已核实的离线目录；新报告接入暂不可用。':'已登记双报告优先展示；身份搜索不会启动下载或模型。';
   }
   async function auth() {
