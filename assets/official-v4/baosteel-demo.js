@@ -23,6 +23,7 @@
       '<button type="button" id="ba-saved">打开本浏览器已有宝钢运行记录</button>',
       '<button type="button" id="ba-new">创建新的真实五Agent任务</button></div></div>',
       '<div id="ba-message" class="ba-feedback" role="status">尚未读取原件。演示页面本身不触发模型调用，也不预置 AI 的判断。</div>',
+      '<div id="ba-saved-runs"></div>',
       '<div id="ba-output"></div>'
     ]);
   }
@@ -126,9 +127,27 @@
     var b=e.target.closest('button');if(!b)return;
     if(b.id==='ba-read'){load();return;}
     if(b.id==='ba-saved'){
-      var row=lastSaved();
-      if(row){pane.hidden=true;document.dispatchEvent(new CustomEvent('audittrace:connectivity-open-task',{detail:{task_id:row.id}}));}
-      else flash('本浏览器没有宝钢已保存任务。请从左侧历史记录查看服务端列表；不自动拼造运行结果。');
+      b.disabled=true;flash('正在按本浏览器的授权会话查询服务端保存的宝钢任务…');
+      fetch('/api/connectivity/demo/baosteel/runs',{credentials:'same-origin'})
+        .then(function(response){if(!response.ok)throw new Error('服务端历史暂不可用');return response.json();})
+        .then(function(payload){
+          var items=payload.items||[];
+          if(!items.length){
+            var row=lastSaved();
+            if(row){pane.hidden=true;document.dispatchEvent(new CustomEvent('audittrace:connectivity-open-task',{detail:{task_id:row.id}}));}
+            else flash('当前会话没有可读取的宝钢历史记录。请运行一次真实任务并保留任务编号。');
+            return;
+          }
+          var rows=items.map(function(item){
+            var label=item.model_mode==='five_agents'?'真实五 Agent 调查':item.model_mode==='calculation_only'?'确定性初筛':'其他已保存任务';
+            var status=({completed:'已完成',degraded:'部分完成',running:'进行中',failed:'失败',interrupted:'已中断'})[item.status]||item.status;
+            return '<li><button data-open-task="'+esc(item.task_id)+'" type="button"><strong>'+esc(label)+'</strong> · '+esc(status)+' · '+esc(item.task_id)+'</button></li>';
+          }).join('');
+          $('ba-saved-runs').innerHTML='<section class="ba-panel"><h3>服务端已保存的真实运行记录</h3><p>只显示当前会话可查看的真实任务；前序初筛与五 Agent 的完成状态不合并造假。</p><ul class="ba-saved-list">'+rows+'</ul></section>';
+          flash('已读取 '+items.length+' 条真实任务台账。请打开一次已经完成或部分完成的运行结果。');
+        })
+        .catch(function(e){flash(e.message+'；不会以预置假数据替代。');})
+        .finally(function(){b.disabled=false;});
       return;
     }
     if(b.id==='ba-new'){
