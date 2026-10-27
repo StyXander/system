@@ -1,0 +1,71 @@
+
+name: Sync AuditTrace to ModelScope
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audittrace-modelscope
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      MODELSCOPE_TOKEN: ${{ secrets.MODELSCOPE_TOKEN }}
+
+    steps:
+      - name: Checkout GitHub source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Prepare ModelScope deployment
+        run: |
+          test -n "$MODELSCOPE_TOKEN" || exit 1
+          python deploy/modelscope/prepare.py
+
+      - name: Sync deployment files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd tmp/modelscope-deploy/repo
+
+          git init -b master
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git lfs install --local
+
+          git add -A
+          git commit -m "Deploy GitHub ${GITHUB_SHA}"
+
+          git remote add modelscope \
+            https://www.modelscope.cn/studios/burgerhaamm/audittrace.git
+
+          AUTH=$(printf 'oauth2:%s' "$MODELSCOPE_TOKEN" | base64 -w0)
+
+          git -c "http.extraheader=Authorization: Basic $AUTH" \
+            fetch modelscope master
+
+          git merge -s ours \
+            --allow-unrelated-histories \
+            --no-edit \
+            -m "Preserve ModelScope history" \
+            modelscope/master
+
+          git -c "http.extraheader=Authorization: Basic $AUTH" \
+            push modelscope HEAD:master
+
+      - name: Trigger ModelScope redeployment
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            "https://modelscope.cn/openapi/v1/studios/burgerhaamm/audittrace/deploy" \
+            -H "Authorization: Bearer $MODELSCOPE_TOKEN"
