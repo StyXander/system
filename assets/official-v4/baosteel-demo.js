@@ -36,21 +36,24 @@
   }
   function financial(data){
     var f=data.reconciliation||{},value=f.values_yuan||{};
-    var valid=f.status==='balanced'||f.status==='difference';
-    var state=valid?(f.status==='balanced'?'金额勾稽成立':'金额勾稽出现差额'):'原件结构化单行核验尚未完成';
-    var lines=valid?[
+    var complete=f.status==='balanced'||f.status==='difference';
+    var partial=f.status==='subtotal_computed';
+    var shown=complete||partial;
+    var state=complete?(f.status==='balanced'?'完整金额勾稽成立':'明确金额出现差额'):
+      partial?'已复算三项真实金额 · 期末破折号待核':'原始财务表格核验尚未完成';
+    var lines=shown?[
       ['期初余额',value.opening],['本期增加',value.increase],['转入固定资产',value.to_fixed],
-      ['转入长期待摊费用',value.to_long_term],['其他减少',value.other_decrease],
-      ['披露期末余额',value.closing]
+      ['转入长期待摊费用',value.to_long_term],['披露期末余额',value.closing]
     ]:[];
-    var rows=lines.map(function(a){return '<div><span>'+esc(a[0])+'</span><strong>'+esc(a[1])+'</strong></div>';}).join('');
+    var rows=lines.map(function(a){return '<div><span>'+esc(a[0])+'</span><strong>'+esc(a[1]==null?'—（未确认为零）':a[1])+'</strong></div>';}).join('');
     return html([
       '<div class="ba-calculation"><strong>'+esc(state)+'</strong>',
       '<p>'+esc(f.note||'未取得可复算的原始表格单元格。')+'</p>',
-      valid?'<p class="ba-math">期初 + 增加 − 转固 − 长期待摊 − 其他减少 = 期末</p><div class="ba-numbers">'+rows+'</div>':'',
-      valid?'<p>差额：'+esc(f.difference_yuan||f.difference)+' 元。该数值不等于可持续项目全部投资。</p>':'',
-      f.source_page?'<a target="_blank" rel="noopener" href="'+esc(origin({document_id:f.document_id,pdf_page:f.source_page}))+'">打开已核验年报 PDF '+esc(f.source_page)+' 页原文</a>':'',
-      '<small>规则：'+esc(f.rule_version||'construction_reconciliation_v1')+' · 不自动把破折号当成零</small></div>'
+      shown?'<p class="ba-math">已知金额试算：期初 + 本期增加 − 本期转固 = '+esc(f.known_component_subtotal_yuan||'请见数值')+' 元</p><div class="ba-numbers">'+rows+'</div>':'',
+      complete?'<p>正式表内差额：'+esc(f.difference_yuan||'0')+' 元。只说明该行算术关系，不证明转固时点恰当。</p>':'',
+      partial?'<p>关键边界：披露期末金额及部分减少项为破折号，不能据此声称完整金额勾稽已经确认。</p>':'',
+      f.source_page?'<p><a target="_blank" rel="noopener" href="'+esc(origin({document_id:f.document_id,pdf_page:f.source_page}))+'">打开已核验年报 PDF '+esc(f.source_page)+' 页原文 ↗</a></p>':'',
+      '<small>规则：'+esc(f.rule_version||'construction_reconciliation_v1')+' · 来源表格单位 '+esc(f.unit||'尚未确认')+' · 不自动把破折号当成零</small></div>'
     ]);
   }
   function evidence(data){
@@ -73,7 +76,7 @@
     var banners=[
       {name:'核查对象',value:'湛江近零碳项目',desc:'身份与子工程边界仍待核'},
       {name:'已定位原文页',value:String(data.evidence_count||0),desc:'真实官方 PDF 来源，不是风险数'},
-      {name:'在建工程勾稽',value:isBalanced?'计算相符':f.status==='difference'?'需复算':'待表格核验',desc:'缺失字段不会填零'},
+      {name:'在建工程勾稽',value:isBalanced?'计算相符':f.status==='difference'?'需复算':f.status==='subtotal_computed'?'已知金额结余为零':'待表格核验',desc:'缺失字段不会填零'},
       {name:'五 Agent',value:'未在本页运行',desc:'从真实任务记录单独查看'}
     ];
     var metrics=banners.map(function(b){return '<div class="ba-metric"><span>'+esc(b.name)+'</span><strong>'+esc(b.value)+'</strong><small>'+esc(b.desc)+'</small></div>';}).join('');
@@ -88,7 +91,7 @@
       '<div class="ba-metrics">',metrics,'</div>',
       panel('本次具体核查发现',findings),
       panel('财务穿透 · 年报在建工程',financial(data)),
-      panel('跨报告证据链', '<div class="ba-chain"><span>项目披露</span><b>›</b><span>建设进展</span><b>›</b><span>在建工程</span><b>›</b><span>转固及折旧条件</span></div><p>这是一条待核机制路径，不代表每个节点已被证实。项目整体与炼钢子项目映射：<strong>尚未确认</strong>。</p>'),
+      panel('跨报告证据链', '<div class="ba-chain"><span>项目披露</span><b>›</b><span>建设进展</span><b>›</b><span>在建工程</span><b>›</b><span>转固及折旧条件</span></div><p>这是一条待核机制路径，不代表每个节点已被证实。项目整体与炼钢子项目映射：<strong>'+esc(data.project_mapping==='annual_explicit_subproject'?'年报附注直接列明子项目':'仍待原文确认')+'</strong>。</p>'),
       panel('原文回查 · 已核验 PDF', evidence(data)),
       panel('建议审计人员取得的资料',investigations(data)),
       panel('真实五 Agent 与版本', '<p>专项只读页不调用模型，因此本页没有 A1–A5 执行回执。历史五 Agent 结果须在实际任务页面查看，失败或降级不得隐藏。</p><p>'+esc(data.mapping_note)+'</p>'),
