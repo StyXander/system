@@ -20,15 +20,55 @@
       '<h1>宝钢股份零碳工厂<span>从可持续披露，追到财务附注</span></h1>',
       '<p>围绕一个真实项目回答三件事：建设承诺有没有实施线索？钱进入了哪些资产？工程进度与转固时点还要核实什么？</p>',
       '<div class="ba-actions"><button type="button" id="ba-read" class="ba-primary">读取已登记官方原件，生成专项证据清单</button>',
-      '<button type="button" id="ba-saved">打开本浏览器已有宝钢运行记录</button>',
+      '<button type="button" id="ba-saved">查看当前会话其他宝钢运行记录</button>',
       '<button type="button" id="ba-new">创建新的真实五Agent任务</button></div></div>',
       '<div id="ba-message" class="ba-feedback" role="status">尚未读取原件。演示页面本身不触发模型调用，也不预置 AI 的判断。</div>',
+      '<div id="ba-featured-agent"></div>',
       '<div id="ba-saved-runs"></div>',
       '<div id="ba-output"></div>'
     ]);
   }
   splash();
   function flash(s){$('ba-message').textContent=s;}
+  var featuredLoaded=false,featuredLoading=false;
+  function roleBadge(t){
+    var labels={completed:'已完成',failed:'失败',partial:'部分完成',reused:'复用',running:'运行中',not_run:'未执行',skipped:'跳过'};
+    return '<div class="ba-agent-row"><strong>'+esc(t.role)+'</strong><span>'+esc(labels[t.status]||t.status)+'</span><small>'+esc(t.failure_code||t.identity_outcome||t.stop_reason||'')+'</small></div>';
+  }
+  function drawFeatured(payload){
+    var items=payload.items||[];
+    if(!items.length){
+      $('ba-featured-agent').innerHTML=panel('真实五 Agent 历史记录','<p>尚未读到通过服务端校验的历史回执。请检查保存任务的有效期，不使用预制模拟记录替代。</p>');
+      return;
+    }
+    var rows=items.map(function(run,n){
+      var total=(run.role_results||[]).filter(function(r){return r.status==='completed';}).length;
+      var claims=(run.next_actions||[]).map(function(a){
+        return '<li><strong>'+esc(a.question)+'</strong><p>'+esc(a.requested_material)+'</p></li>';
+      }).join('');
+      var status=run.model_status==='five_agents_completed'?'真实五 Agent 完成':'真实模型已运行 · '+esc(run.model_status||run.status);
+      return '<details class="ba-real-run" '+(n===0?'open':'')+'><summary><strong>'+esc(status)+'</strong><span>'+esc(run.models?.join(', ')||'模型未记录')+' · '+esc(run.actual_model_requests)+' 次真实请求 · '+total+'/5 角色完成</span><small>'+esc(run.task_id)+'</small></summary>'+
+       '<p>来源：生产数据库保存的真实模型调用回执。财务结构化表格已传入模型：<strong>'+esc(run.verified_financial_table?'是':'否')+'</strong></p>'+
+       '<div class="ba-agent-list">'+(run.role_results||[]).map(roleBadge).join('')+'</div>'+
+       '<h4>模型实际综合意见</h4><p>'+esc(run.assessment_summary||'没有有效综合意见')+'</p>'+
+       '<h4>财务关联阶段</h4><p>'+esc(run.financial_stage||'未形成可用财务阶段')+'</p>'+
+       '<h4>实际产生的后续核查任务</h4><ol class="ba-procedures">'+(claims||'<li>无有效建议</li>')+'</ol>'+
+       '<p class="ba-muted">模型路径：'+esc(run.financial_paths)+' 条；项目级金额记录：'+esc(run.financial_occurrences)+' 条。此处展示的是历史运行，不是专项试算冒充的AI结果。</p></details>';
+    }).join('');
+    $('ba-featured-agent').innerHTML=panel('真实 DeepSeek 五 Agent 历史运行记录 · 可直接展开',rows);
+  }
+  async function loadFeatured(){
+    if(featuredLoading)return;
+    featuredLoading=true;
+    try{
+      var res=await fetch('/api/connectivity/demo/baosteel/featured-runs',{credentials:'same-origin'});
+      if(!res.ok)throw new Error('已保存的真实模型回执读取失败');
+      var d=await res.json();
+      drawFeatured(d);featuredLoaded=true;
+    }catch(e){
+      $('ba-featured-agent').innerHTML=panel('真实 Agent 历史读取异常','<p>'+esc(e.message)+'。不使用模拟替代。</p>');
+    }finally{featuredLoading=false;}
+  }
   function investigations(data){
     var body = (data.audit_procedures||[]).map(function(p){
       return '<li><strong>'+esc(p.question)+'</strong><p>建议取得：'+esc(p.material)+'</p><p>核查目的：'+esc(p.purpose)+'</p></li>';
@@ -121,6 +161,7 @@
     if($('redesign-home'))$('redesign-home').hidden=true;
     root.hidden=false;
     if(source)render(source);
+    loadFeatured();
     main.scrollIntoView({block:'start'});
   }
   document.addEventListener('click',function(e){
