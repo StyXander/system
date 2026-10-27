@@ -1,4 +1,5 @@
 name: Post-fix actual DeepSeek Baosteel 5Agent acceptance
+# Rerun after production deployment reached live; commit is now validated before chargeable calls.
 on:
   push:
     branches: [audit/baosteel-final-real-model-20261027]
