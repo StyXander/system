@@ -29,6 +29,11 @@ jobs:
                 "financial_table_verified":x.get("verified_financial_table"),
                 "financial_stage":str(x.get("financial_stage") or "")[:140]
               },ensure_ascii=False),flush=True)
+          assert items[0].get("task_id")=="DEMO-RUN-71628184F589"
+          assert items[0].get("model_status")=="five_agents_completed"
+          assert items[0].get("actual_model_requests")==6
+          assert all(x.get("status")=="completed" for x in items[0].get("role_results",[]))
+          assert items[0].get("verified_financial_table")
           assert any(x.get("task_id")=="DEMO-RUN-C5319BAE2FA7" and
                      len(x.get("path_examples") or [])>0 and
                      len(x.get("counter_explanations") or [])>0
