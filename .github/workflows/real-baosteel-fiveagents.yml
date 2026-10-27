@@ -1,4 +1,5 @@
 name: Real DeepSeek Baosteel five-Agent end-to-end acceptance
+# Second run: ignore slow HTML homepage when bootstrap/health and session cookie succeeded.
 on:
   push:
     branches: [audit/real-baosteel-five-agents-20261027]
