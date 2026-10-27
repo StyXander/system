@@ -374,8 +374,15 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                             save()
                         payload['finalize_only']=True
                         payload['retry_count']=validation_attempt+1
+                        feedback_instruction='上次建议未通过证据校验且未写入档案。仅用已有证据重新生成，年份不在引文中则留空，未知引用不得替换为猜测；不能解决的问题保留未决。'
+                        if role=='A3' and detail.get('code')=='EVENT_PERIOD_UNSUPPORTED':
+                            feedback_instruction=('A3 具体字段 '+str(detail.get('field_path') or '日期字段')+
+                                ' 没有被该条目 evidence_ids 引用的 quote 直接支持。请保持证据ID不变，'
+                                '把这个事件的occurred_period或承诺的baseline_year/target_year改为空字符串；'
+                                '绝对不要复制报告年份或来自其他事件的日期。不要新增未经核验的事件；'
+                                '只保留1至3条证据明确的事件。其他已证实事实和金额不要丢失。')
                         payload['evidence_validation_feedback']={**detail,
-                            'instruction':'上次建议未通过证据校验且未写入档案。仅用已有证据重新生成，年份不在引文中则留空，未知引用不得替换为猜测；不能解决的问题保留未决。'}
+                            'instruction':feedback_instruction}
                         result=bounded_call(role,payload,task_id)
                         task.update(status='partial' if result.tool_requests else 'completed',
                             stop_reason='最终修正仍申请工具，缺口保留' if result.tool_requests else result.stop_reason or '已按证据校验反馈重新生成')

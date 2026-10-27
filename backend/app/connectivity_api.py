@@ -265,6 +265,16 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     "role_results":role_rows,
                     "verified_financial_table":bool((result.get("versions") or {}).get("verified_project_table")),
                     "verified_table_detail":safe_table,
+                    "path_examples":[{"financial_item":str(p.get("financial_item") or "")[:100],
+                        "support":p.get("support"), "steps":[
+                            {"label":str(step.get("label") or "")[:150],
+                             "explanation":str(step.get("explanation") or "")[:240],
+                             "support":step.get("support"),"origin":step.get("origin")}
+                            for step in (p.get("steps") or [])[:4]]}
+                        for p in (result.get("matter_paths") or [])[:3]],
+                    "counter_explanations":[{"explanation":str(h.get("explanation") or "")[:320],
+                        "status":h.get("status"),"required_evidence":str(h.get("discriminating_evidence") or "")[:220]}
+                        for h in (result.get("matter_explanations") or [])[:3]],
                     "financial_paths":len(result.get("matter_paths") or []),
                     "financial_occurrences":len(result.get("occurrences") or []),
                     "assessment_summary":str(a.get("summary") or "")[:520],
