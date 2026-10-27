@@ -1,0 +1,26 @@
+name: Baosteel real-source browser smoke
+# Independent of mock-provider engineering tests; downloads registered PDFs.
+on:
+  push:
+    branches: [feature/baosteel-finals-20261027]
+    paths: [.github/workflows/baosteel-browser-smoke.yml]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install -r backend/requirements.txt playwright
+      - run: python -m playwright install chromium --with-deps
+      - name: Open actual Baosteel dossier in Chromium and screenshot
+        run: python scripts/verify_baosteel_demo_browser.py
+      - name: Save screenshots and metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baosteel-real-source-browser
+          path: outputs/baosteel-browser

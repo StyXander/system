@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
   const RS=window.AuditTraceRunState;
   const state = {...RS.create(), bootstrap:null, selected:null, detailTab:'conditions', reader:null, filter:'all', lens:'plain'};
-  let queuedRuns=[],batchTaskId=null,batchStarting=false;
+  let queuedRuns=[],batchTaskId=null,batchStarting=false,viewController=null;
   function queueEvent(){document.dispatchEvent(new CustomEvent('audittrace:connectivity-queue',{detail:{pending:queuedRuns.length}}));}
   async function nextQueuedRun(){
     if(!queuedRuns.length||batchStarting||state.submitting||RS.running(state.activeRun.task))return;
@@ -79,6 +79,9 @@
     busy(RS.running(active));
   }
   async function loadView(taskId) {
+    if(viewController)viewController.abort();
+    viewController=new AbortController();
+    const signal=viewController.signal;
     const generation=RS.beginView(state,taskId);
     state.selected=null;
     rememberTask(taskId);
@@ -86,10 +89,10 @@
     $('cn-results').hidden=true;
     message('正在读取任务摘要…');
     try {
-      let task=await api(`/runs/${encodeURIComponent(taskId)}/summary`);
+      let task=await api(`/runs/${encodeURIComponent(taskId)}/summary`,{signal});
       if(!RS.isCurrent(state,taskId,generation))return;
       // 原三角色合同保持原入口；事项主管线必须使用分层接口。
-      if(task.result?.projection_supported===false)task=await api(`/runs/${encodeURIComponent(taskId)}`);
+      if(task.result?.projection_supported===false)task=await api(`/runs/${encodeURIComponent(taskId)}`,{signal});
       if(!RS.acceptView(state,taskId,generation,task))return;
       renderProgress(task);
       if(task.result)render();
@@ -97,6 +100,7 @@
       if(!task.result&&!RS.running(task))throw new Error(task.error||`任务${labels[task.status]||task.status}，无可读结果。`);
       message(`${labels[task.status]||task.status} · ${taskId}`);
     } catch(error) {
+      if(error.name==='AbortError')return;
       if(!RS.isCurrent(state,taskId,generation))return;
       state.viewRun.loading=false;
       document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{task_id:taskId,status:[404,410].includes(error.status)?'expired':error.status===403?'forbidden':'unavailable',message:error.message}}));

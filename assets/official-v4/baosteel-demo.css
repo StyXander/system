@@ -1,0 +1,39 @@
+/* Baosteel case: readable evidence dossier, no decorative tech cards. */
+.ba-demo{max-width:1280px;margin:0 auto;padding:30px 24px 65px;color:#193b33;font-family:inherit}
+.ba-demo[hidden]{display:none!important}
+.ba-header{padding:36px 38px 32px;border:1px solid #d2ddd6;border-radius:19px;background:linear-gradient(125deg,#f7faf5 0%,#eaf1eb 100%)}
+.ba-eyebrow{font-size:11px!important;letter-spacing:2px;color:#61796e;font-weight:700;margin:0 0 15px}
+.ba-header h1{font-family:inherit;font-size:clamp(25px,3vw,42px);line-height:1.25;letter-spacing:-.6px;margin:0 0 12px;color:#153c31}
+.ba-header h1 span{font-size:clamp(18px,2vw,24px);font-weight:500;display:block;margin-top:8px}
+.ba-header>p:not(.ba-eyebrow){font-size:15px;line-height:1.8;max-width:850px;color:#476758;margin:0}
+.ba-actions{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px}
+.ba-actions button{border:1px solid #b9cbbf;background:#fff;padding:11px 15px;color:#163e33;border-radius:8px;cursor:pointer;font:inherit;font-size:13px}
+.ba-actions button.ba-primary{background:#204e3d;color:#fff;border-color:#204e3d;font-weight:700}
+.ba-actions button:disabled{cursor:wait;opacity:.65}
+.ba-feedback{padding:14px 0;margin:8px 0 16px;font-size:13px;line-height:1.65;color:#587366}
+.ba-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0 26px}
+.ba-metric{border:1px solid #d6e1da;background:#fff;border-radius:11px;padding:20px 17px;display:flex;flex-direction:column;gap:10px}
+.ba-metric span{color:#637c6f;font-size:12px}.ba-metric strong{font-size:21px;line-height:1.35;color:#173c32;font-weight:750}.ba-metric small{color:#63786d;line-height:1.5}
+.ba-panel{margin:20px 0;background:#fff;border:1px solid #d9e3db;border-radius:12px;padding:22px 25px;box-shadow:0 5px 17px rgba(26,59,46,.025)}
+.ba-panel>h3{margin:0 0 18px;color:#163a30;font-size:17px}
+.ba-panel p{color:#456257;font-size:14px;line-height:1.75}
+.ba-finding{padding:13px 0;border-top:1px solid #ecf0eb}
+.ba-finding:first-of-type{border-top:0}
+.ba-finding>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ba-finding strong{color:#173d32}.ba-finding span{color:#687e71;font-size:12px;white-space:nowrap}
+.ba-finding p{margin:8px 0 0}
+.ba-calculation>strong{font-size:19px}.ba-calculation small{display:block;margin-top:12px;color:#75897a}
+.ba-math{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;padding:13px;border:1px dashed #c9dbcf;border-radius:7px;background:#f6faf7}
+.ba-numbers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ba-numbers>div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #edf0ed;font-size:13px}.ba-numbers strong{font-variant-numeric:tabular-nums}
+.ba-calculation a,.ba-evidence-meta a{color:#22634c;text-decoration:underline;text-underline-offset:3px}
+.ba-chain{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-bottom:9px}.ba-chain span{border:1px solid #c6d8ca;border-radius:7px;background:#f6faf6;padding:12px 13px;font-size:13px}.ba-chain b{color:#82a18c}
+.ba-evidence{margin:13px 0;padding:17px;border:1px solid #e1e9e2;border-radius:9px;background:#fcfdfb}
+.ba-evidence-meta{display:flex;gap:15px;justify-content:space-between;font-size:12px;font-weight:700;color:#63796c}
+.ba-evidence p{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow-y:auto;font-size:13px}
+.ba-evidence small{font-size:11px;color:#7e9284}
+.ba-procedures{margin:0;padding-left:22px}.ba-procedures li{margin-bottom:18px;padding-left:6px;color:#244b3d}.ba-procedures strong{font-size:14px}.ba-procedures p{margin:4px 0;font-size:13px}
+.ba-footer{border-top:1px solid #cbdacf;padding-top:19px;margin-top:25px;color:#254a3d;font-size:13px}.ba-muted{color:#728679!important;font-size:12px!important;line-height:1.6}
+#ba-nav{font-weight:750}
+@media(max-width:900px){.ba-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ba-demo{padding:18px 14px}.ba-header{padding:25px}.ba-panel{padding:18px}.ba-numbers{grid-template-columns:1fr}}
+@media(max-width:500px){.ba-metrics{grid-template-columns:1fr}.ba-actions{flex-direction:column}.ba-finding>div{align-items:flex-start;flex-direction:column}.ba-chain{display:block}.ba-chain span{display:block;margin:5px 0}.ba-chain b{display:none}}
