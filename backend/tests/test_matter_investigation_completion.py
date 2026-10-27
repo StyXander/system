@@ -62,6 +62,7 @@ def test_legacy_premature_completion_is_derived_without_rewriting_history():
     original = deepcopy(old)
     assert effective_role_status(old) == 'partial'
     assert old == original
+    assert effective_role_status({**old,'termination_reason':'model_concluded'}) == 'partial'
     concluded = {**old,'termination_reason':'source_exhausted'}
     assert effective_role_status(concluded) == 'completed'
 
@@ -95,3 +96,28 @@ def test_provider_cache_counts_and_input_are_preserved(monkeypatch):
     assert json.loads(captured[0]['messages'][1]['content']) == payload
     assert captured[0]['messages'][1]['content'].startswith('{"documents":')
     assert receipt['cache_hit_input_tokens']==40 and receipt['cache_miss_input_tokens']==60
+    assert receipt['investigation_round']=={'remaining_tool_rounds':1}
+
+
+def test_inaccurate_model_limit_text_is_not_reused_as_completed_work(reports):
+    root,rs=reports
+    def misleading(role,payload):
+        output,record=fake_provider(role,payload)
+        if role=='A2' and not output.tool_requests:
+            assert payload['investigation_round']['remaining_tool_rounds']>0
+            output.stop_reason='remaining_tool_rounds=0，无法再检索。'
+        return output,record
+    parent=run_matter_pipeline(root,request(rs,root=root),caller=misleading)
+    a2=next(t for t in parent.matter_tasks if t['role']=='A2')
+    assert a2['status']=='partial' and a2['termination_reason']=='stop_reason_inconsistent'
+    assert parent.model_status=='five_agents_partial'
+    called=[]
+    def corrected(role,payload):
+        called.append(role)
+        assert all('stop_reason' not in row['result'] for row in payload.get('upstream_results',[]))
+        return fake_provider(role,payload)
+    child=run_matter_pipeline(root,request(rs,root=root),resume=parent,caller=corrected)
+    assert 'A1' not in called and 'A3' not in called
+    assert {'A2','A4','A5'}<=set(called)
+    assert child.model_status=='five_agents_completed'
+    assert len(child.prior_provider_calls)==len(parent.provider_calls)

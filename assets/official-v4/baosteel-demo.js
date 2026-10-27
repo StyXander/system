@@ -54,7 +54,7 @@
       return;
     }
     var rows=items.map(function(run,n){
-      var total=(run.role_results||[]).filter(function(r){return r.status==='completed';}).length;
+      var total=(run.role_results||[]).filter(function(r){return r.status==='completed'||r.status==='reused';}).length;
       var claims=(run.next_actions||[]).map(function(a){
         return '<li><strong>'+esc(a.question)+'</strong><p>'+esc(a.requested_material)+'</p></li>';
       }).join('');
@@ -78,7 +78,8 @@
       var status=run.investigation_status==='completed'?'五 Agent 调查流程完成 · 资料缺口另列':'真实模型已运行 · 调查尚未完整完成';
       var usage=run.usage||{};
       function tokens(n){return typeof n==='number'?n.toLocaleString():'未记录';}
-      var usageLine='<p>实际取证工具：<strong>'+esc(run.actual_tool_requests??'未记录')+'</strong> 次；输入 '+esc(tokens(usage.input_tokens))+' tokens，输出 '+esc(tokens(usage.output_tokens))+' tokens。缓存命中输入 '+esc(tokens(usage.cache_hit_input_tokens))+' tokens；缓存未命中不代表检索失败。</p>';
+      var priorLine=run.prior_actual_model_requests?'<p>本次为同一调查的定向续查，复用已完成角色；前次真实请求 '+esc(run.prior_actual_model_requests)+' 次，回执保留在来源链中。</p>':'';
+      var usageLine=priorLine+'<p>实际取证工具：<strong>'+esc(run.actual_tool_requests??'未记录')+'</strong> 次；本次输入 '+esc(tokens(usage.input_tokens))+' tokens，输出 '+esc(tokens(usage.output_tokens))+' tokens。缓存命中输入 '+esc(tokens(usage.cache_hit_input_tokens))+' tokens；缓存未命中不代表检索失败。</p>';
       return '<details class="ba-real-run" '+(n===0?'open':'')+'><summary><strong>'+esc(status)+'</strong><span>'+esc(run.models?.join(', ')||'模型未记录')+' · '+esc(run.actual_model_requests)+' 次真实请求 · '+total+'/5 角色完成调查</span><small>'+esc(run.task_id)+'</small></summary>'+
        '<p>来源：生产数据库保存的真实模型调用回执。财务结构化表格已传入模型：<strong>'+esc(run.verified_financial_table?'是':'否')+'</strong></p>'+sourceRows+usageLine+
        '<div class="ba-agent-list">'+(run.role_results||[]).map(roleBadge).join('')+'</div>'+

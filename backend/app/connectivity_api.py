@@ -265,6 +265,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     "model_status":result.get("model_status"),"created_at":item.get("created_at"),
                     "models":sorted(set(c["model"] for c in calls if c.get("performed") and c.get("model"))),
                     "actual_model_requests":sum(bool(c.get("request_attempted")) for c in calls),
+                    "prior_actual_model_requests":sum(bool(c.get("request_attempted")) for c in (result.get("prior_provider_calls") or [])),
+                    "execution_origin":(result.get("versions") or {}).get("result_origin"),
                     "actual_tool_requests":len(result.get("matter_tool_receipts") or []),
                     "successful_tool_requests":sum(r.get("status")=="hit" for r in (result.get("matter_tool_receipts") or [])),
                     "usage":known_usage(calls),

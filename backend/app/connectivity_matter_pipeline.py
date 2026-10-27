@@ -85,6 +85,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     lock=threading.RLock();attempts=0;quota_ready=False;tool_cache={}
     call=caller or call_matter_role
     budget=request.budget
+    run.versions["requested_investigation_budget"]=budget.model_dump()
     role_limits=allocate_role_budget(budget.max_provider_calls,
         ('A1','A2','A3','A4','A5') if request.mode=='five_agents' else ('A1','A2','A5') if request.mode=='three_agents' else ('A1','A5'))
     role_usage={role:0 for role in role_limits}
@@ -233,7 +234,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 "selection_instruction":"只围绕所选事项建档与补查，其他披露保留待调查；不要扩展为全部事项调查。" if request.selected_matter_ids else "",
                 "evidence":[b.model_dump() for b in context_evidence],
                 "verified_project_table":deepcopy(verified_project_table) if verified_project_table and (matter is None or matter.matter_id in request.selected_matter_ids or set(matter.lineage)&set(request.selected_matter_ids)) else None,
-                "upstream_results":list({t["role"]:{"role":t["role"],"status":t["status"],"result":t["result"]} for t in run.matter_tasks if t.get("matter_id")==getattr(matter,"matter_id",None) and t.get("result")}.values()),
+                "upstream_results":list({t["role"]:{"role":t["role"],"status":t["status"],"result":{k:v for k,v in t["result"].items() if k not in {"stop_reason","tool_requests"}}} for t in run.matter_tasks if t.get("matter_id")==getattr(matter,"matter_id",None) and t.get("result")}.values()),
                 "paths":[p.model_dump() for p in run.matter_paths if matter and p.matter_id==matter.matter_id],
                 "occurrences":[o.model_dump() for o in run.occurrences if o.document_id in {b.document_id for b in context_evidence} and o.pdf_page in {b.pdf_page for b in context_evidence if b.document_id==o.document_id}],
                 "commitments":[c.model_dump() for c in run.matter_commitments if matter and c.matter_id==matter.matter_id],
@@ -287,7 +288,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                         save()
                     returned.append(receipt)
                 payload["tool_results"]=returned
-                payload["previous_proposal"]=result.model_dump()
+                payload["previous_proposal"]={k:v for k,v in result.model_dump().items() if k!="stop_reason"}
                 # 工具续轮只扩充当前角色已经看到的证据，不再次发送所有事项全文。
                 known={b["evidence_id"]:b for b in payload["evidence"]}
                 for receipt in returned:
@@ -408,6 +409,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         except Exception as error:
             task.update(status="failed",stop_reason=type(error).__name__)
         finally:
+            if task.get("status")=="completed" and effective_role_status(task)=="partial":
+                task.update(status="partial",termination_reason="stop_reason_inconsistent",
+                    completion_warning="模型停止说明与程序取证预算不一致，不标记完整调查")
             task["duration_ms"]=round((time.perf_counter()-role_started)*1000)
             task["updated_at"]=time.time()
             with lock:
