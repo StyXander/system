@@ -252,6 +252,13 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         runtime = store()
         run_body = {**body.model_dump(mode="json"), "kind": "connectivity", "owner": owner(request)}
         if body.analysis_scope == "matter_connectivity":run_body['company']=selected_set.company
+        if body.parent_task_id and not body.retry_of_task_id:
+            predecessor = task(body.parent_task_id)
+            authorize(request, predecessor)
+            predecessor_set = ((predecessor.get("result") or {}).get("report_set") or {}).get("report_set_id")
+            if not body.report_set_id or predecessor_set != body.report_set_id:
+                raise HTTPException(422, "所选前序任务必须属于同一不可变资料集合；不能仅按企业名称关联历史")
+            run_body["parent_task_id"] = body.parent_task_id
         resume = None
         if body.retry_of_task_id:
             original = task(body.retry_of_task_id)
