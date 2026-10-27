@@ -149,7 +149,7 @@ def test_parallel_workers_share_one_call_budget(reports):
     run=run_matter_pipeline(root,req,caller=caller)
     assert len(calls)==len(run.provider_calls)==3
     assert run.versions['budget']['remaining']==0
-    assert any(t['status']=='failed' for t in run.matter_tasks)
+    assert any(t['status']=='partial' and t.get('termination_reason')=='provider_call_limit' for t in run.matter_tasks)
     assert run.model_status=='five_agents_partial'
 
 
@@ -187,10 +187,11 @@ def test_last_tool_feedback_gets_one_bounded_final_synthesis(reports, ignores_fi
                 output.tool_requests=[MatterToolCall(tool_name='lookup_ontology_rule',arguments={'keyword':'减值'},reason='核查专业规则')]
         return output,record
     run=run_matter_pipeline(root,request(rs,root=root),caller=caller)
-    assert len(calls)==2 and calls[-1]['finalize_only']
+    assert len(calls)==3 and calls[-1]['finalize_only']
+    assert calls[0]['investigation_round']['remaining_tool_rounds']==2
     task=next(t for t in run.matter_tasks if t['role']=='A1')
     assert task['status']==('partial' if ignores_finalization else 'completed')
-    assert len([c for c in run.provider_calls if c['role']=='A1'])==2
+    assert len([c for c in run.provider_calls if c['role']=='A1'])==3
 
 
 def test_unsupported_commitment_year_is_rejected_then_corrected(reports):

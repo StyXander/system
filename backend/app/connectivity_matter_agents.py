@@ -23,7 +23,7 @@ from urllib.request import Request, urlopen
 from .agents import _strict_tool_base_url, _provider_timeout_seconds
 from .connectivity_matter_schemas import AgentMatterResult, ROLE_NAMES, ROLE_RESULT_SCHEMAS, validate_role_result
 
-PROMPT_VERSION="matter_agents_20261027.role-contracts.1"
+PROMPT_VERSION="matter_agents_20261027.tool-feedback.2"
 ROLE_PROMPTS={
     "A1":"从已取得证据识别具体事项，核对主体、地点、项目名和别名。不同工厂同名不得自动合并。通过matters提交有身份依据的归并；未能确认者保持独立候选。",
     "A2":"调查事项到经济机制、经营变量、会计估计和财务项目的逐段路径。查附注和会计假设。一般政策不证明某项目处理。paths每段写证据和缺口；不要用相等金额证明因果。",
@@ -74,6 +74,8 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "plan含matter_id、operands(occurrence_id及sign)、identity_evidence_ids、measurement_basis、deduplication_basis、"
         "condition_evidence(主体/期间/计量基础/项目归属/互不重叠各自的evidence_id列表)，仅作条件试算。"
         "单轮至多4个查询，每个查询具体说明问题；避免重复查询。"
+        "remaining_tool_rounds表示本轮仍可执行的取证次数；大于0时，公开事实尚缺依据应先检索或打开相关原页及相邻页，不能声称工具已用尽。"
+        "不要把报告内尚未检索的问题直接列为必须索取的内部资料；先区分公开可查问题与内部台账问题。"
         "investigation_round.remaining_tool_rounds为0时，综合已有工具回执提交最终建议，tool_requests留空；"
         "尚缺证据须在结论和stop_reason中明确说明，不能为完成任务猜填。"
         "没有证据的年份和金额留空；不要添加自评分概率。next_actions要写问题、资料和用途。"+ROLE_PROMPTS[role])
@@ -101,10 +103,14 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
     combined=payload.get('output_scope')=='combined_baseline'
     output_schema=(AgentMatterResult if combined else ROLE_RESULT_SCHEMAS[role]).model_json_schema()
     if payload.get('finalize_only'):
-        prompt+='本次为最终综合调用，只提交已有证据支持的最终建议，tool_requests必须为空。缺口在结论中保留，不再申请检索。'
+        prompt+='本次为最终综合调用，只提交已有证据支持的最终建议，tool_requests必须为空。缺口在结论中保留，不再申请检索。收尾原因：'+str(payload.get('finalization_reason') or '输出校验纠正')+'。仅在原因是tool_round_limit时说明轮次限制；source_exhausted表示本次工具没有新证据，不要把它写成额度耗尽。'
         output_schema['properties']['tool_requests']['maxItems']=0
+    # Stable source context precedes per-round counters and feedback for prefix caching.
+    stable_keys=("documents","citation_instruction","selection_instruction","evidence","verified_project_table")
+    ordered_payload={key:payload[key] for key in stable_keys if key in payload}
+    ordered_payload.update({key:value for key,value in payload.items() if key not in ordered_payload})
     body={"model":model,"temperature":.1,"max_tokens":8000,"stream":False,"thinking":{"type":"disabled"},
-        "messages":[{"role":"system","content":prompt},{"role":"user","content":json.dumps(payload,ensure_ascii=False)}],
+        "messages":[{"role":"system","content":prompt},{"role":"user","content":json.dumps(ordered_payload,ensure_ascii=False)}],
         "tools":[{"type":"function","function":{"name":"submit_matter_investigation","description":"提交有引用的事项建议或下一工具申请",
             "parameters":output_schema}}],
         "tool_choice":{"type":"function","function":{"name":"submit_matter_investigation"}}}
@@ -119,7 +125,9 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         record.update(performed=True,response_sha256=hashlib.sha256(raw).hexdigest())
         record['parse_stage']='provider_json'
         value=json.loads(raw);usage=value.get("usage") or {}
-        record.update(input_tokens=usage.get("prompt_tokens"),output_tokens=usage.get("completion_tokens"),model=value.get("model",model))
+        record.update(input_tokens=usage.get("prompt_tokens"),output_tokens=usage.get("completion_tokens"),
+            cache_hit_input_tokens=usage.get("prompt_cache_hit_tokens"),
+            cache_miss_input_tokens=usage.get("prompt_cache_miss_tokens"),model=value.get("model",model))
         if value["choices"][0].get("finish_reason")=="length":
             record["failure_code"]="MODEL_OUTPUT_TRUNCATED"
             raise ValueError("供应商输出截断")

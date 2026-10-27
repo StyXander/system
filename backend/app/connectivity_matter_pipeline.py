@@ -21,6 +21,7 @@ from .connectivity_matter_agents import call_matter_role, MatterCallFailure, PRO
 from .connectivity_matter_extraction import read_corpus, relevant_evidence, digest, search_corpus
 from .connectivity_matter_schemas import MATTER_VERSION, AgentMatterResult, ROLE_NAMES, MatterEvidence, validate_role_result
 from .connectivity_matter_budget import allocate_role_budget
+from .connectivity_matter_completion import effective_role_status
 from .connectivity_matter_errors import MatterValidationError
 from .connectivity_matters import seed_matters, attach_events, apply_identification, integrate_result, finish_projection, missing_assessment
 from .connectivity_report_sets import resolve_documents
@@ -197,7 +198,10 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         # 每波读同一快照；worker只提交建议，不直接覆盖另一角色的结果。
         with lock:
             if matter:
-                discovered=search_corpus(corpus,matter.name+" "+" ".join(matter.aliases),limit=18)["evidence"]
+                query=matter.name+" "+" ".join(matter.aliases)
+                if verified_project_table:
+                    query+=" "+str(verified_project_table.get("source_row_label") or "")
+                discovered=search_corpus(corpus,query,limit=18)["evidence"]
                 from .connectivity_matters import _all_refs
                 referenced=set(matter.evidence_ids)
                 for field in ('matter_paths','matter_events','matter_commitments','matter_explanations','matter_assessments'):
@@ -252,12 +256,13 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         try:
             for round_no in range(budget.max_role_rounds):
                 payload['investigation_round']={'current':round_no+1,'maximum':budget.max_role_rounds,
-                    'remaining_tool_rounds':budget.max_role_rounds-round_no-1}
+                    'remaining_tool_rounds':budget.max_role_rounds-round_no}
                 result=bounded_call(role,payload,task_id);task["rounds"]=round_no+1
                 if not result.tool_requests:
-                    task.update(status="completed",stop_reason=result.stop_reason or "本轮建议已提交");break
+                    task.update(status="completed",termination_reason="model_concluded",stop_reason=result.stop_reason or "本轮建议已提交");break
                 returned=[]
                 evidence_before={b['evidence_id'] for b in payload['evidence']}
+                numbers_before={o['occurrence_id'] for o in payload['occurrences']}
                 for request_tool in result.tool_requests:
                     from .connectivity_tool_registry import execute_tool,ToolRequest
                     marker=digest(json.dumps({"set":report_set.report_set_id,"tool":request_tool.tool_name,"arguments":request_tool.arguments},sort_keys=True,ensure_ascii=False))
@@ -292,17 +297,20 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 for receipt in returned:
                     for row in (receipt.get("result") or {}).get("occurrences",[]):occurrences[row["occurrence_id"]]=row
                 payload["occurrences"]=list(occurrences.values())
-                task.update(status="partial",stop_reason="达到单角色调查轮次上限，尚需综合工具反馈")
+                task.update(status="partial",termination_reason="tool_round_limit",stop_reason="已执行取证，等待综合工具反馈")
                 # 下一轮调查必须产生当前角色尚未见过的证据；重复/空查询只允许一次收尾。
-                if not (set(known)-evidence_before):
+                if not (set(known)-evidence_before or set(occurrences)-numbers_before
+                        or any(r.get('status')=='hit' and not r.get('cache_hit') for r in returned)):
                     task['pending_questions']=[{'question':q.reason,'tool':q.tool_name,'arguments':q.arguments} for q in result.tool_requests]
                     payload['missing_evidence_questions']=task['pending_questions']
-                    task['stop_reason']='工具未取得新增证据，停止调查循环；缺口进入资料需求'
+                    task['termination_reason']='source_exhausted'
+                    task['stop_reason']='工具未取得新增证据，停止重复调查；缺口进入资料需求'
                     break
             if result and result.tool_requests and not cancelled():
                 # 最后一轮取证也需要交回模型综合，不能取完证据就结束角色。
-                # 只追加一次无工具收尾，仍走同一20次预算及复核名额保护。
+                # 只追加一次无工具收尾，仍走同一运行预算及复核名额保护。
                 payload['finalize_only']=True
+                payload['finalization_reason']=task.get('termination_reason')
                 payload['investigation_round']={'current':budget.max_role_rounds+1,
                     'maximum':budget.max_role_rounds+1,'remaining_tool_rounds':0}
                 result=bounded_call(role,payload,task_id)
@@ -310,7 +318,8 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 if result.tool_requests:
                     task.update(status='partial',stop_reason='最终综合仍申请工具，未执行额外查询；缺口保留')
                 else:
-                    task.update(status='completed',stop_reason=result.stop_reason or '已综合最后一轮工具回执')
+                    task.update(status='partial' if task.get('termination_reason')=='tool_round_limit' else 'completed',
+                        stop_reason=result.stop_reason or '已综合最后一轮工具回执')
             if result:
                 for validation_attempt in range(2):
                     task['validation_retry_count']=validation_attempt
@@ -384,12 +393,14 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                         payload['evidence_validation_feedback']={**detail,
                             'instruction':feedback_instruction}
                         result=bounded_call(role,payload,task_id)
-                        task.update(status='partial' if result.tool_requests else 'completed',
+                        task.update(status='partial' if result.tool_requests or task.get('termination_reason')=='tool_round_limit' else 'completed',
                             stop_reason='最终修正仍申请工具，缺口保留' if result.tool_requests else result.stop_reason or '已按证据校验反馈重新生成')
         except InterruptedError:
             task.update(status="cancelled",stop_reason="用户取消，已取得回执保留")
         except (ValueError,MatterCallFailure) as error:
-            task.update(status="failed",stop_reason=str(error)[:200],failure_code=str(error)[:200])
+            budget_exhausted=str(error).startswith(("MODEL_CALL_BUDGET_EXHAUSTED","ROLE_BUDGET_EXHAUSTED"))
+            task.update(status="partial" if budget_exhausted else "failed",stop_reason=str(error)[:200],failure_code=str(error)[:200])
+            if budget_exhausted:task["termination_reason"]="provider_call_limit"
             if isinstance(error,MatterValidationError):task.update(failure_code=error.code,error_detail=error.detail(role,task.get('validation_retry_count',0)))
             if isinstance(error,MatterCallFailure):
                 task.update(failure_code=error.record.get('failure_code'),retryable=error.record.get("retryable",False),retry_after_seconds=error.record.get("retry_after_seconds"),error_category=error.record.get("error_category"),error_detail={'role':role,'fields':error.record.get('invalid_fields',[]),'retry_count':error.record.get('retry_count',0)})
@@ -424,7 +435,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 'source_run_id':task.get('run_id'),'updated_at':time.time(),
                 'stop_reason':'复用父运行已完成角色；本次没有模型调用'})
             return task
-        a1_previous=next((t for t in reversed(run.matter_tasks) if t.get('role')=='A1' and t.get('status') in {'completed','reused'}
+        a1_previous=next((t for t in reversed(run.matter_tasks) if t.get('role')=='A1' and effective_role_status(t) in {'completed','reused'}
             and set(t.get('selected_matter_ids',[]))==set(request.selected_matter_ids)),None) if resume else None
         if a1_previous:reuse_task(a1_previous)
         else:role_task('A1')
@@ -436,7 +447,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         selected.sort(key=lambda m:(m.identity_status=="candidate",m.matter_type!="climate_risk",m.matter_id))
         for matter in selected[:budget.max_matters]:
             if cancelled():break
-            if resume and matter.investigation_status=="completed":
+            if resume and matter.investigation_status=="completed" and not any(
+                t.get("matter_id")==matter.matter_id and effective_role_status(t) in {"partial","failed","interrupted"}
+                for t in run.matter_tasks):
                 for role in ('A2','A3','A4','A5'):
                     previous=next((t for t in reversed(run.matter_tasks) if t.get('matter_id')==matter.matter_id and t.get('role')==role and t.get('status')=='completed'),None)
                     if previous:reuse_task(previous)
@@ -447,7 +460,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 if request.ablation=="no_temporal":
                     run.matter_tasks.append({"role":"A3","matter_id":matter.matter_id,"status":"skipped","stop_reason":"实验消融移除跨期角色"})
                 previous={t.get("role"):t for t in run.matter_tasks if t.get("matter_id")==matter.matter_id} if resume else {}
-                reusable={r:t for r,t in previous.items() if t.get("status")=="completed" and t.get("result")}
+                reusable={r:t for r,t in previous.items() if effective_role_status(t) in {"completed","reused"} and t.get("result")}
                 changed=any(role not in reusable for role in parallel)
                 for role in parallel:
                     if role in reusable:reuse_task(reusable[role])

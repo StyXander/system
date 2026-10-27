@@ -102,7 +102,8 @@ def report_blocks(report):
     for run in history.get("items", []):
         add("sub", "任务 " + clean(run.get("task_id")))
         add("p", "任务创建时间：" + clean(run.get("created_at")))
-        add("p", "模型状态：" + label(run.get("model_status")) + "；模型：" + "、".join(run.get("models") or []) + "；实际请求数：" + clean(run.get("actual_model_requests")))
+        add("p", "调查状态：" + label(run.get("investigation_status", run.get("model_status"))) + "；模型：" + "、".join(run.get("models") or []) + "；实际请求数：" + clean(run.get("actual_model_requests")))
+        add("p", "实际取证工具次数：" + clean(run.get("actual_tool_requests")))
         for role in run.get("role_results", []):
             add("p", f"{role.get('role')}：{label(role.get('status'))}；{role.get('failure_code') or role.get('identity_outcome') or role.get('stop_reason') or ''}")
         add("p", "历史 AI 综合意见（仅供参考）：" + clean(run.get("assessment_summary")))

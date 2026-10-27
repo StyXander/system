@@ -16,5 +16,9 @@ def allocate_role_budget(total, roles=("A1", "A2", "A3", "A4", "A5")):
                 remaining -= 1
                 changed = True
         if not changed:
-            break
+            # Explicit deep investigations may allocate more than the default 20 calls.
+            for role in priority:
+                if remaining:
+                    limits[role] += 1
+                    remaining -= 1
     return limits

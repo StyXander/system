@@ -30,10 +30,10 @@ class InvestigationBudget(MatterContract):
     并行上限约束同时在途请求，不代表五个角色全部同时运行。
     深查数量以外的事项仍显示在待调查队列中。
     """
-    max_provider_calls: int = Field(default=20, ge=1, le=20)
+    max_provider_calls: int = Field(default=20, ge=1, le=40)
     max_parallel_calls: int = Field(default=2, ge=1, le=2)
     max_matters: int = Field(default=1, ge=1, le=10)
-    max_role_rounds: int = Field(default=2, ge=1, le=3)
+    max_role_rounds: int = Field(default=2, ge=1, le=6)
 
 
 class ReportSetRequest(MatterContract):

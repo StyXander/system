@@ -45,7 +45,7 @@
   var featuredLoaded=false,featuredLoading=false;
   function roleBadge(t){
     var labels={completed:'已完成',failed:'失败',partial:'部分完成',reused:'复用',running:'运行中',not_run:'未执行',skipped:'跳过'};
-    return '<div class="ba-agent-row"><strong>'+esc(t.role)+'</strong><span>'+esc(labels[t.status]||t.status)+'</span><small>'+esc(t.failure_code||t.identity_outcome||t.stop_reason||'')+'</small></div>';
+    return '<div class="ba-agent-row"><strong>'+esc(t.role)+'</strong><span>'+esc(t.identity_outcome==='candidate_retained_identity_unconfirmed'?'来源已核验 · 归并待证':labels[t.status]||t.status)+'</span><small>'+esc(t.stop_reason||t.failure_code||'')+'</small></div>';
   }
   function drawFeatured(payload){
     var items=payload.items||[];
@@ -75,9 +75,12 @@
           .map(function(c){return '<div><span>'+esc(c[0])+'</span><strong>'+esc(c[1]||'尚未取得')+'</strong></div>';}).join('')+'</div>'+
         '<p>上述三项试算结余：'+esc(table.known_component_subtotal_yuan||'未计算')+' 元。'
         +esc(table.note||'其他金额与口径待核')+'</p></div>':'';
-      var status=run.model_status==='five_agents_completed'?'真实五 Agent 完成':'真实模型已运行 · '+esc(run.model_status||run.status);
-      return '<details class="ba-real-run" '+(n===0?'open':'')+'><summary><strong>'+esc(status)+'</strong><span>'+esc(run.models?.join(', ')||'模型未记录')+' · '+esc(run.actual_model_requests)+' 次真实请求 · '+total+'/5 角色完成</span><small>'+esc(run.task_id)+'</small></summary>'+
-       '<p>来源：生产数据库保存的真实模型调用回执。财务结构化表格已传入模型：<strong>'+esc(run.verified_financial_table?'是':'否')+'</strong></p>'+sourceRows+
+      var status=run.investigation_status==='completed'?'五 Agent 调查流程完成 · 资料缺口另列':'真实模型已运行 · 调查尚未完整完成';
+      var usage=run.usage||{};
+      function tokens(n){return typeof n==='number'?n.toLocaleString():'未记录';}
+      var usageLine='<p>实际取证工具：<strong>'+esc(run.actual_tool_requests??'未记录')+'</strong> 次；输入 '+esc(tokens(usage.input_tokens))+' tokens，输出 '+esc(tokens(usage.output_tokens))+' tokens。缓存命中输入 '+esc(tokens(usage.cache_hit_input_tokens))+' tokens；缓存未命中不代表检索失败。</p>';
+      return '<details class="ba-real-run" '+(n===0?'open':'')+'><summary><strong>'+esc(status)+'</strong><span>'+esc(run.models?.join(', ')||'模型未记录')+' · '+esc(run.actual_model_requests)+' 次真实请求 · '+total+'/5 角色完成调查</span><small>'+esc(run.task_id)+'</small></summary>'+
+       '<p>来源：生产数据库保存的真实模型调用回执。财务结构化表格已传入模型：<strong>'+esc(run.verified_financial_table?'是':'否')+'</strong></p>'+sourceRows+usageLine+
        '<div class="ba-agent-list">'+(run.role_results||[]).map(roleBadge).join('')+'</div>'+
        '<h4>A2 · 真实财务穿透路径</h4>'+(realPaths||'<p>本次未登记可用路径。</p>')+
        '<h4>A4 · 竞争解释与反证</h4><ol class="ba-procedures">'+(realCounter||'<li>本次未登记可用反证解释。</li>')+'</ol>'+

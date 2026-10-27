@@ -220,6 +220,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         unapproved run ids. Its source of truth is persisted production task data.
         """
         from .connectivity_project_demo import load_demo_config
+        from .connectivity_matter_completion import effective_role_status, known_usage
         config=load_demo_config(root)
         safe=[]
         for task_id in config.get("featured_real_agent_task_ids",[])[:5]:
@@ -245,7 +246,9 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                 for role in ("A1","A2","A3","A4","A5"):
                     tasks=[t for t in (result.get("matter_tasks") or []) if t.get("role")==role]
                     last=tasks[-1] if tasks else {}
-                    role_rows.append({"role":role,"status":last.get("status","not_run"),
+                    role_rows.append({"role":role,"status":effective_role_status(last),
+                        "recorded_status":last.get("status","not_run"),
+                        "termination_reason":last.get("termination_reason"),"rounds":last.get("rounds"),
                         "failure_code":last.get("failure_code"),"count":len(tasks),
                         "stop_reason":str(last.get("stop_reason") or "")[:190],
                         "identity_outcome":last.get("identity_outcome")})
@@ -262,6 +265,10 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     "model_status":result.get("model_status"),"created_at":item.get("created_at"),
                     "models":sorted(set(c["model"] for c in calls if c.get("performed") and c.get("model"))),
                     "actual_model_requests":sum(bool(c.get("request_attempted")) for c in calls),
+                    "actual_tool_requests":len(result.get("matter_tool_receipts") or []),
+                    "successful_tool_requests":sum(r.get("status")=="hit" for r in (result.get("matter_tool_receipts") or [])),
+                    "usage":known_usage(calls),
+                    "investigation_status":"completed" if all(r["status"] in {"completed","reused"} for r in role_rows) and result.get("model_status")=="five_agents_completed" else "partial",
                     "role_results":role_rows,
                     "verified_financial_table":bool((result.get("versions") or {}).get("verified_project_table")),
                     "verified_table_detail":safe_table,
