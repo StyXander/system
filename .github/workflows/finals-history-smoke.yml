@@ -1,0 +1,26 @@
+name: Latest stage-history JS/Python smoke
+on:
+  push:
+    branches: [audit/finals-history-smoke-20261027]
+    paths: [.github/workflows/finals-history-smoke.yml]
+permissions: {contents: read}
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --check assets/official-v4/baosteel-demo.js
+      - run: node --check assets/official-v4/connectivity-matters.js
+      - run: python -m py_compile backend/app/connectivity_api.py backend/app/connectivity_matter_agents.py backend/app/connectivity_matter_pipeline.py
+      - run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          cfg=json.loads(Path('backend/demo_cases/baosteel_zhanjiang.json').read_text())
+          assert cfg['featured_real_agent_task_ids'][0]=='DEMO-RUN-C5319BAE2FA7'
+          assert cfg['featured_real_agent_task_ids'][1]=='DEMO-RUN-C68F395377A0'
+          index=Path('index.html').read_text()
+          assert 'baosteel-demo.js?v=2026.10.27.finals.3' in index
+          print('LATEST_STAGE_HISTORY_ASSETS_OK')
+          PY
