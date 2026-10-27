@@ -1,0 +1,24 @@
+name: Verify current post-fix run status and agent outcomes
+on:
+  push:
+    branches: [audit/baosteel-final-real-model-20261027]
+    paths: [.github/workflows/baosteel-status-now.yml]
+permissions: {contents: read}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: |
+          python - <<'PY'
+          import urllib.request,json
+          t='DEMO-RUN-C5319BAE2FA7'
+          b='https://audittrace-demo.onrender.com/api/connectivity/runs/'+t
+          for suffix in ('/status',''):
+              with urllib.request.urlopen(b+suffix,timeout=80) as r:d=json.load(r)
+              result=d.get('result') or {}
+              print('CURRENT',suffix,json.dumps({'state':d.get('status'),'failed':d.get('failure_code'),
+                 'model':result.get('model_status'),
+                 'roles':[{'role':q.get('role'),'status':q.get('status'),'code':q.get('failure_code')} for q in result.get('matter_tasks') or []],
+                 'calls':len(result.get('provider_calls') or [])},ensure_ascii=False),flush=True)
+          PY
