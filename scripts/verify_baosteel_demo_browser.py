@@ -5,8 +5,10 @@ import socket
 import threading
 import time
 from pathlib import Path
+import sys
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
 os.environ.update(AUDITTRACE_CONNECTIVITY_CATALOG_PERSISTENCE='local',
                   AUDITTRACE_DEMO_TASK_PERSISTENCE='local',
                   AUDITTRACE_PUBLIC_DEMO='false')
