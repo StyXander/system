@@ -57,6 +57,7 @@
     }
   ],
   "featured_real_agent_task_ids": [
+    "DEMO-RUN-C5319BAE2FA7",
     "DEMO-RUN-C68F395377A0"
   ],
   "featured_history_policy": "仅白名单中使用真实供应商返回且公司报告对确认为600019-2025的已保存任务，动态读取真实状态并脱敏展示；不复制或改写失败记录。"
