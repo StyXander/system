@@ -201,6 +201,16 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         except ValueError as error:
             raise HTTPException(422, getattr(error, "detail", str(error))) from error
 
+    @router.get("/demo/baosteel")
+    def baosteel_dossier():
+        """Read-only case-specific evidence audit; never invokes the model or edits a task."""
+        from .connectivity_project_demo import build_baosteel_dossier
+        try:
+            return build_baosteel_dossier(root)
+        except (ValueError, OSError, RuntimeError) as error:
+            log.warning("baosteel_dossier unavailable code=%s",type(error).__name__)
+            raise HTTPException(503, "官方资料核验或专项证据索引尚未完成，请检查原件可用性及服务日志。") from error
+
     @router.get("/readiness")
     def readiness(pair_id: str | None = None):
         return source_readiness(root, pair_id=pair_id)
