@@ -7,7 +7,7 @@
   'use strict';
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const roles={A1:'事项识别与建档',A2:'财务影响调查',A3:'跨期承诺与后果追踪',A4:'边界解释与反证',A5:'综合复核与补证'};
-  const labels={pending:'待调查',running:'调查中',completed:'已完成',partial:'部分完成',skipped:'未执行',failed:'失败',cancelled:'已取消',
+  const labels={pending:'待调查',running:'调查中',completed:'已完成',partial:'部分完成',skipped:'未执行',failed:'失败',cancelled:'已取消',interrupted:'父运行已中断',reused:'复用已完成结果',
     candidate:'身份待确认',evidence_linked:'有据关联候选',human_confirmed:'人工确认身份',limited:'部分支持',supported:'有据支持',
     conflicting:'存在反证',not_comparable:'不可直接比较',invalid:'来源失效',not_assessed:'尚未评价',needs_evidence:'待补证',
     hypothesis:'候选解释',supported_as_reported:'报告披露支持',challenged:'受到质疑',unresolved:'尚未解决',

@@ -56,6 +56,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         for name in ("matter_evidence","matters","matter_events","matter_commitments","matter_paths","matter_relations",
                      "matter_explanations","matter_assessments","assurance_planning_reviews","matter_tasks","matter_tool_receipts","matter_rejections","matter_revisions","occurrences"):
             setattr(run,name,deepcopy(getattr(resume,name)))
+        for task in run.matter_tasks:
+            if task.get('status')=='running':
+                task.update(status='interrupted',stop_reason='父运行已中断；本次不复用未完成角色')
         run.parent_run_id=resume.run_id;run.result_revision=resume.result_revision+1
         run.prior_provider_calls=[*resume.prior_provider_calls,*resume.provider_calls]
         run.versions["result_origin"]="incremental_retry"
@@ -265,10 +268,10 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                                 apply_identification(run,result.matters)
                             elif matter:
                                 if request.mode=="three_agents" and role=="A2":
-                                    for component in ("A2","A3","A4"):integrate_result(run,matter,component,result,payload["input_revision"])
+                                    for component in ("A2","A3","A4"):result=integrate_result(run,matter,component,result,payload["input_revision"])
                                 elif request.mode=="single_model":
-                                    for component in ("A2","A3","A4","A5"):integrate_result(run,matter,component,result,payload["input_revision"])
-                                else:integrate_result(run,matter,role,result,payload["input_revision"])
+                                    for component in ("A2","A3","A4","A5"):result=integrate_result(run,matter,component,result,payload["input_revision"])
+                                else:result=integrate_result(run,matter,role,result,payload["input_revision"])
                             task["result"]=result.model_dump(mode="json")
                         break
                     except ValueError as error:
@@ -276,6 +279,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                         with lock:
                             run.matter_rejections.append({'role':role,'matter_id':matter.matter_id,
                                 'reason':str(error)[:200],'recovery':'one_corrective_generation'})
+                            task.update(status='running',stop_reason='证据校验未通过，正在按拒绝原因纠正')
                             save()
                         payload['finalize_only']=True
                         payload['evidence_validation_feedback']={'reason':str(error)[:200],
@@ -312,7 +316,11 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
             agent_progress(role,"skipped","真实模型未配置或被关闭")
     else:
         progress("agent_collaboration","running","事项建档后并行调查财务与跨期信息")
+        def reuse_task(task):
+            agent_progress(task['role'],'reused','复用父版本已完成的角色，本次没有重复调用')
+            return task
         if not resume or not any(t.get("role")=="A1" and t.get("status")=="completed" for t in run.matter_tasks):role_task("A1")
+        else:reuse_task(next(t for t in reversed(run.matter_tasks) if t.get('role')=='A1' and t.get('status')=='completed'))
         selected=[m for m in run.matters if not request.selected_matter_ids or m.matter_id in request.selected_matter_ids or set(m.lineage)&set(request.selected_matter_ids)]
         resolved_ids={m.matter_id for m in selected}|{key for m in selected for key in m.lineage}
         if request.selected_matter_ids and not set(request.selected_matter_ids)<=resolved_ids:
@@ -321,7 +329,11 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         selected.sort(key=lambda m:(m.identity_status=="candidate",m.matter_type!="climate_risk",m.matter_id))
         for matter in selected[:budget.max_matters]:
             if cancelled():break
-            if resume and matter.investigation_status=="completed":continue
+            if resume and matter.investigation_status=="completed":
+                for role in ('A2','A3','A4','A5'):
+                    previous=next((t for t in reversed(run.matter_tasks) if t.get('matter_id')==matter.matter_id and t.get('role')==role and t.get('status')=='completed'),None)
+                    if previous:reuse_task(previous)
+                continue
             matter.investigation_status="running"
             if request.mode=="five_agents":
                 parallel=("A2",) if request.ablation=="no_temporal" else ("A2","A3")
@@ -330,15 +342,17 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 previous={t.get("role"):t for t in run.matter_tasks if t.get("matter_id")==matter.matter_id} if resume else {}
                 reusable={r:t for r,t in previous.items() if t.get("status")=="completed" and t.get("result")}
                 changed=any(role not in reusable for role in parallel)
+                for role in parallel:
+                    if role in reusable:reuse_task(reusable[role])
                 with ThreadPoolExecutor(max_workers=budget.max_parallel_calls) as pool:
                     jobs={role:pool.submit(role_task,role,matter) for role in parallel if role not in reusable}
                     tasks=[jobs[role].result() if role in jobs else reusable[role] for role in parallel]
                 if request.ablation=="no_counterevidence":
                     run.matter_tasks.append({"role":"A4","matter_id":matter.matter_id,"status":"skipped","stop_reason":"实验消融移除反证角色"})
                 else:
-                    tasks.append(reusable["A4"] if not changed and "A4" in reusable else role_task("A4",matter))
+                    tasks.append(reuse_task(reusable["A4"]) if not changed and "A4" in reusable else role_task("A4",matter))
                 changed=changed or "A4" not in reusable
-                tasks.append(reusable["A5"] if not changed and "A5" in reusable else role_task("A5",matter,"实验消融条件："+request.ablation if request.ablation!="none" else ""))
+                tasks.append(reuse_task(reusable["A5"]) if not changed and "A5" in reusable else role_task("A5",matter,"实验消融条件："+request.ablation if request.ablation!="none" else ""))
             elif request.mode=="three_agents":
                 tasks=[role_task("A2",matter,"本对照角色同时调查财务路径、跨期事件与竞争解释。"),role_task("A5",matter)]
             else:

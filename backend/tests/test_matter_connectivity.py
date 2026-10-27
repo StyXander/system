@@ -204,6 +204,59 @@ def test_unsupported_commitment_year_is_rejected_then_corrected(reports):
     assert next(t for t in run.matter_tasks if t['role']=='A3')['status']=='completed'
 
 
+@pytest.mark.parametrize('role', ['A2','A3'])
+def test_relations_follow_canonical_ids_in_the_same_proposal(reports, role):
+    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    matter=next(m for m in run.matters if m.identity_status=='evidence_linked')
+    b=next(e for e in run.matter_evidence if e.evidence_id in matter.evidence_ids)
+    proposal={'matter_id':matter.matter_id,'relations':[{'edge_id':'test-edge','matter_id':matter.matter_id,
+        'source_id':'temporary','target_id':matter.matter_id,'relation_kind':'progress_of','evidence_ids':[b.evidence_id]}]}
+    if role=='A3':
+        proposal['events']=[{'event_id':'temporary','matter_id':matter.matter_id,'kind':'action',
+            'label':'原文行动线索','report_period':b.report_period,'evidence_ids':[b.evidence_id]}]
+    else:
+        proposal['paths']=[{'path_id':'temporary','matter_id':matter.matter_id,'financial_item':'固定资产',
+            'steps':[{'label':'候选机制','explanation':'仍需查证','evidence_ids':[b.evidence_id]}]}]
+    normalized=integrate_result(run,matter,role,AgentMatterResult.model_validate(proposal),1)
+    canonical=normalized.events[0].event_id if role=='A3' else normalized.paths[0].path_id
+    assert canonical!='temporary'
+    assert normalized.relations[0].source_id==run.matter_relations[-1].source_id==canonical
+
+
+@pytest.mark.parametrize('source', ['unknown-endpoint','ambiguous'])
+def test_unknown_or_ambiguous_endpoint_is_still_rejected_atomically(reports, source):
+    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    matter=next(m for m in run.matters if m.identity_status=='evidence_linked')
+    b=next(e for e in run.matter_evidence if e.evidence_id in matter.evidence_ids)
+    event={'event_id':'ambiguous','matter_id':matter.matter_id,'kind':'action','label':'行动线索',
+        'report_period':b.report_period,'evidence_ids':[b.evidence_id]}
+    proposal=AgentMatterResult.model_validate({'matter_id':matter.matter_id,
+        'events':[event,dict(event,kind='financial')],
+        'relations':[{'edge_id':'edge','matter_id':matter.matter_id,'source_id':source,'target_id':matter.matter_id,
+            'relation_kind':'progress_of','evidence_ids':[b.evidence_id]}]})
+    before=run.model_dump_json()
+    with pytest.raises(ValueError,match='端点'):
+        integrate_result(run,matter,'A3',proposal,1)
+    assert run.model_dump_json()==before
+
+
+def test_completed_resume_reuses_roles_without_new_provider_calls(reports):
+    root,rs=reports;parent=run_matter_pipeline(root,request(rs),caller=fake_provider);progress=[]
+    child=run_matter_pipeline(root,request(rs),caller=fake_provider,resume=parent,
+        agent_progress=lambda role,status,detail:progress.append((role,status)))
+    assert not child.provider_calls and len(child.prior_provider_calls)==len(parent.provider_calls)
+    assert {role for role,status in progress if status=='reused'}=={'A1','A2','A3','A4','A5'}
+
+
+def test_resume_marks_old_running_role_interrupted_without_changing_parent(reports):
+    root,rs=reports;parent=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    matter=next(m for m in parent.matters if m.investigation_status=='completed');matter.investigation_status='partial'
+    parent.matter_tasks.append({'task_id':'old-inflight','role':'A2','matter_id':matter.matter_id,'status':'running'})
+    child=run_matter_pipeline(root,request(rs),caller=fake_provider,resume=parent)
+    assert parent.matter_tasks[-1]['status']=='running'
+    assert next(t for t in child.matter_tasks if t.get('task_id')=='old-inflight')['status']=='interrupted'
+
+
 def test_missing_key_never_creates_fake_role_completion(reports,monkeypatch):
     root,rs=reports;monkeypatch.delenv('DEEPSEEK_API_KEY',raising=False)
     run=run_matter_pipeline(root,request(rs))

@@ -23,7 +23,7 @@ from urllib.request import Request, urlopen
 from .agents import _strict_tool_base_url, _provider_timeout_seconds
 from .connectivity_matter_schemas import AgentMatterResult, ROLE_NAMES
 
-PROMPT_VERSION="matter_agents_20261027.3"
+PROMPT_VERSION="matter_agents_20261027.4"
 ROLE_PROMPTS={
     "A1":"从已取得证据识别具体事项，核对主体、地点、项目名和别名。不同工厂同名不得自动合并。通过matters提交有身份依据的归并；未能确认者保持独立候选。",
     "A2":"调查事项到经济机制、经营变量、会计估计和财务项目的逐段路径。查附注和会计假设。一般政策不证明某项目处理。paths每段写证据和缺口；不要用相等金额证明因果。",
@@ -61,6 +61,7 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "evidence_ids必须逐字复制evidence中的evidence_id；document_id、事项名、页码和自行拼接编号不能作为证据ID。"
         "事件label用简短描述，不复制长段原文；调用函数必须返回合法JSON工具参数，不能只在content中作答。"
         "承诺baseline_year、target_year和事件occurred_period只在所引证据quote中出现时填写，否则留空；不得拿报告年份代填。"
+        "关系端点优先使用paths/events中已登记的ID；本轮新建路径或事件可用本轮唯一临时ID，程序将同步转换其关系端点。"
         "准则和行业知识只定义候选调查方向，不证明企业事实。财务未单列不等于未入账。"
         "无金额事项仍需调查。公开披露关系不代表企业整体真实，不输出审计或鉴证意见。"
         "不同计量基础不能相加。一般主题相似只形成线索。路径每段的report_statement需要原文支持；"

@@ -144,9 +144,11 @@ def integrate_result(run, matter, role, result:AgentMatterResult, expected_revis
     """
     working=run.model_copy(deep=True)
     target=next(m for m in working.matters if m.matter_id==matter.matter_id)
-    _integrate_result(working,target,role,result.model_copy(deep=True),expected_revision)
+    normalized=result.model_copy(deep=True)
+    _integrate_result(working,target,role,normalized,expected_revision)
     for field in ("matter_paths","matter_events","matter_commitments","matter_explanations","matter_relations","matter_assessments"):
         setattr(run,field,getattr(working,field))
+    return normalized
 
 
 def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revision):
@@ -158,6 +160,16 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
         raise ValueError("角色结果含未取得、未核验或失效引用")
     if any(refs[k].company_id!=matter.company_id for k in requested):
         raise ValueError("角色引用跨企业证据")
+    registered_ids={*(m.matter_id for m in run.matters),*refs.keys(),*(o.occurrence_id for o in run.occurrences),
+        *(e.event_id for e in run.matter_events),*(p.path_id for p in run.matter_paths),*(c.commitment_id for c in run.matter_commitments)}
+    endpoint_aliases={}
+    def alias(original,canonical):
+        if original:endpoint_aliases.setdefault(original,set()).add(canonical)
+    def endpoint(value):
+        if value in registered_ids:return value
+        candidates=endpoint_aliases.get(value,set())
+        if len(candidates)>1:raise ValueError('临时关系端点不唯一')
+        return next(iter(candidates)) if candidates else value
     if role=="A2":
         from .connectivity_financial_ontology import matter_rules
         known_rules={r["rule_id"] for r in matter_rules()}
@@ -172,7 +184,9 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
             elif all(s.support=="supported" and s.origin=="report_statement" for s in p.steps):p.support="supported"
             elif any(s.evidence_ids for s in p.steps):p.support="limited"
             else:p.support="pending"
+            original_id=p.path_id
             p.path_id="PATH-"+digest(matter.matter_id+p.financial_item+str([s.label for s in p.steps]))
+            alias(original_id,p.path_id)
             run.matter_paths=[old for old in run.matter_paths if old.path_id!=p.path_id]+[p]
     if role=="A3":
         for event in result.events:
@@ -183,7 +197,9 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
                 raise ValueError("发生期间未得到引文支持，不能由报告年度代填")
             event.origin="model_interpretation"
             event.evidence_status="limited"
+            original_id=event.event_id
             event.event_id="EV-"+digest(matter.matter_id+event.kind+"|".join(sorted(event.evidence_ids)))
+            alias(original_id,event.event_id)
             run.matter_events=[e for e in run.matter_events if e.event_id!=event.event_id]+[event]
         for commitment in result.commitments:
             if commitment.matter_id!=matter.matter_id or not commitment.evidence_ids:raise ValueError("承诺缺少同事项证据")
@@ -210,6 +226,7 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
     if role in {"A2","A3","A4"}:
         for edge in result.relations:
             if edge.matter_id!=matter.matter_id:raise ValueError("关系边事项不一致")
+            edge.source_id=endpoint(edge.source_id);edge.target_id=endpoint(edge.target_id)
             # 两端必须可解析；模型不能凭一个名称生成“真实财务节点”。
             ids={*(m.matter_id for m in run.matters),*refs.keys(),*(o.occurrence_id for o in run.occurrences),*(e.event_id for e in run.matter_events),*(p.path_id for p in run.matter_paths),
                  *(c.commitment_id for c in run.matter_commitments)}
