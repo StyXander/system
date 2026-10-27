@@ -251,12 +251,20 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                         "identity_outcome":last.get("identity_outcome")})
                 assessments=result.get("matter_assessments") or []
                 a=assessments[0] if assessments else {}
+                table=(result.get("versions") or {}).get("verified_project_table") or {}
+                safe_table={"status":table.get("status"),"source_page":table.get("source_page"),
+                    "document_id":table.get("document_id"),"source_sha256":table.get("source_sha256"),
+                    "values_yuan":{key:table.get("values_yuan",{}).get(key) for key in
+                        ("opening","increase","to_fixed","to_long_term","closing")},
+                    "known_component_subtotal_yuan":table.get("known_component_subtotal_yuan"),
+                    "note":str(table.get("note") or "")[:300]} if table.get("source_row_matched") else None
                 safe.append({"task_id":task_id,"status":snapshot.get("status"),
                     "model_status":result.get("model_status"),"created_at":item.get("created_at"),
                     "models":sorted(set(c["model"] for c in calls if c.get("performed") and c.get("model"))),
                     "actual_model_requests":sum(bool(c.get("request_attempted")) for c in calls),
                     "role_results":role_rows,
                     "verified_financial_table":bool((result.get("versions") or {}).get("verified_project_table")),
+                    "verified_table_detail":safe_table,
                     "financial_paths":len(result.get("matter_paths") or []),
                     "financial_occurrences":len(result.get("occurrences") or []),
                     "assessment_summary":str(a.get("summary") or "")[:520],
