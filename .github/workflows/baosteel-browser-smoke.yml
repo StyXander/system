@@ -1,4 +1,5 @@
 name: Baosteel real-source browser smoke
+# Independent of mock-provider engineering tests; downloads registered PDFs.
 on:
   push:
     branches: [feature/baosteel-finals-20261027]
