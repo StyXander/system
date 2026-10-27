@@ -49,7 +49,7 @@
     const investigated=(run.matters||[]).filter(m=>m.investigation_status!=='pending');
     const assessments=run.matter_assessments||[];
     const gaps=[...new Set(assessments.flatMap(a=>a.unresolved||[]))].slice(0,3);
-    return`<section class="cm-investigation-summary"><h3>本次调查摘要</h3><p>已深查 ${investigated.length} 项。未深查事项仅为候选，不视为已发现风险。</p>${run.versions?.source_validity?.status==='invalid'?'<p role="alert">依赖来源已变化，当前判断仅供历史回查，请强制重验原件。</p>':''}
+    return`<section class="cm-investigation-summary"><h3>本次调查摘要</h3><p>${run.model_status==='not_requested'?'已整理':'已深查'} ${investigated.length} 项。未深查事项仅为候选，不视为已发现风险。</p>${run.versions?.source_validity?.status==='invalid'?'<p role="alert">依赖来源已变化，当前判断仅供历史回查，请强制重验原件。</p>':''}
     <div class="cm-key-matters">${investigated.slice(0,5).map(m=>{const a=assessments.find(a=>a.matter_id===m.matter_id);return`<article><span>${esc(label(m.investigation_status))}</span><h4>${esc(m.name)}</h4><dl><dt>当前证据支持的判断</dt><dd>${esc(a?.summary||'综合复核尚未完成；打开事项查看已取得线索。')}</dd><dt>财务影响</dt><dd>${esc(a?.financial_stage||'财务归属待核')}</dd><dt>证据与反证</dt><dd>支持引用 ${a?.supporting_evidence_ids?.length||0} 条 · 反证引用 ${a?.counter_evidence_ids?.length||0} 条</dd></dl><button data-cm-select="${esc(m.matter_id)}">查看证据链 ↗</button></article>`;}).join('')||'<p>当前仅完成程序初筛。请展开候选项，选择一个明确事项启动五Agent深查。</p>'}</div>
     <h4>仍缺的关键资料</h4>${list(gaps.length?gaps:investigated.length?['打开事项查看具体资料需求；空清单不代表资料齐备。']:['需先选择事项，才能形成有针对性的资料需求。'])}</section>`;
   }
@@ -97,12 +97,12 @@
     document.querySelectorAll('.cn-overview').forEach(e=>e.hidden=true);
     const overview=run.matter_overview||{};
     host.innerHTML=`<header class="cm-heading"><p class="at-eyebrow">MATTER INVESTIGATION</p><h2>${esc(run.company)} · ${esc(run.period)}</h2><p class="cm-result-state">${esc(label(value.status))} · ${esc(value.task_id)}</p><p>观察截至 ${esc(run.report_set?.as_of_date)} · ${esc(run.documents.length)} 份报告 · ${esc(label(run.model_status))}</p></header>
-      <div class="cm-counts">${[['初筛候选',overview.matter_total],['已深查',overview.investigated],['尚未深查',overview.pending]].map(([k,n])=>`<div><span>${esc(k)}</span><strong>${esc(n??0)}</strong></div>`).join('')}</div>
+      <div class="cm-counts">${[['初筛候选',overview.matter_total],[run.model_status==='not_requested'?'已整理事项':'已深查',overview.investigated],['尚未深查',overview.pending]].map(([k,n])=>`<div><span>${esc(k)}</span><strong>${esc(n??0)}</strong></div>`).join('')}</div>
       <p class="cm-muted">${esc(overview.notice||'未形成事项不代表报告没有相关事项，请检查资料和解析覆盖。')}</p>
       ${run.report_set?.coverage_gaps?.length?`<details><summary>资料缺口</summary>${list(run.report_set.coverage_gaps)}</details>`:''}
       ${summaryHtml(run)}
       <details class="cm-planning-details"><summary>关注点与资料需求清单</summary>${planningHtml(run)}</details>
-      <div class="cm-layout"><aside class="cm-list" aria-label="事项档案"><h3>已深查事项</h3>${(run.matters||[]).filter(m=>m.investigation_status!=='pending').map(m=>matterRow(m)).join('')||'<p>尚无深查结果。</p>'}
+      <div class="cm-layout"><aside class="cm-list" aria-label="事项档案"><h3>${run.model_status==='not_requested'?'已整理事项（未调用模型）':'已深查事项'}</h3>${(run.matters||[]).filter(m=>m.investigation_status!=='pending').map(m=>matterRow(m)).join('')||'<p>尚无深查结果。</p>'}
       <details class="cm-candidates"><summary>其余候选项（${esc(overview.pending??0)}）</summary><p>未深查事项仅为候选，不视为已发现风险。</p><label>搜索候选<input id="cm-candidate-query" type="search" value="${esc(candidateQuery)}"></label><label>事项分类<select id="cm-candidate-type"><option value="">全部分类</option>${['climate_risk','transition_project','commitment','resource_efficiency','other'].map(k=>`<option value="${k}"${candidateType===k?' selected':''}>${esc(label(k))}</option>`).join('')}</select></label><div id="cm-candidate-rows">${candidateRows(run)}</div></details></aside>
       <article class="cm-detail" aria-live="polite">${p.matter?(run.loaded_matter_id===selected||run.projection_layer!=='summary'?detailHtml(p,run):`<h3>${esc(p.matter.name)}</h3><p>${esc(p.assessment?.summary||'当前仅完成程序初筛，尚未启动五Agent调查。')}</p><button type="button" data-cm-select="${esc(selected)}">打开事项证据链</button><button type="button" data-cm-investigate="${esc(selected)}">仅深查此事项（真实五Agent）</button>`):'<h3>尚未形成可展示事项</h3><p>请查看原件与解析覆盖，或选择其他资料。</p>'}</article></div>
       <details class="cm-coverage"><summary>解析覆盖和调用预算</summary><p>首轮 ${esc(run.versions?.seed_coverage?.seed_blocks??0)} 个原文块 / 已索引 ${esc(overview.indexed_blocks??0)} 个。首轮未入选块可由工具继续检索。</p>${(run.matter_coverage||[]).map(c=>`<p>${esc(c.document_id)} · ${esc(c.total_pages)} 页 · ${esc(c.failed_pages?.length??0)} 页解析限制 · OCR ${c.ocr_enabled?'开启':'关闭'}</p>`).join('')}<pre>${esc(JSON.stringify(run.versions?.budget||{},null,2))}</pre></details>`;
@@ -113,7 +113,7 @@
 
   }
   function planningHtml(run){
-    const planning=run.assurance_planning;if(!planning?.risk_findings)return '<p>该历史版本尚无清单投影，请重新读取服务端保存结果。</p>';
+    const planning=run.assurance_planning;if(!planning?.risk_findings)return run.model_status==='not_requested'?'<p>当前为程序初筛，未调用模型，不会自动生成风险关注点或资料需求清单。请选择一个具体事项启动深查。</p>':'<p>本次运行尚未取得可展示的风险关注点清单。这可能是深查未完成或服务端未保存清单投影，不代表历史数据损坏；请查看当前事项及角色回执。</p>';
     const review=row=>task.can_modify&&row.matter_ids?.length?`<div class="cm-review-actions">${[['adopt','采纳为调查线索'],['defer','暂缓'],['exclude','排除']].map(([action,text])=>`<button type="button" data-cm-planning="${action}" data-entry="${esc(row.entry_id)}">${text}</button>`).join('')}</div>`:'';
     return `<section class="cm-planning"><h3>风险关注点清单</h3><p>${esc(planning.notice)}</p>${planning.risk_findings.map(row=>`<article class="cm-hypothesis"><strong>${esc(row.matter)}</strong><p>${esc(row.reason)}</p><small>调查顺序 ${esc(row.priority)} · ${esc(label(row.review_status))} · ${esc(label(row.investigation_status))}</small><p>合理解释：${esc(row.alternative_explanations.join('；')||'仍待调查')}</p><div>依据 ${refs(row.evidence.map(e=>e.evidence_id),run)||'待取得'} · 反证 ${refs(row.counter_evidence.map(e=>e.evidence_id),run)||'待取得'}</div>${review(row)}</article>`).join('')||'<p>当前没有列示条目，不代表没有风险。</p>'}
       <h3>资料需求清单</h3>${planning.evidence_requests.map(row=>`<article class="cm-action"><strong>${esc(row.requested_material)}</strong><p>对应事项：${esc(row.matters.join('、'))}</p><p>解决问题：${esc(row.questions.join('；'))}</p><p>取得后核查：${esc(row.purposes.join('；'))}</p><p>区分解释：${esc(row.distinguishing_explanations.join('；')||'按问题核对，保留未决')}</p><small>${esc(row.responsible_person)} · ${esc(row.acquisition_status)} · ${esc(label(row.review_status))}</small>${review(row)}</article>`).join('')||'<p>当前尚未形成具体资料要求，不代表资料已齐备。</p>'}</section>`;
@@ -140,7 +140,8 @@
     if(/MODEL_HTTP_40[13]/.test(code))return '供应商认证或授权失败；已有结果保留，修正模型配置后再续跑。';
     if(/MODEL_HTTP_429/.test(code))return '供应商限流；已有结果保留，请按供应商等待要求稍后续跑。';
     if(/MODEL_(TRANSPORT|HTTP_50)/.test(code))return '供应商网络或服务暂不可用；自动重试有界，稍后可续跑。';
-    if(/MODEL_(SCHEMA|OUTPUT)/.test(code))return '输出未通过结构校验；未伪装为完成，需检查供应商输出合同。';
+    if(/MODEL_(JSON_INVALID|FIELDS_INVALID|TOOL_REQUIRED|SCHEMA|OUTPUT)/.test(code))return '模型返回的结构化工具参数未通过解析或字段校验；本角色没有完成。请查看字段错误并限次纠正，不能跳过引文核验。';
+    if(/EVIDENCE_VALIDATION_FAILED|建档结果输入版本/.test(code))return '角色结果未通过事项身份、输入版本或原文证据核验；请围绕所选具体事项纠错，不能自动采用该结论。';
     if(/BUDGET/.test(code))return '已达到本次执行保护，已有结果保留；可选择未完成事项续跑。这不是每日配额。';
     return '';
   }
