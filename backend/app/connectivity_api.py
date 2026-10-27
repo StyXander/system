@@ -289,6 +289,21 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         return {"items":safe,"source":"live_saved_provider_receipts",
                 "notice":"真实已保存任务，仅展示白名单内公开报告的脱敏模型回执；失败和降级原样保留。"}
 
+    @router.get("/demo/baosteel/export/{format_name}")
+    def baosteel_export(format_name: str):
+        """Download a read-only special report; reuse the screen's public data only."""
+        from urllib.parse import quote
+        from .connectivity_project_export import FORMATS, export_report
+        if format_name not in FORMATS:
+            raise HTTPException(404, "支持的专项导出格式：docx、json、csv、pdf")
+        content = export_report(format_name, baosteel_dossier(), baosteel_featured_real_agent_history())
+        filename = "宝钢专项核查报告." + format_name
+        return Response(content=content, media_type=FORMATS[format_name], headers={
+            "Content-Disposition": "attachment; filename=\"baosteel-special-report." + format_name + "\"; filename*=UTF-8''" + quote(filename),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        })
+
     @router.get("/demo/baosteel/runs")
     def baosteel_saved_runs(request: Request):
         """Only list the current user's own real persisted tasks; no synthetic snapshots."""

@@ -204,3 +204,28 @@
 #ba-demo .ba-metric:nth-child(4) { border-top-color: #6b526f; }
 
 #ba-demo .ba-eyebrow { color: #496356; font-size: 12px !important; }
+
+/* Keep the existing header, with a real project photo visible on first entry. */
+#ba-demo .ba-header { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(250px, .85fr); gap: 0 28px; align-items: center; }
+#ba-demo .ba-hero-copy { min-width: 0; }
+#ba-demo .ba-hero-copy > p:not(.ba-eyebrow) { color: #36594b; font-size: 16px; line-height: 1.8; margin: 12px 0 0; }
+#ba-demo .ba-hero-media { margin: 0; min-width: 0; }
+#ba-demo .ba-hero-media img { width: 100%; height: auto; max-height: none; aspect-ratio: 16 / 9; object-fit: contain; display: block; border-radius: 10px; }
+#ba-demo .ba-hero-media figcaption { line-height: 1.6; margin-top: 6px; }
+#ba-demo .ba-hero-media a { color: #3c6252; text-underline-offset: 3px; }
+#ba-demo .ba-actions, #ba-demo .ba-export-bar { grid-column: 1 / -1; }
+#ba-demo .ba-export-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #c7d5cc; color: #315445; font-size: 13px; }
+#ba-demo .ba-export-bar a { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 7px 14px; border: 1px solid #9eb9aa; border-radius: 7px; background: #fff; color: #174a36; font-weight: 650; text-decoration: none; box-sizing: border-box; }
+#ba-demo .ba-export-bar a:hover { background: #e4efe8; }
+#ba-demo .ba-export-bar a:focus-visible { outline: 3px solid #285f88; outline-offset: 3px; }
+#ba-demo .ba-export-bar span { color: #496356; }
+@media (max-width: 900px) {
+  #ba-demo .ba-header { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  #ba-demo .ba-hero-media { width: 100%; max-width: 640px; }
+  #ba-demo .ba-actions, #ba-demo .ba-export-bar { margin-top: 0; }
+}
+@media (max-width: 500px) {
+  #ba-demo .ba-hero-copy > p:not(.ba-eyebrow) { font-size: 15px; }
+  #ba-demo .ba-export-bar strong, #ba-demo .ba-export-bar span { flex-basis: 100%; }
+  #ba-demo .ba-export-bar a { flex: 1 1 40%; }
+}

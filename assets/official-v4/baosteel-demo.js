@@ -16,19 +16,25 @@
   var source=null, loading=false;
   function splash(){
     pane.innerHTML=html([
-      '<div class="ba-header"><p class="ba-eyebrow">EVIDENCE-DRIVEN INVESTIGATION / 决赛专项案例</p>',
+      '<div class="ba-header"><div class="ba-hero-copy"><p class="ba-eyebrow">EVIDENCE-DRIVEN INVESTIGATION / 决赛专项案例</p>',
       '<h1>宝钢股份零碳工厂<span>从可持续披露，追到财务附注</span></h1>',
-      '<p>围绕一个真实项目回答三件事：建设承诺有没有实施线索？钱进入了哪些资产？工程进度与转固时点还要核实什么？</p>',
-      '<figure class="ba-hero-media" hidden><img id="ba-zero-carbon-image" src="/assets/official-v4/baosteel-zero-carbon.png" alt="宝钢零碳项目" width="1280" height="480" decoding="async"><figcaption>宝钢零碳项目</figcaption></figure>',
+      '<p>围绕一个真实项目回答三件事：建设承诺有没有实施线索？钱进入了哪些资产？工程进度与转固时点还要核实什么？</p></div>',
+      '<figure class="ba-hero-media"><img id="ba-zero-carbon-image" src="/assets/official-v4/baosteel-factory.jpg" alt="宝钢股份湛江钢铁近零碳产线实景" width="640" height="360" decoding="async" fetchpriority="high"><figcaption>湛江钢铁近零碳产线 · 宝钢股份供图<br><a href="https://finance.sina.com.cn/jjxw/2025-12-23/doc-inhcuyuh0613938.shtml" target="_blank" rel="noopener noreferrer">来源：上观新闻 / 新浪财经</a></figcaption></figure>',
       '<div class="ba-actions"><button type="button" id="ba-read" class="ba-primary">读取已登记官方原件，生成专项证据清单</button>',
       '<button type="button" id="ba-saved">查看当前会话其他宝钢运行记录</button>',
-      '<button type="button" id="ba-new">创建新的真实五Agent任务</button></div></div>',
+      '<button type="button" id="ba-new">创建新的真实五Agent任务</button></div>',
+      '<div class="ba-export-bar" role="group" aria-label="导出宝钢专项核查报告"><strong>导出专项报告</strong>',
+      '<a href="/api/connectivity/demo/baosteel/export/docx" download>Word</a>',
+      '<a href="/api/connectivity/demo/baosteel/export/json" download>JSON</a>',
+      '<a href="/api/connectivity/demo/baosteel/export/pdf" download>下载 PDF</a>',
+      '<a href="/api/connectivity/demo/baosteel/export/csv" download>证据 CSV</a>',
+      '<span>含原件核验与已保存的历史 AI 意见</span></div></div>',
       '<div id="ba-message" class="ba-feedback" role="status">尚未读取原件。演示页面本身不触发模型调用，也不预置 AI 的判断。</div>',
       '<div id="ba-featured-agent"></div>',
       '<div id="ba-saved-runs"></div>',
       '<div id="ba-output"></div>'
     ]);
-    // Optional supplied photo: reveal only after it loads; a missing asset leaves no broken-image gap.
+    // Bundled factory photo loads on entry; its external source is attribution only.
     var photo=$('ba-zero-carbon-image'), figure=photo.parentElement;
     photo.addEventListener('load',function(){if(photo.naturalWidth)figure.hidden=false;});
     photo.addEventListener('error',function(){figure.hidden=true;});
