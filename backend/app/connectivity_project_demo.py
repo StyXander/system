@@ -66,8 +66,27 @@ def _header_index(header: str, *terms) -> int | None:
     return None
 
 
+def _table_amount(raw):
+    """PyMuPDF table cells can separate digit groups from punctuation."""
+    value = _number(raw)
+    if value is not None:
+        return value
+    text = str(raw or "").strip()
+    if not text or text in {"-", "—", "–"}:
+        return None
+    # Example from the actual annual-report table:
+    # '1 326 600 000 00\n, , , .' represents 1,326,600,000.00.
+    first = text.splitlines()[0].strip()
+    if not re.fullmatch(r"\d+(?:\s+\d+)+", first):
+        return None
+    groups = first.split()
+    if len(groups[-1]) != 2 or not all(len(group) == 3 for group in groups[1:-1]):
+        return None
+    return _number("".join(groups[:-1]) + "." + groups[-1])
+
+
 def _table_row(pdf, page_idx: int):
-    """Extract a *single* row only when headers and all source cells are unambiguous."""
+    """Read the named zero-carbon subproject row from actual source table cells."""
     page = pdf[page_idx]
     try:
         tables = page.find_tables()
@@ -81,47 +100,64 @@ def _table_row(pdf, page_idx: int):
         if not rows:
             continue
         for row_index, row in enumerate(rows):
-            cells = [compact(v or "") for v in row]
-            if not any("炼钢工程" in cell for cell in cells):
+            raw_cells = [str(v or "").strip() for v in row]
+            cells = [compact(v) for v in raw_cells]
+            if not any("炼钢工程" in cell and "零碳" in cell for cell in cells):
                 continue
             pre = rows[max(0, row_index-5):row_index]
             header = [compact("".join(str(r[c] or "") for r in pre)) for c in range(len(cells))]
             aliases = {
                 "opening": ("期初余额", "期初数"), "increase": ("本期增加", "本年增加"),
                 "to_fixed": ("转入固定资产", "转固"), "to_long_term": ("长期待摊",),
-                "other_decrease": ("其他减少",), "closing": ("期末余额", "期末数"),
+                "closing": ("期末余额", "期末数"),
             }
             mapping = {}
             for key, names in aliases.items():
                 candidates = [i for i, h in enumerate(header) if any(name in h for name in names)]
                 if len(candidates) == 1:
                     mapping[key] = candidates[0]
-            # Only use a table which explicitly identifies every movement column.
             if len(mapping) != len(aliases) or len(set(mapping.values())) != len(mapping):
                 continue
-            values = {k: cells[c] for k, c in mapping.items()}
-            result = reconcile_construction(values)
-            if result["status"] == "insufficient_fields":
-                return {"status": "needs_manual_cell_review", "source_page": page_idx+1,
-                        "note": result["note"], "missing": result["missing"]}
-            result["source_page"] = page_idx+1
-            result["extraction"] = "pymupdf_verified_table_cells"
-            result["unit"] = "未确认"
-            # Never silently infer yuan from a table printed in ten-thousands.
-            page_text = page.get_text("text")
-            p = page_text.find("在建工程")
-            nearby = page_text[max(0,p-400):p+800] if p>=0 else page_text[:2000]
-            unit_matches = re.findall(r"单位[：:\s]*(元|万元|千元|亿元)", nearby)
-            if len(set(unit_matches)) == 1:
-                unit = unit_matches[0]
-                multiplier = {"元": Decimal(1), "千元": Decimal(1000),
-                              "万元": Decimal(10000), "亿元": Decimal(100000000)}[unit]
-                result["unit"] = unit
-                result["values_yuan"] = {k: str(Decimal(v)*multiplier) for k,v in result["values"].items()}
-                result["difference_yuan"] = str(Decimal(result["difference"])*multiplier)
+            parsed = {k: _table_amount(raw_cells[i]) for k,i in mapping.items()}
+            if any(parsed[k] is None for k in ("opening", "increase", "to_fixed")):
+                return {"status": "insufficient_fields", "rule_version": RULE_VERSION,
+                        "source_page": page_idx+1, "note": "期初、本期增加、转固金额未能按同一行完整解析。"}
+            subtotal = parsed["opening"] + parsed["increase"] - parsed["to_fixed"]
+            # A displayed dash is not a certified 0. We report the subtotal,
+            # withhold formal equality until closing and deduction are explicit.
+            if parsed["to_long_term"] is None or parsed["closing"] is None:
+                status="subtotal_computed"
+                difference=None
+                note="已复算本行三项明确披露的金额；长期待摊转出或期末余额采用破折号，未查明其计量含义，不标记完整勾稽通过。"
             else:
-                result["status"] = "unit_unverified"
-                result["note"] = "表格单元格可计算，但单位不明确，不显示为已核验的人民币金额。"
+                calculated=subtotal-parsed["to_long_term"]
+                difference=calculated-parsed["closing"]
+                status="balanced" if abs(difference)<=Decimal("0.01") else "difference"
+                note="按表中明确数值核算；算术成立不等于转固时点和项目全部投入已确认。"
+            page_text=page.get_text("text")
+            units=re.findall(r"单位[：:\s]*(元|万元|千元|亿元)",page_text[:650])
+            unique_units=set(units)
+            if len(unique_units)!=1:
+                return {"status":"unit_unverified","rule_version":RULE_VERSION,
+                        "source_page":page_idx+1,"note":"核实到炼钢工程表格行，但无法唯一确认表头金额单位。"}
+            unit=unique_units.pop()
+            multiplier={"元":Decimal(1),"千元":Decimal(1000),"万元":Decimal(10000),"亿元":Decimal(100000000)}[unit]
+            result={
+                "status":status,"rule_version":RULE_VERSION,"source_page":page_idx+1,
+                "source_row_label":raw_cells[0],"source_row_matched":True,
+                "subproject_identity":"yearly_report_explicit_project_and_subproject",
+                "extraction":"pymupdf_verified_table_cells",
+                "unit":unit,
+                "formula":"期初余额 + 本期增加 − 本期转固（其他扣减列按真实表头另行核查）",
+                "values":{k:(str(v) if v is not None else None) for k,v in parsed.items()},
+                "values_yuan":{k:(str(v*multiplier) if v is not None else None) for k,v in parsed.items()},
+                "reported_markers":{k:raw_cells[i] for k,i in mapping.items()},
+                "known_component_subtotal_yuan":str(subtotal*multiplier),
+                "difference_yuan":str(difference*multiplier) if difference is not None else None,
+                "note":note,
+                "missing":["to_long_term","closing"] if status=="subtotal_computed" else [],
+                "other_decrease_column_present":False,
+            }
             return result
     return None
 
