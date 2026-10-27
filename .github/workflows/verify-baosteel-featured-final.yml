@@ -1,0 +1,36 @@
+name: Verify featured Baosteel genuine model history
+on:
+  push:
+    branches: [audit/baosteel-history-endpoint-final-20261027]
+    paths: [.github/workflows/verify-baosteel-featured-final.yml]
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify curated real saved DeepSeek outputs without calling the model
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          url="https://audittrace-demo.onrender.com/api/connectivity/demo/baosteel/featured-runs"
+          with urllib.request.urlopen(url,timeout=80) as f:
+              d=json.load(f)
+          items=d.get("items") or []
+          assert items,"No saved real production model run accessible"
+          for x in items:
+              print("VERIFIED_HISTORY",json.dumps({
+                "task_id":x.get("task_id"),"status":x.get("status"),
+                "model_status":x.get("model_status"),"models":x.get("models"),
+                "actual_model_requests":x.get("actual_model_requests"),
+                "roles":{r["role"]:r["status"] for r in x.get("role_results",[])},
+                "paths":len(x.get("path_examples") or []),
+                "counter_explanations":len(x.get("counter_explanations") or []),
+                "financial_table_verified":x.get("verified_financial_table"),
+                "financial_stage":str(x.get("financial_stage") or "")[:140]
+              },ensure_ascii=False),flush=True)
+          assert any(x.get("task_id")=="DEMO-RUN-C5319BAE2FA7" and
+                     len(x.get("path_examples") or [])>0 and
+                     len(x.get("counter_explanations") or [])>0
+                     for x in items)
+          PY
