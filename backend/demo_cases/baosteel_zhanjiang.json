@@ -57,9 +57,8 @@
     }
   ],
   "featured_real_agent_task_ids": [
-    "DEMO-RUN-71628184F589",
-    "DEMO-RUN-C5319BAE2FA7",
-    "DEMO-RUN-C68F395377A0"
+    "DEMO-RUN-23C43A866290",
+    "DEMO-RUN-8CCA73144796"
   ],
-  "featured_history_policy": "仅白名单中使用真实供应商返回且公司报告对确认为600019-2025的已保存任务，动态读取真实状态并脱敏展示；不复制或改写失败记录。"
+  "featured_history_policy": "首页展示本次真实调查及其来源运行，按生产数据库回执读取；其他历史任务保留在运行记录中。复用、失败、未完成和新增调用分别展示，不复制或改写历史结果。"
 }
