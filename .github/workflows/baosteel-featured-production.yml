@@ -1,0 +1,23 @@
+name: Verify production featured DeepSeek Baosteel history
+on:
+  push:
+    branches: [audit/baosteel-final-real-model-20261027]
+    paths: [.github/workflows/baosteel-featured-production.yml]
+permissions: {contents: read}
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Real saved model history must be available without synthetic values
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          base="https://audittrace-demo.onrender.com"
+          with urllib.request.urlopen(base+"/api/health",timeout=45) as f:h=json.load(f)
+          with urllib.request.urlopen(base+"/api/connectivity/demo/baosteel/featured-runs",timeout=60) as f:d=json.load(f)
+          print("HOST_COMMIT",h.get("deployment",{}).get("commit"),flush=True)
+          print("ACTUAL_HISTORY",json.dumps(d,ensure_ascii=False)[:16000],flush=True)
+          assert h.get("deployment",{}).get("commit")=="bc7e4f49be0756592bb0630d00299abbb3734898"
+          assert any(x["task_id"]=="DEMO-RUN-C68F395377A0" and x["model_status"]=="five_agents_partial" and x["actual_model_requests"]==7 for x in d["items"])
+          PY
