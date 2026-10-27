@@ -296,7 +296,11 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         from .connectivity_project_export import FORMATS, export_report
         if format_name not in FORMATS:
             raise HTTPException(404, "支持的专项导出格式：docx、json、csv、pdf")
-        content = export_report(format_name, baosteel_dossier(), baosteel_featured_real_agent_history())
+        dossier = baosteel_dossier()
+        history = baosteel_featured_real_agent_history()
+        # MuPDF rendering shares the existing source-access lock with PDF readers.
+        with PDF_ACCESS_LOCK:
+            content = export_report(format_name, dossier, history)
         filename = "宝钢专项核查报告." + format_name
         return Response(content=content, media_type=FORMATS[format_name], headers={
             "Content-Disposition": "attachment; filename=\"baosteel-special-report." + format_name + "\"; filename*=UTF-8''" + quote(filename),
