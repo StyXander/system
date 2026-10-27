@@ -175,6 +175,20 @@ def test_missing_key_never_creates_fake_role_completion(reports,monkeypatch):
     assert all(t['status']=='skipped' for t in run.matter_tasks)
 
 
+def test_planning_groups_uninvestigated_candidates_instead_of_inventing_findings(reports):
+    from backend.app.connectivity_assurance_planning import build_assurance_planning
+    root,rs=reports;req=request(rs);req.mode='calculation_only'
+    run=run_matter_pipeline(root,req)
+    planning=build_assurance_planning(run)
+    assert len(run.matters)>1
+    assert len(planning['risk_findings'])==1
+    assert planning['risk_findings'][0]['matter_ids']==[]
+    assert '初筛候选尚未深查' in planning['risk_findings'][0]['reason']
+    investigated=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    planning=build_assurance_planning(investigated)
+    assert {mid for row in planning['risk_findings'] for mid in row['matter_ids']}=={a.matter_id for a in investigated.matter_assessments}
+
+
 @pytest.mark.parametrize('bad_kind',['foreign_ref','wrong_revision','wrong_matter','invented_period'])
 def test_role_proposals_reject_identity_and_evidence_errors(reports,bad_kind):
     root,rs=reports;run=run_matter_pipeline(root,RunRequest(report_set_id=rs.report_set_id,mode='calculation_only'))

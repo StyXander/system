@@ -21,6 +21,10 @@ def build_assurance_planning(run):
         assessment = assessments.get(matter.matter_id)
         paths = [p for p in run.matter_paths if p.matter_id == matter.matter_id]
         explanations = [h for h in run.matter_explanations if h.matter_id == matter.matter_id]
+        # 初筛候选不是风险发现，未深查范围集中说明，避免淹没实际调查结果。
+        investigated=assessment or paths or explanations or any(t.get('matter_id')==matter.matter_id for t in run.matter_tasks)
+        if not investigated:
+            continue
         reasons = list(assessment.unresolved) if assessment else ['综合复核未完成，当前只有待调查线索']
         reasons += [f'{p.financial_item}：财务传导仍有待证环节' for p in paths if p.support != 'supported']
         reasons += [h.explanation for h in explanations if h.status in {'challenged', 'unresolved'}]
@@ -55,7 +59,13 @@ def build_assurance_planning(run):
                 if h.discriminating_evidence and h.discriminating_evidence not in row['distinguishing_explanations']:
                     row['distinguishing_explanations'].append(h.discriminating_evidence)
             if {'high':0,'medium':1,'low':2}[action.priority] < {'high':0,'medium':1,'low':2}[row['priority']]:row['priority']=action.priority
-    for gap in run.report_set.coverage_gaps if run.report_set else []:
+    pending=[m for m in run.matters if not any(t.get('matter_id')==m.matter_id for t in run.matter_tasks)
+             and m.matter_id not in assessments and not any(p.matter_id==m.matter_id for p in run.matter_paths)
+             and not any(h.matter_id==m.matter_id for h in run.matter_explanations)]
+    gaps=list(run.report_set.coverage_gaps) if run.report_set else []
+    if pending:
+        gaps.append(f'{len(pending)}项初筛候选尚未深查，保留在事项档案；未逐项列为风险发现，也不代表没有风险。')
+    for gap in gaps:
         entry_id=identity('COVERAGE', gap)
         findings.append(dict(entry_id=entry_id,matter_ids=[],matter='本次资料覆盖',reason=gap,
             current_assessment='未取得的资料不等于企业未披露', evidence=[],counter_evidence=[],alternative_explanations=[],
