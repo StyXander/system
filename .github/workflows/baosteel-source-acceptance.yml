@@ -1,4 +1,5 @@
 name: Baosteel source-backed acceptance
+# Uses live official PDF bytes; results are not seeded in the case configuration.
 on:
   push:
     branches: [feature/baosteel-finals-20261027]
