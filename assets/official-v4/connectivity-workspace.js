@@ -167,7 +167,7 @@
   main.insertAdjacentHTML('beforeend', `<section class="aw-history" data-workspace-view="history" hidden>
     <p class="cn-eyebrow">RECENT RECORDS / 历史记录</p>
     <h1>历史记录</h1>
-    <p class="cn-help">默认列出本浏览器最近 5 条任务，按完成、失败、过期分开标注。任务内容从服务器重新读取，原有权限仍然适用；这里不借用他人会话的数据。</p>
+    <p class="cn-help">先显示本浏览器历史索引，点开后不刷新页面；服务端按需加载轻量摘要和所选事项证据。正在执行的任务不受影响。</p>
     <ol id="cn-history-list" class="cn-history-list"></ol>
     <details class="aw-history-advanced"><summary>按任务编号打开（高级入口）</summary>
       <form id="cn-open-task"><label>任务编号<input id="cn-task-id" required pattern="(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}" placeholder="CONNJOB-… 或 DEMO-RUN-…"></label><button type="submit">读取记录</button></form>
@@ -235,7 +235,7 @@
     list.innerHTML = rows.length ? rows.slice(0,5).map(historyItem).join('') : '<li class="cn-empty">尚无本浏览器访问记录。开始一次核验，或用任务编号读取。</li>';
     $('cn-history-more').innerHTML = rows.length>5 ? `<details class="aw-history-all"><summary>查看其余 ${rows.length-5} 条</summary><ol class="cn-history-list">${rows.slice(5).map(historyItem).join('')}</ol></details>` : '';
   }
-  function openTask(id) { const url = new URL(location.href); url.searchParams.set('connectivity_task', id); url.hash = 'connectivity-root'; location.assign(url); }
+  function openTask(id) { const url = new URL(location.href); url.searchParams.set('connectivity_task', id); url.hash = 'connectivity-root'; history.pushState({taskId:id}, '', url); setRoute('workspace'); showView('history'); document.dispatchEvent(new CustomEvent('audittrace:connectivity-open-task',{detail:{task_id:id}})); }
 
   /* 深链失败必须说清是哪一种：过期、无权限、还是服务不可用。 */
   function renderTaskError(error) {
