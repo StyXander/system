@@ -136,6 +136,9 @@ try:
        "bootstrap_http":bootstrap["code"],"cookie_names":[c.name for c in jar]}
     print("ENV",json.dumps(result["environment"],ensure_ascii=False),flush=True)
     dump()
+    required=os.environ.get("ACCEPTANCE_REQUIRED_COMMIT","").strip()
+    if required and result["environment"]["health_commit"]!=required:
+        raise RuntimeError("DEPLOYMENT_NOT_CURRENT: production commit is not the verified new main; refuse expensive model calls")
     if health["code"]!=200 or bootstrap["code"]!=200 or not any(c.name=="audittrace_connectivity_session" for c in jar):
         raise RuntimeError("Bootstrap/service or session cookie is unavailable")
     first,seed=run_and_poll({"pair_id":PAIR,"analysis_scope":"matter_connectivity",
