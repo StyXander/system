@@ -20,6 +20,7 @@ def main() -> None:
         p.startswith("backend/app/") or p.startswith("assets/official-v4/")
         or (p.startswith("backend/") and "/" not in p[len("backend/"):])
         or (p.startswith("backend/release_records/") and Path(p).suffix in {".json", ".jsonl"})
+        or (p.startswith("backend/demo_cases/") and Path(p).suffix == ".json")
         or (p.startswith("outputs/evaluation_") and Path(p).suffix in {".json", ".csv"})
         or p in {"index.html", "PROJECT_STATUS.json", "PROJECT_AUTHORIZATION.json", "backend/__init__.py"}
     )}
@@ -42,6 +43,15 @@ def main() -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, destination)
         copied[relative] = hashlib.sha256(content).hexdigest()
+    required_demo = {
+        "backend/demo_cases/baosteel_zhanjiang.json",
+        "backend/app/connectivity_project_demo.py",
+        "assets/official-v4/baosteel-demo.js",
+        "assets/official-v4/baosteel-demo.css",
+    }
+    missing_demo = required_demo - set(copied)
+    if missing_demo:
+        raise ValueError("宝钢专项运行文件没有完整进入部署包：" + ", ".join(sorted(missing_demo)))
     for name in ["Dockerfile", "app.py", ".dockerignore", ".gitattributes"]:
         shutil.copy2(Path(__file__).parent / name, TARGET / name)
         copied[name] = hashlib.sha256((TARGET / name).read_bytes()).hexdigest()
