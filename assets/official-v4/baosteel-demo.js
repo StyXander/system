@@ -46,9 +46,17 @@
       var claims=(run.next_actions||[]).map(function(a){
         return '<li><strong>'+esc(a.question)+'</strong><p>'+esc(a.requested_material)+'</p></li>';
       }).join('');
+      var table=run.verified_table_detail||null;
+      var cells=table?.values_yuan||{};
+      var sourceRows=table?'<div class="ba-calculation"><h4>独立核验的原表金额（不是模型编造）</h4>'+
+        '<p>年报 PDF '+esc(table.source_page)+' 页 · 单位：元</p>'+
+        '<div class="ba-numbers">'+[['期初余额',cells.opening],['本期增加',cells.increase],['本期转固',cells.to_fixed]]
+          .map(function(c){return '<div><span>'+esc(c[0])+'</span><strong>'+esc(c[1]||'尚未取得')+'</strong></div>';}).join('')+'</div>'+
+        '<p>上述三项试算结余：'+esc(table.known_component_subtotal_yuan||'未计算')+' 元。'
+        +esc(table.note||'其他金额与口径待核')+'</p></div>':'';
       var status=run.model_status==='five_agents_completed'?'真实五 Agent 完成':'真实模型已运行 · '+esc(run.model_status||run.status);
       return '<details class="ba-real-run" '+(n===0?'open':'')+'><summary><strong>'+esc(status)+'</strong><span>'+esc(run.models?.join(', ')||'模型未记录')+' · '+esc(run.actual_model_requests)+' 次真实请求 · '+total+'/5 角色完成</span><small>'+esc(run.task_id)+'</small></summary>'+
-       '<p>来源：生产数据库保存的真实模型调用回执。财务结构化表格已传入模型：<strong>'+esc(run.verified_financial_table?'是':'否')+'</strong></p>'+
+       '<p>来源：生产数据库保存的真实模型调用回执。财务结构化表格已传入模型：<strong>'+esc(run.verified_financial_table?'是':'否')+'</strong></p>'+sourceRows+
        '<div class="ba-agent-list">'+(run.role_results||[]).map(roleBadge).join('')+'</div>'+
        '<h4>模型实际综合意见</h4><p>'+esc(run.assessment_summary||'没有有效综合意见')+'</p>'+
        '<h4>财务关联阶段</h4><p>'+esc(run.financial_stage||'未形成可用财务阶段')+'</p>'+
