@@ -168,6 +168,42 @@ def test_schema_repair_is_bounded_and_preserves_failure_receipt(reports, persist
     assert next(t for t in run.matter_tasks if t['role']=='A3')['status']==('failed' if persistent_error else 'completed')
 
 
+@pytest.mark.parametrize('ignores_finalization', [False,True])
+def test_last_tool_feedback_gets_one_bounded_final_synthesis(reports, ignores_finalization):
+    root,rs=reports;calls=[]
+    def caller(role,payload):
+        output,record=fake_provider(role,payload)
+        if role=='A1':
+            calls.append(payload.copy())
+            if not payload.get('finalize_only') or ignores_finalization:
+                from backend.app.connectivity_matter_schemas import MatterToolCall
+                output.tool_requests=[MatterToolCall(tool_name='lookup_ontology_rule',arguments={'keyword':'减值'},reason='核查专业规则')]
+        return output,record
+    run=run_matter_pipeline(root,request(rs),caller=caller)
+    assert len(calls)==3 and calls[-1]['finalize_only']
+    task=next(t for t in run.matter_tasks if t['role']=='A1')
+    assert task['status']==('partial' if ignores_finalization else 'completed')
+    assert len([c for c in run.provider_calls if c['role']=='A1'])==3
+
+
+def test_unsupported_commitment_year_is_rejected_then_corrected(reports):
+    from backend.app.connectivity_matter_schemas import MatterCommitment
+    root,rs=reports;attempts=[]
+    def caller(role,payload):
+        output,record=fake_provider(role,payload)
+        if role=='A3':
+            attempts.append(payload.copy())
+            if len(attempts)==1:
+                output.commitments=[MatterCommitment(commitment_id='invalid-year',matter_id=payload['matter_id'],
+                    label='没有原文支持的年份',proposed_period='2025',target_year='2099',evidence_ids=[payload['evidence'][0]['evidence_id']])]
+        return output,record
+    run=run_matter_pipeline(root,request(rs),caller=caller)
+    assert len(attempts)==2 and attempts[-1]['evidence_validation_feedback']
+    assert not any(c.target_year=='2099' for c in run.matter_commitments)
+    assert any('承诺年份没有原文支持' in r.get('reason','') for r in run.matter_rejections)
+    assert next(t for t in run.matter_tasks if t['role']=='A3')['status']=='completed'
+
+
 def test_missing_key_never_creates_fake_role_completion(reports,monkeypatch):
     root,rs=reports;monkeypatch.delenv('DEEPSEEK_API_KEY',raising=False)
     run=run_matter_pipeline(root,request(rs))

@@ -23,7 +23,7 @@ from urllib.request import Request, urlopen
 from .agents import _strict_tool_base_url, _provider_timeout_seconds
 from .connectivity_matter_schemas import AgentMatterResult, ROLE_NAMES
 
-PROMPT_VERSION="matter_agents_20261027.2"
+PROMPT_VERSION="matter_agents_20261027.3"
 ROLE_PROMPTS={
     "A1":"从已取得证据识别具体事项，核对主体、地点、项目名和别名。不同工厂同名不得自动合并。通过matters提交有身份依据的归并；未能确认者保持独立候选。",
     "A2":"调查事项到经济机制、经营变量、会计估计和财务项目的逐段路径。查附注和会计假设。一般政策不证明某项目处理。paths每段写证据和缺口；不要用相等金额证明因果。",
@@ -60,6 +60,7 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "只引用已提供或工具取得的evidence_id，不能编造来源、页码、金额、事件或会计结论。"
         "evidence_ids必须逐字复制evidence中的evidence_id；document_id、事项名、页码和自行拼接编号不能作为证据ID。"
         "事件label用简短描述，不复制长段原文；调用函数必须返回合法JSON工具参数，不能只在content中作答。"
+        "承诺baseline_year、target_year和事件occurred_period只在所引证据quote中出现时填写，否则留空；不得拿报告年份代填。"
         "准则和行业知识只定义候选调查方向，不证明企业事实。财务未单列不等于未入账。"
         "无金额事项仍需调查。公开披露关系不代表企业整体真实，不输出审计或鉴证意见。"
         "不同计量基础不能相加。一般主题相似只形成线索。路径每段的report_statement需要原文支持；"
@@ -76,10 +77,14 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "尚缺证据须在结论和stop_reason中明确说明，不能为完成任务猜填。"
         "没有证据的年份和金额留空；不要添加自评分概率。next_actions要写问题、资料和用途。"+ROLE_PROMPTS[role])
     prompt+=str(payload.get("role_extension", ""))
+    output_schema=AgentMatterResult.model_json_schema()
+    if payload.get('finalize_only'):
+        prompt+='本次为最终综合调用，只提交已有证据支持的最终建议，tool_requests必须为空。缺口在结论中保留，不再申请检索。'
+        output_schema['properties']['tool_requests']['maxItems']=0
     body={"model":model,"temperature":.1,"max_tokens":8000,"stream":False,"thinking":{"type":"disabled"},
         "messages":[{"role":"system","content":prompt},{"role":"user","content":json.dumps(payload,ensure_ascii=False)}],
         "tools":[{"type":"function","function":{"name":"submit_matter_investigation","description":"提交有引用的事项建议或下一工具申请",
-            "parameters":AgentMatterResult.model_json_schema()}}],
+            "parameters":output_schema}}],
         "tool_choice":{"type":"function","function":{"name":"submit_matter_investigation"}}}
     data=json.dumps(body,ensure_ascii=False).encode();started=time.perf_counter()
     record.update(model=model,requested_model=model,request_attempted=True,input_sha256=hashlib.sha256(data).hexdigest(),

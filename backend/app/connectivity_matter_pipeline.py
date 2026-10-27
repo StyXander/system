@@ -244,18 +244,45 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     for row in (receipt.get("result") or {}).get("occurrences",[]):occurrences[row["occurrence_id"]]=row
                 payload["occurrences"]=list(occurrences.values())
                 task.update(status="partial",stop_reason="达到单角色调查轮次上限，尚需综合工具反馈")
+            if result and result.tool_requests and not cancelled():
+                # 最后一轮取证也需要交回模型综合，不能取完证据就结束角色。
+                # 只追加一次无工具收尾，仍走同一20次预算及复核名额保护。
+                payload['finalize_only']=True
+                payload['investigation_round']={'current':budget.max_role_rounds+1,
+                    'maximum':budget.max_role_rounds+1,'remaining_tool_rounds':0}
+                result=bounded_call(role,payload,task_id)
+                task['rounds']=budget.max_role_rounds+1
+                if result.tool_requests:
+                    task.update(status='partial',stop_reason='最终综合仍申请工具，未执行额外查询；缺口保留')
+                else:
+                    task.update(status='completed',stop_reason=result.stop_reason or '已综合最后一轮工具回执')
             if result:
-                with lock:
-                    if role=="A1":
-                        if result.input_revision!=run.result_revision or result.matter_id:raise ValueError("建档结果输入版本或全局身份错误")
-                        apply_identification(run,result.matters)
-                    elif matter:
-                        if request.mode=="three_agents" and role=="A2":
-                            for component in ("A2","A3","A4"):integrate_result(run,matter,component,result,payload["input_revision"])
-                        elif request.mode=="single_model":
-                            for component in ("A2","A3","A4","A5"):integrate_result(run,matter,component,result,payload["input_revision"])
-                        else:integrate_result(run,matter,role,result,payload["input_revision"])
-                    task["result"]=result.model_dump(mode="json")
+                for validation_attempt in range(2):
+                    try:
+                        with lock:
+                            if role=="A1":
+                                if result.input_revision!=run.result_revision or result.matter_id:raise ValueError("建档结果输入版本或全局身份错误")
+                                apply_identification(run,result.matters)
+                            elif matter:
+                                if request.mode=="three_agents" and role=="A2":
+                                    for component in ("A2","A3","A4"):integrate_result(run,matter,component,result,payload["input_revision"])
+                                elif request.mode=="single_model":
+                                    for component in ("A2","A3","A4","A5"):integrate_result(run,matter,component,result,payload["input_revision"])
+                                else:integrate_result(run,matter,role,result,payload["input_revision"])
+                            task["result"]=result.model_dump(mode="json")
+                        break
+                    except ValueError as error:
+                        if validation_attempt or role=='A1' or request.mode!='five_agents' or cancelled():raise
+                        with lock:
+                            run.matter_rejections.append({'role':role,'matter_id':matter.matter_id,
+                                'reason':str(error)[:200],'recovery':'one_corrective_generation'})
+                            save()
+                        payload['finalize_only']=True
+                        payload['evidence_validation_feedback']={'reason':str(error)[:200],
+                            'instruction':'上次建议未通过证据校验且未写入档案。仅用已有证据重新生成，年份不在引文中则留空，未知引用不得替换为猜测；不能解决的问题保留未决。'}
+                        result=bounded_call(role,payload,task_id)
+                        task.update(status='partial' if result.tool_requests else 'completed',
+                            stop_reason='最终修正仍申请工具，缺口保留' if result.tool_requests else result.stop_reason or '已按证据校验反馈重新生成')
         except InterruptedError:
             task.update(status="cancelled",stop_reason="用户取消，已取得回执保留")
         except (ValueError,MatterCallFailure) as error:
