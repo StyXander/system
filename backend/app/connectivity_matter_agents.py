@@ -77,6 +77,22 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "investigation_round.remaining_tool_rounds为0时，综合已有工具回执提交最终建议，tool_requests留空；"
         "尚缺证据须在结论和stop_reason中明确说明，不能为完成任务猜填。"
         "没有证据的年份和金额留空；不要添加自评分概率。next_actions要写问题、资料和用途。"+ROLE_PROMPTS[role])
+    if payload.get('verified_project_table'):
+        if role=='A1':
+            prompt+=('专项任务已限定为原文确认的炼钢子工程。优先逐字保留所选候选原文名称、证据ID、版本号；'
+                     '只复核此事项的主体与身份。若跨报告别名不能被文字直接支持，保留候选不做归并。'
+                     '不要为了形成项目身份而合并其他行或把不同项目名称视作同义。')
+        elif role=='A2':
+            prompt+=('verified_project_table 是服务端在通过SHA256验证的登记原件第154页经表格单元格提取的确定性事实，'
+                     '金额单位、项目完整行名、原文页码和校验来源均在其中。请把已知期初/本期增加/转固金额写进财务影响路径，'
+                     '使用page_evidence_ids提供原页引用，并注明金额来自结构化单元格；'
+                     '破折号不等于已确认零，禁止声称完整金额勾稽通过或投资金额等于ESG汇总投入。')
+        elif role=='A3':
+            prompt+='项目财务发生额可使用已验证的表格数据，但只就实际披露确认进度，建设计划年份不得当作验收日期。'
+        elif role=='A4':
+            prompt+='请核查已验证炼钢子工程财务明细与ESG项目的范围差别；同一表格里的其他项目不可自动归并。'
+        elif role=='A5':
+            prompt+='须综合已验证表格数据：本期投入与转固已有公开证据，内部验收/折旧起点仍需补证；不要再把已取得的年报金额列为缺失资料。'
     prompt+=str(payload.get("role_extension", ""))
     combined=payload.get('output_scope')=='combined_baseline'
     output_schema=(AgentMatterResult if combined else ROLE_RESULT_SCHEMAS[role]).model_json_schema()

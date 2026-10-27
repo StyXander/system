@@ -168,6 +168,31 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     if cancelled():raise InterruptedError("用户取消事项调查")
                     time.sleep(min(.2,max(0,deadline-time.monotonic())))
 
+    # Independently verify the *same* source row already used by the Baosteel case.
+    # Model receives structured data plus source hashes, never a prewritten conclusion.
+    verified_project_table=None
+    if (request.selected_matter_ids and request.mode=='five_agents'
+            and report_set.company_id=='600019'
+            and {d.document_id for d in documents}>={'BAOSTEEL_AR_2025','BAOSTEEL_ESG_2025'}):
+        chosen=[m for m in run.matters if m.matter_id in request.selected_matter_ids]
+        proof={e.evidence_id:e for e in run.matter_evidence}
+        if any(proof.get(eid) and proof[eid].document_id=='BAOSTEEL_AR_2025'
+               and proof[eid].pdf_page==154 for m in chosen for eid in m.evidence_ids):
+            try:
+                from .connectivity_project_demo import _extract_reconciliation
+                annual=next(d for d in documents if d.document_id=='BAOSTEEL_AR_2025')
+                table=_extract_reconciliation(root,annual,{154})
+                if table.get('source_row_matched') and table.get('status') in ('subtotal_computed','balanced','difference'):
+                    anchored=[e.evidence_id for e in run.matter_evidence
+                              if e.document_id=='BAOSTEEL_AR_2025' and e.pdf_page==154 and e.source_verified and not e.invalid_reason]
+                    verified_project_table={**table,'page_evidence_ids':anchored,
+                       'provenance_note':'数值来自同一登记原件的PyMuPDF表格单元格，不能冒充原文片段的逐字引文；破折号不是已确认零。',
+                       'interpretation_boundary':'年报本行属于零碳工厂的炼钢子工程，不能据此确认与ESG总体投资同一统计范围。'}
+                    run.versions['verified_project_table']=deepcopy(verified_project_table)
+                    save()
+            except (OSError,ValueError,RuntimeError,ImportError) as exc:
+                run.versions['verified_project_table_error']=type(exc).__name__
+                save()
     def payload_for(role,matter=None,extension=""):
         # 每波读同一快照；worker只提交建议，不直接覆盖另一角色的结果。
         with lock:
@@ -203,6 +228,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 "matter":matter.model_dump() if matter else None,
                 "selection_instruction":"只围绕所选事项建档与补查，其他披露保留待调查；不要扩展为全部事项调查。" if request.selected_matter_ids else "",
                 "evidence":[b.model_dump() for b in context_evidence],
+                "verified_project_table":deepcopy(verified_project_table) if verified_project_table and (matter is None or matter.matter_id in request.selected_matter_ids or set(matter.lineage)&set(request.selected_matter_ids)) else None,
                 "upstream_results":list({t["role"]:{"role":t["role"],"status":t["status"],"result":t["result"]} for t in run.matter_tasks if t.get("matter_id")==getattr(matter,"matter_id",None) and t.get("result")}.values()),
                 "paths":[p.model_dump() for p in run.matter_paths if matter and p.matter_id==matter.matter_id],
                 "occurrences":[o.model_dump() for o in run.occurrences if o.document_id in {b.document_id for b in context_evidence} and o.pdf_page in {b.pdf_page for b in context_evidence if b.document_id==o.document_id}],
@@ -295,8 +321,27 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                                 selected_refs={e for m in run.matters if m.matter_id in request.selected_matter_ids or set(m.lineage)&set(request.selected_matter_ids) for e in m.evidence_ids}
                                 if any(not selected_refs<=set(p.evidence_ids) for p in result.matters):
                                     raise MatterValidationError('EVIDENCE_VALIDATION_FAILED','matters.0.evidence_ids','建档必须保留所选事项的原始证据，不能转查其他事项')
-                                if not apply_identification(run,result.matters):
-                                    raise MatterValidationError('EVIDENCE_VALIDATION_FAILED','matters.0.identity_basis','所选事项身份建议未通过原文与归并校验')
+                                # A1 may preserve an already-verified *single* source candidate,
+                                # instead of inventing aliases to force an unsupported merge.
+                                # Unknown IDs or dropped source evidence still fail closed.
+                                proposals=result.matters
+                                verified={e.evidence_id:e for e in run.matter_evidence if e.source_verified and not e.invalid_reason}
+                                valid_source=bool(proposals) and all(
+                                    set(p.evidence_ids)<=verified.keys()
+                                    and len({verified[e].company_id for e in p.evidence_ids})==1
+                                    and selected_refs<=set(p.evidence_ids)
+                                    for p in proposals)
+                                if not valid_source:
+                                    raise MatterValidationError('EVIDENCE_VALIDATION_FAILED','matters.0.evidence_ids','建档引用不完整或含未核实来源')
+                                if not apply_identification(run,proposals):
+                                    # A1 is completed only as an honest identity *review*.
+                                    # No identity_status upgrade, no merger, no fabricated mapping.
+                                    task['identity_outcome']='candidate_retained_identity_unconfirmed'
+                                    task['stop_reason']='来源已核验；项目别名归并证据不足，保留原候选，未认定跨报告同一性'
+                                    run.versions['identity_review']='source_verified_candidate_retained'
+                                    run.matter_rejections.append({'role':'A1','code':'IDENTITY_MERGE_UNPROVEN',
+                                        'matter_id':request.selected_matter_ids[0],
+                                        'reason':'提议的归并缺少文本锚点，未合并候选；仅完成来源与身份候选复核'})
                             elif matter:
                                 if role=='A5' and result.assessment:
                                     from .connectivity_matter_schemas import NextAction

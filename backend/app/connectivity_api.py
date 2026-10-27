@@ -211,6 +211,66 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             log.warning("baosteel_dossier unavailable code=%s",type(error).__name__)
             raise HTTPException(503, "官方资料核验或专项证据索引尚未完成，请检查原件可用性及服务日志。") from error
 
+    @router.get("/demo/baosteel/featured-runs")
+    def baosteel_featured_real_agent_history():
+        """Explicitly curated public-report-only, non-sensitive real supplier receipts.
+
+        Unlike session-owned history this endpoint allows presentation on another
+        browser, but NEVER exposes prompts, raw texts, private notes, secrets or
+        unapproved run ids. Its source of truth is persisted production task data.
+        """
+        from .connectivity_project_demo import load_demo_config
+        config=load_demo_config(root)
+        safe=[]
+        for task_id in config.get("featured_real_agent_task_ids",[])[:5]:
+            if not isinstance(task_id,str) or not task_id.startswith("DEMO-RUN-"):
+                continue
+            try:
+                item=task(task_id)
+                body=item.get("run_body") or {}
+                snapshot=store(task_id).snapshot(task_id,item=item) or {}
+                result=snapshot.get("result") or {}
+                documents=result.get("documents") or []
+                if (body.get("mode")!="five_agents"
+                    or body.get("analysis_scope")!="matter_connectivity"
+                    or (body.get("pair_id")!="600019-2025" and
+                        {d.get("document_id") for d in documents} != {"BAOSTEEL_AR_2025","BAOSTEEL_ESG_2025"})):
+                    continue
+                if result.get("dataset_role")=="synthetic" or (result.get("versions") or {}).get("provider_origin")=="injected_test_caller":
+                    continue
+                calls=result.get("provider_calls") or []
+                if not any(c.get("request_attempted") and c.get("performed") and c.get("model") for c in calls):
+                    continue
+                role_rows=[]
+                for role in ("A1","A2","A3","A4","A5"):
+                    tasks=[t for t in (result.get("matter_tasks") or []) if t.get("role")==role]
+                    last=tasks[-1] if tasks else {}
+                    role_rows.append({"role":role,"status":last.get("status","not_run"),
+                        "failure_code":last.get("failure_code"),"count":len(tasks),
+                        "stop_reason":str(last.get("stop_reason") or "")[:190],
+                        "identity_outcome":last.get("identity_outcome")})
+                assessments=result.get("matter_assessments") or []
+                a=assessments[0] if assessments else {}
+                safe.append({"task_id":task_id,"status":snapshot.get("status"),
+                    "model_status":result.get("model_status"),"created_at":item.get("created_at"),
+                    "models":sorted(set(c["model"] for c in calls if c.get("performed") and c.get("model"))),
+                    "actual_model_requests":sum(bool(c.get("request_attempted")) for c in calls),
+                    "role_results":role_rows,
+                    "verified_financial_table":bool((result.get("versions") or {}).get("verified_project_table")),
+                    "financial_paths":len(result.get("matter_paths") or []),
+                    "financial_occurrences":len(result.get("occurrences") or []),
+                    "assessment_summary":str(a.get("summary") or "")[:520],
+                    "financial_stage":str(a.get("financial_stage") or "")[:350],
+                    "next_actions":[{"question":str(n.get("question") or "")[:220],
+                        "requested_material":str(n.get("requested_material") or "")[:220]}
+                        for n in (a.get("next_actions") or [])[:5]]})
+            except Exception as exc:
+                # A disappeared production snapshot or disconnected local CI database
+                # must not take down the independent verified-PDF investigation screen.
+                log.warning("featured_baosteel_run unavailable id=%s kind=%s",task_id,type(exc).__name__)
+        return {"items":safe,"source":"live_saved_provider_receipts",
+                "notice":"真实已保存任务，仅展示白名单内公开报告的脱敏模型回执；失败和降级原样保留。"}
+
     @router.get("/demo/baosteel/runs")
     def baosteel_saved_runs(request: Request):
         """Only list the current user's own real persisted tasks; no synthetic snapshots."""
