@@ -27,7 +27,7 @@ PROMPT_VERSION="matter_agents_20261027.role-contracts.1"
 ROLE_PROMPTS={
     "A1":"从已取得证据识别具体事项，核对主体、地点、项目名和别名。不同工厂同名不得自动合并。通过matters提交有身份依据的归并；未能确认者保持独立候选。",
     "A2":"调查事项到经济机制、经营变量、会计估计和财务项目的逐段路径。查附注和会计假设。一般政策不证明某项目处理。paths每段写证据和缺口；不要用相等金额证明因果。",
-    "A3":"分别追踪承诺进展和财务后果，提交events、commitments和跨期relations。原始与修订目标并存。报告期间不等于事件期间；未知发生时间留空。未到期不判未完成；投资不证明减排目标完成。",
+    "A3":"只调查本次所选炼钢子工程的可核实时间线；仅提交1至3条最有用的events及真正有证据的commitments/relations。report_period是报告所属年度，不是occurred_period。发生年月必须逐字出现于此条event.evidence_ids所对应quote，否则occurred_period必须为空字符串。目标或基准年份也必须在各自commitment.evidence_ids的quote里逐字出现，否则留空。不要从报告标题、文件名、其他页或推测补年份；未知年份完全合格。未到期不判失败，投资不等于减排绩效。",
     "A4":"检查A2、A3的具体主张和分歧，主动找反证。比较汇总、边界、时间、确认条件和检索不足等有区分度的解释，输出explanations。无据的合理解释也要质疑，不预设企业有错或无错。",
     "A5":"综合上游结果、反证和工具回执，提交assessment。分别写关系支持、金额可比、承诺进展、财务阶段、假设、分歧和具体next_actions。必要时将定向补查退给A2或A3。不能把全未决写成无问题。",
 }
@@ -91,6 +91,7 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
             prompt+=('项目财务发生额可使用已验证的表格数据；仅就实际披露确认进度。'
                      '每个events.occurred_period必须由此事件自身evidence_ids引用的quote逐字支持；'
                      '如果没有直接事件年月，必须填空字符串，即使报告年份或其他页出现年份；'
+                     '宁可提交没有occurred_period的有效事件，也不要提交没有逐字引文的年份；只输出本事项最有价值的1至3条事件。'
                      '建设计划年份绝不等于投运或验收年份。')
         elif role=='A4':
             prompt+='请核查已验证炼钢子工程财务明细与ESG项目的范围差别；同一表格里的其他项目不可自动归并。'
