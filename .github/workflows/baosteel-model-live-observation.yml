@@ -1,0 +1,30 @@
+name: Check live post-fix Agent financial reasoning
+on:
+  push:
+    branches: [audit/baosteel-final-real-model-20261027]
+    paths: [.github/workflows/baosteel-model-live-observation.yml]
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read-only live case inspection with exact case scope
+        run: |
+          python - <<'PY'
+          import json,urllib.request
+          u='https://audittrace-demo.onrender.com/api/connectivity/runs/DEMO-RUN-C5319BAE2FA7'
+          with urllib.request.urlopen(u,timeout=80) as r:t=json.load(r)
+          d=t.get('result') or {}
+          values=['240078904','847336295','1087415200']
+          paths=d.get('matter_paths') or []
+          log=json.dumps(paths,ensure_ascii=False)
+          print('LIVE_STATUS',json.dumps({'task':t.get('status'),'model':d.get('model_status'),
+            'agent_roles':[{'role':x.get('role'),'status':x.get('status'),
+            'failure':x.get('failure_code'),'identity':x.get('identity_outcome')} for x in d.get('matter_tasks') or []],
+            'provider_requests':sum(bool(x.get('request_attempted')) for x in d.get('provider_calls') or []),
+            'real_model_names':list(sorted({x.get('model') for x in d.get('provider_calls') or [] if x.get('model')})),
+            'path_count':len(paths),'financial_amounts_cited_in_paths':{v:v in log for v in values},
+            'assessments':[str(a.get('summary'))[:400] for a in (d.get('matter_assessments') or [])[:1]]
+          },ensure_ascii=False),flush=True)
+          PY
