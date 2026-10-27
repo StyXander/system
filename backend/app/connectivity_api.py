@@ -264,7 +264,9 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     "next_actions":[{"question":str(n.get("question") or "")[:220],
                         "requested_material":str(n.get("requested_material") or "")[:220]}
                         for n in (a.get("next_actions") or [])[:5]]})
-            except (HTTPException,OSError,ValueError,TypeError,KeyError) as exc:
+            except Exception as exc:
+                # A disappeared production snapshot or disconnected local CI database
+                # must not take down the independent verified-PDF investigation screen.
                 log.warning("featured_baosteel_run unavailable id=%s kind=%s",task_id,type(exc).__name__)
         return {"items":safe,"source":"live_saved_provider_receipts",
                 "notice":"真实已保存任务，仅展示白名单内公开报告的脱敏模型回执；失败和降级原样保留。"}
