@@ -1,0 +1,123 @@
+{
+  "origin": "synthetic_engineering_only",
+  "browser_verified": false,
+  "real_model_calls": 0,
+  "task_id": "CONNJOB-AA79476A456B",
+  "status": "completed",
+  "model_status": "five_agents_completed",
+  "calls": 6,
+  "remaining": 14,
+  "roles": [
+    {
+      "role": "A1",
+      "status": "completed",
+      "run_id": "CONN-EC6E8805538A460B",
+      "task_id": "MTASK-7099fd52c33c4762"
+    },
+    {
+      "role": "A2",
+      "status": "completed",
+      "run_id": "CONN-EC6E8805538A460B",
+      "task_id": "MTASK-2c7450f143b04c9c"
+    },
+    {
+      "role": "A3",
+      "status": "completed",
+      "run_id": "CONN-EC6E8805538A460B",
+      "task_id": "MTASK-e3e745f6ce824ad6"
+    },
+    {
+      "role": "A4",
+      "status": "completed",
+      "run_id": "CONN-EC6E8805538A460B",
+      "task_id": "MTASK-8889a2ae46e34889"
+    },
+    {
+      "role": "A5",
+      "status": "completed",
+      "run_id": "CONN-EC6E8805538A460B",
+      "task_id": "MTASK-086a7523e9b84b84"
+    }
+  ],
+  "prior_provider_calls": 0,
+  "parent_run_id": null,
+  "samples": [
+    {
+      "path": "/runs/CONNJOB-AA79476A456B/status",
+      "status": 200,
+      "bytes": 809,
+      "rtt_ms": 6.63,
+      "server_timing": "app;dur=2.52"
+    },
+    {
+      "path": "/runs/CONNJOB-34621EFC9227/summary",
+      "status": 200,
+      "bytes": 9126,
+      "rtt_ms": 17.19,
+      "server_timing": "app;dur=11.91"
+    },
+    {
+      "path": "/runs/CONNJOB-2841BF2EFF74/summary",
+      "status": 200,
+      "bytes": 9126,
+      "rtt_ms": 29.89,
+      "server_timing": "app;dur=25.11"
+    },
+    {
+      "path": "/runs/CONNJOB-AA79476A456B/status",
+      "status": 200,
+      "bytes": 941,
+      "rtt_ms": 4.55,
+      "server_timing": "app;dur=1.01"
+    },
+    {
+      "path": "/runs/CONNJOB-34621EFC9227/summary",
+      "status": 200,
+      "bytes": 9126,
+      "rtt_ms": 9.14,
+      "server_timing": "app;dur=5.68"
+    },
+    {
+      "path": "/runs/CONNJOB-2841BF2EFF74/summary",
+      "status": 200,
+      "bytes": 9126,
+      "rtt_ms": 9.47,
+      "server_timing": "app;dur=6.39"
+    },
+    {
+      "path": "/runs/CONNJOB-AA79476A456B/status",
+      "status": 200,
+      "bytes": 941,
+      "rtt_ms": 7.97,
+      "server_timing": "app;dur=3.46"
+    },
+    {
+      "path": "/runs/CONNJOB-34621EFC9227/summary",
+      "status": 200,
+      "bytes": 9126,
+      "rtt_ms": 11.75,
+      "server_timing": "app;dur=8.04"
+    },
+    {
+      "path": "/runs/CONNJOB-2841BF2EFF74/summary",
+      "status": 200,
+      "bytes": 9126,
+      "rtt_ms": 9.88,
+      "server_timing": "app;dur=5.18"
+    }
+  ],
+  "detail": {
+    "path": "/runs/CONNJOB-AA79476A456B/matters/MAT-1646E47C6ADC4DAA867A",
+    "status": 200,
+    "bytes": 38510,
+    "rtt_ms": 8.44,
+    "server_timing": "app;dur=7.09"
+  },
+  "detail_cached": {
+    "path": "/runs/CONNJOB-AA79476A456B/matters/MAT-1646E47C6ADC4DAA867A",
+    "status": 200,
+    "bytes": 38510,
+    "rtt_ms": 6.21,
+    "server_timing": "app;dur=5.12"
+  }
+}

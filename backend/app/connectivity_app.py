@@ -7,6 +7,8 @@
 from pathlib import Path
 from contextlib import asynccontextmanager
 import os
+import logging
+import time
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -35,6 +37,17 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(CORSMiddleware, allow_origins=_configured_cors_origins(), allow_credentials=True,
                    allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'Authorization', 'Idempotency-Key'])
 app.middleware('http')(security_headers)
+
+@app.middleware('http')
+async def connectivity_timing(request, call_next):
+    started = time.perf_counter()
+    response = await call_next(request)
+    if request.url.path.startswith('/api/connectivity/runs'):
+        duration = (time.perf_counter() - started) * 1000
+        response.headers['Server-Timing'] = f'app;dur={duration:.2f}'
+        logging.getLogger('uvicorn.error').info('connectivity_http method=%s path=%s status=%s duration_ms=%.2f bytes=%s',
+            request.method, request.url.path, response.status_code, duration, response.headers.get('content-length', 'stream'))
+    return response
 app.mount('/assets', StaticFiles(directory=ROOT/'assets'), name='assets')
 app.include_router(build_router(ROOT, lambda request: _enforce_public_model_quota(request, force=True), _public_model_ledger))
 app.include_router(build_catalog_router(ROOT))

@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id), root=$('connectivity-root'), main=$('cn-workspace');
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const historyKey='audittrace-connectivity-history-v2';
-  let task=null, stage=1, error=null, view='workflow';
+  let task=null, stage=1, error=null, view='workflow',historyRows=null,historyGeneration=0,historyOffset=0,historyNext=null;
   const savedRows=()=>{try{return JSON.parse(localStorage.getItem(historyKey)||'[]').filter(r=>/^(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}$/.test(r.id)).slice(0,30);}catch{return [];}};
   const route=mode=>{document.body.dataset.route=mode;$('redesign-home').hidden=mode==='workspace';root.hidden=false;};
   const heroSvg = `<svg viewBox="0 0 560 250" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true">
@@ -102,9 +102,32 @@
   const historyView=document.createElement('section');historyView.id='at-history';historyView.dataset.workspaceView='history';historyView.hidden=true;
   historyView.innerHTML='<p class="at-eyebrow">HISTORY / VERIFIED TASK RECORDS</p><h2>历史真实任务</h2><p>任务内容重新从服务器读取；保留原权限、失败和过期状态。</p><ol id="cn-history-list" class="cn-history-list"></ol><details><summary>按任务编号打开</summary><form id="cn-open-task"><label>任务编号<input id="cn-task-id" pattern="(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}" required placeholder="CONNJOB-… 或 DEMO-RUN-…"></label><button type="submit">读取记录</button></form></details>';
   main.append(historyView);
+  historyView.insertAdjacentHTML('beforeend','<p id="cn-history-state" role="status"></p><button type="button" id="cn-history-more" hidden>更多历史记录</button>');
+  document.querySelector('.aw-nav').insertAdjacentHTML('beforeend','<button type="button" id="cn-active-entry" hidden></button>');
+  document.querySelector('.aw-nav').insertAdjacentHTML('beforeend','<button type="button" id="cn-clear-queue" hidden></button>');
+  document.addEventListener('audittrace:connectivity-queue',e=>{const count=e.detail.pending,b=$('cn-clear-queue');b.hidden=!count;b.textContent=`待逐项调查 ${count} 项 · 清空等待队列`;});
+  $('cn-clear-queue').addEventListener('click',()=>document.dispatchEvent(new CustomEvent('audittrace:connectivity-clear-queue')));
   function renderHistory() {
-    $('cn-history-list').innerHTML=savedRows().map(row=>`<li><button type="button" data-open-task="${esc(row.id)}"><strong>${esc(row.company || row.id)}</strong><span>${esc(row.status || '状态待读取')} · ${esc(row.time || '')}</span><small>${esc(row.id)}</small></button></li>`).join('') || '<li class="at-empty">本浏览器暂无任务。完成一次分析后可从这里恢复真实记录。</li>';
+    $('cn-history-list').innerHTML=(historyRows??savedRows()).map(row=>`<li><button type="button" data-open-task="${esc(row.id)}"><strong>${esc(row.company || row.id)}</strong><span>${esc(row.status || '状态待读取')} · ${esc(row.time || '')}</span><small>${esc(row.id)}</small></button></li>`).join('') || '<li class="at-empty">暂无可读取的历史任务。</li>';
   }
+  async function loadHistory(more=false){
+    const generation=++historyGeneration,offset=more?(historyNext??0):0;
+    $('cn-history-state').textContent='正在读取服务端历史…';
+    try{
+      const response=await fetch(`/api/connectivity/runs?limit=10&offset=${offset}`,{credentials:'same-origin'}),data=await response.json();
+      if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'服务端历史读取失败');
+      if(generation!==historyGeneration)return;
+      const rows=data.items.map(r=>({id:r.task_id,company:r.company||r.case_id,status:window.AuditTraceViewModel.statusNames[r.status]||r.status,time:new Date(r.created_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}));
+      historyRows=more?[...(historyRows||[]),...rows]:rows;historyOffset=offset;historyNext=data.next_offset;
+      localStorage.setItem(historyKey,JSON.stringify(historyRows.slice(0,30)));renderHistory();
+      $('cn-history-state').textContent='已读取服务端记录';$('cn-history-more').hidden=historyNext==null;
+    }catch(error){if(generation!==historyGeneration)return;$('cn-history-state').textContent=`${error.message}；显示本浏览器缓存，状态以重新读取为准。`;historyRows=null;renderHistory();}
+  }
+  $('cn-history-more').addEventListener('click',()=>loadHistory(true));
+  document.addEventListener('audittrace:connectivity-active',e=>{
+    const active=e.detail,entry=$('cn-active-entry');entry.hidden=!active;
+    if(active){const phases={evidence_load:'原文准备',rule_calculation:'事项初筛',knowledge_retrieval:'工具准备',agent_collaboration:'五Agent调查',evidence_validation:'证据复核',structured_output:'生成结果'};entry.dataset.openTask=active.task_id;entry.textContent=`${['queued','running'].includes(active.status)?'进行中任务':'最近运行'} · ${active.company||active.task_id} · ${active.connection_error?'连接待恢复':phases[active.current_stage]||window.AuditTraceViewModel.statusNames[active.status]||active.status}`;}
+  });
   function openTask(id) {
     const url=new URL(location.href);url.searchParams.set('connectivity_task',id);url.hash='connectivity-root';history.pushState({},'',url);
     document.dispatchEvent(new CustomEvent('audittrace:connectivity-open-task',{detail:{task_id:id}}));
@@ -124,7 +147,7 @@
     view=next;route('workspace');root.dataset.awView=next;
     document.querySelectorAll('[data-at-panel]').forEach(p=>p.hidden=true);
     document.querySelector('.at-stages').hidden=true;about.hidden=next!=='method';historyView.hidden=next!=='history';
-    $('aw-search-results').hidden=true;renderHistory();
+    $('aw-search-results').hidden=true;renderHistory();if(next==='history')loadHistory();
   }
   function renderError(detail) {
     error=detail;const target=$('cn-task-error');target.hidden=!detail;

@@ -20,6 +20,12 @@
 
 ## 本地运行
 
+任务中心改造分支采用两阶段入口：先用`calculation_only`建立无模型候选档案，再通过`selected_matter_ids`明确选择一个事项启动五Agent。未选择事项的模型请求返回422；批量操作依次创建多个单事项任务。
+
+轮询使用`/api/connectivity/runs/{id}/status`，历史使用`/runs`，结果先取`/runs/{id}/summary`，点击事项再取`/runs/{id}/matters/{matter_id}`。旧完整任务读取入口保留兼容。
+
+使用Supabase发布新版前，先执行[supabase/connectivity_read_projection_migration.sql](supabase/connectivity_read_projection_migration.sql)。缺少只读投影函数时新分层接口返回503，不回退全量读取。当前生产迁移、真实模型和新版真实浏览器验收尚未完成。[交付与验收记录](docs/task-center-acceptance.md)区分了本地检查、实际HTTP测量和未验证项。
+
 ```bash
 pip install -r requirements-dev.txt
 python -m backend.app.connectivity_bootstrap --allow-missing-sources

@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
+from .connectivity_read_models import META_FIELDS, metadata, project_result, visible_result
 
 
 STAGE_SCHEMA_VERSION = "demo_task_v2"
@@ -270,6 +271,20 @@ class DemoRunTaskStore:
                 self._expire_if_needed(task)
             return task
 
+    def get_projection(self, task_id: str, kind="status", matter_id=None):
+        # 本地台账已在启动时装入内存；此读取不调用完整任务 get/snapshot。
+        with self._lock:
+            item = self._tasks.get(task_id)
+            if item is None:
+                return None
+            view = metadata(item)
+            if self._is_expired(item) and item.get("status") in {"completed", "degraded"}:
+                view["status"] = "expired"
+                return view
+            if kind != "status":
+                view["result"] = project_result(visible_result(item), kind, matter_id)
+            return view
+
     def list_owned(self, owner: str | None, *, limit: int = 5, offset: int = 0) -> list[dict[str, Any]]:
         """只列本会话；扫描持久文件使多实例写入后也可恢复历史。"""
         with self._lock:
@@ -405,8 +420,8 @@ class DemoRunTaskStore:
                 task["error"] = f"{type(error).__name__}: {str(error)[:400]}"
                 self._save_file(task)
 
-    def snapshot(self, task_id: str) -> dict[str, Any] | None:
-        task = self.get(task_id)
+    def snapshot(self, task_id: str, *, item=None) -> dict[str, Any] | None:
+        task = item if item is not None else self.get(task_id)
         if task is None:
             return None
         # JSON round-trip gives callers a stable detached view and excludes request body.
@@ -664,7 +679,7 @@ class SupabaseDemoRunTaskStore:
 
                 reset_worker_lease_guard(lease_token_context)
 
-    def get(self, task_id: str) -> dict[str, Any] | None:
+    def _sweep_expired(self):
         # 过期租约清理是维护性 RPC，不应阻断正常的任务读取。某些
         # Supabase 项目在迁移期间可能尚未授予该函数执行权限；此时仍
         # 必须允许服务端读取现有任务并继续轮询，真正的读写错误仍会
@@ -673,13 +688,18 @@ class SupabaseDemoRunTaskStore:
         # 一次；到期结算的最终效果是中断失租任务，晚几十秒不改变事实。
         from .supabase_adapter import SupabaseError
 
-        now = time.monotonic()
-        if now - self._last_sweep_monotonic >= EXPIRY_SWEEP_MIN_INTERVAL_SECONDS:
+        with self._lock:
+            now = time.monotonic()
+            if now - self._last_sweep_monotonic < EXPIRY_SWEEP_MIN_INTERVAL_SECONDS:
+                return
             self._last_sweep_monotonic = now
             try:
                 self.client.interrupt_expired_demo_run_tasks()
             except SupabaseError:
                 pass
+
+    def get(self, task_id: str) -> dict[str, Any] | None:
+        self._sweep_expired()
         task = self._row_to_task(self.client.get_demo_run_task(task_id))
         if task and task.get("status") in {"completed", "degraded"} and DemoRunTaskStore._is_expired(task):
             expected = int(task.get("version") or 0)
@@ -694,7 +714,7 @@ class SupabaseDemoRunTaskStore:
     def list_owned(self, owner: str | None, *, limit: int = 5, offset: int = 0) -> list[dict[str, Any]]:
         """所有权在数据库过滤，分页前不读取其他会话结果正文。"""
         params = {"task_kind": "eq.connectivity",
-                    "select": "task_id,case_id,status,created_at,updated_at,result_expires_at,run_id,failure_code,request_payload",
+                    "select": "task_id,case_id,status,created_at,updated_at,result_expires_at,run_id,failure_code,request_payload,company:result->>company",
                     "order": "created_at.desc,task_id.desc", "limit": str(limit), "offset": str(offset)}
         if owner is not None:
             params["request_payload->>owner"] = f"eq.{owner}"
@@ -710,9 +730,30 @@ class SupabaseDemoRunTaskStore:
             result.append(item)
         return result
 
-    def snapshot(self, task_id: str) -> dict[str, Any] | None:
-        task = self.get(task_id)
+    def snapshot(self, task_id: str, *, item=None) -> dict[str, Any] | None:
+        task = item if item is not None else self.get(task_id)
         return self._public_task(task) if task else None
+
+    def get_projection(self, task_id: str, kind="status", matter_id=None):
+        self._sweep_expired()
+        if kind == "status":
+            # 只读取进度与授权信息，绝不传输 result。
+            fields = ",".join((*META_FIELDS, "owner:request_payload->>owner", "kind:request_payload->>kind",
+                "analysis_scope:request_payload->>analysis_scope", "parent_task_id:request_payload->>parent_task_id"))
+            rows = self.client.select_table("demo_run_tasks", service=True,
+                filters={"task_id": f"eq.{task_id}"}, select=fields)
+            if not rows:
+                return None
+            row = rows[0]
+            row["run_body"] = {key: row.get(key) for key in ("owner", "kind", "analysis_scope", "parent_task_id")}
+            view = metadata(row)
+            if DemoRunTaskStore._is_expired(row) and row.get("status") in {"completed", "degraded"}:
+                view["status"] = "expired"
+            return view
+        # SQL 在数据库内直接过滤事项及其证据；缺少迁移时显式失败，不退回全量读取。
+        row = self.client._request("POST", "rest/v1/rpc/connectivity_read_projection", service=True,
+            json_body={"p_task_id": task_id, "p_kind": kind, "p_matter_id": matter_id})
+        return row if isinstance(row, dict) and row.get("task_id") else None
 
     def is_cancelled(self, task_id: str) -> bool:
         task = self.get(task_id)

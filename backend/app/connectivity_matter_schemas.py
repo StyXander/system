@@ -262,6 +262,57 @@ class AgentMatterResult(MatterContract):
     stop_reason: str = Field(default="", max_length=300)
 
 
+class RoleResult(MatterContract):
+    """供应商只接触本角色合同，统一档案由程序侧组装。"""
+    matter_id: str
+    input_revision: int = Field(ge=1, strict=True)
+    summary: str = Field(max_length=2500)
+    tool_requests: list[MatterToolCall] = Field(default_factory=list, max_length=4)
+    stop_reason: str = Field(default="", max_length=300)
+
+
+class IdentificationResult(RoleResult):
+    matters: list[MatterProposal] = Field(max_length=1)
+
+
+class FinancialResult(RoleResult):
+    paths: list[FinancialImpactPath] = Field(max_length=6)
+    relations: list[MatterRelation] = Field(default_factory=list, max_length=20)
+
+
+class TemporalResult(RoleResult):
+    events: list[MatterEvent] = Field(max_length=20)
+    commitments: list[MatterCommitment] = Field(max_length=10)
+    relations: list[MatterRelation] = Field(default_factory=list, max_length=20)
+
+
+class CounterResult(RoleResult):
+    explanations: list[CompetingExplanation] = Field(max_length=6)
+    relations: list[MatterRelation] = Field(default_factory=list, max_length=20)
+
+
+class ReviewResult(RoleResult):
+    assessment: MatterAssessment | None
+
+
+ROLE_RESULT_SCHEMAS = {"A1": IdentificationResult, "A2": FinancialResult, "A3": TemporalResult,
+                       "A4": CounterResult, "A5": ReviewResult}
+
+
+def validate_role_result(role, value, *, combined=False):
+    schema = AgentMatterResult if combined else ROLE_RESULT_SCHEMAS[role]
+    if isinstance(value, AgentMatterResult):
+        # 供应商适配器已经转成统一对象；不能将别的角色的非空内容带入。
+        value = {k: v for k, v in value.model_dump().items() if k in schema.model_fields or v not in (None, [], "")}
+    result = schema.model_validate(value)
+    if not combined and not result.tool_requests:
+        if role == "A1" and not result.matters:
+            raise ValueError("matters: 最终建档必须明确所选事项身份，无法确认应保留候选并写依据")
+        if role == "A5" and result.assessment is None:
+            raise ValueError("assessment: 综合判断缺失；证据不足也必须保留缺口判断")
+    return AgentMatterResult.model_validate(result.model_dump())
+
+
 class MatterRevisionRequest(MatterContract):
     expected_revision: int = Field(ge=1)
     action_id: str = Field(min_length=8, max_length=100)

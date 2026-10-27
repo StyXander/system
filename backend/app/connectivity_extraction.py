@@ -273,9 +273,9 @@ def ensure_source(root: Path, document: ReportDocument) -> Path:
     """仅获取登记的准确URL与版本，支持交易所来源及明确标识的公告镜像。"""
     path = source_path(root, document)
     if path.exists():
-        with path.open("rb") as handle:
-            if hashlib.file_digest(handle, "sha256").hexdigest() != document.file_sha256:
-                raise HTTPException(409, "原件与登记版本不符，已停止读取")
+        from .connectivity_source_cache import source_sha256
+        if source_sha256(path) != document.file_sha256:
+            raise HTTPException(409, "原件与登记版本不符，已停止读取")
         return path
     url = document.source_url
     allowed_source = bool(re.fullmatch(r"https://static\.cninfo\.com\.cn/finalpage/\d{4}-\d{2}-\d{2}/\d+\.pdf", url, re.I)

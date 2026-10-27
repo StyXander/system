@@ -21,9 +21,9 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from .agents import _strict_tool_base_url, _provider_timeout_seconds
-from .connectivity_matter_schemas import AgentMatterResult, ROLE_NAMES
+from .connectivity_matter_schemas import AgentMatterResult, ROLE_NAMES, ROLE_RESULT_SCHEMAS, validate_role_result
 
-PROMPT_VERSION="matter_agents_20261027.4"
+PROMPT_VERSION="matter_agents_20261027.role-contracts.1"
 ROLE_PROMPTS={
     "A1":"从已取得证据识别具体事项，核对主体、地点、项目名和别名。不同工厂同名不得自动合并。通过matters提交有身份依据的归并；未能确认者保持独立候选。",
     "A2":"调查事项到经济机制、经营变量、会计估计和财务项目的逐段路径。查附注和会计假设。一般政策不证明某项目处理。paths每段写证据和缺口；不要用相等金额证明因果。",
@@ -66,7 +66,7 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "无金额事项仍需调查。公开披露关系不代表企业整体真实，不输出审计或鉴证意见。"
         "不同计量基础不能相加。一般主题相似只形成线索。路径每段的report_statement需要原文支持；"
         "自身机制推演使用model_hypothesis，不能声称实际影响已发生。"
-        "返回matter_id及input_revision原值；A1全局建档时matter_id为空。"
+        "返回matter_id及input_revision原值；A1仅为当前所选事项建档，matter_id为空。"
         "需要新证据时返回tool_requests，服务端执行并把回执交回；未检索到不能写不存在披露。"
         "支持工具：search_matter_reports参数query、document_ids、report_type、periods、limit；"
         "open_source_page参数document_id、page；lookup_ontology_rule参数keyword。"
@@ -78,7 +78,8 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "尚缺证据须在结论和stop_reason中明确说明，不能为完成任务猜填。"
         "没有证据的年份和金额留空；不要添加自评分概率。next_actions要写问题、资料和用途。"+ROLE_PROMPTS[role])
     prompt+=str(payload.get("role_extension", ""))
-    output_schema=AgentMatterResult.model_json_schema()
+    combined=payload.get('output_scope')=='combined_baseline'
+    output_schema=(AgentMatterResult if combined else ROLE_RESULT_SCHEMAS[role]).model_json_schema()
     if payload.get('finalize_only'):
         prompt+='本次为最终综合调用，只提交已有证据支持的最终建议，tool_requests必须为空。缺口在结论中保留，不再申请检索。'
         output_schema['properties']['tool_requests']['maxItems']=0
@@ -103,10 +104,11 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
             record["failure_code"]="MODEL_OUTPUT_TRUNCATED"
             raise ValueError("供应商输出截断")
         message=value["choices"][0]["message"];calls=message.get("tool_calls") or []
-        if len(calls)!=1 or calls[0]["function"]["name"]!="submit_matter_investigation":
+        if len(calls)!=1 or calls[0].get("function",{}).get("name")!="submit_matter_investigation":
+            record.update(failure_code="MODEL_TOOL_REQUIRED",invalid_fields=[{'location':['tool_calls'],'type':'required_tool_missing','reason':'必须调用submit_matter_investigation'}])
             raise ValueError("结构化结果缺失")
         record['parse_stage']='role_arguments'
-        result=AgentMatterResult.model_validate(json.loads(calls[0]["function"]["arguments"]))
+        result=validate_role_result(role,json.loads(calls[0]["function"]["arguments"]),combined=combined)
     except HTTPError as error:
         retry_after=error.headers.get("Retry-After", "1") if error.headers else "1"
         try:delay=max(0,float(retry_after))
@@ -121,12 +123,14 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         record.update(failure_code="MODEL_TRANSPORT_ERROR",error_category="transport",retryable=True,retry_after_seconds=1)
         raise MatterCallFailure(record) from error
     except (ValueError,KeyError,IndexError,TypeError) as error:
-        record.setdefault("failure_code","MODEL_SCHEMA_INVALID")
+        record.setdefault("failure_code","MODEL_JSON_INVALID" if isinstance(error,json.JSONDecodeError) else "MODEL_FIELDS_INVALID")
         record.update(error_category="output_contract",retryable=False)
         if hasattr(error,'errors'):
-            record['invalid_fields']=[{'location':list(item['loc']),'type':item['type']} for item in error.errors()[:20]]
+            record['invalid_fields']=[{'location':list(item['loc']),'type':item['type'],'reason':item['msg'][:180]} for item in error.errors()[:20]]
         elif isinstance(error,json.JSONDecodeError):
-            record['invalid_fields']=[{'location':['tool_arguments'],'type':'json_invalid','position':error.pos}]
+            record['invalid_fields']=[{'location':['tool_arguments'],'type':'json_invalid','position':error.pos,'reason':'JSON解析失败，返回有效的工具参数对象'}]
+        elif 'invalid_fields' not in record:
+            record['invalid_fields']=[{'location':[str(error).split(':')[0]],'type':'contract_invalid','reason':str(error)[:180]}]
         raise MatterCallFailure(record) from error
     finally:
         record["duration_ms"]=round((time.perf_counter()-started)*1000)

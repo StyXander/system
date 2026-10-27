@@ -313,7 +313,7 @@ def invalidate_graph(graph: dict, changed_documents: dict[str, str]) -> dict:
     return graph
 
 
-def refresh_run_sources(root, run):
+def refresh_run_sources(root, run, *, force=False):
     """读取/导出时验证登记和原件哈希，只返回投影副本。
 
     历史保存结果不直接修改，失效标记只作用于本次读取。
@@ -324,7 +324,7 @@ def refresh_run_sources(root, run):
     禁用失效来源支持的金额模拟，保留原运行供历史回查。
     新旧证据状态分列，失效不能抹掉历史状态发生过的事实。
     """
-    import hashlib
+    from .connectivity_source_cache import source_sha256
     from .connectivity_extraction import load_registry, source_path
     child = run.model_copy(deep=True)
     current = {doc.document_id: doc for doc in load_registry(root)}
@@ -338,7 +338,11 @@ def refresh_run_sources(root, run):
         if not path.is_file():
             changed[original.document_id] = "missing"
             continue
-        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        try:
+            actual = source_sha256(path, force=force)
+        except OSError:
+            changed[original.document_id] = "unreadable_or_changed"
+            continue
         if actual != original.file_sha256 or doc.file_sha256 != original.file_sha256:
             changed[original.document_id] = actual if actual != original.file_sha256 else "registry_changed"
     if child.matter_schema_version:

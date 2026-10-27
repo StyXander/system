@@ -19,7 +19,9 @@ import uuid
 
 from .connectivity_matter_agents import call_matter_role, MatterCallFailure, PROMPT_VERSION
 from .connectivity_matter_extraction import read_corpus, relevant_evidence, digest, search_corpus
-from .connectivity_matter_schemas import MATTER_VERSION, AgentMatterResult, ROLE_NAMES, MatterEvidence
+from .connectivity_matter_schemas import MATTER_VERSION, AgentMatterResult, ROLE_NAMES, MatterEvidence, validate_role_result
+from .connectivity_matter_budget import allocate_role_budget
+from .connectivity_matter_errors import MatterValidationError
 from .connectivity_matters import seed_matters, attach_events, apply_identification, integrate_result, finish_projection, missing_assessment
 from .connectivity_report_sets import resolve_documents
 from .connectivity_schemas import ConnectivityRun, SourceLineage, DisclosureOccurrence
@@ -29,6 +31,8 @@ _PROVIDER_SLOTS=threading.BoundedSemaphore(2)
 
 def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progress=lambda *a:None,
                         cancelled=lambda:False,before_model=lambda:None,resume=None,checkpoint=lambda r:None,caller=None,provider_budget=lambda r:None):
+    if request.mode!='calculation_only' and len(request.selected_matter_ids)!=1:
+        raise ValueError('MATTER_SELECTION_REQUIRED: 请先建立候选档案并选择一个具体事项，再启动深查')
     started=time.perf_counter();report_set,documents=resolve_documents(root,request)
     run=ConnectivityRun(run_id="CONN-"+uuid.uuid4().hex[:16].upper(),company=report_set.company,
         period="—".join([report_set.periods[0],report_set.periods[-1]]) if len(report_set.periods)>1 else report_set.periods[0],
@@ -57,6 +61,8 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                      "matter_explanations","matter_assessments","assurance_planning_reviews","matter_tasks","matter_tool_receipts","matter_rejections","matter_revisions","occurrences"):
             setattr(run,name,deepcopy(getattr(resume,name)))
         for task in run.matter_tasks:
+            task.setdefault('run_id',resume.run_id)
+            if task.get('role')=='A1':task.setdefault('selected_matter_ids',resume.versions.get('investigation_scope',{}).get('selected_matter_ids',[]))
             if task.get('status')=='running':
                 task.update(status='interrupted',stop_reason='父运行已中断；本次不复用未完成角色')
         run.parent_run_id=resume.run_id;run.result_revision=resume.result_revision+1
@@ -78,6 +84,14 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     lock=threading.RLock();attempts=0;quota_ready=False;tool_cache={}
     call=caller or call_matter_role
     budget=request.budget
+    role_limits=allocate_role_budget(budget.max_provider_calls,
+        ('A1','A2','A3','A4','A5') if request.mode=='five_agents' else ('A1','A2','A5') if request.mode=='three_agents' else ('A1','A5'))
+    role_usage={role:0 for role in role_limits}
+    run.versions['role_budgets']={'limits':role_limits,'used':role_usage}
+    if request.mode!='calculation_only':
+        valid_ids={m.matter_id for m in run.matters}|{key for m in run.matters for key in m.lineage}
+        if not set(request.selected_matter_ids)<=valid_ids:
+            raise ValueError('所选事项不存在于当前资料集合，请重新初筛')
     # 消融是显式实验条件，跳过角色不能被包装为五角色全部完成。
     run.versions["ablation"]=request.ablation
     run.versions["semantic_judgment"]="模型意见与程序来源核验分列，不代表专业鉴证"
@@ -98,10 +112,10 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 if attempts>=budget.max_provider_calls:raise ValueError("MODEL_CALL_BUDGET_EXHAUSTED")
                 # 调查不能耗尽最后的反证和综合复核名额。
                 # 留出的名额仍计入同一上限，额度不足时明确留下部分完成。
-                protected=2 if role in {"A1","A2","A3"} else 1 if role=="A4" else 0
-                if attempts>=max(0,budget.max_provider_calls-protected):raise ValueError("REVIEW_BUDGET_RESERVED")
+                if role_usage[role]>=role_limits[role]:raise ValueError("ROLE_BUDGET_EXHAUSTED:"+role)
                 if not quota_ready:before_model();quota_ready=True
                 attempts+=1
+                role_usage[role]+=1
                 receipt={"provider_call_id":"MCALL-"+uuid.uuid4().hex,"role":role,"task_id":task_id,
                     "status":"started","performed":False,"request_attempted":None,"queue_ms":queue_ms,
                     "started_at":time.time(),"input_characters":len(json.dumps(payload,ensure_ascii=False)),"input_tokens":None,"output_tokens":None}
@@ -117,8 +131,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                             raise
                         save()
                 result,record=call(role,payload) if caller else call(role,payload,preflight=preflight)
-                result=AgentMatterResult.model_validate(result)
+                result=validate_role_result(role,result,combined=request.mode!='five_agents')
             except MatterCallFailure as error:
+                error.record['retry_count']=payload.get('retry_count',0)
                 with lock:receipt.update(error.record);save()
                 raise
             except Exception:
@@ -135,17 +150,19 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 return model_call(role,payload,task_id)
             except MatterCallFailure as error:
                 record=error.record
-                if not attempt and record.get('failure_code')=='MODEL_SCHEMA_INVALID' and not cancelled():
+                if not attempt and record.get('failure_code') in {'MODEL_SCHEMA_INVALID','MODEL_JSON_INVALID','MODEL_TOOL_REQUIRED','MODEL_FIELDS_INVALID'} and not cancelled():
                     # 重生成仍走同一调用预算；不修补供应商原值或放宽证据校验。
                     payload=deepcopy(payload)
                     payload['output_validation_feedback']={
-                        'code':'MODEL_SCHEMA_INVALID',
+                        'code':record.get('failure_code'),
                         'invalid_fields':record.get('invalid_fields',[]),
                         'instruction':'上次工具参数未通过JSON或Schema校验。请重新提交一个合法JSON对象，严格使用工具Schema的字段、枚举和长度；不得编造证据。'}
+                    payload['retry_count']=1
                     continue
                 delay=record.get("retry_after_seconds",1)
                 if attempt or not record.get("retryable") or delay>8 or cancelled():
                     raise
+                payload=deepcopy(payload);payload['retry_count']=attempt+1
                 deadline=time.monotonic()+max(1,delay)
                 while time.monotonic()<deadline:
                     if cancelled():raise InterruptedError("用户取消事项调查")
@@ -179,7 +196,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                             if not any(b.evidence_id==block.evidence_id for b in run.matter_evidence):run.matter_evidence.append(block)
                     context_evidence=list(focused.values())
                 else:
-                    context_evidence=run.matter_evidence[:90]
+                    raise ValueError('MATTER_SELECTION_REQUIRED: 未选择事项，拒绝扩大为全报告调查')
             return {"matter_id":matter.matter_id if matter else "","input_revision":run.result_revision,
                 "as_of_date":str(report_set.as_of_date),
                 "citation_instruction":"跨页内容按独立证据ID引用；原文块带adjacent_evidence_ids，可打开相邻原页补查。paths.rule_ids仅选工具返回的登记模板编号。","documents":[{key:getattr(d,key) for key in ("document_id","company_id","company","report_type","report_period","disclosure_date","file_sha256","pages")} for d in documents],
@@ -200,8 +217,10 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         """
         role_started=time.perf_counter()
         payload=payload_for(role,matter,extension);task_id="MTASK-"+uuid.uuid4().hex[:16]
+        if request.mode!='five_agents':payload['output_scope']='combined_baseline'
         task={"task_id":task_id,"role":role,"role_name":ROLE_NAMES[role],"matter_id":getattr(matter,"matter_id",""),
-            "input_revision":run.result_revision,"status":"running","rounds":0,"stop_reason":""}
+            "input_revision":run.result_revision,"status":"running","rounds":0,"stop_reason":"","run_id":run.run_id,
+            "selected_matter_ids":list(request.selected_matter_ids)}
         with lock:run.matter_tasks.append(task);agent_progress(role,"running",ROLE_NAMES[role]);save()
         result=None
         try:
@@ -212,6 +231,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 if not result.tool_requests:
                     task.update(status="completed",stop_reason=result.stop_reason or "本轮建议已提交");break
                 returned=[]
+                evidence_before={b['evidence_id'] for b in payload['evidence']}
                 for request_tool in result.tool_requests:
                     from .connectivity_tool_registry import execute_tool,ToolRequest
                     marker=digest(json.dumps({"set":report_set.report_set_id,"tool":request_tool.tool_name,"arguments":request_tool.arguments},sort_keys=True,ensure_ascii=False))
@@ -247,6 +267,12 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     for row in (receipt.get("result") or {}).get("occurrences",[]):occurrences[row["occurrence_id"]]=row
                 payload["occurrences"]=list(occurrences.values())
                 task.update(status="partial",stop_reason="达到单角色调查轮次上限，尚需综合工具反馈")
+                # 下一轮调查必须产生当前角色尚未见过的证据；重复/空查询只允许一次收尾。
+                if not (set(known)-evidence_before):
+                    task['pending_questions']=[{'question':q.reason,'tool':q.tool_name,'arguments':q.arguments} for q in result.tool_requests]
+                    payload['missing_evidence_questions']=task['pending_questions']
+                    task['stop_reason']='工具未取得新增证据，停止调查循环；缺口进入资料需求'
+                    break
             if result and result.tool_requests and not cancelled():
                 # 最后一轮取证也需要交回模型综合，不能取完证据就结束角色。
                 # 只追加一次无工具收尾，仍走同一20次预算及复核名额保护。
@@ -261,12 +287,28 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     task.update(status='completed',stop_reason=result.stop_reason or '已综合最后一轮工具回执')
             if result:
                 for validation_attempt in range(2):
+                    task['validation_retry_count']=validation_attempt
                     try:
                         with lock:
                             if role=="A1":
                                 if result.input_revision!=run.result_revision or result.matter_id:raise ValueError("建档结果输入版本或全局身份错误")
-                                apply_identification(run,result.matters)
+                                selected_refs={e for m in run.matters if m.matter_id in request.selected_matter_ids or set(m.lineage)&set(request.selected_matter_ids) for e in m.evidence_ids}
+                                if any(not selected_refs<=set(p.evidence_ids) for p in result.matters):
+                                    raise MatterValidationError('EVIDENCE_VALIDATION_FAILED','matters.0.evidence_ids','建档必须保留所选事项的原始证据，不能转查其他事项')
+                                if not apply_identification(run,result.matters):
+                                    raise MatterValidationError('EVIDENCE_VALIDATION_FAILED','matters.0.identity_basis','所选事项身份建议未通过原文与归并校验')
                             elif matter:
+                                if role=='A5' and result.assessment:
+                                    from .connectivity_matter_schemas import NextAction
+                                    assessment=result.assessment
+                                    for upstream in run.matter_tasks:
+                                        if upstream.get('matter_id')!=matter.matter_id:continue
+                                        for missing in upstream.get('pending_questions',[]):
+                                            question=missing['question'][:500]
+                                            if question not in {a.question for a in assessment.next_actions}:
+                                                assessment.next_actions.append(NextAction(question=question,
+                                                    requested_material=('待补原文、明细或底稿：'+str(missing.get('arguments',{}).get('query') or missing['question']))[:500],
+                                                    purpose='补齐调查工具未取得的证据，核实当前未决条件',target_role=upstream.get('role','A2')))
                                 if request.mode=="three_agents" and role=="A2":
                                     for component in ("A2","A3","A4"):result=integrate_result(run,matter,component,result,payload["input_revision"])
                                 elif request.mode=="single_model":
@@ -275,14 +317,19 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                             task["result"]=result.model_dump(mode="json")
                         break
                     except ValueError as error:
-                        if validation_attempt or role=='A1' or request.mode!='five_agents' or cancelled():raise
+                        detail=error.detail(role,validation_attempt) if isinstance(error,MatterValidationError) else {
+                            'code':'EVIDENCE_VALIDATION_FAILED','role':role,'field_path':'result','reason':str(error)[:200],'retry_count':validation_attempt}
                         with lock:
-                            run.matter_rejections.append({'role':role,'matter_id':matter.matter_id,
+                            run.matter_rejections.append({**detail,'matter_id':getattr(matter,'matter_id','')})
+                        if validation_attempt or request.mode!='five_agents' or cancelled():raise
+                        with lock:
+                            run.matter_rejections.append({'role':role,'matter_id':getattr(matter,'matter_id',''),
                                 'reason':str(error)[:200],'recovery':'one_corrective_generation'})
                             task.update(status='running',stop_reason='证据校验未通过，正在按拒绝原因纠正')
                             save()
                         payload['finalize_only']=True
-                        payload['evidence_validation_feedback']={'reason':str(error)[:200],
+                        payload['retry_count']=validation_attempt+1
+                        payload['evidence_validation_feedback']={**detail,
                             'instruction':'上次建议未通过证据校验且未写入档案。仅用已有证据重新生成，年份不在引文中则留空，未知引用不得替换为猜测；不能解决的问题保留未决。'}
                         result=bounded_call(role,payload,task_id)
                         task.update(status='partial' if result.tool_requests else 'completed',
@@ -291,8 +338,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
             task.update(status="cancelled",stop_reason="用户取消，已取得回执保留")
         except (ValueError,MatterCallFailure) as error:
             task.update(status="failed",stop_reason=str(error)[:200],failure_code=str(error)[:200])
+            if isinstance(error,MatterValidationError):task.update(failure_code=error.code,error_detail=error.detail(role,task.get('validation_retry_count',0)))
             if isinstance(error,MatterCallFailure):
-                task.update(retryable=error.record.get("retryable",False),retry_after_seconds=error.record.get("retry_after_seconds"),error_category=error.record.get("error_category"))
+                task.update(failure_code=error.record.get('failure_code'),retryable=error.record.get("retryable",False),retry_after_seconds=error.record.get("retry_after_seconds"),error_category=error.record.get("error_category"),error_detail={'role':role,'fields':error.record.get('invalid_fields',[]),'retry_count':error.record.get('retry_count',0)})
             with lock:run.matter_rejections.append({"role":role,"matter_id":getattr(matter,"matter_id",""),"reason":task["stop_reason"]})
         except Exception as error:
             task.update(status="failed",stop_reason=type(error).__name__)
@@ -312,15 +360,22 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         progress("agent_collaboration","skipped","真实模型未配置或被关闭，保留程序事项候选")
         run.model_status="five_agents_partial"
         for role in ROLE_NAMES:
-            run.matter_tasks.append({"role":role,"status":"skipped","stop_reason":"MODEL_CONFIG_MISSING_OR_DISABLED"})
+            run.matter_tasks.append({"role":role,"status":"skipped","stop_reason":"MODEL_CONFIG_MISSING_OR_DISABLED","run_id":run.run_id,
+                "task_id":"MTASK-"+uuid.uuid4().hex[:16],"matter_id":request.selected_matter_ids[0] if role!='A1' else ''})
             agent_progress(role,"skipped","真实模型未配置或被关闭")
     else:
         progress("agent_collaboration","running","事项建档后并行调查财务与跨期信息")
         def reuse_task(task):
             agent_progress(task['role'],'reused','复用父版本已完成的角色，本次没有重复调用')
+            run.matter_tasks.append({**deepcopy(task),'task_id':'MTASK-'+uuid.uuid4().hex[:16],
+                'run_id':run.run_id,'status':'reused','source_task_id':task.get('task_id'),
+                'source_run_id':task.get('run_id'),'updated_at':time.time(),
+                'stop_reason':'复用父运行已完成角色；本次没有模型调用'})
             return task
-        if not resume or not any(t.get("role")=="A1" and t.get("status")=="completed" for t in run.matter_tasks):role_task("A1")
-        else:reuse_task(next(t for t in reversed(run.matter_tasks) if t.get('role')=='A1' and t.get('status')=='completed'))
+        a1_previous=next((t for t in reversed(run.matter_tasks) if t.get('role')=='A1' and t.get('status') in {'completed','reused'}
+            and set(t.get('selected_matter_ids',[]))==set(request.selected_matter_ids)),None) if resume else None
+        if a1_previous:reuse_task(a1_previous)
+        else:role_task('A1')
         selected=[m for m in run.matters if not request.selected_matter_ids or m.matter_id in request.selected_matter_ids or set(m.lineage)&set(request.selected_matter_ids)]
         resolved_ids={m.matter_id for m in selected}|{key for m in selected for key in m.lineage}
         if request.selected_matter_ids and not set(request.selected_matter_ids)<=resolved_ids:

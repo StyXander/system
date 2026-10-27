@@ -124,6 +124,7 @@ def apply_identification(run, proposals):
         run.matters=identified+[m for m in run.matters if not set(m.evidence_ids)<=used]
         run.matter_events=[];run.matter_commitments=[]
         for m in run.matters:m.event_ids=[];attach_events(run,m)
+    return identified
 
 
 def _all_refs(value):
@@ -152,6 +153,7 @@ def integrate_result(run, matter, role, result:AgentMatterResult, expected_revis
 
 
 def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revision):
+    from .connectivity_matter_errors import MatterValidationError
     if result.input_revision!=expected_revision or result.matter_id not in {"",matter.matter_id}:
         raise ValueError("角色结果对应的事项或输入版本已变化")
     refs={b.evidence_id:b for b in run.matter_evidence if b.source_verified and not b.invalid_reason}
@@ -168,7 +170,7 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
     def endpoint(value):
         if value in registered_ids:return value
         candidates=endpoint_aliases.get(value,set())
-        if len(candidates)>1:raise ValueError('临时关系端点不唯一')
+        if len(candidates)>1:raise MatterValidationError('RELATION_ENDPOINT_UNREGISTERED','relations.endpoint','临时关系端点不唯一')
         return next(iter(candidates)) if candidates else value
     if role=="A2":
         from .connectivity_financial_ontology import matter_rules
@@ -189,23 +191,24 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
             alias(original_id,p.path_id)
             run.matter_paths=[old for old in run.matter_paths if old.path_id!=p.path_id]+[p]
     if role=="A3":
-        for event in result.events:
+        for event_index, event in enumerate(result.events):
             if event.matter_id!=matter.matter_id or not event.evidence_ids:raise ValueError("时序事件缺少同事项证据")
             cited=[refs[k] for k in event.evidence_ids]
             if event.report_period not in {b.report_period for b in cited}:raise ValueError("事件报告期间与来源不一致")
             if event.occurred_period and not any(compact(event.occurred_period) in compact(b.quote) for b in cited):
-                raise ValueError("发生期间未得到引文支持，不能由报告年度代填")
+                raise MatterValidationError("EVENT_PERIOD_UNSUPPORTED",f"events.{event_index}.occurred_period","发生期间未得到引文支持，不能由报告年度代填")
             event.origin="model_interpretation"
             event.evidence_status="limited"
             original_id=event.event_id
             event.event_id="EV-"+digest(matter.matter_id+event.kind+"|".join(sorted(event.evidence_ids)))
             alias(original_id,event.event_id)
             run.matter_events=[e for e in run.matter_events if e.event_id!=event.event_id]+[event]
-        for commitment in result.commitments:
+        for commitment_index, commitment in enumerate(result.commitments):
             if commitment.matter_id!=matter.matter_id or not commitment.evidence_ids:raise ValueError("承诺缺少同事项证据")
             cited=" ".join(refs[k].quote for k in commitment.evidence_ids)
             if any(y and y not in cited for y in (commitment.baseline_year,commitment.target_year)):
-                raise ValueError("承诺年份没有原文支持")
+                field = 'baseline_year' if commitment.baseline_year and commitment.baseline_year not in cited else 'target_year'
+                raise MatterValidationError("EVENT_PERIOD_UNSUPPORTED",f"commitments.{commitment_index}.{field}","承诺年份没有原文支持")
             if commitment.supersedes and not any(c.commitment_id==commitment.supersedes for c in run.matter_commitments):
                 raise ValueError("被修订承诺未登记")
             if commitment.target_year and int(commitment.target_year)>run.report_set.as_of_date.year:
@@ -224,13 +227,15 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
             hypothesis.hypothesis_id="HYP-"+digest(matter.matter_id+hypothesis.explanation)
             run.matter_explanations=[h for h in run.matter_explanations if h.hypothesis_id!=hypothesis.hypothesis_id]+[hypothesis]
     if role in {"A2","A3","A4"}:
-        for edge in result.relations:
+        for edge_index, edge in enumerate(result.relations):
             if edge.matter_id!=matter.matter_id:raise ValueError("关系边事项不一致")
             edge.source_id=endpoint(edge.source_id);edge.target_id=endpoint(edge.target_id)
             # 两端必须可解析；模型不能凭一个名称生成“真实财务节点”。
             ids={*(m.matter_id for m in run.matters),*refs.keys(),*(o.occurrence_id for o in run.occurrences),*(e.event_id for e in run.matter_events),*(p.path_id for p in run.matter_paths),
                  *(c.commitment_id for c in run.matter_commitments)}
-            if edge.source_id not in ids or edge.target_id not in ids:raise ValueError("关系端点未登记")
+            if edge.source_id not in ids or edge.target_id not in ids:
+                field = 'source_id' if edge.source_id not in ids else 'target_id'
+                raise MatterValidationError("RELATION_ENDPOINT_UNREGISTERED",f"relations.{edge_index}.{field}","关系端点未登记")
             if edge.assertion_origin in {"human_review","program_calculation"}:edge.assertion_origin="model_hypothesis"
             if not edge.evidence_ids:edge.evidence_status="pending"
             if edge.assertion_origin=="model_hypothesis" and edge.evidence_status=="supported":edge.evidence_status="limited"

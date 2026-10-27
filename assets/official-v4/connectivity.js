@@ -2,7 +2,20 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = {bootstrap:null, task:null, selected:null, timer:null, generation:0, pollFailures:0, detailTab:'conditions', reader:null, filter:'all', lens:'plain'};
+  const RS=window.AuditTraceRunState;
+  const state = {...RS.create(), bootstrap:null, selected:null, detailTab:'conditions', reader:null, filter:'all', lens:'plain'};
+  let queuedRuns=[],batchTaskId=null,batchStarting=false;
+  function queueEvent(){document.dispatchEvent(new CustomEvent('audittrace:connectivity-queue',{detail:{pending:queuedRuns.length}}));}
+  async function nextQueuedRun(){
+    if(!queuedRuns.length||batchStarting||state.submitting||RS.running(state.activeRun.task))return;
+    batchStarting=true;const request=queuedRuns.shift();queueEvent();
+    try{await startRun(request);}finally{batchStarting=false;if(!RS.running(state.activeRun.task)&&queuedRuns.length)setTimeout(nextQueuedRun,0);}
+  }
+  document.addEventListener('audittrace:connectivity-batch',e=>{
+    queuedRuns.push(...(e.detail||[]));batchTaskId=state.activeRun.task?.task_id||null;queueEvent();nextQueuedRun();
+  });
+  document.addEventListener('audittrace:connectivity-clear-queue',()=>{queuedRuns=[];queueEvent();});
+  document.addEventListener('audittrace:connectivity-created',e=>{if(batchStarting)batchTaskId=e.detail.task_id;});
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const labels = {supported:'有依据支持',unknown:'未说明',conflicting:'明确冲突',consistent:'所选关系计算一致',precision_explained:'已知精度可解释',
     adjustment_explained:'有据调节后与0相容',unexplained_difference:'未解释差异',not_comparable:'暂不可比较',not_executable:'暂不可执行',
@@ -19,7 +32,7 @@
     conflicting:'×',unexplained_difference:'×',pending:'·',running:'▶',completed:'✓',degraded:'!',failed:'×',skipped:'–'};
   const status = value => `<span class="cn-badge" data-state="${escape(value)}"><span aria-hidden="true">${escape(STATE_ICON[value]||'·')}</span> ${escape(labels[value]||value)}</span>`;
   const message = (text, error=false) => { $('cn-message').textContent=text; $('cn-message').classList.toggle('error', error); };
-  const busy = value => document.querySelectorAll('#cn-form input,#cn-form select,#cn-run,[data-cn-reanalyze],#cn-retry').forEach(control => { control.disabled=value; });
+  const busy = value => document.querySelectorAll('#cn-run,[data-cn-reanalyze],#cn-retry').forEach(control => { control.disabled=value; });
   async function api(path, options={}) {
     const response = await fetch(`/api/connectivity${path}`, {credentials:'same-origin', ...options, headers:{'Content-Type':'application/json', ...options.headers}});
     const data = await response.json().catch(() => ({detail:'服务未返回可读取的结果'}));
@@ -30,7 +43,7 @@
     localStorage.setItem('audittrace-connectivity-task', taskId);
     const url = new URL(location.href); url.searchParams.set('connectivity_task', taskId); history.replaceState({}, '', url);
   }
-  const current = () => state.task?.result;
+  const current = () => state.viewRun.task?.result;
   const occurrence = id => current()?.occurrences.find(row => row.occurrence_id===id);
   const check = () => current()?.checks.find(row => row.check_id===state.selected);
   // 分类口径只有一份：connectivity-status.js。此处不再自行判定“暂未见矛盾”。
@@ -60,47 +73,77 @@
     $('cn-documents').innerHTML = pair ? pair.documents.map(d => `<div class="cn-document"><strong>${escape(d.report_type==='AR'?'年度报告':'可持续发展 / ESG报告')} · ${escape(d.report_period||d.period)}</strong><small>${escape(d.version)}</small><a href="${sourceUrl(d.document_id,1)}" target="_blank" rel="noopener">阅读登记原件 ↗</a> <small>${escape(d.source_kind==='announcement_mirror'?'公告镜像，已单独标识':d.available?'本地原件已登记':'运行时从已登记官方来源取得')}</small></div>`).join('') : '';
   }
 
-  async function poll(taskId, generation=state.generation) {
-    try {
-      const task = await api(`/runs/${encodeURIComponent(taskId)}`);
-      if (generation!==state.generation) return;
-      state.pollFailures=0;state.task = task; renderProgress(task);
-      if (['queued','running'].includes(task.status)) {
-        document.dispatchEvent(new CustomEvent('audittrace:connectivity-task', {detail:task}));
-        busy(true); state.timer = setTimeout(() => poll(taskId, generation), 1800); return;
-      }
-      busy(false); $('cn-cancel').disabled = true;
-      if (task.result) {
-        render();
-        document.dispatchEvent(new CustomEvent('audittrace:connectivity-task', {detail:task}));
-        message(task.result.matter_schema_version ? `${labels[task.status]||task.status}。${task.result.matters.length}项事项，已深查${task.result.matter_overview?.investigated||0}项；模型状态：${task.result.model_status}。` : `${labels[task.status]||task.status}。${task.result.occurrences.length}处候选、${task.result.checks.length}项关系；模型状态：${labels[task.result.model_status]||task.result.model_status}。`);
-      } else {
-        document.dispatchEvent(new CustomEvent('audittrace:connectivity-task', {detail:task}));
-        document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error', {detail:{task_id:task.task_id, status:task.status,
-          message:task.error || `任务${labels[task.status]||task.status}；未生成可读取结果。`}}));
-        message(task.error || `任务${labels[task.status]||task.status}；未生成可读取结果。`, true);
-      }
-    } catch (error) {
-      if (generation!==state.generation) return;
-      if ([404,410].includes(error.status)) {
-        busy(false); localStorage.removeItem('audittrace-connectivity-task');
-        document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error', {detail:{task_id:taskId, status:'expired',
-          message:error.status===410?'该任务已过期，服务端不再保留结果。':'该任务不存在，或当前浏览器无权读取。', code:error.status}}));
-        message(`原任务无法取得：${error.message}。可以显式开始新运行。`, true); return;
-      }
-      if (error.status===403) {
-        busy(false);
-        document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error', {detail:{task_id:taskId, status:'forbidden',
-          message:'当前浏览器无权读取该任务；请用创建任务的浏览器打开，或新建一次核验。', code:403}}));
-        message('当前浏览器无权读取该任务。', true); return;
-      }
-      $('cn-progress-state').textContent = '连接暂时中断 · 保留原阶段，正在重试读取';
-      busy(true); message(`读取暂时失败：${error.message}。保留任务编号，正在重试读取原任务。`, true);
-      state.pollFailures++;
-      if(state.pollFailures>=7){busy(false);$('cn-progress-state').textContent='读取已暂停，原任务可能仍在服务端运行';message('连续读取失败，已暂停自动轮询。原任务编号保留，重新读取不会发起模型请求。',true);$('cn-progress-details').insertAdjacentHTML('beforeend','<button type="button" id="cn-reconnect">重新读取原任务</button>');return;}
-      state.timer = setTimeout(() => poll(taskId, generation), Math.min(15000,1500*2**state.pollFailures));
-    }
+  function activeEvent() {
+    const active=state.activeRun.task;
+    document.dispatchEvent(new CustomEvent('audittrace:connectivity-active',{detail:active}));
+    busy(RS.running(active));
   }
+  async function loadView(taskId) {
+    const generation=RS.beginView(state,taskId);
+    state.selected=null;
+    rememberTask(taskId);
+    document.dispatchEvent(new CustomEvent('audittrace:connectivity-start'));
+    $('cn-results').hidden=true;
+    message('正在读取任务摘要…');
+    try {
+      let task=await api(`/runs/${encodeURIComponent(taskId)}/summary`);
+      if(!RS.isCurrent(state,taskId,generation))return;
+      // 原三角色合同保持原入口；事项主管线必须使用分层接口。
+      if(task.result?.projection_supported===false)task=await api(`/runs/${encodeURIComponent(taskId)}`);
+      if(!RS.acceptView(state,taskId,generation,task))return;
+      renderProgress(task);
+      if(task.result)render();
+      document.dispatchEvent(new CustomEvent('audittrace:connectivity-task',{detail:task}));
+      if(!task.result&&!RS.running(task))throw new Error(task.error||`任务${labels[task.status]||task.status}，无可读结果。`);
+      message(`${labels[task.status]||task.status} · ${taskId}`);
+    } catch(error) {
+      if(!RS.isCurrent(state,taskId,generation))return;
+      state.viewRun.loading=false;
+      document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{task_id:taskId,status:[404,410].includes(error.status)?'expired':error.status===403?'forbidden':'unavailable',message:error.message}}));
+      message(error.message,true);
+    }
+    activeEvent();
+  }
+  function trackActive(task) {
+    if(state.activeRun.task?.task_id===task.task_id&&state.activeRun.timer)return;
+    if(RS.running(state.activeRun.task)&&state.activeRun.task.task_id!==task.task_id)return;
+    clearTimeout(state.activeRun.timer);
+    state.activeRun.task={...task,result:undefined,company:task.company||task.result?.company||$('cn-pair').selectedOptions[0]?.textContent};
+    state.activeRun.generation++;state.activeRun.failures=0;
+    localStorage.setItem('audittrace-connectivity-active',JSON.stringify({task_id:task.task_id,company:state.activeRun.task.company}));
+    activeEvent();pollActive(task.task_id,state.activeRun.generation);
+  }
+  async function pollActive(taskId,generation) {
+    const active=state.activeRun;
+    if(active.requestGeneration===generation)return;
+    clearTimeout(active.timer);active.timer=null;active.requestGeneration=generation;
+    try {
+      const status=await api(`/runs/${encodeURIComponent(taskId)}/status`);
+      if(generation!==active.generation||active.task?.task_id!==taskId)return;
+      active.failures=0;active.task={...active.task,...status};active.timer=null;
+      activeEvent();
+      if(state.viewRun.id===taskId&&!state.viewRun.loading){
+        const visible={...state.viewRun.task,...status};state.viewRun.task=visible;renderProgress(visible);
+        document.dispatchEvent(new CustomEvent('audittrace:connectivity-task',{detail:visible}));
+      }
+      if(RS.running(status)){active.timer=setTimeout(()=>pollActive(taskId,generation),1800);}
+      else {
+        localStorage.removeItem('audittrace-connectivity-active');
+        if(state.viewRun.id===taskId)await loadView(taskId);
+        if(batchTaskId===taskId){
+          if(['failed','cancelled','interrupted'].includes(status.status)){queuedRuns=[];queueEvent();message('本次任务未完成，已停止后续批量调查。',true);}
+          else nextQueuedRun();
+        }
+      }
+    } catch(error) {
+      if(generation!==active.generation)return;
+      active.failures++;
+      active.task={...active.task,connection_error:error.message};activeEvent();
+      if(active.failures<7)active.timer=setTimeout(()=>pollActive(taskId,generation),Math.min(15000,1500*2**active.failures));
+      else {active.timer=null;message('进行中任务连接暂停，可通过固定入口重新连接；服务端任务未被取消。',true);}
+    } finally {if(active.requestGeneration===generation)active.requestGeneration=null;}
+  }
+  async function poll(taskId) {await loadView(taskId);}
 
   function renderStagebar(task) {
     const bar = $('cn-stagebar');
@@ -169,25 +212,25 @@
     $('cn-run-meta').textContent = `版本${run.result_revision} / ${modes[run.execution_mode]||run.execution_mode} / ${(run.duration_ms/1000).toFixed(1)}秒${revised?'；使用者修订未新增模型调用':run.prior_provider_calls?.length?'；本次为增量续分析':''}`;
     if(run.versions?.intelligence&&!['2026-10-18.2','2026-10-19.1','2026-10-20.3','2026-10-21.1'].includes(run.versions?.rules)) $('cn-run-meta').textContent+='；历史规则结果：范围支持与意见尚未按本次修复重验，请勿引用旧正式支持数量';
     // 任务身份置顶：公司、期间、任务、状态、版本同时可见，刷新或深链进入也不用再猜这是哪一次运行。
-    const statusText = labels[state.task.status] || state.task.status;
+    const statusText = labels[state.viewRun.task.status] || state.viewRun.task.status;
     $('cn-task-strip').innerHTML = [
-      ['任务', state.task.task_id],
+      ['任务', state.viewRun.task.task_id],
       ['公司 / 期间', `${run.company} · ${run.period}`],
       ['运行方式', modes[run.execution_mode]||run.execution_mode],
       ['状态', statusText],
       ['结果版本', `v${run.result_revision}`]
     ].map(([key, value]) => `<span><em>${escape(key)}</em>${escape(value)}</span>`).join('')
       + `<button type="button" class="cn-copy-link" data-copy-link>复制任务链接</button>`;
-    if(state.renderedTaskId!==state.task.task_id){ state.filter='all'; state.renderedTaskId=state.task.task_id; }
-    const exportBase = `/api/connectivity/runs/${encodeURIComponent(state.task.task_id)}/export`;
+    if(state.renderedTaskId!==state.viewRun.task.task_id){ state.filter='all'; state.renderedTaskId=state.viewRun.task.task_id; }
+    const exportBase = `/api/connectivity/runs/${encodeURIComponent(state.viewRun.task.task_id)}/export`;
     // 导出名称写清“导出什么”，并标出本次运行方式；不把条件试算混进正式差额。
     const exportNames = {docx:'Word 核对报告',csv:'CSV 关系明细',json:'JSON 全部结果'};
     const runType = modes[run.execution_mode] || run.execution_mode || '运行方式未登记';
     $('cn-exports').innerHTML = `<span class="cn-export-note" title="导出内容与本次运行方式一致">${escape(runType)}</span>`
       + ['docx','csv','json'].map(format => `<a href="${exportBase}/${format}" title="${escape(exportNames[format])} · ${escape(runType)}">${escape(exportNames[format])}</a>`).join('')
-      + (state.task.can_modify ? `<a href="${exportBase}/json?private=1" title="仅本人可见：导出含个人观察正文">JSON（含个人观察）</a>` : '');
+      + (state.viewRun.task.can_modify ? `<a href="${exportBase}/json?private=1" title="仅本人可见：导出含个人观察正文">JSON（含个人观察）</a>` : '');
     if (run.matter_schema_version) {
-      window.AuditTraceMatters.render(state.task);
+      window.AuditTraceMatters.render(state.viewRun.task);
       return;
     }
     window.AuditTraceMatters?.activateLegacy();
@@ -198,13 +241,13 @@
     }
     renderOverview(); renderList(); renderDetail(); renderFindings(); renderCoverage(); renderUserRecords(); renderTimeline();
     if ($('cn-all-count')) $('cn-all-count').textContent = `${run.checks.length} 项 · 条件、计算、原文位置与待查问题`;
-    $('cn-revisions').innerHTML = `<p>父运行：${escape(run.parent_run_id||'无，原始自动运行')}。当前版本${run.result_revision}。${state.task.parent_task_id?`<a href="?connectivity_task=${encodeURIComponent(state.task.parent_task_id)}" target="_blank" rel="noopener">打开修订前记录 ↗</a>`:''}</p>` + run.reviews.map(r => `<details><summary>${escape(r.created_at)} · ${escape(r.actor)} · ${escape(r.reason)}</summary><p>操作：${escape({relationship_correction:'关系更正',personal_observation:'个人观察',reading_confirmation:'阅读确认',ai_accept:'采纳AI意见',ai_reject:'驳回AI意见'}[r.action]||r.action)}；${escape(r.check_id)}</p><h4>修订前</h4>${reviewRecord(r.before)}<h4>修订后</h4>${reviewRecord(r.after)}</details>`).join('');
+    $('cn-revisions').innerHTML = `<p>父运行：${escape(run.parent_run_id||'无，原始自动运行')}。当前版本${run.result_revision}。${state.viewRun.task.parent_task_id?`<a href="?connectivity_task=${encodeURIComponent(state.viewRun.task.parent_task_id)}" target="_blank" rel="noopener">打开修订前记录 ↗</a>`:''}</p>` + run.reviews.map(r => `<details><summary>${escape(r.created_at)} · ${escape(r.actor)} · ${escape(r.reason)}</summary><p>操作：${escape({relationship_correction:'关系更正',personal_observation:'个人观察',reading_confirmation:'阅读确认',ai_accept:'采纳AI意见',ai_reject:'驳回AI意见'}[r.action]||r.action)}；${escape(r.check_id)}</p><h4>修订前</h4>${reviewRecord(r.before)}<h4>修订后</h4>${reviewRecord(r.after)}</details>`).join('');
   }
 
   function renderOverview() {
     const run = current(); if (!run) return;
-    window.AuditTraceWorkbench.renderOverview(run, state.task, state.selected);
-    window.CNAuditGraph?.render(run, {taskId:state.task.task_id});
+    window.AuditTraceWorkbench.renderOverview(run, state.viewRun.task, state.selected);
+    window.CNAuditGraph?.render(run, {taskId:state.viewRun.task.task_id});
   }
   function renderRelation() { window.AuditTraceWorkbench.select(state.selected); }
   function priorityBadge(priority) {
@@ -307,10 +350,10 @@
     if(!opinion) {
       const legacy=(run.ai_opinions||[]).find(a=>a.check_id===c.check_id);
       if(legacy&&!run.versions?.intelligence) return aiOpinionBlock(c);
-      return `<section class="cn-ai-opinion"><h3>AI分析意见</h3><p>${run.execution_mode==='calculation_only'?'本次仅计算，未调用模型。程序结果与原文可继续查看。':'该关系尚未保存有效模型研判，已完成的程序结果仍可查看。'}</p>${run.execution_mode!=='calculation_only'&&state.task.can_modify?'<button type="button" data-cn-reanalyze>续分析未完成项</button>':''}</section>`;
+      return `<section class="cn-ai-opinion"><h3>AI分析意见</h3><p>${run.execution_mode==='calculation_only'?'本次仅计算，未调用模型。程序结果与原文可继续查看。':'该关系尚未保存有效模型研判，已完成的程序结果仍可查看。'}</p>${run.execution_mode!=='calculation_only'&&state.viewRun.task.can_modify?'<button type="button" data-cn-reanalyze>续分析未完成项</button>':''}</section>`;
     }
     const list=(title,values)=>values?.length?`<h4>${title}</h4><ul>${values.map(v=>`<li>${escape(v)}</li>`).join('')}</ul>`:'';
-    return `<section class="cn-ai-opinion" data-tendency="${escape(tendency?.tone||'neutral')}" aria-label="AI分析意见"><div class="cn-ai-heading"><h3>AI 分析意见</h3><small>模型判定：${escape(aiVerdicts[opinion.verdict]||opinion.verdict)} · 仅供核查参考</small></div>${opinion.status==='needs_refresh'?`<p class="cn-rejected">证据或计算已变化，下列为原意见，待重新分析。</p>${state.task.can_modify?'<button type="button" data-cn-reanalyze>重新分析受影响项</button>':''}`:''}<p class="cn-ai-summary">${escape(opinion.summary)}</p>${list('判断依据',opinion.reasons)}${refs(opinion.supporting_evidence)}${list('成立所需假设',opinion.assumptions)}${opinion.counter_evidence?.length?`<h4>相反证据</h4>${escapedRefs(opinion.counter_evidence)}${refs(opinion.counter_evidence)}`:''}${list('其他可能解释',opinion.alternative_explanations)}${list('下一步',opinion.next_actions)}<details><summary>来源与意见记录</summary>${escapedRefs(opinion.supporting_evidence)}<p>${escape(opinion.producer_role)} · ${escape(opinion.producer_model||'原记录未登记模型')}${opinion.inherited_from_run_id?' · 复用原运行意见':' · 本次生成'}</p><p>分析依据：${escape({high:'较强',medium:'中等',low:'较弱'}[opinion.analysis_quality])}。${escape((opinion.quality_reasons||[]).join('；'))}</p><p>使用者处理：${escape({unreviewed:'未作采纳记录',accepted:'已采纳为核查参考',rejected:'已驳回'}[opinion.review_status])}</p></details></section>`;
+    return `<section class="cn-ai-opinion" data-tendency="${escape(tendency?.tone||'neutral')}" aria-label="AI分析意见"><div class="cn-ai-heading"><h3>AI 分析意见</h3><small>模型判定：${escape(aiVerdicts[opinion.verdict]||opinion.verdict)} · 仅供核查参考</small></div>${opinion.status==='needs_refresh'?`<p class="cn-rejected">证据或计算已变化，下列为原意见，待重新分析。</p>${state.viewRun.task.can_modify?'<button type="button" data-cn-reanalyze>重新分析受影响项</button>':''}`:''}<p class="cn-ai-summary">${escape(opinion.summary)}</p>${list('判断依据',opinion.reasons)}${refs(opinion.supporting_evidence)}${list('成立所需假设',opinion.assumptions)}${opinion.counter_evidence?.length?`<h4>相反证据</h4>${escapedRefs(opinion.counter_evidence)}${refs(opinion.counter_evidence)}`:''}${list('其他可能解释',opinion.alternative_explanations)}${list('下一步',opinion.next_actions)}<details><summary>来源与意见记录</summary>${escapedRefs(opinion.supporting_evidence)}<p>${escape(opinion.producer_role)} · ${escape(opinion.producer_model||'原记录未登记模型')}${opinion.inherited_from_run_id?' · 复用原运行意见':' · 本次生成'}</p><p>分析依据：${escape({high:'较强',medium:'中等',low:'较弱'}[opinion.analysis_quality])}。${escape((opinion.quality_reasons||[]).join('；'))}</p><p>使用者处理：${escape({unreviewed:'未作采纳记录',accepted:'已采纳为核查参考',rejected:'已驳回'}[opinion.review_status])}</p></details></section>`;
   }
 
   function explanationBlock(c) {
@@ -414,8 +457,8 @@
     $('cn-pane-positions').innerHTML = `<h3 class="cn-section-h">解释与反证</h3>${explanationBlock(c)}<h3 class="cn-section-h">关系依据</h3><div class="cn-explanation">${escapedRefs(c.relationship_evidence)}</div>${positionsBlock(c)}`;
     $('cn-pane-questions').querySelector('#cn-findings') && renderFindings();
     $('cn-revision-actions').innerHTML = `<p>更正成员、前提依据并重算：原始自动结果保留，更正生成子版本；修订不等于正式专业批准。</p><button type="button" id="cn-edit" data-edit="1">更正成员、关系依据并重算</button>`;
-    $('cn-edit').disabled = state.task.can_modify===false;
-    $('cn-edit').title = state.task.can_modify===false ? '当前浏览器可阅读，创建任务的浏览器可更正' : '';
+    $('cn-edit').disabled = state.viewRun.task.can_modify===false;
+    $('cn-edit').title = state.viewRun.task.can_modify===false ? '当前浏览器可阅读，创建任务的浏览器可更正' : '';
     // 专业视图默认展开计算明细；白话视图保持收起，但两种视图的关系数与程序结论完全相同。
     const expand = state.lens==='professional';
     document.querySelectorAll('#cn-detail details.cn-detail-block').forEach(node => { node.open = expand; });
@@ -437,7 +480,7 @@
   function renderCoverage() {
     const run = current(); if (!run) return;
     $('cn-coverage').innerHTML = run.coverage.map(c => `<p>${escape(c.document_id)}：${c.total_pages}页 / 解析${c.parsed_pages}页 / 实际搜索${c.searched_pages.length}页 / 候选${c.discovered_count}处。失败：${escape(c.failed_pages.map(f => `第${f.page}页 ${f.reason}`).join('；')||'无记录')}。</p>`).join('');
-    window.AuditTraceWorkbench.renderCollaboration(run, state.task);
+    window.AuditTraceWorkbench.renderCollaboration(run, state.viewRun.task);
     const exclusions = run.extraction_exclusions || [];
     $('cn-exclusions').innerHTML = `<h4>已提取但未计入（${exclusions.length}处）</h4>` + (exclusions.length ? `<p class="cn-muted">这些位置不作为“没有披露”的证据，也不进入候选筛选。</p><ul class="cn-excluded">${exclusions.slice(0,40).map(e => `<li>${escape(e.document_id)} · PDF ${e.pdf_page} · ${escape(e.label)} · ${escape(e.value)} ${escape(e.unit)} · ${escape(e.reason)}</li>`).join('')}</ul>` : '<p class="cn-muted">本次没有达到候选门槛后被排除的位置。</p>');
     $('cn-agents').innerHTML = (run.versions?.result_origin==='user_revision' ? '<p>本次为使用者修订，以下沿用原调用记录。</p>' : run.prior_provider_calls?.length ? '<p>以下为本次续分析调用；复用意见保留原模型身份，历史用量不重复计入。</p>' : '') + `<p>实际模型状态：${escape(labels[run.model_status]||run.model_status)}；发出调用${run.provider_calls.filter(c => c.performed).length}次。</p>` + run.agent_steps.map(s => `<p><strong>${escape(s.role)}</strong> ${escape(labels[s.status]||s.status)} · 新增关系${s.new_check_ids?.length||0}项 / 更新${s.updated_check_ids?.length||0}项 / 新证据${s.added_evidence_ids?.length||0}处 · 采纳${s.accepted_check_ids?.length||0}项 / 拒绝${s.rejected?.length||0}项 · AI研判${s.accepted_analysis_ids?.length||0}项 · 计算方案${s.calculation_plan_ids?.length||0}项 · 调节建议${s.adjustment_check_ids?.length||0}项${s.failure_code?' · '+escape(s.failure_code):''}${(s.analysis_rejections||[]).map(r=>`<br>意见未采纳：${escape(r.reason)}`).join('')}</p>`).join('') + run.provider_calls.map(c => `<p>${escape(c.role)}：${escape(c.model||c.failure_code||'未配置')}${c.failure_message?' · '+escape(c.failure_message):''}；输入${c.input_tokens??'未知'} / 输出${c.output_tokens??'未知'} tokens；费用${c.cost??'未计价'}。</p>`).join('');
@@ -469,8 +512,8 @@
 
   function renderUserRecords() {
     const run = current();
-    $('cn-save-review').disabled = state.task.can_modify===false;
-    if (state.task.can_modify===false) $('cn-review-message').textContent = '当前为只读记录；创建任务的浏览器可保存更正与观察。';
+    $('cn-save-review').disabled = state.viewRun.task.can_modify===false;
+    if (state.viewRun.task.can_modify===false) $('cn-review-message').textContent = '当前为只读记录；创建任务的浏览器可保存更正与观察。';
     $('cn-review-checks').innerHTML = run.checks.map(c => `<label><input type="checkbox" name="review-check" value="${escape(c.check_id)}"> ${escape(c.title)}</label>`).join('');
     const count = run.personal_observation_count ?? (run.professional_notes||[]).length;
     $('cn-personal-notes').innerHTML = (run.professional_notes||[]).map(n => `<article class="cn-finding"><strong>个人观察 · ${escape(n.check_id)}</strong><p>${escape(n.observation)}</p><small>${escape(n.actor)} · ${escape(n.created_at)} · 理由：${escape(n.reason)}</small></article>`).join('') || (count ? `<p class="cn-muted">存在${count}条个人观察；当前视图不展示正文，仅本人可展开。</p>` : '<p class="cn-muted">本次尚无个人观察记录。</p>');
@@ -635,9 +678,9 @@
 
   // ---- 事件 ----
   async function copyTaskLink() {
-    if (!state.task) return;
+    if (!state.viewRun.task) return;
     const url = new URL(location.href);
-    url.searchParams.set('connectivity_task', state.task.task_id);
+    url.searchParams.set('connectivity_task', state.viewRun.task.task_id);
     url.hash = 'connectivity-root';
     const text = url.toString();
     try {
@@ -649,10 +692,11 @@
   }
   async function startRun(extra={}) {
     if(state.submitting) return;
+    if(RS.running(state.activeRun.task)){message('已有进行中任务，请通过固定入口查看或明确取消。',true);return;}
     const topics = [...document.querySelectorAll('#cn-form input[name="topic"]:checked')].map(n => n.value);
     if (!topics.length) { message('至少选择一个关注事项。', true); return; }
-    state.pollFailures=0;state.submitting=true;
-    clearTimeout(state.timer); state.generation++; state.selected=null; state.task=null; busy(true);
+    state.activeRun.failures=0;state.submitting=true;
+    state.selected=null; busy(true);
     document.dispatchEvent(new CustomEvent('audittrace:connectivity-start'));
     $('cn-results').hidden=true; $('cn-progress').hidden=true; $('cn-cancel').disabled=true;
     message('正在提交核验请求；收到任务编号后展示实际阶段。');
@@ -661,19 +705,23 @@
       const task = await api('/runs', {method:'POST', headers:{'Idempotency-Key':crypto.randomUUID()},
         body:JSON.stringify(requestBody)});
       document.dispatchEvent(new CustomEvent('audittrace:connectivity-created',{detail:{task_id:task.task_id}}));
-      rememberTask(task.task_id); await poll(task.task_id);
-    } catch (error) { message(error.message, true); busy(false); document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{status:error.preflight?'preflight_failed':'failed',message:error.message,code:error.code,documents:error.documents}})); }
+      trackActive(task); rememberTask(task.task_id); await loadView(task.task_id);
+    } catch (error) { if(batchStarting){queuedRuns=[];queueEvent();}message(error.message, true); busy(false); document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error',{detail:{status:error.preflight?'preflight_failed':'failed',message:error.message,code:error.code,documents:error.documents}})); }
     finally { state.submitting=false; }
   }
   document.addEventListener('audittrace:connectivity-start-run',e=>startRun(e.detail||{}));
-  document.addEventListener('click',e=>{if(e.target.closest('#cn-reconnect')){const id=state.task?.task_id||localStorage.getItem('audittrace-connectivity-task');if(id){state.pollFailures=0;poll(id);}}});
-  $('cn-form').addEventListener('submit', event => { event.preventDefault(); startRun(); });
+  document.addEventListener('click',e=>{if(e.target.closest('#cn-reconnect')){const id=state.activeRun.task?.task_id;if(id){clearTimeout(state.activeRun.timer);state.activeRun.failures=0;pollActive(id,state.activeRun.generation);}}});
+  $('cn-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const mode=$('cn-mode').value,matterScope=mode==='five_agents'||($('cm-matter-scope')?.checked&&mode!=='adaptive_agents');
+    startRun(matterScope?{mode:'calculation_only'}:{});
+  });
   $('cn-stagebar').addEventListener('click', event => {
     if (!event.target.closest('#cn-retry')) return;
     // 失败阶段的可读原因已在运行记录；重试是对同一报告对重新发起，不覆盖原失败任务。
-    startRun({retry_of_task_id: state.task?.task_id});
+    startRun({retry_of_task_id: state.viewRun.task?.task_id});
   });
-  $('cn-cancel').addEventListener('click', async () => { if (!state.task) return; try { await api(`/runs/${encodeURIComponent(state.task.task_id)}/cancel`, {method:'POST'}); await poll(state.task.task_id); } catch (error) { message(error.message, true); } });
+  $('cn-cancel').addEventListener('click', async () => { if (!RS.running(state.activeRun.task)) return; try { const id=state.activeRun.task.task_id; await api(`/runs/${encodeURIComponent(id)}/cancel`, {method:'POST'}); await pollActive(id,state.activeRun.generation); } catch (error) { message(error.message, true); } });
   document.addEventListener('audittrace:select-pair', async event => {
     try {
       state.bootstrap=await api('/bootstrap');
@@ -685,7 +733,8 @@
   });
   $('cn-pair').addEventListener('change', () => {
     state.pendingPair=true;
-    if(state.task?.result?.matter_schema_version){state.task=null;state.selected=null;$('cn-results').hidden=true;document.dispatchEvent(new CustomEvent('audittrace:connectivity-reset'));}
+    state.viewRun.generation++;state.viewRun.id=null;state.viewRun.loading=false;
+    if(state.viewRun.task?.result?.matter_schema_version){state.viewRun.task=null;state.selected=null;$('cn-results').hidden=true;document.dispatchEvent(new CustomEvent('audittrace:connectivity-reset'));}
     reportCards();
     message('已选择下一组报告；当前结果仍属于原任务。点击开始才会创建新核验。');
   });
@@ -706,18 +755,13 @@
   // 历史记录、前进/后退与深链都通过同一条读取路径，避免出现“刷新回到选择页”。
   document.addEventListener('audittrace:connectivity-select-check', event => {
     const {check_id,task_id}=event.detail||{};
-    if (task_id!==state.task?.task_id || !current()?.checks.some(c=>c.check_id===check_id)) return;
+    if (task_id!==state.viewRun.task?.task_id || !current()?.checks.some(c=>c.check_id===check_id)) return;
     state.selected=check_id; renderList(); renderDetail(); renderFindings();
   });
   document.addEventListener('audittrace:connectivity-open-task', event => {
     const taskId = event.detail?.task_id;
     if (!taskId || !/^(CONNJOB|DEMO-RUN)-[A-Z0-9]{8,40}$/.test(taskId)) return;
-    clearTimeout(state.timer); state.generation++; state.selected = null; state.task=null;
-    rememberTask(taskId);
-    document.dispatchEvent(new CustomEvent('audittrace:connectivity-start'));
-    $('cn-results').hidden = true; busy(true);
-    message('正在读取任务记录…');
-    poll(taskId);
+    loadView(taskId);
   });
   document.addEventListener('audittrace:connectivity-search-open', event => {
     const {check_id, occurrence_id, trigger} = event.detail || {};
@@ -790,8 +834,8 @@
     event.preventDefault();
     const c = collectCorrection();
     try {
-      const task = await api(`/runs/${encodeURIComponent(state.task.task_id)}/corrections`, {method:'POST', body:JSON.stringify({expected_revision:current().result_revision, check:c, reason:$('cn-correction-reason').value, actor:'演示使用者', action_id:crypto.randomUUID()})});
-      $('cn-correction').close(); clearTimeout(state.timer); state.generation++; rememberTask(task.task_id); await poll(task.task_id);
+      const task = await api(`/runs/${encodeURIComponent(state.viewRun.task.task_id)}/corrections`, {method:'POST', body:JSON.stringify({expected_revision:current().result_revision, check:c, reason:$('cn-correction-reason').value, actor:'演示使用者', action_id:crypto.randomUUID()})});
+      $('cn-correction').close(); rememberTask(task.task_id); await poll(task.task_id);
     } catch (error) { $('cn-correction-message').textContent = error.message; }
   });
   $('cn-review-action').addEventListener('change', () => {
@@ -808,11 +852,11 @@
     if (action==='personal_observation' && !window.confirm('个人观察保存后可能随任务链接被他人读取；公共视图只显示条数。确认保存？')) return;
     $('cn-save-review').disabled = true;
     try {
-      const task = await api(`/runs/${encodeURIComponent(state.task.task_id)}/reviews`, {method:'POST', body:JSON.stringify({expected_revision:current().result_revision, action, check_ids:ids, reason:$('cn-review-reason').value, observation:$('cn-observation').value, actor:'公开报告使用者', action_id:crypto.randomUUID()})});
-      clearTimeout(state.timer); state.generation++; rememberTask(task.task_id); await poll(task.task_id);
+      const task = await api(`/runs/${encodeURIComponent(state.viewRun.task.task_id)}/reviews`, {method:'POST', body:JSON.stringify({expected_revision:current().result_revision, action, check_ids:ids, reason:$('cn-review-reason').value, observation:$('cn-observation').value, actor:'公开报告使用者', action_id:crypto.randomUUID()})});
+      rememberTask(task.task_id); await poll(task.task_id);
       $('cn-review-reason').value=''; $('cn-observation').value=''; $('cn-review-message').textContent='已保存新版本，原结果和未决条件均保留。';
     } catch (error) { $('cn-review-message').textContent = error.message; }
-    finally { $('cn-save-review').disabled = state.task.can_modify===false; }
+    finally { $('cn-save-review').disabled = state.viewRun.task.can_modify===false; }
   });
   $('cn-close-correction').addEventListener('click', () => $('cn-correction').close());
 
@@ -825,7 +869,7 @@
       if(ids?.length&&!ids.includes(state.selected)) state.selected=ids[0];
       renderOverview(); renderList(); renderDetail();
     }
-    if(event.target.closest('[data-cn-reanalyze]')&&state.task.can_modify) startRun({retry_of_task_id:state.task.task_id});
+    if(event.target.closest('[data-cn-reanalyze]')&&state.viewRun.task.can_modify) startRun({retry_of_task_id:state.viewRun.task.task_id});
   });
 
   (async () => {
@@ -844,7 +888,13 @@
         if (document.documentElement.dataset.connectivityWorkspaceReady === 'true') resolve();
         else document.addEventListener('audittrace:connectivity-workspace-ready', resolve, {once:true});
       });
-      if (saved) { rememberTask(saved); await poll(saved); }
+      let activeSaved;try{activeSaved=JSON.parse(localStorage.getItem('audittrace-connectivity-active')||'null');}catch{}
+      if(activeSaved?.task_id)trackActive({...activeSaved,status:'running'});
+      if (saved) {
+        await loadView(saved);
+        // 仅在页面启动恢复时接续保存的活动任务；历史浏览本身不改活动状态。
+        if(!activeSaved&&RS.running(state.viewRun.task))trackActive(state.viewRun.task);
+      }
     } catch (error) { message(`工作台读取失败：${error.message}`, true);
       document.dispatchEvent(new CustomEvent('audittrace:connectivity-task-error', {detail:{status:'unavailable',
         message:`工作台读取失败：${error.message}。请检查服务是否启动。`}})); }

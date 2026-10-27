@@ -52,7 +52,14 @@ def reports(tmp_path, monkeypatch):
     return tmp_path,report_set
 
 
-def request(report_set,**extra):
+def request(report_set,*,root=None,**extra):
+    if root is not None and 'selected_matter_ids' not in extra:
+        from backend.app.connectivity_matters import seed_matters
+        base=RunRequest(report_set_id=report_set.report_set_id,mode='calculation_only')
+        _,docs=resolve_documents(root,base);corpus,_=read_corpus(root,docs);evidence,_=relevant_evidence(corpus)
+        candidates=seed_matters(evidence,base.matter_types)
+        selected=next((m for m in candidates if m.matter_type=='transition_project'),candidates[0])
+        extra['selected_matter_ids']=[selected.matter_id]
     return RunRequest(report_set_id=report_set.report_set_id,mode='five_agents',budget=InvestigationBudget(max_matters=1),**extra)
 
 
@@ -85,9 +92,9 @@ def fake_provider(role,payload):
 def test_multi_year_set_and_legacy_request_contract(reports):
     root,rs=reports
     assert rs.periods==['2023','2024','2025']
-    assert request(rs).analysis_scope=='matter_connectivity'
+    assert request(rs,root=root).analysis_scope=='matter_connectivity'
     assert RunRequest(pair_id='SYN-2025').mode=='three_agents'
-    assert len(resolve_documents(root,request(rs))[1])==6
+    assert len(resolve_documents(root,request(rs,root=root))[1])==6
     with pytest.raises(ValueError):RunRequest(pair_id='SYN-2025',report_set_id=rs.report_set_id)
 
 
@@ -103,7 +110,7 @@ def test_as_of_rejects_future_or_missing_disclosure(reports):
 
 
 def test_no_amount_climate_narrative_is_indexed(reports):
-    root,rs=reports;_,docs=resolve_documents(root,request(rs))
+    root,rs=reports;_,docs=resolve_documents(root,request(rs,root=root))
     corpus,coverage=read_corpus(root,docs)
     assert any('极端天气' in e.quote for e in corpus)
     seed,meta=relevant_evidence(corpus)
@@ -112,7 +119,7 @@ def test_no_amount_climate_narrative_is_indexed(reports):
 
 
 def test_bm25_alias_filters_and_honest_semantic_status(reports):
-    root,rs=reports;_,docs=resolve_documents(root,request(rs));corpus,_=read_corpus(root,docs)
+    root,rs=reports;_,docs=resolve_documents(root,request(rs,root=root));corpus,_=read_corpus(root,docs)
     result=search_corpus(corpus,'减值',report_type='AR',periods=['2024'])
     assert result['evidence'] and {e['report_period'] for e in result['evidence']}=={'2024'}
     assert result['semantic_status']=='not_configured'
@@ -121,7 +128,7 @@ def test_bm25_alias_filters_and_honest_semantic_status(reports):
 
 def test_five_roles_tool_feedback_and_supported_cap(reports):
     root,rs=reports;checkpoints=[]
-    run=run_matter_pipeline(root,request(rs),caller=fake_provider,checkpoint=lambda r:checkpoints.append(len(r.provider_calls)))
+    run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider,checkpoint=lambda r:checkpoints.append(len(r.provider_calls)))
     assert set(t['role'] for t in run.matter_tasks)=={'A1','A2','A3','A4','A5'}
     assert len(run.provider_calls)==6 and run.matter_tool_receipts
     assert run.matter_paths[0].support=='limited'
@@ -138,7 +145,7 @@ def test_parallel_workers_share_one_call_budget(reports):
         with guard:calls.append(role)
         time.sleep(.01)
         return fake_provider(role,payload)
-    req=request(rs);req.budget.max_provider_calls=3
+    req=request(rs,root=root);req.budget.max_provider_calls=3
     run=run_matter_pipeline(root,req,caller=caller)
     assert len(calls)==len(run.provider_calls)==3
     assert run.versions['budget']['remaining']==0
@@ -159,7 +166,7 @@ def test_schema_repair_is_bounded_and_preserves_failure_receipt(reports, persist
                     'performed':True,'request_attempted':True,'retryable':False,
                     'invalid_fields':[{'location':['tool_arguments'],'type':'json_invalid'}]})
         return fake_provider(role,payload)
-    run=run_matter_pipeline(root,request(rs),caller=caller)
+    run=run_matter_pipeline(root,request(rs,root=root),caller=caller)
     assert len(attempts)==2
     assert attempts[1]['output_validation_feedback']['code']=='MODEL_SCHEMA_INVALID'
     receipts=[c for c in run.provider_calls if c['role']=='A3']
@@ -179,11 +186,11 @@ def test_last_tool_feedback_gets_one_bounded_final_synthesis(reports, ignores_fi
                 from backend.app.connectivity_matter_schemas import MatterToolCall
                 output.tool_requests=[MatterToolCall(tool_name='lookup_ontology_rule',arguments={'keyword':'减值'},reason='核查专业规则')]
         return output,record
-    run=run_matter_pipeline(root,request(rs),caller=caller)
-    assert len(calls)==3 and calls[-1]['finalize_only']
+    run=run_matter_pipeline(root,request(rs,root=root),caller=caller)
+    assert len(calls)==2 and calls[-1]['finalize_only']
     task=next(t for t in run.matter_tasks if t['role']=='A1')
     assert task['status']==('partial' if ignores_finalization else 'completed')
-    assert len([c for c in run.provider_calls if c['role']=='A1'])==3
+    assert len([c for c in run.provider_calls if c['role']=='A1'])==2
 
 
 def test_unsupported_commitment_year_is_rejected_then_corrected(reports):
@@ -197,7 +204,7 @@ def test_unsupported_commitment_year_is_rejected_then_corrected(reports):
                 output.commitments=[MatterCommitment(commitment_id='invalid-year',matter_id=payload['matter_id'],
                     label='没有原文支持的年份',proposed_period='2025',target_year='2099',evidence_ids=[payload['evidence'][0]['evidence_id']])]
         return output,record
-    run=run_matter_pipeline(root,request(rs),caller=caller)
+    run=run_matter_pipeline(root,request(rs,root=root),caller=caller)
     assert len(attempts)==2 and attempts[-1]['evidence_validation_feedback']
     assert not any(c.target_year=='2099' for c in run.matter_commitments)
     assert any('承诺年份没有原文支持' in r.get('reason','') for r in run.matter_rejections)
@@ -206,7 +213,7 @@ def test_unsupported_commitment_year_is_rejected_then_corrected(reports):
 
 @pytest.mark.parametrize('role', ['A2','A3'])
 def test_relations_follow_canonical_ids_in_the_same_proposal(reports, role):
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     matter=next(m for m in run.matters if m.identity_status=='evidence_linked')
     b=next(e for e in run.matter_evidence if e.evidence_id in matter.evidence_ids)
     proposal={'matter_id':matter.matter_id,'relations':[{'edge_id':'test-edge','matter_id':matter.matter_id,
@@ -225,7 +232,7 @@ def test_relations_follow_canonical_ids_in_the_same_proposal(reports, role):
 
 @pytest.mark.parametrize('source', ['unknown-endpoint','ambiguous'])
 def test_unknown_or_ambiguous_endpoint_is_still_rejected_atomically(reports, source):
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     matter=next(m for m in run.matters if m.identity_status=='evidence_linked')
     b=next(e for e in run.matter_evidence if e.evidence_id in matter.evidence_ids)
     event={'event_id':'ambiguous','matter_id':matter.matter_id,'kind':'action','label':'行动线索',
@@ -241,39 +248,39 @@ def test_unknown_or_ambiguous_endpoint_is_still_rejected_atomically(reports, sou
 
 
 def test_completed_resume_reuses_roles_without_new_provider_calls(reports):
-    root,rs=reports;parent=run_matter_pipeline(root,request(rs),caller=fake_provider);progress=[]
-    child=run_matter_pipeline(root,request(rs),caller=fake_provider,resume=parent,
+    root,rs=reports;parent=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider);progress=[]
+    child=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider,resume=parent,
         agent_progress=lambda role,status,detail:progress.append((role,status)))
     assert not child.provider_calls and len(child.prior_provider_calls)==len(parent.provider_calls)
     assert {role for role,status in progress if status=='reused'}=={'A1','A2','A3','A4','A5'}
 
 
 def test_resume_marks_old_running_role_interrupted_without_changing_parent(reports):
-    root,rs=reports;parent=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    root,rs=reports;parent=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     matter=next(m for m in parent.matters if m.investigation_status=='completed');matter.investigation_status='partial'
     parent.matter_tasks.append({'task_id':'old-inflight','role':'A2','matter_id':matter.matter_id,'status':'running'})
-    child=run_matter_pipeline(root,request(rs),caller=fake_provider,resume=parent)
+    child=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider,resume=parent)
     assert parent.matter_tasks[-1]['status']=='running'
     assert next(t for t in child.matter_tasks if t.get('task_id')=='old-inflight')['status']=='interrupted'
 
 
 def test_missing_key_never_creates_fake_role_completion(reports,monkeypatch):
     root,rs=reports;monkeypatch.delenv('DEEPSEEK_API_KEY',raising=False)
-    run=run_matter_pipeline(root,request(rs))
+    run=run_matter_pipeline(root,request(rs,root=root))
     assert run.model_status=='five_agents_partial' and not run.provider_calls
     assert all(t['status']=='skipped' for t in run.matter_tasks)
 
 
 def test_planning_groups_uninvestigated_candidates_instead_of_inventing_findings(reports):
     from backend.app.connectivity_assurance_planning import build_assurance_planning
-    root,rs=reports;req=request(rs);req.mode='calculation_only'
+    root,rs=reports;req=request(rs,root=root);req.mode='calculation_only'
     run=run_matter_pipeline(root,req)
     planning=build_assurance_planning(run)
     assert len(run.matters)>1
     assert len(planning['risk_findings'])==1
     assert planning['risk_findings'][0]['matter_ids']==[]
     assert '初筛候选尚未深查' in planning['risk_findings'][0]['reason']
-    investigated=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    investigated=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     planning=build_assurance_planning(investigated)
     assert {mid for row in planning['risk_findings'] for mid in row['matter_ids']}=={a.matter_id for a in investigated.matter_assessments}
 
@@ -292,7 +299,7 @@ def test_role_proposals_reject_identity_and_evidence_errors(reports,bad_kind):
 
 
 def test_human_split_preserves_lineage_and_rejects_all_evidence_split(reports):
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     m=next(m for m in run.matters if m.identity_status=='evidence_linked')
     body=MatterRevisionRequest(expected_revision=1,action_id='split-operation',action='split',matter_ids=[m.matter_id],evidence_ids=m.evidence_ids,reason='测试拆分理由')
     with pytest.raises(ValueError):revise_matters(run,body)
@@ -306,7 +313,7 @@ def test_export_uses_saved_matter_records(reports):
     from backend.app.connectivity_delivery import export_run
     from docx import Document
     from io import BytesIO
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     payload,_=export_run(run,'json');assert len(json.loads(payload)['matters'])==len(run.matters)
     csv_data,_=export_run(run,'csv');assert b'matter_paths' in csv_data
     word,_=export_run(run,'docx');text=''.join(p.text for p in Document(BytesIO(word)).paragraphs)
@@ -357,7 +364,7 @@ def test_single_user_public_report_selection_and_five_agent_run_without_login(re
         assert selected.status_code==200,selected.text
         # 连续两次运行，低至1的旧日次数/token变量也不阻断演示。
         for _ in range(2):
-            created=client.post('/api/connectivity/runs',json={'report_set_id':selected.json()['report_set_id'],'mode':'five_agents','budget':{'max_matters':1}})
+            created=client.post('/api/connectivity/runs',json={'report_set_id':selected.json()['report_set_id'],'mode':'five_agents','selected_matter_ids':request(rs,root=root).selected_matter_ids,'budget':{'max_matters':1}})
             assert created.status_code==200,created.text
             tid=created.json()['task_id']
             for _ in range(200):
@@ -385,7 +392,7 @@ def test_identity_merge_rejects_generic_note_mixed_with_project(reports):
 
 
 def test_role_rejection_is_atomic_and_cannot_forge_human_review(reports):
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider);matter=run.matters[0]
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider);matter=run.matters[0]
     count=len(run.matter_paths)
     result=AgentMatterResult(matter_id=matter.matter_id,paths=[{'path_id':'new','matter_id':matter.matter_id,'financial_item':'新科目',
         'steps':[{'label':'新机制','origin':'human_review','evidence_ids':matter.evidence_ids,'support':'supported'}]}],
@@ -417,7 +424,7 @@ def test_numeric_tool_uses_registered_original_and_exposes_empty_coverage(report
 
 def test_many_to_many_relation_endpoints_survive_graph_projection(reports):
     from backend.app.connectivity_matters import finish_projection
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider);m,n=run.matters[:2]
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider);m,n=run.matters[:2]
     result=AgentMatterResult(matter_id=m.matter_id,relations=[{'edge_id':'shared','matter_id':m.matter_id,'source_id':m.matter_id,'target_id':n.matter_id,
         'relation_kind':'component_of','assertion_origin':'model_hypothesis','evidence_status':'supported','evidence_ids':m.evidence_ids}])
     integrate_result(run,m,'A2',result,1);finish_projection(run)
@@ -428,7 +435,7 @@ def test_many_to_many_relation_endpoints_survive_graph_projection(reports):
 def test_source_changes_invalidate_matter_assessment_without_overwriting_history(reports):
     from backend.app.connectivity_graph import refresh_run_sources
     from backend.app.connectivity_extraction import source_path
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     doc=next(d for d in run.documents if d.document_id==run.matter_evidence[0].document_id)
     source_path(root,doc).write_bytes(b'changed')
     changed=refresh_run_sources(root,run)
@@ -461,7 +468,7 @@ def test_scanned_pdf_is_reported_as_coverage_gap_not_no_risk(tmp_path):
 
 def test_restart_keeps_matter_checkpoint_and_real_role_order(reports):
     from backend.app.demo_run_tasks import DemoRunTaskStore
-    root,rs=reports;run=run_matter_pipeline(root,request(rs),caller=fake_provider)
+    root,rs=reports;run=run_matter_pipeline(root,request(rs,root=root),caller=fake_provider)
     directory=root/'task-restart';first=DemoRunTaskStore(directory,task_id_prefix='CONNJOB')
     task=first._new_task(rs.report_set_id,{'kind':'connectivity','analysis_scope':'matter_connectivity','mode':'five_agents','owner':'a'})
     assert set(task['agent_steps'])=={'A1','A2','A3','A4','A5'}
@@ -476,7 +483,7 @@ def test_restart_keeps_matter_checkpoint_and_real_role_order(reports):
 
 @pytest.mark.parametrize('ablation,omitted',[('no_temporal','A3'),('no_counterevidence','A4')])
 def test_ablation_does_not_fake_omitted_role(reports,ablation,omitted):
-    root,rs=reports;req=request(rs);req.ablation=ablation
+    root,rs=reports;req=request(rs,root=root);req.ablation=ablation
     run=run_matter_pipeline(root,req,caller=fake_provider)
     assert not any(c['role']==omitted for c in run.provider_calls)
     assert any(t['role']==omitted and t['status']=='skipped' for t in run.matter_tasks)

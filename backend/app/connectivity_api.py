@@ -15,6 +15,9 @@ import secrets
 import threading
 import time
 import uuid
+from collections import OrderedDict
+from copy import deepcopy
+import logging
 
 from fastapi import APIRouter, HTTPException, Request, Response, Query
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -52,6 +55,64 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     stores = {}
     directory = root / "backend/runtime/connectivity"
     directory.mkdir(parents=True, exist_ok=True)
+    result_cache = OrderedDict()
+    log = logging.getLogger(__name__)
+
+    def normalized_result(item, *, layer="full"):
+        body = item.get("result")
+        if not body or body.get("projection_supported") is False:
+            return body
+        from .connectivity_extraction import source_path
+        from .connectivity_source_cache import source_signature
+        registry = {d.document_id: d for d in load_registry(root)}
+        signatures = []
+        for original in body.get("documents", []):
+            doc = registry.get(original["document_id"])
+            try:
+                signatures.append((original["document_id"], doc.file_sha256, source_signature(source_path(root, doc))))
+            except (OSError, AttributeError, ValueError):
+                signatures.append((original["document_id"], "missing"))
+        rules = root / "backend/app/connectivity_matter_rules.json"
+        try:
+            rule_signature = source_signature(rules)
+        except OSError:
+            rule_signature = None
+        version = item.get("version", item.get("updated_at"))
+        key = (item["task_id"], version, layer, tuple(signatures), rule_signature)
+        with lock:
+            if key in result_cache:
+                result_cache.move_to_end(key)
+                log.info("connectivity_result cache=hit task=%s layer=%s version=%s", item["task_id"], layer, version)
+                return deepcopy(result_cache[key])
+        normalized = ConnectivityRun.model_validate({k: v for k, v in body.items() if k in ConnectivityRun.model_fields})
+        normalized = refresh_run_sources(root, normalized)
+        if layer == "full":
+            if normalized.matter_schema_version:
+                from .connectivity_assurance_planning import build_assurance_planning
+                normalized.assurance_planning = build_assurance_planning(normalized)
+            value = normalized.model_dump(mode="json")
+            value["overview"] = build_overview(normalized)
+        else:
+            all_fields = normalized.model_dump(mode="json")
+            value = {k: all_fields.get(k, v) for k, v in body.items()}
+            value["versions"] = all_fields["versions"]
+            if layer in {"summary", "matters"} and normalized.versions.get("source_validity", {}).get("status") == "invalid":
+                # 摘要没有证据全文，不能继续展示来源有效的旧判断。
+                value["assurance_planning"] = {}
+                for assessment in value.get("matter_assessments", []):
+                    assessment["relation_support"] = "invalid"
+                    assessment["unresolved"] = [*assessment.get("unresolved", []), "依赖来源变化，打开事项查看失效证据"]
+        value["ai_generated_content_notice"] = NOTICE
+        with lock:
+            # 版本变化即淘汰旧版本；来源变化也不积累大结果。
+            for old in list(result_cache):
+                if old[0] == item["task_id"] and (old[1] != version or old[2] == layer):
+                    del result_cache[old]
+            result_cache[key] = deepcopy(value)
+            while len(result_cache) > 16:
+                result_cache.popitem(last=False)
+        log.info("connectivity_result cache=miss task=%s layer=%s version=%s", item["task_id"], layer, version)
+        return value
 
     def store(task_id=None):
         mode = "local" if task_id and task_id.startswith("CONNJOB-") else ("supabase" if task_id or demo_task_supabase_enabled() else "local")
@@ -77,7 +138,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(403, "更正请求必须来自当前网站")
 
     def public(item: dict, request: Request | None = None) -> dict:
-        view = store(item["task_id"]).snapshot(item["task_id"])
+        view = store(item["task_id"]).snapshot(item["task_id"], item=item)
         if not view:
             raise HTTPException(404, "任务不存在")
         result = {k: v for k, v in view.items() if k not in {"run_body", "request_payload", "request_sha256", "idempotency_key_sha256"}}
@@ -90,15 +151,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         # 公共视图默认不含个人观察正文，只列条数；本人视图才展开。
         body = result.get("result")
         if isinstance(body, dict):
-            body = dict(body)
-            normalized = ConnectivityRun.model_validate({k:v for k,v in body.items() if k in ConnectivityRun.model_fields})
-            normalized = refresh_run_sources(root, normalized)
-            if normalized.matter_schema_version:
-                from .connectivity_assurance_planning import build_assurance_planning
-                normalized.assurance_planning=build_assurance_planning(normalized)
-            body = normalized.model_dump(mode="json")
-            body['overview'] = build_overview(normalized)
-            body['ai_generated_content_notice'] = NOTICE
+            body = normalized_result({**item, "result": body})
             result['result'] = body
         if isinstance(body, dict) and not is_owner:
             body = dict(body)
@@ -160,6 +213,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         rows = store().list_owned(None if single_user_enabled() else owner(request), limit=limit + 1, offset=offset)
         items = [{k: row.get(k) for k in ("task_id", "case_id", "status", "created_at", "updated_at", "result_expires_at", "run_id", "failure_code")}
                  for row in rows[:limit]]
+        for value, row in zip(items, rows):
+            value["company"] = row.get("company") or (row.get("result") or {}).get("company") or row.get("run_body", {}).get("company")
         return {"items": items, "limit": limit, "offset": offset,
                 "next_offset": offset + limit if len(rows) > limit else None,
                 "notice": NOTICE, "read_policy": "single_user_workspace" if single_user_enabled() else "known_link_public; history_session_owned"}
@@ -167,6 +222,8 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     @router.post("/runs")
     def create(body: RunRequest, request: Request):
         if body.analysis_scope=="matter_connectivity" and not matter_enabled():raise HTTPException(503,"事项调查入口已关闭；历史结果仍可读取")
+        if body.analysis_scope=="matter_connectivity" and body.mode!='calculation_only' and len(body.selected_matter_ids)!=1:
+            raise HTTPException(422, {"code":"MATTER_SELECTION_REQUIRED","message":"请先无模型建立候选档案，再选择一个具体事项启动五Agent深查。单次仅调查一个事项。"})
         if body.mode != 'calculation_only':
             from .connectivity_catalog_api import authorize_model
             authorize_model(request)
@@ -177,18 +234,19 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         case_identity = body.report_set_id or body.pair_id
         if body.analysis_scope == "matter_connectivity":
             try:
-                resolve_documents(root, body)
+                selected_set, _ = resolve_documents(root, body)
             except ValueError as error:
                 raise HTTPException(422, getattr(error, "detail", str(error))) from error
         elif body.pair_id not in {d.case_id for d in load_registry(root)}:
             raise HTTPException(404, "报告对未登记")
         runtime = store()
         run_body = {**body.model_dump(mode="json"), "kind": "connectivity", "owner": owner(request)}
+        if body.analysis_scope == "matter_connectivity":run_body['company']=selected_set.company
         resume = None
         if body.retry_of_task_id:
             original = task(body.retry_of_task_id)
             authorize(request, original)
-            snapshot = store(body.retry_of_task_id).snapshot(body.retry_of_task_id) or {}
+            snapshot = store(body.retry_of_task_id).snapshot(body.retry_of_task_id, item=original) or {}
             if original.get("case_id") != case_identity:
                 raise HTTPException(422, "重试报告对必须与原任务一致")
             if set(original.get('run_body', {}).get('topics', body.topics)) != set(body.topics):
@@ -279,22 +337,57 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     def read(task_id: str, request: Request):
         return public(task(task_id), request)
 
+    def projected(task_id, request, kind="status", matter_id=None):
+        from .supabase_adapter import SupabaseError
+        try:
+            item = store(task_id).get_projection(task_id, kind, matter_id)
+        except SupabaseError as error:
+            log.warning('connectivity_projection unavailable layer=%s code=%s',kind,error.code)
+            raise HTTPException(503, "分层读取暂不可用；请检查数据库连接、权限及connectivity_read_projection迁移。未退回全量读取。") from error
+        if not item or item.get("run_body", {}).get("kind") != "connectivity":
+            raise HTTPException(404, "关联核对任务不存在")
+        # 与完整读取保持相同可见性；分层端点不能绕开会话权限。
+        if kind != "status" or item.get("run_body", {}).get("analysis_scope") == "matter_connectivity":
+            authorize(request, item)
+        is_owner = single_user_enabled() or bool(request.cookies.get(COOKIE) and hmac.compare_digest(owner(request), item["run_body"].get("owner") or ""))
+        view = {k: v for k, v in item.items() if k != "run_body"}
+        view["can_modify"] = is_owner
+        if kind != "status":
+            view["result"] = normalized_result(item, layer=f"detail:{matter_id}" if kind == "detail" else kind)
+            if view["result"]:
+                view["result"]["projection_layer"] = kind
+        return view
+
+    @router.get("/runs/{task_id}/status")
+    def read_status(task_id: str, request: Request):
+        view = projected(task_id, request)
+        # 进度由真实阶段与角色状态投影，不复制结果或模型调用正文。
+        steps = view.get("steps") or {}
+        current_stage = next((k for k, v in steps.items() if v.get("status") == "running"), None)
+        return {"task_id": view["task_id"], "status": view["status"], "current_stage": current_stage,
+            "steps": {k: {"status": v.get("status"), "updated_at": v.get("updated_at")} for k, v in steps.items()},
+            "agent_steps": {k: {"status": v.get("status"), "updated_at": v.get("updated_at")} for k, v in (view.get("agent_steps") or {}).items()},
+            "updated_at": view["updated_at"], "version": view["version"]}
+
+    @router.get("/runs/{task_id}/summary")
+    def summary(task_id: str, request: Request):
+        return projected(task_id, request, "summary")
+
     @router.get("/runs/{task_id}/matters")
     def matters(task_id: str, request: Request):
-        item = task(task_id)
-        authorize(request, item)
-        view = public(item, request).get("result") or {}
+        item = projected(task_id, request, "matters")
+        view = item.get("result") or {}
         return {"items": view.get("matters", []), "overview": view.get("matter_overview", {}), "result_revision": view.get("result_revision")}
 
     @router.get("/runs/{task_id}/matters/{matter_id}")
     def matter_detail(task_id: str, matter_id: str, request: Request):
-        item = task(task_id)
-        authorize(request, item)
-        view = public(item, request).get("result") or {}
+        item = projected(task_id, request, "detail", matter_id)
+        view = item.get("result") or {}
         matter = next((m for m in view.get("matters", []) if m["matter_id"] == matter_id), None)
         if matter is None:
             raise HTTPException(404, "事项不存在")
-        result = {"matter": matter, "result_revision": view["result_revision"]}
+        result = {"matter": matter, "result_revision": view["result_revision"], "task_id": task_id,
+                  "version": item.get("version"), "result": view}
         for field in ("matter_events", "matter_commitments", "matter_paths", "matter_relations", "matter_explanations", "matter_assessments", "matter_tasks"):
             result[field] = [r for r in view.get(field, []) if r.get("matter_id") == matter_id]
         ids = set(matter["evidence_ids"])
@@ -320,13 +413,26 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(409, "模型调用已经开始，当前阶段不可中断；请等待实际结果")
         return public(task(task_id), request)
 
-    def readable(task_id):
+    def readable(task_id, *, force_sources=False):
         """修订与导出读取完整结果；公共视图的裁剪只在响应层做，不能反过来丢数据。"""
         item = task(task_id)
-        snapshot = store(task_id).snapshot(task_id) or {}
+        snapshot = store(task_id).snapshot(task_id, item=item) or {}
         if snapshot.get("status") not in {"completed", "degraded", "cancelled", "interrupted", "failed"} or not snapshot.get("result"):
             raise HTTPException(409, "任务尚无可读取的完成结果")
-        return item, refresh_run_sources(root, ConnectivityRun.model_validate(snapshot["result"]))
+        return item, refresh_run_sources(root, ConnectivityRun.model_validate(snapshot["result"]), force=force_sources)
+
+    @router.post("/runs/{task_id}/revalidate-sources")
+    def revalidate_sources(task_id: str, request: Request):
+        item = task(task_id)
+        authorize(request, item)
+        if not item.get("result"):
+            raise HTTPException(409, "任务尚无结果")
+        run = refresh_run_sources(root, ConnectivityRun.model_validate(item["result"]), force=True)
+        with lock:
+            for key in list(result_cache):
+                if key[0] == task_id:
+                    del result_cache[key]
+        return {"task_id": task_id, "source_validity": run.versions.get("source_validity", {"status": "valid"})}
 
     @router.post("/runs/{task_id}/matter-revisions")
     def matter_revision(task_id: str, body: MatterRevisionRequest, request: Request):
@@ -484,7 +590,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     @router.get("/runs/{task_id}/export/{format_name}")
     def export(task_id: str, format_name: str, request: Request, private: bool = False,
                scenario_price: str | None = Query(None, max_length=24), scenario_usage: str | None = Query(None, max_length=24)):
-        item, run = readable(task_id)
+        item, run = readable(task_id, force_sources=True)
         if run.matter_schema_version:
             authorize(request, item)
         if format_name not in {"json", "csv", "docx"}:
