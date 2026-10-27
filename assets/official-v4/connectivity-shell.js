@@ -108,7 +108,7 @@
   document.addEventListener('audittrace:connectivity-queue',e=>{const count=e.detail.pending,b=$('cn-clear-queue');b.hidden=!count;b.textContent=`待逐项调查 ${count} 项 · 清空等待队列`;});
   $('cn-clear-queue').addEventListener('click',()=>document.dispatchEvent(new CustomEvent('audittrace:connectivity-clear-queue')));
   function renderHistory() {
-    $('cn-history-list').innerHTML=(historyRows??savedRows()).map(row=>`<li><button type="button" data-open-task="${esc(row.id)}"><strong>${esc(row.company || row.id)}</strong><span>${esc(row.status || '状态待读取')} · ${esc(row.time || '')}</span><small>${esc(row.id)}</small></button></li>`).join('') || '<li class="at-empty">暂无可读取的历史任务。</li>';
+    $('cn-history-list').innerHTML=(historyRows??savedRows()).map(row=>`<li><button type="button" data-open-task="${esc(row.id)}"><strong>${esc(row.company || row.id)}</strong><span>${esc(row.mode==='five_agents'?'真实五Agent深查':row.mode==='calculation_only'?'原文初筛':'核查任务')} · ${esc(row.status || '状态待读取')} · ${esc(row.time || '')}</span><small>${esc(row.id)}${row.parent_id?' · 前序任务 '+esc(row.parent_id):''}</small></button></li>`).join('') || '<li class="at-empty">暂无可读取的历史任务。</li>';
   }
   async function loadHistory(more=false){
     const generation=++historyGeneration,offset=more?(historyNext??0):0;
@@ -117,7 +117,7 @@
       const response=await fetch(`/api/connectivity/runs?limit=10&offset=${offset}`,{credentials:'same-origin'}),data=await response.json();
       if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'服务端历史读取失败');
       if(generation!==historyGeneration)return;
-      const rows=data.items.map(r=>({id:r.task_id,company:r.company||r.case_id,status:window.AuditTraceViewModel.statusNames[r.status]||r.status,time:new Date(r.created_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}));
+      const rows=data.items.map(r=>({id:r.task_id,company:r.company||r.case_id,status:window.AuditTraceViewModel.statusNames[r.status]||r.status,time:new Date(r.created_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'}),mode:r.execution_mode,parent_id:r.parent_task_id}));
       historyRows=more?[...(historyRows||[]),...rows]:rows;historyOffset=offset;historyNext=data.next_offset;
       localStorage.setItem(historyKey,JSON.stringify(historyRows.slice(0,30)));renderHistory();
       $('cn-history-state').textContent='已读取服务端记录';$('cn-history-more').hidden=historyNext==null;
