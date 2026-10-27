@@ -33,6 +33,8 @@ def test_role_schema_rejects_another_roles_output(role,expected):
 def test_provider_errors_identify_role_and_field(monkeypatch,kind,code,path):
     import backend.app.connectivity_matter_agents as agents
     monkeypatch.setenv('DEEPSEEK_API_KEY','synthetic-key-not-a-credential')
+    # Allow the mocked provider response to reach the validation branches without external I/O.
+    monkeypatch.setenv('AUDITTRACE_DEMO_USE_EXTERNAL_MODEL','true')
     args='{' if kind=='json' else json.dumps({'matter_id':'','summary':'x','matters':[]})
     message={'tool_calls':[] if kind=='tool' else [{'function':{'name':'submit_matter_investigation','arguments':args}}]}
     raw=json.dumps({'choices':[{'message':message,'finish_reason':'tool_calls'}]}).encode()
