@@ -181,6 +181,38 @@ def _extract_reconciliation(root: Path, annual_doc, relevant_pages):
             "note": "已定位到真实附注线索，但未成功以表头及单行单元格确认全部金额；禁止使用事先填好的数字代替提取结果。"}
 
 
+def _disclosure_timeline(root: Path, documents, reconciliation):
+    """Read-only presentation projection from SHA-verified pages; no inferred dates."""
+    from .connectivity_extraction import ensure_source
+    import pymupdf
+    rows = []
+    if reconciliation.get("source_row_matched"):
+        rows.append({"kind": "subproject_annual", "date_label": "2025 报告期间",
+            "label": "炼钢子工程本期增加与转固", "note": "具体发生月份未知，不套用整体投产日期",
+            "document_id": reconciliation["document_id"], "pdf_page": reconciliation["source_page"]})
+    checks = [
+        ("AR", 26, r"东山基地零碳高等级薄钢板工厂项目[：:].{0,100}?(2025年12月)[，,]项目正式建成投产",
+         "project_operation", "整体项目建成投产", "2025 年 12 月"),
+        ("ESG", 32, r"(2025年12月23日)[，,].{0,100}?近零碳钢铁产线在宝钢股份湛江钢铁全线贯通",
+         "line_connection", "近零碳产线贯通", "2025 年 12 月 23 日"),
+    ]
+    for report_type, page, pattern, kind, label, date_label in checks:
+        doc = next((d for d in documents if d.report_type == report_type), None)
+        if not doc:
+            continue
+        path = ensure_source(root, doc)
+        with PDF_ACCESS_LOCK, pymupdf.open(path) as pdf:
+            if page > len(pdf):
+                continue
+            text = compact(pdf[page-1].get_text())
+        match = re.search(pattern, text)
+        if match:
+            rows.append({"kind": kind, "date_label": date_label, "label": label,
+                "document_id": doc.document_id, "pdf_page": page, "quote": match.group(0),
+                "source_sha256": doc.file_sha256, "note": "整体/产线披露，不代表炼钢子工程转固或折旧日期"})
+    return rows
+
+
 def build_baosteel_dossier(root: Path):
     cfg = load_demo_config(root)
     registry = {doc.document_id: doc for doc in load_registry(root)}
@@ -248,6 +280,7 @@ def build_baosteel_dossier(root: Path):
         "case_scope":"2025年两份已登记报告；不声称完成2024跨年验证",
         "evidence":sources,"evidence_count":len(sources),"total_matching_blocks":len(hits),
         "coverage":coverage,"reconciliation":reconciliation,
+        "disclosure_timeline":_disclosure_timeline(root, documents, reconciliation),
         "project_mapping":"annual_explicit_subproject" if reconciliation.get("source_row_matched") else "unconfirmed",
         "mapping_note":("2025年报同一表格单行明确将炼钢工程列于宝钢湛江钢铁零碳高等级薄钢板工厂项目下；该原文身份不自动证明与ESG所有披露的统计范围一致。" if reconciliation.get("source_row_matched") else cfg["matching_policy"]),
         "investigation_value":"A" if ar_project and esg_project and reconciliation["status"] in {"balanced","subtotal_computed"} else "B" if sources else "C",

@@ -263,6 +263,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
                     "note":str(table.get("note") or "")[:300]} if table.get("source_row_matched") else None
                 safe.append({"task_id":task_id,"status":snapshot.get("status"),
                     "model_status":result.get("model_status"),"created_at":item.get("created_at"),
+                    "saved_at":item.get("updated_at"),
                     "models":sorted(set(c["model"] for c in calls if c.get("performed") and c.get("model"))),
                     "actual_model_requests":sum(bool(c.get("request_attempted")) for c in calls),
                     "prior_actual_model_requests":sum(bool(c.get("request_attempted")) for c in (result.get("prior_provider_calls") or [])),
