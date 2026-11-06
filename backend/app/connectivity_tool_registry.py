@@ -85,6 +85,9 @@ def execute_tool(root, run, request: ToolRequest, *, corpus=None) -> dict:
     if request.tool_name not in TOOL_NAMES:
         receipt["reason"] = f"工具不在白名单：{request.tool_name}"
         return receipt
+    if getattr(run, "versions", {}).get("experiment_mode") == "fixed_evidence" and request.tool_name in {"search_registered_reports", "search_matter_reports", "open_source_page"}:
+        receipt["reason"] = "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验"
+        return _finish(receipt, started)
     args = request.arguments
     if getattr(run,"matter_schema_version", "") and request.tool_name == "locate_matter_numbers":
         doc = _find_document(run, args.get("document_id"))
@@ -158,6 +161,9 @@ def execute_tool(root, run, request: ToolRequest, *, corpus=None) -> dict:
             receipt["output_digest"]=_digest(json.dumps(receipt["result"],ensure_ascii=False))
         return receipt
     if request.tool_name == "lookup_ontology_rule":
+        if getattr(run, "versions", {}).get("ablation") == "no_ontology_gate":
+            receipt["reason"] = "实验消融条件：当前运行已关闭会计语义本体规则库查询"
+            return _finish(receipt, started)
         return _lookup_ontology_rule(args, receipt, started)
     if request.tool_name == "recompute_decimal":
         return _recompute_decimal(args, receipt, started)

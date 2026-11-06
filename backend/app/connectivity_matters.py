@@ -181,16 +181,17 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
         candidates=endpoint_aliases.get(value,set())
         if len(candidates)>1:raise MatterValidationError('RELATION_ENDPOINT_UNREGISTERED','relations.endpoint','临时关系端点不唯一')
         return next(iter(candidates)) if candidates else value
+    no_ontology_gate = getattr(run, "versions", {}).get("ablation") == "no_ontology_gate"
     if role=="A2":
         from .connectivity_financial_ontology import matter_rules
         known_rules={r["rule_id"] for r in matter_rules()}
         for p in result.paths:
-            if not set(p.rule_ids)<=known_rules:raise ValueError("路径引用了未登记规则")
+            if not no_ontology_gate and not set(p.rule_ids)<=known_rules:raise ValueError("路径引用了未登记规则")
             if p.matter_id!=matter.matter_id:raise ValueError("财务路径事项不一致")
             for step in p.steps:
                 if step.origin in {"human_review","program_calculation"}:step.origin="model_hypothesis"
                 if not step.evidence_ids:step.support="pending"
-                elif step.origin=="model_hypothesis" and step.support=="supported":step.support="limited"
+                elif not no_ontology_gate and step.origin=="model_hypothesis" and step.support=="supported":step.support="limited"
             if any(s.support=="conflicting" for s in p.steps):p.support="conflicting"
             elif all(s.support=="supported" and s.origin=="report_statement" for s in p.steps):p.support="supported"
             elif any(s.evidence_ids for s in p.steps):p.support="limited"
@@ -253,10 +254,11 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
         a=result.assessment
         if a.matter_id!=matter.matter_id:raise ValueError("综合判断事项不一致")
         paths=[p for p in run.matter_paths if p.matter_id==matter.matter_id]
-        if a.relation_support=="supported" and (not a.supporting_evidence_ids or not paths or any(p.support!="supported" for p in paths)):
-            a.relation_support="limited" if a.supporting_evidence_ids else "pending"
-        # 只有程序调节工具可以确认数值可比，文字意见不能自行放行。
-        if a.amount_comparability=="comparable":a.amount_comparability="needs_evidence"
+        if not no_ontology_gate:
+            if a.relation_support=="supported" and (not a.supporting_evidence_ids or not paths or any(p.support!="supported" for p in paths)):
+                a.relation_support="limited" if a.supporting_evidence_ids else "pending"
+            # 只有程序调节工具可以确认数值可比，文字意见不能自行放行。
+            if a.amount_comparability=="comparable":a.amount_comparability="needs_evidence"
         a.review_status="unreviewed"
         a.result_revision=run.result_revision
         run.matter_assessments=[old for old in run.matter_assessments if old.matter_id!=matter.matter_id]+[a]

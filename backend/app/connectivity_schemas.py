@@ -539,7 +539,8 @@ class RunRequest(Contract):
     as_of_date: date | None = None
     matter_types: list[MatterType] = Field(default_factory=lambda: ["climate_risk", "transition_project", "commitment", "resource_efficiency", "other"], min_length=1, max_length=5)
     selected_matter_ids: list[str] = Field(default_factory=list, max_length=30)
-    ablation: Literal["none","no_temporal","no_counterevidence"] = "none"
+    ablation: Literal["none", "no_temporal", "no_counterevidence", "no_ontology_gate"] = "none"
+    experiment_mode: Literal["end_to_end", "fixed_evidence"] = "end_to_end"
     budget: InvestigationBudget = Field(default_factory=InvestigationBudget)
     retry_of_task_id: str | None = None
     parent_task_id: str | None = Field(default=None, min_length=8, max_length=100)
@@ -550,7 +551,8 @@ class RunRequest(Contract):
             raise ValueError("请选择一个报告对或一个多年资料集合")
         if self.report_set_id or self.mode == "five_agents":
             self.analysis_scope = "matter_connectivity"
-        if self.ablation!="none" and self.mode!="five_agents":raise ValueError("角色消融仅适用于五Agent实验")
+        if self.ablation in {"no_temporal", "no_counterevidence"} and self.mode != "five_agents": raise ValueError("角色消融仅适用于五Agent实验")
+        if self.ablation == "no_ontology_gate" and self.mode not in {"five_agents", "single_model"}: raise ValueError("会计门禁消融仅适用于五Agent实验或单模型对照")
         if self.analysis_scope == "matter_connectivity" and self.mode == "adaptive_agents":
             raise ValueError("事项调查请选择五Agent、三Agent对照或单模型对照")
         return self

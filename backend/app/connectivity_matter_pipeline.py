@@ -96,6 +96,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
             raise ValueError('所选事项不存在于当前资料集合，请重新初筛')
     # 消融是显式实验条件，跳过角色不能被包装为五角色全部完成。
     run.versions["ablation"]=request.ablation
+    run.versions["experiment_mode"]=getattr(request, "experiment_mode", "end_to_end")
     run.versions["semantic_judgment"]="模型意见与程序来源核验分列，不代表专业鉴证"
     def save():
         finish_projection(run);checkpoint(run)
@@ -199,7 +200,18 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         # 每波读同一快照；worker只提交建议，不直接覆盖另一角色的结果。
         with lock:
             if matter:
-                query=matter.name+" "+" ".join(matter.aliases)
+                if getattr(request, 'experiment_mode', 'end_to_end') == 'fixed_evidence':
+                    from .connectivity_matters import _all_refs
+                    referenced=set(matter.evidence_ids)
+                    for field in ('matter_paths','matter_events','matter_commitments','matter_explanations','matter_assessments'):
+                        for value in getattr(run,field):
+                            if value.matter_id==matter.matter_id:referenced.update(_all_refs(value.model_dump()))
+                    for task in run.matter_tasks:
+                        if task.get('matter_id')==matter.matter_id and task.get('result'):referenced.update(_all_refs(task['result']))
+                    focused={b.evidence_id:b for b in run.matter_evidence if b.evidence_id in referenced}
+                    context_evidence=list(focused.values())
+                else:
+                    query=matter.name+" "+" ".join(matter.aliases)
                 if verified_project_table:
                     query+=" "+str(verified_project_table.get("source_row_label") or "")
                 discovered=search_corpus(corpus,query,limit=18)["evidence"]

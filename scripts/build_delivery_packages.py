@@ -149,7 +149,7 @@ PACKAGE_DATA_FILES = (
     "backend/tests/fixtures/run_contract_mock.json",
     "backend/tests/fixtures/run_contract_mock_degraded.json",
     "backend/tests/fixtures/finals_ab_20261012_historical_outputs.json",
-    "决赛准备/整改_2026-10-12/探索对照/inputs/CNINFO_000858_T0_20260430.json",
+    "backend/tests/fixtures/probe_inputs/CNINFO_000858_T0_20260430.json",
     "backend/app/connectivity_rule_basis.json",
     "backend/connectivity_reports.json",
     "backend/connectivity_source_provenance.json",
@@ -188,18 +188,21 @@ def _clean_sources() -> list[tuple[str, Path]]:
         ("scripts/run_51_case_acceptance.py", ROOT / "scripts/run_51_case_acceptance.py"),
         ("scripts/run_controlled_b1_b3_prescore.py", ROOT / "scripts/run_controlled_b1_b3_prescore.py"),
         ("render.yaml", ROOT / "render.yaml"),
-        ("启动审迹智链.bat", ROOT / "启动审迹智链.bat"),
+        ("start.bat", ROOT / "start.bat"),
+        ("start.sh", ROOT / "start.sh"),
         ("backend/__init__.py", ROOT / "backend" / "__init__.py"),
         ("backend/requirements.txt", ROOT / "backend" / "requirements.txt"),
         ("backend/requirements-lock.txt", ROOT / "backend" / "requirements-lock.txt"),
         ("backend/cache_seed.example.json", ROOT / "backend" / "cache_seed.example.json"),
         ("backend/cache_seed.lock.json", ROOT / "backend" / "cache_seed.lock.json"),
         ("supabase/schema.sql", ROOT / "supabase" / "schema.sql"),
-        ("模板/审迹智链_标准案例包_V1.zip", CASE_ZIP),
+        
     ]
     # 历史Office指南不属于现行代码复现依赖；源文件存在时才保留历史附件。
     if CASE_GUIDE_DOCX.is_file():
         items.append(("模板/审迹智链_标准案例包填写与合规说明_V1.docx", CASE_GUIDE_DOCX))
+    if CASE_ZIP.is_file():
+        items.append(("模板/审迹智链_标准案例包_V1.zip", CASE_ZIP))
     items.extend((name, ROOT / name) for name in PACKAGE_DATA_FILES)
     items.extend(_release_record_sources())
     items.extend(_iter_asset_files())
