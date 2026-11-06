@@ -18,5 +18,5 @@ fi
 echo "[1/2] 正在初始化本地环境与元数据..."
 python3 -m backend.app.connectivity_bootstrap --allow-missing-sources
 
-echo "[2/2] 启动服务 (访问地址: http://127.0.0.1:8877)...
+echo "[2/2] 启动服务 (访问地址: http://127.0.0.1:8877)..."
 python3 -m uvicorn backend.app.connectivity_app:app --host 127.0.0.1 --port 8877

@@ -194,3 +194,8 @@ outputs/
 
 !/start.bat
 !/start.sh
+
+# 软件著作权申报材料与生成脚本
+!/docs/copyright/
+!/docs/copyright/*
+!/scripts/build_copyright_doc.py
