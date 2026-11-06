@@ -46,7 +46,6 @@ artifacts/
 /审迹智链_*.md
 /backend/tests/__pycache__/
 /docs/
-/outputs/
 /scripts/
 /reasonix.toml
 /.reasonix/
@@ -165,21 +164,9 @@ artifacts/
 !/docs/2026-09-15_全量三轮审查报告_代码方案书对应与部署.md
 !/docs/review-assets/
 !/docs/superpowers/
-!/启动审迹智链.bat
 !/PROJECT_STATUS.md
 !/README_RUN.md
-!/outputs/
-/outputs/*
-!/outputs/evaluation_v3/
-/outputs/evaluation_v3/*
-!/outputs/evaluation_v3/current.json
-!/outputs/external_model_acceptance/
-/outputs/external_model_acceptance/*
-!/outputs/external_model_acceptance/current.json
 # 2026-08-22 正式评估 v4：合同/仪表盘/账本/底稿入库；密封 AI 参考评分与协调人清单不进公开仓库。
-!/outputs/evaluation_v4/
-/outputs/evaluation_v4/sealed-ai-reference/
-/outputs/evaluation_v4/**/coordinator/
 !/docs/2026-10-10_*.md
 # 2026-10-14：公开方案和完整问答不包含身份、原始付费响应及签字资料。
 !/docs/2026-10-14_认定级取证整改执行说明.md
@@ -203,3 +190,7 @@ artifacts/
 !/scripts/run_closure_experiment.py
 !/scripts/build_closure_report.py
 !/docs/决赛技术主张与实现对应_2026-10-22.md
+outputs/
+
+!/start.bat
+!/start.sh

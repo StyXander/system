@@ -604,9 +604,9 @@ def _model_settings() -> tuple[str | None, str, str]:
     默认地址仅是配置默认值，具体外发仍经过目的地校验。
     本函数不发请求、不消耗模型预算，也不生成业务意见。
     """
-    api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
-    base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    model_id = os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip()
+    api_key = (os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY") or "").strip() or None
+    base_url = (os.getenv("DEEPSEEK_BASE_URL") or os.getenv("OPENAI_BASE_URL") or os.getenv("LLM_BASE_URL") or "https://api.deepseek.com").rstrip("/")
+    model_id = (os.getenv("DEEPSEEK_MODEL") or os.getenv("OPENAI_MODEL") or os.getenv("LLM_MODEL") or "deepseek-flash").strip()
     return api_key, base_url, model_id
 
 

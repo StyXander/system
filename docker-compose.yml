@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  audittrace:
+    build: .
+    container_name: audittrace-app
+    ports:
+      - "8877:8877"
+    environment:
+      - AUDITTRACE_SINGLE_USER=true
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-flash}
+    restart: unless-stopped

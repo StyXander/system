@@ -10,7 +10,10 @@ from backend.app.schemas import RuleResult, AgentOutput
 from scripts import run_finals_ab_20261011 as ab
 
 ROOT = Path(__file__).resolve().parents[2]
-INPUTS = ROOT / "决赛准备/整改_2026-10-12/探索对照/inputs"
+probe_dir = ROOT / "backend/tests/fixtures/probe_inputs"
+if not probe_dir.exists():
+    probe_dir = ROOT / "决赛准备/整改_2026-10-12/探索对照/inputs"
+INPUTS = probe_dir
 CASE = "CNINFO_000858_T0_20260430"
 
 
