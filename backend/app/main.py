@@ -424,7 +424,12 @@ async def security_headers(http_request: Request, call_next: Callable[..., Any])
     # 资源可以长期缓存，案例选择器等公开只读路由可由路由自身覆盖策略。
     path = http_request.url.path
     if path.startswith("/assets/"):
-        cache_policy = "public, max-age=31536000, immutable"
+        if path.endswith('.html'):
+            cache_policy = "private, no-store"
+        elif http_request.query_params.get('v'):
+            cache_policy = "public, max-age=31536000, immutable"
+        else:
+            cache_policy = "public, max-age=0, must-revalidate"
     elif path == "/openapi.json":
         cache_policy = "public, max-age=300"
     elif path == "/" or path.startswith("/api/"):

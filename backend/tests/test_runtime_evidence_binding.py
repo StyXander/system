@@ -40,3 +40,17 @@ def test_parser_version_is_part_of_cache_identity(reports,monkeypatch):
     _,changed=read_corpus(root,docs)
     assert not changed[0]['cache_hit']
     assert changed[0]['parser_version']=='synthetic-other-version'
+
+
+def test_study_html_and_unversioned_assets_are_not_cached_for_a_year():
+    from fastapi.testclient import TestClient
+    from backend.app.connectivity_app import app
+    with TestClient(app) as c:
+        page=c.get('/validation-study')
+        assert page.status_code==200 and 'no-store' in page.headers['cache-control']
+        assert '<script src="/assets/validation-study.js?v=' in page.text
+        assert '<script>' not in page.text and '<style>' not in page.text
+        plain=c.get('/assets/validation-study.js')
+        assert 'must-revalidate' in plain.headers['cache-control']
+        versioned=c.get('/assets/validation-study.js?v=synthetic-test')
+        assert 'immutable' in versioned.headers['cache-control']

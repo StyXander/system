@@ -66,6 +66,11 @@ def retired_workspace():
     return RedirectResponse('/', status_code=308)
 
 
+@app.get('/validation-study', include_in_schema=False)
+def validation_study():
+    return FileResponse(ROOT/'assets/validation-study.html')
+
+
 @app.get('/api/health')
 def health():
     """配置存在只报告 configured，不等同真实模型验收。"""
