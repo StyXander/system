@@ -58,11 +58,15 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     run.source_lineage=[SourceLineage(document_id=d.document_id,producer=d.company,category=d.source_kind) for d in documents]
     run.versions["research_question"]={"text":request.research_question,"question_id":request.question_id,
         "case_id":request.benchmark_case_id,"task_type":request.research_task_type}
+    run.versions['requested_selected_matter_ids']=list(request.selected_matter_ids)
+    from .connectivity_matter_profiles import candidate_profile
+    run.versions['candidate_profiles']=list({p['profile_id']:{'profile_id':p['profile_id'],'dataset_role':p['dataset_role'],'notice':p['notice']} for d in documents if (p:=candidate_profile(d.company_id,d.effective_period))}.values())
+
     if resume:
         if resume.report_set!=report_set or resume.execution_mode!=request.mode:
             raise ValueError("续分析的资料集合或模式已变化")
         for name in ("matter_evidence","matters","matter_events","matter_commitments","matter_paths","matter_relations",
-                     "matter_explanations","matter_assessments","assurance_planning_reviews","matter_tasks","matter_tool_receipts","matter_rejections","matter_revisions","occurrences"):
+                     "matter_explanations","matter_assessments","matter_numeric_verifications","assurance_planning_reviews","matter_tasks","matter_tool_receipts","matter_rejections","matter_revisions","occurrences"):
             setattr(run,name,deepcopy(getattr(resume,name)))
         for task in run.matter_tasks:
             task.setdefault('run_id',resume.run_id)
@@ -199,35 +203,20 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     if cancelled():raise InterruptedError("用户取消事项调查")
                     time.sleep(min(.2,max(0,deadline-time.monotonic())))
 
-    # Independently verify the *same* source row already used by the Baosteel case.
-    # Model receives structured data plus source hashes, never a prewritten conclusion.
-    verified_project_table=None
-    if (request.selected_matter_ids
-            and report_set.company_id=='600019'
-            and {d.document_id for d in documents}>={'BAOSTEEL_AR_2025','BAOSTEEL_ESG_2025'}):
-        chosen=[m for m in run.matters if m.matter_id in request.selected_matter_ids]
-        proof={e.evidence_id:e for e in run.matter_evidence}
-        if any(proof.get(eid) and proof[eid].document_id=='BAOSTEEL_AR_2025'
-               and proof[eid].pdf_page==154 for m in chosen for eid in m.evidence_ids):
-            try:
-                from .connectivity_project_demo import _extract_reconciliation
-                annual=next(d for d in documents if d.document_id=='BAOSTEEL_AR_2025')
-                table=_extract_reconciliation(root,annual,{154})
-                if table.get('source_row_matched') and table.get('status') in ('subtotal_computed','balanced','difference'):
-                    anchored=[e.evidence_id for e in run.matter_evidence
-                              if e.document_id=='BAOSTEEL_AR_2025' and e.pdf_page==154 and e.source_verified and not e.invalid_reason]
-                    verified_project_table={**table,'page_evidence_ids':anchored,
-                       'provenance_note':'数值来自同一登记原件的PyMuPDF表格单元格，不能冒充原文片段的逐字引文；破折号不是已确认零。',
-                       'interpretation_boundary':'年报本行属于零碳工厂的炼钢子工程，不能据此确认与ESG总体投资同一统计范围。'}
-                    run.versions['verified_project_table']=deepcopy(verified_project_table)
-                    save()
-            except (OSError,ValueError,RuntimeError,ImportError) as exc:
-                run.versions['verified_project_table_error']=type(exc).__name__
-                save()
+    # Generic source-table extraction uses selected source pages and names only.
+    from .connectivity_matter_tables import extract_matter_tables,located_table_values
+    table_pack=extract_matter_tables(root,documents,run.matter_evidence,run.matters,request.selected_matter_ids) if request.selected_matter_ids else {"records":[],"coverage":[]}
+    run.versions['verified_matter_tables']=table_pack
+    existing_numbers={o.occurrence_id for o in run.occurrences}
+    run.occurrences.extend(o for o in located_table_values(table_pack) if o.occurrence_id not in existing_numbers)
+    verified_project_table=table_pack['records'][0] if table_pack['records'] else None
+    if verified_project_table:
+        run.versions['verified_project_table']=deepcopy(verified_project_table)
+    save()
     if request.experiment_mode == "fixed_evidence":
         # Include the extra verified table and the exact question, not just text fragments.
         common_input={"evidence":[e.model_dump(mode="json") for e in frozen_evidence],
-            "verified_project_table":verified_project_table,
+            "verified_matter_tables":table_pack,
             "question":run.versions["research_question"],
             "documents":[d.model_dump(mode="json") for d in documents]}
         run.versions["fixed_input_sha256"]=hashlib.sha256(json.dumps(common_input,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
@@ -274,6 +263,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 "matter":matter.model_dump() if matter else None,
                 "selection_instruction":"只围绕所选事项建档与补查，其他披露保留待调查；不要扩展为全部事项调查。" if request.selected_matter_ids else "",
                 "evidence":[b.model_dump() for b in context_evidence],
+                "verified_matter_tables":deepcopy(table_pack),
                 "verified_project_table":deepcopy(verified_project_table) if verified_project_table and (matter is None or matter.matter_id in request.selected_matter_ids or set(matter.lineage)&set(request.selected_matter_ids)) else None,
                 "upstream_results":list({t["role"]:{"role":t["role"],"status":t["status"],"result":{k:v for k,v in t["result"].items() if k not in {"stop_reason","tool_requests"}}} for t in run.matter_tasks if t.get("matter_id")==getattr(matter,"matter_id",None) and t.get("result")}.values()),
                 "paths":[p.model_dump() for p in run.matter_paths if matter and p.matter_id==matter.matter_id],

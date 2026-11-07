@@ -41,15 +41,11 @@ def seed_matters(evidence, matter_types):
         if kind not in matter_types:
             continue
         name = project_label(b.quote)
-        # Naming is a search aid, not confirmation that the factory and a subproject are identical.
-        if b.company_id == '600019' and b.report_period == '2025':
-            quote = compact(b.quote)
-            if '近零碳示范产线' in quote:
-                name = '湛江钢铁近零碳示范产线（项目身份待核）'
-            elif '零碳高等级薄钢板' in quote:
-                name = '零碳高等级薄钢板工厂（项目身份待核）'
-            elif '炼钢工程' in quote and b.report_type == 'AR':
-                name = '炼钢工程财务线索（与零碳项目关系待核）'
+        from .connectivity_matter_profiles import candidate_profile
+        profile=candidate_profile(b.company_id,b.report_period)
+        for naming in profile.get('names',[]):
+            if naming['contains'] in compact(b.quote) and (not naming.get('report_type') or naming['report_type']==b.report_type):
+                name=naming['name'];break
         named = bool(name)
         if not name:
             labels = {"climate_risk":"气候风险披露", "transition_project":"绿色改造披露", "commitment":"目标与承诺披露",

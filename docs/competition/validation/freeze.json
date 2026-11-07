@@ -1,0 +1,15 @@
+{
+  "manifest_sha256": "c4c65812585952f58d762d611a5b19d4b6e3af39ad2f96ba687ce1625f882353",
+  "cases": 21,
+  "companies": 7,
+  "human_annotations": 0,
+  "code_commit": "working_tree_before_release",
+  "source_baseline_commit": "f39ca3482d472296e9df5ffa928336ff5cf2093e",
+  "generator_files_sha256": {
+    "scripts/prepare_validation_cases.py": "abd94b33028e42fb38cedc78ed6c737aa2cf6559dcdd7590a03eaab509cbecf6",
+    "backend/app/connectivity_matters.py": "328b69256103521fba7709127eb039fd549b66e26e2ddc7d6c3cd842258256e2",
+    "backend/app/connectivity_matter_extraction.py": "1d23436ec5797393b9e52e7899166e89add2a81d759d69d4678f93f81117f7f3",
+    "backend/app/connectivity_candidate_profiles.json": "e3e5cacaaf70d06fa52f8a05c1e817be770bf4ba3582d1341454773c6329d7a2"
+  },
+  "manifest_reproduced_with_current_generator": true
+}

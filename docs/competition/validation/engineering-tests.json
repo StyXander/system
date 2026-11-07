@@ -1,0 +1,16 @@
+{
+  "origin": "actual_local_test_execution",
+  "python": {
+    "tests": 1512,
+    "passed": 1479,
+    "skipped": 33,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 41.604
+  },
+  "frontend": {
+    "passed": 29,
+    "failed": 0
+  },
+  "professional_accuracy": "not_evaluated"
+}

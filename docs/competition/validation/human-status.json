@@ -1,0 +1,25 @@
+{
+  "annotation_status": "not_evaluated",
+  "cases": 21,
+  "independently_double_annotated_cases": 0,
+  "human_comparison_status": "not_evaluated",
+  "groups": {
+    "manual": {
+      "attempted": 0,
+      "quality_accepted": 0,
+      "qualified_delivery_rate": null,
+      "elapsed_minutes_all": [],
+      "median_qualified_minutes": null
+    },
+    "assisted": {
+      "attempted": 0,
+      "quality_accepted": 0,
+      "qualified_delivery_rate": null,
+      "elapsed_minutes_all": [],
+      "median_qualified_minutes": null
+    }
+  },
+  "paired_participants": [],
+  "excluded_or_pending": [],
+  "limitation": "Participant files are self-reported; identity and actual use require real participant confirmation. No inference of professional certification or causal efficiency gain."
+}

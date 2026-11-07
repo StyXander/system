@@ -37,6 +37,7 @@ VERDICT_ZH = {
     "NOT_COMPARABLE": "不可比",
     "EXPLAINED_DIFFERENCE": "已解释差异",
 }
+RELATION_CLASSES=["supported","limited","pending","conflicting","not_comparable","invalid"]
 
 ALIASES = {
     "CONFIRMED_CONSISTENT": "CONFIRMED_CONSISTENT",
@@ -114,7 +115,7 @@ def extract_verdict_from_assessment(assessment: dict, explanations: list[dict] |
     return "INSUFFICIENT_EVIDENCE"
 
 
-def extract_run_verdict(run_data: dict, matter_id: str | None = None) -> tuple[str, list[str]]:
+def extract_run_verdict(run_data: dict, matter_id: str | None = None, task_type="amount_reconciliation") -> tuple[str, list[str]]:
     """从运行结果 JSON 中提取事项的预测结论与引用证据 ID。"""
     assessments = run_data.get("matter_assessments", [])
     explanations = run_data.get("matter_explanations", [])
@@ -132,7 +133,11 @@ def extract_run_verdict(run_data: dict, matter_id: str | None = None) -> tuple[s
         target_assessment = assessments[0]
 
     matter_exps = [e for e in explanations if e.get("matter_id") == target_assessment.get("matter_id")]
-    verdict = extract_verdict_from_assessment(target_assessment, matter_exps)
+    if task_type=="relation_tracing":
+        verdict=target_assessment.get('relation_support')
+        if verdict not in RELATION_CLASSES:raise ValueError('RELATION_VERDICT_MISSING')
+    else:
+        verdict = extract_verdict_from_assessment(target_assessment, matter_exps)
     evidence_ids = list(target_assessment.get("supporting_evidence_ids", [])) + list(target_assessment.get("counter_evidence_ids", []))
     return verdict, evidence_ids
 
@@ -168,25 +173,26 @@ def compute_binary_metrics(y_true: list[str], y_pred: list[str], positive_classe
     }
 
 
-def compute_multiclass_metrics(y_true: list[str], y_pred: list[str]) -> dict:
+def compute_multiclass_metrics(y_true: list[str], y_pred: list[str], classes=None) -> dict:
     """计算标准五分类指标：混淆矩阵、各类别精确率/召回率/F1及宏平均 Macro-F1。"""
-    matrix = {g: {p: 0 for p in VERDICT_CLASSES} for g in VERDICT_CLASSES}
+    classes=classes or VERDICT_CLASSES
+    matrix = {g: {p: 0 for p in classes} for g in classes}
     for t, p in zip(y_true, y_pred):
         if t in matrix and p in matrix[t]:
             matrix[t][p] += 1
 
     per_class = {}
     f1_list = []
-    for cls in VERDICT_CLASSES:
+    for cls in classes:
         tp = matrix[cls][cls]
-        fp = sum(matrix[other][cls] for other in VERDICT_CLASSES if other != cls)
-        fn = sum(matrix[cls][other] for other in VERDICT_CLASSES if other != cls)
+        fp = sum(matrix[other][cls] for other in classes if other != cls)
+        fn = sum(matrix[cls][other] for other in classes if other != cls)
         prec = (tp / (tp + fp)) if (tp + fp) > 0 else 0.0
         rec = (tp / (tp + fn)) if (tp + fn) > 0 else 0.0
         f1 = (2 * prec * rec / (prec + rec)) if (prec + rec) > 0 else 0.0
         support = sum(matrix[cls].values())
         per_class[cls] = {
-            "name": VERDICT_ZH[cls],
+            "name": VERDICT_ZH.get(cls,cls),
             "tp": tp,
             "fp": fp,
             "fn": fn,
@@ -198,7 +204,7 @@ def compute_multiclass_metrics(y_true: list[str], y_pred: list[str]) -> dict:
         f1_list.append(f1)
 
     macro_f1 = sum(f1_list) / len(f1_list) if f1_list else 0.0
-    accuracy = sum(matrix[c][c] for c in VERDICT_CLASSES) / len(y_true) if y_true else 0.0
+    accuracy = sum(matrix[c][c] for c in classes) / len(y_true) if y_true else 0.0
 
     return {
         "accuracy": round(accuracy, 4),
@@ -262,6 +268,8 @@ def load_gold_cases(gold_path: Path) -> dict[str, dict]:
         case_id = item.get("case_id") or item.get("id")
         if not case_id:
             continue
+        task_type=item.get('research_task_type','amount_reconciliation')
+        allowed=RELATION_CLASSES if task_type=='relation_tracing' else VERDICT_CLASSES + list(VERDICT_ZH.values())
         adjudication = item.get("adjudication") or {}
         # 优先从仲裁结果获取金标；若为空，检查 annotations 是否有一致共识
         final_verdict = adjudication.get("final_verdict") if isinstance(adjudication, dict) else adjudication
@@ -271,7 +279,7 @@ def load_gold_cases(gold_path: Path) -> dict[str, dict]:
             annos = list(independent.values())
             if len(annos)>=2 and len(set(annos)) == 1:
                 final_verdict = annos[0]
-        if final_verdict and str(final_verdict).strip() not in VERDICT_CLASSES + list(VERDICT_ZH.values()):
+        if final_verdict and str(final_verdict).strip() not in allowed:
             raise ValueError(f"未知人工结论: {case_id}: {final_verdict}")
 
         if case_id in gold_map:
@@ -281,7 +289,8 @@ def load_gold_cases(gold_path: Path) -> dict[str, dict]:
             "matter_id": item.get("matter_id"),
             "category": item.get("category", ""),
             "trigger": item.get("trigger", ""),
-            "gold_verdict": normalize_verdict(final_verdict) if final_verdict else None,
+            "gold_verdict": (final_verdict if task_type=='relation_tracing' else normalize_verdict(final_verdict)) if final_verdict else None,
+            "task_type":task_type,
             "gold_evidence_ids": set(item.get("gold_evidence_ids") or []),
             "annotation_status": item.get("annotation_status", "pending"),
             "question": item.get("question"),
@@ -302,7 +311,7 @@ def evaluate_comparison(comparison_path: Path, gold_map: dict) -> dict:
         if not gold or not gold.get("gold_verdict"):
             excluded.append({"case_id": case_id, "reason": "no_independent_gold"})
             continue
-        key = (row.get("group_id"), row.get("experiment_mode", "end_to_end"), row.get("repeat", 1))
+        key = (row.get("group_id"), row.get("experiment_mode", "end_to_end"), row.get("repeat", 1), gold.get('task_type','amount_reconciliation'))
         identity = (*key, case_id)
         if identity in seen:
             raise ValueError(f"重复案例记录: {identity}")
@@ -330,23 +339,25 @@ def evaluate_comparison(comparison_path: Path, gold_map: dict) -> dict:
             item["execution_eligible"] = eligible
             if eligible:
                 try:
-                    item["prediction"], item["evidence_ids"] = extract_run_verdict(run, matter_id)
+                    item["prediction"], item["evidence_ids"] = extract_run_verdict(run, matter_id, gold.get('task_type','amount_reconciliation'))
                 except ValueError as error:
                     reason = str(error)
             if item["prediction"] is None:
                 item["failure"] = reason
         grouped[key].append(item)
     evaluations = []
-    for (group, mode, repeat), items in sorted(grouped.items()):
+    for (group, mode, repeat, task_type), items in sorted(grouped.items()):
         valid = [item for item in items if item["prediction"] is not None]
         truth = [item["gold"] for item in valid]
         predictions = [item["prediction"] for item in valid]
         evaluations.append({"group_id": group, "experiment_mode": mode, "repeat": repeat,
+            "task_type":task_type,
             "attempted": len(items), "evaluated": len(valid), "failed": len(items)-len(valid),
             "completion_rate": len(valid)/len(items),
             "conditional_on_completion": True,
-            "classification": compute_multiclass_metrics(truth, predictions) if valid else None,
-            "confirmation": compute_binary_metrics(truth, predictions, {"CONFIRMED_CONSISTENT"}) if valid else None,
+            "classification": compute_multiclass_metrics(truth, predictions, RELATION_CLASSES if task_type=='relation_tracing' else VERDICT_CLASSES) if valid else None,
+            "confirmation": compute_binary_metrics(truth, predictions, {"CONFIRMED_CONSISTENT"}) if valid and task_type=='amount_reconciliation' else None,
+            "end_to_end_correct_rate":sum(a==b for a,b in zip(truth,predictions))/len(items),
             "cases": items})
     return {"evaluation_status": "evaluated" if any(e["evaluated"] for e in evaluations) else "not_evaluated",
             "numeric_confirmation_supported_by_current_schema": False,

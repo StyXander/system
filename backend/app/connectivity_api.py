@@ -40,7 +40,7 @@ from .connectivity_facts import project_facts, execution_provenance
 from .connectivity_bootstrap import source_readiness
 from .connectivity_graph import refresh_run_sources
 from .connectivity_financial_scenario import recalculate_scenario
-from .connectivity_matter_schemas import ReportSetRequest, MatterRevisionRequest, MatterReconciliation
+from .connectivity_matter_schemas import ReportSetRequest, MatterRevisionRequest, MatterReconciliation, AmountVerificationRequest
 from .connectivity_report_sets import create_report_set, report_set_records, resolve_documents
 from .connectivity_access import single_user_enabled
 
@@ -549,7 +549,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             raise HTTPException(404, "事项不存在")
         result = {"matter": matter, "result_revision": view["result_revision"], "task_id": task_id,
                   "version": item.get("version"), "result": view}
-        for field in ("matter_events", "matter_commitments", "matter_paths", "matter_relations", "matter_explanations", "matter_assessments", "matter_tasks"):
+        for field in ("matter_events", "matter_commitments", "matter_paths", "matter_relations", "matter_explanations", "matter_assessments", "matter_numeric_verifications", "matter_tasks"):
             result[field] = [r for r in view.get(field, []) if r.get("matter_id") == matter_id]
         ids = set(matter["evidence_ids"])
         from .connectivity_matters import _all_refs
@@ -621,6 +621,24 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
             return reconcile_matter(run, body)
         except ValueError as error:
             raise HTTPException(422, getattr(error, "detail", str(error))) from error
+
+    @router.post("/runs/{task_id}/amount-verifications")
+    def amount_verification(task_id: str, body: AmountVerificationRequest, request: Request):
+        item, run = readable(task_id, force_sources=True)
+        authorize(request,item)
+        from .connectivity_matter_amounts import verify_amounts
+        try:
+            proof=verify_amounts(run,body)
+        except ValueError as error:
+            raise HTTPException(422,str(error)) from error
+        child=run.model_copy(deep=True)
+        child.matter_numeric_verifications.append(proof)
+        child.parent_run_id=run.run_id
+        child.run_id="CONN-"+uuid.uuid4().hex[:16].upper()
+        child.result_revision+=1
+        child.prior_provider_calls=[*run.prior_provider_calls,*run.provider_calls]
+        child.provider_calls=[]
+        return save_revision(item,run,body,request,child)
 
     @router.get("/runs/{task_id}/scenario")
     def scenario(task_id: str, request: Request, price: str = Query(..., max_length=24), usage: str = Query(..., max_length=24)):

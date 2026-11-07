@@ -45,6 +45,22 @@
     const start=candidatePage*10;
     return candidates.slice(start,start+10).map(matterRow).join('')+`<p>共 ${candidates.length} 项 · 第 ${candidatePage+1} 页</p><button data-cm-page="${candidatePage-1}" ${candidatePage===0?'disabled':''}>上一页</button><button data-cm-page="${candidatePage+1}" ${start+10>=candidates.length?'disabled':''}>下一页</button><button data-cm-batch>逐项调查已勾选候选</button><p id="cm-batch-state" role="status"></p>`;
   }
+  function questionHtml(run){
+    const q=run.versions?.research_question;
+    return q?.text?`<section class="cm-investigation-summary"><h3>本次待答问题</h3><p>${esc(q.text)}</p><small>${q.task_type==='amount_reconciliation'?'金额核对':'关系与证据追踪'} · ${esc(q.question_id||'工作台问题')}</small></section>`:'';
+  }
+  function amountHtml(run){
+    const tables=run.versions?.verified_matter_tables?.records||[], records=run.matter_numeric_verifications||[];
+    if(!tables.length&&!records.length&&!(run.occurrences||[]).length)return '';
+    return `<details class="cm-planning-details"><summary>原页表格与金额核验（${tables.length} 条候选表格）</summary><p>表格行匹配仅为取证线索；单元格复算与跨报告项目身份分别核查。</p>${tables.map(t=>`<article><h4>${esc(t.source_row_label)}</h4><p>${esc(t.document_id)} PDF ${t.source_page} · 单位 ${esc(t.unit||'未明确')}</p><p>${esc(t.arithmetic?.notice||'')}</p><dl>${Object.entries(t.reported_markers||{}).map(([k,v])=>`<dt>${esc(({opening:'期初',increase:'本期增加',to_fixed:'转固',to_long_term:'长期待摊',other_decrease:'其他减少',closing:'期末'})[k]||k)}</dt><dd>${esc(v||'未披露')}</dd>`).join('')}</dl><a href="/api/connectivity/sources/${encodeURIComponent(t.document_id)}?page=${t.source_page}" target="_blank" rel="noopener">打开原页 ↗</a></article>`).join('')}${numericForm(run)}${records.map(r=>`<article><h4>金额核验：${esc(r.verdict)}</h4><p>左侧 ${esc(r.left_value??'未知')} · 右侧 ${esc(r.right_value??'未知')} · 差额 ${esc(r.difference??'未知')} ${esc(r.normalized_unit)}</p><p>容差 ${esc(r.tolerance??'缺少舍入依据')}；待复核 ${esc((r.missing_semantic_review||[]).join('、')||'无')}；${esc(r.notice)}</p></article>`).join('')}</details>`;
+  }
+  function numericForm(run){
+    const values=(run.occurrences||[]).filter(o=>o.value!==null&&o.value!==undefined);
+    if(values.length<2)return '<p>当前运行尚未定位两项可比较的原值。表格候选不能代替已定位数值。</p>';
+    const options=values.map(o=>`<option value="${esc(o.occurrence_id)}">${esc(o.label)} · ${esc(o.value)} ${esc(o.unit)} · ${esc(o.document_id)} PDF ${o.pdf_page}</option>`).join('');
+    const evidence=(run.matter_evidence||[]).filter(e=>e.source_verified&&!e.invalid_reason).map(e=>`<option value="${esc(e.evidence_id)}">${esc(e.document_id)} PDF ${e.pdf_page} · ${esc(e.quote.slice(0,70))}</option>`).join('');
+    return `<fieldset><legend>原值金额核对</legend><label>左侧原值<select id="cm-amount-left">${options}</select></label><label>右侧原值<select id="cm-amount-right">${options}</select></label><p>先复算原值。只有逐项人工核对口径后才勾选；程序仍会拒绝期间、币种或来源等冲突。</p>${['主体','期间','范围','项目归属','计量基础','互不重叠'].map(k=>`<label><input type="checkbox" data-cm-reviewed="${k}">已核对${k}<select multiple size="2" aria-label="${k}原文依据" data-cm-proof="${k}">${evidence}</select></label>`).join('')}<label>复核人<input id="cm-amount-actor" maxlength="100"></label><label>复核理由<textarea id="cm-amount-reason" maxlength="2000"></textarea></label><button type="button" data-cm-amount-check>核对并保存为新版本</button><p id="cm-amount-message" role="status"></p></fieldset>`;
+  }
   function summaryHtml(run){
     const investigated=(run.matters||[]).filter(m=>m.investigation_status!=='pending');
     const assessments=run.matter_assessments||[];
@@ -88,7 +104,12 @@
   }
   function render(value){
     if(task?.task_id!==value.task_id||task?.version!==value.version){detailGeneration++;selected=null;}
+    const changedTask=task?.task_id!==value.task_id;
     task=value;const run=value.result;
+    if(changedTask&&run.versions?.research_question?.text&&$('cm-question')){
+      $('cm-question').value=run.versions.research_question.text;
+      $('cm-question-type').value=run.versions.research_question.task_type||'relation_tracing';
+    }
     if(!(run.matters||[]).some(m=>m.matter_id===selected))selected=(run.matters||[]).find(m=>m.investigation_status!=='pending')?.matter_id||run.matters?.[0]?.matter_id;
     const p=project(run,selected);selected=p.matter?.matter_id;
     let host=$('cn-matter-results');if(!host){host=document.createElement('section');host.id='cn-matter-results';$('cn-results').append(host);}
@@ -100,7 +121,7 @@
       <div class="cm-counts">${[['初筛候选',overview.matter_total],[run.model_status==='not_requested'?'已整理事项':'已深查',overview.investigated],['尚未深查',overview.pending]].map(([k,n])=>`<div><span>${esc(k)}</span><strong>${esc(n??0)}</strong></div>`).join('')}</div>
       <p class="cm-muted">${esc(overview.notice||'未形成事项不代表报告没有相关事项，请检查资料和解析覆盖。')}</p>
       ${run.report_set?.coverage_gaps?.length?`<details><summary>资料缺口</summary>${list(run.report_set.coverage_gaps)}</details>`:''}
-      ${summaryHtml(run)}
+      ${questionHtml(run)}${summaryHtml(run)}${amountHtml(run)}
       <details class="cm-planning-details"><summary>关注点与资料需求清单</summary>${planningHtml(run)}</details>
       <div class="cm-layout"><aside class="cm-list" aria-label="事项档案"><h3>${run.model_status==='not_requested'?'已整理事项（未调用模型）':'已深查事项'}</h3>${(run.matters||[]).filter(m=>m.investigation_status!=='pending').map(m=>matterRow(m)).join('')||'<p>尚无深查结果。</p>'}
       <details class="cm-candidates"><summary>其余候选项（${esc(overview.pending??0)}）</summary><p>未深查事项仅为候选，不视为已发现风险。</p><label>搜索候选<input id="cm-candidate-query" type="search" value="${esc(candidateQuery)}"></label><label>事项分类<select id="cm-candidate-type"><option value="">全部分类</option>${['climate_risk','transition_project','commitment','resource_efficiency','other'].map(k=>`<option value="${k}"${candidateType===k?' selected':''}>${esc(label(k))}</option>`).join('')}</select></label><div id="cm-candidate-rows">${candidateRows(run)}</div></details></aside>
@@ -180,6 +201,11 @@
   }
   async function prepareRequest(body){
     body.budget={...(body.budget||{}),max_matters:1};
+    if(body.mode!=='calculation_only'&&!body.research_question){
+      body.research_question=$('cm-question')?.value.trim()||undefined;
+      body.research_task_type=$('cm-question-type')?.value||'relation_tracing';
+      if(!body.research_question){const error=new Error('请先写明本次需要核对的具体问题。');error.preflight=true;throw error;}
+    }
     if(body.mode!=='calculation_only'&&!body.selected_matter_ids?.length){const error=new Error('请先点击“建立候选档案”，再从候选中选择一个具体事项启动深查。');error.preflight=true;throw error;}
     if(body.retry_of_task_id&&task?.result?.report_set){body.matter_types=task.result.versions?.matter_types||body.matter_types;delete body.pair_id;body.report_set_id=task.result.report_set.report_set_id;body.analysis_scope='matter_connectivity';return body;}
     if(body.report_set_id){delete body.pair_id;body.analysis_scope='matter_connectivity';return body;}
@@ -200,6 +226,9 @@
     const setup=document.createElement('details');setup.className='cm-setup';setup.open=true;
     setup.innerHTML=`<summary>事项调查与多年资料范围</summary><label><input id="cm-matter-scope" type="checkbox" checked>按可持续事项调查财务影响与跨期进展</label><p>同一企业可选多个年度，允许缺年或只有一类报告。每年同类型请选择一个版本。</p><fieldset id="cm-matter-types"><legend>调查事项</legend><label><input type="checkbox" name="matter_type" value="climate_risk" checked>气候风险与会计估计</label><label><input type="checkbox" name="matter_type" value="transition_project" checked>绿色改造与转型项目</label><label><input type="checkbox" name="matter_type" value="commitment" checked>目标与跨年承诺</label><label><input type="checkbox" name="matter_type" value="resource_efficiency" checked>资源效率与绩效</label><label><input type="checkbox" name="matter_type" value="other" checked>其他财务线索</label></fieldset><label>深查范围<select id="cm-depth"><option value="1">1个重点事项（默认）</option><option value="2">2个事项（增加调用与等待）</option><option value="3">3个事项（增加调用与等待）</option></select></label><p>先做无模型事项初筛，再选一项调查；反证和综合复核保留。单次执行仍有20次请求保护，无每日配额。</p><button type="button" id="cm-screen">先建立事项档案（不调用模型）</button><label>观察截至日期<input id="cm-as-of" type="date" value="${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'})}"></label><div id="cm-documents" class="cm-document-choices"></div><button type="button" id="cm-refresh-docs">刷新登记资料</button><details><summary>接入尚未登记的年度报告</summary><label>证券代码<input id="cm-import-ticker" pattern="[0-9]{6}" maxlength="6"></label><label>年度 用逗号分隔<input id="cm-import-years" placeholder="2023,2024,2025"></label><label><input id="cm-import-confirm" type="checkbox">已确认企业身份</label><button type="button" id="cm-import-start">准备多年资料</button><p id="cm-import-message" role="status"></p></details>`;
     $('cn-form').after(setup);
+    const question=document.createElement('fieldset');question.className='cm-question-form';
+    question.innerHTML='<legend>本次调查问题</legend><label for="cm-question">围绕所选事项，具体要核对什么？</label><textarea id="cm-question" maxlength="2000" rows="3">这项披露与年报中哪些具体财务项目有直接证据关联，哪些环节仍需补证？</textarea><label>任务类型<select id="cm-question-type"><option value="relation_tracing">关系与证据追踪</option><option value="amount_reconciliation">金额核对（需原值和口径依据）</option></select></label>';
+    $('cm-screen').before(question);
     const depth=$('cm-depth');depth.innerHTML='<option value="1">每个任务仅深查1个明确事项</option>';depth.disabled=true;
     $('cm-screen').addEventListener('click',()=>document.dispatchEvent(new CustomEvent('audittrace:connectivity-start-run',{detail:{mode:'calculation_only'}})));$('cm-refresh-docs').addEventListener('click',()=>loadDocuments().catch(e=>{$('cm-documents').textContent=e.message;}));
     const scopeChanged=()=>{const active=$('cn-mode').value==='five_agents'||($('cm-matter-scope').checked&&$('cn-mode').value!=='adaptive_agents');document.querySelector('.cn-topics').hidden=active;$('cm-matter-types').hidden=!active;$('cn-run').textContent=active?'建立候选档案（不调用模型） ↗':'开始关联核对 ↗';};
@@ -212,6 +241,13 @@
     document.addEventListener('audittrace:connectivity-reset',()=>{detailGeneration++;selected=null;task=null;activateLegacy();});
     document.addEventListener('change',e=>{const input=e.target.closest('[data-cm-merge]');if(input){if(input.checked)markedCandidates.add(input.dataset.cmMerge);else markedCandidates.delete(input.dataset.cmMerge);}});
     document.addEventListener('click',async e=>{
+      if(e.target.closest('[data-cm-amount-check]')&&task){
+        const button=e.target.closest('[data-cm-amount-check]'),message=$('cm-amount-message');
+        const conditions={};document.querySelectorAll('[data-cm-proof]').forEach(n=>{conditions[n.dataset.cmProof]=[...n.selectedOptions].map(o=>o.value);});
+        const body={expected_revision:task.result.result_revision,action_id:crypto.randomUUID(),matter_id:selected,left:[{occurrence_id:$('cm-amount-left').value}],right:[{occurrence_id:$('cm-amount-right').value}],condition_evidence:conditions,reviewed_conditions:[...document.querySelectorAll('[data-cm-reviewed]:checked')].map(n=>n.dataset.cmReviewed),actor:$('cm-amount-actor').value.trim(),reason:$('cm-amount-reason').value.trim()};
+        try{button.disabled=true;const value=await api(`/runs/${encodeURIComponent(task.task_id)}/amount-verifications`,{method:'POST',body:JSON.stringify(body)});document.dispatchEvent(new CustomEvent('audittrace:connectivity-open-task',{detail:{task_id:value.task_id}}));}catch(error){message.textContent=error.message;}finally{button.disabled=false;}return;
+      }
+
       if(e.target.closest('[data-cm-batch]')&&task){
         const ids=(task.result.matters||[]).filter(m=>markedCandidates.has(m.matter_id)).map(m=>m.matter_id);
         if(!ids.length){$('cm-batch-state').textContent='请先勾选候选事项。';return;}
@@ -220,7 +256,12 @@
       }
       const investigation=e.target.closest('[data-cm-investigate]');if(investigation&&task){
         const run=task.result,extra={mode:'five_agents',report_set_id:run.report_set.report_set_id,as_of_date:run.report_set.as_of_date,selected_matter_ids:[investigation.dataset.cmInvestigate],matter_types:run.versions?.matter_types};
-        if(run.execution_mode==='five_agents')extra.retry_of_task_id=task.task_id;else extra.parent_task_id=task.task_id;
+        const priorQuestion=run.versions?.research_question||{};
+        if(run.execution_mode==='five_agents'&&priorQuestion.text===($('cm-question')?.value.trim()||'')&&(run.versions?.ablation||'none')==='none'&&(run.versions?.experiment_mode||'end_to_end')==='end_to_end'){
+          extra.retry_of_task_id=task.task_id;
+          extra.selected_matter_ids=run.versions?.requested_selected_matter_ids||extra.selected_matter_ids;
+          extra.research_question=priorQuestion.text;extra.question_id=priorQuestion.question_id;extra.benchmark_case_id=priorQuestion.case_id;extra.research_task_type=priorQuestion.task_type;
+        }else extra.parent_task_id=task.task_id;
         document.dispatchEvent(new CustomEvent('audittrace:connectivity-start-run',{detail:extra}));return;
       }
       const planningAction=e.target.closest('[data-cm-planning]');if(planningAction&&task){

@@ -1,0 +1,143 @@
+{
+  "rule_version": "matter_table_v1",
+  "records": [
+    {
+      "record_id": "MTBL-1134152104429c181ac3",
+      "rule_version": "matter_table_v1",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "source_page": 154,
+      "table_id": "BAOSTEEL_AR_2025:154:1",
+      "row_index": 4,
+      "bbox": [
+        69.43000030517578,
+        259.9199981689453,
+        778.02001953125,
+        494.8900146484375
+      ],
+      "source_row_label": "宝钢湛江钢铁零碳高\n等级薄钢板工厂项目\n炼钢工程",
+      "match_basis": "exact_name_candidate",
+      "cross_report_identity": "unverified",
+      "raw_cells": [
+        "宝钢湛江钢铁零碳高\n等级薄钢板工厂项目\n炼钢工程",
+        "1,326,600,000.00",
+        "240,078,904.49",
+        "847,336,295.51",
+        "1,087,415,200.00",
+        "-",
+        "-",
+        "98.87",
+        "部分\n完工",
+        "-",
+        "-",
+        "-",
+        "自有资金"
+      ],
+      "headers": [
+        "项目名称",
+        "预算数",
+        "期初\n余额",
+        "本期增加金额",
+        "本期转入固定资产\n金额",
+        "转入长期待摊费\n用",
+        "期末\n余额",
+        "工程累\n计投入\n占预算\n比例(%）",
+        "工程\n进度",
+        "利息资本化累计\n金额",
+        "其中：本期利息\n资本化金额",
+        "本期利\n息资本\n化率(%）",
+        "资金来源"
+      ],
+      "column_mapping": {
+        "opening": 2,
+        "increase": 3,
+        "to_fixed": 4,
+        "to_long_term": 5,
+        "closing": 6
+      },
+      "values": {
+        "opening": "240078904.49",
+        "increase": "847336295.51",
+        "to_fixed": "1087415200.00",
+        "to_long_term": null,
+        "closing": null
+      },
+      "reported_markers": {
+        "opening": "240,078,904.49",
+        "increase": "847,336,295.51",
+        "to_fixed": "1,087,415,200.00",
+        "to_long_term": "-",
+        "closing": "-"
+      },
+      "unit": "元",
+      "unit_status": "page_unique",
+      "arithmetic": {
+        "status": "needs_evidence",
+        "difference": null,
+        "tolerance": null,
+        "scope": "within_report_row",
+        "missing": [
+          "to_long_term",
+          "other_decrease",
+          "closing"
+        ],
+        "notice": "未解析到的列、破折号及未明确的舍入方式保持未知；候选行不证明跨报告项目身份。"
+      },
+      "extraction": "pymupdf_verified_table_cells",
+      "page_evidence_ids": [
+        "ME-A618258ED3BC498E1B0D",
+        "ME-C4F90039AEB2A2198691"
+      ],
+      "matter_ids": [
+        "MAT-0EB4C0CE6F5969C96BF0"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 154,
+      "candidate_rows": 1,
+      "status": "matched"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 5,
+      "status": "no_financial_movement_header"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 10,
+      "status": "no_financial_movement_header"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 12,
+      "status": "no_financial_movement_header"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 26,
+      "candidate_rows": 0,
+      "status": "no_supported_row_match"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 30,
+      "status": "no_financial_movement_header"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 33,
+      "status": "no_financial_movement_header"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "page": 40,
+      "status": "no_financial_movement_header"
+    }
+  ],
+  "page_limit": 8,
+  "unscanned_evidence_pages": 54,
+  "notice": "通用候选表格取证；仅核实来源和单元格，不自动确认项目同一性或企业实际入账。"
+}

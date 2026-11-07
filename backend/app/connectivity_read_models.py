@@ -6,7 +6,7 @@ META_FIELDS = ("task_id", "case_id", "status", "created_at", "updated_at", "vers
 BASE_FIELDS = ("run_id", "company", "period", "documents", "report_set", "matter_schema_version",
                "execution_mode", "model_status", "result_revision", "parent_run_id", "matter_overview", "duration_ms")
 DETAIL_FIELDS = ("matter_events", "matter_commitments", "matter_paths", "matter_relations",
-                 "matter_explanations", "matter_assessments", "matter_tasks")
+                 "matter_explanations", "matter_assessments", "matter_numeric_verifications", "matter_tasks")
 
 
 def metadata(item):
@@ -34,13 +34,14 @@ def project_result(result, kind, matter_id=None):
         return {**base, "projection_supported": False}
     versions = result.get("versions") or {}
     base["versions"] = {key: deepcopy(versions[key]) for key in
-        ("matter_rule_fingerprints", "source_validity", "rule_validity", "budget", "seed_coverage", "investigation_scope", "matter_types", "result_origin") if key in versions}
+        ("matter_rule_fingerprints", "source_validity", "rule_validity", "budget", "seed_coverage", "investigation_scope", "matter_types", "result_origin", "research_question", "requested_selected_matter_ids", "experiment_mode", "ablation", "verified_matter_tables") if key in versions}
     matters = result.get("matters") or []
     if kind in {"summary", "matters"}:
         base["matters"] = [{k: deepcopy(m.get(k)) for k in ("matter_id", "company_id", "name", "matter_type", "identity_status", "investigation_status", "identity_basis", "evidence_ids", "lineage")} for m in matters]
         if kind == "summary":
             investigated = {m["matter_id"] for m in matters if m.get("investigation_status") != "pending"}
             base["matter_assessments"] = [deepcopy(a) for a in result.get("matter_assessments", []) if a.get("matter_id") in investigated]
+            base["matter_numeric_verifications"] = [deepcopy(a) for a in result.get("matter_numeric_verifications", []) if a.get("matter_id") in investigated]
             planning = deepcopy(result.get("assurance_planning") or {})
             for field in ('risk_findings', 'evidence_requests'):
                 planning[field] = [r for r in planning.get(field, []) if investigated.intersection(r.get('matter_ids', []))]
@@ -60,6 +61,8 @@ def project_result(result, kind, matter_id=None):
     from .connectivity_matters import _all_refs
     ids = set(matter.get("evidence_ids", [])) | set(_all_refs(base))
     base["matter_evidence"] = [deepcopy(e) for e in result.get("matter_evidence", []) if e["evidence_id"] in ids]
+    pages={(e.get('document_id'),e.get('pdf_page')) for e in base['matter_evidence'] if e.get('document_id') and e.get('pdf_page')}
+    base['occurrences']=[deepcopy(o) for o in result.get('occurrences',[]) if (o.get('document_id'),o.get('pdf_page')) in pages]
     base["matter_tool_receipts"] = [deepcopy(r) for r in result.get("matter_tool_receipts", []) if r.get("matter_id") == matter_id]
     base["matter_rejections"] = [deepcopy(r) for r in result.get("matter_rejections", []) if r.get("matter_id") == matter_id]
     endpoints = {value for edge in base.get('matter_relations', []) for value in (edge.get('source_id'),edge.get('target_id'))}

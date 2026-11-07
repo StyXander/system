@@ -1,0 +1,769 @@
+{
+  "dataset_version": "candidate-validation-v1",
+  "independent_test_completed": false,
+  "sampling_note": "Source-bound candidate tasks selected before labels. Holdout status must be revised if used for debugging; no target labels are generated.",
+  "scenarios": [
+    {
+      "case_id": "000333-CAND-01",
+      "question_id": "000333-CAND-01-Q",
+      "question": "对于“556合肥美的高新园区改造项目”，公开报告能否直接支持与具体财务项目的关联？逐段列出已证实关系和仍需补证的环节。",
+      "research_task_type": "relation_tracing",
+      "company_id": "000333",
+      "company": "美的集团",
+      "report_set_id": "CONNSET-190D43C953A73C496823C576",
+      "matter_id": "MAT-B71577F78A046AD6942F",
+      "matter_name": "556合肥美的高新园区改造项目",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "MIDEA_AR_2025",
+        "MIDEA_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "MIDEA_AR_2025": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "MIDEA_ESG_2025": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194"
+      },
+      "source_links": {
+        "MIDEA_AR_2025": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+        "MIDEA_ESG_2025": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225058130.PDF"
+      },
+      "split": "development",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "MIDEA_AR_2025",
+          "pdf_page": 202
+        }
+      ],
+      "evidence_ids_file": "000333/000333-CAND-01.evidence-ids.json"
+    },
+    {
+      "case_id": "000333-CAND-02",
+      "question_id": "000333-CAND-02-Q",
+      "question": "对于“气候风险披露 · 2025 · PDF 79”，是否有证据表明风险已进入具体会计估计或财务项目？区分一般风险叙述与直接证据。",
+      "research_task_type": "relation_tracing",
+      "company_id": "000333",
+      "company": "美的集团",
+      "report_set_id": "CONNSET-190D43C953A73C496823C576",
+      "matter_id": "MAT-AB480FA03CA6C33378A7",
+      "matter_name": "气候风险披露 · 2025 · PDF 79",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "MIDEA_AR_2025",
+        "MIDEA_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "MIDEA_AR_2025": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "MIDEA_ESG_2025": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194"
+      },
+      "source_links": {
+        "MIDEA_AR_2025": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+        "MIDEA_ESG_2025": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225058130.PDF"
+      },
+      "split": "development",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "MIDEA_ESG_2025",
+          "pdf_page": 79
+        }
+      ],
+      "evidence_ids_file": "000333/000333-CAND-02.evidence-ids.json"
+    },
+    {
+      "case_id": "000651-CAND-01",
+      "question_id": "000651-CAND-01-Q",
+      "question": "对于“推进绿色环保与节能减排技改项目”，公开报告能否直接支持与具体财务项目的关联？逐段列出已证实关系和仍需补证的环节。",
+      "research_task_type": "relation_tracing",
+      "company_id": "000651",
+      "company": "格力电器",
+      "report_set_id": "CONNSET-E0176A56C7BB7E0007482D6B",
+      "matter_id": "MAT-50D285F50B22974915EB",
+      "matter_name": "推进绿色环保与节能减排技改项目",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-000651-2025-AR-7cc972f2d199e2ec",
+        "D-000651-2025-ESG-b55d77ca642461d7"
+      ],
+      "source_fingerprints": {
+        "D-000651-2025-AR-7cc972f2d199e2ec": "7cc972f2d199e2ec3797cc5da479e8268afa59b77875770de3bcd3648242fb8c",
+        "D-000651-2025-ESG-b55d77ca642461d7": "b55d77ca642461d7dace9f4953e2aea0bada7376cc6b15f0ddcf8bf66f626e30"
+      },
+      "source_links": {
+        "D-000651-2025-AR-7cc972f2d199e2ec": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250396.PDF",
+        "D-000651-2025-ESG-b55d77ca642461d7": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250422.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-000651-2025-ESG-b55d77ca642461d7",
+          "pdf_page": 77
+        }
+      ],
+      "evidence_ids_file": "000651/000651-CAND-01.evidence-ids.json"
+    },
+    {
+      "case_id": "000651-CAND-02",
+      "question_id": "000651-CAND-02-Q",
+      "question": "对于“气候风险披露 · 2025 · PDF 69”，是否有证据表明风险已进入具体会计估计或财务项目？区分一般风险叙述与直接证据。",
+      "research_task_type": "relation_tracing",
+      "company_id": "000651",
+      "company": "格力电器",
+      "report_set_id": "CONNSET-E0176A56C7BB7E0007482D6B",
+      "matter_id": "MAT-EB33354FDF9B787D2956",
+      "matter_name": "气候风险披露 · 2025 · PDF 69",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-000651-2025-AR-7cc972f2d199e2ec",
+        "D-000651-2025-ESG-b55d77ca642461d7"
+      ],
+      "source_fingerprints": {
+        "D-000651-2025-AR-7cc972f2d199e2ec": "7cc972f2d199e2ec3797cc5da479e8268afa59b77875770de3bcd3648242fb8c",
+        "D-000651-2025-ESG-b55d77ca642461d7": "b55d77ca642461d7dace9f4953e2aea0bada7376cc6b15f0ddcf8bf66f626e30"
+      },
+      "source_links": {
+        "D-000651-2025-AR-7cc972f2d199e2ec": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250396.PDF",
+        "D-000651-2025-ESG-b55d77ca642461d7": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250422.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-000651-2025-ESG-b55d77ca642461d7",
+          "pdf_page": 69
+        }
+      ],
+      "evidence_ids_file": "000651/000651-CAND-02.evidence-ids.json"
+    },
+    {
+      "case_id": "000651-CAND-03",
+      "question_id": "000651-CAND-03-Q",
+      "question": "对于“目标与承诺披露 · 2025 · PDF 59”，哪些年份属于目标期、报告期或已发生事件？哪些承诺进展得到原文支持，哪些尚不能判断？",
+      "research_task_type": "relation_tracing",
+      "company_id": "000651",
+      "company": "格力电器",
+      "report_set_id": "CONNSET-E0176A56C7BB7E0007482D6B",
+      "matter_id": "MAT-109E12CBCA1182BBD438",
+      "matter_name": "目标与承诺披露 · 2025 · PDF 59",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-000651-2025-AR-7cc972f2d199e2ec",
+        "D-000651-2025-ESG-b55d77ca642461d7"
+      ],
+      "source_fingerprints": {
+        "D-000651-2025-AR-7cc972f2d199e2ec": "7cc972f2d199e2ec3797cc5da479e8268afa59b77875770de3bcd3648242fb8c",
+        "D-000651-2025-ESG-b55d77ca642461d7": "b55d77ca642461d7dace9f4953e2aea0bada7376cc6b15f0ddcf8bf66f626e30"
+      },
+      "source_links": {
+        "D-000651-2025-AR-7cc972f2d199e2ec": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250396.PDF",
+        "D-000651-2025-ESG-b55d77ca642461d7": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250422.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-000651-2025-AR-7cc972f2d199e2ec",
+          "pdf_page": 59
+        }
+      ],
+      "evidence_ids_file": "000651/000651-CAND-03.evidence-ids.json"
+    },
+    {
+      "case_id": "000858-CAND-01",
+      "question_id": "000858-CAND-01-Q",
+      "question": "对于“绿色改造披露 · 2025 · PDF 23”，公开报告能否直接支持与具体财务项目的关联？逐段列出已证实关系和仍需补证的环节。",
+      "research_task_type": "relation_tracing",
+      "company_id": "000858",
+      "company": "五粮液",
+      "report_set_id": "CONNSET-C8B5408F07F77AFAC6F50BC8",
+      "matter_id": "MAT-F284091944AC490B0B15",
+      "matter_name": "绿色改造披露 · 2025 · PDF 23",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "WLY_AR_2025",
+        "WLY_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "WLY_AR_2025": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+        "WLY_ESG_2025": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+      },
+      "source_links": {
+        "WLY_AR_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+        "WLY_ESG_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273113.PDF"
+      },
+      "split": "development",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "WLY_AR_2025",
+          "pdf_page": 23
+        }
+      ],
+      "evidence_ids_file": "000858/000858-CAND-01.evidence-ids.json"
+    },
+    {
+      "case_id": "000858-CAND-02",
+      "question_id": "000858-CAND-02-Q",
+      "question": "对于“气候风险披露 · 2025 · PDF 15”，是否有证据表明风险已进入具体会计估计或财务项目？区分一般风险叙述与直接证据。",
+      "research_task_type": "relation_tracing",
+      "company_id": "000858",
+      "company": "五粮液",
+      "report_set_id": "CONNSET-C8B5408F07F77AFAC6F50BC8",
+      "matter_id": "MAT-58B1BBF6BA1F96D32E2E",
+      "matter_name": "气候风险披露 · 2025 · PDF 15",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "WLY_AR_2025",
+        "WLY_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "WLY_AR_2025": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+        "WLY_ESG_2025": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+      },
+      "source_links": {
+        "WLY_AR_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+        "WLY_ESG_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273113.PDF"
+      },
+      "split": "development",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "WLY_ESG_2025",
+          "pdf_page": 15
+        }
+      ],
+      "evidence_ids_file": "000858/000858-CAND-02.evidence-ids.json"
+    },
+    {
+      "case_id": "600019-CAND-01",
+      "question_id": "600019-CAND-01-Q",
+      "question": "对于“零碳高等级薄钢板工厂（项目身份待核）”，公开报告能否直接支持与具体财务项目的关联？逐段列出已证实关系和仍需补证的环节。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_set_id": "CONNSET-D778BAB622EA1EA07FBD2681",
+      "matter_id": "MAT-EC71D09FB6DBC2277626",
+      "matter_name": "零碳高等级薄钢板工厂（项目身份待核）",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "BAO24_ESG",
+        "BAOSTEEL_AR_2025",
+        "BAOSTEEL_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "BAO24_ESG": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+        "BAOSTEEL_AR_2025": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "BAOSTEEL_ESG_2025": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+      },
+      "source_links": {
+        "BAOSTEEL_AR_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257227.PDF",
+        "BAOSTEEL_ESG_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257234.PDF",
+        "BAO24_ESG": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329096.PDF"
+      },
+      "split": "development",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "BAOSTEEL_AR_2025",
+          "pdf_page": 26
+        }
+      ],
+      "evidence_ids_file": "600019/600019-CAND-01.evidence-ids.json"
+    },
+    {
+      "case_id": "600019-CAND-02",
+      "question_id": "600019-CAND-02-Q",
+      "question": "对于“此定价方案旨在推动节能低碳技术改造项目”，是否有证据表明风险已进入具体会计估计或财务项目？区分一般风险叙述与直接证据。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_set_id": "CONNSET-D778BAB622EA1EA07FBD2681",
+      "matter_id": "MAT-8B38763A60D6850CDBAD",
+      "matter_name": "此定价方案旨在推动节能低碳技术改造项目",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "BAO24_ESG",
+        "BAOSTEEL_AR_2025",
+        "BAOSTEEL_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "BAO24_ESG": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+        "BAOSTEEL_AR_2025": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "BAOSTEEL_ESG_2025": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+      },
+      "source_links": {
+        "BAOSTEEL_AR_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257227.PDF",
+        "BAOSTEEL_ESG_2025": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257234.PDF",
+        "BAO24_ESG": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329096.PDF"
+      },
+      "split": "development",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "BAO24_ESG",
+          "pdf_page": 38
+        }
+      ],
+      "evidence_ids_file": "600019/600019-CAND-02.evidence-ids.json"
+    },
+    {
+      "case_id": "600028-CAND-01",
+      "question_id": "600028-CAND-01-Q",
+      "question": "对于“实施节能降碳改造项目”，公开报告能否直接支持与具体财务项目的关联？逐段列出已证实关系和仍需补证的环节。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600028",
+      "company": "中国石化",
+      "report_set_id": "CONNSET-26750E36586AF909B907C039",
+      "matter_id": "MAT-6ECA32385847FF540E98",
+      "matter_name": "实施节能降碳改造项目",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600028-2025-AR-4b425d76e97f8c15",
+        "D-600028-2025-ESG-0556e4df58ddf41d"
+      ],
+      "source_fingerprints": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "4b425d76e97f8c151d986a7f1e83ae2d4b22d43f89b950c352240a5aaffea329",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "0556e4df58ddf41d063027f276ec628cd83407127d42c292973f23a416a55f09"
+      },
+      "source_links": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024073.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600028-2025-ESG-0556e4df58ddf41d",
+          "pdf_page": 29
+        }
+      ],
+      "evidence_ids_file": "600028/600028-CAND-01.evidence-ids.json"
+    },
+    {
+      "case_id": "600028-CAND-02",
+      "question_id": "600028-CAND-02-Q",
+      "question": "对于“气候风险披露 · 2025 · PDF 10”，是否有证据表明风险已进入具体会计估计或财务项目？区分一般风险叙述与直接证据。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600028",
+      "company": "中国石化",
+      "report_set_id": "CONNSET-26750E36586AF909B907C039",
+      "matter_id": "MAT-5941F3F774E3FDDAABD4",
+      "matter_name": "气候风险披露 · 2025 · PDF 10",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600028-2025-AR-4b425d76e97f8c15",
+        "D-600028-2025-ESG-0556e4df58ddf41d"
+      ],
+      "source_fingerprints": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "4b425d76e97f8c151d986a7f1e83ae2d4b22d43f89b950c352240a5aaffea329",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "0556e4df58ddf41d063027f276ec628cd83407127d42c292973f23a416a55f09"
+      },
+      "source_links": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024073.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600028-2025-AR-4b425d76e97f8c15",
+          "pdf_page": 10
+        }
+      ],
+      "evidence_ids_file": "600028/600028-CAND-02.evidence-ids.json"
+    },
+    {
+      "case_id": "600028-CAND-03",
+      "question_id": "600028-CAND-03-Q",
+      "question": "对于“目标与承诺披露 · 2025 · PDF 187”，哪些年份属于目标期、报告期或已发生事件？哪些承诺进展得到原文支持，哪些尚不能判断？",
+      "research_task_type": "relation_tracing",
+      "company_id": "600028",
+      "company": "中国石化",
+      "report_set_id": "CONNSET-26750E36586AF909B907C039",
+      "matter_id": "MAT-CAEB276D068FE57FCFE5",
+      "matter_name": "目标与承诺披露 · 2025 · PDF 187",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600028-2025-AR-4b425d76e97f8c15",
+        "D-600028-2025-ESG-0556e4df58ddf41d"
+      ],
+      "source_fingerprints": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "4b425d76e97f8c151d986a7f1e83ae2d4b22d43f89b950c352240a5aaffea329",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "0556e4df58ddf41d063027f276ec628cd83407127d42c292973f23a416a55f09"
+      },
+      "source_links": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024073.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600028-2025-AR-4b425d76e97f8c15",
+          "pdf_page": 187
+        }
+      ],
+      "evidence_ids_file": "600028/600028-CAND-03.evidence-ids.json"
+    },
+    {
+      "case_id": "600028-CAND-04",
+      "question_id": "600028-CAND-04-Q",
+      "question": "对于“资源与绩效披露 · 2025 · PDF 50”，节能减排或资源效率披露是否能直接关联具体财务金额？请说明口径和证据边界。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600028",
+      "company": "中国石化",
+      "report_set_id": "CONNSET-26750E36586AF909B907C039",
+      "matter_id": "MAT-29019E8EBF15EF32158F",
+      "matter_name": "资源与绩效披露 · 2025 · PDF 50",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600028-2025-AR-4b425d76e97f8c15",
+        "D-600028-2025-ESG-0556e4df58ddf41d"
+      ],
+      "source_fingerprints": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "4b425d76e97f8c151d986a7f1e83ae2d4b22d43f89b950c352240a5aaffea329",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "0556e4df58ddf41d063027f276ec628cd83407127d42c292973f23a416a55f09"
+      },
+      "source_links": {
+        "D-600028-2025-AR-4b425d76e97f8c15": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+        "D-600028-2025-ESG-0556e4df58ddf41d": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024073.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600028-2025-ESG-0556e4df58ddf41d",
+          "pdf_page": 50
+        }
+      ],
+      "evidence_ids_file": "600028/600028-CAND-04.evidence-ids.json"
+    },
+    {
+      "case_id": "600690-CAND-01",
+      "question_id": "600690-CAND-01-Q",
+      "question": "对于“绿色改造披露 · 2025 · PDF 18”，公开报告能否直接支持与具体财务项目的关联？逐段列出已证实关系和仍需补证的环节。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600690",
+      "company": "海尔智家",
+      "report_set_id": "CONNSET-9F28E9CE5B29310F4ABCD58E",
+      "matter_id": "MAT-8AFF38BB84D40AFE625A",
+      "matter_name": "绿色改造披露 · 2025 · PDF 18",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600690-2025-AR-14186f9f9b47f687",
+        "D-600690-2025-ESG-40d566cf551487b7"
+      ],
+      "source_fingerprints": {
+        "D-600690-2025-AR-14186f9f9b47f687": "14186f9f9b47f687c527ba14825664f3b09e51759d581636cddcc248f26e3660",
+        "D-600690-2025-ESG-40d566cf551487b7": "40d566cf551487b72c5af2367aed0d36d7816bfdcc8b2f9f76ad9736729945d3"
+      },
+      "source_links": {
+        "D-600690-2025-AR-14186f9f9b47f687": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038336.PDF",
+        "D-600690-2025-ESG-40d566cf551487b7": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225215683.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600690-2025-ESG-40d566cf551487b7",
+          "pdf_page": 18
+        }
+      ],
+      "evidence_ids_file": "600690/600690-CAND-01.evidence-ids.json"
+    },
+    {
+      "case_id": "600690-CAND-02",
+      "question_id": "600690-CAND-02-Q",
+      "question": "对于“气候风险披露 · 2025 · PDF 105”，是否有证据表明风险已进入具体会计估计或财务项目？区分一般风险叙述与直接证据。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600690",
+      "company": "海尔智家",
+      "report_set_id": "CONNSET-9F28E9CE5B29310F4ABCD58E",
+      "matter_id": "MAT-589FCB668164A075F80E",
+      "matter_name": "气候风险披露 · 2025 · PDF 105",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600690-2025-AR-14186f9f9b47f687",
+        "D-600690-2025-ESG-40d566cf551487b7"
+      ],
+      "source_fingerprints": {
+        "D-600690-2025-AR-14186f9f9b47f687": "14186f9f9b47f687c527ba14825664f3b09e51759d581636cddcc248f26e3660",
+        "D-600690-2025-ESG-40d566cf551487b7": "40d566cf551487b72c5af2367aed0d36d7816bfdcc8b2f9f76ad9736729945d3"
+      },
+      "source_links": {
+        "D-600690-2025-AR-14186f9f9b47f687": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038336.PDF",
+        "D-600690-2025-ESG-40d566cf551487b7": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225215683.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600690-2025-ESG-40d566cf551487b7",
+          "pdf_page": 105
+        }
+      ],
+      "evidence_ids_file": "600690/600690-CAND-02.evidence-ids.json"
+    },
+    {
+      "case_id": "600690-CAND-03",
+      "question_id": "600690-CAND-03-Q",
+      "question": "对于“目标与承诺披露 · 2025 · PDF 86”，哪些年份属于目标期、报告期或已发生事件？哪些承诺进展得到原文支持，哪些尚不能判断？",
+      "research_task_type": "relation_tracing",
+      "company_id": "600690",
+      "company": "海尔智家",
+      "report_set_id": "CONNSET-9F28E9CE5B29310F4ABCD58E",
+      "matter_id": "MAT-77C2C87EE9887A66C0A2",
+      "matter_name": "目标与承诺披露 · 2025 · PDF 86",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600690-2025-AR-14186f9f9b47f687",
+        "D-600690-2025-ESG-40d566cf551487b7"
+      ],
+      "source_fingerprints": {
+        "D-600690-2025-AR-14186f9f9b47f687": "14186f9f9b47f687c527ba14825664f3b09e51759d581636cddcc248f26e3660",
+        "D-600690-2025-ESG-40d566cf551487b7": "40d566cf551487b72c5af2367aed0d36d7816bfdcc8b2f9f76ad9736729945d3"
+      },
+      "source_links": {
+        "D-600690-2025-AR-14186f9f9b47f687": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038336.PDF",
+        "D-600690-2025-ESG-40d566cf551487b7": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225215683.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600690-2025-AR-14186f9f9b47f687",
+          "pdf_page": 86
+        }
+      ],
+      "evidence_ids_file": "600690/600690-CAND-03.evidence-ids.json"
+    },
+    {
+      "case_id": "600690-CAND-04",
+      "question_id": "600690-CAND-04-Q",
+      "question": "对于“资源与绩效披露 · 2025 · PDF 13”，节能减排或资源效率披露是否能直接关联具体财务金额？请说明口径和证据边界。",
+      "research_task_type": "relation_tracing",
+      "company_id": "600690",
+      "company": "海尔智家",
+      "report_set_id": "CONNSET-9F28E9CE5B29310F4ABCD58E",
+      "matter_id": "MAT-99A59619E52DEC9C00FB",
+      "matter_name": "资源与绩效披露 · 2025 · PDF 13",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-600690-2025-AR-14186f9f9b47f687",
+        "D-600690-2025-ESG-40d566cf551487b7"
+      ],
+      "source_fingerprints": {
+        "D-600690-2025-AR-14186f9f9b47f687": "14186f9f9b47f687c527ba14825664f3b09e51759d581636cddcc248f26e3660",
+        "D-600690-2025-ESG-40d566cf551487b7": "40d566cf551487b72c5af2367aed0d36d7816bfdcc8b2f9f76ad9736729945d3"
+      },
+      "source_links": {
+        "D-600690-2025-AR-14186f9f9b47f687": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038336.PDF",
+        "D-600690-2025-ESG-40d566cf551487b7": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225215683.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-600690-2025-ESG-40d566cf551487b7",
+          "pdf_page": 13
+        }
+      ],
+      "evidence_ids_file": "600690/600690-CAND-04.evidence-ids.json"
+    },
+    {
+      "case_id": "601012-CAND-01",
+      "question_id": "601012-CAND-01-Q",
+      "question": "对于“绿色债券支持项目”，公开报告能否直接支持与具体财务项目的关联？逐段列出已证实关系和仍需补证的环节。",
+      "research_task_type": "relation_tracing",
+      "company_id": "601012",
+      "company": "隆基绿能",
+      "report_set_id": "CONNSET-634E214076F1E8EF329CFC88",
+      "matter_id": "MAT-AB3C4335F0EBC2370825",
+      "matter_name": "绿色债券支持项目",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-601012-2025-AR-10233740d54740b8",
+        "D-601012-2025-ESG-9786609033a1cf21"
+      ],
+      "source_fingerprints": {
+        "D-601012-2025-AR-10233740d54740b8": "10233740d54740b89dfd772eecac5f04d8fef639489acd3b18b1a35e81bce2c1",
+        "D-601012-2025-ESG-9786609033a1cf21": "9786609033a1cf2183e06838361be83c23ff4f628965cd44f3eb6208de4e88ff"
+      },
+      "source_links": {
+        "D-601012-2025-AR-10233740d54740b8": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251647.PDF",
+        "D-601012-2025-ESG-9786609033a1cf21": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251671.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-601012-2025-AR-10233740d54740b8",
+          "pdf_page": 104
+        }
+      ],
+      "evidence_ids_file": "601012/601012-CAND-01.evidence-ids.json"
+    },
+    {
+      "case_id": "601012-CAND-02",
+      "question_id": "601012-CAND-02-Q",
+      "question": "对于“气候风险披露 · 2025 · PDF 64”，是否有证据表明风险已进入具体会计估计或财务项目？区分一般风险叙述与直接证据。",
+      "research_task_type": "relation_tracing",
+      "company_id": "601012",
+      "company": "隆基绿能",
+      "report_set_id": "CONNSET-634E214076F1E8EF329CFC88",
+      "matter_id": "MAT-E1EF814C00980A769250",
+      "matter_name": "气候风险披露 · 2025 · PDF 64",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-601012-2025-AR-10233740d54740b8",
+        "D-601012-2025-ESG-9786609033a1cf21"
+      ],
+      "source_fingerprints": {
+        "D-601012-2025-AR-10233740d54740b8": "10233740d54740b89dfd772eecac5f04d8fef639489acd3b18b1a35e81bce2c1",
+        "D-601012-2025-ESG-9786609033a1cf21": "9786609033a1cf2183e06838361be83c23ff4f628965cd44f3eb6208de4e88ff"
+      },
+      "source_links": {
+        "D-601012-2025-AR-10233740d54740b8": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251647.PDF",
+        "D-601012-2025-ESG-9786609033a1cf21": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251671.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-601012-2025-ESG-9786609033a1cf21",
+          "pdf_page": 64
+        }
+      ],
+      "evidence_ids_file": "601012/601012-CAND-02.evidence-ids.json"
+    },
+    {
+      "case_id": "601012-CAND-03",
+      "question_id": "601012-CAND-03-Q",
+      "question": "对于“目标与承诺披露 · 2025 · PDF 46”，哪些年份属于目标期、报告期或已发生事件？哪些承诺进展得到原文支持，哪些尚不能判断？",
+      "research_task_type": "relation_tracing",
+      "company_id": "601012",
+      "company": "隆基绿能",
+      "report_set_id": "CONNSET-634E214076F1E8EF329CFC88",
+      "matter_id": "MAT-BBE825DC6A5F5557A1DB",
+      "matter_name": "目标与承诺披露 · 2025 · PDF 46",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-601012-2025-AR-10233740d54740b8",
+        "D-601012-2025-ESG-9786609033a1cf21"
+      ],
+      "source_fingerprints": {
+        "D-601012-2025-AR-10233740d54740b8": "10233740d54740b89dfd772eecac5f04d8fef639489acd3b18b1a35e81bce2c1",
+        "D-601012-2025-ESG-9786609033a1cf21": "9786609033a1cf2183e06838361be83c23ff4f628965cd44f3eb6208de4e88ff"
+      },
+      "source_links": {
+        "D-601012-2025-AR-10233740d54740b8": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251647.PDF",
+        "D-601012-2025-ESG-9786609033a1cf21": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251671.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-601012-2025-AR-10233740d54740b8",
+          "pdf_page": 46
+        }
+      ],
+      "evidence_ids_file": "601012/601012-CAND-03.evidence-ids.json"
+    },
+    {
+      "case_id": "601012-CAND-04",
+      "question_id": "601012-CAND-04-Q",
+      "question": "对于“资源与绩效披露 · 2025 · PDF 83”，节能减排或资源效率披露是否能直接关联具体财务金额？请说明口径和证据边界。",
+      "research_task_type": "relation_tracing",
+      "company_id": "601012",
+      "company": "隆基绿能",
+      "report_set_id": "CONNSET-634E214076F1E8EF329CFC88",
+      "matter_id": "MAT-6FFD75F3C34ECBBD68BF",
+      "matter_name": "资源与绩效披露 · 2025 · PDF 83",
+      "as_of_date": "2026-11-07",
+      "source_document_ids": [
+        "D-601012-2025-AR-10233740d54740b8",
+        "D-601012-2025-ESG-9786609033a1cf21"
+      ],
+      "source_fingerprints": {
+        "D-601012-2025-AR-10233740d54740b8": "10233740d54740b89dfd772eecac5f04d8fef639489acd3b18b1a35e81bce2c1",
+        "D-601012-2025-ESG-9786609033a1cf21": "9786609033a1cf2183e06838361be83c23ff4f628965cd44f3eb6208de4e88ff"
+      },
+      "source_links": {
+        "D-601012-2025-AR-10233740d54740b8": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251647.PDF",
+        "D-601012-2025-ESG-9786609033a1cf21": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251671.PDF"
+      },
+      "split": "candidate_holdout",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": [],
+      "source_pages": [
+        {
+          "document_id": "D-601012-2025-ESG-9786609033a1cf21",
+          "pdf_page": 83
+        }
+      ],
+      "evidence_ids_file": "601012/601012-CAND-04.evidence-ids.json"
+    }
+  ]
+}

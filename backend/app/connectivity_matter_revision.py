@@ -57,6 +57,7 @@ def revise_matters(run, body):
                 child=selected[0].model_copy(deep=True);child.matter_id="MAT-"+digest("split|"+"|".join(sorted(ids)))
                 child.name+=f" 分项{i}";child.evidence_ids=ids;children.append(child)
         run.matters=[m for m in run.matters if m.matter_id not in body.matter_ids]+children
+        run.matter_numeric_verifications=[r for r in run.matter_numeric_verifications if r.get('matter_id') not in body.matter_ids]
         for field in ("matter_events","matter_commitments","matter_paths","matter_relations","matter_explanations","matter_assessments"):
             setattr(run,field,[obj for obj in getattr(run,field) if obj.matter_id not in body.matter_ids])
         for m in children:

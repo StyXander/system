@@ -27,12 +27,12 @@ def export_matter_run(run,format_name):
     if format_name=="csv":
         stream=StringIO(newline="");writer=csv.writer(stream)
         writer.writerow(["记录类型","运行ID","版本","事项或证据ID","保存结果JSON"])
-        writer.writerow(["metadata",run.run_id,run.result_revision,"",_cell(json.dumps({"notice":notice,"report_set":run.report_set.model_dump(mode="json"),"model_status":run.model_status,"overview":run.matter_overview},ensure_ascii=False))])
+        writer.writerow(["metadata",run.run_id,run.result_revision,"",_cell(json.dumps({"notice":notice,"report_set":run.report_set.model_dump(mode="json"),"model_status":run.model_status,"overview":run.matter_overview,"research_question":run.versions.get('research_question'),"verified_matter_tables":run.versions.get('verified_matter_tables')},ensure_ascii=False))])
         for field in ("risk_findings","evidence_requests"):
             for row in planning[field]:
                 writer.writerow([field,run.run_id,run.result_revision,row['entry_id'],_cell(json.dumps(row,ensure_ascii=False))])
         for field in ("matters","matter_events","matter_commitments","matter_paths","matter_relations","matter_explanations",
-                      "matter_assessments","matter_evidence","matter_tasks","matter_tool_receipts","matter_revisions",
+                      "matter_assessments","matter_numeric_verifications","matter_evidence","matter_tasks","matter_tool_receipts","matter_revisions",
                       "matter_coverage","matter_rejections","occurrences","provider_calls","prior_provider_calls"):
             for value in getattr(run,field):
                 row=value.model_dump(mode="json") if hasattr(value,"model_dump") else value
@@ -47,6 +47,18 @@ def export_matter_run(run,format_name):
     _paragraph(doc,notice)
     _paragraph(doc,f"运行 {run.run_id}  结果版本 {run.result_revision}  模式 {run.execution_mode}  模型状态 {run.model_status}")
     _paragraph(doc,f"资料期间 {run.period}  观察截至 {run.report_set.as_of_date}  资料集合 {run.report_set.report_set_id}")
+    question=run.versions.get('research_question',{})
+    if question.get('text'):
+        _add_heading(doc,"本次待答问题",1)
+        _paragraph(doc,question['text'])
+        _paragraph(doc,f"题号 {question.get('question_id') or '未指定'}；类型 {question.get('task_type')}；案例 {question.get('case_id') or '工作台任务'}")
+    for record in run.matter_numeric_verifications:
+        _add_heading(doc,"原值金额核验记录",1)
+        _paragraph(doc,json.dumps(record,ensure_ascii=False))
+    for table in run.versions.get('verified_matter_tables',{}).get('records',[]):
+        _add_heading(doc,"通用表格取证",1)
+        _paragraph(doc,f"{table['document_id']} PDF {table['source_page']}；{table['source_row_label']}；匹配依据 {table['match_basis']}；身份仍待核")
+        _table_rows(doc,[(str(h),str(v)) for h,v in zip(table['headers'],table['raw_cells'])])
     _paragraph(doc,"事项、证据、时间线和意见均来自该保存版本；支持状态描述披露对具体主张的支持程度。")
     _table_rows(doc,[(label,str(run.matter_overview.get(key,0))) for label,key in
         (("事项数","matter_total"),("已深查","investigated"),("待调查","pending"),("综合意见数","assessment_count"))])

@@ -1,0 +1,543 @@
+{
+  "documents": [
+    {
+      "document_id": "MIDEA_AR_2025",
+      "case_id": "000333-2025",
+      "company_id": "000333",
+      "company": "美的集团",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "以巨潮公告版为主；官网版作为异版单独保存，PDF116提取文字不同",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-03-31",
+      "retrieved_at": "2026-10-15T12:07:11.343732+08:00",
+      "compilation_basis": "\"企业会计准则\"",
+      "pages": 276,
+      "file_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "MIDEA_ESG_2025",
+      "case_id": "000333-2025",
+      "company_id": "000333",
+      "company": "美的集团",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025_ESG报告_公告简体中文版",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225058130.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-03-31",
+      "retrieved_at": "2026-10-15T12:06:26.017428+08:00",
+      "compilation_basis": "{\"遵循\": [\"港交所主板附录C2\", \"深交所第17号指引\"], \"参考\": [\"IFRS S1\", \"IFRS S2\", \"GRI\", \"UNGC\"]}",
+      "pages": 82,
+      "file_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "D-000651-2025-AR-7cc972f2d199e2ec",
+      "case_id": "CONNPAIR-000651-2025-c11b149265f540c7",
+      "company_id": "000651",
+      "company": "格力电器",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250396.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-29",
+      "retrieved_at": "2026-10-23T10:23:24.647880+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 219,
+      "file_sha256": "7cc972f2d199e2ec3797cc5da479e8268afa59b77875770de3bcd3648242fb8c",
+      "available": true,
+      "version_role": "original"
+    },
+    {
+      "document_id": "D-000651-2025-ESG-b55d77ca642461d7",
+      "case_id": "CONNPAIR-000651-2025-c11b149265f540c7",
+      "company_id": "000651",
+      "company": "格力电器",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025年度环境、社会及公司治理（ESG）报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225250422.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-29",
+      "retrieved_at": "2026-10-23T10:23:25.818569+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 85,
+      "file_sha256": "b55d77ca642461d7dace9f4953e2aea0bada7376cc6b15f0ddcf8bf66f626e30",
+      "available": true,
+      "version_role": "original"
+    },
+    {
+      "document_id": "WLY_AR_2025",
+      "case_id": "000858-2025",
+      "company_id": "000858",
+      "company": "五粮液",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "公告全文；同日更正公告涉及此前2025年中期数据，不能据此称本年报为更正后版",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:07:52.009709+08:00",
+      "compilation_basis": "\"企业会计准则\"",
+      "pages": 141,
+      "file_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "WLY_ESG_2025",
+      "case_id": "000858-2025",
+      "company_id": "000858",
+      "company": "五粮液",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025_ESG报告_公告简体中文版",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273113.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:06:15.573362+08:00",
+      "compilation_basis": "{\"主要参照\": [\"深交所第17号指引\", \"深交所编制指南（2026年修订）\", \"关于新时代中央企业高标准履行社会责任的指导意见\", \"中国酒类企业ESG披露指南\", \"GRI\", \"SDGs\", \"UNGC\", \"ISO26000\"]}",
+      "pages": 59,
+      "file_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "case_id": "600019-2025",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025_年度报告_公告全文",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257227.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:06:10.791198+08:00",
+      "compilation_basis": "\"企业会计准则\"",
+      "pages": 245,
+      "file_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "BAOSTEEL_ESG_2025",
+      "case_id": "600019-2025",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025_可持续发展报告_公告全文",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257234.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:07:05.627347+08:00",
+      "compilation_basis": "{\"主要参照\": [\"GRI\", \"CASS-ESG6.0\"], \"遵循\": [\"上交所第14号指引\"], \"参考\": [\"我国企业可持续披露基本准则\", \"应用指南\", \"ISSB\", \"SASB\", \"SDGs\"]}",
+      "pages": 102,
+      "file_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "BAO24_ESG",
+      "case_id": "600019-2024",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_type": "ESG",
+      "period": "2024",
+      "report_period": "2024",
+      "metric_period": "",
+      "version": "2024年度公告原件；2026-10-19核验巨潮官方字节与此前登记镜像一致",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329096.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2025-04-26",
+      "retrieved_at": "2026-10-19T14:15:32.950781+00:00",
+      "compilation_basis": "待从本次报告核对",
+      "pages": 90,
+      "file_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "D-600028-2025-AR-4b425d76e97f8c15",
+      "case_id": "CONNPAIR-600028-2025-017c9e4fba1de956",
+      "company_id": "600028",
+      "company": "中国石化",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "中国石化2025年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024063.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-03-23",
+      "retrieved_at": "2026-10-23T10:23:33.028807+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 239,
+      "file_sha256": "4b425d76e97f8c151d986a7f1e83ae2d4b22d43f89b950c352240a5aaffea329",
+      "available": true,
+      "version_role": "original"
+    },
+    {
+      "document_id": "D-600028-2025-ESG-0556e4df58ddf41d",
+      "case_id": "CONNPAIR-600028-2025-017c9e4fba1de956",
+      "company_id": "600028",
+      "company": "中国石化",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "中国石化2025年可持续发展报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-23/1225024073.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-03-23",
+      "retrieved_at": "2026-10-23T10:23:33.497929+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 95,
+      "file_sha256": "0556e4df58ddf41d063027f276ec628cd83407127d42c292973f23a416a55f09",
+      "available": true,
+      "version_role": "original"
+    },
+    {
+      "document_id": "D-600690-2025-AR-14186f9f9b47f687",
+      "case_id": "CONNPAIR-600690-2025-68f07089c71a0de0",
+      "company_id": "600690",
+      "company": "海尔智家",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "海尔智家股份有限公司2025年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225038336.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-03-27",
+      "retrieved_at": "2026-10-23T10:23:42.107478+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 245,
+      "file_sha256": "14186f9f9b47f687c527ba14825664f3b09e51759d581636cddcc248f26e3660",
+      "available": true,
+      "version_role": "original"
+    },
+    {
+      "document_id": "D-600690-2025-ESG-40d566cf551487b7",
+      "case_id": "CONNPAIR-600690-2025-68f07089c71a0de0",
+      "company_id": "600690",
+      "company": "海尔智家",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "海尔智家股份有限公司2025环境、社会及管治报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-28/1225215683.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-28",
+      "retrieved_at": "2026-10-23T10:23:43.290406+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 113,
+      "file_sha256": "40d566cf551487b72c5af2367aed0d36d7816bfdcc8b2f9f76ad9736729945d3",
+      "available": true,
+      "version_role": "original"
+    },
+    {
+      "document_id": "D-601012-2025-AR-10233740d54740b8",
+      "case_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+      "company_id": "601012",
+      "company": "隆基绿能",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025年年度报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251647.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-29",
+      "retrieved_at": "2026-10-23T10:23:49.262388+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 314,
+      "file_sha256": "10233740d54740b89dfd772eecac5f04d8fef639489acd3b18b1a35e81bce2c1",
+      "available": true,
+      "version_role": "original"
+    },
+    {
+      "document_id": "D-601012-2025-ESG-9786609033a1cf21",
+      "case_id": "CONNPAIR-601012-2025-a03b1a282c408642",
+      "company_id": "601012",
+      "company": "隆基绿能",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025年度可持续发展报告",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225251671.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-29",
+      "retrieved_at": "2026-10-23T10:23:51.096689+00:00",
+      "compilation_basis": "待指标核验阶段从原文核对",
+      "pages": 189,
+      "file_sha256": "9786609033a1cf2183e06838361be83c23ff4f628965cd44f3eb6208de4e88ff",
+      "available": true,
+      "version_role": "original"
+    }
+  ],
+  "coverage": [
+    {
+      "document_id": "MIDEA_AR_2025",
+      "total_pages": 276,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 5835,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 5,
+      "duration_ms": 50
+    },
+    {
+      "document_id": "MIDEA_ESG_2025",
+      "total_pages": 82,
+      "failed_pages": [
+        {
+          "page": 1,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        },
+        {
+          "page": 82,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        }
+      ],
+      "scanned_pages": [
+        1,
+        82
+      ],
+      "indexed_blocks": 3627,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 53,
+      "duration_ms": 76
+    },
+    {
+      "company_id": "000651",
+      "kind": "resource_efficiency",
+      "status": "no_candidate"
+    },
+    {
+      "document_id": "D-000651-2025-AR-7cc972f2d199e2ec",
+      "total_pages": 219,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 6912,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 2,
+      "duration_ms": 47
+    },
+    {
+      "document_id": "D-000651-2025-ESG-b55d77ca642461d7",
+      "total_pages": 85,
+      "failed_pages": [
+        {
+          "page": 1,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        },
+        {
+          "page": 2,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        }
+      ],
+      "scanned_pages": [
+        1,
+        2
+      ],
+      "indexed_blocks": 3002,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 65,
+      "duration_ms": 79
+    },
+    {
+      "document_id": "WLY_AR_2025",
+      "total_pages": 141,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 4680,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 4,
+      "duration_ms": 25
+    },
+    {
+      "document_id": "WLY_ESG_2025",
+      "total_pages": 59,
+      "failed_pages": [
+        {
+          "page": 2,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        }
+      ],
+      "scanned_pages": [
+        2
+      ],
+      "indexed_blocks": 3291,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 9,
+      "duration_ms": 21
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "total_pages": 245,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 4793,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 1,
+      "duration_ms": 21
+    },
+    {
+      "document_id": "BAOSTEEL_ESG_2025",
+      "total_pages": 102,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 5681,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 84,
+      "duration_ms": 121
+    },
+    {
+      "document_id": "BAO24_ESG",
+      "total_pages": 90,
+      "failed_pages": [
+        {
+          "page": 1,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        }
+      ],
+      "scanned_pages": [
+        1
+      ],
+      "indexed_blocks": 5587,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 78,
+      "duration_ms": 124
+    },
+    {
+      "document_id": "D-600028-2025-AR-4b425d76e97f8c15",
+      "total_pages": 239,
+      "failed_pages": [
+        {
+          "page": 1,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        }
+      ],
+      "scanned_pages": [
+        1
+      ],
+      "indexed_blocks": 3811,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 19,
+      "duration_ms": 57
+    },
+    {
+      "document_id": "D-600028-2025-ESG-0556e4df58ddf41d",
+      "total_pages": 95,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 6583,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 15,
+      "duration_ms": 39
+    },
+    {
+      "document_id": "D-600690-2025-AR-14186f9f9b47f687",
+      "total_pages": 245,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 7408,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 3,
+      "duration_ms": 71
+    },
+    {
+      "document_id": "D-600690-2025-ESG-40d566cf551487b7",
+      "total_pages": 113,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 4441,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 23,
+      "duration_ms": 41
+    },
+    {
+      "document_id": "D-601012-2025-AR-10233740d54740b8",
+      "total_pages": 314,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 9442,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 3,
+      "duration_ms": 58
+    },
+    {
+      "document_id": "D-601012-2025-ESG-9786609033a1cf21",
+      "total_pages": 189,
+      "failed_pages": [
+        {
+          "page": 189,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        }
+      ],
+      "scanned_pages": [
+        189
+      ],
+      "indexed_blocks": 7739,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": true,
+      "source_verification_ms": 38,
+      "duration_ms": 69
+    }
+  ]
+}

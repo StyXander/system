@@ -1,0 +1,18 @@
+{
+  "profiles": [
+    {
+      "profile_id": "baosteel-2025-demonstration",
+      "company_id": "600019",
+      "report_period": "2025",
+      "dataset_role": "development_only",
+      "notice": "仅作演示候选排序和命名；不确认跨报告身份，不用于未适配企业泛化证明。",
+      "boost": 40,
+      "keywords": ["近零碳示范产线", "零碳高等级薄钢板", "绿色电炉", "湛江钢铁", "炼钢工程"],
+      "names": [
+        {"contains": "近零碳示范产线", "name": "湛江钢铁近零碳示范产线（项目身份待核）"},
+        {"contains": "零碳高等级薄钢板", "name": "零碳高等级薄钢板工厂（项目身份待核）"},
+        {"contains": "炼钢工程", "report_type": "AR", "name": "炼钢工程财务线索（与零碳项目关系待核）"}
+      ]
+    }
+  ]
+}

@@ -99,7 +99,11 @@ def main():
     parser.add_argument("--cases", type=Path, default=ROOT / "backend/evaluation/connectivity/matter_cases.json",
                         help="包含独立标注的案例 JSON 文件路径")
     parser.add_argument("--output-report", type=Path, help="保存统计结果 Markdown/JSON 的路径")
+    parser.add_argument("--task-type",choices=['amount_reconciliation','relation_tracing'],default='amount_reconciliation')
     args = parser.parse_args()
+    categories=VERDICT_CLASSES if args.task_type=='amount_reconciliation' else ['supported','limited','pending','conflicting','not_comparable','invalid']
+    def normalize(value):
+        return normalize_verdict(value) if args.task_type=='amount_reconciliation' else value if value in categories else None
 
     if not args.cases.exists():
         print(f"[错误] 案例文件未找到: {args.cases}")
@@ -113,13 +117,14 @@ def main():
     adjudicated = []
 
     for item in scenarios:
+        if item.get('research_task_type','amount_reconciliation')!=args.task_type:continue
         cid = item.get("case_id") or item.get("id")
         annos = item.get("annotations", [])
         adjudication = item.get("adjudication")
 
         if len(annos) >= 2:
-            v_a = normalize_verdict(annos[0].get("verdict"))
-            v_b = normalize_verdict(annos[1].get("verdict"))
+            v_a = normalize(annos[0].get("verdict"))
+            v_b = normalize(annos[1].get("verdict"))
             if not v_a or not v_b or not annos[0].get('annotator_id') or not annos[1].get('annotator_id') or annos[0]['annotator_id']==annos[1]['annotator_id']:
                 continue
             pairs.append({
@@ -143,7 +148,7 @@ def main():
                     "category": item.get("category", ""),
                     "rater_a": v_a,
                     "rater_b": v_b,
-                    "final_adjudication": normalize_verdict(final_v) if final_v else "待仲裁 (Pending)",
+                    "final_adjudication": normalize(final_v) if final_v else "待仲裁 (Pending)",
                 })
         if adjudication:
             adjudicated.append(item)
@@ -159,7 +164,7 @@ def main():
 
     rater_a_list = [p["rater_a"] for p in pairs]
     rater_b_list = [p["rater_b"] for p in pairs]
-    stats = compute_cohens_kappa(rater_a_list, rater_b_list, VERDICT_CLASSES)
+    stats = compute_cohens_kappa(rater_a_list, rater_b_list, categories)
     kappa_text=f"{stats['cohens_kappa']:.4f}" if stats['cohens_kappa'] is not None else 'N/A'
 
     print("\n--- 核心一致性指标 ---")

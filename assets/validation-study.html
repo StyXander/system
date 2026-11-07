@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AuditTrace 独立作答与使用记录</title>
+<link rel="stylesheet" href="validation-study.css">
+<header><h1>AuditTrace 独立作答</h1><span>任务、原文、理由与实际用时</span></header>
+<main>
+<p>本页不显示系统答案。作答记录保存在当前浏览器，导出后交给协调人。请使用匿名编号；本页不会把记录上传到服务器。</p>
+<section><div class="row"><div><label for="manifest">任务包 JSON（可选择标注 A / B 包）</label><input id="manifest" type="file" accept=".json,application/json"></div><div><label for="participant">匿名参与者编号</label><input id="participant" maxlength="60" placeholder="由协调人分配"></div></div>
+<div class="row"><div><label for="purpose">记录用途</label><select id="purpose"><option value="annotation">独立人工答案（不看系统结果）</option><option value="timed_study">人工与系统辅助计时试用</option></select></div><div><label for="condition">计时试用条件</label><select id="condition"><option value="manual">人工完成：PDF、Excel等约定工具</option><option value="assisted">系统辅助：包含等待、回查、纠错与导出</option></select></div></div>
+<label for="case">选择协调人分配的题目</label><select id="case"></select>
+<label><input id="trained" type="checkbox">已阅读作答要求；计时试用前已用另外的练习题熟悉工具</label>
+<button id="start" type="button">开始此题</button> <output id="timer">尚未开始</output></section>
+<section><h2 id="question">请选择任务包与题目</h2><p id="identity" class="hint"></p><div id="sources"></div><p><a href="/" target="_blank" rel="noopener">系统辅助条件：打开 AuditTrace 工作台</a></p></section>
+<section><label for="verdict">结论标签</label><select id="verdict"></select>
+<label for="reason">判断理由与口径说明</label><textarea id="reason" placeholder="说明证据支持了什么，以及不能据此推断什么。"></textarea>
+<label for="evidence">原文依据：每行按“报告ID | PDF顺序页 | 原文引文”填写</label><textarea id="evidence"></textarea>
+<label for="unresolved">未决问题、补证需求或使用中遇到的问题</label><textarea id="unresolved"></textarea>
+<label for="adoption">仅计时试用：采用、修改或弃用的系统输出</label><textarea id="adoption"></textarea>
+<button id="finish" type="button" disabled>完成并导出本题记录</button><p id="status" role="status"></p></section>
+<footer>是否正确、引文是否支持判断及产出能否采用，由独立评阅者另行判断。计时记录不会自动变成金标或“已证明省时”。</footer>
+</main>
+<script src="validation-study.js" defer></script></html>

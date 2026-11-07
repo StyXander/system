@@ -518,6 +518,7 @@ class ConnectivityRun(Contract):
     matter_relations: list[MatterRelation] = Field(default_factory=list)
     matter_explanations: list[CompetingExplanation] = Field(default_factory=list)
     matter_assessments: list[MatterAssessment] = Field(default_factory=list)
+    matter_numeric_verifications: list[dict] = Field(default_factory=list)
     matter_tasks: list[dict] = Field(default_factory=list)
     matter_tool_receipts: list[dict] = Field(default_factory=list)
     matter_coverage: list[dict] = Field(default_factory=list)

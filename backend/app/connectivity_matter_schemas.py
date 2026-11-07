@@ -344,6 +344,19 @@ class MatterReconciliation(MatterContract):
     condition_evidence: dict[str, list[str]] = Field(default_factory=dict)
 
 
+class AmountVerificationRequest(MatterContract):
+    """Compare located values. Semantic review is an explicit user attestation, never AI certification."""
+    expected_revision: int = Field(ge=1)
+    action_id: str = Field(min_length=8,max_length=100)
+    matter_id: str
+    left: list[ReconciliationOperand] = Field(min_length=1,max_length=20)
+    right: list[ReconciliationOperand] = Field(min_length=1,max_length=20)
+    condition_evidence: dict[str,list[str]] = Field(default_factory=dict)
+    reviewed_conditions: list[Literal["主体","期间","范围","项目归属","计量基础","互不重叠"]] = Field(default_factory=list)
+    actor: str = Field(default="",max_length=100)
+    reason: str = Field(default="",max_length=2000)
+
+
 def matter_enabled():
     """关闭新事项运行入口，历史结果仍按原版本读取。
     回退开关只改变新建默认，不把五Agent请求暗换成三Agent。

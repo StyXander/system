@@ -23,7 +23,7 @@ from urllib.request import Request, urlopen
 from .agents import _strict_tool_base_url, _provider_timeout_seconds
 from .connectivity_matter_schemas import AgentMatterResult, ROLE_NAMES, ROLE_RESULT_SCHEMAS, validate_role_result
 
-PROMPT_VERSION="matter_agents_20261107.question-bound.4"
+PROMPT_VERSION="matter_agents_20261107.generic-tables.5"
 ROLE_PROMPTS={
     "A1":"从已取得证据识别具体事项，核对主体、地点、项目名和别名。不同工厂同名不得自动合并。通过matters提交有身份依据的归并；未能确认者保持独立候选。",
     "A2":"调查事项到经济机制、经营变量、会计估计和财务项目的逐段路径。查附注和会计假设。一般政策不证明某项目处理。paths每段写证据和缺口；不要用相等金额证明因果。",
@@ -90,26 +90,11 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         "工具预算及程序停止类型由服务器记录。stop_reason只写已查明内容、尚缺材料和下一步，不填工具额度数字或资源状态，不声称轮次耗尽，不复制上游角色的停止说明。"
         "尚缺证据须在结论和stop_reason中明确说明，不能为完成任务猜填。"
         "没有证据的年份和金额留空；不要添加自评分概率。next_actions要写问题、资料和用途。"+ROLE_PROMPTS[role])
-    if payload.get('verified_project_table'):
-        if role=='A1':
-            prompt+=('专项任务已限定为原文确认的炼钢子工程。优先逐字保留所选候选原文名称、证据ID、版本号；'
-                     '只复核此事项的主体与身份。若跨报告别名不能被文字直接支持，保留候选不做归并。'
-                     '不要为了形成项目身份而合并其他行或把不同项目名称视作同义。')
-        elif role=='A2':
-            prompt+=('verified_project_table 是服务端在通过SHA256验证的登记原件第154页经表格单元格提取的确定性事实，'
-                     '金额单位、项目完整行名、原文页码和校验来源均在其中。请把已知期初/本期增加/转固金额写进财务影响路径，'
-                     '使用page_evidence_ids提供原页引用，并注明金额来自结构化单元格；'
-                     '破折号不等于已确认零，禁止声称完整金额勾稽通过或投资金额等于ESG汇总投入。')
-        elif role=='A3':
-            prompt+=('项目财务发生额可使用已验证的表格数据；仅就实际披露确认进度。'
-                     '每个events.occurred_period必须由此事件自身evidence_ids引用的quote逐字支持；'
-                     '如果没有直接事件年月，必须填空字符串，即使报告年份或其他页出现年份；'
-                     '宁可提交没有occurred_period的有效事件，也不要提交没有逐字引文的年份；只输出本事项最有价值的1至3条事件。'
-                     '建设计划年份绝不等于投运或验收年份。')
-        elif role=='A4':
-            prompt+='请核查已验证炼钢子工程财务明细与ESG项目的范围差别；同一表格里的其他项目不可自动归并。'
-        elif role=='A5':
-            prompt+='须综合已验证表格数据：本期投入与转固已有公开证据，内部验收/折旧起点仍需补证；不要再把已取得的年报金额列为缺失资料。'
+    if payload.get('verified_matter_tables',{}).get('records'):
+        prompt+=('verified_matter_tables来自通过哈希校验原件的通用表格提取。raw_cells与headers保留原值，'
+                 'match_basis只是名称检索线索，不能据此确认跨报告项目相同。引用page_evidence_ids并说明单元格来源。'
+                 'arithmetic只评价同一行已取得的数值，破折号和缺列未知；不得将表内小计等同ESG总体投入或实际入账。'
+                 '发生年月仍须由该事件自身的逐字引文支持，不能以报告年度代填。')
     if payload.get("research_question", {}).get("text"):
         prompt+='research_question.text是本次明确待答问题；各角色只调查与此问题有关的证据，A5须直接回答该问题并保留无法确认的部分。不要以泛泛的整个事项综述替代问题答案。'
     prompt+=str(payload.get("role_extension", ""))
@@ -123,7 +108,7 @@ def call_matter_role(role,payload,*,preflight=lambda record:None):
         prompt+='服务器要求本次只综合已有证据，tool_requests必须为空。stop_reason描述核查结果和仍缺资料；程序停止类型由服务器回执说明，不在模型说明里填写工具额度数字或资源状态。'
         output_schema['properties']['tool_requests']['maxItems']=0
     # Stable source context precedes per-round counters and feedback for prefix caching.
-    stable_keys=("documents","citation_instruction","selection_instruction","evidence","verified_project_table")
+    stable_keys=("documents","citation_instruction","selection_instruction","evidence","verified_matter_tables","verified_project_table")
     ordered_payload={key:payload[key] for key in stable_keys if key in payload}
     ordered_payload.update({key:value for key,value in payload.items() if key not in ordered_payload})
     body={"model":model,"temperature":.1,"max_tokens":8000,"stream":False,

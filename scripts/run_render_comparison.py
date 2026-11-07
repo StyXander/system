@@ -60,7 +60,8 @@ def main():
     p.add_argument("--case-id", required=True)
     p.add_argument("--case-manifest", type=Path, default=ROOT / "docs/competition/development_cases.json")
     p.add_argument("--as-of", required=True)
-    p.add_argument("--evidence-ids", type=Path, required=True)
+    p.add_argument("--evidence-ids", type=Path)
+    p.add_argument("--experiment-mode",choices=['fixed_evidence','end_to_end'],default='fixed_evidence')
     p.add_argument("--groups", default=",".join(FACTORIAL_2X2_GROUPS))
     p.add_argument("--allow-models", action="store_true")
     p.add_argument("--repeat", type=int, choices=range(1, 6), default=1)
@@ -74,9 +75,10 @@ def main():
         p.error("Unknown group")
     if not args.allow_models and any(g != "G0" for g in groups):
         p.error("Real model tests require --allow-models")
-    ids = json.loads(args.evidence_ids.read_text(encoding="utf-8"))
-    if not isinstance(ids, list) or not ids or len(ids) != len(set(ids)):
+    ids = json.loads(args.evidence_ids.read_text(encoding="utf-8")) if args.evidence_ids else []
+    if args.experiment_mode=='fixed_evidence' and (not isinstance(ids, list) or not ids or len(ids) != len(set(ids))):
         p.error("Evidence IDs must be a nonempty unique list")
+    if args.experiment_mode=='end_to_end':ids=[]
     try:
         question = resolve_case(args.case_manifest, args.case_id, report_set_id=args.report_set,
                                 matter_id=args.matter_id, as_of=args.as_of)
@@ -88,7 +90,7 @@ def main():
               "as_of": args.as_of, "groups": groups, "repeat": args.repeat,
               "budget": {"max_matters": 1, "max_provider_calls": args.max_provider_calls,
                          "max_role_rounds": args.max_role_rounds, "max_parallel_calls": 2},
-              "evidence_ids": sorted(ids), "base_url": args.base_url.rstrip("/"), **question}
+              "evidence_ids": sorted(ids), "experiment_mode":args.experiment_mode,"base_url": args.base_url.rstrip("/"), **question}
     fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
     journal = json.loads(journal_path.read_text()) if journal_path.exists() else {
         "origin": "actual_render_api_execution", "experiment_id": uuid.uuid4().hex,
@@ -98,9 +100,15 @@ def main():
         p.error("Output directory belongs to a different configuration")
     with httpx.Client(base_url=config["base_url"], timeout=120, follow_redirects=True) as client:
         def request(method, path, **kwargs):
-            r = client.request(method, path, **kwargs)
-            r.raise_for_status()
-            return r.json()
+            for attempt in range(3 if method=='GET' else 1):
+                try:
+                    r = client.request(method, path, **kwargs)
+                    r.raise_for_status()
+                    return r.json()
+                except (httpx.TransportError,httpx.HTTPStatusError) as error:
+                    transient=isinstance(error,httpx.TransportError) or error.response.status_code in {429,500,502,503,504}
+                    if method!='GET' or not transient or attempt==2:raise
+                    time.sleep(attempt+1)
         request("GET", "/api/connectivity/bootstrap")
         health = request("GET", "/api/health")
         if health.get("model_status") != "configured" and any(g != "G0" for g in groups):
@@ -118,7 +126,7 @@ def main():
                     group = EXPERIMENT_GROUPS[gid]
                     row = {"group_id": gid, "repeat": repeat, "case_id": args.case_id,
                            "matter_id": args.matter_id, "mode": group["mode"], "ablation": group["ablation"],
-                           "experiment_mode": "fixed_evidence", "budget": config["budget"],
+                           "experiment_mode": args.experiment_mode, "budget": config["budget"],
                            "result_file": f"{repeat}-{gid}.json", "status": "pending",
                            "idempotency_key": f"competition-{journal['experiment_id']}-{repeat}-{gid}"}
                     journal["runs"].append(row)
@@ -127,7 +135,7 @@ def main():
                     body = {"report_set_id": args.report_set, "as_of_date": args.as_of,
                             "analysis_scope": "matter_connectivity", "mode": row["mode"],
                             "ablation": row["ablation"], "selected_matter_ids": [args.matter_id],
-                            "experiment_mode": "fixed_evidence", "fixed_evidence_ids": ids,
+                            "experiment_mode": args.experiment_mode, "fixed_evidence_ids": ids,
                             "comparison_run": True, "budget": config["budget"], **question}
                     row["deployment_before"] = request("GET", "/api/health").get("deployment", {})
                     task = request("POST", "/api/connectivity/runs", json=body,
@@ -172,11 +180,13 @@ def main():
                     save(journal_path, journal)
                     return 1
     hashes = {x.get("fixed_input_sha256") for x in journal["runs"] if x.get("status") == "recorded"}
-    journal["fixed_evidence_check"] = "matched" if len(hashes) == 1 and None not in hashes else "failed_or_incomplete"
+    journal["fixed_evidence_check"] = ("matched" if len(hashes) == 1 and None not in hashes else "failed_or_incomplete") if args.experiment_mode=='fixed_evidence' else 'not_applicable'
+    commits={r.get('deployment_commit') for r in journal['runs']}
+    journal['deployment_check']='matched' if len(commits)==1 and None not in commits else 'failed_or_incomplete'
     journal["accuracy_status"] = "requires_independent_annotations"
     save(journal_path, journal)
     return int(len(journal["runs"]) != len(groups) * args.repeat or
-               any(not r.get("execution_eligible") for r in journal["runs"]) or journal["fixed_evidence_check"] != "matched")
+               any(not r.get("execution_eligible") for r in journal["runs"]) or journal["fixed_evidence_check"] not in {"matched","not_applicable"} or journal['deployment_check']!='matched')
 
 
 if __name__ == "__main__":

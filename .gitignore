@@ -138,6 +138,8 @@ artifacts/
 !/scripts/run_final_comparison.py
 !/scripts/evaluate_matter_benchmark.py
 !/scripts/competition_receipts.py
+!/scripts/prepare_validation_cases.py
+!/scripts/analyze_human_validation.py
 !/scripts/compute_iaa_metrics.py
 # README 与评委包都指向这份测试清单，原先被整目录 /docs/ 忽略而永远进不了版本库。
 !/docs/
