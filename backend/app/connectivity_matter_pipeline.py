@@ -257,6 +257,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 else:
                     raise ValueError('MATTER_SELECTION_REQUIRED: 未选择事项，拒绝扩大为全报告调查')
             return {"matter_id":matter.matter_id if matter else "","input_revision":run.result_revision,
+                "experiment_mode":request.experiment_mode,
                 "as_of_date":str(report_set.as_of_date),
                 "citation_instruction":"跨页内容按独立证据ID引用；原文块带adjacent_evidence_ids，可打开相邻原页补查。paths.rule_ids仅选工具返回的登记模板编号。","documents":[{key:getattr(d,key) for key in ("document_id","company_id","company","report_type","report_period","disclosure_date","file_sha256","pages")} for d in documents],
                 "matter":matter.model_dump() if matter else None,

@@ -1,20 +1,22 @@
-# 科创杯交付目录
+# 科创杯材料入口
 
-主报准备为科技发明制作B类。学校正式评分为科学性30%、先进性30%、现实意义40%。软件参赛形式已有老师答复，人员、作品形式及上传字段需按实际填报。
+先查看EXECUTION_STATUS.md和TEST_REPORT.md，区分真实交付、模型降级与仍需外部完成的事项。
 
-| 文件 | 用途 |
+| 用途 | 位置 |
 |---|---|
-| EXECUTION_PLAN.md | 用户授权的完整执行计划 |
-| EXECUTION_STATUS.md | 实现、验证和外部依赖状态 |
-| TECHNICAL_REPORT.md | 可继续编辑的综合技术报告 |
-| EXPERIMENT_PROTOCOL.md | 核心比较与数据、标签规范 |
-| POLICY_BASIS.md | 正式政策与系统功能的对应 |
-| USER_GUIDE.md | 软件运行、核查与证据导出 |
-| TRIAL_FORMS.md | 实务试用、应用证明及专家评价模板 |
-| IP_DISCLOSURE.md | 软著办理清单及专利技术交底工作稿 |
-| PRESENTATION.md | PPT页级内容和实机演示脚本 |
-| annotations.csv | 双人独立标注采集表 |
-| evidence_matrix.csv | 评分与成果证据对应表 |
-| CASE_DOSSIERS.md | 三家企业资料登记及档案要求 |
+| 综合报告与可编辑材料 | deliverables/ |
+| 真实运行及失败原始记录 | runs/ |
+| 三家企业原文及Word底稿 | dossiers/及deliverables/ |
+| 实验协议与标注规程 | EXPERIMENT_PROTOCOL.md、ANNOTATION_GUIDE.md |
+| 六个开发问题及独立标注任务包 | development_cases.json、annotation_packet_A.json、annotation_packet_B.json |
+| 文献与产品比较 | RELATED_WORK.md |
+| 申报信息与贡献确认 | APPLICATION_CHECKLIST.md |
+| 技术交底及试用模板 | IP_DISCLOSURE.md、TRIAL_FORMS.md |
+| 源码鉴别材料 | ../copyright/current/ |
+| 完整计划与190项任务登记 | EXECUTION_PLAN.md、TASK_REGISTER.csv |
 
-真实实验结果、专业签署和登记证书取得后按实际情况附入。未经人工复核的工程场景不能作专业金标。
+生成Word：python scripts/build_competition_materials.py。该脚本只读取保存资料与运行，不会调用模型。
+
+真实模型测试入口：scripts/run_render_comparison.py，明确指定--allow-models；密钥始终在Render。复用同一输出目录恢复相同任务，避免重复付费。实例中断不自动重放请求，应核对回执后建立明确的新测试或使用工作台重试。
+
+所有准确率、提效、应用证明和知识产权状态按真实进展维护。尚未独立标注，不填报准确率。

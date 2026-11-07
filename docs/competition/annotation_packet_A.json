@@ -1,0 +1,148 @@
+{
+  "instructions": "各自根据原件独立填写，不查看对方标注及模型输出。此文件不含金标。",
+  "assigned_rater": "A",
+  "scenarios": [
+    {
+      "case_id": "BAOSTEEL-DEV-01",
+      "question_id": "baosteel-1",
+      "company": "宝钢股份",
+      "company_id": "600019",
+      "report_set_id": "CONNSET-06402DFF2D395123E5FBED3B",
+      "matter_id": "MAT-0EB4C0CE6F5969C96BF0",
+      "question": "炼钢子工程的三项金额是否足以完成整个项目投入的勾稽？",
+      "split": "development",
+      "source_document_ids": [
+        "BAO24_ESG",
+        "BAOSTEEL_AR_2025",
+        "BAOSTEEL_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "BAO24_ESG": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+        "BAOSTEEL_AR_2025": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "BAOSTEEL_ESG_2025": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+      },
+      "as_of_date": "2026-10-27",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": []
+    },
+    {
+      "case_id": "BAOSTEEL-DEV-02",
+      "question_id": "baosteel-2",
+      "company": "宝钢股份",
+      "company_id": "600019",
+      "report_set_id": "CONNSET-06402DFF2D395123E5FBED3B",
+      "matter_id": "MAT-3F66A26C2A644B365002",
+      "question": "整体项目投产日期能否用于确定炼钢子工程折旧起点？",
+      "split": "development",
+      "source_document_ids": [
+        "BAO24_ESG",
+        "BAOSTEEL_AR_2025",
+        "BAOSTEEL_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "BAO24_ESG": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+        "BAOSTEEL_AR_2025": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "BAOSTEEL_ESG_2025": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+      },
+      "as_of_date": "2026-10-27",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": []
+    },
+    {
+      "case_id": "WULIANGYE-DEV-01",
+      "question_id": "wuliangye-1",
+      "company": "五粮液",
+      "company_id": "000858",
+      "report_set_id": "CONNSET-C8B5408F07F77AFAC6F50BC8",
+      "matter_id": "MAT-26618E6E15B118E9F146",
+      "question": "全年环保投入能否直接认定为资本性支出？",
+      "split": "development",
+      "source_document_ids": [
+        "WLY_AR_2025",
+        "WLY_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "WLY_AR_2025": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+        "WLY_ESG_2025": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+      },
+      "as_of_date": "2026-11-07",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": []
+    },
+    {
+      "case_id": "WULIANGYE-DEV-02",
+      "question_id": "wuliangye-2",
+      "company": "五粮液",
+      "company_id": "000858",
+      "report_set_id": "CONNSET-C8B5408F07F77AFAC6F50BC8",
+      "matter_id": "MAT-A41D8F7379050DEF3A25",
+      "question": "碳中和规划是否已有足以判断兑现进度的项目级证据？",
+      "split": "development",
+      "source_document_ids": [
+        "WLY_AR_2025",
+        "WLY_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "WLY_AR_2025": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+        "WLY_ESG_2025": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+      },
+      "as_of_date": "2026-11-07",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": []
+    },
+    {
+      "case_id": "MIDEA-DEV-01",
+      "question_id": "midea-1",
+      "company": "美的集团",
+      "company_id": "000333",
+      "report_set_id": "CONNSET-190D43C953A73C496823C576",
+      "matter_id": "MAT-E05705ACB19E2B914D78",
+      "question": "气候资产影响披露是否有进入具体财务估计的直接证据？",
+      "split": "development",
+      "source_document_ids": [
+        "MIDEA_AR_2025",
+        "MIDEA_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "MIDEA_AR_2025": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "MIDEA_ESG_2025": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194"
+      },
+      "as_of_date": "2026-11-07",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": []
+    },
+    {
+      "case_id": "MIDEA-DEV-02",
+      "question_id": "midea-2",
+      "company": "美的集团",
+      "company_id": "000333",
+      "report_set_id": "CONNSET-190D43C953A73C496823C576",
+      "matter_id": "MAT-4F681B8175B1F7940CFE",
+      "question": "气候情景假设能否与年报具体减值假设建立可核对关联？",
+      "split": "development",
+      "source_document_ids": [
+        "MIDEA_AR_2025",
+        "MIDEA_ESG_2025"
+      ],
+      "source_fingerprints": {
+        "MIDEA_AR_2025": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "MIDEA_ESG_2025": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194"
+      },
+      "as_of_date": "2026-11-07",
+      "annotation_status": "pending",
+      "annotations": [],
+      "adjudication": null,
+      "gold_evidence_ids": []
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+{
+  "company": "五粮液",
+  "title": "五粮液环保投入财务落点核查底稿",
+  "question": "ESG披露的全年环保投入1.8亿元，能否直接等同年报中的资本开支或当期费用？",
+  "run_id": "CONN-15497063B796494C",
+  "model_status": "not_requested",
+  "evidence": [
+    {
+      "evidence_id": "ME-4EDAC7FD703C0AFC7057",
+      "document_id": "WLY_AR_2025",
+      "source_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "company_id": "000858",
+      "report_type": "AR",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 80,
+      "printed_page": "",
+      "quote": "资产负债表日，有迹象表明固定资产发生减值的，按照账面价值与可收回金额的差额计提相应的减\n值准备。 \n16、在建工程 \n（1）在建工程达到预定可使用状态时，根据工程预算、造价或者工程实际成本等，按估计的价值转\n入固定资产，并按本公司固定资产折旧政策计提固定资产的折旧；待办理竣工决算后再按实际成本调整\n原暂估价值，但不再调整原已计提的折旧。",
+      "context": "资产负债表日，有迹象表明固定资产发生减值的，按照账面价值与可收回金额的差额计提相应的减\n值准备。 \n16、在建工程 \n（1）在建工程达到预定可使用状态时，根据工程预算、造价或者工程实际成本等，按估计的价值转\n入固定资产，并按本公司固定资产折旧政策计提固定资产的折旧；待办理竣工决算后再按实际成本调整\n原暂估价值，但不再调整原已计提的折旧。",
+      "adjacent_evidence_ids": [],
+      "section": "资产负债表日，有迹象表明固定资产发生减值的，按照账面价值与可收回金额的差额计提相应的减",
+      "bbox": [
+        56.63999938964844,
+        126.6689453125,
+        538.7500610351562,
+        209.22894287109375
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-CF9BCC3964D115D5C0FD",
+      "document_id": "WLY_AR_2025",
+      "source_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "company_id": "000858",
+      "report_type": "AR",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 103,
+      "printed_page": "",
+      "quote": "本期在建工程不存在新增减值的情况。 \n（4）在建工程的减值测试情况",
+      "context": "本期在建工程不存在新增减值的情况。 \n（4）在建工程的减值测试情况",
+      "adjacent_evidence_ids": [],
+      "section": "本期在建工程不存在新增减值的情况。",
+      "bbox": [
+        56.63999938964844,
+        89.10894775390625,
+        271.010009765625,
+        115.26892852783203
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-D06C5453E0AA9CD0D04D",
+      "document_id": "WLY_ESG_2025",
+      "source_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
+      "company_id": "000858",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 4,
+      "printed_page": "",
+      "quote": "色生态发展企业标准》。同时，系统性推进能源结构优化与智慧环保设施升级，全年环保投入达1.8 亿元。",
+      "context": "色生态发展企业标准》。同时，系统性推进能源结构优化与智慧环保设施升级，全年环保投入达1.8 亿元。",
+      "adjacent_evidence_ids": [],
+      "section": "标。为更好地应对气候变化，公司每年度开展适应性分析，并依据TCFD 框架识别关键ESG 相关风险，为",
+      "bbox": [
+        56.692962646484375,
+        397.67132568359375,
+        534.4099731445312,
+        426.2513122558594
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-AF8D4E2084CF28A27BCC",
+      "document_id": "WLY_ESG_2025",
+      "source_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
+      "company_id": "000858",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 8,
+      "printed_page": "",
+      "quote": "• 绿色低碳运营：全年环保投入达1.8 亿元；",
+      "context": "• 绿色低碳运营：全年环保投入达1.8 亿元；",
+      "adjacent_evidence_ids": [],
+      "section": "报并获得“B”评级，彰显气候信息披露透",
+      "bbox": [
+        76.53380584716797,
+        322.36651611328125,
+        265.748291015625,
+        349.2285461425781
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    }
+  ],
+  "documents": [
+    {
+      "document_id": "WLY_AR_2025",
+      "case_id": "000858-2025",
+      "company_id": "000858",
+      "company": "五粮液",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "公告全文；同日更正公告涉及此前2025年中期数据，不能据此称本年报为更正后版",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273091.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:07:52.009709+08:00",
+      "compilation_basis": "\"企业会计准则\"",
+      "pages": 141,
+      "file_sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "WLY_ESG_2025",
+      "case_id": "000858-2025",
+      "company_id": "000858",
+      "company": "五粮液",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025_ESG报告_公告简体中文版",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273113.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:06:15.573362+08:00",
+      "compilation_basis": "{\"主要参照\": [\"深交所第17号指引\", \"深交所编制指南（2026年修订）\", \"关于新时代中央企业高标准履行社会责任的指导意见\", \"中国酒类企业ESG披露指南\", \"GRI\", \"SDGs\", \"UNGC\", \"ISO26000\"]}",
+      "pages": 59,
+      "file_sha256": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e",
+      "available": true,
+      "version_role": "unknown"
+    }
+  ],
+  "report_set": {
+    "report_set_id": "CONNSET-C8B5408F07F77AFAC6F50BC8",
+    "company_id": "000858",
+    "company": "五粮液",
+    "document_ids": [
+      "WLY_AR_2025",
+      "WLY_ESG_2025"
+    ],
+    "document_fingerprints": {
+      "WLY_AR_2025": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "WLY_ESG_2025": "28bf647e5f79389407154b15e0ea937b44a9ad37ea098016d3e222e860e2687e"
+    },
+    "periods": [
+      "2025"
+    ],
+    "as_of_date": "2026-11-07",
+    "coverage_gaps": [],
+    "schema_version": "matter_connectivity_v1"
+  },
+  "interpretation_origin": "preparer_review_for_professional_verification",
+  "interpretation": "ESG原文提供环保投入汇总数。当前取得的年报会计政策仅说明在建工程与减值的一般处理，不提供1.8亿元逐项分配表。项目、主体、计量范围及资本化与费用化拆分尚缺依据，不能确认金额等价；未发现等价关系不等于报告矛盾。",
+  "professional_review": "not_completed",
+  "next_actions": [
+    "环保投入明细与统计口径说明",
+    "项目编码及资本开支、费用化支出分类对照",
+    "相关总账、付款明细和项目归属证据"
+  ]
+}

@@ -1,0 +1,4679 @@
+{
+  "task_id": "DEMO-RUN-F6B2CBB39D41",
+  "task_kind": "connectivity",
+  "case_id": "CONNSET-06402DFF2D395123E5FBED3B",
+  "retry_of_task_id": null,
+  "stage_schema_version": "demo_task_v2",
+  "status": "degraded",
+  "steps": {
+    "evidence_load": {
+      "detail": "已索引16473个原文块，扫描页与失败覆盖单列",
+      "status": "completed",
+      "updated_at": "2026-11-07T03:57:54.448970+00:00"
+    },
+    "rule_calculation": {
+      "detail": "建立90项披露候选；身份归并待调查",
+      "status": "completed",
+      "updated_at": "2026-11-07T03:57:58.364214+00:00"
+    },
+    "structured_output": {
+      "detail": "事项结果已保存，真实调用与未调查范围单列",
+      "status": "completed",
+      "updated_at": "2026-11-07T03:59:54.130055+00:00"
+    },
+    "agent_collaboration": {
+      "detail": "matter_single_partial",
+      "status": "degraded",
+      "updated_at": "2026-11-07T03:59:48.554025+00:00"
+    },
+    "evidence_validation": {
+      "detail": "原文身份与语义判断分列，金额可比性不由模型放行",
+      "status": "completed",
+      "updated_at": "2026-11-07T03:59:51.103429+00:00"
+    },
+    "knowledge_retrieval": {
+      "detail": "支持与反证分别查询，检索命中不等于关系证实",
+      "status": "completed",
+      "updated_at": "2026-11-07T03:58:00.186657+00:00"
+    }
+  },
+  "agent_steps": {
+    "A1": {
+      "detail": "KeyError",
+      "status": "failed",
+      "updated_at": "2026-11-07T03:58:50.777349+00:00"
+    },
+    "A5": {
+      "detail": "关系端点未登记",
+      "status": "failed",
+      "updated_at": "2026-11-07T03:59:43.048332+00:00"
+    }
+  },
+  "non_interruptible": true,
+  "run_id": "CONN-A9DB8A7045354AC6",
+  "failure_code": null,
+  "error": null,
+  "result": {
+    "run_id": "CONN-A9DB8A7045354AC6",
+    "task_kind": "connectivity",
+    "schema_version": "connectivity_v5",
+    "company": "宝钢股份",
+    "period": "2024—2025",
+    "report_period": "",
+    "metric_period": "",
+    "created_at": "2026-11-07T03:57:47.827805+00:00",
+    "discovery_mode": "auto_discovery",
+    "dataset_role": "development",
+    "execution_mode": "single_model",
+    "model_status": "matter_single_partial",
+    "parent_run_id": null,
+    "result_revision": 1,
+    "documents": [
+      {
+        "document_id": "BAO24_ESG",
+        "case_id": "600019-2024",
+        "company_id": "600019",
+        "company": "宝钢股份",
+        "report_type": "ESG",
+        "period": "2024",
+        "report_period": "2024",
+        "metric_period": "",
+        "version": "2024年度公告原件；2026-10-19核验巨潮官方字节与此前登记镜像一致",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329096.PDF",
+        "source_kind": "official",
+        "disclosure_date": "2025-04-26",
+        "retrieved_at": "2026-10-19T14:15:32.950781+00:00",
+        "compilation_basis": "待从本次报告核对",
+        "pages": 90,
+        "file_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+        "available": true,
+        "version_role": "unknown"
+      },
+      {
+        "document_id": "BAOSTEEL_AR_2025",
+        "case_id": "600019-2025",
+        "company_id": "600019",
+        "company": "宝钢股份",
+        "report_type": "AR",
+        "period": "2025",
+        "report_period": "2025",
+        "metric_period": "",
+        "version": "2025_年度报告_公告全文",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257227.PDF",
+        "source_kind": "official",
+        "disclosure_date": "2026-04-30",
+        "retrieved_at": "2026-10-15T12:06:10.791198+08:00",
+        "compilation_basis": "\"企业会计准则\"",
+        "pages": 245,
+        "file_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "available": true,
+        "version_role": "unknown"
+      },
+      {
+        "document_id": "BAOSTEEL_ESG_2025",
+        "case_id": "600019-2025",
+        "company_id": "600019",
+        "company": "宝钢股份",
+        "report_type": "ESG",
+        "period": "2025",
+        "report_period": "2025",
+        "metric_period": "",
+        "version": "2025_可持续发展报告_公告全文",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257234.PDF",
+        "source_kind": "official",
+        "disclosure_date": "2026-04-30",
+        "retrieved_at": "2026-10-15T12:07:05.627347+08:00",
+        "compilation_basis": "{\"主要参照\": [\"GRI\", \"CASS-ESG6.0\"], \"遵循\": [\"上交所第14号指引\"], \"参考\": [\"我国企业可持续披露基本准则\", \"应用指南\", \"ISSB\", \"SASB\", \"SDGs\"]}",
+        "pages": 102,
+        "file_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+        "available": true,
+        "version_role": "unknown"
+      }
+    ],
+    "occurrences": [],
+    "checks": [],
+    "coverage": [],
+    "extraction_exclusions": [],
+    "candidate_rejections": [],
+    "version_records": [],
+    "version_changes": [],
+    "overview": {
+      "proof_graph": {
+        "version": "adaptive_proof_v1",
+        "nodes": [],
+        "edges": [],
+        "paths": [],
+        "truncated_checks": 0,
+        "note": "证据来源可追溯不代表企业披露真实、审计证据充分或已出具审计意见"
+      },
+      "collaboration": {
+        "version": "autonomous_evidence_v1",
+        "events": [],
+        "tool_requests": 0,
+        "tool_rejections": 0,
+        "new_evidence_ids": [],
+        "feedback": [],
+        "limits": {
+          "requests_per_turn": 4,
+          "feedback_rounds": 1,
+          "model_calls": 20
+        },
+        "notice": "工具实际执行与条件改善分别计数；未命中不等于未披露。"
+      },
+      "delivery_contract_version": "2026-10-20.round3.1",
+      "program_levels": {
+        "formal": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "conditional": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "limited": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "insufficient": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "conflict": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "not_applicable": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        }
+      },
+      "summary_bands_note": "由 program_levels 派生的历史五类投影；pending 合并明确冲突与非数值关系，准确分类以六级状态为准",
+      "execution_provenance": {
+        "kind": "provider_recorded",
+        "label": "本运行含实际模型调用记录，成功状态单列",
+        "provider_call_count": 4,
+        "attempt_count": 4,
+        "execution_mode": "single_model",
+        "model_status": "matter_single_partial",
+        "run_id": "CONN-A9DB8A7045354AC6",
+        "result_origin": "original"
+      },
+      "coverage_counts": {
+        "unattributed_occurrences": {
+          "value": 0,
+          "unit": "处",
+          "denominator": 0
+        },
+        "failed_pages": {
+          "value": 0,
+          "unit": "页",
+          "denominator": 0
+        }
+      },
+      "summary_bands": {
+        "confirmable": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "limited_support": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "conditional_trial": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "not_comparable": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "pending": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        }
+      },
+      "counting_version": "2026-10-18.2",
+      "relation_total": 0,
+      "formal_calculations": {
+        "value": 0,
+        "items": []
+      },
+      "program_calculations": {
+        "value": 0,
+        "items": [],
+        "label": "正式复算（历史字段别名）"
+      },
+      "numerical_records": {
+        "value": 0,
+        "items": []
+      },
+      "arithmetic_references": {
+        "value": 0,
+        "items": [],
+        "label": "受门禁限制的算术参考，不表示假设已支持"
+      },
+      "program_records": {
+        "value": 0,
+        "label": "程序事实记录，包含无差异记录"
+      },
+      "program_hints": {
+        "value": 0,
+        "items": [],
+        "label": "程序差异或限制提示"
+      },
+      "priority_checks": {
+        "value": 0,
+        "items": [],
+        "details": [],
+        "label": "优先核查的关系，含模型排序建议"
+      },
+      "model_opinions": {
+        "value": 0,
+        "items": [],
+        "new": 0,
+        "reused": 0
+      },
+      "ai_analysis": {
+        "value": 0,
+        "denominator": 0,
+        "items": [],
+        "by_verdict": {},
+        "stale": 0
+      },
+      "trial_calculations": {
+        "value": 0,
+        "items": [],
+        "label": "仅条件试算，不计入正式复算"
+      },
+      "scenario_bridges": {
+        "value": 0,
+        "items": []
+      },
+      "confirmable": {
+        "value": 0,
+        "denominator": 0,
+        "label": "条件支持且计算成立的关系",
+        "items": []
+      },
+      "unconfirmable": {
+        "value": 0,
+        "denominator": 0,
+        "conflicting": 0,
+        "label": "缺前提或存在冲突的关系",
+        "items": [],
+        "missing_conditions": [],
+        "missing_breakdown": []
+      },
+      "unexplained": {
+        "value": 0,
+        "denominator": 0,
+        "label": "仍有未解释残差的关系",
+        "items": [],
+        "undecidable": {
+          "value": 0,
+          "denominator": 0,
+          "label": "因前提未支持而无法判断差额的关系",
+          "items": []
+        }
+      },
+      "not_found": {
+        "deprecated_mixed_value": true,
+        "replacement": "coverage_counts",
+        "value": 0,
+        "label": "未计入位置与失败页合计",
+        "unattributed": {
+          "value": 0,
+          "denominator": 0,
+          "label": "已提取但未归属或未达候选门槛的位置",
+          "items": []
+        },
+        "failed_pages": {
+          "value": 0,
+          "denominator": 0,
+          "label": "解析失败的页",
+          "items": []
+        },
+        "searched_pages": 0,
+        "parsed_pages": 0,
+        "total_pages": 0,
+        "denominator_label": "已提取0处 / 已检索0页 / 共0页"
+      },
+      "unresolved_causes": [
+        {
+          "code": "C1",
+          "name": "前提缺原文依据",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C2",
+          "name": "前提存在明确冲突",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C3",
+          "name": "关系依据或成员不足",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C4",
+          "name": "单位、量纲或币种未定",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C5",
+          "name": "期间或范围不可比",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C6",
+          "name": "差额未解释或不可执行",
+          "count": 0,
+          "examples": []
+        }
+      ],
+      "closure": {
+        "version": "connectivity_closure_v1",
+        "relation_total": 0,
+        "tiers": {
+          "closed": {
+            "count": 0,
+            "check_ids": []
+          },
+          "formal_gap": {
+            "count": 0,
+            "check_ids": []
+          },
+          "substantive_risk": {
+            "count": 0,
+            "check_ids": []
+          },
+          "blocked": {
+            "count": 0,
+            "check_ids": []
+          },
+          "not_applicable": {
+            "count": 0,
+            "check_ids": []
+          }
+        },
+        "ceiling_status": {},
+        "open_demand_by_condition": {},
+        "structural_gap_total": 0,
+        "substantive_risk_count": 0,
+        "substantive_risk_scope": {
+          "cross_document": 0,
+          "same_document": 0
+        },
+        "formal_gap_count": 0,
+        "blocked_count": 0,
+        "statement": "0 条关系中，0 条已闭合；0 条即使补齐全部纸面前提仍存在未解释差额；0 条只缺形式证据；0 条算式不可执行",
+        "note": "分档来自确定性反事实推演，不读取模型意见；上限预测不是结论"
+      },
+      "next_questions": [],
+      "note": "同一关系可能同时计入多个状态；四问不合成综合分数，也不做排行。",
+      "matter_summary": {
+        "notice": "关联状态描述公开材料对具体主张的支持程度，不构成会计确认或鉴证结论",
+        "pending": 89,
+        "completed": 0,
+        "unresolved": 1,
+        "investigated": 1,
+        "matter_total": 90,
+        "indexed_blocks": 16473,
+        "supported_paths": 0,
+        "assessment_count": 1
+      }
+    },
+    "ai_opinions": [],
+    "findings": [],
+    "professional_notes": [],
+    "source_lineage": [
+      {
+        "document_id": "BAO24_ESG",
+        "producer": "宝钢股份",
+        "category": "official",
+        "upstream": "unknown",
+        "independence": "同企业披露，不作为独立证实"
+      },
+      {
+        "document_id": "BAOSTEEL_AR_2025",
+        "producer": "宝钢股份",
+        "category": "official",
+        "upstream": "unknown",
+        "independence": "同企业披露，不作为独立证实"
+      },
+      {
+        "document_id": "BAOSTEEL_ESG_2025",
+        "producer": "宝钢股份",
+        "category": "official",
+        "upstream": "unknown",
+        "independence": "同企业披露，不作为独立证实"
+      }
+    ],
+    "reviews": [],
+    "agent_steps": [],
+    "provider_calls": [
+      {
+        "cost": null,
+        "role": "A1",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-3e135fb43cb84de5",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "事项识别与建档",
+        "started_at": 1794023890.2485301,
+        "duration_ms": 13487,
+        "parse_stage": "role_arguments",
+        "input_sha256": "64d6fd4e935e7ee091b60817880fefb8456767acebcc88c202fd1b843ba4b1f6",
+        "input_tokens": 8134,
+        "finalize_only": false,
+        "output_tokens": 2086,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "66f804f5d24d457f42e6d6517861683370c5c0edda3e6c3a233a5b3478e832f9",
+        "input_characters": 8043,
+        "provider_call_id": "MCALL-3815c3e34d9346f1a66facc1e61ced4b",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 2,
+          "remaining_tool_rounds": 2
+        },
+        "cache_hit_input_tokens": 7936,
+        "cache_miss_input_tokens": 198,
+        "input_token_upper_bound": 27925,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A1",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-3e135fb43cb84de5",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "事项识别与建档",
+        "started_at": 1794023915.245191,
+        "duration_ms": 9759,
+        "parse_stage": "role_arguments",
+        "input_sha256": "00b5cbc6f3055d0746020b2b7fddbe94729a1c1508195693fde1cd5e1c8359c1",
+        "input_tokens": 10659,
+        "finalize_only": true,
+        "output_tokens": 1955,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "a3cb1895875654c08ce9b4efbe9ebe012fbea7000aaaf06b0cdacbf11348d55e",
+        "input_characters": 13607,
+        "provider_call_id": "MCALL-e25f6ea86d4944c18944e336b6c76e5b",
+        "request_attempted": true,
+        "finalization_reason": "source_exhausted",
+        "investigation_round": {
+          "current": 3,
+          "maximum": 3,
+          "remaining_tool_rounds": 0
+        },
+        "cache_hit_input_tokens": 8064,
+        "cache_miss_input_tokens": 2595,
+        "input_token_upper_bound": 37035,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A5",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-d1e6a108cad642f4",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "综合复核与补证决策",
+        "started_at": 1794023937.8471181,
+        "duration_ms": 18773,
+        "parse_stage": "role_arguments",
+        "input_sha256": "304e73cc02ff1e0186d724a7d47526db03c8f37dbb7b4ff28914f8b42767a205",
+        "input_tokens": 8558,
+        "finalize_only": false,
+        "output_tokens": 3297,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "df895877814344f51d7394b6cfb24e0327faf03f03b37befb42a21fb0f68d572",
+        "input_characters": 9003,
+        "provider_call_id": "MCALL-a8d656c849324c7dae281662a313097c",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 2,
+          "remaining_tool_rounds": 2
+        },
+        "cache_hit_input_tokens": 7808,
+        "cache_miss_input_tokens": 750,
+        "input_token_upper_bound": 29339,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A5",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-d1e6a108cad642f4",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "综合复核与补证决策",
+        "started_at": 1794023961.2047184,
+        "duration_ms": 18318,
+        "parse_stage": "role_arguments",
+        "input_sha256": "de120e43a59a0bfe2c9cb8943c6df0b9c0289c4f71b4a08271fd0eec33136309",
+        "input_tokens": 12139,
+        "finalize_only": true,
+        "output_tokens": 3964,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "306db08eb26eeaad34639f680f75ea15e667daa46c3bbd1fdbcdaa0bdae32e84",
+        "input_characters": 16816,
+        "provider_call_id": "MCALL-385575fdf2ef4532993c4fcbd0f6c657",
+        "request_attempted": true,
+        "finalization_reason": "source_exhausted",
+        "investigation_round": {
+          "current": 3,
+          "maximum": 3,
+          "remaining_tool_rounds": 0
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 11627,
+        "input_token_upper_bound": 41874,
+        "output_token_upper_bound": 8000
+      }
+    ],
+    "duration_ms": 126489,
+    "versions": {
+      "budget": {
+        "limit": 20,
+        "attempts": 4,
+        "remaining": 16,
+        "deep_matter_limit": 1
+      },
+      "pair_id": null,
+      "ablation": "no_ontology_gate",
+      "matter_types": [
+        "climate_risk",
+        "transition_project",
+        "commitment",
+        "resource_efficiency",
+        "other"
+      ],
+      "role_budgets": {
+        "used": {
+          "A1": 2,
+          "A5": 2
+        },
+        "limits": {
+          "A1": 10,
+          "A5": 10
+        }
+      },
+      "matter_prompt": "matter_agents_20261027.tool-feedback.3",
+      "report_set_id": "CONNSET-06402DFF2D395123E5FBED3B",
+      "result_origin": "original",
+      "seed_coverage": {
+        "note": "首轮上下文有界；未入选块仍可用工具检索，不等于无披露",
+        "seed_blocks": 90,
+        "indexed_blocks": 16473,
+        "seed_truncated": true,
+        "relevant_blocks": 1494
+      },
+      "stage_timings": {
+        "evidence_load": {
+          "status": "completed",
+          "updated_at": 1794023874.1015427,
+          "duration_ms": 5139
+        },
+        "rule_calculation": {
+          "status": "completed",
+          "updated_at": 1794023877.9213948,
+          "duration_ms": 2874
+        },
+        "structured_output": {
+          "status": "completed",
+          "updated_at": 1794023993.7482584,
+          "duration_ms": 1840
+        },
+        "agent_collaboration": {
+          "status": "degraded",
+          "updated_at": 1794023986.9035583,
+          "duration_ms": 103003
+        },
+        "evidence_validation": {
+          "status": "completed",
+          "updated_at": 1794023990.6055884,
+          "duration_ms": 1392
+        },
+        "knowledge_retrieval": {
+          "status": "completed",
+          "updated_at": 1794023879.854327,
+          "duration_ms": 892
+        }
+      },
+      "analysis_scope": "matter_connectivity",
+      "comparison_run": true,
+      "experiment_mode": "fixed_evidence",
+      "catalog_execution": {
+        "status": "seed_unchanged"
+      },
+      "semantic_judgment": "模型意见与程序来源核验分列，不代表专业鉴证",
+      "fixed_evidence_ids": [
+        "ME-05A39A5E82220073118B",
+        "ME-004E48E40646896AF5AB",
+        "ME-051AF30BAB0A0DF4AC08",
+        "ME-C4F90039AEB2A2198691",
+        "ME-35026077F1FAA3370DA8",
+        "ME-253D634546AAAAC2BA0B",
+        "ME-443AEF947D9F1D2EDA98",
+        "ME-7E1A63F7EAA6AF406AC7"
+      ],
+      "investigation_scope": {
+        "selected_matter_ids": [
+          "MAT-1A9C5E85617F6F2E9890"
+        ],
+        "pending_outside_scope": [
+          "MAT-74B971B3798970F4174C",
+          "MAT-A5555414D5670BB77EFB",
+          "MAT-9493308C515989635DFC",
+          "MAT-8251086300606EF3CC1D",
+          "MAT-012044641B107B324097",
+          "MAT-495B4B971D179E0A390C",
+          "MAT-EC71D09FB6DBC2277626",
+          "MAT-A498958590F77EA0B8AF",
+          "MAT-1F8FC5429284865C72A8",
+          "MAT-3F66A26C2A644B365002",
+          "MAT-6A871E8094D512FB4C5B",
+          "MAT-5F869E60DA3553A7FCB5",
+          "MAT-BD3CC25091CF2D2A7F47",
+          "MAT-8B8A2761BA6197304E14",
+          "MAT-ADAD9D46C3908B1F615E",
+          "MAT-DAD9DD8521BB0FCDBF76",
+          "MAT-95CBAB56D222DBF2E563",
+          "MAT-B3050DF43EE1AED69169",
+          "MAT-5A35F8A77DC0CFCDC5D4",
+          "MAT-BE069021A6CA4B9B821A",
+          "MAT-47579E9A660123F32BFF",
+          "MAT-212A7C74EE8F11B3B5C9",
+          "MAT-CACD97ED0918D217758F",
+          "MAT-011A1D30AE2E20E41C68",
+          "MAT-DF08AE4ED36000C2C9C4",
+          "MAT-2BA594DEC1843D2716B4",
+          "MAT-39A9929AE9D40F4482A4",
+          "MAT-FB33E5AE89DE70C4DA81",
+          "MAT-E39F69C4C9E88EEE3ED5",
+          "MAT-62E330001A1ED6D06DE8",
+          "MAT-7A0ED2CF43BF5ACE2CB0",
+          "MAT-CC0A0C85CB22425E072F",
+          "MAT-06CDBBAC9EF0DFA32FC8",
+          "MAT-45D9BAAB38DD65EA0B0B",
+          "MAT-7EAE5B1EA46B4427B035",
+          "MAT-EE040F728737B0A9CF5E",
+          "MAT-9FFC518AE281E3D80AE2",
+          "MAT-8B38763A60D6850CDBAD",
+          "MAT-416367467D63E9069AA9",
+          "MAT-DD00438D2921B8C1A7AF",
+          "MAT-7492ADD6189638A9043F",
+          "MAT-385B6D400663DB8C9F4F",
+          "MAT-6CD22DD4CC12EA75C2AA",
+          "MAT-79C977AF69095D3C16EF",
+          "MAT-785E87E28CB341A2B8F2",
+          "MAT-1FF7378A0D3A8504295B",
+          "MAT-E77A9103BBA8681033AC",
+          "MAT-C8679DEA52B3BF51B919",
+          "MAT-D158D1F63EF11EB92FA5",
+          "MAT-8020A9B07E16BE83CA61",
+          "MAT-5E67BE1271FD63DC3A80",
+          "MAT-38CDA9ADE3009B5E0950",
+          "MAT-967CB254F2F9FD07E194",
+          "MAT-867365F26B430119F586",
+          "MAT-47C665270673A9E92A12",
+          "MAT-2714D6292DAEECFBFA7A",
+          "MAT-7964829B6C481342CA0F",
+          "MAT-1A201A1A59F34E501DAB",
+          "MAT-1134784928A78A41289C",
+          "MAT-CD2ABE74729066552129",
+          "MAT-1B111286E7031BAA6A48",
+          "MAT-0AFFF9ABB7A563B28781",
+          "MAT-30FBBD538A1A0C502C22",
+          "MAT-AD6546565A77B8031566",
+          "MAT-9C93669B79FEA07B4C5C",
+          "MAT-4C2AC9A6B7B8666495C3",
+          "MAT-A9A48EBA9795AEA60F8E",
+          "MAT-00CCC8FE0D219FAEEAE1",
+          "MAT-5FF82371B6C79948F9FC",
+          "MAT-F5E8FD50CE6200FCF3EE",
+          "MAT-FACDBAF9FABD25BE86F0",
+          "MAT-13BB67E0D5120BBC358B",
+          "MAT-FE1FAE8DEE2F79956C9B",
+          "MAT-A7E991F83F1538C7CAA0",
+          "MAT-7D90072F268EF86E07EF",
+          "MAT-6409AE504F1AB160892F",
+          "MAT-FE166850DBDA1371BAD8",
+          "MAT-0112FB85FD41CF5862DE",
+          "MAT-2E6C27E3501EE5D8F7EE",
+          "MAT-D98756C15450ED357D81",
+          "MAT-1106F1EDCA99603E2226",
+          "MAT-886BE01C65E899810CBB",
+          "MAT-6523F73AE5E468514869",
+          "MAT-B243E752F226A784B59F",
+          "MAT-FF867C4FFDC0E94663D6",
+          "MAT-A5EE872C98C7FE02789F",
+          "MAT-55B5B4C6EA7571DB0860",
+          "MAT-2357B2332482A313483F",
+          "MAT-BEB1EB47EA8B42AF6C74"
+        ]
+      },
+      "fixed_evidence_sha256": "f3043556a20612ba8538be792e0618234ffdf8089c639429d1d2cf6d0eb7d032",
+      "verified_project_table": {
+        "note": "已复算本行三项明确披露的金额；长期待摊转出或期末余额采用破折号，未查明其计量含义，不标记完整勾稽通过。",
+        "unit": "元",
+        "status": "subtotal_computed",
+        "values": {
+          "closing": null,
+          "opening": "240078904.49",
+          "increase": "847336295.51",
+          "to_fixed": "1087415200.00",
+          "to_long_term": null
+        },
+        "formula": "期初余额 + 本期增加 − 本期转固（其他扣减列按真实表头另行核查）",
+        "missing": [
+          "to_long_term",
+          "closing"
+        ],
+        "extraction": "pymupdf_verified_table_cells",
+        "document_id": "BAOSTEEL_AR_2025",
+        "source_page": 154,
+        "values_yuan": {
+          "closing": null,
+          "opening": "240078904.49",
+          "increase": "847336295.51",
+          "to_fixed": "1087415200.00",
+          "to_long_term": null
+        },
+        "rule_version": "construction_reconciliation_v1",
+        "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "difference_yuan": null,
+        "provenance_note": "数值来自同一登记原件的PyMuPDF表格单元格，不能冒充原文片段的逐字引文；破折号不是已确认零。",
+        "reported_markers": {
+          "closing": "-",
+          "opening": "240,078,904.49",
+          "increase": "847,336,295.51",
+          "to_fixed": "1,087,415,200.00",
+          "to_long_term": "-"
+        },
+        "source_row_label": "宝钢湛江钢铁零碳高\n等级薄钢板工厂项目\n炼钢工程",
+        "page_evidence_ids": [
+          "ME-C4F90039AEB2A2198691"
+        ],
+        "source_row_matched": true,
+        "subproject_identity": "yearly_report_explicit_project_and_subproject",
+        "interpretation_boundary": "年报本行属于零碳工厂的炼钢子工程，不能据此确认与ESG总体投资同一统计范围。",
+        "known_component_subtotal_yuan": "0.00",
+        "other_decrease_column_present": false
+      },
+      "matter_rule_fingerprints": {
+        "MAT-EST-01": "0621662177A24BEDDAF2",
+        "MAT-OBL-01": "E324C227DF0415441ED1",
+        "MAT-LIFE-01": "9B49FAB4EF6237EDFE07",
+        "MAT-TIME-01": "19C997A461E4619E0204",
+        "MAT-TARGET-01": "F94A7F25C38D0398A831"
+      },
+      "requested_investigation_budget": {
+        "max_matters": 1,
+        "max_role_rounds": 2,
+        "max_parallel_calls": 2,
+        "max_provider_calls": 20
+      }
+    },
+    "ai_analyses": [],
+    "program_hints": [],
+    "analysis_history": [],
+    "prior_provider_calls": [],
+    "industry_context": {},
+    "intelligence_trace": [],
+    "claim_ledger": [],
+    "rule_basis": [],
+    "next_evidence": [],
+    "financial_claims": [],
+    "financial_nodes": [],
+    "financial_edges": [],
+    "impact_graph": {},
+    "revision_loop": {},
+    "evidence_plan": {},
+    "financial_scenario": {},
+    "investigation": {},
+    "comparison_summary": {},
+    "matter_schema_version": "matter_connectivity_v1",
+    "report_set": {
+      "report_set_id": "CONNSET-06402DFF2D395123E5FBED3B",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "document_ids": [
+        "BAO24_ESG",
+        "BAOSTEEL_AR_2025",
+        "BAOSTEEL_ESG_2025"
+      ],
+      "document_fingerprints": {
+        "BAO24_ESG": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+        "BAOSTEEL_AR_2025": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "BAOSTEEL_ESG_2025": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+      },
+      "periods": [
+        "2024",
+        "2025"
+      ],
+      "as_of_date": "2026-10-27",
+      "coverage_gaps": [
+        "2024年缺少AR报告"
+      ],
+      "schema_version": "matter_connectivity_v1"
+    },
+    "matter_evidence": [
+      {
+        "evidence_id": "ME-05A39A5E82220073118B",
+        "document_id": "BAOSTEEL_AR_2025",
+        "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "company_id": "600019",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 12,
+        "printed_page": "",
+        "quote": "有序推进绿色低碳发展。国内首条拥有先进氢冶金电熔炼工艺的百万吨级近零碳钢铁产线在湛江\n钢铁全线贯通，在钢铁行业绿色低碳发展领域取得重大突破；富氢碳循环氧气高炉（HyCROF）高",
+        "context": "有序推进绿色低碳发展。国内首条拥有先进氢冶金电熔炼工艺的百万吨级近零碳钢铁产线在湛江\n钢铁全线贯通，在钢铁行业绿色低碳发展领域取得重大突破；富氢碳循环氧气高炉（HyCROF）高",
+        "adjacent_evidence_ids": [
+          "ME-15E3F65CCCF5152E3F82"
+        ],
+        "section": "3.绿色低碳方面",
+        "bbox": [
+          89.87999725341797,
+          732.4293212890625,
+          530.7698364257812,
+          756.5603637695312
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-004E48E40646896AF5AB",
+        "document_id": "BAOSTEEL_AR_2025",
+        "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "company_id": "600019",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 26,
+        "printed_page": "",
+        "quote": "2025年实际完成固定资产投资191.73亿元。资金主要用于东山基地零碳高等级薄钢板工厂项目、宝山基地超高等级取向硅钢绿色制造示范项目、青山基\n地新能源无取向硅钢结构优化工程等。",
+        "context": "2025年实际完成固定资产投资191.73亿元。资金主要用于东山基地零碳高等级薄钢板工厂项目、宝山基地超高等级取向硅钢绿色制造示范项目、青山基\n地新能源无取向硅钢结构优化工程等。",
+        "adjacent_evidence_ids": [],
+        "section": "2、重大的非股权投资",
+        "bbox": [
+          72.0,
+          131.47035217285156,
+          764.8718872070312,
+          155.47935485839844
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-051AF30BAB0A0DF4AC08",
+        "document_id": "BAOSTEEL_AR_2025",
+        "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "company_id": "600019",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 33,
+        "printed_page": "",
+        "quote": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+        "context": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+        "adjacent_evidence_ids": [],
+        "section": "2.2026年公司经营目标、计划与拟开展的重点工作",
+        "bbox": [
+          89.87999725341797,
+          245.59036254882812,
+          531.489990234375,
+          296.84033203125
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-C4F90039AEB2A2198691",
+        "document_id": "BAOSTEEL_AR_2025",
+        "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+        "company_id": "600019",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 154,
+        "printed_page": "",
+        "quote": "炼钢工程",
+        "context": "炼钢工程",
+        "adjacent_evidence_ids": [],
+        "section": "(2).重要在建工程项目本期变动情况",
+        "bbox": [
+          73.68000030517578,
+          429.2944030761719,
+          98.66899871826172,
+          437.388916015625
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-35026077F1FAA3370DA8",
+        "document_id": "BAOSTEEL_ESG_2025",
+        "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+        "company_id": "600019",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 6,
+        "printed_page": "",
+        "quote": "国内首条百万吨级近零碳钢铁\n产线在湛江钢铁全线贯通",
+        "context": "国内首条百万吨级近零碳钢铁\n产线在湛江钢铁全线贯通",
+        "adjacent_evidence_ids": [],
+        "section": "1978.12",
+        "bbox": [
+          274.78338623046875,
+          720.2010498046875,
+          388.54351806640625,
+          758.9190063476562
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-253D634546AAAAC2BA0B",
+        "document_id": "BAOSTEEL_ESG_2025",
+        "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+        "company_id": "600019",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 32,
+        "printed_page": "",
+        "quote": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+        "context": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+        "adjacent_evidence_ids": [],
+        "section": "宝钢股份气候减缓战略举措",
+        "bbox": [
+          56.692901611328125,
+          213.61871337890625,
+          524.4667358398438,
+          239.34071350097656
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-443AEF947D9F1D2EDA98",
+        "document_id": "BAOSTEEL_ESG_2025",
+        "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+        "company_id": "600019",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 41,
+        "printed_page": "",
+        "quote": "\u0007“零碳高等级薄钢板工厂示范项目”入选《绿色低碳先进技术",
+        "context": "\u0007“零碳高等级薄钢板工厂示范项目”入选《绿色低碳先进技术",
+        "adjacent_evidence_ids": [],
+        "section": "2.08",
+        "bbox": [
+          289.0393981933594,
+          437.60992431640625,
+          509.9439697265625,
+          460.4739074707031
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-7E1A63F7EAA6AF406AC7",
+        "document_id": "BAOSTEEL_ESG_2025",
+        "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+        "company_id": "600019",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-04-30",
+        "pdf_page": 74,
+        "printed_page": "",
+        "quote": "股份湛江钢铁零碳薄钢板项目交付200 MVA 电弧炉",
+        "context": "股份湛江钢铁零碳薄钢板项目交付200 MVA 电弧炉",
+        "adjacent_evidence_ids": [],
+        "section": "建议书（资材）。此举持续推动供应商参与减碳行动，实现上下游协同减排，为应对全球气候变化贡献产业链力量。",
+        "bbox": [
+          78.36119842529297,
+          542.5840454101562,
+          279.14752197265625,
+          568.3060302734375
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      }
+    ],
+    "matters": [
+      {
+        "matter_id": "MAT-1A9C5E85617F6F2E9890",
+        "company_id": "600019",
+        "name": "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程",
+        "matter_type": "transition_project",
+        "subject": "宝钢股份（湛江钢铁基地）",
+        "location": "湛江",
+        "aliases": [
+          "炼钢工程"
+        ],
+        "identity_status": "evidence_linked",
+        "identity_basis": "年报第154页重要在建工程项目本期变动情况表中，行标签原文为\"宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程\"，页面证据仅含\"炼钢工程\"字样；主体为宝钢股份湛江钢铁基地，项目名与子工程名按原文逐字保留，未与其他项目名称合并。",
+        "evidence_ids": [
+          "ME-C4F90039AEB2A2198691"
+        ],
+        "event_ids": [
+          "EV-AEE0583F09FF0CB74732"
+        ],
+        "investigation_status": "partial",
+        "lineage": [
+          "MAT-0EB4C0CE6F5969C96BF0"
+        ],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-74B971B3798970F4174C",
+        "company_id": "600019",
+        "name": "湛江钢铁近零碳示范产线（项目身份待核）",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+        "evidence_ids": [
+          "ME-051AF30BAB0A0DF4AC08"
+        ],
+        "event_ids": [
+          "EV-08D8EF18BE94D84B4114"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-A5555414D5670BB77EFB",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 32",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-253D634546AAAAC2BA0B"
+        ],
+        "event_ids": [
+          "EV-2C09A043E602D9D6687E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-9493308C515989635DFC",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 9",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-9EF31D0015E1432371BA"
+        ],
+        "event_ids": [],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-8251086300606EF3CC1D",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 12",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-05A39A5E82220073118B"
+        ],
+        "event_ids": [
+          "EV-ED7B2E399866B7D63EBD"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-012044641B107B324097",
+        "company_id": "600019",
+        "name": "零碳高等级薄钢板工厂（项目身份待核）",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+        "evidence_ids": [
+          "ME-443AEF947D9F1D2EDA98"
+        ],
+        "event_ids": [
+          "EV-3BAF298292961DC1A29E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-495B4B971D179E0A390C",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 25",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-5C290E31ADF1F9F2DBAE"
+        ],
+        "event_ids": [
+          "EV-5AA4B3D2A68C27C32945"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-EC71D09FB6DBC2277626",
+        "company_id": "600019",
+        "name": "零碳高等级薄钢板工厂（项目身份待核）",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+        "evidence_ids": [
+          "ME-004E48E40646896AF5AB"
+        ],
+        "event_ids": [
+          "EV-C1950891A30838EFB724"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-A498958590F77EA0B8AF",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 41",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-BA5C1A5B094DA585089F"
+        ],
+        "event_ids": [
+          "EV-EBE9E0ECBDAC9075294E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-1F8FC5429284865C72A8",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 65",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-BA06EF4AE199F9211C5D"
+        ],
+        "event_ids": [
+          "EV-54379D351FAB475FC57A"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-3F66A26C2A644B365002",
+        "company_id": "600019",
+        "name": "零碳高等级薄钢板工厂（项目身份待核）",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+        "evidence_ids": [
+          "ME-405DA1E3F5F2C639CD50"
+        ],
+        "event_ids": [
+          "EV-211F2C916C1855BEA14C"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-6A871E8094D512FB4C5B",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 3",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-A4AD9665CB7D5E4A505B"
+        ],
+        "event_ids": [
+          "EV-DBA8B20AAABFE0E2A9A6"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-5F869E60DA3553A7FCB5",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2024 · PDF 15",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-970F7A5784209CDDE0AC"
+        ],
+        "event_ids": [
+          "EV-73851FAB0ACDF7BF5542"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-BD3CC25091CF2D2A7F47",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 5",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-59297BF87D25DE33587C"
+        ],
+        "event_ids": [
+          "EV-0C342BE58D5C74F229AA"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-8B8A2761BA6197304E14",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 6",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-35026077F1FAA3370DA8"
+        ],
+        "event_ids": [
+          "EV-0CAA16EF785C3CE1A23C"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-ADAD9D46C3908B1F615E",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2024 · PDF 24",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-6B0A33D326858BE3A032"
+        ],
+        "event_ids": [
+          "EV-AE64012AA69D7D2F0FA1"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-DAD9DD8521BB0FCDBF76",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 30",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-CF321240F1755718BB7F"
+        ],
+        "event_ids": [
+          "EV-53A3360F03DEB78A115C"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-95CBAB56D222DBF2E563",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 6",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-D2EEA579D176C4A2346B"
+        ],
+        "event_ids": [
+          "EV-749599EAD49FD18C3B56"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-B3050DF43EE1AED69169",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 25",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-3CEE3A27F1231452B772"
+        ],
+        "event_ids": [
+          "EV-82478ACF62DF457CF32C"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-5A35F8A77DC0CFCDC5D4",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 45",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-2F7C14F19039ED2A7F0F"
+        ],
+        "event_ids": [
+          "EV-DB83E20C34A59FF3A693"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-BE069021A6CA4B9B821A",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 6",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-CBE71C4C0165438A4F84"
+        ],
+        "event_ids": [
+          "EV-C78DFF1ABD5C61A9D8A9"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-47579E9A660123F32BFF",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 27",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-658AF4B19FA9042DDB56"
+        ],
+        "event_ids": [
+          "EV-721613E7288F4F7E4552"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-212A7C74EE8F11B3B5C9",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 54",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-7BC7A46A5E3B4950257D"
+        ],
+        "event_ids": [
+          "EV-AD9CEDB92B68691BCD2A"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-CACD97ED0918D217758F",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 6",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-C8EA246C3C4CD28DBED1"
+        ],
+        "event_ids": [
+          "EV-65519B42010A2B4BBBCA"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-011A1D30AE2E20E41C68",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 29",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-AFEAD2E25AE99CAC3ABD"
+        ],
+        "event_ids": [
+          "EV-48DC842C3C195A4C3584"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-DF08AE4ED36000C2C9C4",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 56",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-5D789E4B3856951081BA"
+        ],
+        "event_ids": [
+          "EV-84404799B933A7116EE5"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-2BA594DEC1843D2716B4",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 32",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-1C4C445B1C2958077F83"
+        ],
+        "event_ids": [
+          "EV-DCB41C6DD0819F24DF0E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-39A9929AE9D40F4482A4",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 29",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-5C9C3E930A02C97B555D"
+        ],
+        "event_ids": [
+          "EV-E33C0E04C63919B411F9"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-FB33E5AE89DE70C4DA81",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 128",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-86F0FAEF20D9CC375041"
+        ],
+        "event_ids": [
+          "EV-93368893F0A671C4E7F8"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-E39F69C4C9E88EEE3ED5",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 41",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-D8734770E70813A54A25"
+        ],
+        "event_ids": [
+          "EV-DB8382E7608E8597B0A0"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-62E330001A1ED6D06DE8",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 29",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-9A3B240E3EB5F04DF4E9"
+        ],
+        "event_ids": [
+          "EV-39027226EDA55FB3C6A1"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-7A0ED2CF43BF5ACE2CB0",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 145",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-8382FCCC4EDA0E8EB9B4"
+        ],
+        "event_ids": [
+          "EV-936E94006431DC00C891"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-CC0A0C85CB22425E072F",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 41",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-4A170D1BC83DEF2B2286"
+        ],
+        "event_ids": [
+          "EV-9D853F7ED2C7643A3252"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-06CDBBAC9EF0DFA32FC8",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 30",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-5577EF627C76A1DC3C27"
+        ],
+        "event_ids": [
+          "EV-ADF008688A9431082EEF"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-45D9BAAB38DD65EA0B0B",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 154",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-A618258ED3BC498E1B0D"
+        ],
+        "event_ids": [
+          "EV-F8A8515D332C0CAD7476"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-7EAE5B1EA46B4427B035",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 46",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-8BED86489C8681F17DAE"
+        ],
+        "event_ids": [
+          "EV-1096F132FE04AF312CB1"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-EE040F728737B0A9CF5E",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 33",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-553F02DAEEDF4AF42054"
+        ],
+        "event_ids": [
+          "EV-612ACFCD939C2FF6EF05"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-9FFC518AE281E3D80AE2",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 53",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-9065A0EE5975E7986260"
+        ],
+        "event_ids": [
+          "EV-8265426EB582B4CE3CB4"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-8B38763A60D6850CDBAD",
+        "company_id": "600019",
+        "name": "此定价方案旨在推动节能低碳技术改造项目",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+        "evidence_ids": [
+          "ME-20C857C9B5745EF8C1E0"
+        ],
+        "event_ids": [
+          "EV-239D139A3BEF64F482F8"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-416367467D63E9069AA9",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 199",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-79D1B7C227CD4473BE67"
+        ],
+        "event_ids": [
+          "EV-4F66444132901FB48897"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-DD00438D2921B8C1A7AF",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 54",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-F55CF77A3EBCD3EAA24F"
+        ],
+        "event_ids": [
+          "EV-42A1688964961FBD7D9E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-7492ADD6189638A9043F",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 42",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-08753E9514338F2752EF"
+        ],
+        "event_ids": [
+          "EV-24D7CC3D575FFA3D3560"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-385B6D400663DB8C9F4F",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 200",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-FD1FF2ECAD0791C06A5C"
+        ],
+        "event_ids": [
+          "EV-494174272A7B16638609"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-6CD22DD4CC12EA75C2AA",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 72",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-9EF2D87E99D6F2014B27"
+        ],
+        "event_ids": [
+          "EV-A935DA6C00C5F8696BAB"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-79C977AF69095D3C16EF",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2024 · PDF 42",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-1E7EDB2B4621D69803AE"
+        ],
+        "event_ids": [
+          "EV-132D172B002113174D49"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-785E87E28CB341A2B8F2",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 200",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-BCA6EC4DF8883382E891"
+        ],
+        "event_ids": [
+          "EV-D48554D2FBBBB9A251C9"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-1FF7378A0D3A8504295B",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 74",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-7E1A63F7EAA6AF406AC7"
+        ],
+        "event_ids": [
+          "EV-67C1199D1316678B1964"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-E77A9103BBA8681033AC",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 44",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-8A02C3007F100CDFB83B"
+        ],
+        "event_ids": [
+          "EV-1C75B9E51047D819AF79"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-C8679DEA52B3BF51B919",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 200",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-EFF1E589402C023EDE0E"
+        ],
+        "event_ids": [
+          "EV-7E1FC18C30C374A13F81"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-D158D1F63EF11EB92FA5",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 74",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-72B61763A2CE72D58AB7"
+        ],
+        "event_ids": [
+          "EV-17CA9F026BDD6BB16A22"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-8020A9B07E16BE83CA61",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 55",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-6D8BDB2CF2A5EC7B8E83"
+        ],
+        "event_ids": [
+          "EV-166E24FB4101F5FF198E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-5E67BE1271FD63DC3A80",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 233",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-4593A70355444E30D1E8"
+        ],
+        "event_ids": [
+          "EV-9A8C9741ED418B701D8C"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-38CDA9ADE3009B5E0950",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 86",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-22707919B06BA4AC7C56"
+        ],
+        "event_ids": [
+          "EV-FA768B9269934026B3C5"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-967CB254F2F9FD07E194",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 63",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-8AD6B67BA6FE821AD60D"
+        ],
+        "event_ids": [
+          "EV-05BAED6C273EF763BE44"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-867365F26B430119F586",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 240",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-CF50C03472B59C54304F"
+        ],
+        "event_ids": [
+          "EV-E27533C9068199021ED0"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-47C665270673A9E92A12",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 40",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-C9DCE77F03889E50D04F"
+        ],
+        "event_ids": [
+          "EV-D5F3EBB95E1419228D06"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-2714D6292DAEECFBFA7A",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 86",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-C10EEAFEE057ED8CBCC7"
+        ],
+        "event_ids": [
+          "EV-8E550216A030A9294DFD"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-7964829B6C481342CA0F",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 119",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-FD3D99B61C379B3A4F00"
+        ],
+        "event_ids": [
+          "EV-3B24FD4107D744B1A6D4"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-1A201A1A59F34E501DAB",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2025 · PDF 8",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-7E89D7A9B85F9A312EF3"
+        ],
+        "event_ids": [
+          "EV-0A86DDC182BB5B9319EF"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-1134784928A78A41289C",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 5",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-954521FFC4FB3220AAF5"
+        ],
+        "event_ids": [
+          "EV-428D2D6DC8B06EEE0CE0"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-CD2ABE74729066552129",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 117",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-AF1127247D7916B703AA"
+        ],
+        "event_ids": [
+          "EV-95B085803884F49320B2"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-1B111286E7031BAA6A48",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2025 · PDF 26",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-CD2E4747051A941DFC9F"
+        ],
+        "event_ids": [
+          "EV-F30AC30AA168BC5B63E2"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-0AFFF9ABB7A563B28781",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 5",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-A976139C027EDB2B6FED"
+        ],
+        "event_ids": [
+          "EV-A3A43C682AC9583B62B6"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-30FBBD538A1A0C502C22",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 118",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-D4F096CB0D7D95CF03D0"
+        ],
+        "event_ids": [
+          "EV-F37FD1EAD6D8240242EB"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-AD6546565A77B8031566",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 72",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-CFC8FAE5E092F55FF6B8"
+        ],
+        "event_ids": [
+          "EV-5EEABB1B791B45C9178E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-9C93669B79FEA07B4C5C",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 6",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-CDA9D9CEEF315D2588FF"
+        ],
+        "event_ids": [
+          "EV-ABC6395266C7D4AADD9E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-4C2AC9A6B7B8666495C3",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 125",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-56AC9EA3D93F2301C29E"
+        ],
+        "event_ids": [
+          "EV-B9B8DCCDE5CE97842667"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-A9A48EBA9795AEA60F8E",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 73",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-5A29C1954A3EBE361DD3"
+        ],
+        "event_ids": [
+          "EV-AD29FCD34D9F59EA2C71"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-00CCC8FE0D219FAEEAE1",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 8",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-DB291046DF1E360433DB"
+        ],
+        "event_ids": [
+          "EV-D23637253A82EC2D181C"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-5FF82371B6C79948F9FC",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2025 · PDF 10",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-E6C309ABE4BC55B71EBC"
+        ],
+        "event_ids": [
+          "EV-5A1F919BE2A867E4F9C0"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-F5E8FD50CE6200FCF3EE",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 8",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-E8D9A6D974490B987A75"
+        ],
+        "event_ids": [
+          "EV-F43A0CD25D6E085C3FBA"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-FACDBAF9FABD25BE86F0",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 8",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-F12CB6538189EE42C006"
+        ],
+        "event_ids": [
+          "EV-B856C8650B77527982EE"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-13BB67E0D5120BBC358B",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2025 · PDF 40",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-22D7D422692931A919DE"
+        ],
+        "event_ids": [
+          "EV-0D24AEE9F2E79BCB7D49"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-FE1FAE8DEE2F79956C9B",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2025 · PDF 14",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-1B5C641DC1A842DF6797"
+        ],
+        "event_ids": [
+          "EV-0A968AB4E8F42DBC007E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-A7E991F83F1538C7CAA0",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2024 · PDF 10",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-E87C41F328E9C5411686"
+        ],
+        "event_ids": [
+          "EV-6B01E2C7E926D8D033D3"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-7D90072F268EF86E07EF",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2025 · PDF 58",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-216235B2AF9B3566518E"
+        ],
+        "event_ids": [
+          "EV-E2505FD8418D6EC52687"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-6409AE504F1AB160892F",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 20",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-B7D0D8FBAC5FBDFF2707"
+        ],
+        "event_ids": [
+          "EV-E37E320A21936AB1BAE7"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-FE166850DBDA1371BAD8",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2024 · PDF 10",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-1ED754AC2CD0E33CDF79"
+        ],
+        "event_ids": [
+          "EV-D87D4EA9CA7D5DD347A5"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-0112FB85FD41CF5862DE",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 65",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-9BFFC496EF6345D60067"
+        ],
+        "event_ids": [
+          "EV-9188DDF435FB897577A2"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-2E6C27E3501EE5D8F7EE",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2025 · PDF 25",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-70B29F5DD9EC1D90E9F0"
+        ],
+        "event_ids": [
+          "EV-AA3D11560B023A861049"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-D98756C15450ED357D81",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2024 · PDF 18",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-7B4E5D866D0DE7AFF397"
+        ],
+        "event_ids": [
+          "EV-26031F426D5D8F5F9524"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-1106F1EDCA99603E2226",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 117",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-5B11361D73D65BFE64F0"
+        ],
+        "event_ids": [
+          "EV-68B0CE0D4D11C8457C2B"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-886BE01C65E899810CBB",
+        "company_id": "600019",
+        "name": "目标与承诺披露 · 2025 · PDF 25",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-AFD0A1B4A135DB7FF41B"
+        ],
+        "event_ids": [
+          "EV-4AB435E6EAE2C0252DBA"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-6523F73AE5E468514869",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 19",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-70C491B5A1522E35A585"
+        ],
+        "event_ids": [
+          "EV-C60D37D6F8BCD445E8CB"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-B243E752F226A784B59F",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 117",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-FDF52754F135138EFFA3"
+        ],
+        "event_ids": [
+          "EV-B1C691A6E3F90577DFC9"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-FF867C4FFDC0E94663D6",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2025 · PDF 26",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-52717A6B06F420ED6336"
+        ],
+        "event_ids": [
+          "EV-BBFC5A83C626F0CE17E5"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-A5EE872C98C7FE02789F",
+        "company_id": "600019",
+        "name": "绿色改造披露 · 2024 · PDF 20",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-EC9D26DAE47478B3EC19"
+        ],
+        "event_ids": [
+          "EV-49D4E9C7F3C7775025C8"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-55B5B4C6EA7571DB0860",
+        "company_id": "600019",
+        "name": "财务估计与附注线索 · 2025 · PDF 118",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-C8328A7ABFAAE4D5C296"
+        ],
+        "event_ids": [
+          "EV-BD9F1F75E82B02484110"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-2357B2332482A313483F",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2025 · PDF 27",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-E29E80ED041CB606FFE5"
+        ],
+        "event_ids": [
+          "EV-97CE15D7E2452E101ECF"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-BEB1EB47EA8B42AF6C74",
+        "company_id": "600019",
+        "name": "气候风险披露 · 2024 · PDF 24",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-98B467F6896DCE90D61C"
+        ],
+        "event_ids": [
+          "EV-CA0F0420BC709B1730E7"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      }
+    ],
+    "matter_events": [
+      {
+        "event_id": "EV-AEE0583F09FF0CB74732",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890",
+        "kind": "action",
+        "label": "炼钢工程",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-04-30",
+        "evidence_ids": [
+          "ME-C4F90039AEB2A2198691"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-08D8EF18BE94D84B4114",
+        "matter_id": "MAT-74B971B3798970F4174C",
+        "kind": "action",
+        "label": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-04-30",
+        "evidence_ids": [
+          "ME-051AF30BAB0A0DF4AC08"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-2C09A043E602D9D6687E",
+        "matter_id": "MAT-A5555414D5670BB77EFB",
+        "kind": "action",
+        "label": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-04-30",
+        "evidence_ids": [
+          "ME-253D634546AAAAC2BA0B"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      }
+    ],
+    "matter_commitments": [],
+    "matter_paths": [],
+    "matter_relations": [],
+    "matter_explanations": [],
+    "matter_assessments": [
+      {
+        "matter_id": "MAT-1A9C5E85617F6F2E9890",
+        "summary": "当前调查未完成，已保留原文线索和待查问题。",
+        "relation_support": "pending",
+        "amount_comparability": "not_assessed",
+        "commitment_progress": "未取得足以评价承诺进展的证据",
+        "financial_stage": "待调查",
+        "supporting_evidence_ids": [],
+        "counter_evidence_ids": [],
+        "assumptions": [],
+        "disagreements": [],
+        "unresolved": [
+          "综合复核未完成，见角色失败及预算记录"
+        ],
+        "next_actions": [
+          {
+            "question": "该事项与财务信息的具体联系是什么？",
+            "requested_material": "该事项对应的项目明细、相关财务附注及后续年度进展",
+            "purpose": "确认事项身份及财务传导的缺失环节",
+            "target_role": "A2",
+            "priority": "medium"
+          }
+        ],
+        "review_status": "unreviewed",
+        "result_revision": 1
+      }
+    ],
+    "matter_tasks": [
+      {
+        "role": "A1",
+        "rounds": 3,
+        "run_id": "CONN-A9DB8A7045354AC6",
+        "status": "failed",
+        "task_id": "MTASK-3e135fb43cb84de5",
+        "matter_id": "",
+        "role_name": "事项识别与建档",
+        "updated_at": 1794023930.126343,
+        "duration_ms": 44779,
+        "stop_reason": "KeyError",
+        "input_revision": 1,
+        "pending_questions": [
+          {
+            "tool": "open_source_page",
+            "question": "核对在建工程表该行完整表头与破折号列含义",
+            "arguments": {
+              "page": 154,
+              "document_id": "BAOSTEEL_AR_2025"
+            }
+          },
+          {
+            "tool": "open_source_page",
+            "question": "核对近零碳产线是否文字包含炼钢工程，判断项目身份",
+            "arguments": {
+              "page": 32,
+              "document_id": "BAOSTEEL_ESG_2025"
+            }
+          },
+          {
+            "tool": "search_matter_reports",
+            "question": "查找该子工程转固与折旧相关披露",
+            "arguments": {
+              "limit": 10,
+              "query": "零碳高等级薄钢板工厂项目 炼钢工程 转固 折旧",
+              "periods": [
+                "2025"
+              ],
+              "report_type": "AR",
+              "document_ids": [
+                "BAOSTEEL_AR_2025"
+              ]
+            }
+          }
+        ],
+        "termination_reason": "source_exhausted",
+        "selected_matter_ids": [
+          "MAT-0EB4C0CE6F5969C96BF0"
+        ],
+        "validation_retry_count": 0
+      },
+      {
+        "role": "A5",
+        "rounds": 3,
+        "run_id": "CONN-A9DB8A7045354AC6",
+        "status": "failed",
+        "task_id": "MTASK-d1e6a108cad642f4",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890",
+        "role_name": "综合复核与补证决策",
+        "updated_at": 1794023982.556732,
+        "duration_ms": 48214,
+        "stop_reason": "关系端点未登记",
+        "error_detail": {
+          "code": "RELATION_ENDPOINT_UNREGISTERED",
+          "role": "A5",
+          "reason": "关系端点未登记",
+          "field_path": "relations.0.source_id",
+          "retry_count": 0
+        },
+        "failure_code": "RELATION_ENDPOINT_UNREGISTERED",
+        "input_revision": 1,
+        "pending_questions": [
+          {
+            "tool": "open_source_page",
+            "question": "核对年报第154页在建工程表完整表头与其他扣减列，确认破折号含义及期末余额",
+            "arguments": {
+              "page": 154,
+              "document_id": "BAOSTEEL_AR_2025"
+            }
+          },
+          {
+            "tool": "search_matter_reports",
+            "question": "查找ESG报告中该零碳薄钢板项目的投资额、产能与减碳量化目标",
+            "arguments": {
+              "limit": 10,
+              "query": "湛江钢铁零碳高等级薄钢板工厂 投资 产能 减碳 目标",
+              "document_ids": [
+                "BAOSTEEL_ESG_2025",
+                "BAO24_ESG"
+              ]
+            }
+          }
+        ],
+        "termination_reason": "source_exhausted",
+        "selected_matter_ids": [
+          "MAT-0EB4C0CE6F5969C96BF0"
+        ],
+        "validation_retry_count": 0
+      }
+    ],
+    "matter_tool_receipts": [
+      {
+        "role": "A1",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-3e135fb43cb84de5",
+        "args_hash": "48476f4d38750fa6",
+        "matter_id": "",
+        "tool_name": "open_source_page",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A1",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-3e135fb43cb84de5",
+        "args_hash": "e634c00195950bd0",
+        "matter_id": "",
+        "tool_name": "open_source_page",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A1",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-3e135fb43cb84de5",
+        "args_hash": "63aa2467aa378903",
+        "matter_id": "",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A5",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-d1e6a108cad642f4",
+        "args_hash": "c3ac81200ab49d5f",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      }
+    ],
+    "matter_coverage": [
+      {
+        "method": "matter_blocks_v1",
+        "cache_hit": true,
+        "document_id": "BAO24_ESG",
+        "duration_ms": 181,
+        "ocr_enabled": false,
+        "total_pages": 90,
+        "failed_pages": [
+          {
+            "page": 1,
+            "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+          }
+        ],
+        "scanned_pages": [
+          1
+        ],
+        "indexed_blocks": 5842,
+        "source_verification_ms": 0
+      },
+      {
+        "method": "matter_blocks_v1",
+        "cache_hit": true,
+        "document_id": "BAOSTEEL_AR_2025",
+        "duration_ms": 308,
+        "ocr_enabled": false,
+        "total_pages": 245,
+        "failed_pages": [],
+        "scanned_pages": [],
+        "indexed_blocks": 4719,
+        "source_verification_ms": 0
+      },
+      {
+        "method": "matter_blocks_v1",
+        "cache_hit": true,
+        "document_id": "BAOSTEEL_ESG_2025",
+        "duration_ms": 203,
+        "ocr_enabled": false,
+        "total_pages": 102,
+        "failed_pages": [],
+        "scanned_pages": [],
+        "indexed_blocks": 5912,
+        "source_verification_ms": 1
+      }
+    ],
+    "matter_rejections": [
+      {
+        "code": "RELATION_ENDPOINT_UNREGISTERED",
+        "role": "A5",
+        "reason": "关系端点未登记",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890",
+        "field_path": "relations.0.source_id",
+        "retry_count": 0
+      },
+      {
+        "role": "A5",
+        "reason": "关系端点未登记",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890"
+      }
+    ],
+    "matter_revisions": [],
+    "matter_graph": {
+      "edges": [
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-1A9C5E85617F6F2E9890",
+          "status": "limited",
+          "target": "ME-C4F90039AEB2A2198691",
+          "matter_id": "MAT-1A9C5E85617F6F2E9890"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-74B971B3798970F4174C",
+          "status": "limited",
+          "target": "ME-051AF30BAB0A0DF4AC08",
+          "matter_id": "MAT-74B971B3798970F4174C"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-A5555414D5670BB77EFB",
+          "status": "limited",
+          "target": "ME-253D634546AAAAC2BA0B",
+          "matter_id": "MAT-A5555414D5670BB77EFB"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-9493308C515989635DFC",
+          "status": "limited",
+          "target": "ME-9EF31D0015E1432371BA",
+          "matter_id": "MAT-9493308C515989635DFC"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-8251086300606EF3CC1D",
+          "status": "limited",
+          "target": "ME-05A39A5E82220073118B",
+          "matter_id": "MAT-8251086300606EF3CC1D"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-012044641B107B324097",
+          "status": "limited",
+          "target": "ME-443AEF947D9F1D2EDA98",
+          "matter_id": "MAT-012044641B107B324097"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-495B4B971D179E0A390C",
+          "status": "limited",
+          "target": "ME-5C290E31ADF1F9F2DBAE",
+          "matter_id": "MAT-495B4B971D179E0A390C"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-EC71D09FB6DBC2277626",
+          "status": "limited",
+          "target": "ME-004E48E40646896AF5AB",
+          "matter_id": "MAT-EC71D09FB6DBC2277626"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-A498958590F77EA0B8AF",
+          "status": "limited",
+          "target": "ME-BA5C1A5B094DA585089F",
+          "matter_id": "MAT-A498958590F77EA0B8AF"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-1F8FC5429284865C72A8",
+          "status": "limited",
+          "target": "ME-BA06EF4AE199F9211C5D",
+          "matter_id": "MAT-1F8FC5429284865C72A8"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-3F66A26C2A644B365002",
+          "status": "limited",
+          "target": "ME-405DA1E3F5F2C639CD50",
+          "matter_id": "MAT-3F66A26C2A644B365002"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-6A871E8094D512FB4C5B",
+          "status": "limited",
+          "target": "ME-A4AD9665CB7D5E4A505B",
+          "matter_id": "MAT-6A871E8094D512FB4C5B"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-5F869E60DA3553A7FCB5",
+          "status": "limited",
+          "target": "ME-970F7A5784209CDDE0AC",
+          "matter_id": "MAT-5F869E60DA3553A7FCB5"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-BD3CC25091CF2D2A7F47",
+          "status": "limited",
+          "target": "ME-59297BF87D25DE33587C",
+          "matter_id": "MAT-BD3CC25091CF2D2A7F47"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-8B8A2761BA6197304E14",
+          "status": "limited",
+          "target": "ME-35026077F1FAA3370DA8",
+          "matter_id": "MAT-8B8A2761BA6197304E14"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-ADAD9D46C3908B1F615E",
+          "status": "limited",
+          "target": "ME-6B0A33D326858BE3A032",
+          "matter_id": "MAT-ADAD9D46C3908B1F615E"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-DAD9DD8521BB0FCDBF76",
+          "status": "limited",
+          "target": "ME-CF321240F1755718BB7F",
+          "matter_id": "MAT-DAD9DD8521BB0FCDBF76"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-95CBAB56D222DBF2E563",
+          "status": "limited",
+          "target": "ME-D2EEA579D176C4A2346B",
+          "matter_id": "MAT-95CBAB56D222DBF2E563"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-B3050DF43EE1AED69169",
+          "status": "limited",
+          "target": "ME-3CEE3A27F1231452B772",
+          "matter_id": "MAT-B3050DF43EE1AED69169"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-5A35F8A77DC0CFCDC5D4",
+          "status": "limited",
+          "target": "ME-2F7C14F19039ED2A7F0F",
+          "matter_id": "MAT-5A35F8A77DC0CFCDC5D4"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-BE069021A6CA4B9B821A",
+          "status": "limited",
+          "target": "ME-CBE71C4C0165438A4F84",
+          "matter_id": "MAT-BE069021A6CA4B9B821A"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-47579E9A660123F32BFF",
+          "status": "limited",
+          "target": "ME-658AF4B19FA9042DDB56",
+          "matter_id": "MAT-47579E9A660123F32BFF"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-212A7C74EE8F11B3B5C9",
+          "status": "limited",
+          "target": "ME-7BC7A46A5E3B4950257D",
+          "matter_id": "MAT-212A7C74EE8F11B3B5C9"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-CACD97ED0918D217758F",
+          "status": "limited",
+          "target": "ME-C8EA246C3C4CD28DBED1",
+          "matter_id": "MAT-CACD97ED0918D217758F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-011A1D30AE2E20E41C68",
+          "status": "limited",
+          "target": "ME-AFEAD2E25AE99CAC3ABD",
+          "matter_id": "MAT-011A1D30AE2E20E41C68"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-DF08AE4ED36000C2C9C4",
+          "status": "limited",
+          "target": "ME-5D789E4B3856951081BA",
+          "matter_id": "MAT-DF08AE4ED36000C2C9C4"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-2BA594DEC1843D2716B4",
+          "status": "limited",
+          "target": "ME-1C4C445B1C2958077F83",
+          "matter_id": "MAT-2BA594DEC1843D2716B4"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-39A9929AE9D40F4482A4",
+          "status": "limited",
+          "target": "ME-5C9C3E930A02C97B555D",
+          "matter_id": "MAT-39A9929AE9D40F4482A4"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-FB33E5AE89DE70C4DA81",
+          "status": "limited",
+          "target": "ME-86F0FAEF20D9CC375041",
+          "matter_id": "MAT-FB33E5AE89DE70C4DA81"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-E39F69C4C9E88EEE3ED5",
+          "status": "limited",
+          "target": "ME-D8734770E70813A54A25",
+          "matter_id": "MAT-E39F69C4C9E88EEE3ED5"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-62E330001A1ED6D06DE8",
+          "status": "limited",
+          "target": "ME-9A3B240E3EB5F04DF4E9",
+          "matter_id": "MAT-62E330001A1ED6D06DE8"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-7A0ED2CF43BF5ACE2CB0",
+          "status": "limited",
+          "target": "ME-8382FCCC4EDA0E8EB9B4",
+          "matter_id": "MAT-7A0ED2CF43BF5ACE2CB0"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-CC0A0C85CB22425E072F",
+          "status": "limited",
+          "target": "ME-4A170D1BC83DEF2B2286",
+          "matter_id": "MAT-CC0A0C85CB22425E072F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-06CDBBAC9EF0DFA32FC8",
+          "status": "limited",
+          "target": "ME-5577EF627C76A1DC3C27",
+          "matter_id": "MAT-06CDBBAC9EF0DFA32FC8"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-45D9BAAB38DD65EA0B0B",
+          "status": "limited",
+          "target": "ME-A618258ED3BC498E1B0D",
+          "matter_id": "MAT-45D9BAAB38DD65EA0B0B"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-7EAE5B1EA46B4427B035",
+          "status": "limited",
+          "target": "ME-8BED86489C8681F17DAE",
+          "matter_id": "MAT-7EAE5B1EA46B4427B035"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-EE040F728737B0A9CF5E",
+          "status": "limited",
+          "target": "ME-553F02DAEEDF4AF42054",
+          "matter_id": "MAT-EE040F728737B0A9CF5E"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-9FFC518AE281E3D80AE2",
+          "status": "limited",
+          "target": "ME-9065A0EE5975E7986260",
+          "matter_id": "MAT-9FFC518AE281E3D80AE2"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-8B38763A60D6850CDBAD",
+          "status": "limited",
+          "target": "ME-20C857C9B5745EF8C1E0",
+          "matter_id": "MAT-8B38763A60D6850CDBAD"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-416367467D63E9069AA9",
+          "status": "limited",
+          "target": "ME-79D1B7C227CD4473BE67",
+          "matter_id": "MAT-416367467D63E9069AA9"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-DD00438D2921B8C1A7AF",
+          "status": "limited",
+          "target": "ME-F55CF77A3EBCD3EAA24F",
+          "matter_id": "MAT-DD00438D2921B8C1A7AF"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-7492ADD6189638A9043F",
+          "status": "limited",
+          "target": "ME-08753E9514338F2752EF",
+          "matter_id": "MAT-7492ADD6189638A9043F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-385B6D400663DB8C9F4F",
+          "status": "limited",
+          "target": "ME-FD1FF2ECAD0791C06A5C",
+          "matter_id": "MAT-385B6D400663DB8C9F4F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-6CD22DD4CC12EA75C2AA",
+          "status": "limited",
+          "target": "ME-9EF2D87E99D6F2014B27",
+          "matter_id": "MAT-6CD22DD4CC12EA75C2AA"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-79C977AF69095D3C16EF",
+          "status": "limited",
+          "target": "ME-1E7EDB2B4621D69803AE",
+          "matter_id": "MAT-79C977AF69095D3C16EF"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-785E87E28CB341A2B8F2",
+          "status": "limited",
+          "target": "ME-BCA6EC4DF8883382E891",
+          "matter_id": "MAT-785E87E28CB341A2B8F2"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-1FF7378A0D3A8504295B",
+          "status": "limited",
+          "target": "ME-7E1A63F7EAA6AF406AC7",
+          "matter_id": "MAT-1FF7378A0D3A8504295B"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-E77A9103BBA8681033AC",
+          "status": "limited",
+          "target": "ME-8A02C3007F100CDFB83B",
+          "matter_id": "MAT-E77A9103BBA8681033AC"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-C8679DEA52B3BF51B919",
+          "status": "limited",
+          "target": "ME-EFF1E589402C023EDE0E",
+          "matter_id": "MAT-C8679DEA52B3BF51B919"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-D158D1F63EF11EB92FA5",
+          "status": "limited",
+          "target": "ME-72B61763A2CE72D58AB7",
+          "matter_id": "MAT-D158D1F63EF11EB92FA5"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-8020A9B07E16BE83CA61",
+          "status": "limited",
+          "target": "ME-6D8BDB2CF2A5EC7B8E83",
+          "matter_id": "MAT-8020A9B07E16BE83CA61"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-5E67BE1271FD63DC3A80",
+          "status": "limited",
+          "target": "ME-4593A70355444E30D1E8",
+          "matter_id": "MAT-5E67BE1271FD63DC3A80"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-38CDA9ADE3009B5E0950",
+          "status": "limited",
+          "target": "ME-22707919B06BA4AC7C56",
+          "matter_id": "MAT-38CDA9ADE3009B5E0950"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-967CB254F2F9FD07E194",
+          "status": "limited",
+          "target": "ME-8AD6B67BA6FE821AD60D",
+          "matter_id": "MAT-967CB254F2F9FD07E194"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-867365F26B430119F586",
+          "status": "limited",
+          "target": "ME-CF50C03472B59C54304F",
+          "matter_id": "MAT-867365F26B430119F586"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-47C665270673A9E92A12",
+          "status": "limited",
+          "target": "ME-C9DCE77F03889E50D04F",
+          "matter_id": "MAT-47C665270673A9E92A12"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-2714D6292DAEECFBFA7A",
+          "status": "limited",
+          "target": "ME-C10EEAFEE057ED8CBCC7",
+          "matter_id": "MAT-2714D6292DAEECFBFA7A"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-7964829B6C481342CA0F",
+          "status": "limited",
+          "target": "ME-FD3D99B61C379B3A4F00",
+          "matter_id": "MAT-7964829B6C481342CA0F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-1A201A1A59F34E501DAB",
+          "status": "limited",
+          "target": "ME-7E89D7A9B85F9A312EF3",
+          "matter_id": "MAT-1A201A1A59F34E501DAB"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-1134784928A78A41289C",
+          "status": "limited",
+          "target": "ME-954521FFC4FB3220AAF5",
+          "matter_id": "MAT-1134784928A78A41289C"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-CD2ABE74729066552129",
+          "status": "limited",
+          "target": "ME-AF1127247D7916B703AA",
+          "matter_id": "MAT-CD2ABE74729066552129"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-1B111286E7031BAA6A48",
+          "status": "limited",
+          "target": "ME-CD2E4747051A941DFC9F",
+          "matter_id": "MAT-1B111286E7031BAA6A48"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-0AFFF9ABB7A563B28781",
+          "status": "limited",
+          "target": "ME-A976139C027EDB2B6FED",
+          "matter_id": "MAT-0AFFF9ABB7A563B28781"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-30FBBD538A1A0C502C22",
+          "status": "limited",
+          "target": "ME-D4F096CB0D7D95CF03D0",
+          "matter_id": "MAT-30FBBD538A1A0C502C22"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-AD6546565A77B8031566",
+          "status": "limited",
+          "target": "ME-CFC8FAE5E092F55FF6B8",
+          "matter_id": "MAT-AD6546565A77B8031566"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-9C93669B79FEA07B4C5C",
+          "status": "limited",
+          "target": "ME-CDA9D9CEEF315D2588FF",
+          "matter_id": "MAT-9C93669B79FEA07B4C5C"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-4C2AC9A6B7B8666495C3",
+          "status": "limited",
+          "target": "ME-56AC9EA3D93F2301C29E",
+          "matter_id": "MAT-4C2AC9A6B7B8666495C3"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-A9A48EBA9795AEA60F8E",
+          "status": "limited",
+          "target": "ME-5A29C1954A3EBE361DD3",
+          "matter_id": "MAT-A9A48EBA9795AEA60F8E"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-00CCC8FE0D219FAEEAE1",
+          "status": "limited",
+          "target": "ME-DB291046DF1E360433DB",
+          "matter_id": "MAT-00CCC8FE0D219FAEEAE1"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-5FF82371B6C79948F9FC",
+          "status": "limited",
+          "target": "ME-E6C309ABE4BC55B71EBC",
+          "matter_id": "MAT-5FF82371B6C79948F9FC"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-F5E8FD50CE6200FCF3EE",
+          "status": "limited",
+          "target": "ME-E8D9A6D974490B987A75",
+          "matter_id": "MAT-F5E8FD50CE6200FCF3EE"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-FACDBAF9FABD25BE86F0",
+          "status": "limited",
+          "target": "ME-F12CB6538189EE42C006",
+          "matter_id": "MAT-FACDBAF9FABD25BE86F0"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-13BB67E0D5120BBC358B",
+          "status": "limited",
+          "target": "ME-22D7D422692931A919DE",
+          "matter_id": "MAT-13BB67E0D5120BBC358B"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-FE1FAE8DEE2F79956C9B",
+          "status": "limited",
+          "target": "ME-1B5C641DC1A842DF6797",
+          "matter_id": "MAT-FE1FAE8DEE2F79956C9B"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-A7E991F83F1538C7CAA0",
+          "status": "limited",
+          "target": "ME-E87C41F328E9C5411686",
+          "matter_id": "MAT-A7E991F83F1538C7CAA0"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-7D90072F268EF86E07EF",
+          "status": "limited",
+          "target": "ME-216235B2AF9B3566518E",
+          "matter_id": "MAT-7D90072F268EF86E07EF"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-6409AE504F1AB160892F",
+          "status": "limited",
+          "target": "ME-B7D0D8FBAC5FBDFF2707",
+          "matter_id": "MAT-6409AE504F1AB160892F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-FE166850DBDA1371BAD8",
+          "status": "limited",
+          "target": "ME-1ED754AC2CD0E33CDF79",
+          "matter_id": "MAT-FE166850DBDA1371BAD8"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-0112FB85FD41CF5862DE",
+          "status": "limited",
+          "target": "ME-9BFFC496EF6345D60067",
+          "matter_id": "MAT-0112FB85FD41CF5862DE"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-2E6C27E3501EE5D8F7EE",
+          "status": "limited",
+          "target": "ME-70B29F5DD9EC1D90E9F0",
+          "matter_id": "MAT-2E6C27E3501EE5D8F7EE"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-D98756C15450ED357D81",
+          "status": "limited",
+          "target": "ME-7B4E5D866D0DE7AFF397",
+          "matter_id": "MAT-D98756C15450ED357D81"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-1106F1EDCA99603E2226",
+          "status": "limited",
+          "target": "ME-5B11361D73D65BFE64F0",
+          "matter_id": "MAT-1106F1EDCA99603E2226"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-886BE01C65E899810CBB",
+          "status": "limited",
+          "target": "ME-AFD0A1B4A135DB7FF41B",
+          "matter_id": "MAT-886BE01C65E899810CBB"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-6523F73AE5E468514869",
+          "status": "limited",
+          "target": "ME-70C491B5A1522E35A585",
+          "matter_id": "MAT-6523F73AE5E468514869"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-B243E752F226A784B59F",
+          "status": "limited",
+          "target": "ME-FDF52754F135138EFFA3",
+          "matter_id": "MAT-B243E752F226A784B59F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-FF867C4FFDC0E94663D6",
+          "status": "limited",
+          "target": "ME-52717A6B06F420ED6336",
+          "matter_id": "MAT-FF867C4FFDC0E94663D6"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-A5EE872C98C7FE02789F",
+          "status": "limited",
+          "target": "ME-EC9D26DAE47478B3EC19",
+          "matter_id": "MAT-A5EE872C98C7FE02789F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-55B5B4C6EA7571DB0860",
+          "status": "limited",
+          "target": "ME-C8328A7ABFAAE4D5C296",
+          "matter_id": "MAT-55B5B4C6EA7571DB0860"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-2357B2332482A313483F",
+          "status": "limited",
+          "target": "ME-E29E80ED041CB606FFE5",
+          "matter_id": "MAT-2357B2332482A313483F"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-BEB1EB47EA8B42AF6C74",
+          "status": "limited",
+          "target": "ME-98B467F6896DCE90D61C",
+          "matter_id": "MAT-BEB1EB47EA8B42AF6C74"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "MAT-1A9C5E85617F6F2E9890",
+          "kind": "matter",
+          "label": "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程",
+          "matter_id": "MAT-1A9C5E85617F6F2E9890"
+        },
+        {
+          "id": "MAT-74B971B3798970F4174C",
+          "kind": "matter",
+          "label": "湛江钢铁近零碳示范产线（项目身份待核）",
+          "matter_id": "MAT-74B971B3798970F4174C"
+        },
+        {
+          "id": "MAT-A5555414D5670BB77EFB",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 32",
+          "matter_id": "MAT-A5555414D5670BB77EFB"
+        },
+        {
+          "id": "MAT-9493308C515989635DFC",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 9",
+          "matter_id": "MAT-9493308C515989635DFC"
+        },
+        {
+          "id": "MAT-8251086300606EF3CC1D",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 12",
+          "matter_id": "MAT-8251086300606EF3CC1D"
+        },
+        {
+          "id": "MAT-012044641B107B324097",
+          "kind": "matter",
+          "label": "零碳高等级薄钢板工厂（项目身份待核）",
+          "matter_id": "MAT-012044641B107B324097"
+        },
+        {
+          "id": "MAT-495B4B971D179E0A390C",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 25",
+          "matter_id": "MAT-495B4B971D179E0A390C"
+        },
+        {
+          "id": "MAT-EC71D09FB6DBC2277626",
+          "kind": "matter",
+          "label": "零碳高等级薄钢板工厂（项目身份待核）",
+          "matter_id": "MAT-EC71D09FB6DBC2277626"
+        },
+        {
+          "id": "MAT-A498958590F77EA0B8AF",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 41",
+          "matter_id": "MAT-A498958590F77EA0B8AF"
+        },
+        {
+          "id": "MAT-1F8FC5429284865C72A8",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 65",
+          "matter_id": "MAT-1F8FC5429284865C72A8"
+        },
+        {
+          "id": "MAT-3F66A26C2A644B365002",
+          "kind": "matter",
+          "label": "零碳高等级薄钢板工厂（项目身份待核）",
+          "matter_id": "MAT-3F66A26C2A644B365002"
+        },
+        {
+          "id": "MAT-6A871E8094D512FB4C5B",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 3",
+          "matter_id": "MAT-6A871E8094D512FB4C5B"
+        },
+        {
+          "id": "MAT-5F869E60DA3553A7FCB5",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2024 · PDF 15",
+          "matter_id": "MAT-5F869E60DA3553A7FCB5"
+        },
+        {
+          "id": "MAT-BD3CC25091CF2D2A7F47",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 5",
+          "matter_id": "MAT-BD3CC25091CF2D2A7F47"
+        },
+        {
+          "id": "MAT-8B8A2761BA6197304E14",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 6",
+          "matter_id": "MAT-8B8A2761BA6197304E14"
+        },
+        {
+          "id": "MAT-ADAD9D46C3908B1F615E",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2024 · PDF 24",
+          "matter_id": "MAT-ADAD9D46C3908B1F615E"
+        },
+        {
+          "id": "MAT-DAD9DD8521BB0FCDBF76",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 30",
+          "matter_id": "MAT-DAD9DD8521BB0FCDBF76"
+        },
+        {
+          "id": "MAT-95CBAB56D222DBF2E563",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 6",
+          "matter_id": "MAT-95CBAB56D222DBF2E563"
+        },
+        {
+          "id": "MAT-B3050DF43EE1AED69169",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 25",
+          "matter_id": "MAT-B3050DF43EE1AED69169"
+        },
+        {
+          "id": "MAT-5A35F8A77DC0CFCDC5D4",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 45",
+          "matter_id": "MAT-5A35F8A77DC0CFCDC5D4"
+        },
+        {
+          "id": "MAT-BE069021A6CA4B9B821A",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 6",
+          "matter_id": "MAT-BE069021A6CA4B9B821A"
+        },
+        {
+          "id": "MAT-47579E9A660123F32BFF",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 27",
+          "matter_id": "MAT-47579E9A660123F32BFF"
+        },
+        {
+          "id": "MAT-212A7C74EE8F11B3B5C9",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 54",
+          "matter_id": "MAT-212A7C74EE8F11B3B5C9"
+        },
+        {
+          "id": "MAT-CACD97ED0918D217758F",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 6",
+          "matter_id": "MAT-CACD97ED0918D217758F"
+        },
+        {
+          "id": "MAT-011A1D30AE2E20E41C68",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 29",
+          "matter_id": "MAT-011A1D30AE2E20E41C68"
+        },
+        {
+          "id": "MAT-DF08AE4ED36000C2C9C4",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 56",
+          "matter_id": "MAT-DF08AE4ED36000C2C9C4"
+        },
+        {
+          "id": "MAT-2BA594DEC1843D2716B4",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 32",
+          "matter_id": "MAT-2BA594DEC1843D2716B4"
+        },
+        {
+          "id": "MAT-39A9929AE9D40F4482A4",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 29",
+          "matter_id": "MAT-39A9929AE9D40F4482A4"
+        },
+        {
+          "id": "MAT-FB33E5AE89DE70C4DA81",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 128",
+          "matter_id": "MAT-FB33E5AE89DE70C4DA81"
+        },
+        {
+          "id": "MAT-E39F69C4C9E88EEE3ED5",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 41",
+          "matter_id": "MAT-E39F69C4C9E88EEE3ED5"
+        },
+        {
+          "id": "MAT-62E330001A1ED6D06DE8",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 29",
+          "matter_id": "MAT-62E330001A1ED6D06DE8"
+        },
+        {
+          "id": "MAT-7A0ED2CF43BF5ACE2CB0",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 145",
+          "matter_id": "MAT-7A0ED2CF43BF5ACE2CB0"
+        },
+        {
+          "id": "MAT-CC0A0C85CB22425E072F",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 41",
+          "matter_id": "MAT-CC0A0C85CB22425E072F"
+        },
+        {
+          "id": "MAT-06CDBBAC9EF0DFA32FC8",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 30",
+          "matter_id": "MAT-06CDBBAC9EF0DFA32FC8"
+        },
+        {
+          "id": "MAT-45D9BAAB38DD65EA0B0B",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 154",
+          "matter_id": "MAT-45D9BAAB38DD65EA0B0B"
+        },
+        {
+          "id": "MAT-7EAE5B1EA46B4427B035",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 46",
+          "matter_id": "MAT-7EAE5B1EA46B4427B035"
+        },
+        {
+          "id": "MAT-EE040F728737B0A9CF5E",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 33",
+          "matter_id": "MAT-EE040F728737B0A9CF5E"
+        },
+        {
+          "id": "MAT-9FFC518AE281E3D80AE2",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 53",
+          "matter_id": "MAT-9FFC518AE281E3D80AE2"
+        },
+        {
+          "id": "MAT-8B38763A60D6850CDBAD",
+          "kind": "matter",
+          "label": "此定价方案旨在推动节能低碳技术改造项目",
+          "matter_id": "MAT-8B38763A60D6850CDBAD"
+        },
+        {
+          "id": "MAT-416367467D63E9069AA9",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 199",
+          "matter_id": "MAT-416367467D63E9069AA9"
+        },
+        {
+          "id": "MAT-DD00438D2921B8C1A7AF",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 54",
+          "matter_id": "MAT-DD00438D2921B8C1A7AF"
+        },
+        {
+          "id": "MAT-7492ADD6189638A9043F",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 42",
+          "matter_id": "MAT-7492ADD6189638A9043F"
+        },
+        {
+          "id": "MAT-385B6D400663DB8C9F4F",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 200",
+          "matter_id": "MAT-385B6D400663DB8C9F4F"
+        },
+        {
+          "id": "MAT-6CD22DD4CC12EA75C2AA",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 72",
+          "matter_id": "MAT-6CD22DD4CC12EA75C2AA"
+        },
+        {
+          "id": "MAT-79C977AF69095D3C16EF",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2024 · PDF 42",
+          "matter_id": "MAT-79C977AF69095D3C16EF"
+        },
+        {
+          "id": "MAT-785E87E28CB341A2B8F2",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 200",
+          "matter_id": "MAT-785E87E28CB341A2B8F2"
+        },
+        {
+          "id": "MAT-1FF7378A0D3A8504295B",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 74",
+          "matter_id": "MAT-1FF7378A0D3A8504295B"
+        },
+        {
+          "id": "MAT-E77A9103BBA8681033AC",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 44",
+          "matter_id": "MAT-E77A9103BBA8681033AC"
+        },
+        {
+          "id": "MAT-C8679DEA52B3BF51B919",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 200",
+          "matter_id": "MAT-C8679DEA52B3BF51B919"
+        },
+        {
+          "id": "MAT-D158D1F63EF11EB92FA5",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 74",
+          "matter_id": "MAT-D158D1F63EF11EB92FA5"
+        },
+        {
+          "id": "MAT-8020A9B07E16BE83CA61",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 55",
+          "matter_id": "MAT-8020A9B07E16BE83CA61"
+        },
+        {
+          "id": "MAT-5E67BE1271FD63DC3A80",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 233",
+          "matter_id": "MAT-5E67BE1271FD63DC3A80"
+        },
+        {
+          "id": "MAT-38CDA9ADE3009B5E0950",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 86",
+          "matter_id": "MAT-38CDA9ADE3009B5E0950"
+        },
+        {
+          "id": "MAT-967CB254F2F9FD07E194",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 63",
+          "matter_id": "MAT-967CB254F2F9FD07E194"
+        },
+        {
+          "id": "MAT-867365F26B430119F586",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 240",
+          "matter_id": "MAT-867365F26B430119F586"
+        },
+        {
+          "id": "MAT-47C665270673A9E92A12",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 40",
+          "matter_id": "MAT-47C665270673A9E92A12"
+        },
+        {
+          "id": "MAT-2714D6292DAEECFBFA7A",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 86",
+          "matter_id": "MAT-2714D6292DAEECFBFA7A"
+        },
+        {
+          "id": "MAT-7964829B6C481342CA0F",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 119",
+          "matter_id": "MAT-7964829B6C481342CA0F"
+        },
+        {
+          "id": "MAT-1A201A1A59F34E501DAB",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 8",
+          "matter_id": "MAT-1A201A1A59F34E501DAB"
+        },
+        {
+          "id": "MAT-1134784928A78A41289C",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 5",
+          "matter_id": "MAT-1134784928A78A41289C"
+        },
+        {
+          "id": "MAT-CD2ABE74729066552129",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 117",
+          "matter_id": "MAT-CD2ABE74729066552129"
+        },
+        {
+          "id": "MAT-1B111286E7031BAA6A48",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2025 · PDF 26",
+          "matter_id": "MAT-1B111286E7031BAA6A48"
+        },
+        {
+          "id": "MAT-0AFFF9ABB7A563B28781",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 5",
+          "matter_id": "MAT-0AFFF9ABB7A563B28781"
+        },
+        {
+          "id": "MAT-30FBBD538A1A0C502C22",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 118",
+          "matter_id": "MAT-30FBBD538A1A0C502C22"
+        },
+        {
+          "id": "MAT-AD6546565A77B8031566",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 72",
+          "matter_id": "MAT-AD6546565A77B8031566"
+        },
+        {
+          "id": "MAT-9C93669B79FEA07B4C5C",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 6",
+          "matter_id": "MAT-9C93669B79FEA07B4C5C"
+        },
+        {
+          "id": "MAT-4C2AC9A6B7B8666495C3",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 125",
+          "matter_id": "MAT-4C2AC9A6B7B8666495C3"
+        },
+        {
+          "id": "MAT-A9A48EBA9795AEA60F8E",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 73",
+          "matter_id": "MAT-A9A48EBA9795AEA60F8E"
+        },
+        {
+          "id": "MAT-00CCC8FE0D219FAEEAE1",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 8",
+          "matter_id": "MAT-00CCC8FE0D219FAEEAE1"
+        },
+        {
+          "id": "MAT-5FF82371B6C79948F9FC",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 10",
+          "matter_id": "MAT-5FF82371B6C79948F9FC"
+        },
+        {
+          "id": "MAT-F5E8FD50CE6200FCF3EE",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 8",
+          "matter_id": "MAT-F5E8FD50CE6200FCF3EE"
+        },
+        {
+          "id": "MAT-FACDBAF9FABD25BE86F0",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 8",
+          "matter_id": "MAT-FACDBAF9FABD25BE86F0"
+        },
+        {
+          "id": "MAT-13BB67E0D5120BBC358B",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 40",
+          "matter_id": "MAT-13BB67E0D5120BBC358B"
+        },
+        {
+          "id": "MAT-FE1FAE8DEE2F79956C9B",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2025 · PDF 14",
+          "matter_id": "MAT-FE1FAE8DEE2F79956C9B"
+        },
+        {
+          "id": "MAT-A7E991F83F1538C7CAA0",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2024 · PDF 10",
+          "matter_id": "MAT-A7E991F83F1538C7CAA0"
+        },
+        {
+          "id": "MAT-7D90072F268EF86E07EF",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2025 · PDF 58",
+          "matter_id": "MAT-7D90072F268EF86E07EF"
+        },
+        {
+          "id": "MAT-6409AE504F1AB160892F",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 20",
+          "matter_id": "MAT-6409AE504F1AB160892F"
+        },
+        {
+          "id": "MAT-FE166850DBDA1371BAD8",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2024 · PDF 10",
+          "matter_id": "MAT-FE166850DBDA1371BAD8"
+        },
+        {
+          "id": "MAT-0112FB85FD41CF5862DE",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 65",
+          "matter_id": "MAT-0112FB85FD41CF5862DE"
+        },
+        {
+          "id": "MAT-2E6C27E3501EE5D8F7EE",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 25",
+          "matter_id": "MAT-2E6C27E3501EE5D8F7EE"
+        },
+        {
+          "id": "MAT-D98756C15450ED357D81",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2024 · PDF 18",
+          "matter_id": "MAT-D98756C15450ED357D81"
+        },
+        {
+          "id": "MAT-1106F1EDCA99603E2226",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 117",
+          "matter_id": "MAT-1106F1EDCA99603E2226"
+        },
+        {
+          "id": "MAT-886BE01C65E899810CBB",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2025 · PDF 25",
+          "matter_id": "MAT-886BE01C65E899810CBB"
+        },
+        {
+          "id": "MAT-6523F73AE5E468514869",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 19",
+          "matter_id": "MAT-6523F73AE5E468514869"
+        },
+        {
+          "id": "MAT-B243E752F226A784B59F",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 117",
+          "matter_id": "MAT-B243E752F226A784B59F"
+        },
+        {
+          "id": "MAT-FF867C4FFDC0E94663D6",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 26",
+          "matter_id": "MAT-FF867C4FFDC0E94663D6"
+        },
+        {
+          "id": "MAT-A5EE872C98C7FE02789F",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2024 · PDF 20",
+          "matter_id": "MAT-A5EE872C98C7FE02789F"
+        },
+        {
+          "id": "MAT-55B5B4C6EA7571DB0860",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 118",
+          "matter_id": "MAT-55B5B4C6EA7571DB0860"
+        },
+        {
+          "id": "MAT-2357B2332482A313483F",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 27",
+          "matter_id": "MAT-2357B2332482A313483F"
+        },
+        {
+          "id": "MAT-BEB1EB47EA8B42AF6C74",
+          "kind": "matter",
+          "label": "气候风险披露 · 2024 · PDF 24",
+          "matter_id": "MAT-BEB1EB47EA8B42AF6C74"
+        },
+        {
+          "id": "ME-05A39A5E82220073118B",
+          "kind": "evidence",
+          "label": "2025 AR PDF 12",
+          "pdf_page": 12,
+          "verified": true,
+          "document_id": "BAOSTEEL_AR_2025",
+          "evidence_id": "ME-05A39A5E82220073118B",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-004E48E40646896AF5AB",
+          "kind": "evidence",
+          "label": "2025 AR PDF 26",
+          "pdf_page": 26,
+          "verified": true,
+          "document_id": "BAOSTEEL_AR_2025",
+          "evidence_id": "ME-004E48E40646896AF5AB",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-051AF30BAB0A0DF4AC08",
+          "kind": "evidence",
+          "label": "2025 AR PDF 33",
+          "pdf_page": 33,
+          "verified": true,
+          "document_id": "BAOSTEEL_AR_2025",
+          "evidence_id": "ME-051AF30BAB0A0DF4AC08",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-C4F90039AEB2A2198691",
+          "kind": "evidence",
+          "label": "2025 AR PDF 154",
+          "pdf_page": 154,
+          "verified": true,
+          "document_id": "BAOSTEEL_AR_2025",
+          "evidence_id": "ME-C4F90039AEB2A2198691",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-35026077F1FAA3370DA8",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 6",
+          "pdf_page": 6,
+          "verified": true,
+          "document_id": "BAOSTEEL_ESG_2025",
+          "evidence_id": "ME-35026077F1FAA3370DA8",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-253D634546AAAAC2BA0B",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 32",
+          "pdf_page": 32,
+          "verified": true,
+          "document_id": "BAOSTEEL_ESG_2025",
+          "evidence_id": "ME-253D634546AAAAC2BA0B",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-443AEF947D9F1D2EDA98",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 41",
+          "pdf_page": 41,
+          "verified": true,
+          "document_id": "BAOSTEEL_ESG_2025",
+          "evidence_id": "ME-443AEF947D9F1D2EDA98",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-7E1A63F7EAA6AF406AC7",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 74",
+          "pdf_page": 74,
+          "verified": true,
+          "document_id": "BAOSTEEL_ESG_2025",
+          "evidence_id": "ME-7E1A63F7EAA6AF406AC7",
+          "invalid_reason": ""
+        },
+        {
+          "id": "EV-AEE0583F09FF0CB74732",
+          "kind": "event",
+          "label": "炼钢工程",
+          "status": "pending",
+          "matter_id": "MAT-1A9C5E85617F6F2E9890",
+          "evidence_ids": [
+            "ME-C4F90039AEB2A2198691"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-08D8EF18BE94D84B4114",
+          "kind": "event",
+          "label": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+          "status": "pending",
+          "matter_id": "MAT-74B971B3798970F4174C",
+          "evidence_ids": [
+            "ME-051AF30BAB0A0DF4AC08"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-2C09A043E602D9D6687E",
+          "kind": "event",
+          "label": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+          "status": "pending",
+          "matter_id": "MAT-A5555414D5670BB77EFB",
+          "evidence_ids": [
+            "ME-253D634546AAAAC2BA0B"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        }
+      ],
+      "version": "matter_graph_v1"
+    },
+    "matter_overview": {
+      "notice": "关联状态描述公开材料对具体主张的支持程度，不构成会计确认或鉴证结论",
+      "pending": 89,
+      "completed": 0,
+      "unresolved": 1,
+      "investigated": 1,
+      "matter_total": 90,
+      "indexed_blocks": 16473,
+      "supported_paths": 0,
+      "assessment_count": 1
+    },
+    "assurance_planning": {
+      "schema_version": "assurance_planning_v1",
+      "result_revision": 1,
+      "risk_findings": [
+        {
+          "entry_id": "FINDING-9DAA463C784EEE12E565",
+          "matter_ids": [
+            "MAT-1A9C5E85617F6F2E9890"
+          ],
+          "matter": "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程",
+          "reason": "综合复核未完成，见角色失败及预算记录",
+          "current_assessment": "当前调查未完成，已保留原文线索和待查问题。",
+          "evidence": [],
+          "counter_evidence": [],
+          "alternative_explanations": [],
+          "unresolved": [
+            "综合复核未完成，见角色失败及预算记录"
+          ],
+          "priority": "medium",
+          "investigation_status": "partial",
+          "review_status": "unreviewed",
+          "assessment_review_status": "unreviewed"
+        },
+        {
+          "entry_id": "COVERAGE-1F149E229053622FEC26",
+          "matter_ids": [],
+          "matter": "本次资料覆盖",
+          "reason": "2024年缺少AR报告",
+          "current_assessment": "未取得的资料不等于企业未披露",
+          "evidence": [],
+          "counter_evidence": [],
+          "alternative_explanations": [],
+          "unresolved": [
+            "2024年缺少AR报告"
+          ],
+          "priority": "medium",
+          "investigation_status": "partial",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "COVERAGE-CCE4EF129AB5C97AEDF2",
+          "matter_ids": [],
+          "matter": "本次资料覆盖",
+          "reason": "89项初筛候选尚未深查，保留在事项档案；未逐项列为风险发现，也不代表没有风险。",
+          "current_assessment": "未取得的资料不等于企业未披露",
+          "evidence": [],
+          "counter_evidence": [],
+          "alternative_explanations": [],
+          "unresolved": [
+            "89项初筛候选尚未深查，保留在事项档案；未逐项列为风险发现，也不代表没有风险。"
+          ],
+          "priority": "medium",
+          "investigation_status": "partial",
+          "review_status": "unreviewed"
+        }
+      ],
+      "evidence_requests": [
+        {
+          "entry_id": "REQUEST-59BD5930DD5C10D85E10",
+          "matter_ids": [
+            "MAT-1A9C5E85617F6F2E9890"
+          ],
+          "matters": [
+            "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程"
+          ],
+          "requested_material": "该事项对应的项目明细、相关财务附注及后续年度进展",
+          "questions": [
+            "该事项与财务信息的具体联系是什么？"
+          ],
+          "purposes": [
+            "确认事项身份及财务传导的缺失环节"
+          ],
+          "distinguishing_explanations": [],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A2"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        }
+      ],
+      "notice": "供可持续信息鉴证项目组前期准备与风险识别。优先级只表示调查顺序，不表示风险发生概率、重要性或鉴证结论。未取得资料不等于企业未披露。"
+    },
+    "assurance_planning_reviews": {},
+    "ai_generated_content_notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
+    "personal_observation_count": 0
+  },
+  "result_expires_at": "2026-12-07T03:59:56.310887+00:00",
+  "heartbeat_at": "2026-11-07T03:59:47.962113+00:00",
+  "created_at": "2026-11-07T03:57:46.569364+00:00",
+  "updated_at": "2026-11-07T03:59:56+00:00",
+  "parent_task_id": null,
+  "can_modify": true
+}

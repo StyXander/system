@@ -1,0 +1,2146 @@
+{
+  "run_id": "CONN-313BF4356D09482B",
+  "task_kind": "connectivity",
+  "schema_version": "connectivity_v5",
+  "company": "宝钢股份",
+  "period": "2024—2025",
+  "report_period": "",
+  "metric_period": "",
+  "created_at": "2026-11-07T04:05:36.388558+00:00",
+  "discovery_mode": "auto_discovery",
+  "dataset_role": "development",
+  "execution_mode": "single_model",
+  "model_status": "matter_single_partial",
+  "parent_run_id": null,
+  "result_revision": 1,
+  "documents": [
+    {
+      "document_id": "BAO24_ESG",
+      "case_id": "600019-2024",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_type": "ESG",
+      "period": "2024",
+      "report_period": "2024",
+      "metric_period": "",
+      "version": "2024年度公告原件；2026-10-19核验巨潮官方字节与此前登记镜像一致",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2025-04-26/1223329096.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2025-04-26",
+      "retrieved_at": "2026-10-19T14:15:32.950781+00:00",
+      "compilation_basis": "待从本次报告核对",
+      "pages": 90,
+      "file_sha256": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "case_id": "600019-2025",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_type": "AR",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025_年度报告_公告全文",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257227.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:06:10.791198+08:00",
+      "compilation_basis": "\"企业会计准则\"",
+      "pages": 245,
+      "file_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "available": true,
+      "version_role": "unknown"
+    },
+    {
+      "document_id": "BAOSTEEL_ESG_2025",
+      "case_id": "600019-2025",
+      "company_id": "600019",
+      "company": "宝钢股份",
+      "report_type": "ESG",
+      "period": "2025",
+      "report_period": "2025",
+      "metric_period": "",
+      "version": "2025_可持续发展报告_公告全文",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225257234.PDF",
+      "source_kind": "official",
+      "disclosure_date": "2026-04-30",
+      "retrieved_at": "2026-10-15T12:07:05.627347+08:00",
+      "compilation_basis": "{\"主要参照\": [\"GRI\", \"CASS-ESG6.0\"], \"遵循\": [\"上交所第14号指引\"], \"参考\": [\"我国企业可持续披露基本准则\", \"应用指南\", \"ISSB\", \"SASB\", \"SDGs\"]}",
+      "pages": 102,
+      "file_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "available": true,
+      "version_role": "unknown"
+    }
+  ],
+  "occurrences": [],
+  "checks": [],
+  "coverage": [],
+  "extraction_exclusions": [],
+  "candidate_rejections": [],
+  "version_records": [],
+  "version_changes": [],
+  "overview": {
+    "proof_graph": {
+      "version": "adaptive_proof_v1",
+      "nodes": [],
+      "edges": [],
+      "paths": [],
+      "truncated_checks": 0,
+      "note": "证据来源可追溯不代表企业披露真实、审计证据充分或已出具审计意见"
+    },
+    "collaboration": {
+      "version": "autonomous_evidence_v1",
+      "events": [],
+      "tool_requests": 0,
+      "tool_rejections": 0,
+      "new_evidence_ids": [],
+      "feedback": [],
+      "limits": {
+        "requests_per_turn": 4,
+        "feedback_rounds": 1,
+        "model_calls": 20
+      },
+      "notice": "工具实际执行与条件改善分别计数；未命中不等于未披露。"
+    },
+    "delivery_contract_version": "2026-10-20.round3.1",
+    "program_levels": {
+      "formal": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "conditional": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "limited": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "insufficient": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "conflict": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "not_applicable": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      }
+    },
+    "summary_bands_note": "由 program_levels 派生的历史五类投影；pending 合并明确冲突与非数值关系，准确分类以六级状态为准",
+    "execution_provenance": {
+      "kind": "provider_recorded",
+      "label": "本运行含实际模型调用记录，成功状态单列",
+      "provider_call_count": 4,
+      "attempt_count": 4,
+      "execution_mode": "single_model",
+      "model_status": "matter_single_partial",
+      "run_id": "CONN-313BF4356D09482B",
+      "result_origin": "original"
+    },
+    "coverage_counts": {
+      "unattributed_occurrences": {
+        "value": 0,
+        "unit": "处",
+        "denominator": 0
+      },
+      "failed_pages": {
+        "value": 0,
+        "unit": "页",
+        "denominator": 0
+      }
+    },
+    "summary_bands": {
+      "confirmable": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "limited_support": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "conditional_trial": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "not_comparable": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      },
+      "pending": {
+        "value": 0,
+        "items": [],
+        "denominator": 0
+      }
+    },
+    "counting_version": "2026-10-18.2",
+    "relation_total": 0,
+    "formal_calculations": {
+      "value": 0,
+      "items": []
+    },
+    "program_calculations": {
+      "value": 0,
+      "items": [],
+      "label": "正式复算（历史字段别名）"
+    },
+    "numerical_records": {
+      "value": 0,
+      "items": []
+    },
+    "arithmetic_references": {
+      "value": 0,
+      "items": [],
+      "label": "受门禁限制的算术参考，不表示假设已支持"
+    },
+    "program_records": {
+      "value": 0,
+      "label": "程序事实记录，包含无差异记录"
+    },
+    "program_hints": {
+      "value": 0,
+      "items": [],
+      "label": "程序差异或限制提示"
+    },
+    "priority_checks": {
+      "value": 0,
+      "items": [],
+      "details": [],
+      "label": "优先核查的关系，含模型排序建议"
+    },
+    "model_opinions": {
+      "value": 0,
+      "items": [],
+      "new": 0,
+      "reused": 0
+    },
+    "ai_analysis": {
+      "value": 0,
+      "denominator": 0,
+      "items": [],
+      "by_verdict": {},
+      "stale": 0
+    },
+    "trial_calculations": {
+      "value": 0,
+      "items": [],
+      "label": "仅条件试算，不计入正式复算"
+    },
+    "scenario_bridges": {
+      "value": 0,
+      "items": []
+    },
+    "confirmable": {
+      "value": 0,
+      "denominator": 0,
+      "label": "条件支持且计算成立的关系",
+      "items": []
+    },
+    "unconfirmable": {
+      "value": 0,
+      "denominator": 0,
+      "conflicting": 0,
+      "label": "缺前提或存在冲突的关系",
+      "items": [],
+      "missing_conditions": [],
+      "missing_breakdown": []
+    },
+    "unexplained": {
+      "value": 0,
+      "denominator": 0,
+      "label": "仍有未解释残差的关系",
+      "items": [],
+      "undecidable": {
+        "value": 0,
+        "denominator": 0,
+        "label": "因前提未支持而无法判断差额的关系",
+        "items": []
+      }
+    },
+    "not_found": {
+      "deprecated_mixed_value": true,
+      "replacement": "coverage_counts",
+      "value": 0,
+      "label": "未计入位置与失败页合计",
+      "unattributed": {
+        "value": 0,
+        "denominator": 0,
+        "label": "已提取但未归属或未达候选门槛的位置",
+        "items": []
+      },
+      "failed_pages": {
+        "value": 0,
+        "denominator": 0,
+        "label": "解析失败的页",
+        "items": []
+      },
+      "searched_pages": 0,
+      "parsed_pages": 0,
+      "total_pages": 0,
+      "denominator_label": "已提取0处 / 已检索0页 / 共0页"
+    },
+    "unresolved_causes": [
+      {
+        "code": "C1",
+        "name": "前提缺原文依据",
+        "count": 0,
+        "examples": []
+      },
+      {
+        "code": "C2",
+        "name": "前提存在明确冲突",
+        "count": 0,
+        "examples": []
+      },
+      {
+        "code": "C3",
+        "name": "关系依据或成员不足",
+        "count": 0,
+        "examples": []
+      },
+      {
+        "code": "C4",
+        "name": "单位、量纲或币种未定",
+        "count": 0,
+        "examples": []
+      },
+      {
+        "code": "C5",
+        "name": "期间或范围不可比",
+        "count": 0,
+        "examples": []
+      },
+      {
+        "code": "C6",
+        "name": "差额未解释或不可执行",
+        "count": 0,
+        "examples": []
+      }
+    ],
+    "closure": {
+      "version": "connectivity_closure_v1",
+      "relation_total": 0,
+      "tiers": {
+        "closed": {
+          "count": 0,
+          "check_ids": []
+        },
+        "formal_gap": {
+          "count": 0,
+          "check_ids": []
+        },
+        "substantive_risk": {
+          "count": 0,
+          "check_ids": []
+        },
+        "blocked": {
+          "count": 0,
+          "check_ids": []
+        },
+        "not_applicable": {
+          "count": 0,
+          "check_ids": []
+        }
+      },
+      "ceiling_status": {},
+      "open_demand_by_condition": {},
+      "structural_gap_total": 0,
+      "substantive_risk_count": 0,
+      "substantive_risk_scope": {
+        "cross_document": 0,
+        "same_document": 0
+      },
+      "formal_gap_count": 0,
+      "blocked_count": 0,
+      "statement": "0 条关系中，0 条已闭合；0 条即使补齐全部纸面前提仍存在未解释差额；0 条只缺形式证据；0 条算式不可执行",
+      "note": "分档来自确定性反事实推演，不读取模型意见；上限预测不是结论"
+    },
+    "next_questions": [],
+    "note": "同一关系可能同时计入多个状态；四问不合成综合分数，也不做排行。",
+    "matter_summary": {
+      "notice": "关联状态描述公开材料对具体主张的支持程度，不构成会计确认或鉴证结论",
+      "pending": 7,
+      "completed": 0,
+      "unresolved": 1,
+      "investigated": 1,
+      "matter_total": 8,
+      "indexed_blocks": 16473,
+      "supported_paths": 0,
+      "assessment_count": 1
+    }
+  },
+  "ai_opinions": [],
+  "findings": [],
+  "professional_notes": [],
+  "source_lineage": [
+    {
+      "document_id": "BAO24_ESG",
+      "producer": "宝钢股份",
+      "category": "official",
+      "upstream": "unknown",
+      "independence": "同企业披露，不作为独立证实"
+    },
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "producer": "宝钢股份",
+      "category": "official",
+      "upstream": "unknown",
+      "independence": "同企业披露，不作为独立证实"
+    },
+    {
+      "document_id": "BAOSTEEL_ESG_2025",
+      "producer": "宝钢股份",
+      "category": "official",
+      "upstream": "unknown",
+      "independence": "同企业披露，不作为独立证实"
+    }
+  ],
+  "reviews": [],
+  "agent_steps": [],
+  "provider_calls": [
+    {
+      "cost": null,
+      "role": "A1",
+      "model": "deepseek-flash",
+      "status": "completed",
+      "task_id": "MTASK-244e36330ece4175",
+      "queue_ms": 0,
+      "cost_note": "未配置计价，不估算费用",
+      "performed": true,
+      "role_name": "事项识别与建档",
+      "started_at": 1794024424.386304,
+      "duration_ms": 11989,
+      "parse_stage": "role_arguments",
+      "input_sha256": "64d6fd4e935e7ee091b60817880fefb8456767acebcc88c202fd1b843ba4b1f6",
+      "input_tokens": 8134,
+      "finalize_only": false,
+      "output_tokens": 1895,
+      "prompt_version": "matter_agents_20261027.tool-feedback.3",
+      "requested_model": "deepseek-flash",
+      "response_sha256": "fcb522dbd9419e338c4ce296f00507ad0bbc6c3a579918c5aca7cb07173cc7a5",
+      "input_characters": 8043,
+      "provider_call_id": "MCALL-42988e634f1346919e6cfd17ba0efb7b",
+      "request_attempted": true,
+      "finalization_reason": null,
+      "investigation_round": {
+        "current": 1,
+        "maximum": 2,
+        "remaining_tool_rounds": 2
+      },
+      "cache_hit_input_tokens": 7936,
+      "cache_miss_input_tokens": 198,
+      "input_token_upper_bound": 27925,
+      "output_token_upper_bound": 8000
+    },
+    {
+      "cost": null,
+      "role": "A1",
+      "model": "deepseek-flash",
+      "status": "completed",
+      "task_id": "MTASK-244e36330ece4175",
+      "queue_ms": 0,
+      "cost_note": "未配置计价，不估算费用",
+      "performed": true,
+      "role_name": "事项识别与建档",
+      "started_at": 1794024443.8139198,
+      "duration_ms": 13098,
+      "parse_stage": "role_arguments",
+      "input_sha256": "3015a49a64542f56d3d538cedd1a1840930de252fac47aa2e7f42ab78351d654",
+      "input_tokens": 10333,
+      "finalize_only": true,
+      "output_tokens": 2650,
+      "prompt_version": "matter_agents_20261027.tool-feedback.3",
+      "requested_model": "deepseek-flash",
+      "response_sha256": "4ebad78b64e796d799c91849540696173c8340dbd2442adf35a9d460b1d1efdd",
+      "input_characters": 12875,
+      "provider_call_id": "MCALL-90ce6bfe62d84a58a6042e6f0aaf3608",
+      "request_attempted": true,
+      "finalization_reason": "source_exhausted",
+      "investigation_round": {
+        "current": 3,
+        "maximum": 3,
+        "remaining_tool_rounds": 0
+      },
+      "cache_hit_input_tokens": 8064,
+      "cache_miss_input_tokens": 2269,
+      "input_token_upper_bound": 36163,
+      "output_token_upper_bound": 8000
+    },
+    {
+      "cost": null,
+      "role": "A5",
+      "model": "deepseek-flash",
+      "status": "failed",
+      "task_id": "MTASK-3e18ed4792924fcf",
+      "queue_ms": 0,
+      "performed": true,
+      "retryable": false,
+      "role_name": "综合复核与补证决策",
+      "started_at": 1794024469.0879202,
+      "duration_ms": 20192,
+      "parse_stage": "role_arguments",
+      "retry_count": 0,
+      "failure_code": "MODEL_JSON_INVALID",
+      "input_sha256": "3e26aa3ee74553519c2612c507c653d8e8b5a1e1bd606547d9f7b855050316c1",
+      "input_tokens": 8573,
+      "finalize_only": false,
+      "output_tokens": 3505,
+      "error_category": "output_contract",
+      "invalid_fields": [
+        {
+          "type": "json_invalid",
+          "reason": "JSON解析失败，返回有效的工具参数对象",
+          "location": [
+            "tool_arguments"
+          ],
+          "position": 4194
+        }
+      ],
+      "prompt_version": "matter_agents_20261027.tool-feedback.3",
+      "requested_model": "deepseek-flash",
+      "response_sha256": "414956ac36eaa0155c89a4c6ddd33cb1d93b52e3cfb67db3261f00b2e858c5db",
+      "input_characters": 9087,
+      "provider_call_id": "MCALL-768676327c964c31aa30099c037b234f",
+      "request_attempted": true,
+      "finalization_reason": null,
+      "investigation_round": {
+        "current": 1,
+        "maximum": 2,
+        "remaining_tool_rounds": 2
+      },
+      "cache_hit_input_tokens": 8064,
+      "cache_miss_input_tokens": 509,
+      "input_token_upper_bound": 29415,
+      "output_token_upper_bound": 8000
+    },
+    {
+      "cost": null,
+      "role": "A5",
+      "model": "deepseek-flash",
+      "status": "failed",
+      "task_id": "MTASK-3e18ed4792924fcf",
+      "queue_ms": 0,
+      "performed": true,
+      "retryable": false,
+      "role_name": "综合复核与补证决策",
+      "started_at": 1794024493.4846241,
+      "duration_ms": 18821,
+      "parse_stage": "role_arguments",
+      "retry_count": 1,
+      "failure_code": "MODEL_FIELDS_INVALID",
+      "input_sha256": "45c9d40ca77d51ff9406ead6c4b3a34b7c35a1ab54e14d4e19a0791e10addc3e",
+      "input_tokens": 8681,
+      "finalize_only": false,
+      "output_tokens": 3433,
+      "error_category": "output_contract",
+      "invalid_fields": [
+        {
+          "type": "literal_error",
+          "reason": "Input should be 'program_candidate', 'model_interpretation' or 'human_review'",
+          "location": [
+            "events",
+            1,
+            "origin"
+          ]
+        },
+        {
+          "type": "literal_error",
+          "reason": "Input should be 'program_candidate', 'model_interpretation' or 'human_review'",
+          "location": [
+            "events",
+            2,
+            "origin"
+          ]
+        },
+        {
+          "type": "literal_error",
+          "reason": "Input should be 'program_candidate', 'model_interpretation' or 'human_review'",
+          "location": [
+            "events",
+            3,
+            "origin"
+          ]
+        }
+      ],
+      "prompt_version": "matter_agents_20261027.tool-feedback.3",
+      "requested_model": "deepseek-flash",
+      "response_sha256": "be74345737ef92696326bde5ae19ed64867ca7b8fab4cd9ef04c9a106194d76d",
+      "input_characters": 9384,
+      "provider_call_id": "MCALL-3d9783477af547d4ac2a083895350b6d",
+      "request_attempted": true,
+      "finalization_reason": null,
+      "investigation_round": {
+        "current": 1,
+        "maximum": 2,
+        "remaining_tool_rounds": 2
+      },
+      "cache_hit_input_tokens": 8448,
+      "cache_miss_input_tokens": 233,
+      "input_token_upper_bound": 29868,
+      "output_token_upper_bound": 8000
+    }
+  ],
+  "duration_ms": 191318,
+  "versions": {
+    "budget": {
+      "limit": 20,
+      "attempts": 4,
+      "remaining": 16,
+      "deep_matter_limit": 1
+    },
+    "pair_id": null,
+    "ablation": "none",
+    "matter_types": [
+      "climate_risk",
+      "transition_project",
+      "commitment",
+      "resource_efficiency",
+      "other"
+    ],
+    "role_budgets": {
+      "used": {
+        "A1": 2,
+        "A5": 2
+      },
+      "limits": {
+        "A1": 10,
+        "A5": 10
+      }
+    },
+    "matter_prompt": "matter_agents_20261027.tool-feedback.3",
+    "report_set_id": "CONNSET-06402DFF2D395123E5FBED3B",
+    "result_origin": "original",
+    "seed_coverage": {
+      "note": "首轮上下文有界；未入选块仍可用工具检索，不等于无披露",
+      "seed_blocks": 90,
+      "indexed_blocks": 16473,
+      "seed_truncated": true,
+      "relevant_blocks": 1494
+    },
+    "stage_timings": {
+      "evidence_load": {
+        "status": "completed",
+        "updated_at": 1794024408.5860505,
+        "duration_ms": 66599
+      },
+      "rule_calculation": {
+        "status": "completed",
+        "updated_at": 1794024414.0942764,
+        "duration_ms": 4310
+      },
+      "structured_output": {
+        "status": "completed",
+        "updated_at": 1794024527.0080585,
+        "duration_ms": 4022
+      },
+      "agent_collaboration": {
+        "status": "degraded",
+        "updated_at": 1794024518.6708162,
+        "duration_ms": 98922
+      },
+      "evidence_validation": {
+        "status": "completed",
+        "updated_at": 1794024520.98643,
+        "duration_ms": 1225
+      },
+      "knowledge_retrieval": {
+        "status": "completed",
+        "updated_at": 1794024415.8461199,
+        "duration_ms": 715
+      }
+    },
+    "analysis_scope": "matter_connectivity",
+    "comparison_run": true,
+    "experiment_mode": "fixed_evidence",
+    "catalog_execution": {
+      "status": "seed_unchanged"
+    },
+    "semantic_judgment": "模型意见与程序来源核验分列，不代表专业鉴证",
+    "fixed_evidence_ids": [
+      "ME-05A39A5E82220073118B",
+      "ME-004E48E40646896AF5AB",
+      "ME-051AF30BAB0A0DF4AC08",
+      "ME-C4F90039AEB2A2198691",
+      "ME-35026077F1FAA3370DA8",
+      "ME-253D634546AAAAC2BA0B",
+      "ME-443AEF947D9F1D2EDA98",
+      "ME-7E1A63F7EAA6AF406AC7"
+    ],
+    "investigation_scope": {
+      "selected_matter_ids": [
+        "MAT-1A9C5E85617F6F2E9890"
+      ],
+      "pending_outside_scope": [
+        "MAT-74B971B3798970F4174C",
+        "MAT-A5555414D5670BB77EFB",
+        "MAT-8251086300606EF3CC1D",
+        "MAT-012044641B107B324097",
+        "MAT-EC71D09FB6DBC2277626",
+        "MAT-8B8A2761BA6197304E14",
+        "MAT-1FF7378A0D3A8504295B"
+      ]
+    },
+    "fixed_evidence_sha256": "f3043556a20612ba8538be792e0618234ffdf8089c639429d1d2cf6d0eb7d032",
+    "verified_project_table": {
+      "note": "已复算本行三项明确披露的金额；长期待摊转出或期末余额采用破折号，未查明其计量含义，不标记完整勾稽通过。",
+      "unit": "元",
+      "status": "subtotal_computed",
+      "values": {
+        "closing": null,
+        "opening": "240078904.49",
+        "increase": "847336295.51",
+        "to_fixed": "1087415200.00",
+        "to_long_term": null
+      },
+      "formula": "期初余额 + 本期增加 − 本期转固（其他扣减列按真实表头另行核查）",
+      "missing": [
+        "to_long_term",
+        "closing"
+      ],
+      "extraction": "pymupdf_verified_table_cells",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_page": 154,
+      "values_yuan": {
+        "closing": null,
+        "opening": "240078904.49",
+        "increase": "847336295.51",
+        "to_fixed": "1087415200.00",
+        "to_long_term": null
+      },
+      "rule_version": "construction_reconciliation_v1",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "difference_yuan": null,
+      "provenance_note": "数值来自同一登记原件的PyMuPDF表格单元格，不能冒充原文片段的逐字引文；破折号不是已确认零。",
+      "reported_markers": {
+        "closing": "-",
+        "opening": "240,078,904.49",
+        "increase": "847,336,295.51",
+        "to_fixed": "1,087,415,200.00",
+        "to_long_term": "-"
+      },
+      "source_row_label": "宝钢湛江钢铁零碳高\n等级薄钢板工厂项目\n炼钢工程",
+      "page_evidence_ids": [
+        "ME-C4F90039AEB2A2198691"
+      ],
+      "source_row_matched": true,
+      "subproject_identity": "yearly_report_explicit_project_and_subproject",
+      "interpretation_boundary": "年报本行属于零碳工厂的炼钢子工程，不能据此确认与ESG总体投资同一统计范围。",
+      "known_component_subtotal_yuan": "0.00",
+      "other_decrease_column_present": false
+    },
+    "matter_rule_fingerprints": {
+      "MAT-EST-01": "0621662177A24BEDDAF2",
+      "MAT-OBL-01": "E324C227DF0415441ED1",
+      "MAT-LIFE-01": "9B49FAB4EF6237EDFE07",
+      "MAT-TIME-01": "19C997A461E4619E0204",
+      "MAT-TARGET-01": "F94A7F25C38D0398A831"
+    },
+    "requested_investigation_budget": {
+      "max_matters": 1,
+      "max_role_rounds": 2,
+      "max_parallel_calls": 2,
+      "max_provider_calls": 20
+    },
+    "fixed_evidence_excluded_seed_ids": [
+      "MAT-9493308C515989635DFC",
+      "MAT-495B4B971D179E0A390C",
+      "MAT-A498958590F77EA0B8AF",
+      "MAT-1F8FC5429284865C72A8",
+      "MAT-3F66A26C2A644B365002",
+      "MAT-6A871E8094D512FB4C5B",
+      "MAT-5F869E60DA3553A7FCB5",
+      "MAT-BD3CC25091CF2D2A7F47",
+      "MAT-ADAD9D46C3908B1F615E",
+      "MAT-DAD9DD8521BB0FCDBF76",
+      "MAT-95CBAB56D222DBF2E563",
+      "MAT-B3050DF43EE1AED69169",
+      "MAT-5A35F8A77DC0CFCDC5D4",
+      "MAT-BE069021A6CA4B9B821A",
+      "MAT-47579E9A660123F32BFF",
+      "MAT-212A7C74EE8F11B3B5C9",
+      "MAT-CACD97ED0918D217758F",
+      "MAT-011A1D30AE2E20E41C68",
+      "MAT-DF08AE4ED36000C2C9C4",
+      "MAT-2BA594DEC1843D2716B4",
+      "MAT-39A9929AE9D40F4482A4",
+      "MAT-FB33E5AE89DE70C4DA81",
+      "MAT-E39F69C4C9E88EEE3ED5",
+      "MAT-62E330001A1ED6D06DE8",
+      "MAT-7A0ED2CF43BF5ACE2CB0",
+      "MAT-CC0A0C85CB22425E072F",
+      "MAT-06CDBBAC9EF0DFA32FC8",
+      "MAT-45D9BAAB38DD65EA0B0B",
+      "MAT-7EAE5B1EA46B4427B035",
+      "MAT-EE040F728737B0A9CF5E",
+      "MAT-9FFC518AE281E3D80AE2",
+      "MAT-8B38763A60D6850CDBAD",
+      "MAT-416367467D63E9069AA9",
+      "MAT-DD00438D2921B8C1A7AF",
+      "MAT-7492ADD6189638A9043F",
+      "MAT-385B6D400663DB8C9F4F",
+      "MAT-6CD22DD4CC12EA75C2AA",
+      "MAT-79C977AF69095D3C16EF",
+      "MAT-785E87E28CB341A2B8F2",
+      "MAT-E77A9103BBA8681033AC",
+      "MAT-C8679DEA52B3BF51B919",
+      "MAT-D158D1F63EF11EB92FA5",
+      "MAT-8020A9B07E16BE83CA61",
+      "MAT-5E67BE1271FD63DC3A80",
+      "MAT-38CDA9ADE3009B5E0950",
+      "MAT-967CB254F2F9FD07E194",
+      "MAT-867365F26B430119F586",
+      "MAT-47C665270673A9E92A12",
+      "MAT-2714D6292DAEECFBFA7A",
+      "MAT-7964829B6C481342CA0F",
+      "MAT-1A201A1A59F34E501DAB",
+      "MAT-1134784928A78A41289C",
+      "MAT-CD2ABE74729066552129",
+      "MAT-1B111286E7031BAA6A48",
+      "MAT-0AFFF9ABB7A563B28781",
+      "MAT-30FBBD538A1A0C502C22",
+      "MAT-AD6546565A77B8031566",
+      "MAT-9C93669B79FEA07B4C5C",
+      "MAT-4C2AC9A6B7B8666495C3",
+      "MAT-A9A48EBA9795AEA60F8E",
+      "MAT-00CCC8FE0D219FAEEAE1",
+      "MAT-5FF82371B6C79948F9FC",
+      "MAT-F5E8FD50CE6200FCF3EE",
+      "MAT-FACDBAF9FABD25BE86F0",
+      "MAT-13BB67E0D5120BBC358B",
+      "MAT-FE1FAE8DEE2F79956C9B",
+      "MAT-A7E991F83F1538C7CAA0",
+      "MAT-7D90072F268EF86E07EF",
+      "MAT-6409AE504F1AB160892F",
+      "MAT-FE166850DBDA1371BAD8",
+      "MAT-0112FB85FD41CF5862DE",
+      "MAT-2E6C27E3501EE5D8F7EE",
+      "MAT-D98756C15450ED357D81",
+      "MAT-1106F1EDCA99603E2226",
+      "MAT-886BE01C65E899810CBB",
+      "MAT-6523F73AE5E468514869",
+      "MAT-B243E752F226A784B59F",
+      "MAT-FF867C4FFDC0E94663D6",
+      "MAT-A5EE872C98C7FE02789F",
+      "MAT-55B5B4C6EA7571DB0860",
+      "MAT-2357B2332482A313483F",
+      "MAT-BEB1EB47EA8B42AF6C74"
+    ]
+  },
+  "ai_analyses": [],
+  "program_hints": [],
+  "analysis_history": [],
+  "prior_provider_calls": [],
+  "industry_context": {},
+  "intelligence_trace": [],
+  "claim_ledger": [],
+  "rule_basis": [],
+  "next_evidence": [],
+  "financial_claims": [],
+  "financial_nodes": [],
+  "financial_edges": [],
+  "impact_graph": {},
+  "revision_loop": {},
+  "evidence_plan": {},
+  "financial_scenario": {},
+  "investigation": {},
+  "comparison_summary": {},
+  "matter_schema_version": "matter_connectivity_v1",
+  "report_set": {
+    "report_set_id": "CONNSET-06402DFF2D395123E5FBED3B",
+    "company_id": "600019",
+    "company": "宝钢股份",
+    "document_ids": [
+      "BAO24_ESG",
+      "BAOSTEEL_AR_2025",
+      "BAOSTEEL_ESG_2025"
+    ],
+    "document_fingerprints": {
+      "BAO24_ESG": "ddaab24226ef441abc5acb6af96ea036e7e016bc1bc41bd12bc9dcb14ca687e4",
+      "BAOSTEEL_AR_2025": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "BAOSTEEL_ESG_2025": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944"
+    },
+    "periods": [
+      "2024",
+      "2025"
+    ],
+    "as_of_date": "2026-10-27",
+    "coverage_gaps": [
+      "2024年缺少AR报告"
+    ],
+    "schema_version": "matter_connectivity_v1"
+  },
+  "matter_evidence": [
+    {
+      "evidence_id": "ME-05A39A5E82220073118B",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "company_id": "600019",
+      "report_type": "AR",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 12,
+      "printed_page": "",
+      "quote": "有序推进绿色低碳发展。国内首条拥有先进氢冶金电熔炼工艺的百万吨级近零碳钢铁产线在湛江\n钢铁全线贯通，在钢铁行业绿色低碳发展领域取得重大突破；富氢碳循环氧气高炉（HyCROF）高",
+      "context": "有序推进绿色低碳发展。国内首条拥有先进氢冶金电熔炼工艺的百万吨级近零碳钢铁产线在湛江\n钢铁全线贯通，在钢铁行业绿色低碳发展领域取得重大突破；富氢碳循环氧气高炉（HyCROF）高",
+      "adjacent_evidence_ids": [
+        "ME-15E3F65CCCF5152E3F82"
+      ],
+      "section": "3.绿色低碳方面",
+      "bbox": [
+        89.87999725341797,
+        732.4293212890625,
+        530.7698364257812,
+        756.5603637695312
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-004E48E40646896AF5AB",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "company_id": "600019",
+      "report_type": "AR",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 26,
+      "printed_page": "",
+      "quote": "2025年实际完成固定资产投资191.73亿元。资金主要用于东山基地零碳高等级薄钢板工厂项目、宝山基地超高等级取向硅钢绿色制造示范项目、青山基\n地新能源无取向硅钢结构优化工程等。",
+      "context": "2025年实际完成固定资产投资191.73亿元。资金主要用于东山基地零碳高等级薄钢板工厂项目、宝山基地超高等级取向硅钢绿色制造示范项目、青山基\n地新能源无取向硅钢结构优化工程等。",
+      "adjacent_evidence_ids": [],
+      "section": "2、重大的非股权投资",
+      "bbox": [
+        72.0,
+        131.47035217285156,
+        764.8718872070312,
+        155.47935485839844
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-051AF30BAB0A0DF4AC08",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "company_id": "600019",
+      "report_type": "AR",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 33,
+      "printed_page": "",
+      "quote": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+      "context": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+      "adjacent_evidence_ids": [],
+      "section": "2.2026年公司经营目标、计划与拟开展的重点工作",
+      "bbox": [
+        89.87999725341797,
+        245.59036254882812,
+        531.489990234375,
+        296.84033203125
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-C4F90039AEB2A2198691",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "company_id": "600019",
+      "report_type": "AR",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 154,
+      "printed_page": "",
+      "quote": "炼钢工程",
+      "context": "炼钢工程",
+      "adjacent_evidence_ids": [],
+      "section": "(2).重要在建工程项目本期变动情况",
+      "bbox": [
+        73.68000030517578,
+        429.2944030761719,
+        98.66899871826172,
+        437.388916015625
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-35026077F1FAA3370DA8",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "company_id": "600019",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 6,
+      "printed_page": "",
+      "quote": "国内首条百万吨级近零碳钢铁\n产线在湛江钢铁全线贯通",
+      "context": "国内首条百万吨级近零碳钢铁\n产线在湛江钢铁全线贯通",
+      "adjacent_evidence_ids": [],
+      "section": "1978.12",
+      "bbox": [
+        274.78338623046875,
+        720.2010498046875,
+        388.54351806640625,
+        758.9190063476562
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-253D634546AAAAC2BA0B",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "company_id": "600019",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 32,
+      "printed_page": "",
+      "quote": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+      "context": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+      "adjacent_evidence_ids": [],
+      "section": "宝钢股份气候减缓战略举措",
+      "bbox": [
+        56.692901611328125,
+        213.61871337890625,
+        524.4667358398438,
+        239.34071350097656
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-443AEF947D9F1D2EDA98",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "company_id": "600019",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 41,
+      "printed_page": "",
+      "quote": "\u0007“零碳高等级薄钢板工厂示范项目”入选《绿色低碳先进技术",
+      "context": "\u0007“零碳高等级薄钢板工厂示范项目”入选《绿色低碳先进技术",
+      "adjacent_evidence_ids": [],
+      "section": "2.08",
+      "bbox": [
+        289.0393981933594,
+        437.60992431640625,
+        509.9439697265625,
+        460.4739074707031
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    },
+    {
+      "evidence_id": "ME-7E1A63F7EAA6AF406AC7",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "company_id": "600019",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "disclosure_date": "2026-04-30",
+      "pdf_page": 74,
+      "printed_page": "",
+      "quote": "股份湛江钢铁零碳薄钢板项目交付200 MVA 电弧炉",
+      "context": "股份湛江钢铁零碳薄钢板项目交付200 MVA 电弧炉",
+      "adjacent_evidence_ids": [],
+      "section": "建议书（资材）。此举持续推动供应商参与减碳行动，实现上下游协同减排，为应对全球气候变化贡献产业链力量。",
+      "bbox": [
+        78.36119842529297,
+        542.5840454101562,
+        279.14752197265625,
+        568.3060302734375
+      ],
+      "extraction_method": "text",
+      "source_verified": true,
+      "invalid_reason": ""
+    }
+  ],
+  "matters": [
+    {
+      "matter_id": "MAT-1A9C5E85617F6F2E9890",
+      "company_id": "600019",
+      "name": "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程",
+      "matter_type": "transition_project",
+      "subject": "宝钢股份（湛江钢铁基地）",
+      "location": "湛江",
+      "aliases": [
+        "炼钢工程"
+      ],
+      "identity_status": "evidence_linked",
+      "identity_basis": "年报第154页重要在建工程项目本期变动情况表中，行标签原文为\"宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程\"，页面证据仅含\"炼钢工程\"字样；登记表标注source_row_matched=true、subproject_identity=yearly_report_explicit_project_and_subproject，即年报明确的项目与子工程层级。名称逐字保留，未与其他行合并。",
+      "evidence_ids": [
+        "ME-C4F90039AEB2A2198691"
+      ],
+      "event_ids": [
+        "EV-AEE0583F09FF0CB74732"
+      ],
+      "investigation_status": "partial",
+      "lineage": [
+        "MAT-0EB4C0CE6F5969C96BF0"
+      ],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    },
+    {
+      "matter_id": "MAT-74B971B3798970F4174C",
+      "company_id": "600019",
+      "name": "湛江钢铁近零碳示范产线（项目身份待核）",
+      "matter_type": "transition_project",
+      "subject": "",
+      "location": "",
+      "aliases": [],
+      "identity_status": "candidate",
+      "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+      "evidence_ids": [
+        "ME-051AF30BAB0A0DF4AC08"
+      ],
+      "event_ids": [
+        "EV-08D8EF18BE94D84B4114"
+      ],
+      "investigation_status": "pending",
+      "lineage": [],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    },
+    {
+      "matter_id": "MAT-A5555414D5670BB77EFB",
+      "company_id": "600019",
+      "name": "绿色改造披露 · 2025 · PDF 32",
+      "matter_type": "transition_project",
+      "subject": "",
+      "location": "",
+      "aliases": [],
+      "identity_status": "candidate",
+      "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+      "evidence_ids": [
+        "ME-253D634546AAAAC2BA0B"
+      ],
+      "event_ids": [
+        "EV-2C09A043E602D9D6687E"
+      ],
+      "investigation_status": "pending",
+      "lineage": [],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    },
+    {
+      "matter_id": "MAT-8251086300606EF3CC1D",
+      "company_id": "600019",
+      "name": "绿色改造披露 · 2025 · PDF 12",
+      "matter_type": "transition_project",
+      "subject": "",
+      "location": "",
+      "aliases": [],
+      "identity_status": "candidate",
+      "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+      "evidence_ids": [
+        "ME-05A39A5E82220073118B"
+      ],
+      "event_ids": [
+        "EV-ED7B2E399866B7D63EBD"
+      ],
+      "investigation_status": "pending",
+      "lineage": [],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    },
+    {
+      "matter_id": "MAT-012044641B107B324097",
+      "company_id": "600019",
+      "name": "零碳高等级薄钢板工厂（项目身份待核）",
+      "matter_type": "transition_project",
+      "subject": "",
+      "location": "",
+      "aliases": [],
+      "identity_status": "candidate",
+      "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+      "evidence_ids": [
+        "ME-443AEF947D9F1D2EDA98"
+      ],
+      "event_ids": [
+        "EV-3BAF298292961DC1A29E"
+      ],
+      "investigation_status": "pending",
+      "lineage": [],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    },
+    {
+      "matter_id": "MAT-EC71D09FB6DBC2277626",
+      "company_id": "600019",
+      "name": "零碳高等级薄钢板工厂（项目身份待核）",
+      "matter_type": "transition_project",
+      "subject": "",
+      "location": "",
+      "aliases": [],
+      "identity_status": "candidate",
+      "identity_basis": "项目名是归并线索，主体与地点仍需核对",
+      "evidence_ids": [
+        "ME-004E48E40646896AF5AB"
+      ],
+      "event_ids": [
+        "EV-C1950891A30838EFB724"
+      ],
+      "investigation_status": "pending",
+      "lineage": [],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    },
+    {
+      "matter_id": "MAT-8B8A2761BA6197304E14",
+      "company_id": "600019",
+      "name": "财务估计与附注线索 · 2025 · PDF 6",
+      "matter_type": "other",
+      "subject": "",
+      "location": "",
+      "aliases": [],
+      "identity_status": "candidate",
+      "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+      "evidence_ids": [
+        "ME-35026077F1FAA3370DA8"
+      ],
+      "event_ids": [
+        "EV-0CAA16EF785C3CE1A23C"
+      ],
+      "investigation_status": "pending",
+      "lineage": [],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    },
+    {
+      "matter_id": "MAT-1FF7378A0D3A8504295B",
+      "company_id": "600019",
+      "name": "财务估计与附注线索 · 2025 · PDF 74",
+      "matter_type": "other",
+      "subject": "",
+      "location": "",
+      "aliases": [],
+      "identity_status": "candidate",
+      "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+      "evidence_ids": [
+        "ME-7E1A63F7EAA6AF406AC7"
+      ],
+      "event_ids": [
+        "EV-67C1199D1316678B1964"
+      ],
+      "investigation_status": "pending",
+      "lineage": [],
+      "attention_signals": [],
+      "attention_evidence_ids": []
+    }
+  ],
+  "matter_events": [
+    {
+      "event_id": "EV-AEE0583F09FF0CB74732",
+      "matter_id": "MAT-1A9C5E85617F6F2E9890",
+      "kind": "action",
+      "label": "炼钢工程",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-C4F90039AEB2A2198691"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    },
+    {
+      "event_id": "EV-08D8EF18BE94D84B4114",
+      "matter_id": "MAT-74B971B3798970F4174C",
+      "kind": "action",
+      "label": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-051AF30BAB0A0DF4AC08"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    },
+    {
+      "event_id": "EV-2C09A043E602D9D6687E",
+      "matter_id": "MAT-A5555414D5670BB77EFB",
+      "kind": "action",
+      "label": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-253D634546AAAAC2BA0B"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    },
+    {
+      "event_id": "EV-ED7B2E399866B7D63EBD",
+      "matter_id": "MAT-8251086300606EF3CC1D",
+      "kind": "action",
+      "label": "有序推进绿色低碳发展。国内首条拥有先进氢冶金电熔炼工艺的百万吨级近零碳钢铁产线在湛江\n钢铁全线贯通，在钢铁行业绿色低碳发展领域取得重大突破；富氢碳循环氧气高炉（HyCROF）高",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-05A39A5E82220073118B"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    },
+    {
+      "event_id": "EV-3BAF298292961DC1A29E",
+      "matter_id": "MAT-012044641B107B324097",
+      "kind": "action",
+      "label": "\u0007“零碳高等级薄钢板工厂示范项目”入选《绿色低碳先进技术",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-443AEF947D9F1D2EDA98"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    },
+    {
+      "event_id": "EV-C1950891A30838EFB724",
+      "matter_id": "MAT-EC71D09FB6DBC2277626",
+      "kind": "performance",
+      "label": "2025年实际完成固定资产投资191.73亿元。资金主要用于东山基地零碳高等级薄钢板工厂项目、宝山基地超高等级取向硅钢绿色制造示范项目、青山基\n地新能源无取向硅钢结构优化工程等。",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-004E48E40646896AF5AB"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    },
+    {
+      "event_id": "EV-0CAA16EF785C3CE1A23C",
+      "matter_id": "MAT-8B8A2761BA6197304E14",
+      "kind": "action",
+      "label": "国内首条百万吨级近零碳钢铁\n产线在湛江钢铁全线贯通",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-35026077F1FAA3370DA8"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    },
+    {
+      "event_id": "EV-67C1199D1316678B1964",
+      "matter_id": "MAT-1FF7378A0D3A8504295B",
+      "kind": "action",
+      "label": "股份湛江钢铁零碳薄钢板项目交付200 MVA 电弧炉",
+      "report_period": "2025",
+      "occurred_period": "",
+      "disclosure_date": "2026-04-30",
+      "evidence_ids": [
+        "ME-7E1A63F7EAA6AF406AC7"
+      ],
+      "origin": "program_candidate",
+      "evidence_status": "pending"
+    }
+  ],
+  "matter_commitments": [],
+  "matter_paths": [],
+  "matter_relations": [],
+  "matter_explanations": [],
+  "matter_assessments": [
+    {
+      "matter_id": "MAT-1A9C5E85617F6F2E9890",
+      "summary": "当前调查未完成，已保留原文线索和待查问题。",
+      "relation_support": "pending",
+      "amount_comparability": "not_assessed",
+      "commitment_progress": "未取得足以评价承诺进展的证据",
+      "financial_stage": "待调查",
+      "supporting_evidence_ids": [],
+      "counter_evidence_ids": [],
+      "assumptions": [],
+      "disagreements": [],
+      "unresolved": [
+        "综合复核未完成，见角色失败及预算记录"
+      ],
+      "next_actions": [
+        {
+          "question": "该事项与财务信息的具体联系是什么？",
+          "requested_material": "该事项对应的项目明细、相关财务附注及后续年度进展",
+          "purpose": "确认事项身份及财务传导的缺失环节",
+          "target_role": "A2",
+          "priority": "medium"
+        }
+      ],
+      "review_status": "unreviewed",
+      "result_revision": 1
+    }
+  ],
+  "matter_tasks": [
+    {
+      "role": "A1",
+      "result": {
+        "paths": [
+          {
+            "steps": [
+              {
+                "label": "年报在建工程表列示该炼钢子工程本期增加与本期转固金额",
+                "origin": "report_statement",
+                "support": "limited",
+                "explanation": "页面证据仅含行标签\"炼钢工程\"，金额来自同一登记原件的表格单元格复算，非逐字引文；长期待摊转出与期末余额为破折号，计量含义未查明。",
+                "evidence_ids": [
+                  "ME-C4F90039AEB2A2198691"
+                ]
+              },
+              {
+                "label": "转固金额进入固定资产并影响后续折旧",
+                "origin": "model_hypothesis",
+                "support": "pending",
+                "explanation": "机制推演，未取得折旧年限、转固时点等证据，不声称实际影响已发生。",
+                "evidence_ids": []
+              }
+            ],
+            "path_id": "PATH-TMP-01",
+            "support": "limited",
+            "rule_ids": [],
+            "matter_id": "",
+            "unresolved": [
+              "长期待摊转出与期末余额破折号的计量含义",
+              "转固时点与折旧政策",
+              "该子工程与ESG披露的近零碳产线/零碳薄钢板项目是否同一项目"
+            ],
+            "financial_item": "在建工程—转固（固定资产）",
+            "counter_evidence_ids": []
+          }
+        ],
+        "events": [
+          {
+            "kind": "investment",
+            "label": "炼钢子工程本期增加在建工程投入",
+            "origin": "program_candidate",
+            "event_id": "EV-TMP-01",
+            "matter_id": "",
+            "evidence_ids": [
+              "ME-C4F90039AEB2A2198691"
+            ],
+            "report_period": "2025",
+            "disclosure_date": "",
+            "evidence_status": "limited",
+            "occurred_period": ""
+          },
+          {
+            "kind": "commissioning",
+            "label": "炼钢子工程本期转固",
+            "origin": "program_candidate",
+            "event_id": "EV-TMP-02",
+            "matter_id": "",
+            "evidence_ids": [
+              "ME-C4F90039AEB2A2198691"
+            ],
+            "report_period": "2025",
+            "disclosure_date": "",
+            "evidence_status": "limited",
+            "occurred_period": ""
+          }
+        ],
+        "matters": [
+          {
+            "name": "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程",
+            "aliases": [
+              "炼钢工程"
+            ],
+            "subject": "宝钢股份（湛江钢铁基地）",
+            "location": "湛江",
+            "matter_type": "transition_project",
+            "evidence_ids": [
+              "ME-C4F90039AEB2A2198691"
+            ],
+            "identity_basis": "年报第154页重要在建工程项目本期变动情况表中，行标签原文为\"宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程\"，页面证据仅含\"炼钢工程\"字样；登记表标注source_row_matched=true、subproject_identity=yearly_report_explicit_project_and_subproject，即年报明确的项目与子工程层级。名称逐字保留，未与其他行合并。"
+          }
+        ],
+        "summary": "专项任务限定为原文确认的炼钢子工程。已取得证据显示：年报第154页\"重要在建工程项目本期变动情况\"表存在行标签\"宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程\"（页面证据ME-C4F90039AEB2A2198691仅含\"炼钢工程\"字样），登记表复算显示期初240,078,904.49元、本期增加847,336,295.51元、本期转固1,087,415,200.00元，长期待摊转出与期末余额为破折号（计量含义未查明，不视为零，故不标记完整勾稽通过）。ESG报告披露湛江钢铁近零碳产线全线贯通、含氢基竖炉和电炉、年产连铸坯180万吨（ME-253D634546AAAAC2BA0B、ME-35026077F1FAA3370DA8），年报亦提及湛江钢铁百万吨级近零碳产线全线贯通（ME-05A39A5E82220073118B）；ESG另提及\"零碳高等级薄钢板工厂示范项目\"入选绿色低碳先进技术目录（ME-443AEF947D9F1D2EDA98）及\"湛江钢铁零碳薄钢板项目交付200 MVA电弧炉\"（ME-7E1A63F7EAA6AF406AC7）。但现有文字未直接支持\"零碳高等级薄钢板工厂项目\"与\"近零碳钢铁产线\"为同一项目，故不合并，仅保留为线索。本轮建档仅限炼钢子工程，主体为宝钢股份湛江钢铁基地，名称逐字保留原文。本轮外部检索已冻结，未取得新证据。",
+        "matter_id": "",
+        "relations": [
+          {
+            "edge_id": "REL-TMP-01",
+            "matter_id": "",
+            "source_id": "ME-443AEF947D9F1D2EDA98",
+            "target_id": "ME-C4F90039AEB2A2198691",
+            "explanation": "ESG提及\"零碳高等级薄钢板工厂示范项目\"，年报在建工程行含\"零碳高等级薄钢板工厂项目 炼钢工程\"，名称部分重合但文字未直接确认同一项目，仅作线索。",
+            "evidence_ids": [
+              "ME-443AEF947D9F1D2EDA98",
+              "ME-C4F90039AEB2A2198691"
+            ],
+            "relation_kind": "potential_mechanism",
+            "evidence_status": "limited",
+            "assertion_origin": "model_hypothesis"
+          }
+        ],
+        "assessment": {
+          "summary": "仅就原文确认的炼钢子工程建档：年报第154页在建工程表存在该行，登记表复算期初240,078,904.49元、本期增加847,336,295.51元、本期转固1,087,415,200.00元；长期待摊转出与期末余额为破折号，未查明含义，不视为零，故不标记完整勾稽通过。ESG与年报另披露湛江钢铁近零碳产线全线贯通（含氢基竖炉和电炉、年产连铸坯180万吨），ESG亦提及零碳高等级薄钢板工厂示范项目与零碳薄钢板项目交付电弧炉，但文字未直接支持其与\"零碳高等级薄钢板工厂项目\"为同一项目，保留为线索不合并。",
+          "matter_id": "",
+          "unresolved": [
+            "破折号列（长期待摊转出、期末余额）的计量含义",
+            "炼钢子工程与ESG近零碳产线/零碳薄钢板项目的项目身份关系",
+            "该子工程投资与年报191.73亿元固定资产投资（ME-004E48E40646896AF5AB）是否同一统计范围",
+            "转固时点与折旧政策"
+          ],
+          "assumptions": [
+            "表格单元格金额与页面证据同属一份登记原件"
+          ],
+          "next_actions": [
+            {
+              "purpose": "确认勾稽完整性与期末余额",
+              "priority": "high",
+              "question": "年报第154页该行长期待摊转出与期末余额破折号是否表示零或未披露？",
+              "target_role": "A2",
+              "requested_material": "年报第154页及相邻页在建工程表完整表头与注释"
+            },
+            {
+              "purpose": "判断项目身份是否可归并",
+              "priority": "high",
+              "question": "ESG披露的湛江钢铁近零碳产线（氢基竖炉+电炉、180万吨连铸坯）与年报\"零碳高等级薄钢板工厂项目\"是否为同一项目？",
+              "target_role": "A2",
+              "requested_material": "ESG报告第32页及年报相关项目描述原文、项目编码"
+            },
+            {
+              "purpose": "评估转固对后续折旧的影响",
+              "priority": "medium",
+              "question": "该炼钢子工程的转固时点与折旧政策？",
+              "target_role": "A2",
+              "requested_material": "年报固定资产附注及折旧政策"
+            }
+          ],
+          "disagreements": [],
+          "review_status": "unreviewed",
+          "financial_stage": "在建工程阶段，已部分转固",
+          "result_revision": 1,
+          "relation_support": "limited",
+          "commitment_progress": "未取得足以评价承诺进展的证据",
+          "amount_comparability": "needs_evidence",
+          "counter_evidence_ids": [],
+          "supporting_evidence_ids": [
+            "ME-C4F90039AEB2A2198691",
+            "ME-253D634546AAAAC2BA0B",
+            "ME-35026077F1FAA3370DA8",
+            "ME-05A39A5E82220073118B",
+            "ME-443AEF947D9F1D2EDA98",
+            "ME-7E1A63F7EAA6AF406AC7"
+          ]
+        },
+        "commitments": [],
+        "stop_reason": "已查明：年报第154页在建工程表存在\"宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程\"行，登记表复算期初、本期增加、本期转固三项金额；长期待摊转出与期末余额为破折号，含义未查明。ESG/年报另披露湛江钢铁近零碳产线贯通及零碳薄钢板项目，但文字未直接支持与炼钢子工程同一项目，故不合并。尚缺：破折号列计量含义、项目身份对应原文、转固时点与折旧政策、与191.73亿元固定资产投资统计范围关系。本轮外部检索冻结，未取得新证据。",
+        "explanations": [
+          {
+            "status": "unresolved",
+            "matter_id": "",
+            "explanation": "ESG披露的湛江钢铁近零碳产线（氢基竖炉+电炉、年产连铸坯180万吨）与年报在建工程行\"零碳高等级薄钢板工厂项目 炼钢工程\"可能属同一项目群的不同表述。",
+            "hypothesis_id": "HYP-TMP-01",
+            "counter_evidence_ids": [],
+            "discriminating_evidence": "需原文明确将\"零碳高等级薄钢板工厂项目\"与\"近零碳产线\"或\"零碳薄钢板项目\"指为同一项目，或列示同一项目编码/投资总额。",
+            "supporting_evidence_ids": [
+              "ME-253D634546AAAAC2BA0B",
+              "ME-35026077F1FAA3370DA8",
+              "ME-05A39A5E82220073118B",
+              "ME-443AEF947D9F1D2EDA98",
+              "ME-7E1A63F7EAA6AF406AC7"
+            ]
+          },
+          {
+            "status": "unresolved",
+            "matter_id": "",
+            "explanation": "该炼钢子工程为独立在建子工程，与ESG近零碳产线描述不构成同一项目，不应合并。",
+            "hypothesis_id": "HYP-TMP-02",
+            "counter_evidence_ids": [
+              "ME-443AEF947D9F1D2EDA98"
+            ],
+            "discriminating_evidence": "年报在建工程表相邻行与项目全称、项目编码，以及ESG对产线构成（氢基竖炉、电炉）与炼钢子工程范围的对应说明。",
+            "supporting_evidence_ids": [
+              "ME-C4F90039AEB2A2198691"
+            ]
+          }
+        ],
+        "tool_requests": [],
+        "input_revision": 1
+      },
+      "rounds": 3,
+      "run_id": "CONN-313BF4356D09482B",
+      "status": "completed",
+      "task_id": "MTASK-244e36330ece4175",
+      "matter_id": "",
+      "role_name": "事项识别与建档",
+      "updated_at": 1794024459.743183,
+      "duration_ms": 39188,
+      "stop_reason": "已查明：年报第154页在建工程表存在\"宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程\"行，登记表复算期初、本期增加、本期转固三项金额；长期待摊转出与期末余额为破折号，含义未查明。ESG/年报另披露湛江钢铁近零碳产线贯通及零碳薄钢板项目，但文字未直接支持与炼钢子工程同一项目，故不合并。尚缺：破折号列计量含义、项目身份对应原文、转固时点与折旧政策、与191.73亿元固定资产投资统计范围关系。本轮外部检索冻结，未取得新证据。",
+      "input_revision": 1,
+      "pending_questions": [
+        {
+          "tool": "open_source_page",
+          "question": "核对在建工程表完整表头、该行破折号列及相邻行，确认勾稽与项目名称原文",
+          "arguments": {
+            "page": 154,
+            "document_id": "BAOSTEEL_AR_2025"
+          }
+        },
+        {
+          "tool": "open_source_page",
+          "question": "核对湛江钢铁近零碳产线描述，判断与零碳高等级薄钢板工厂项目的身份关系",
+          "arguments": {
+            "page": 32,
+            "document_id": "BAOSTEEL_ESG_2025"
+          }
+        }
+      ],
+      "termination_reason": "source_exhausted",
+      "selected_matter_ids": [
+        "MAT-0EB4C0CE6F5969C96BF0"
+      ],
+      "validation_retry_count": 0
+    },
+    {
+      "role": "A5",
+      "rounds": 0,
+      "run_id": "CONN-313BF4356D09482B",
+      "status": "failed",
+      "task_id": "MTASK-3e18ed4792924fcf",
+      "matter_id": "MAT-1A9C5E85617F6F2E9890",
+      "retryable": false,
+      "role_name": "综合复核与补证决策",
+      "updated_at": 1794024515.1291325,
+      "duration_ms": 50841,
+      "stop_reason": "MODEL_FIELDS_INVALID",
+      "error_detail": {
+        "role": "A5",
+        "fields": [
+          {
+            "type": "literal_error",
+            "reason": "Input should be 'program_candidate', 'model_interpretation' or 'human_review'",
+            "location": [
+              "events",
+              1,
+              "origin"
+            ]
+          },
+          {
+            "type": "literal_error",
+            "reason": "Input should be 'program_candidate', 'model_interpretation' or 'human_review'",
+            "location": [
+              "events",
+              2,
+              "origin"
+            ]
+          },
+          {
+            "type": "literal_error",
+            "reason": "Input should be 'program_candidate', 'model_interpretation' or 'human_review'",
+            "location": [
+              "events",
+              3,
+              "origin"
+            ]
+          }
+        ],
+        "retry_count": 1
+      },
+      "failure_code": "MODEL_FIELDS_INVALID",
+      "error_category": "output_contract",
+      "input_revision": 1,
+      "retry_after_seconds": null,
+      "selected_matter_ids": [
+        "MAT-0EB4C0CE6F5969C96BF0"
+      ]
+    }
+  ],
+  "matter_tool_receipts": [
+    {
+      "role": "A1",
+      "round": 1,
+      "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+      "result": null,
+      "status": "rejected",
+      "task_id": "MTASK-244e36330ece4175",
+      "args_hash": "48476f4d38750fa6",
+      "matter_id": "",
+      "tool_name": "open_source_page",
+      "elapsed_ms": 0,
+      "source_hash": "",
+      "output_digest": ""
+    },
+    {
+      "role": "A1",
+      "round": 1,
+      "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+      "result": null,
+      "status": "rejected",
+      "task_id": "MTASK-244e36330ece4175",
+      "args_hash": "e634c00195950bd0",
+      "matter_id": "",
+      "tool_name": "open_source_page",
+      "elapsed_ms": 0,
+      "source_hash": "",
+      "output_digest": ""
+    }
+  ],
+  "matter_coverage": [
+    {
+      "method": "matter_blocks_v1",
+      "cache_hit": false,
+      "document_id": "BAO24_ESG",
+      "duration_ms": 23600,
+      "ocr_enabled": false,
+      "total_pages": 90,
+      "failed_pages": [
+        {
+          "page": 1,
+          "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+        }
+      ],
+      "scanned_pages": [
+        1
+      ],
+      "indexed_blocks": 5842,
+      "source_verification_ms": 891
+    },
+    {
+      "method": "matter_blocks_v1",
+      "cache_hit": false,
+      "document_id": "BAOSTEEL_AR_2025",
+      "duration_ms": 16881,
+      "ocr_enabled": false,
+      "total_pages": 245,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 4719,
+      "source_verification_ms": 2
+    },
+    {
+      "method": "matter_blocks_v1",
+      "cache_hit": false,
+      "document_id": "BAOSTEEL_ESG_2025",
+      "duration_ms": 16309,
+      "ocr_enabled": false,
+      "total_pages": 102,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 5912,
+      "source_verification_ms": 401
+    }
+  ],
+  "matter_rejections": [
+    {
+      "role": "A5",
+      "reason": "MODEL_FIELDS_INVALID",
+      "matter_id": "MAT-1A9C5E85617F6F2E9890"
+    }
+  ],
+  "matter_revisions": [],
+  "matter_graph": {
+    "edges": [
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-1A9C5E85617F6F2E9890",
+        "status": "limited",
+        "target": "ME-C4F90039AEB2A2198691",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890"
+      },
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-74B971B3798970F4174C",
+        "status": "limited",
+        "target": "ME-051AF30BAB0A0DF4AC08",
+        "matter_id": "MAT-74B971B3798970F4174C"
+      },
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-A5555414D5670BB77EFB",
+        "status": "limited",
+        "target": "ME-253D634546AAAAC2BA0B",
+        "matter_id": "MAT-A5555414D5670BB77EFB"
+      },
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-8251086300606EF3CC1D",
+        "status": "limited",
+        "target": "ME-05A39A5E82220073118B",
+        "matter_id": "MAT-8251086300606EF3CC1D"
+      },
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-012044641B107B324097",
+        "status": "limited",
+        "target": "ME-443AEF947D9F1D2EDA98",
+        "matter_id": "MAT-012044641B107B324097"
+      },
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-EC71D09FB6DBC2277626",
+        "status": "limited",
+        "target": "ME-004E48E40646896AF5AB",
+        "matter_id": "MAT-EC71D09FB6DBC2277626"
+      },
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-8B8A2761BA6197304E14",
+        "status": "limited",
+        "target": "ME-35026077F1FAA3370DA8",
+        "matter_id": "MAT-8B8A2761BA6197304E14"
+      },
+      {
+        "kind": "disclosed_in",
+        "source": "MAT-1FF7378A0D3A8504295B",
+        "status": "limited",
+        "target": "ME-7E1A63F7EAA6AF406AC7",
+        "matter_id": "MAT-1FF7378A0D3A8504295B"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "MAT-1A9C5E85617F6F2E9890",
+        "kind": "matter",
+        "label": "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890"
+      },
+      {
+        "id": "MAT-74B971B3798970F4174C",
+        "kind": "matter",
+        "label": "湛江钢铁近零碳示范产线（项目身份待核）",
+        "matter_id": "MAT-74B971B3798970F4174C"
+      },
+      {
+        "id": "MAT-A5555414D5670BB77EFB",
+        "kind": "matter",
+        "label": "绿色改造披露 · 2025 · PDF 32",
+        "matter_id": "MAT-A5555414D5670BB77EFB"
+      },
+      {
+        "id": "MAT-8251086300606EF3CC1D",
+        "kind": "matter",
+        "label": "绿色改造披露 · 2025 · PDF 12",
+        "matter_id": "MAT-8251086300606EF3CC1D"
+      },
+      {
+        "id": "MAT-012044641B107B324097",
+        "kind": "matter",
+        "label": "零碳高等级薄钢板工厂（项目身份待核）",
+        "matter_id": "MAT-012044641B107B324097"
+      },
+      {
+        "id": "MAT-EC71D09FB6DBC2277626",
+        "kind": "matter",
+        "label": "零碳高等级薄钢板工厂（项目身份待核）",
+        "matter_id": "MAT-EC71D09FB6DBC2277626"
+      },
+      {
+        "id": "MAT-8B8A2761BA6197304E14",
+        "kind": "matter",
+        "label": "财务估计与附注线索 · 2025 · PDF 6",
+        "matter_id": "MAT-8B8A2761BA6197304E14"
+      },
+      {
+        "id": "MAT-1FF7378A0D3A8504295B",
+        "kind": "matter",
+        "label": "财务估计与附注线索 · 2025 · PDF 74",
+        "matter_id": "MAT-1FF7378A0D3A8504295B"
+      },
+      {
+        "id": "ME-05A39A5E82220073118B",
+        "kind": "evidence",
+        "label": "2025 AR PDF 12",
+        "pdf_page": 12,
+        "verified": true,
+        "document_id": "BAOSTEEL_AR_2025",
+        "evidence_id": "ME-05A39A5E82220073118B",
+        "invalid_reason": ""
+      },
+      {
+        "id": "ME-004E48E40646896AF5AB",
+        "kind": "evidence",
+        "label": "2025 AR PDF 26",
+        "pdf_page": 26,
+        "verified": true,
+        "document_id": "BAOSTEEL_AR_2025",
+        "evidence_id": "ME-004E48E40646896AF5AB",
+        "invalid_reason": ""
+      },
+      {
+        "id": "ME-051AF30BAB0A0DF4AC08",
+        "kind": "evidence",
+        "label": "2025 AR PDF 33",
+        "pdf_page": 33,
+        "verified": true,
+        "document_id": "BAOSTEEL_AR_2025",
+        "evidence_id": "ME-051AF30BAB0A0DF4AC08",
+        "invalid_reason": ""
+      },
+      {
+        "id": "ME-C4F90039AEB2A2198691",
+        "kind": "evidence",
+        "label": "2025 AR PDF 154",
+        "pdf_page": 154,
+        "verified": true,
+        "document_id": "BAOSTEEL_AR_2025",
+        "evidence_id": "ME-C4F90039AEB2A2198691",
+        "invalid_reason": ""
+      },
+      {
+        "id": "ME-35026077F1FAA3370DA8",
+        "kind": "evidence",
+        "label": "2025 ESG PDF 6",
+        "pdf_page": 6,
+        "verified": true,
+        "document_id": "BAOSTEEL_ESG_2025",
+        "evidence_id": "ME-35026077F1FAA3370DA8",
+        "invalid_reason": ""
+      },
+      {
+        "id": "ME-253D634546AAAAC2BA0B",
+        "kind": "evidence",
+        "label": "2025 ESG PDF 32",
+        "pdf_page": 32,
+        "verified": true,
+        "document_id": "BAOSTEEL_ESG_2025",
+        "evidence_id": "ME-253D634546AAAAC2BA0B",
+        "invalid_reason": ""
+      },
+      {
+        "id": "ME-443AEF947D9F1D2EDA98",
+        "kind": "evidence",
+        "label": "2025 ESG PDF 41",
+        "pdf_page": 41,
+        "verified": true,
+        "document_id": "BAOSTEEL_ESG_2025",
+        "evidence_id": "ME-443AEF947D9F1D2EDA98",
+        "invalid_reason": ""
+      },
+      {
+        "id": "ME-7E1A63F7EAA6AF406AC7",
+        "kind": "evidence",
+        "label": "2025 ESG PDF 74",
+        "pdf_page": 74,
+        "verified": true,
+        "document_id": "BAOSTEEL_ESG_2025",
+        "evidence_id": "ME-7E1A63F7EAA6AF406AC7",
+        "invalid_reason": ""
+      },
+      {
+        "id": "EV-AEE0583F09FF0CB74732",
+        "kind": "event",
+        "label": "炼钢工程",
+        "status": "pending",
+        "matter_id": "MAT-1A9C5E85617F6F2E9890",
+        "evidence_ids": [
+          "ME-C4F90039AEB2A2198691"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      },
+      {
+        "id": "EV-08D8EF18BE94D84B4114",
+        "kind": "event",
+        "label": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+        "status": "pending",
+        "matter_id": "MAT-74B971B3798970F4174C",
+        "evidence_ids": [
+          "ME-051AF30BAB0A0DF4AC08"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      },
+      {
+        "id": "EV-2C09A043E602D9D6687E",
+        "kind": "event",
+        "label": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+        "status": "pending",
+        "matter_id": "MAT-A5555414D5670BB77EFB",
+        "evidence_ids": [
+          "ME-253D634546AAAAC2BA0B"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      },
+      {
+        "id": "EV-ED7B2E399866B7D63EBD",
+        "kind": "event",
+        "label": "有序推进绿色低碳发展。国内首条拥有先进氢冶金电熔炼工艺的百万吨级近零碳钢铁产线在湛江\n钢铁全线贯通，在钢铁行业绿色低碳发展领域取得重大突破；富氢碳循环氧气高炉（HyCROF）高",
+        "status": "pending",
+        "matter_id": "MAT-8251086300606EF3CC1D",
+        "evidence_ids": [
+          "ME-05A39A5E82220073118B"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      },
+      {
+        "id": "EV-3BAF298292961DC1A29E",
+        "kind": "event",
+        "label": "\u0007“零碳高等级薄钢板工厂示范项目”入选《绿色低碳先进技术",
+        "status": "pending",
+        "matter_id": "MAT-012044641B107B324097",
+        "evidence_ids": [
+          "ME-443AEF947D9F1D2EDA98"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      },
+      {
+        "id": "EV-C1950891A30838EFB724",
+        "kind": "event",
+        "label": "2025年实际完成固定资产投资191.73亿元。资金主要用于东山基地零碳高等级薄钢板工厂项目、宝山基地超高等级取向硅钢绿色制造示范项目、青山基\n地新能源无取向硅钢结构优化工程等。",
+        "status": "pending",
+        "matter_id": "MAT-EC71D09FB6DBC2277626",
+        "evidence_ids": [
+          "ME-004E48E40646896AF5AB"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      },
+      {
+        "id": "EV-0CAA16EF785C3CE1A23C",
+        "kind": "event",
+        "label": "国内首条百万吨级近零碳钢铁\n产线在湛江钢铁全线贯通",
+        "status": "pending",
+        "matter_id": "MAT-8B8A2761BA6197304E14",
+        "evidence_ids": [
+          "ME-35026077F1FAA3370DA8"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      },
+      {
+        "id": "EV-67C1199D1316678B1964",
+        "kind": "event",
+        "label": "股份湛江钢铁零碳薄钢板项目交付200 MVA 电弧炉",
+        "status": "pending",
+        "matter_id": "MAT-1FF7378A0D3A8504295B",
+        "evidence_ids": [
+          "ME-7E1A63F7EAA6AF406AC7"
+        ],
+        "report_period": "2025",
+        "occurred_period": ""
+      }
+    ],
+    "version": "matter_graph_v1"
+  },
+  "matter_overview": {
+    "notice": "关联状态描述公开材料对具体主张的支持程度，不构成会计确认或鉴证结论",
+    "pending": 7,
+    "completed": 0,
+    "unresolved": 1,
+    "investigated": 1,
+    "matter_total": 8,
+    "indexed_blocks": 16473,
+    "supported_paths": 0,
+    "assessment_count": 1
+  },
+  "assurance_planning": {
+    "schema_version": "assurance_planning_v1",
+    "result_revision": 1,
+    "risk_findings": [
+      {
+        "entry_id": "FINDING-9DAA463C784EEE12E565",
+        "matter_ids": [
+          "MAT-1A9C5E85617F6F2E9890"
+        ],
+        "matter": "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程",
+        "reason": "综合复核未完成，见角色失败及预算记录",
+        "current_assessment": "当前调查未完成，已保留原文线索和待查问题。",
+        "evidence": [],
+        "counter_evidence": [],
+        "alternative_explanations": [],
+        "unresolved": [
+          "综合复核未完成，见角色失败及预算记录"
+        ],
+        "priority": "medium",
+        "investigation_status": "partial",
+        "review_status": "unreviewed",
+        "assessment_review_status": "unreviewed"
+      },
+      {
+        "entry_id": "COVERAGE-1F149E229053622FEC26",
+        "matter_ids": [],
+        "matter": "本次资料覆盖",
+        "reason": "2024年缺少AR报告",
+        "current_assessment": "未取得的资料不等于企业未披露",
+        "evidence": [],
+        "counter_evidence": [],
+        "alternative_explanations": [],
+        "unresolved": [
+          "2024年缺少AR报告"
+        ],
+        "priority": "medium",
+        "investigation_status": "partial",
+        "review_status": "unreviewed"
+      },
+      {
+        "entry_id": "COVERAGE-DD2E5691B660CF7AB394",
+        "matter_ids": [],
+        "matter": "本次资料覆盖",
+        "reason": "7项初筛候选尚未深查，保留在事项档案；未逐项列为风险发现，也不代表没有风险。",
+        "current_assessment": "未取得的资料不等于企业未披露",
+        "evidence": [],
+        "counter_evidence": [],
+        "alternative_explanations": [],
+        "unresolved": [
+          "7项初筛候选尚未深查，保留在事项档案；未逐项列为风险发现，也不代表没有风险。"
+        ],
+        "priority": "medium",
+        "investigation_status": "partial",
+        "review_status": "unreviewed"
+      }
+    ],
+    "evidence_requests": [
+      {
+        "entry_id": "REQUEST-59BD5930DD5C10D85E10",
+        "matter_ids": [
+          "MAT-1A9C5E85617F6F2E9890"
+        ],
+        "matters": [
+          "宝钢湛江钢铁零碳高等级薄钢板工厂项目 炼钢工程"
+        ],
+        "requested_material": "该事项对应的项目明细、相关财务附注及后续年度进展",
+        "questions": [
+          "该事项与财务信息的具体联系是什么？"
+        ],
+        "purposes": [
+          "确认事项身份及财务传导的缺失环节"
+        ],
+        "distinguishing_explanations": [],
+        "priority": "medium",
+        "internal_target_roles": [
+          "A2"
+        ],
+        "responsible_person": "项目组待处理",
+        "acquisition_status": "待取得",
+        "review_status": "unreviewed"
+      }
+    ],
+    "notice": "供可持续信息鉴证项目组前期准备与风险识别。优先级只表示调查顺序，不表示风险发生概率、重要性或鉴证结论。未取得资料不等于企业未披露。"
+  },
+  "assurance_planning_reviews": {},
+  "ai_generated_content_notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
+  "personal_observation_count": 0
+}

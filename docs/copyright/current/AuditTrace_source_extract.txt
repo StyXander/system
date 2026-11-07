@@ -1,0 +1,3000 @@
+"""正式发布入口仅公开年报与可持续报告核验。
+
+旧主模块暂作为额度、代理与安全响应头的公共依赖保留。
+这里不挂载旧审计、案例管理、RAG和行业规则路由。
+后续拆出公共模块前不可直接删除其传递依赖。
+"""
+from pathlib import Path
+from contextlib import asynccontextmanager
+import os
+import logging
+import time
+
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+
+from .main import (_enforce_public_model_quota, _public_model_ledger, security_headers,
+                   _validate_trusted_proxy_configuration, _configured_cors_origins)
+from .connectivity_api import build_router
+from .connectivity_facts import project_facts
+from .connectivity_catalog_api import build_catalog_router
+from .connectivity_matter_schemas import matter_enabled
+from .connectivity_access import access_policy
+
+ROOT = Path(__file__).resolve().parents[2]
+@asynccontextmanager
+async def lifespan(_app):
+    """沿用代理配置的失败关闭检查，不恢复旧业务任务。"""
+    _validate_trusted_proxy_configuration()
+    yield
+
+
+app = FastAPI(title='审迹智链 跨报告自主核验', version='2026.10.26.matter.1', lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+app.add_middleware(CORSMiddleware, allow_origins=_configured_cors_origins(), allow_credentials=True,
+                   allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'Authorization', 'Idempotency-K
+ey'])
+app.middleware('http')(security_headers)
+
+@app.middleware('http')
+async def connectivity_timing(request, call_next):
+    started = time.perf_counter()
+    response = await call_next(request)
+    if request.url.path.startswith('/api/connectivity/runs'):
+        duration = (time.perf_counter() - started) * 1000
+        response.headers['Server-Timing'] = f'app;dur={duration:.2f}'
+        logging.getLogger('uvicorn.error').info('connectivity_http method=%s path=%s status=%s duration_ms=%.2f 
+bytes=%s',
+            request.method, request.url.path, response.status_code, duration, response.headers.get('content-leng
+th', 'stream'))
+    return response
+app.mount('/assets', StaticFiles(directory=ROOT/'assets'), name='assets')
+app.include_router(build_router(ROOT, lambda request: _enforce_public_model_quota(request, force=True), _public_
+model_ledger))
+app.include_router(build_catalog_router(ROOT))
+
+
+@app.get('/', include_in_schema=False)
+def home():
+    """首页仍使用既有根文件，不创建另一套展示页。"""
+    return FileResponse(ROOT/'index.html')
+
+
+@app.get('/api/health')
+def health():
+    """配置存在只报告 configured，不等同真实模型验收。"""
+    return {'service_status': 'ready', 'product': 'connectivity',
+        **access_policy(),
+        'model_status': 'configured' if os.getenv('DEEPSEEK_API_KEY', '').strip() else 'config_missing',
+        'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
+        'default_mode': 'five_agents' if matter_enabled() else 'three_agents', 'matter_schema_version': 'matter_
+connectivity_v1', 'frontend_release': '2026.11.evidence-studio.1', 'project_facts': project_facts(ROOT),
+        'deployment': {'commit': os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') or None,
+            'platform': os.getenv('AUDITTRACE_DEPLOYMENT_PLATFORM') or ('render' if os.getenv('RENDER_GIT_COMMIT
+') else 'local'),
+            'source_baseline_commit': os.getenv('AUDITTRACE_SOURCE_BASELINE_COMMIT') or None,
+            'source_snapshot_sha256': os.getenv('AUDITTRACE_SOURCE_SNAPSHOT_SHA256') or None,
+            'entry': 'backend.app.connectivity_app:app', 'release': '2026.10.26.matter.1',
+            'identity_source': 'runtime_environment' if os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT'
+) else 'unverified'}}
+"""关联核对接口：复用原有任务台账，公开读取与演示更正分别授权。
+
+登记来源是唯一文件入口，不允许网页提交路径或金额代替原件。
+完成任务可刷新恢复，关系修正生成子运行并保留原自动结果。
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+from io import BytesIO
+import json
+import os
+from pathlib import Path
+import secrets
+import threading
+import time
+import uuid
+from collections import OrderedDict
+from copy import deepcopy
+import logging
+
+from fastapi import APIRouter, HTTPException, Request, Response, Query
+from fastapi.responses import JSONResponse, RedirectResponse
+import pymupdf
+
+from .connectivity_schemas import ConnectivityRun, CorrectionRequest, UserReviewRequest, ProfessionalRiskNote, R
+eviewEvent, RunRequest, NOTICE, SCHEMA_VERSION, INTELLIGENCE_VERSION
+from .connectivity_engine import calculate
+from .connectivity_extraction import load_registry, ensure_source, extract_document
+from .connectivity_pipeline import run_pipeline, make_findings, PROMPT_VERSION
+from .connectivity_intelligence import enrich_calculation, refresh_analysis_status
+from .ai_opinion import build_program_hints
+from .connectivity_overview import build_overview
+from .connectivity_rules import RULES, TOPICS, required_conditions
+from .demo_run_tasks import DemoRunTaskStore, SupabaseDemoRunTaskStore, IdempotencyConflict, result_expiry_iso
+from .supabase_adapter import demo_task_supabase_enabled, get_demo_task_client, SupabaseConflict
+from .source_viewer import preview_path, source_page_response, PDF_ACCESS_LOCK
+from .public_model import PublicModelQuotaError
+
+from .connectivity_facts import project_facts, execution_provenance
+from .connectivity_bootstrap import source_readiness
+from .connectivity_graph import refresh_run_sources
+from .connectivity_financial_scenario import recalculate_scenario
+from .connectivity_matter_schemas import ReportSetRequest, MatterRevisionRequest, MatterReconciliation
+from .connectivity_report_sets import create_report_set, report_set_records, resolve_documents
+from .connectivity_access import single_user_enabled
+
+COOKIE = "audittrace_connectivity_session"
+CONNECTIVITY_RETENTION_SECONDS = 30 * 86400
+
+
+def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
+    """延迟绑定现有应用配额，避免循环导入和第二套模型预算。"""
+    router = APIRouter(prefix="/api/connectivity", tags=["connectivity"])
+    lock = threading.RLock()
+    stores = {}
+    directory = root / "backend/runtime/connectivity"
+    directory.mkdir(parents=True, exist_ok=True)
+    result_cache = OrderedDict()
+    log = logging.getLogger(__name__)
+
+    def normalized_result(item, *, layer="full"):
+        body = item.get("result")
+        if not body or body.get("projection_supported") is False:
+            return body
+        from .connectivity_extraction import source_path
+        from .connectivity_source_cache import source_signature
+        registry = {d.document_id: d for d in load_registry(root)}
+        signatures = []
+        for original in body.get("documents", []):
+            doc = registry.get(original["document_id"])
+            try:
+                signatures.append((original["document_id"], doc.file_sha256, source_signature(source_path(root, 
+doc))))
+            except (OSError, AttributeError, ValueError):
+                signatures.append((original["document_id"], "missing"))
+        rules = root / "backend/app/connectivity_matter_rules.json"
+        try:
+            rule_signature = source_signature(rules)
+        except OSError:
+            rule_signature = None
+        version = item.get("version", item.get("updated_at"))
+        key = (item["task_id"], version, layer, tuple(signatures), rule_signature)
+        with lock:
+            if key in result_cache:
+                result_cache.move_to_end(key)
+                log.info("connectivity_result cache=hit task=%s layer=%s version=%s", item["task_id"], layer, ve
+rsion)
+                return deepcopy(result_cache[key])
+        normalized = ConnectivityRun.model_validate({k: v for k, v in body.items() if k in ConnectivityRun.model
+_fields})
+        normalized = refresh_run_sources(root, normalized)
+        if layer == "full":
+            if normalized.matter_schema_version:
+                from .connectivity_assurance_planning import build_assurance_planning
+                normalized.assurance_planning = build_assurance_planning(normalized)
+            value = normalized.model_dump(mode="json")
+            value["overview"] = build_overview(normalized)
+        else:
+            all_fields = normalized.model_dump(mode="json")
+            value = {k: all_fields.get(k, v) for k, v in body.items()}
+            value["versions"] = all_fields["versions"]
+            if layer in {"summary", "matters"} and normalized.versions.get("source_validity", {}).get("status") 
+== "invalid":
+                # 摘要没有证据全文，不能继续展示来源有效的旧判断。
+                value["assurance_planning"] = {}
+                for assessment in value.get("matter_assessments", []):
+                    assessment["relation_support"] = "invalid"
+                    assessment["unresolved"] = [*assessment.get("unresolved", []), "依赖来源变化，打开事项查看失
+效证据"]
+        value["ai_generated_content_notice"] = NOTICE
+        with lock:
+            # 版本变化即淘汰旧版本；来源变化也不积累大结果。
+            for old in list(result_cache):
+                if old[0] == item["task_id"] and (old[1] != version or old[2] == layer):
+                    del result_cache[old]
+            result_cache[key] = deepcopy(value)
+            while len(result_cache) > 16:
+                result_cache.popitem(last=False)
+        log.info("connectivity_result cache=miss task=%s layer=%s version=%s", item["task_id"], layer, version)
+        return value
+
+    def store(task_id=None):
+        mode = "local" if task_id and task_id.startswith("CONNJOB-") else ("supabase" if task_id or demo_task_su
+pabase_enabled() else "local")
+        with lock:
+            if mode not in stores:
+                stores[mode] = SupabaseDemoRunTaskStore(get_demo_task_client()) if mode == "supabase" else DemoR
+unTaskStore(directory / "tasks", task_id_prefix="CONNJOB")
+        return stores[mode]
+
+    def owner(request: Request) -> str:
+        return hashlib.sha256(request.cookies.get(COOKIE, "").encode()).hexdigest()
+
+    def task(task_id: str):
+        result = store(task_id).get(task_id)
+        if not result or result.get("run_body", {}).get("kind") != "connectivity":
+            raise HTTPException(404, "关联核对任务不存在")
+        return result
+
+    def authorize(request: Request, item: dict):
+        if not single_user_enabled() and (not request.cookies.get(COOKIE) or not hmac.compare_digest(owner(reque
+st), item["run_body"].get("owner", ""))):
+            raise HTTPException(403, "只能更正或取消当前浏览器创建的任务")
+        origin = request.headers.get("origin")
+        if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+            raise HTTPException(403, "更正请求必须来自当前网站")
+
+    def public(item: dict, request: Request | None = None) -> dict:
+        view = store(item["task_id"]).snapshot(item["task_id"], item=item)
+        if not view:
+            raise HTTPException(404, "任务不存在")
+        result = {k: v for k, v in view.items() if k not in {"run_body", "request_payload", "request_sha256", "i
+dempotency_key_sha256"}}
+        result["parent_task_id"] = item.get("run_body", {}).get("parent_task_id")
+        is_owner = single_user_enabled() or bool(request and request.cookies.get(COOKIE)
+                        and hmac.compare_digest(owner(request), item.get("run_body", {}).get("owner", "")))
+        if item.get("run_body", {}).get("analysis_scope") == "matter_connectivity" and not is_owner:
+            raise HTTPException(403, "事项调查任务仅当前创建会话可读取")
+        result["can_modify"] = is_owner
+        # 公共视图默认不含个人观察正文，只列条数；本人视图才展开。
+        body = result.get("result")
+        if isinstance(body, dict):
+            body = normalized_result({**item, "result": body})
+            result['result'] = body
+        if isinstance(body, dict) and not is_owner:
+            body = dict(body)
+            notes = body.get("professional_notes") or []
+            body["personal_observation_count"] = len(notes)
+            body["professional_notes"] = []
+            result["result"] = body
+        elif isinstance(body, dict):
+            body = dict(body)
+            body["personal_observation_count"] = len(body.get("professional_notes") or [])
+            result["result"] = body
+        return result
+
+    from .connectivity_matter_schemas import matter_enabled
+    from .connectivity_access import access_policy
+
+    @router.get("/bootstrap")
+    def bootstrap(response: Response, request: Request):
+        if not request.cookies.get(COOKIE):
+            response.set_cookie(COOKIE, secrets.token_urlsafe(32), httponly=True, samesite="strict", secure=requ
+est.url.scheme == "https", max_age=30*86400)
+        grouped = {}
+        for doc in load_registry(root):
+            pair = grouped.setdefault(doc.case_id, {"pair_id": doc.case_id, "company": doc.company, "period": do
+c.period, "documents": []})
+            pair["documents"].append(doc.model_dump())
+        rule_cards = {key: {**rule, "conditions": list(required_conditions(rule["operator"]))} for key, rule in 
+RULES.items()}
+        return {"pairs": list(grouped.values()), "topics": TOPICS, "rules": rule_cards, "notice": NOTICE, **acce
+ss_policy(),
+                "matter_enabled":matter_enabled(),"default_mode": "five_agents" if matter_enabled() else "three_
+agents", "matter_schema_version": "matter_connectivity_v1",
+                "task_persistence": "supabase" if demo_task_supabase_enabled() else "local", "schema_version": S
+CHEMA_VERSION,
+                "intelligence_version": INTELLIGENCE_VERSION, "prompt_version": PROMPT_VERSION,
+                "project_facts": project_facts(root)}
+
+    @router.get("/report-sets")
+    def report_sets(company_id: str | None = None):
+        records, persistence = report_set_records(root)
+        return {"items": [r["report_set"] for r in records if not company_id or r["report_set"]["company_id"] ==
+ company_id],
+            "documents": [d.model_dump(mode="json") for d in load_registry(root) if not company_id or d.company_
+id == company_id],
+            "persistence": persistence}
+
+    @router.post("/report-sets")
+    def new_report_set(body: ReportSetRequest, request: Request):
+        from .connectivity_catalog_api import can_import
+        can_import(request)
+        if request.headers.get("origin") and request.headers["origin"].rstrip("/") != str(request.base_url).rstr
+ip("/"):
+            raise HTTPException(403, "资料集合请求必须来自当前工作台")
+        try:
+            return create_report_set(root, body).model_dump(mode="json")
+        except ValueError as error:
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
+
+    @router.get("/demo/baosteel")
+    def baosteel_dossier():
+        """Read-only case-specific evidence audit; never invokes the model or edits a task."""
+        from .connectivity_project_demo import build_baosteel_dossier
+        try:
+            return build_baosteel_dossier(root)
+        except (ValueError, OSError, RuntimeError) as error:
+            log.warning("baosteel_dossier unavailable code=%s",type(error).__name__)
+            raise HTTPException(503, "官方资料核验或专项证据索引尚未完成，请检查原件可用性及服务日志。") from er
+ror
+
+    @router.get("/demo/baosteel/featured-runs")
+    def baosteel_featured_real_agent_history():
+        """Explicitly curated public-report-only, non-sensitive real supplier receipts.
+
+        Unlike session-owned history this endpoint allows presentation on another
+        browser, but NEVER exposes prompts, raw texts, private notes, secrets or
+        unapproved run ids. Its source of truth is persisted production task data.
+        """
+        from .connectivity_project_demo import load_demo_config
+        from .connectivity_matter_completion import effective_role_status, known_usage
+        config=load_demo_config(root)
+        safe=[]
+        for task_id in config.get("featured_real_agent_task_ids",[])[:5]:
+            if not isinstance(task_id,str) or not task_id.startswith("DEMO-RUN-"):
+                continue
+            try:
+                item=task(task_id)
+                body=item.get("run_body") or {}
+                snapshot=store(task_id).snapshot(task_id,item=item) or {}
+                result=snapshot.get("result") or {}
+                documents=result.get("documents") or []
+                if (body.get("mode")!="five_agents"
+                    or body.get("analysis_scope")!="matter_connectivity"
+                    or (body.get("pair_id")!="600019-2025" and
+                        {d.get("document_id") for d in documents} != {"BAOSTEEL_AR_2025","BAOSTEEL_ESG_2025"})):
+                    continue
+                if result.get("dataset_role")=="synthetic" or (result.get("versions") or {}).get("provider_origi
+n")=="injected_test_caller":
+                    continue
+                calls=result.get("provider_calls") or []
+                if not any(c.get("request_attempted") and c.get("performed") and c.get("model") for c in calls):
+                    continue
+                role_rows=[]
+                for role in ("A1","A2","A3","A4","A5"):
+                    tasks=[t for t in (result.get("matter_tasks") or []) if t.get("role")==role]
+                    last=tasks[-1] if tasks else {}
+                    role_rows.append({"role":role,"status":effective_role_status(last),
+                        "recorded_status":last.get("status","not_run"),
+                        "termination_reason":last.get("termination_reason"),"rounds":last.get("rounds"),
+                        "failure_code":last.get("failure_code"),"count":len(tasks),
+                        "stop_reason":str(last.get("stop_reason") or "")[:190],
+                        "identity_outcome":last.get("identity_outcome")})
+                assessments=result.get("matter_assessments") or []
+                a=assessments[0] if assessments else {}
+                table=(result.get("versions") or {}).get("verified_project_table") or {}
+                safe_table={"status":table.get("status"),"source_page":table.get("source_page"),
+                    "document_id":table.get("document_id"),"source_sha256":table.get("source_sha256"),
+                    "values_yuan":{key:table.get("values_yuan",{}).get(key) for key in
+                        ("opening","increase","to_fixed","to_long_term","closing")},
+                    "known_component_subtotal_yuan":table.get("known_component_subtotal_yuan"),
+                    "note":str(table.get("note") or "")[:300]} if table.get("source_row_matched") else None
+                safe.append({"task_id":task_id,"status":snapshot.get("status"),
+                    "model_status":result.get("model_status"),"created_at":item.get("created_at"),
+                    "saved_at":item.get("updated_at"),
+                    "models":sorted(set(c["model"] for c in calls if c.get("performed") and c.get("model"))),
+                    "actual_model_requests":sum(bool(c.get("request_attempted")) for c in calls),
+                    "prior_actual_model_requests":sum(bool(c.get("request_attempted")) for c in (result.get("pri
+or_provider_calls") or [])),
+                    "execution_origin":(result.get("versions") or {}).get("result_origin"),
+                    "actual_tool_requests":len(result.get("matter_tool_receipts") or []),
+                    "successful_tool_requests":sum(r.get("status")=="hit" for r in (result.get("matter_tool_rece
+ipts") or [])),
+                    "usage":known_usage(calls),
+                    "investigation_status":"completed" if all(r["status"] in {"completed","reused"} for r in rol
+e_rows) and result.get("model_status")=="five_agents_completed" else "partial",
+                    "role_results":role_rows,
+                    "verified_financial_table":bool((result.get("versions") or {}).get("verified_project_table")
+),
+                    "verified_table_detail":safe_table,
+                    "path_examples":[{"financial_item":str(p.get("financial_item") or "")[:100],
+                        "support":p.get("support"), "steps":[
+                            {"label":str(step.get("label") or "")[:150],
+                             "explanation":str(step.get("explanation") or "")[:240],
+                             "support":step.get("support"),"origin":step.get("origin")}
+                            for step in (p.get("steps") or [])[:4]]}
+                        for p in (result.get("matter_paths") or [])[:3]],
+                    "counter_explanations":[{"explanation":str(h.get("explanation") or "")[:320],
+                        "status":h.get("status"),"required_evidence":str(h.get("discriminating_evidence") or "")
+[:220]}
+                        for h in (result.get("matter_explanations") or [])[:3]],
+                    "financial_paths":len(result.get("matter_paths") or []),
+                    "financial_occurrences":len(result.get("occurrences") or []),
+                    "assessment_summary":str(a.get("summary") or "")[:520],
+                    "financial_stage":str(a.get("financial_stage") or "")[:350],
+                    "next_actions":[{"question":str(n.get("question") or "")[:220],
+                        "requested_material":str(n.get("requested_material") or "")[:220]}
+                        for n in (a.get("next_actions") or [])[:5]]})
+            except Exception as exc:
+                # A disappeared production snapshot or disconnected local CI database
+                # must not take down the independent verified-PDF investigation screen.
+                log.warning("featured_baosteel_run unavailable id=%s kind=%s",task_id,type(exc).__name__)
+        return {"items":safe,"source":"live_saved_provider_receipts",
+                "notice":"真实已保存任务，仅展示白名单内公开报告的脱敏模型回执；失败和降级原样保留。"}
+
+    @router.get("/demo/baosteel/export/{format_name}")
+    def baosteel_export(format_name: str):
+        """Download a read-only special report; reuse the screen's public data only."""
+        from urllib.parse import quote
+        from .connectivity_project_export import FORMATS, export_report
+        if format_name not in FORMATS:
+            raise HTTPException(404, "支持的专项导出格式：docx、json、csv、pdf")
+        dossier = baosteel_dossier()
+        history = baosteel_featured_real_agent_history()
+        # MuPDF rendering shares the existing source-access lock with PDF readers.
+        with PDF_ACCESS_LOCK:
+            content = export_report(format_name, dossier, history)
+        filename = "宝钢专项核查报告." + format_name
+        return Response(content=content, media_type=FORMATS[format_name], headers={
+            "Content-Disposition": "attachment; filename=\"baosteel-special-report." + format_name + "\"; filena
+me*=UTF-8''" + quote(filename),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        })
+
+    @router.get("/demo/baosteel/runs")
+    def baosteel_saved_runs(request: Request):
+        """Only list the current user's own real persisted tasks; no synthetic snapshots."""
+        if not single_user_enabled() and not request.cookies.get(COOKIE):
+            raise HTTPException(409, "请先加载工作台，建立本浏览器会话")
+        owner_id = None if single_user_enabled() else owner(request)
+        rows = store().list_owned(owner_id, limit=20, offset=0)
+        items = []
+        for row in rows:
+            body = row.get("run_body") or row.get("request_payload") or {}
+            company = str(row.get("company") or body.get("company") or "")
+            if row.get("case_id") != "600019-2025" and "宝钢" not in company:
+                continue
+            items.append({"task_id":row["task_id"],"status":row.get("status"),
+                "created_at":row.get("created_at"),"model_mode":body.get("mode"),
+                "analysis_scope":body.get("analysis_scope"),
+                "parent_task_id":body.get("parent_task_id"),
+                "result_expires_at":row.get("result_expires_at")})
+        return {"items":items[:8],"notice":"真实台账，只列当前会话有权查看的任务；部分完成和失败状态照实保留。"}
+
+    @router.get("/readiness")
+    def readiness(pair_id: str | None = None):
+        return source_readiness(root, pair_id=pair_id)
+
+    @router.get("/runs")
+    def history(request: Request, limit: int = Query(5, ge=1, le=20), offset: int = Query(0, ge=0, le=10000)):
+        # 无会话不能用空串哈希探测历史；已知链接读取沿用原有公开策略。
+        if not single_user_enabled() and not request.cookies.get(COOKIE):
+            raise HTTPException(409, "请先加载工作台以建立当前浏览器会话")
+        rows = store().list_owned(None if single_user_enabled() else owner(request), limit=limit + 1, offset=off
+set)
+        items = [{k: row.get(k) for k in ("task_id", "case_id", "status", "created_at", "updated_at", "result_ex
+pires_at", "run_id", "failure_code")}
+                 for row in rows[:limit]]
+        for value, row in zip(items, rows):
+            value["company"] = row.get("company") or (row.get("result") or {}).get("company") or row.get("run_bo
+dy", {}).get("company")
+            value["parent_task_id"] = (row.get("run_body") or {}).get("parent_task_id")
+            value["execution_mode"] = (row.get("run_body") or {}).get("mode")
+        return {"items": items, "limit": limit, "offset": offset,
+                "next_offset": offset + limit if len(rows) > limit else None,
+                "notice": NOTICE, "read_policy": "single_user_workspace" if single_user_enabled() else "known_li
+nk_public; history_session_owned"}
+
+    @router.post("/runs")
+    def create(body: RunRequest, request: Request):
+        if body.analysis_scope=="matter_connectivity" and not matter_enabled():raise HTTPException(503,"事项调查
+入口已关闭；历史结果仍可读取")
+        if body.analysis_scope=="matter_connectivity" and body.mode!='calculation_only' and len(body.selected_ma
+tter_ids)!=1:
+            raise HTTPException(422, {"code":"MATTER_SELECTION_REQUIRED","message":"请先无模型建立候选档案，再选
+择一个具体事项启动五Agent深查。单次仅调查一个事项。"})
+        if body.mode != 'calculation_only':
+            from .connectivity_catalog_api import authorize_model
+            authorize_model(request)
+        if os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE","web").strip().lower() != "web":
+            raise HTTPException(503,"关联核对执行器未就绪：当前版本须配置Web执行模式")
+        if not request.cookies.get(COOKIE):
+            raise HTTPException(409, "请先加载工作台以建立当前浏览器会话")
+        case_identity = body.report_set_id or body.pair_id
+        if body.analysis_scope == "matter_connectivity":
+            try:
+                selected_set, _ = resolve_documents(root, body)
+            except ValueError as error:
+                raise HTTPException(422, getattr(error, "detail", str(error))) from error
+        elif body.pair_id not in {d.case_id for d in load_registry(root)}:
+            raise HTTPException(404, "报告对未登记")
+        runtime = store()
+        run_body = {**body.model_dump(mode="json"), "kind": "connectivity", "owner": owner(request)}
+        if body.analysis_scope == "matter_connectivity":run_body['company']=selected_set.company
+        if body.parent_task_id and not body.retry_of_task_id:
+            predecessor = task(body.parent_task_id)
+            authorize(request, predecessor)
+            predecessor_set = ((predecessor.get("result") or {}).get("report_set") or {}).get("report_set_id")
+            if not body.report_set_id or predecessor_set != body.report_set_id:
+                raise HTTPException(422, "所选前序任务必须属于同一不可变资料集合；不能仅按企业名称关联历史")
+            run_body["parent_task_id"] = body.parent_task_id
+        resume = None
+        if body.retry_of_task_id:
+            original = task(body.retry_of_task_id)
+            authorize(request, original)
+            snapshot = store(body.retry_of_task_id).snapshot(body.retry_of_task_id, item=original) or {}
+            if original.get("case_id") != case_identity:
+                raise HTTPException(422, "重试报告对必须与原任务一致")
+            if set(original.get('run_body', {}).get('topics', body.topics)) != set(body.topics):
+                raise HTTPException(422, '增量重试须沿用原事项选择；改变事项请发起新运行')
+            if original.get("run_body",{}).get("ablation","none")!=body.ablation:raise HTTPException(422,"重试不
+能改变消融条件")
+            if body.analysis_scope=="matter_connectivity" and set(original.get("run_body",{}).get("matter_types"
+,body.matter_types))!=set(body.matter_types):
+                raise HTTPException(422,"增量重试须沿用事项类型；改变范围请创建新运行")
+            if snapshot.get("result"):
+                resume = ConnectivityRun.model_validate(snapshot["result"])
+                if resume.execution_mode != body.mode:
+                    raise HTTPException(422, "增量重试须沿用原执行模式；切换模式请发起新运行")
+            run_body["parent_task_id"] = body.retry_of_task_id
+
+        def execute(item):
+            reservation = None
+            result = None
+            latest_run = None
+            def checkpoint(run):
+                nonlocal latest_run
+                latest_run = run.model_copy(deep=True)
+                runtime.update_task(item["task_id"], run_id=run.run_id, result=run.model_dump(mode="json"))
+            cancellation = {"checked_at": 0.0, "value": False}
+            def cancelled():
+                # 解析器逐页询问取消；远程存储不能每页都发一次数据库请求。
+                now = time.monotonic()
+                if not cancellation["checked_at"] or now-cancellation["checked_at"] >= 1:
+                    current_task = runtime.get(item["task_id"]) or {}
+                    cancellation["value"] = runtime.is_cancelled(item["task_id"]) or current_task.get("failure_c
+ode") == "CANCEL_REQUESTED"
+                    cancellation["checked_at"] = time.monotonic()
+                return cancellation["value"]
+            def before_model():
+                nonlocal reservation
+                if runtime.is_cancelled(item["task_id"]):
+                    raise InterruptedError("原任务已取消，未发送模型请求")
+                reservation = reserve_model(request)
+            def provider_budget(run):
+                if not reservation:return
+                def amount(call,name):
+                    if call.get(name) is not None:return call[name]
+                    return call.get(name.replace("_tokens","_token_upper_bound"),0) if call.get("request_attempt
+ed") else 0
+                quota_ledger().checkpoint_usage(reservation,input_tokens=sum(amount(c,"input_tokens") for c in r
+un.provider_calls),
+                    output_tokens=sum(amount(c,"output_tokens") for c in run.provider_calls))
+            try:
+                resume_options = {"resume": resume} if resume is not None else {}
+                if body.analysis_scope=="matter_connectivity":resume_options["provider_budget"]=provider_budget
+                result = run_pipeline(root, body,
+                    progress=lambda *args: runtime.update_stage(item["task_id"], *args),
+                    agent_progress=lambda *args: runtime.update_agent_step(item["task_id"], *args),
+                    cancelled=cancelled, before_model=before_model, checkpoint=checkpoint, **resume_options)
+            finally:
+                if reservation:
+                    calls = (result or latest_run).provider_calls if (result or latest_run) else []
+                    unknown_usage = any(c.get("request_attempted") and (c.get("input_tokens") is None or c.get("
+output_tokens") is None) for c in calls)
+                    if unknown_usage and (result or latest_run):
+                        (result or latest_run).versions["usage_completeness"] = "provider_usage_unknown"
+                    try:
+                        # 未知usage不冒充零消耗；用量上界只用于额度占用，实际回执仍保留None。
+                        def accounted(c, name):
+                            if c.get(name) is not None:
+                                return c[name]
+                            return c.get(name.replace("_tokens", "_token_upper_bound"), 0) if c.get("request_att
+empted") else 0
+                        quota_ledger().settle(reservation, input_tokens=sum(accounted(c, "input_tokens") for c i
+n calls), output_tokens=sum(accounted(c, "output_tokens") for c in calls))
+                    except PublicModelQuotaError as error:
+                        if result is None:
+                            raise
+                        # 模型响应和预算结算是两种事实；保留已取得意见，明确结算未通过。
+                        result.versions['quota_settlement'] = {'status': 'failed', 'code': error.code, 'message'
+: str(error)[:240]}
+                        runtime.update_stage(item['task_id'], 'structured_output', 'degraded', str(error)[:240])
+            degraded = result.model_status not in {"not_requested", "three_agents_completed", "single_completed"
+, "adaptive_completed", "reused_completed", "five_agents_completed", "matter_three_completed", "matter_single_co
+mpleted"} or result.versions.get('quota_settlement', {}).get('status') == 'failed'
+            from .connectivity_catalog import record_execution
+            from .supabase_adapter import SupabaseError
+            import sqlite3
+            try:
+                result.versions['catalog_execution'] = record_execution(root, result, item['task_id'])
+            except (SupabaseError, sqlite3.Error) as error:
+                # 分析历史保留；目录状态写入失败须显式出现在结果中，不能伪称已同步。
+                result.versions['catalog_execution'] = {'status': 'failed', 'code': type(error).__name__}
+            runtime.update_task(item["task_id"], status="cancelled" if result.versions.get("cancellation_request
+ed") else "degraded" if degraded else "completed", run_id=result.run_id,
+                result=result.model_dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNE
+CTIVITY_RETENTION_SECONDS))
+        execute.__audittrace_request__ = request
+        try:
+            item = runtime.create(case_identity, run_body, execute, idempotency_key=request.headers.get("idempot
+ency-key"))
+        except IdempotencyConflict as error:
+            raise HTTPException(409, str(error)) from error
+        return public(item, request)
+
+    @router.get("/runs/{task_id}")
+    def read(task_id: str, request: Request):
+        return public(task(task_id), request)
+
+    def projected(task_id, request, kind="status", matter_id=None):
+        from .supabase_adapter import SupabaseError
+        try:
+            item = store(task_id).get_projection(task_id, kind, matter_id)
+        except SupabaseError as error:
+            log.warning('connectivity_projection unavailable layer=%s code=%s',kind,error.code)
+            raise HTTPException(503, "分层读取暂不可用；请检查数据库连接、权限及connectivity_read_projection迁移
+。未退回全量读取。") from error
+        if not item or item.get("run_body", {}).get("kind") != "connectivity":
+            raise HTTPException(404, "关联核对任务不存在")
+        # 与完整读取保持相同可见性；分层端点不能绕开会话权限。
+        if kind != "status" or item.get("run_body", {}).get("analysis_scope") == "matter_connectivity":
+            authorize(request, item)
+        is_owner = single_user_enabled() or bool(request.cookies.get(COOKIE) and hmac.compare_digest(owner(reque
+st), item["run_body"].get("owner") or ""))
+        view = {k: v for k, v in item.items() if k != "run_body"}
+        view["can_modify"] = is_owner
+        if kind != "status":
+            view["result"] = normalized_result(item, layer=f"detail:{matter_id}" if kind == "detail" else kind)
+            if view["result"]:
+                view["result"]["projection_layer"] = kind
+        return view
+
+    @router.get("/runs/{task_id}/status")
+    def read_status(task_id: str, request: Request):
+        view = projected(task_id, request)
+        # 进度由真实阶段与角色状态投影，不复制结果或模型调用正文。
+        steps = view.get("steps") or {}
+        current_stage = next((k for k, v in steps.items() if v.get("status") == "running"), None)
+        return {"task_id": view["task_id"], "status": view["status"], "current_stage": current_stage,
+            "steps": {k: {"status": v.get("status"), "updated_at": v.get("updated_at")} for k, v in steps.items(
+)},
+            "agent_steps": {k: {"status": v.get("status"), "updated_at": v.get("updated_at")} for k, v in (view.
+get("agent_steps") or {}).items()},
+            "updated_at": view["updated_at"], "version": view["version"]}
+
+    @router.get("/runs/{task_id}/summary")
+    def summary(task_id: str, request: Request):
+        return projected(task_id, request, "summary")
+
+    @router.get("/runs/{task_id}/matters")
+    def matters(task_id: str, request: Request):
+        item = projected(task_id, request, "matters")
+        view = item.get("result") or {}
+        return {"items": view.get("matters", []), "overview": view.get("matter_overview", {}), "result_revision"
+: view.get("result_revision")}
+
+    @router.get("/runs/{task_id}/matters/{matter_id}")
+    def matter_detail(task_id: str, matter_id: str, request: Request):
+        item = projected(task_id, request, "detail", matter_id)
+        view = item.get("result") or {}
+        matter = next((m for m in view.get("matters", []) if m["matter_id"] == matter_id), None)
+        if matter is None:
+            raise HTTPException(404, "事项不存在")
+        result = {"matter": matter, "result_revision": view["result_revision"], "task_id": task_id,
+                  "version": item.get("version"), "result": view}
+        for field in ("matter_events", "matter_commitments", "matter_paths", "matter_relations", "matter_explana
+tions", "matter_assessments", "matter_tasks"):
+            result[field] = [r for r in view.get(field, []) if r.get("matter_id") == matter_id]
+        ids = set(matter["evidence_ids"])
+        from .connectivity_matters import _all_refs
+        ids.update(_all_refs(result))
+        result["evidence"] = [e for e in view.get("matter_evidence", []) if e["evidence_id"] in ids]
+        return result
+
+    @router.post("/runs/{task_id}/cancel")
+    def cancel(task_id: str, request: Request):
+        item = task(task_id)
+        authorize(request, item)
+        if item.get("run_body", {}).get("analysis_scope") == "matter_connectivity":
+            if item.get("status") not in {"queued","running"}:return public(item,request)
+            if not item.get("non_interruptible"):
+                store(task_id).cancel(task_id)
+                return public(task(task_id),request)
+            # 已发出的请求等待回执并结算，拒绝继续发送；保留可恢复检查点。
+            store(task_id).update_task(task_id, failure_code="CANCEL_REQUESTED")
+            return public(task(task_id), request)
+        result = store(task_id).cancel(task_id)
+        if result and result.get("cancel_rejected"):
+            raise HTTPException(409, "模型调用已经开始，当前阶段不可中断；请等待实际结果")
+        return public(task(task_id), request)
+
+    def readable(task_id, *, force_sources=False):
+        """修订与导出读取完整结果；公共视图的裁剪只在响应层做，不能反过来丢数据。"""
+        item = task(task_id)
+        snapshot = store(task_id).snapshot(task_id, item=item) or {}
+        if snapshot.get("status") not in {"completed", "degraded", "cancelled", "interrupted", "failed"} or not 
+snapshot.get("result"):
+            raise HTTPException(409, "任务尚无可读取的完成结果")
+        return item, refresh_run_sources(root, ConnectivityRun.model_validate(snapshot["result"]), force=force_s
+ources)
+
+    @router.post("/runs/{task_id}/revalidate-sources")
+    def revalidate_sources(task_id: str, request: Request):
+        item = task(task_id)
+        authorize(request, item)
+        if not item.get("result"):
+            raise HTTPException(409, "任务尚无结果")
+        run = refresh_run_sources(root, ConnectivityRun.model_validate(item["result"]), force=True)
+        with lock:
+            for key in list(result_cache):
+                if key[0] == task_id:
+                    del result_cache[key]
+        return {"task_id": task_id, "source_validity": run.versions.get("source_validity", {"status": "valid"})}
+
+    @router.post("/runs/{task_id}/matter-revisions")
+    def matter_revision(task_id: str, body: MatterRevisionRequest, request: Request):
+        item, run = readable(task_id)
+        authorize(request, item)
+        child = run.model_copy(deep=True)
+        from .connectivity_matter_revision import revise_matters
+        try:
+            revise_matters(child, body)
+        except ValueError as error:
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
+        child.parent_run_id = run.run_id
+        child.run_id = "CONN-" + uuid.uuid4().hex[:16].upper()
+        child.result_revision += 1
+        child.prior_provider_calls = [*run.prior_provider_calls, *run.provider_calls]
+        child.provider_calls = []
+        return save_revision(item, run, body, request, child)
+
+    @router.post("/runs/{task_id}/matter-reconciliations")
+    def matter_reconciliation(task_id: str, body: MatterReconciliation, request: Request):
+        item, run = readable(task_id)
+        authorize(request, item)
+        from .connectivity_matter_revision import reconcile_matter
+        try:
+            return reconcile_matter(run, body)
+        except ValueError as error:
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
+
+    @router.get("/runs/{task_id}/scenario")
+    def scenario(task_id: str, request: Request, price: str = Query(..., max_length=24), usage: str = Query(...,
+ max_length=24)):
+        """情景是只读计算投影；两参数不修改企业原值或历史运行。"""
+        scenario_item, run = readable(task_id)
+        if run.matter_schema_version:
+            authorize(request, scenario_item)
+        try:
+            computed = recalculate_scenario(run.financial_scenario, price, usage)
+        except ValueError as error:
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
+        return {"run_id": run.run_id, "result_revision": run.result_revision, "scenario": computed}
+
+    @router.post("/runs/{task_id}/corrections")
+    def correct(task_id: str, body: CorrectionRequest, request: Request):
+        item, run = readable(task_id)
+        authorize(request, item)
+        if not any(c.check_id == body.check.check_id for c in run.checks):
+            raise HTTPException(422, "更正项不属于该运行")
+        if body.expected_revision != run.result_revision:
+            raise HTTPException(409, "结果版本已变化，请重新读取")
+        try:
+            validated = calculate(body.check, run.occurrences)
+        except ValueError as error:
+            raise HTTPException(422, getattr(error, "detail", str(error))) from error
+        # 引用校验不通过时不能把更正标成有依据的人工确认。
+        if any("引用" in gap or "有效原文" in gap for gap in validated.unresolved):
+            raise HTTPException(422, "更正所用依据未能在本次原文核实")
+        child = run.model_copy(deep=True)
+        child.parent_run_id = run.run_id
+        child.run_id = f"CONN-{uuid.uuid4().hex[:16].upper()}"
+        child.result_revision += 1
+        validated.review_status = "demo_modified"
+        old = next(c for c in run.checks if c.check_id == validated.check_id)
+        child.checks = [enrich_calculation(calculate(validated if c.check_id == validated.check_id else c, child
+.occurrences), child.occurrences) for c in child.checks]
+        refresh_analysis_status(child)
+        child.findings = make_findings(child.checks)
+        child.reviews.append(ReviewEvent(event_id=body.action_id, actor=body.actor, action="relationship_correct
+ion", reason=body.reason,
+            check_id=validated.check_id, before=old.model_dump(), after=validated.model_dump()))
+        return save_revision(item, run, body, request, child)
+
+    @router.post("/runs/{task_id}/reviews")
+    def review(task_id: str, body: UserReviewRequest, request: Request):
+        item, run = readable(task_id)
+        authorize(request, item)
+        if body.expected_revision != run.result_revision:
+            raise HTTPException(409, "结果版本已变化，请重新读取")
+        ids = set(body.check_ids)
+        if len(ids) != len(body.check_ids) or not ids.issubset({c.check_id for c in run.checks}):
+            raise HTTPException(422, "所选关系必须属于本次结果且不可重复")
+        if body.action == "personal_observation" and (len(ids) != 1 or len(body.observation.strip()) < 3):
+            raise HTTPException(422, "个人观察须对应一项关系并填写具体内容")
+        if body.action in {"ai_accept", "ai_reject"}:
+            if len(ids) != 1 or not any(a.check_id in ids and a.status == "current" for a in run.ai_analyses):
+                raise HTTPException(422, "请选一项与当前结果绑定的AI意见；旧意见需先重新分析")
+        child = run.model_copy(deep=True)
+        child.parent_run_id = run.run_id
+        child.run_id = f"CONN-{uuid.uuid4().hex[:16].upper()}"
+        child.result_revision += 1
+        for check in child.checks:
+            if check.check_id not in ids:
+                continue
+            before = check.model_dump()
+            if body.action in {"ai_accept", "ai_reject"}:
+                opinion = next(a for a in child.ai_analyses if a.check_id == check.check_id)
+                before = opinion.model_dump()
+                opinion.review_status = "accepted" if body.action == "ai_accept" else "rejected"
+                child.reviews.append(ReviewEvent(event_id=body.action_id, actor=body.actor, action=body.action,
+                    reason=body.reason, check_id=check.check_id, before=before, after=opinion.model_dump()))
+                continue
+            elif body.action == "reading_confirmation":
+                check.review_status = "read_confirmed"
+            else:
+                child.professional_notes.append(ProfessionalRiskNote(check_id=check.check_id,
+                    observation=body.observation.strip(), reason=body.reason, actor=body.actor))
+            child.reviews.append(ReviewEvent(event_id=body.action_id, actor=body.actor, action=body.action,
+                reason=body.reason, check_id=check.check_id, before=before, after=check.model_dump()))
+        return save_revision(item, run, body, request, child)
+
+    def save_revision(item, run, body, request, child):
+        if os.getenv("AUDITTRACE_DEMO_EXECUTOR_MODE","web").strip().lower() != "web":
+            raise HTTPException(503,"关联核对修订执行器未就绪：当前版本须配置Web执行模式")
+        runtime = store(item["task_id"])
+        mutation_digest = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
+        with lock:
+            head_file = directory / "revisions" / f"{run.run_id}.json"
+            head_file.parent.mkdir(parents=True, exist_ok=True)
+            remote = not item["task_id"].startswith("CONNJOB-")
+            if remote:
+                # 子修订本身也在共享任务表内，刷新或实例更换不依赖本机侧文件。
+                rows = get_demo_task_client()._request("GET", "rest/v1/demo_run_tasks", service=True,
+                    params={"request_payload->>parent_run_id": f"eq.{run.run_id}", "task_kind": "eq.connectivity
+", "select": "task_id,request_payload", "limit": "1"})
+                if rows:
+                    previous = rows[0]
+                    if previous["request_payload"].get("action_id") == body.action_id:
+                        if previous["request_payload"].get("mutation_digest") != mutation_digest:
+                            raise HTTPException(409, "同一操作编号不能提交不同内容")
+                        return public(task(previous["task_id"]), request)
+                    raise HTTPException(409, "该结果已有新修订，请读取子运行后再更正")
+            elif head_file.exists():
+                head = json.loads(head_file.read_text(encoding="utf-8"))
+                if head["action_id"] == body.action_id:
+                    if head.get("mutation_digest") != mutation_digest:
+                        raise HTTPException(409, "同一操作编号不能提交不同内容")
+                    return public(task(head["task_id"]), request)
+                raise HTTPException(409, "该结果已有新修订，请读取子运行后再更正")
+            def save_child(row):
+                if child.matter_schema_version:
+                    from .connectivity_matters import finish_projection
+                    finish_projection(child)
+                refresh_analysis_status(child)
+                child.versions['result_origin'] = 'user_revision'
+                child.program_hints = build_program_hints(child)
+                child.overview = build_overview(child)
+                runtime.update_task(row["task_id"], status="completed", run_id=child.run_id, result=child.model_
+dump(mode="json"), result_expires_at=result_expiry_iso(minimum_seconds=CONNECTIVITY_RETENTION_SECONDS))
+            correction_body = {"kind": "connectivity", "owner": owner(request), "analysis_scope": run.versions.g
+et("analysis_scope", "legacy_checks"), "parent_run_id": run.run_id, "parent_task_id": item["task_id"], "action_i
+d": body.action_id, "mutation_digest": mutation_digest}
+            try:
+                # 每个父版本使用一个稳定修订键，复用共享任务表既有唯一约束。
+                result = runtime.create(item["case_id"], correction_body, save_child, idempotency_key=f"connecti
+vity-revision-{run.run_id}")
+            except (SupabaseConflict, IdempotencyConflict) as error:
+                raise HTTPException(409, "修订发生并发冲突，请重新读取当前结果") from error
+            if not remote:
+                temporary = head_file.with_suffix(".tmp")
+                temporary.write_text(json.dumps({"task_id": result["task_id"], "action_id": body.action_id, "mut
+ation_digest": mutation_digest}), encoding="utf-8")
+                temporary.replace(head_file)
+        return public(result, request)
+
+    @router.get("/runs/{task_id}/export/{format_name}")
+    def export(task_id: str, format_name: str, request: Request, private: bool = False,
+               scenario_price: str | None = Query(None, max_length=24), scenario_usage: str | None = Query(None,
+ max_length=24)):
+        item, run = readable(task_id, force_sources=True)
+        if run.matter_schema_version:
+            authorize(request, item)
+        if format_name not in {"json", "csv", "docx"}:
+            raise HTTPException(404, "不支持的导出格式")
+        is_owner = bool(request.cookies.get(COOKIE)) and hmac.compare_digest(owner(request), item["run_body"].ge
+t("owner", ""))
+        # 公共导出默认剔除个人观察正文，只有本人且显式 private=1 才展开。
+        include_personal = bool(private and is_owner)
+        if scenario_price is not None or scenario_usage is not None:
+            if scenario_price is None or scenario_usage is None:
+                raise HTTPException(422, "情景导出须同时提供价格与实现比例")
+            try:
+                run.financial_scenario = recalculate_scenario(run.financial_scenario, scenario_price, scenario_u
+sage)
+            except ValueError as error:
+                raise HTTPException(422, getattr(error, "detail", str(error))) from error
+        from .connectivity_delivery import export_run, verify_export_same_source
+        payload, mime = export_run(run, format_name, include_personal=include_personal)
+        if format_name == "json":
+            # 同源校验进入导出链路：导出与页面结果不一致时拒绝下发，而不是只写在单测里。
+            problems = verify_export_same_source(run, payload)
+            if problems:
+                raise HTTPException(500, "导出与页面结果不同源，已拒绝下载：" + "；".join(problems[:3]))
+        return Response(payload, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{run.r
+un_id}.{format_name}"'})
+
+    def document(document_id):
+        doc = next((d for d in load_registry(root) if d.document_id == document_id), None)
+        if not doc:
+            raise HTTPException(404, "来源未登记")
+        path = ensure_source(root, doc)
+        return doc, path
+
+    @router.get("/version-chains/{company_id}")
+    def version_chain(company_id: str):
+        """企业披露版本链独立入口：不受双报告配对限制，也不产出跨报告差额。"""
+        from .connectivity_versions import build_version_chain
+        documents = [doc for doc in load_registry(root) if doc.company_id == company_id]
+        if not documents:
+            raise HTTPException(404, "该公司未登记公开版本")
+        entries = []
+        for doc in sorted(documents, key=lambda item: (item.disclosure_date or "9999", item.document_id)):
+            try:
+                rows, _, _ = extract_document(root, doc, ["research", "environment", "intensity"])
+            except (OSError, ValueError) as error:
+                raise HTTPException(503, f"{doc.document_id} 原件暂不可读取：{type(error).__name__}") from error
+            entries.append({"document": doc, "occurrences": rows})
+        chain = build_version_chain(entries)
+        return {"company_id": company_id, "notice": NOTICE, **chain}
+
+    @router.get("/sources/{document_id}")
+    def source(document_id: str, page: int = 1, view: bool = True):
+        doc, path = document(document_id)
+        if page < 1:
+            raise HTTPException(422, "PDF顺序页必须大于零")
+        if not view:
+            return RedirectResponse(doc.source_url)
+        return source_page_response(path, {"document_id": doc.document_id, "source_file": f"{doc.company} {doc.p
+eriod} {doc.report_type}"}, page,
+                                    f"/api/connectivity/sources/{document_id}", notice=NOTICE, original_url=doc.
+source_url)
+
+    @router.get("/sources/{document_id}/pages/{page}.png")
+    def page_image(document_id: str, page: int):
+        doc, path = document(document_id)
+        with PDF_ACCESS_LOCK, pymupdf.open(path) as pdf:
+            if page < 1 or page > len(pdf):
+                raise HTTPException(404, "PDF页码超出范围")
+            source = pdf[page-1]
+            scale = min(1.5, 2200/max(source.rect.width, source.rect.height))
+            image = source.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False).tobytes("png")
+        return Response(image, media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})
+
+    return router
+"""事项调查合同；来源、执行、专业判断与人工采用使用独立状态。
+
+事项合同独立版本与旧数值合同并存，历史读取不改写原状态。
+证据原件身份、模型建议、程序复算与人工采用分别登记。
+报告年度用于披露定位，事件发生期间未知时保持空值。
+所有角色建议先经过结构与引用检查，不能直接写入共享结果。
+金额使用原文定位和十进制复算，文字意见不能自行放行。
+预算限制由服务端执行，不接受模型自行增加调用权限。
+"""
+from __future__ import annotations
+
+from datetime import date
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+MATTER_VERSION = "matter_connectivity_v1"
+MatterType = Literal["climate_risk", "transition_project", "commitment", "resource_efficiency", "other"]
+Support = Literal["pending", "limited", "supported", "conflicting", "not_comparable", "invalid"]
+ROLE_NAMES = {"A1": "事项识别与建档", "A2": "财务影响调查", "A3": "跨期承诺与后果追踪",
+              "A4": "边界解释与反证调查", "A5": "综合复核与补证决策"}
+
+
+class MatterContract(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class InvestigationBudget(MatterContract):
+    """服务端共享调查预算。
+    角色重试、工具反馈和定向补查均受同一调用上限约束。
+    并行上限约束同时在途请求，不代表五个角色全部同时运行。
+    深查数量以外的事项仍显示在待调查队列中。
+    """
+    max_provider_calls: int = Field(default=20, ge=1, le=40)
+    max_parallel_calls: int = Field(default=2, ge=1, le=2)
+    max_matters: int = Field(default=1, ge=1, le=10)
+    max_role_rounds: int = Field(default=2, ge=1, le=6)
+
+
+class ReportSetRequest(MatterContract):
+    document_ids: list[str] = Field(min_length=1, max_length=30)
+    as_of_date: date = Field(default_factory=date.today)
+
+
+class ReportSet(MatterContract):
+    """不可变的多年资料选择。
+    文件指纹与观察时点共同构成集合身份。
+    覆盖缺口只描述当前取得的资料，不评价企业披露完整性。
+    同一原件可跨集合复用，报告年度与指标年度不混用。
+    """
+    report_set_id: str
+    company_id: str
+    company: str
+    document_ids: list[str]
+    document_fingerprints: dict[str, str]
+    periods: list[str]
+    as_of_date: date
+    coverage_gaps: list[str] = Field(default_factory=list)
+    schema_version: str = MATTER_VERSION
+
+
+class MatterEvidence(MatterContract):
+    """原件中的可定位叙述片段。
+    核验状态只确认字节与摘录来源，不确认语义推理正确。
+    扫描识别方式单列，不能将识别结果冒充原生文字层。
+    来源变更后标记失效，保留旧片段用于历史复查。
+    """
+    evidence_id: str
+    document_id: str
+    source_sha256: str
+    company_id: str
+    report_type: Literal["AR", "ESG"]
+    report_period: str
+    disclosure_date: str = ""
+    pdf_page: int = Field(ge=1)
+    printed_page: str = ""
+    quote: str = Field(min_length=1, max_length=1800)
+    context: str = Field(default="", max_length=3500)
+    adjacent_evidence_ids: list[str] = Field(default_factory=list)
+    section: str = ""
+    bbox: list[float] = Field(default_factory=list)
+    extraction_method: Literal["text", "ocr"] = "text"
+    source_verified: bool = False
+    invalid_reason: str = ""
+
+
+class MatterEvent(MatterContract):
+    """披露支持的事件候选。
+    报告期间、披露日期和事件发生期间使用独立字段。
+    程序推定和模型解释保留来源类型，不自动等同事实认定。
+    事件标签可辅助时序阅读，不能代替原文引用。
+    """
+    event_id: str
+    matter_id: str
+    kind: Literal["risk", "promise", "revision", "action", "investment", "commissioning", "performance", "financ
+ial", "termination"]
+    label: str
+    report_period: str
+    occurred_period: str = ""
+    disclosure_date: str = ""
+    evidence_ids: list[str]
+    origin: Literal["program_candidate", "model_interpretation", "human_review"] = "program_candidate"
+    evidence_status: Support = "pending"
+
+
+class MatterCommitment(MatterContract):
+    """目标及其后续修订的登记记录。
+    原目标不被新目标覆盖，修订关系通过被替代编号保留。
+    目标期限未到不生成失败判断，绩效口径仍须核对。
+    承诺进展与财务阶段分别评价，投资不能证明目标已达成。
+    """
+    commitment_id: str
+    matter_id: str
+    label: str
+    evidence_ids: list[str]
+    proposed_period: str
+    baseline_year: str = ""
+    target_year: str = ""
+    metric_definition: str = ""
+    scope: str = ""
+    supersedes: str = ""
+    evidence_status: Support = "pending"
+    status: Literal["not_due", "progress_unknown", "revised", "supported_as_reported", "needs_review"] = "needs_
+review"
+
+
+class SustainabilityMatter(MatterContract):
+    """以项目、风险或承诺为核心的统一档案。
+    单处披露首先进入身份待确认候选，不强制跨年归并。
+    人工确认身份不代表对应财务金额或专业结论已经成立。
+    关注变化只影响调查顺序，不等于财务重要性或违规认定。
+    """
+    matter_id: str
+    company_id: str
+    name: str
+    matter_type: MatterType
+    subject: str = ""
+    location: str = ""
+    aliases: list[str] = Field(default_factory=list)
+    identity_status: Literal["candidate", "evidence_linked", "human_confirmed"] = "candidate"
+    identity_basis: str = ""
+    evidence_ids: list[str] = Field(default_factory=list)
+    event_ids: list[str] = Field(default_factory=list)
+    investigation_status: Literal["pending", "running", "completed", "partial", "skipped"] = "pending"
+    lineage: list[str] = Field(default_factory=list)
+    attention_signals: list[str] = Field(default_factory=list)
+    attention_evidence_ids: list[str] = Field(default_factory=list)
+
+
+class PathStep(MatterContract):
+    """财务传导路径中的一段主张。
+    原文陈述和机制假设必须分别标注，支持状态不能跨段传递。
+    没有引用的步骤保持待证，即使前后步骤已有充分信息。
+    模型不能把自身建议声明为程序复算或人工复核。
+    """
+    label: str = Field(min_length=1, max_length=200)
+    explanation: str = Field(default="", max_length=1000)
+    evidence_ids: list[str] = Field(default_factory=list, max_length=12)
+    support: Support = "pending"
+    origin: Literal["report_statement", "model_hypothesis", "program_calculation", "human_review"] = "model_hypo
+thesis"
+
+
+class FinancialImpactPath(MatterContract):
+    """事项到具体财务项目的候选路径。
+    支持程度由各段及反证约束，不用主题相近替代缺失环节。
+    与路径相连的财务项目可能只是调查方向，不代表已确认金额。
+    未决条件跟随路径保存并进入后续补证。
+    """
+    path_id: str
+    matter_id: str
+    financial_item: str
+    steps: list[PathStep] = Field(min_length=1, max_length=8)
+    counter_evidence_ids: list[str] = Field(default_factory=list)
+    rule_ids: list[str] = Field(default_factory=list)
+    support: Support = "pending"
+    unresolved: list[str] = Field(default_factory=list)
+
+
+class MatterRelation(MatterContract):
+    """多对多的信息关联边。
+    端点必须是当前账本中的事项、证据、事件或数值对象。
+    关联类型、主张来源和证据支持分别记录，不合成单一可信度。
+    同一证据或财务项目可以参与多条关系，金额不自动汇总。
+    """
+    edge_id: str
+    matter_id: str
+    source_id: str
+    target_id: str
+    relation_kind: Literal["same_matter", "component_of", "allocated_to", "affects_estimate", "potential_mechani
+sm", "progress_of", "supersedes"]
+    assertion_origin: Literal["report_statement", "model_hypothesis", "program_calculation", "human_review"] = "
+model_hypothesis"
+    evidence_status: Support = "pending"
+    evidence_ids: list[str] = Field(default_factory=list)
+    explanation: str = ""
+
+
+class CompetingExplanation(MatterContract):
+    hypothesis_id: str
+    matter_id: str
+    explanation: str
+    supporting_evidence_ids: list[str] = Field(default_factory=list)
+    counter_evidence_ids: list[str] = Field(default_factory=list)
+    discriminating_evidence: str
+    status: Literal["hypothesis", "supported_as_reported", "challenged", "unresolved"] = "hypothesis"
+
+
+class NextAction(MatterContract):
+    question: str = Field(min_length=3, max_length=500)
+    requested_material: str = Field(min_length=3, max_length=500)
+    purpose: str = Field(min_length=3, max_length=500)
+    target_role: Literal["A1", "A2", "A3", "A4", "A5"] = "A2"
+    priority: Literal["high", "medium", "low"] = "medium"
+
+
+class MatterAssessment(MatterContract):
+    """综合复核意见，保留假设、分歧与下一步。
+    关联支持、金额可比、承诺进展和财务阶段使用独立状态。
+    模型意见不能自行设置人工采用结果或正式放行计算。
+    意见绑定结果版本，来源变化后仍保留历史记录。
+    """
+    matter_id: str
+    summary: str
+    relation_support: Support = "pending"
+    amount_comparability: Literal["not_assessed", "comparable", "not_comparable", "needs_evidence"] = "not_asses
+sed"
+    commitment_progress: str = "未取得足以评价承诺进展的证据"
+    financial_stage: str = "待调查"
+    supporting_evidence_ids: list[str] = Field(default_factory=list)
+    counter_evidence_ids: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    disagreements: list[str] = Field(default_factory=list)
+    unresolved: list[str] = Field(default_factory=list)
+    next_actions: list[NextAction] = Field(default_factory=list)
+    review_status: Literal["unreviewed", "accepted", "rejected"] = "unreviewed"
+    result_revision: int = 1
+
+
+class MatterToolCall(MatterContract):
+    tool_name: Literal["search_matter_reports", "open_source_page", "lookup_ontology_rule", "locate_matter_numbe
+rs", "recompute_decimal"]
+    arguments: dict = Field(default_factory=dict)
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class MatterProposal(MatterContract):
+    name: str = Field(min_length=2, max_length=160)
+    matter_type: MatterType
+    evidence_ids: list[str] = Field(min_length=1, max_length=30)
+    identity_basis: str = Field(min_length=3, max_length=1000)
+    subject: str = ""
+    location: str = ""
+    aliases: list[str] = Field(default_factory=list, max_length=15)
+
+
+class AgentMatterResult(MatterContract):
+    """角色建议不能直接覆盖共享结果，由主管线检查身份、引用和版本后合并。"""
+    matter_id: str = ""
+    input_revision: int = Field(default=1, ge=1)
+    summary: str = Field(default="", max_length=2500)
+    matters: list[MatterProposal] = Field(default_factory=list, max_length=12)
+    paths: list[FinancialImpactPath] = Field(default_factory=list, max_length=6)
+    events: list[MatterEvent] = Field(default_factory=list, max_length=20)
+    commitments: list[MatterCommitment] = Field(default_factory=list, max_length=10)
+    relations: list[MatterRelation] = Field(default_factory=list, max_length=20)
+    explanations: list[CompetingExplanation] = Field(default_factory=list, max_length=6)
+    assessment: MatterAssessment | None = None
+    tool_requests: list[MatterToolCall] = Field(default_factory=list, max_length=4)
+    stop_reason: str = Field(default="", max_length=300)
+
+
+class RoleResult(MatterContract):
+    """供应商只接触本角色合同，统一档案由程序侧组装。"""
+    matter_id: str
+    input_revision: int = Field(ge=1, strict=True)
+    summary: str = Field(max_length=2500)
+    tool_requests: list[MatterToolCall] = Field(default_factory=list, max_length=4)
+    stop_reason: str = Field(default="", max_length=300)
+
+
+class IdentificationResult(RoleResult):
+    matters: list[MatterProposal] = Field(max_length=1)
+
+
+class FinancialResult(RoleResult):
+    paths: list[FinancialImpactPath] = Field(max_length=6)
+    relations: list[MatterRelation] = Field(default_factory=list, max_length=20)
+
+
+class TemporalResult(RoleResult):
+    events: list[MatterEvent] = Field(max_length=20)
+    commitments: list[MatterCommitment] = Field(max_length=10)
+    relations: list[MatterRelation] = Field(default_factory=list, max_length=20)
+
+
+class CounterResult(RoleResult):
+    explanations: list[CompetingExplanation] = Field(max_length=6)
+    relations: list[MatterRelation] = Field(default_factory=list, max_length=20)
+
+
+class ReviewResult(RoleResult):
+    assessment: MatterAssessment | None
+
+
+ROLE_RESULT_SCHEMAS = {"A1": IdentificationResult, "A2": FinancialResult, "A3": TemporalResult,
+                       "A4": CounterResult, "A5": ReviewResult}
+
+
+def validate_role_result(role, value, *, combined=False):
+    schema = AgentMatterResult if combined else ROLE_RESULT_SCHEMAS[role]
+    if isinstance(value, AgentMatterResult):
+        # 供应商适配器已经转成统一对象；不能将别的角色的非空内容带入。
+        value = {k: v for k, v in value.model_dump().items() if k in schema.model_fields or v not in (None, [], 
+"")}
+    result = schema.model_validate(value)
+    if not combined and not result.tool_requests:
+        if role == "A1" and not result.matters:
+            raise ValueError("matters: 最终建档必须明确所选事项身份，无法确认应保留候选并写依据")
+        if role == "A5" and result.assessment is None:
+            raise ValueError("assessment: 综合判断缺失；证据不足也必须保留缺口判断")
+    return AgentMatterResult.model_validate(result.model_dump())
+
+
+class MatterRevisionRequest(MatterContract):
+    expected_revision: int = Field(ge=1)
+    action_id: str = Field(min_length=8, max_length=100)
+    action: Literal["merge", "split", "accept", "reject", "planning_adopt", "planning_defer", "planning_exclude"
+]
+    planning_entry_ids: list[str] = Field(default_factory=list, max_length=50)
+    actor: str = Field(default="个人演示用户", min_length=1, max_length=100)
+    matter_ids: list[str] = Field(min_length=1, max_length=20)
+    evidence_ids: list[str] = Field(default_factory=list)
+    reason: str = Field(min_length=3, max_length=2000)
+
+
+class ReconciliationOperand(MatterContract):
+    occurrence_id: str
+    sign: Literal[1, -1] = 1
+
+
+class MatterReconciliation(MatterContract):
+    """受证据约束的条件调节申请。
+    每个操作数使用本运行原文定位编号，不能直接提交任意数值。
+    主体、期间、计量基础、项目归属和去重依据均需可回查引用。
+    本版只产生条件试算，语义资格未经专业复核时不输出正式差额。
+    """
+    matter_id: str
+    operands: list[ReconciliationOperand] = Field(min_length=2, max_length=30)
+    identity_evidence_ids: list[str] = Field(min_length=1)
+    measurement_basis: str
+    deduplication_basis: str
+    # 所有前提均需证据，不接受客户端声明 true。
+    condition_evidence: dict[str, list[str]] = Field(default_factory=dict)
+
+
+def matter_enabled():
+    """关闭新事项运行入口，历史结果仍按原版本读取。
+    回退开关只改变新建默认，不把五Agent请求暗换成三Agent。
+    """
+    import os
+    return os.getenv("CONNECTIVITY_MATTER_ENABLED","true").lower() in {"true","1","yes","on"}
+"""事项主管线：建档后并行调查，反证与综合复核；预算和共享写入由程序管理。
+
+事项建档先行，财务调查与跨期调查随后并行读取同一版本。
+每次共享写入在程序锁内合并，角色不能覆盖另一角色的账本。
+反证与综合复核顺序执行，补查仍归同一个全局调用上限。
+用户取消后保留已取得回执，已发出请求等待响应并完成结算。
+缺少真实模型配置时留下未执行记录，不生成模拟协作过程。
+续分析复用原事项身份和已完成结果，历史调用放在独立来源链。
+"""
+from __future__ import annotations
+
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+import json
+import hashlib
+import os
+import threading
+import time
+import uuid
+
+from .connectivity_matter_agents import call_matter_role, MatterCallFailure, PROMPT_VERSION
+from .connectivity_matter_extraction import read_corpus, relevant_evidence, digest, search_corpus
+from .connectivity_matter_schemas import MATTER_VERSION, AgentMatterResult, ROLE_NAMES, MatterEvidence, validate
+_role_result
+from .connectivity_matter_budget import allocate_role_budget
+from .connectivity_matter_completion import effective_role_status
+from .connectivity_matter_errors import MatterValidationError
+from .connectivity_matters import seed_matters, attach_events, apply_identification, integrate_result, integrate
+_combined_result, finish_projection, missing_assessment
+from .connectivity_report_sets import resolve_documents
+from .connectivity_schemas import ConnectivityRun, SourceLineage, DisclosureOccurrence
+
+_PROVIDER_SLOTS=threading.BoundedSemaphore(2)
+
+
+def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progress=lambda *a:None,
+                        cancelled=lambda:False,before_model=lambda:None,resume=None,checkpoint=lambda r:None,cal
+ler=None,provider_budget=lambda r:None):
+    if request.mode!='calculation_only' and len(request.selected_matter_ids)!=1:
+        raise ValueError('MATTER_SELECTION_REQUIRED: 请先建立候选档案并选择一个具体事项，再启动深查')
+    started=time.perf_counter();report_set,documents=resolve_documents(root,request)
+    run=ConnectivityRun(run_id="CONN-"+uuid.uuid4().hex[:16].upper(),company=report_set.company,
+        period="—".join([report_set.periods[0],report_set.periods[-1]]) if len(report_set.periods)>1 else report
+_set.periods[0],
+        documents=documents,execution_mode=request.mode,report_set=report_set,matter_schema_version=MATTER_VERSI
+ON,
+        versions={"pair_id":request.pair_id,"report_set_id":report_set.report_set_id,"matter_prompt":PROMPT_VERS
+ION,
+                  "analysis_scope":"matter_connectivity","result_origin":"original","matter_types":list(request.
+matter_types)})
+    progress_callback=progress
+    stage_started={}
+    run.versions['stage_timings']={}
+    def progress(stage,status,detail):
+        if status=='running':stage_started[stage]=time.perf_counter()
+        row=run.versions['stage_timings'].setdefault(stage,{})
+        row.update(status=status,updated_at=time.time())
+        if stage in stage_started:row['duration_ms']=round((time.perf_counter()-stage_started[stage])*1000)
+        progress_callback(stage,status,detail)
+    if caller is not None:
+        run.dataset_role="synthetic"
+        run.versions["provider_origin"]="injected_test_caller"
+    from .connectivity_financial_ontology import matter_rules
+    run.versions["matter_rule_fingerprints"]={r["rule_id"]:digest(json.dumps(r,sort_keys=True,ensure_ascii=False
+)) for r in matter_rules()}
+    run.source_lineage=[SourceLineage(document_id=d.document_id,producer=d.company,category=d.source_kind) for d
+ in documents]
+    if resume:
+        if resume.report_set!=report_set or resume.execution_mode!=request.mode:
+            raise ValueError("续分析的资料集合或模式已变化")
+        for name in ("matter_evidence","matters","matter_events","matter_commitments","matter_paths","matter_rel
+ations",
+                     "matter_explanations","matter_assessments","assurance_planning_reviews","matter_tasks","mat
+ter_tool_receipts","matter_rejections","matter_revisions","occurrences"):
+            setattr(run,name,deepcopy(getattr(resume,name)))
+        for task in run.matter_tasks:
+            task.setdefault('run_id',resume.run_id)
+            if task.get('role')=='A1':task.setdefault('selected_matter_ids',resume.versions.get('investigation_s
+cope',{}).get('selected_matter_ids',[]))
+            if task.get('status')=='running':
+                task.update(status='interrupted',stop_reason='父运行已中断；本次不复用未完成角色')
+        run.parent_run_id=resume.run_id;run.result_revision=resume.result_revision+1
+        run.prior_provider_calls=[*resume.prior_provider_calls,*resume.provider_calls]
+        run.versions["result_origin"]="incremental_retry"
+    checkpoint(run)
+    progress("evidence_load","running","读取多年登记原件与叙述证据")
+    corpus,run.matter_coverage=read_corpus(root,documents,cancelled=cancelled)
+    progress("evidence_load","completed",f"已索引{len(corpus)}个原文块，扫描页与失败覆盖单列")
+    progress("rule_calculation","running","建立事项证据身份与候选，不要求存在金额")
+    seeds,seed_coverage=relevant_evidence(corpus)
+    if not resume:
+        run.matter_evidence=seeds;run.matters=seed_matters(seeds,request.matter_types)
+        for matter in run.matters:attach_events(run,matter)
+    frozen_evidence=deepcopy(seeds)
+    if request.experiment_mode == "fixed_evidence":
+        requested=set(request.fixed_evidence_ids)
+        available={e.evidence_id for e in corpus}
+        if requested - available:
+            raise ValueError("FIXED_EVIDENCE_UNKNOWN: 证据包包含未登记片段")
+        if requested:
+            frozen_evidence=[deepcopy(e) for e in corpus if e.evidence_id in requested]
+        selected_refs={eid for m in run.matters if m.matter_id in request.selected_matter_ids for eid in m.evide
+nce_ids}
+        if not selected_refs <= {e.evidence_id for e in frozen_evidence}:
+            raise ValueError("FIXED_EVIDENCE_SELECTION_MISSING: 证据包缺少事项身份来源")
+        run.matter_evidence=deepcopy(frozen_evidence)
+        # A restricted pack cannot retain seed objects whose identity evidence
+        # was removed. A1 rebuilds events after merging; dangling seeds otherwise
+        # raise KeyError and also leak facts outside the declared input pack.
+        available_ids={e.evidence_id for e in frozen_evidence}
+        excluded=[m.matter_id for m in run.matters if not set(m.evidence_ids)<=available_ids]
+        run.matters=[m for m in run.matters if set(m.evidence_ids)<=available_ids]
+        included_matters={m.matter_id for m in run.matters}
+        run.matter_events=[e for e in run.matter_events if e.matter_id in included_matters and set(e.evidence_id
+s)<=available_ids]
+        run.matter_commitments=[c for c in run.matter_commitments if c.matter_id in included_matters and set(c.e
+vidence_ids)<=available_ids]
+        run.versions['fixed_evidence_excluded_seed_ids']=excluded
+        run.versions["fixed_evidence_ids"]=[e.evidence_id for e in frozen_evidence]
+        run.versions["fixed_evidence_sha256"]=hashlib.sha256(json.dumps([e.model_dump() for e in frozen_evidence
+],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+    run.versions["comparison_run"]=request.comparison_run
+    run.versions["seed_coverage"]=seed_coverage
+    progress("rule_calculation","completed",f"建立{len(run.matters)}项披露候选；身份归并待调查")
+    progress("knowledge_retrieval","running","准备事项检索、专业规则与补证工具")
+    progress("knowledge_retrieval","completed","支持与反证分别查询，检索命中不等于关系证实")
+    lock=threading.RLock();attempts=0;quota_ready=False;tool_cache={}
+    call=caller or call_matter_role
+    budget=request.budget
+    run.versions["requested_investigation_budget"]=budget.model_dump()
+    role_limits=allocate_role_budget(budget.max_provider_calls,
+        ('A1','A2','A3','A4','A5') if request.mode=='five_agents' else ('A1','A2','A5') if request.mode=='three_
+agents' else ('A1','A5'))
+    role_usage={role:0 for role in role_limits}
+    run.versions['role_budgets']={'limits':role_limits,'used':role_usage}
+    if request.mode!='calculation_only':
+        valid_ids={m.matter_id for m in run.matters}|{key for m in run.matters for key in m.lineage}
+        if not set(request.selected_matter_ids)<=valid_ids:
+            raise ValueError('所选事项不存在于当前资料集合，请重新初筛')
+    # 消融是显式实验条件，跳过角色不能被包装为五角色全部完成。
+    run.versions["ablation"]=request.ablation
+    run.versions["experiment_mode"]=getattr(request, "experiment_mode", "end_to_end")
+    run.versions["semantic_judgment"]="模型意见与程序来源核验分列，不代表专业鉴证"
+    def save():
+        finish_projection(run);checkpoint(run)
+    def model_call(role,payload,task_id):
+        """获取进程并发槽并原子扣减本运行调用次数。
+        发送前写检查点，供应商未知用量保留为空而非填零。
+        在途上界与已知用量进入共享额度账本，模型不能修改预算。
+        中断或失败依旧保存已取得回执，后续角色按剩余额度执行。
+        """
+        nonlocal attempts,quota_ready
+        queued_at=time.perf_counter()
+        with _PROVIDER_SLOTS:
+            queue_ms=round((time.perf_counter()-queued_at)*1000)
+            with lock:
+                if cancelled():raise InterruptedError("用户取消事项调查")
+                if attempts>=budget.max_provider_calls:raise ValueError("MODEL_CALL_BUDGET_EXHAUSTED")
+                # 调查不能耗尽最后的反证和综合复核名额。
+                # 留出的名额仍计入同一上限，额度不足时明确留下部分完成。
+                if role_usage[role]>=role_limits[role]:raise ValueError("ROLE_BUDGET_EXHAUSTED:"+role)
+                if not quota_ready:before_model();quota_ready=True
+                attempts+=1
+                role_usage[role]+=1
+                receipt={"provider_call_id":"MCALL-"+uuid.uuid4().hex,"role":role,"task_id":task_id,
+                    "status":"started","performed":False,"request_attempted":None,"queue_ms":queue_ms,
+                    "started_at":time.time(),"input_characters":len(json.dumps(payload,ensure_ascii=False)),"inp
+ut_tokens":None,"output_tokens":None}
+                run.provider_calls.append(receipt);save()
+            try:
+                def preflight(record):
+                    with lock:
+                        # 先写待发送上界，再请求持久额度占用；占额失败不发送请求。
+                        receipt.update(input_token_upper_bound=record["input_token_upper_bound"],output_token_up
+per_bound=record["output_token_upper_bound"],request_attempted=True)
+                        try:provider_budget(run)
+                        except Exception:
+                            receipt["request_attempted"]=False
+    @property
+    def effective_period(self) -> str:
+        return self.report_period or self.period
+
+
+class DisclosureOccurrence(Contract):
+    occurrence_id: str
+    document_id: str
+    pdf_page: int = Field(ge=1)
+    printed_page: str = ""
+    bbox: list[float] = Field(default_factory=list)
+    page_width: float = 0
+    page_height: float = 0
+    label: str
+    value: str | None = None
+    # 约数和上下界保留原文性质，不能伪装为精确点值进入差额计算。
+    value_qualifier: Literal["unspecified", "exact", "approximate", "lower_bound", "upper_bound"] = "unspecified
+"
+    unit: str = ""
+    unit_source: str = ""
+    currency: str = ""
+    currency_source_id: str = ""
+    currency_source_quote: str = ""
+    # 币种、单位、范围都要能说明“从哪一层继承”，不能把报告声明冒充指标级证据。
+    currency_status: Literal["explicit", "table", "report_declaration", "assumed", "unknown"] = "unknown"
+    unit_status: Literal["explicit", "table", "report_declaration", "unknown"] = "unknown"
+    unit_source_quote: str = ""
+    year: str = ""
+    # 年度列解析失败时保持空值并标 unattributed，不得回退成报告期间。
+    year_status: Literal["attributed", "unattributed"] = "unattributed"
+    # 报告边界（合并/母公司/分部）与表内分组、指标统计范围分开登记。
+    report_boundary: Literal["consolidated", "parent", "segment", "unknown"] = "unknown"
+    report_boundary_source_id: str = ""
+    report_boundary_source_quote: str = ""
+    scope: str = ""
+    table_scope: str = ""
+    scope_source_id: str = ""
+    scope_source_quote: str = ""
+    scope_level: Literal["report", "table", "metric", "unknown"] = "unknown"
+    # 显示小数位只是原文写法；舍入方法必须有原文声明，不能从位数推定。
+    display_precision: int | None = None
+    rounding_method: Literal["unknown", "exact", "half_up", "truncate"] = "unknown"
+    # 公司自身披露、宏观/行业背景、同业信息分开；宏观数字不得进入企业异常候选。
+    content_class: Literal["company", "macro", "industry", "peer", "background", "unknown"] = "unknown"
+    metric_id: str = ""
+    metric_identity: dict = Field(default_factory=dict)
+    # 表格结构身份用于表内合计/分项自证及跨表桥接。
+    table_id: str = ""
+    row_index: int | None = None
+    column_index: int | None = None
+    row_role: Literal["total", "component", "detail", "header", "unknown"] = "unknown"
+    column_role: Literal["total", "component", "period", "unit", "label", "unknown"] = "unknown"
+    row_parent_label: str = ""
+    definition: str = ""
+    row_header: str = ""
+    # 所选列与整表头分存，避免把其他年度误当作本值所属列。
+    full_table_header: str = ""
+    year_binding: Literal["cell_header", "coordinate", "inline", "unattributed"] = "unattributed"
+    column_header: str = ""
+    header_path: list[str] = Field(default_factory=list)
+    context: str
+    footnotes: list[str] = Field(default_factory=list)
+    footnote_scope: str = ""
+    # 质量默认失败关闭：缺省不等于可信，由提取器显式升级为 located。
+    quality: Literal["located", "uncertain", "text_only"] = "uncertain"
+    quality_reason: str = "提取器未显式确认年度、单位与行列绑定"
+    rounding: Literal["unknown", "exact", "half_up"] = "unknown"
+    version_role: Literal["original", "correction", "unknown"] = "unknown"
+    topic: str = ""
+
+
+class ExtractionExclusion(Contract):
+    """已提取但未进入候选的行或位置，必须显式列示，不能静默丢弃。"""
+    occurrence_id: str
+    document_id: str
+    pdf_page: int = Field(ge=1)
+    label: str = ""
+    value: str = ""
+    reason: str
+    year: str = ""
+    unit: str = ""
+
+
+class EvidenceRef(Contract):
+    """出处必须落到当前报告的真实片段，禁止拿规范当企业事实。"""
+    occurrence_id: str
+    quote: str = Field(min_length=2, max_length=1600)
+
+
+class ComparisonCondition(Contract):
+    name: str
+    status: Literal["supported", "conflicting", "unknown"] = "unknown"
+    reason: str = "本次原文尚未充分说明"
+    evidence: list[EvidenceRef] = Field(default_factory=list)
+    evidence_kind: Literal["unspecified", "explicit", "table_structure", "derived", "ai_semantic", "report_level
+"] = "unspecified"
+
+
+class RelationshipMember(Contract):
+    occurrence_id: str
+    role: Literal["left", "right", "total", "component", "numerator", "denominator", "reported_ratio", "occurren
+ce"]
+
+
+class CalculationPlan(Contract):
+    """模型选择既有模板；变量数值始终由程序从原始披露取回。"""
+    plan_id: str
+    operator: Literal["equal", "sum", "ratio", "occurrences", "narrative"]
+    members: list[RelationshipMember]
+    reason: str = ""
+    assumptions: list[str] = Field(default_factory=list, max_length=10)
+    status: Literal["proposed", "trial", "formal", "rejected"] = "proposed"
+    producer_role: str = ""
+
+
+class AdjustmentProposal(Contract):
+    """只提交原始数值的ID，不允许模型填造调节金额。"""
+    occurrence_id: str
+    label: str = Field(min_length=2, max_length=160)
+    sign: Literal["+", "-"]
+    reason: str = Field(min_length=2, max_length=600)
+    evidence: list[EvidenceRef] = Field(min_length=1, max_length=6)
+    assumptions: list[str] = Field(default_factory=list, max_length=8)
+
+
+class ExplanationHypothesis(Contract):
+    """竞争解释保存支持、反证和下一步检索，不用未知条件代替业务分析。"""
+    hypothesis_id: str = Field(min_length=1, max_length=80)
+    explanation: str = Field(min_length=6, max_length=700)
+    status: Literal["supported", "plausible", "open", "refuted"] = "open"
+    reasons: list[str] = Field(default_factory=list, max_length=4)
+    supporting_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=6)
+    counter_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=6)
+    assumptions: list[str] = Field(default_factory=list, max_length=5)
+    retrieval_queries: list[str] = Field(default_factory=list, max_length=3)
+
+
+class AIAnalysis(Contract):
+    """AI意见与正式计算、人工处理分开保存，历史运行默认没有该内容。"""
+    check_id: str
+    verdict: Literal["lean_consistent", "potential_conflict", "plausible_explanation", "insufficient_basis", "no
+t_comparable"]
+    summary: str = Field(min_length=6, max_length=1000)
+    reasons: list[str] = Field(min_length=1, max_length=8)
+    supporting_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
+    counter_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
+    assumptions: list[str] = Field(default_factory=list, max_length=10)
+    alternative_explanations: list[str] = Field(default_factory=list, max_length=6)
+    next_actions: list[str] = Field(default_factory=list, max_length=8)
+    analysis_quality: Literal["high", "medium", "low"] = "low"
+    quality_reasons: list[str] = Field(default_factory=list, max_length=6)
+    calculation_plan_ids: list[str] = Field(default_factory=list, max_length=8)
+    producer_role: str = ""
+    prompt_version: str = ""
+    input_fingerprint: str = ""
+    status: Literal["current", "needs_refresh"] = "current"
+    review_status: Literal["unreviewed", "accepted", "rejected"] = "unreviewed"
+    hypotheses: list[ExplanationHypothesis] = Field(default_factory=list, max_length=3)
+    priority: Literal["high", "medium", "low"] | None = None
+    priority_reason: str = Field(default="", max_length=500)
+    producer_model: str = ""
+    revision_note: str = Field(default="", max_length=500)
+    inherited_from_run_id: str = ""
+
+
+class NarrativeClaim(Contract):
+    """模型解析文字主张；程序核对绑定数据的变化方向。"""
+    indicator: str = Field(min_length=2, max_length=120)
+    direction: Literal["increase", "decrease", "stable"]
+    current_id: str
+    previous_id: str
+    evidence: list[EvidenceRef] = Field(min_length=1, max_length=4)
+    basis_description: str = Field(min_length=2, max_length=400)
+
+
+class AdjustmentRecord(Contract):
+    """差异解释的量化调节：只收同基准、有原文依据、符号明确、互不重叠的加性项。
+
+    乘性变换、共享变量依赖与多级基准转换不在首版范围，遇到即登记为未支持。
+    `sign` 表示该解释对差额的贡献方向，剩余残差＝原始差额 − Σ有符号调节额；
+    因此与原始差额同向的抵扣项应登记为负号，而不是一律写正号。
+    """
+    adjustment_id: str
+    effect_id: str
+    label: str
+    sign: Literal["+", "-"]
+    amount: str = Field(pattern=r"^\d+(?:\.\d+)?$")
+    unit: str
+    metric_period: str = ""
+    scope: str = ""
+    basis_id: str = ""
+    path: Literal["amount_bridge", "grouping"] = "amount_bridge"
+    overlap_with: list[str] = Field(default_factory=list)
+    overlap_basis: str = ""
+    evidence: list[EvidenceRef] = Field(default_factory=list, max_length=6)
+    note: str = ""
+    # 调节额自身的精度方法必须声明；未声明时不据此判定闭合。
+    rounding: Literal["unknown", "exact", "half_up"] = "unknown"
+
+
+class VersionRecord(Contract):
+    """企业披露版本链独立登记；版本变化只生成版本证据链，不生成正式跨报告差额。"""
+    version_id: str
+    document_id: str
+    # 版本链只在同一报告类型内成立；AR 与 ESG 不是彼此的版本。
+    report_type: str = ""
+    version_role: Literal["original", "correction", "unknown"] = "unknown"
+    disclosure_date: str = ""
+    metric_period: str = ""
+    report_period: str = ""
+    label: str = ""
+    value: str = ""
+    unit: str = ""
+    effective_relation: str = "登记公开版本"
+    source_kind: Literal["official", "mirror", "media_quote"] = "official"
+    evidence: list[EvidenceRef] = Field(default_factory=list, max_length=6)
+
+
+class VersionChange(Contract):
+    """受控版本对比结果；字段命名与正式差额隔离，禁止相加成跨报告结论。"""
+    from_version_id: str
+    to_version_id: str
+    label: str
+    display_change: str
+    absolute_change: str
+    unit: str
+    only_version_evidence: bool = True
+    note: str = "版本金额变化只说明财务披露版本发生变化，不能计为已解释的跨报告差异"
+
+
+class RelationshipCheck(Contract):
+    check_id: str
+    rule_id: Literal["EQ-001", "RD-001", "ENV-001", "INT-001", "OCC-001", "NAR-001"]
+    rule_version: str = "2026-10-17.1"
+    title: str
+    topic: str = ""
+    operator: Literal["equal", "sum", "ratio", "occurrences", "narrative"]
+    members: list[RelationshipMember] = Field(default_factory=list, max_length=100)
+    conditions: list[ComparisonCondition] = Field(default_factory=list, max_length=12)
+    relationship_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
+    # 关系是怎么被认定的：原文明示 / 标签与量纲自动配对 / 同报告多位置 / 表内结构 /
+    # 受控指标身份字典映射。自动配对、多位置与表内结构只产生候选，成员行不能
+    # 充当"关系本身有原文依据"；字典映射属于可复核的受控依据。
+    relationship_basis: Literal["text_statement", "auto_label_match", "multi_location", "table_structure", "metr
+ic_identity"] = "text_statement"
+    ratio_scale: str = "1"
+    explanation: str = ""
+    explanation_evidence: list[EvidenceRef] = Field(default_factory=list)
+    criteria_status: str = "unknown"
+    calculation_status: str = "not_executable"
+    # 结论级别：L0 数值试算、L1 有限可比、L2 指标级有依据可比；均不等于鉴证意见。
+    basis_level: Literal["not_assessed", "L0", "L1", "L2"] = "not_assessed"
+    conclusion_level: Literal["not_assessed", "formal_consistent", "assumption_compatible",
+                             "limited_support", "unexplained_difference", "insufficient_basis",
+                             "not_applicable"] = "not_assessed"
+    # 数值、口径、解释分别记录，解释文案不得改写数学差额。
+    comparability: dict = Field(default_factory=dict)
+    # 表内合计/分项与跨表桥接的结构证据；字段结构见 AI1 交接文档。
+    table_structure: dict = Field(default_factory=dict)
+    # 成员是否来自不同报告：同一文档内的多位置一致不构成跨报告衔接。
+    cross_document: bool = False
+    review_status: str = "unreviewed"
+    calculation: dict = Field(default_factory=dict)
+    # 假设试算独立存放，不占用正式差额字段，也不进入已衔接统计。
+    hypothetical: dict | None = None
+    adjustments: list[AdjustmentRecord] = Field(default_factory=list, max_length=20)
+    unresolved: list[str] = Field(default_factory=list)
+    related_checks: list[str] = Field(default_factory=list)
+    mapping_type: Literal["same_metric", "component_of", "ratio_of", "overlap", "related_only", "different_metri
+c", "uncertain"] = "uncertain"
+    mapping_reason: str = ""
+    calculation_plan: CalculationPlan | None = None
+    # 模型调节建议先进入场景试算，不自动写入正式adjustments。
+    adjustment_proposals: list[AdjustmentProposal] = Field(default_factory=list, max_length=10)
+    scenario_adjustment: dict | None = None
+    narrative_claim: NarrativeClaim | None = None
+    narrative_test: dict | None = None
+    hypotheses: list[ExplanationHypothesis] = Field(default_factory=list, max_length=3)
+    # 反事实闭合推演：证据需求、上限预测、单项补证效果与归因候选。
+    # 只读派生数据，不参与任何正式结论；结构见 connectivity_closure.py。
+    closure: dict = Field(default_factory=dict)
+
+
+class RelationshipProposal(Contract):
+    """模型只能提关系和引用，计算状态由程序生成。"""
+    rule_id: Literal["EQ-001", "RD-001", "ENV-001", "INT-001", "OCC-001", "NAR-001"]
+    title: str
+    topic: str
+    members: list[RelationshipMember] = Field(max_length=50)
+    conditions: list[ComparisonCondition] = Field(max_length=12)
+    relationship_evidence: list[EvidenceRef] = Field(max_length=12)
+    explanation: str = ""
+    explanation_evidence: list[EvidenceRef] = Field(default_factory=list, max_length=12)
+    mapping_type: Literal["same_metric", "component_of", "ratio_of", "overlap", "related_only", "different_metri
+c", "uncertain"] = "uncertain"
+    mapping_reason: str = Field(default="", max_length=600)
+    calculation_reason: str = Field(default="", max_length=600)
+    assumptions: list[str] = Field(default_factory=list, max_length=10)
+    adjustment_proposals: list[AdjustmentProposal] = Field(default_factory=list, max_length=10)
+    narrative_claim: NarrativeClaim | None = None
+    hypotheses: list[ExplanationHypothesis] = Field(default_factory=list, max_length=3)
+
+
+class SearchDirective(Contract):
+    """模型申请的本报告内检索；不接受网址、路径或可执行代码。"""
+    check_id: str = Field(min_length=1, max_length=100)
+    metric: str = Field(min_length=2, max_length=50)
+    terms: list[str] = Field(min_length=1, max_length=5)
+    kind: Literal["support", "counter"] = "counter"
+    reason: str = Field(min_length=4, max_length=200)
+
+
+class AgentProposals(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
+    checks: list[RelationshipProposal] = Field(max_length=8)
+    notes: list[str] = Field(default_factory=list, max_length=6)
+
+
+class SingleAgentProposals(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
+    """单模型可一次提出两轮角色合计的八项关系，不人为压低输出容量。"""
+    checks: list[RelationshipProposal] = Field(max_length=8)
+    notes: list[str] = Field(default_factory=list, max_length=6)
+    analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
+
+
+class FinalFinding(Contract):
+    check_id: str
+    question: str
+    requested_material: str
+    purpose: str
+    evidence: list[EvidenceRef] = Field(max_length=12)
+
+
+class FinalSummaries(Contract):
+    search_requests: list[SearchDirective] = Field(default_factory=list, max_length=4)
+    findings: list[FinalFinding] = Field(default_factory=list, max_length=30)
+    analyses: list[AIAnalysis] = Field(default_factory=list, max_length=30)
+
+
+class SearchCoverage(Contract):
+    document_id: str
+    total_pages: int
+    parsed_pages: int
+    searched_pages: list[int] = Field(default_factory=list)
+    failed_pages: list[dict] = Field(default_factory=list)
+    method: str = "PyMuPDF坐标文本、表格与上下文召回"
+    discovered_count: int = 0
+
+
+class FindingAndRequest(Contract):
+    finding_id: str
+    check_id: str
+    known_facts: str
+    question: str
+    requested_material: str
+    purpose: str
+    provider_role: str = "公开报告使用者可进一步向披露方了解"
+    status: str = "unresolved"
+
+
+class ProfessionalRiskNote(Contract):
+    check_id: str
+    observation: str = Field(min_length=3, max_length=3000)
+    reason: str = Field(min_length=3, max_length=2000)
+    actor: str = "公开报告使用者"
+    created_at: str = Field(default_factory=now_iso)
+
+
+class SourceLineage(Contract):
+    document_id: str
+    producer: str
+    category: str
+    upstream: str = "unknown"
+    independence: str = "同企业披露，不作为独立证实"
+
+
+class ReviewEvent(Contract):
+    event_id: str
+    actor: str = "演示使用者"
+    created_at: str = Field(default_factory=now_iso)
+    action: str
+    reason: str
+    check_id: str
+    before: dict
+    after: dict
+
+
+class ConnectivityRun(Contract):
+    run_id: str
+    task_kind: str = "connectivity"
+    schema_version: str = SCHEMA_VERSION
+    company: str
+    period: str
+    # 报告所属期间与指标所属期间分别记录；比较期间取 period，口径来源写入 versions。
+    report_period: str = ""
+    metric_period: str = ""
+    created_at: str = Field(default_factory=now_iso)
+    discovery_mode: Literal["auto_discovery", "manual_located"] = "auto_discovery"
+    dataset_role: Literal["development", "held_out", "synthetic"] = "development"
+    execution_mode: str = "calculation_only"
+    model_status: str = "not_requested"
+    parent_run_id: str | None = None
+    result_revision: int = 1
+    documents: list[ReportDocument]
+    occurrences: list[DisclosureOccurrence] = Field(default_factory=list)
+    checks: list[RelationshipCheck] = Field(default_factory=list)
+    coverage: list[SearchCoverage] = Field(default_factory=list)
+    extraction_exclusions: list[ExtractionExclusion] = Field(default_factory=list)
+    candidate_rejections: list[dict] = Field(default_factory=list)
+    version_records: list[VersionRecord] = Field(default_factory=list)
+    version_changes: list[VersionChange] = Field(default_factory=list)
+    overview: dict = Field(default_factory=dict)
+    # AI 意见与正式计算分开存放：意见不改变 criteria/calculation 状态，也不进入已衔接统计。
+    ai_opinions: list[dict] = Field(default_factory=list)
+    findings: list[FindingAndRequest] = Field(default_factory=list)
+    professional_notes: list[ProfessionalRiskNote] = Field(default_factory=list)
+    source_lineage: list[SourceLineage] = Field(default_factory=list)
+    reviews: list[ReviewEvent] = Field(default_factory=list)
+    agent_steps: list[dict] = Field(default_factory=list)
+    provider_calls: list[dict] = Field(default_factory=list)
+    duration_ms: int = 0
+    versions: dict = Field(default_factory=dict)
+    ai_analyses: list[AIAnalysis] = Field(default_factory=list)
+    # 新运行的程序提示不计入模型意见；旧ai_opinions仅供历史兼容读取。
+    program_hints: list[dict] = Field(default_factory=list)
+    analysis_history: list[dict] = Field(default_factory=list)
+    prior_provider_calls: list[dict] = Field(default_factory=list)
+    industry_context: dict = Field(default_factory=dict)
+    intelligence_trace: list[dict] = Field(default_factory=list)
+    # 显式证据账本字段与原始trace并存，旧记录缺失时保持空列表。
+    claim_ledger: list[dict] = Field(default_factory=list)
+    rule_basis: list[dict] = Field(default_factory=list)
+    next_evidence: list[dict] = Field(default_factory=list)
+    # 创新一：可持续主张→财务项目的受控关系与图谱；创新二：证据驱动状态机；
+    # 创新三：预算约束补证计划与情景模拟。全部为只读派生数据，不改变正式结论。
+    financial_claims: list[dict] = Field(default_factory=list)
+    financial_nodes: list[dict] = Field(default_factory=list)
+    financial_edges: list[dict] = Field(default_factory=list)
+    impact_graph: dict = Field(default_factory=dict)
+    revision_loop: dict = Field(default_factory=dict)
+    evidence_plan: dict = Field(default_factory=dict)
+    financial_scenario: dict = Field(default_factory=dict)
+    investigation: dict = Field(default_factory=dict)
+    comparison_summary: dict = Field(default_factory=dict)
+    matter_schema_version: str = ""
+    report_set: ReportSet | None = None
+    matter_evidence: list[MatterEvidence] = Field(default_factory=list)
+    matters: list[SustainabilityMatter] = Field(default_factory=list)
+    matter_events: list[MatterEvent] = Field(default_factory=list)
+    matter_commitments: list[MatterCommitment] = Field(default_factory=list)
+    matter_paths: list[FinancialImpactPath] = Field(default_factory=list)
+    matter_relations: list[MatterRelation] = Field(default_factory=list)
+    matter_explanations: list[CompetingExplanation] = Field(default_factory=list)
+    matter_assessments: list[MatterAssessment] = Field(default_factory=list)
+    matter_tasks: list[dict] = Field(default_factory=list)
+    matter_tool_receipts: list[dict] = Field(default_factory=list)
+    matter_coverage: list[dict] = Field(default_factory=list)
+    matter_rejections: list[dict] = Field(default_factory=list)
+    matter_revisions: list[dict] = Field(default_factory=list)
+    matter_graph: dict = Field(default_factory=dict)
+    matter_overview: dict = Field(default_factory=dict)
+    assurance_planning: dict = Field(default_factory=dict)
+    assurance_planning_reviews: dict = Field(default_factory=dict)
+    ai_generated_content_notice: str = NOTICE
+
+
+class RunRequest(Contract):
+    pair_id: str | None = Field(default=None, min_length=2, max_length=100)
+    report_set_id: str | None = Field(default=None, min_length=2, max_length=100)
+    topics: list[Literal["research", "environment", "intensity"]] = Field(default_factory=lambda: ["research", "
+environment", "intensity"], min_length=1, max_length=3)
+    mode: Literal["calculation_only", "three_agents", "single_model", "adaptive_agents", "five_agents"] = "three
+_agents"
+    analysis_scope: Literal["legacy_checks", "matter_connectivity"] = "legacy_checks"
+    as_of_date: date | None = None
+    matter_types: list[MatterType] = Field(default_factory=lambda: ["climate_risk", "transition_project", "commi
+tment", "resource_efficiency", "other"], min_length=1, max_length=5)
+    selected_matter_ids: list[str] = Field(default_factory=list, max_length=30)
+    ablation: Literal["none", "no_temporal", "no_counterevidence", "no_ontology_gate"] = "none"
+    experiment_mode: Literal["end_to_end", "fixed_evidence"] = "end_to_end"
+    fixed_evidence_ids: list[str] = Field(default_factory=list, max_length=2000)
+    comparison_run: bool = False
+    budget: InvestigationBudget = Field(default_factory=InvestigationBudget)
+    retry_of_task_id: str | None = None
+    parent_task_id: str | None = Field(default=None, min_length=8, max_length=100)
+
+    @model_validator(mode="after")
+    def source_selection(self):
+        if bool(self.pair_id) == bool(self.report_set_id):
+            raise ValueError("请选择一个报告对或一个多年资料集合")
+        if self.report_set_id or self.mode == "five_agents":
+            self.analysis_scope = "matter_connectivity"
+        if self.ablation in {"no_temporal", "no_counterevidence"} and self.mode != "five_agents": raise ValueErr
+or("角色消融仅适用于五Agent实验")
+        if self.ablation == "no_ontology_gate" and self.mode not in {"five_agents", "single_model"}: raise Value
+Error("会计门禁消融仅适用于五Agent实验或单模型对照")
+        if self.analysis_scope == "matter_connectivity" and self.mode == "adaptive_agents":
+            raise ValueError("事项调查请选择五Agent、三Agent对照或单模型对照")
+        return self
+
+
+class CorrectionRequest(Contract):
+    """更正保留父结果；身份说明不等于正式专业签批。"""
+    expected_revision: int = Field(ge=1)
+    check: RelationshipCheck
+    reason: str = Field(min_length=3, max_length=2000)
+    actor: str = Field(default="演示使用者", min_length=1, max_length=80)
+    action_id: str = Field(min_length=8, max_length=100)
+
+    @field_validator("reason", "actor")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("更正理由和演示身份不能为空")
+        return value.strip()
+
+
+class UserReviewRequest(Contract):
+    """阅读确认与个人观察只改变使用者记录，不升级计算或专业结论。"""
+    expected_revision: int = Field(ge=1)
+    action: Literal["reading_confirmation", "personal_observation", "ai_accept", "ai_reject"]
+    check_ids: list[str] = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=3, max_length=2000)
+    observation: str = Field(default="", max_length=3000)
+    actor: str = Field(default="公开报告使用者", min_length=1, max_length=80)
+    action_id: str = Field(min_length=8, max_length=100)
+
+    @field_validator("reason", "actor")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("记录理由和使用者身份不能为空")
+        return value.strip()
+"""原件哈希缓存。每次检查文件身份，最终导出可强制重读字节。"""
+from collections import OrderedDict
+import hashlib
+import logging
+from pathlib import Path
+import threading
+import time
+from weakref import WeakValueDictionary
+
+_lock = threading.RLock()
+_cache = OrderedDict()
+_file_locks = WeakValueDictionary()
+_MAX_ENTRIES = 512
+log = logging.getLogger(__name__)
+
+
+def source_signature(path):
+    path = Path(path).resolve()
+    stat = path.stat()
+    return (str(path), stat.st_size, stat.st_mtime_ns)
+
+
+def source_sha256(path, *, force=False):
+    # 同一文件并发读取合并；读取期间文件变化时拒绝缓存不稳定内容。
+    with _lock:
+        name = str(Path(path).resolve())
+        file_lock = _file_locks.get(name)
+        if file_lock is None:
+            file_lock = threading.RLock()
+            _file_locks[name] = file_lock
+    with file_lock:
+        key = source_signature(path)
+        with _lock:
+            if not force and key in _cache:
+                _cache.move_to_end(key)
+                log.info("source_hash cache=hit bytes=%s", key[1])
+                return _cache[key]
+        started = time.perf_counter()
+        digest = hashlib.sha256()
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        if source_signature(path) != key:
+            raise OSError("来源在校验期间发生变化")
+        # 同路径只保留最新指纹，避免文件换版累积缓存。
+        result = digest.hexdigest()
+        with _lock:
+            for old in list(_cache):
+                if old[0] == key[0]:
+                    del _cache[old]
+            _cache[key] = result
+            while len(_cache) > _MAX_ENTRIES:
+                _cache.popitem(last=False)
+        log.info("source_hash cache=miss forced=%s bytes=%s duration_ms=%.2f", force, key[1], (time.perf_counter
+()-started)*1000)
+        return result
+"""表内结构自证：合计行/列、分项行/列与必要的跨表桥接候选。
+
+只从已定位的同一表格结构生成候选；结构证据支持的是 L1 有限可比，
+不证明指标定义、统计范围、期间或业务互不重叠。是否正式闭合仍由
+`upgrade_conditions` 与 `calculate` 的原文条件门禁决定。
+"""
+from __future__ import annotations
+
+from collections import defaultdict
+from decimal import Decimal
+import hashlib
+import re
+
+from .connectivity_engine import number, numeric_unit, text_number
+from .connectivity_rules import RULES, required_conditions
+from .connectivity_schemas import (ComparisonCondition, DisclosureOccurrence, EvidenceRef, RelationshipCheck,
+    RelationshipMember)
+
+TOTAL_LABEL = re.compile(r"(?:合计|总计|总额|小计|总投入|投入合计)$")
+COMPONENT_HINT = re.compile(r"^(?:其中|资本化|费用化|专项|其他|其它|钢铁|分项|明细)")
+COMPONENT_IN_LABEL = re.compile(r"其中|资本化|费用化|钢铁|其他|其它|分项|明细")
+SUM_TOPICS = {"environment": "ENV-001", "research": "RD-001"}
+
+
+def _position(occurrence: DisclosureOccurrence) -> dict | None:
+    """表内自证只接受新提取器写入的显式表格身份；旧运行须重新提取。"""
+    if not (occurrence.table_id and occurrence.row_index is not None and occurrence.column_index is not None):
+        return None
+    return {"table_id": occurrence.table_id, "row": occurrence.row_index, "column": occurrence.column_index,
+            "page": occurrence.pdf_page, "document": occurrence.document_id}
+
+
+def _usable(row: DisclosureOccurrence, period: str) -> bool:
+    """组成候选只读已定位、公司自身、有明确数值和量纲的单元格。"""
+    if row.value is None or row.quality != "located":
+        return False
+    if not row.year or row.year_status != "attributed":
+        return False
+    if row.content_class in {"macro", "industry", "peer", "background"}:
+        return False
+    if period and row.year and row.year != period:
+        return False
+    try:
+        number(row.value)
+    except ValueError:
+        return False
+    return numeric_unit(row.unit)[0] != "unknown"
+
+
+def _normalized(row: DisclosureOccurrence) -> tuple[Decimal, str]:
+    value = number(row.value)
+    dimension, factor = numeric_unit(row.unit)
+    return value * factor, dimension
+
+
+def _reference(row: DisclosureOccurrence) -> EvidenceRef:
+    quote = (row.row_header or row.context or "").strip()[:800]
+    return EvidenceRef(occurrence_id=row.occurrence_id, quote=quote)
+
+
+def _rows_by_table(occurrences: list[DisclosureOccurrence], period: str) -> dict[str, dict]:
+    """按真实 table_id 聚合行/列位置；没有结构身份的坐标行不参与表内自证。"""
+    tables: dict[str, dict] = {}
+    for row in occurrences:
+        if not _usable(row, period):
+            continue
+        position = _position(row)
+        if position is None:
+            continue
+        table = tables.setdefault(position["table_id"], {
+            "table_id": position["table_id"], "document_id": row.document_id,
+            "pdf_page": position["page"], "rows": defaultdict(dict), "row_labels": {},
+            "column_labels": {}, "header_paths": {},
+        })
+        table["rows"][position["row"]][position["column"]] = row
+        table["row_labels"].setdefault(position["row"], row.label)
+        table["column_labels"].setdefault(position["column"], row.column_header or " / ".join(row.header_path))
+        table["header_paths"].setdefault(position["column"], list(row.header_path))
+    return tables
+
+
+def _role_from_label(label: str) -> str:
+    compact = re.sub(r"[\s：:（）()]", "", label or "")
+    if TOTAL_LABEL.search(compact):
+        return "total"
+    if COMPONENT_HINT.search(compact) or COMPONENT_IN_LABEL.search(compact):
+        return "component"
+    return "detail"
+
+
+def _role_from_header(header: str) -> str:
+    compact = re.sub(r"\s+", "", header or "")
+    if re.search(r"合计|总计|总额|小计", compact):
+        return "total"
+    if re.search(r"钢铁|其他|其它|范围一|范围二|费用化|资本化|分项|明细", compact):
+        return "component"
+    if re.search(r"20\d{2}|本期|本年", compact):
+        return "period"
+    return "unknown"
+
+
+def _member(row: DisclosureOccurrence, role: str) -> RelationshipMember:
+    return RelationshipMember(occurrence_id=row.occurrence_id, role=role)
+
+
+def _condition(name: str, reason: str, evidence: list[EvidenceRef]) -> ComparisonCondition:
+    return ComparisonCondition(name=name, reason=reason, evidence=evidence,
+                               evidence_kind="table_structure" if name in {"组成完整", "互不重叠"} else "unspeci
+fied")
+
+
+def _structure_payload(table_id: str, layout: str, total: DisclosureOccurrence,
+                       components: list[DisclosureOccurrence], *, coverage: dict,
+                       non_overlap: dict, limitations: list[str]) -> dict:
+    """结构证据保存可复核的坐标、角色、覆盖与限制，不用“加平”代替完整性。"""
+    return {
+        "table_id": table_id,
+        "layout": layout,
+        "pdf_page": total.pdf_page,
+        "header_path": list(total.header_path),
+        "total": {"occurrence_id": total.occurrence_id, "label": total.label, "row_index": total.row_index,
+                  "column_index": total.column_index, "row_role": "total",
+                  "column_role": total.column_role if total.column_role != "unknown" else "period",
+                  "column_header": total.column_header, "header_path": list(total.header_path),
+                  "raw": total.value, "unit": total.unit},
+        "components": [{"occurrence_id": row.occurrence_id, "label": row.label, "row_index": row.row_index,
+                        "column_index": row.column_index, "row_role": row.row_role,
+                        "column_role": row.column_role, "column_header": row.column_header,
+                        "header_path": list(row.header_path), "raw": row.value, "unit": row.unit} for row in com
+ponents],
+        "coverage": coverage,
+        "non_overlap": non_overlap,
+        "limitations": limitations,
+    }
+
+
+def _check(rule_id: str, title: str, topic: str, total: DisclosureOccurrence,
+           components: list[DisclosureOccurrence], structure: dict) -> RelationshipCheck:
+    required = required_conditions(RULES[rule_id]["operator"])
+    reasons = {
+        "组成完整": "表内结构显示合计覆盖已识别分项；仅支持 L1 有限比较，指标定义与完整性仍待原文",
+        "互不重叠": "表内结构显示分项为同一合计下的兄弟行/列；业务互斥仍待原文定义",
+    }
+    conditions = [_condition(name, reasons.get(name, "由表内结构自动登记；待指标级原文确认"), []) for name in re
+quired]
+    digest = hashlib.sha1(f"{total.occurrence_id}-{structure.get('layout')}".encode("utf-8")).hexdigest()[:10].u
+pper()
+    return RelationshipCheck(check_id=f"TABLE-{digest}", rule_id=rule_id, title=title[:160], topic=topic,
+        operator=RULES[rule_id]["operator"],
+        members=[_member(total, "total")] + [_member(row, "component") for row in components],
+        conditions=conditions, relationship_evidence=[_reference(total)],
+        relationship_basis="table_structure", table_structure=structure)
+
+
+def _sum_values(rows: list[DisclosureOccurrence]) -> tuple[Decimal | None, str]:
+    values, dimensions = [], set()
+    for row in rows:
+        value, dimension = _normalized(row)
+        values.append(value)
+        dimensions.add(dimension)
+    if len(dimensions) != 1:
+        return None, ""
+    return sum(values, Decimal(0)), next(iter(dimensions))
+
+
+def _column_candidates(table: dict) -> list[RelationshipCheck]:
+    """同一行、不同列：合计列覆盖相邻分项列（如钢铁+其他=合计）。"""
+    checks = []
+    for row_index, columns in table["rows"].items():
+        if len(columns) < 3:
+            continue
+        cells = [columns[index] for index in sorted(columns)]
+        roles = {row.occurrence_id: _role_from_header(table["column_labels"].get(row.column_index, "")) for row 
+in cells}
+        totals = [row for row in cells if roles[row.occurrence_id] == "total" or row.column_role == "total"]
+        components = [row for row in cells if row not in totals and (
+            roles[row.occurrence_id] == "component" or row.column_role == "component")]
+        if len(totals) != 1 or len(components) < 2:
+            continue
+        total = totals[0]
+        components = sorted(components, key=lambda row: row.column_index)
+        if total.column_index < max(row.column_index for row in components):
+            continue
+        selected_ids = {row.occurrence_id for row in components} | {total.occurrence_id}
+        between = [row for column, row in columns.items()
+                   if min(item.column_index for item in components) <= column < total.column_index]
+        if any(row.occurrence_id not in selected_ids for row in between):
+            # 合计与分项之间还有未识别的同表列，不能宣称覆盖全部。
+            continue
+        total_value, _ = _normalized(total)
+        component_sum, _ = _sum_values(components)
+        if component_sum is None:
+            continue
+        coverage = {"component_count": len(components),
+                    "total_covers_columns": True,
+                    "all_components_between_total": True,
+                    "total_equals_sum": total_value == component_sum,
+                    "sum_residual": text_number(total_value - component_sum),
+                    "basis": "同一表格、同一指标行、合计列位于分项列右侧"}
+        non_overlap = {"status": "structural_assumption",
+                       "basis": "分项列为同一合计行下的兄弟列，坐标上互不重复",
+                       "limitations": ["列结构不证明业务分类互斥，仍需原文定义"]}
+        structure = _structure_payload(table["table_id"], "column_sum", total, components,
+            coverage=coverage, non_overlap=non_overlap,
+            limitations=["表内结构仅支持 L1 有限可比；指标定义、统计范围与期间仍需原文核实",
+                         "合计列等于分项之和只证明算术相容，不证明企业披露正确"])
+        rule_id = SUM_TOPICS.get(total.topic)
+        if not rule_id:
+            continue
+        checks.append(_check(rule_id, f"{total.label[:60]} · 表内合计列与分项列", total.topic,
+                             total, components, structure))
+    return checks
+
+
+def _previous_total_index(table: dict, row_index: int) -> int:
+    previous = [index for index in table["rows"] if index < row_index
+                and _role_from_label(table["row_labels"].get(index, "")) == "total"]
+    return max(previous) if previous else -1
+
+
+def _row_candidates(table: dict) -> list[RelationshipCheck]:
+    """同一列、不同行：合计行覆盖其上分项行（如费用化+资本化=总投入）。"""
+    checks = []
+    by_column: dict[int, list[tuple[int, DisclosureOccurrence]]] = defaultdict(list)
+    for row_index, columns in table["rows"].items():
+        for column_index, row in columns.items():
+            by_column[column_index].append((row_index, row))
+    for column_index, items in by_column.items():
+        items.sort(key=lambda pair: pair[0])
+        for position, (row_index, total) in enumerate(items):
+            if _role_from_label(total.label) != "total" and total.row_role != "total":
+                continue
+            if position == 0:
+                continue
+            lower = _previous_total_index(table, row_index)
+            between = [row for index, row in items[position - 1::-1] if index > lower]
+            components = [row for row in between
+                          if total.document_id == row.document_id
+                          and numeric_unit(row.unit)[0] == numeric_unit(total.unit)[0]]
+            # 只接受紧邻合计行、带分项语义的行；普通明细不能凑数。
+            components = [row for row in components if _role_from_label(row.label) == "component"][:12]
+            if len(components) < 2:
+                continue
+            if any(_role_from_label(row.label) != "component" and row.value is not None for row in between
+                   if row.occurrence_id not in {item.occurrence_id for item in components}):
+                # 合计与分项之间还有未识别的同列数值，不能宣称覆盖完整。
+                continue
+            components.reverse()
+            total_value, dimension = _normalized(total)
+            component_sum, component_dimension = _sum_values(components)
+            if component_dimension and component_dimension != dimension:
+                continue
+            coverage = {"component_count": len(components),
+                        "total_covers_rows": True,
+                        "all_components_between_total": True,
+                        "total_equals_sum": component_sum is not None and total_value == component_sum,
+                        "sum_residual": text_number(total_value - component_sum) if component_sum is not None el
+se "",
+                        "basis": "同一表格、同一数值列，合计行位于分项行之后"}
+            non_overlap = {"status": "structural_assumption",
+                           "basis": "分项行为同一合计行上方的兄弟行，坐标上互不重复",
+                           "limitations": ["行结构不证明业务分类互斥，仍需原文定义"]}
+            structure = _structure_payload(table["table_id"], "row_sum", total, components,
+                coverage=coverage, non_overlap=non_overlap,
+                limitations=["表内结构仅支持 L1 有限可比；指标定义、统计范围与期间仍需原文核实",
+                             "分项加总等于合计只证明算术相容，不证明分项完整"])
+            rule_id = SUM_TOPICS.get(total.topic)
+            if not rule_id:
+                continue
+            checks.append(_check(rule_id, f"{total.label[:60]} · 表内合计行与分项行", total.topic,
+                                 total, components, structure))
+    return checks
+
+
+def _cross_table_candidates(tables: dict[str, dict]) -> list[RelationshipCheck]:
+    """跨表桥接只在同文档、相邻页、同期间且标签同源时生成；默认不启用。"""
+    checks = []
+    table_items = list(tables.values())
+    for left in table_items:
+        for right in table_items:
+            if left is right or left["document_id"] != right["document_id"]:
+                continue
+            if abs(left["pdf_page"] - right["pdf_page"]) > 1:
+                continue
+            left_rows = [row for columns in left["rows"].values() for row in columns.values()]
+            right_rows = [row for columns in right["rows"].values() for row in columns.values()]
+            totals = [row for row in left_rows if _role_from_label(row.label) == "total"]
+            components_pool = [row for row in right_rows if _role_from_label(row.label) == "component"]
+            for left_total in totals:
+                components = [row for row in components_pool
+                              if row.year == left_total.year
+                              and numeric_unit(row.unit)[0] == numeric_unit(left_total.unit)[0]]
+                if len(components) < 2:
+                    continue
+                total_core = re.sub(r"(合计|总计|总额|小计)$", "", re.sub(r"[\s：:（）()]", "", left_total.label
+))
+                if not total_core or not all(total_core[:2] in row.label or row.label[:2] in total_core
+                                             for row in components):
+                    continue
+                total_value, _ = _normalized(left_total)
+                component_sum, _ = _sum_values(components)
+                coverage = {"component_count": len(components),
+                            "total_equals_sum": component_sum is not None and total_value == component_sum,
+                            "sum_residual": text_number(total_value - component_sum) if component_sum is not Non
+e else "",
+                            "basis": "同文档相邻页、同期间列、标签同源的跨表桥接"}
+                non_overlap = {"status": "unknown",
+                               "basis": "跨表结构无法证明业务互斥",
+                               "limitations": ["跨表桥接仅作线索，必须由原文定义确认"]}
+                structure = _structure_payload(left["table_id"], "cross_table", left_total, components,
+                    coverage=coverage, non_overlap=non_overlap,
+                    limitations=["跨表桥接只支持 L1 线索；表间对应关系仍需原文说明",
+                                 "未确认两张表是否同一统计范围与期间"])
+                rule_id = SUM_TOPICS.get(left_total.topic)
+                if not rule_id:
+                    continue
+                checks.append(_check(rule_id, f"{left_total.label[:60]} · 跨表合计与分项", left_total.topic,
+                                     left_total, components, structure))
+    return checks
+
+
+def build_table_composition_candidates(occurrences: list[DisclosureOccurrence], period: str, *,
+                                       include_cross_table: bool = False) -> list[RelationshipCheck]:
+    """返回表内合计/分项候选；默认只做高置信同表结构。
+
+    返回的 check_id 以 TABLE- 开头，成员、条件和结构证据可直接序列化。
+    调用方仍须执行 `upgrade_conditions` 与 `calculate`，不能把结构候选
+    直接计为企业异常或正式结论。
+    """
+    tables = _rows_by_table(occurrences, period)
+    checks = []
+    for table in tables.values():
+        checks.extend(_column_candidates(table))
+        checks.extend(_row_candidates(table))
+    if include_cross_table:
+        checks.extend(_cross_table_candidates(tables))
+    # 同一合计/分项集合只保留一次，避免列与行两种读法重复计数。
+    unique, seen = [], set()
+    for check in checks:
+        signature = (check.rule_id, tuple(sorted((member.occurrence_id, member.role) for member in check.members
+)))
+        if signature in seen:
+            continue
+        seen.add(signature)
+        unique.append(check)
+    return unique
+"""跨年度比较：只有同企业往年报告已登记且原件可用时才开放，否则显式缺口。
+
+专业边界（必须同时成立）：
+- 未登记往年报告时返回明确缺口，不推定"同比改善/恶化"，也不伪造往年数值；
+- 两侧指标必须通过 metric_identity 严格配对（同口径、同单位），单位不同拒绝换算比较；
+- 比较结果只覆盖该指标本身，不外推到企业整体表现；
+- 每一侧都必须带 document_id 与 pdf_page，缺页码的结果不得作为证据。
+"""
+from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation
+
+from .connectivity_metrics import metric_identity
+
+VERSION = "connectivity_temporal_v1"
+
+
+def temporal_status(run, root=None) -> dict:
+    """本次运行登记了哪些报告期间；少于两个期间则跨年比较不可用。"""
+    periods = sorted({(doc.report_period or doc.period, doc.company)
+                      for doc in getattr(run, "documents", [])})
+    companies = {company for _, company in periods}
+    unique_periods = sorted({period for period, _ in periods})
+    available = len(unique_periods) >= 2 and len(companies) == 1
+    registered_eligible = available
+    source_verified = False
+    if available and root is not None:
+        from .connectivity_extraction import source_path
+        import hashlib
+        source_verified = all(source_path(root, doc).is_file() and
+            hashlib.sha256(source_path(root, doc).read_bytes()).hexdigest() == doc.file_sha256
+            for doc in run.documents)
+    available = available and source_verified
+    return {
+        "version": VERSION,
+        "available": available,
+        "registered_eligible": registered_eligible,
+        "source_verified": source_verified,
+        "registered_periods": unique_periods,
+        "companies": sorted(companies),
+        "reason": "" if available else ("跨年原件尚未核验或不可读取；不开放数值比较。" if registered_eligible el
+se
+        "本次运行未登记同企业其他年度报告；跨年比较不可自动执行，需先登记往年原件。"),
+    }
+
+
+def _decimal(value):
+    try:
+        number = Decimal(str(value))
+        return number if number.is_finite() else None
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def compare_periods(current: dict, prior: dict) -> dict:
+    """对同一指标的两个已登记期间值做确定性比较；两侧证据身份必须完整。
+
+    输入同时包含指标、数值、单位、文件编号、页码和年度。
+    比较身份还须声明公司、组织范围、指标定义、分母和可比范围。
+    同一年度的两个数不能包装成跨年增长率。
+    当前年度必须晚于基期，不自动猜测输入顺序。
+    重述或口径变化先阻断直接比较，不能靠加免责声明放行。
+    原件核验身份必须由上游登记流程提供，不能从页码存在反推。
+    缺少必要身份时返回资格矩阵，不编造可比结论。
+    有效计算仍只描述该指标，不能外推为公司整体表现。
+    """
+    for side, item in (("current", current), ("prior", prior)):
+        if not item.get("document_id") or not item.get("pdf_page"):
+            return {"version": VERSION, "available": False,
+                    "reason": f"{side} 侧缺少 document_id 或 pdf_page；没有页码的比较不作为证据。"}
+    current_identity = metric_identity(current.get("label", ""))
+    prior_identity = metric_identity(prior.get("label", ""))
+    if not current_identity["metric_id"] or current_identity["metric_id"] != prior_identity["metric_id"]:
+        return {"version": VERSION, "available": False,
+                "reason": "两侧指标未通过严格口径配对（metric_identity 不一致）；拒绝跨口径同比。"}
+    if str(current.get("unit") or "") != str(prior.get("unit") or ""):
+        return {"version": VERSION, "available": False,
+                "reason": f"单位不一致（{current.get('unit')} vs {prior.get('unit')}）；程序不做单位换算比较。"}
+    # 同年不同数值不是同比；重述和合并范围变化必须先取得可比重编依据。
+    import re
+    years = [str(item.get("period", "")) for item in (current, prior)]
+    if not all(re.fullmatch(r"20\d{2}", year) for year in years) or int(years[0]) <= int(years[1]):
+        return {"version": VERSION, "available": False, "reason": "比较期间必须为明确的前后年度，当前年须晚于基
+期。"}
+    dimensions = ("company", "scope", "metric_definition", "denominator", "comparable_range")
+    gaps = [name for name in dimensions if not current.get(name) or not prior.get(name) or current[name] != prio
+r[name]]
+    if gaps or any(item.get("restated") or item.get("definition_changed") for item in (current, prior)):
+        return {"version": VERSION, "available": False, "reason": "跨年可比前提缺失或冲突：" + "、".join(gaps or
+ ["重述/口径变化"]),
+                "qualification": {name: {"current": current.get(name), "prior": prior.get(name)} for name in dim
+ensions}}
+    if not all(item.get("source_verified") is True for item in (current, prior)):
+        return {"version": VERSION, "available": False, "reason": "两侧原件及页码尚未核验，不开放同比。"}
+    current_value = _decimal(current.get("value"))
+    prior_value = _decimal(prior.get("value"))
+    if current_value is None or prior_value is None:
+        return {"version": VERSION, "available": False, "reason": "数值无法转为十进制。"}
+    if prior_value == 0:
+        return {"version": VERSION, "available": False, "reason": "往年基数为0；同比比例无定义。"}
+    difference = current_value - prior_value
+    percent_change = difference / abs(prior_value) * Decimal(100)
+    direction = "上升" if difference > 0 else ("下降" if difference < 0 else "持平")
+    return {
+        "version": VERSION,
+        "available": True,
+        "metric": current_identity["canonical"] or current.get("label", ""),
+        "metric_id": current_identity["metric_id"],
+        "unit": current.get("unit"),
+        "current": {"period": current.get("period", ""), "value": str(current_value),
+                    "document_id": current["document_id"], "pdf_page": current["pdf_page"]},
+        "prior": {"period": prior.get("period", ""), "value": str(prior_value),
+                  "document_id": prior["document_id"], "pdf_page": prior["pdf_page"]},
+        "difference": str(difference),
+        "percent_change": f"{percent_change:.4f}%",
+        "direction": direction,
+        "limitations": [
+            "比较只覆盖该指标本身，不外推到企业整体表现",
+            "两侧期间口径须与报告披露一致；程序未核对会计政策变更",
+            "方向词只描述数值变化，不构成业绩评价或预测",
+        ],
+    }
+
+
+def comparison_summary(root, run) -> dict:
+    """展示登记资格和行业覆盖，缺少逐项依据时返回缺口矩阵。
+
+    公司和期间来自登记原件元数据，不由模型补出。
+    缓存文件数量只说明本机来源覆盖，不表示行业模型效果。
+    跨年原件可读之后仍须通过逐指标的可比性检查。
+    同业样本未满足完整身份时保留拒绝排名的明确说明。
+    界面与导出消费同一份矩阵，避免各写一套样本数量。
+    """
+    from types import SimpleNamespace
+    from .connectivity_extraction import load_registry, source_path
+    from .connectivity_financial_bridge import industry_for, INDUSTRY_PROFILES
+    from .connectivity_peer_benchmark import load_registry as peer_sources
+    documents = load_registry(root)
+    grouped = {}
+    for doc in documents:
+        industry = industry_for(doc.company)
+        key = (doc.company, doc.period)
+        row = grouped.setdefault(key, {"company": doc.company, "period": doc.period,
+            "industry": INDUSTRY_PROFILES[industry]["name"], "documents": [], "cached_documents": 0})
+        row["documents"].append({"document_id": doc.document_id, "report_type": doc.report_type,
+                                 "source_url": doc.source_url, "source_sha256": doc.file_sha256})
+        row["cached_documents"] += int(source_path(root, doc).is_file())
+    temporal = temporal_status(SimpleNamespace(documents=[doc for doc in documents if doc.company == run.company
+]), root=root)
+    peers = peer_sources()
+    return {"temporal": temporal, "industry_sources": list(grouped.values()),
+            "peer": {"available": False, "registered_samples": len(peers.get("samples", [])),
+                     "reason": "未提供通过逐指标期间、范围、定义、分母和来源核验的同业样本，不生成排名。"},
+            "notice": "登记覆盖不等于行业效果验证；跨年/同业数值须另外通过逐指标资格门禁。"}
+"""受控Agent工具注册表：模型只能申请白名单内工具，服务端验证并执行。
+
+安全边界（必须同时成立）：
+- 不接受任意网址、任意磁盘路径、可执行代码或未登记文档；
+- document_id 必须出现在本次运行已登记文档里，页码必须落在原件范围内；
+- 每次调用记录 tool_name、validated_args_hash、source_hash、output_digest、耗时与结果；
+- 未登记的资源（跨年报告、同业样本）返回明确缺口，不生成虚假检索命中。
+"""
+from __future__ import annotations
+from .source_viewer import PDF_ACCESS_LOCK
+
+import hashlib
+import json
+import re
+import time
+
+VERSION = "tool_registry_v1"
+
+# 工具白名单：全部为登记报告内的只读或确定性操作。
+TOOL_NAMES = (
+    "search_registered_reports",
+    "open_source_page",
+    "lookup_ontology_rule",
+    "recompute_decimal",
+    "lookup_annual_comparison",
+    "lookup_peer_sample",
+    "search_matter_reports",
+    "locate_matter_numbers",
+)
+
+
+class ToolRequest:
+    """一次工具申请：工具名与参数结构；参数由服务端验证，模型不能直接执行。"""
+
+    def __init__(self, tool_name: str, arguments: dict):
+        self.tool_name = str(tool_name or "").strip()
+        self.arguments = dict(arguments or {})
+
+    def validated_args_hash(self) -> str:
+        payload = json.dumps({"tool": self.tool_name, "args": self.arguments},
+                             ensure_ascii=False, sort_keys=True)
+        return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
+def _digest(text: str) -> str:
+    return hashlib.sha256(str(text or "").encode()).hexdigest()[:16]
+
+
+def _find_document(run, document_id: str):
+    wanted = str(document_id or "").strip()
+    for doc in getattr(run, "documents", []):
+        if doc.document_id == wanted:
+            return doc
+    return None
+
+
+def _load_page_text(root, doc, page_no: int) -> str | None:
+    """打开已登记原件的指定页；页码越界返回 None，不做任何下载。"""
+    try:
+        from .connectivity_extraction import source_path
+        import pymupdf
+        path = source_path(root, doc)
+        with PDF_ACCESS_LOCK, pymupdf.open(path) as pdf:
+            if page_no < 1 or page_no > len(pdf):
+                return None
+            return pdf[page_no - 1].get_text("text")
+    except Exception:
+        return None
+
+
+def _validate_common(run, arguments: dict) -> tuple[None, None] | tuple[str, str]:
+    """通用参数验证；返回 (错误码, 说明)。文档必须已登记。"""
+    doc = _find_document(run, arguments.get("document_id"))
+    if doc is None:
+        return "UNREGISTERED_DOCUMENT", "document_id 不在本次已登记文档中；工具拒绝执行。"
+    return None, None
+
+
+def execute_tool(root, run, request: ToolRequest, *, corpus=None) -> dict:
+    """执行白名单工具并返回统一回执；未知工具直接拒绝。"""
+    started = time.perf_counter()
+    receipt = {"tool_name": request.tool_name, "args_hash": request.validated_args_hash(),
+               "status": "rejected", "output_digest": "", "source_hash": "",
+               "elapsed_ms": 0, "result": None, "reason": ""}
+    if request.tool_name not in TOOL_NAMES:
+        receipt["reason"] = f"工具不在白名单：{request.tool_name}"
+        return receipt
+    if getattr(run, "versions", {}).get("experiment_mode") == "fixed_evidence" and request.tool_name in {"search
+_registered_reports", "search_matter_reports", "open_source_page", "locate_matter_numbers"}:
+        receipt["reason"] = "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与
+核验"
+        return _finish(receipt, started)
+    args = request.arguments
+    if getattr(run,"matter_schema_version", "") and request.tool_name == "locate_matter_numbers":
+        doc = _find_document(run, args.get("document_id"))
+        pages = args.get("pages") or []
+        if doc is None or not isinstance(pages,list) or any(type(p) is not int or p<1 for p in pages):
+            receipt["reason"]="须选择登记文档及有效PDF页码"
+            return _finish(receipt,started)
+        from .connectivity_extraction import extract_document
+        rows,coverage,exclusions=extract_document(root,doc,["research","environment","intensity"])
+        selected=[r for r in rows if not pages or r.pdf_page in pages]
+        result={"occurrences":[r.model_dump() for r in selected[:80]],"total_matches":len(selected),
+                "truncated":len(selected)>80,"coverage":coverage.model_dump(),
+                "notice":"定位数值不是可比性确认；未取得数值不等于没有金额披露"}
+        receipt.update(status="hit" if selected else "no_match",result=result,source_hash=doc.file_sha256,
+                       output_digest=_digest(json.dumps(result,ensure_ascii=False)))
+        return _finish(receipt,started)
+    if getattr(run,"matter_schema_version", "") and request.tool_name == "recompute_decimal":
+        from .connectivity_matter_schemas import MatterReconciliation
+        from .connectivity_matter_revision import reconcile_matter
+        try:
+            from .connectivity_extraction import ensure_source
+            for doc in run.documents:ensure_source(root,doc)
+            result=reconcile_matter(run,MatterReconciliation.model_validate(args.get("plan",{})))
+        except (ValueError, OSError) as error:
+            receipt["reason"]=str(error)[:350]
+            return _finish(receipt,started)
+        receipt.update(status="hit",result=result,output_digest=_digest(json.dumps(result,ensure_ascii=False)))
+        return _finish(receipt,started)
+    if request.tool_name == "search_matter_reports":
+        from .connectivity_matter_extraction import read_corpus, search_corpus
+        query = str(args.get("query") or "").strip()
+        ids = args.get("document_ids") or []
+        if not query or len(query) > 300 or not isinstance(ids, list) or not set(ids) <= {d.document_id for d in
+ run.documents}:
+            receipt["reason"] = "查询或登记文档范围无效"
+            return _finish(receipt, started)
+        # 仍验证实际字节，不能以已缓存证据绕过原件换版。
+        from .connectivity_extraction import ensure_source
+        for doc in run.documents:
+            if not ids or doc.document_id in ids:
+                ensure_source(root, doc)
+        if corpus is None:
+            corpus, _ = read_corpus(root, run.documents)
+        result = search_corpus(corpus, query, document_ids=ids, report_type=args.get("report_type"),
+            periods=args.get("periods"), limit=max(1, min(12, int(args.get("limit", 8)))))
+        receipt.update(status="hit" if result["evidence"] else "no_match", result=result,
+            output_digest=_digest(json.dumps(result, ensure_ascii=False)),
+            source_hash=_digest("|".join(d.file_sha256 for d in run.documents)))
+        return _finish(receipt, started)
+    error = None
+    if request.tool_name in {"search_registered_reports", "open_source_page"}:
+        error, reason = _validate_common(run, args)
+        if error:
+            receipt["reason"] = reason
+            return _finish(receipt, started)
+        if root is not None:
+            # 生产入口核实原件，不让旧登记哈希冒充换版后的文件内容。
+            from .connectivity_extraction import source_path
+            doc = _find_document(run, args.get("document_id"))
+            path = source_path(root, doc)
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != doc.file_sha256:
+                receipt["reason"] = "来源原件缺失或哈希已变化；本次工具拒绝使用失效证据。"
+                return _finish(receipt, started)
+    if request.tool_name == "search_registered_reports":
+        return _search_registered_reports(root, run, args, receipt, started)
+    if request.tool_name == "open_source_page":
+        receipt=_open_source_page(root, run, args, receipt, started)
+        if getattr(run,"matter_schema_version", "") and receipt["status"]=="hit":
+            from .connectivity_matter_extraction import read_corpus
+            if corpus is None:corpus,_=read_corpus(root,[_find_document(run,args.get("document_id"))])
+            receipt["result"]["evidence"]=[e.model_dump() for e in corpus if e.document_id==args["document_id"] 
+and e.pdf_page==int(args["page"])]
+            receipt["output_digest"]=_digest(json.dumps(receipt["result"],ensure_ascii=False))
+        return receipt
+    if request.tool_name == "lookup_ontology_rule":
+        if getattr(run, "versions", {}).get("ablation") == "no_ontology_gate":
+            receipt["reason"] = "实验消融条件：当前运行已关闭会计语义本体规则库查询"
+            return _finish(receipt, started)
+        return _lookup_ontology_rule(args, receipt, started)
+    if request.tool_name == "recompute_decimal":
+        return _recompute_decimal(args, receipt, started)
+    if request.tool_name == "lookup_annual_comparison":
+        return _lookup_annual_comparison(root, run, args, receipt, started)
+    return _lookup_peer_sample(run, args, receipt, started)
+
+
+def _finish(receipt: dict, started: float) -> dict:
+    receipt["elapsed_ms"] = round((time.perf_counter() - started) * 1000)
+    return receipt
+
+
+def _search_registered_reports(root, run, args, receipt, started):
+    """在已登记报告内检索关键词；不接受外部网络或路径。"""
+    terms = [str(term).strip() for term in (args.get("terms") or []) if str(term).strip()]
+    doc = _find_document(run, args.get("document_id"))
+    if not terms:
+        receipt["reason"] = "缺少检索词。"
+        return _finish(receipt, started)
+    if len(terms) > 5:
+        terms = terms[:5]
+    from .connectivity_extraction import source_path
+    import pymupdf
+    hits = []
+    try:
+        path = source_path(root, doc)
+        with PDF_ACCESS_LOCK, pymupdf.open(path) as pdf:
+            receipt["source_hash"] = doc.file_sha256 or _digest(str(path))
+            for index, page in enumerate(pdf):
+                if time.perf_counter() - started > 10:
+                    receipt["reason"] = "工具达到10秒检索上限；仅返回已检查范围，不推定未披露。"
+                    break
+                text = page.get_text("text")
+                if not text:
+                    continue
+                matched = [term for term in terms if term in text]
+                if matched:
+                    anchor = min(text.find(term) for term in matched)
+                    snippet = text[max(0, anchor - 120):anchor + 600].replace("\n", " ")
+                    hits.append({"page": index + 1, "matched_terms": matched, "snippet": snippet})
+                if len(hits) >= 8:
+                    break
+    except Exception as error:
+        receipt["reason"] = f"检索失败：{type(error).__name__}"
+        return _finish(receipt, started)
+    receipt.update(status="hit" if hits else "no_match", result={"document_id": doc.document_id,
+                   "hits": hits, "terms": terms, "quote": "\n".join(hit["snippet"] for hit in hits),
+                   "matched_terms": sorted({term for hit in hits for term in hit["matched_terms"]}),
+                   "evidence_refs": [{"document_id": doc.document_id, "pdf_page": hit["page"],
+                                      "source_sha256": receipt["source_hash"], "quote": hit["snippet"]} for hit 
+in hits]})
+    receipt["output_digest"] = _digest(json.dumps(hits, ensure_ascii=False))
+    if not hits:
+        receipt["reason"] = "已检索范围内未命中；不推定企业未披露。"
+    return _finish(receipt, started)
+
+
+def _open_source_page(root, run, args, receipt, started):
+    """打开登记原件指定页并返回原文摘录；页码必须存在。"""
+    doc = _find_document(run, args.get("document_id"))
+    try:
+        page_no = int(args.get("page"))
+    except (TypeError, ValueError):
+        receipt["reason"] = "缺少有效页码。"
+        return _finish(receipt, started)
+    text = _load_page_text(root, doc, page_no)
+    if text is None:
+        receipt["reason"] = "页码超出原件范围或原件不可读。"
+        return _finish(receipt, started)
+    receipt["source_hash"] = doc.file_sha256 or _digest(str(doc.source_url))
+    terms = [str(term) for term in args.get("terms", [])][:5]
+    matched = [term for term in terms if term in text]
+    anchor = min((text.find(term) for term in matched), default=0)
+    quote = text[max(0, anchor - 120):anchor + 900].replace("\n", " ")
+    receipt.update(status="hit", result={"document_id": doc.document_id, "page": page_no,
+                                         "quote": quote, "matched_terms": matched,
+                                         "evidence_refs": [{"document_id": doc.document_id, "pdf_page": page_no,
+                                                            "source_sha256": receipt["source_hash"], "quote": qu
+ote}]})
+    receipt["output_digest"] = _digest(quote)
+    return _finish(receipt, started)
+
+
+def _lookup_ontology_rule(args, receipt, started):
+    """查询语义本体规则；数据来自 impact_rules.json，不接受任意查询语句。"""
+    from .connectivity_financial_ontology import lookup_rule
+    keyword = str(args.get("keyword") or "").strip()[:40]
+    if not keyword:
+        receipt["reason"] = "缺少规则检索词。"
+        return _finish(receipt, started)
+    hits = lookup_rule(keyword)
+    receipt.update(status="hit" if hits else "no_match", result={"keyword": keyword, "rules": hits})
+    receipt["output_digest"] = _digest(json.dumps(hits, ensure_ascii=False))
+    return _finish(receipt, started)
+
+
+def _recompute_decimal(args, receipt, started):
+    """确定性十进制复算：只允许两操作数与受控算子，不执行任意表达式。"""
+    from decimal import Decimal, InvalidOperation
+    operator = str(args.get("operator") or "").strip()
+    if operator not in {"sum", "difference", "ratio", "percent_change"}:
+        receipt["reason"] = "算子不在白名单（sum/difference/ratio/percent_change）。"
+        return _finish(receipt, started)
+    try:
+        left = Decimal(str(args.get("left")))
+        right = Decimal(str(args.get("right")))
+    except (InvalidOperation, TypeError, ValueError):
+        receipt["reason"] = "操作数不是有效数值。"
+        return _finish(receipt, started)
+    if operator == "ratio" and right == 0:
+        receipt["reason"] = "比率的分母为0；拒绝计算。"
+        return _finish(receipt, started)
+    if operator == "sum":
+        value = left + right
+        formula = f"{left} + {right} = {value}"
+    elif operator == "difference":
+        value = left - right
+        formula = f"{left} - {right} = {value}"
+    elif operator == "ratio":
+        value = left / right
+        formula = f"{left} ÷ {right} = {value}"
+    else:
+        if right == 0:
+            receipt["reason"] = "同比基数为0；拒绝计算。"
+            return _finish(receipt, started)
+        value = (left - right) / abs(right) * Decimal(100)
+        formula = f"({left} - {right}) ÷ |{right}| × 100 = {value}%"
+    receipt.update(status="hit", result={"operator": operator, "value": str(value),
+                                         "formula": formula,
+                                         "note": "确定性复算只核对该算式本身；不改变任何条件门禁状态。"})
+    receipt["output_digest"] = _digest(formula)
+    return _finish(receipt, started)
+
+
+def _lookup_annual_comparison(root, run, args, receipt, started):
+    """跨年比较：仅当同企业其他年度报告已登记且原件可用时开放，否则返回明确缺口。"""
+    from .connectivity_temporal import temporal_status
+    company = str(args.get("company") or getattr(run, "company", "")).strip()
+    status = temporal_status(run, root=root)
+    receipt["source_hash"] = ""
+    receipt.update(status="hit" if status["available"] else "gap",
+                   result={"company": company, "registered_periods": status["registered_periods"],
+                           "companies": status["companies"]},
+                   reason="" if status["available"] else status["reason"])
+    if status["available"]:
+        receipt["reason"] = "已登记多个年度；具体比较须用 compare_periods 并核对两侧页码。"
+    return _finish(receipt, started)
+
+
+def _lookup_peer_sample(run, args, receipt, started):
+    """同业样本：仅使用已授权登记的 peer_sources；未授权返回缺口，不伪造排名。"""
+    from .connectivity_peer_benchmark import load_registry
+    registry = load_registry()
+    available = bool(registry.get("authorized")) and bool(registry.get("samples"))
+    receipt["source_hash"] = ""
+    receipt.update(status="hit" if available else "gap",
+                   result={"registered_samples": len(registry.get("samples", [])),
+                           "rejected": registry.get("rejected", []),
+                           "registry_version": registry.get("version", "")},
+                   reason="" if available else
+                   "同业样本未登记授权或登记表为空；不生成任何同业数值对标。")
+    return _finish(receipt, started)
+
+
+def _peer_registry() -> dict:
+    """读取同业来源登记表；只含授权与元数据，不含未获许可全文。"""
+    from .connectivity_peer_benchmark import load_registry
+    return load_registry()
+"""企业披露版本链：原文档、更正文档与生效关系独立登记。
+
+版本变化只生成版本证据链，不进入正式跨报告差额，也不与系统修订混成一条时间轴。
+该模块不依赖双报告运行：同一公司同一报告类型的多份登记文档即可构成版本链。
+"""
+from __future__ import annotations
+
+import re
+
+from .connectivity_engine import number
+from .connectivity_schemas import ReportDocument, VersionChange, VersionRecord
+
+VERSION_NOTE = "版本金额变化只说明财务披露版本发生变化，不能计为已解释的跨报告差异。"
+
+
+def version_records_for(documents: list[ReportDocument]) -> list[VersionRecord]:
+    """按披露日期排序列出各版本；媒体引述只记来源类别。"""
+    ordered = sorted(documents, key=lambda doc: (doc.disclosure_date or "9999", doc.document_id))
+    records = []
+    for index, doc in enumerate(ordered, start=1):
+        records.append(VersionRecord(version_id=f"{doc.document_id}-v{index}", document_id=doc.document_id,
+            report_type=doc.report_type, version_role=doc.version_role, disclosure_date=doc.disclosure_date, met
+ric_period=doc.metric_period,
+            report_period=doc.report_period or doc.period,
+            label=f"{doc.company} {doc.report_type} {doc.report_period or doc.period}",
+            effective_relation=("首次公开版本" if doc.version_role == "original" else
+                                "更正后生效" if doc.version_role == "correction" else "版本角色未登记"),
+            source_kind="mirror" if doc.source_kind == "announcement_mirror" else "official"))
+    return records
+
+
+def _key(row, report_type: str) -> tuple[str, str, str, str]:
+    """同一指标必须在同一报告类型内比较；AR 与 ESG 不是彼此的版本。"""
+    return (report_type, re.sub(r"\s+", "", row.label), row.year, row.unit)
+
+
+def build_version_chain(entries: list[dict]) -> dict:
+    """entries 为 [{'document': ReportDocument, 'occurrences': [...]}]；返回记录、变化与限制说明。"""
+    documents = [entry["document"] for entry in entries]
+    records = version_records_for(documents)
+    ordered = sorted(entries, key=lambda entry: (entry["document"].report_type,
+                                                 entry["document"].disclosure_date or "9999",
+                                                 entry["document"].document_id))
+    # 逐版比较：前一版本 → 本版本，形成 v1→v2→v3 的链，而不是每个更正都对原始版本比。
+    latest: dict[tuple, tuple] = {}
+    changes: list[VersionChange] = []
+    for entry in ordered:
+        doc = entry["document"]
+        for row in entry.get("occurrences", []):
+            if not row.value:
+                continue
+            key = _key(row, doc.report_type)
+            base = latest.get(key)
+            if base and doc.version_role == "correction":
+                base_doc, base_row = base
+                try:
+                    difference = number(row.value) - number(base_row.value)
+                except ValueError:
+                    difference = None
+                if difference is not None:
+                    changes.append(VersionChange(from_version_id=f"{base_doc.document_id}-{base_row.occurrence_i
+d}",
+                        to_version_id=f"{doc.document_id}-{row.occurrence_id}", label=row.label,
+                        display_change=f"{difference}", absolute_change=f"{abs(difference)}", unit=row.unit,
+                        only_version_evidence=True))
+            latest[key] = (doc, row)
+    return {"records": records, "changes": changes,
+            "note": VERSION_NOTE,
+            "limitation": ("本次未登记更正版本，版本链只有原始版本" if not changes else
+                           "变化只覆盖同一标签、同一年度、同一单位的行；未匹配行不推断差值"),
+            "source_kind_rule": "official 可形成版本链；mirror 单独标注；媒体引述不生成文件身份或页码"}

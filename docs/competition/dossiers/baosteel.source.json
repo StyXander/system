@@ -1,0 +1,278 @@
+{
+  "case_id": "baosteel_zhanjiang",
+  "company": "宝钢股份",
+  "project_label": "湛江钢铁零碳高等级薄钢板工厂项目",
+  "pair_id": "600019-2025",
+  "title": "宝钢股份 · 湛江钢铁近零碳项目财务穿透核查",
+  "questions": [
+    "可持续发展披露的建设规划是否具有后续实施证据？",
+    "对应投入能够追踪到哪些财务科目和附注明细？",
+    "工程进度、转固与折旧开始时点是否有充分依据？"
+  ],
+  "source_type": "registered_public_pdf",
+  "data_origin": "fresh_verified_pdf_or_verified_index",
+  "case_scope": "2025年两份已登记报告；不声称完成2024跨年验证",
+  "evidence": [
+    {
+      "evidence_id": "ME-004E48E40646896AF5AB",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "report_type": "AR",
+      "report_period": "2025",
+      "pdf_page": 26,
+      "quote": "2025年实际完成固定资产投资191.73亿元。资金主要用于东山基地零碳高等级薄钢板工厂项目、宝山基地超高等级取向硅钢绿色制造示范项目、青山基\n地新能源无取向硅钢结构优化工程等。",
+      "matched_terms": [
+        "东山基地",
+        "零碳高等级薄钢板"
+      ],
+      "source_verified": true
+    },
+    {
+      "evidence_id": "ME-051AF30BAB0A0DF4AC08",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "report_type": "AR",
+      "report_period": "2025",
+      "pdf_page": 33,
+      "quote": "（5）深化绿色转型，推动全面低碳发展。加快推进节能减碳工作，健全碳绩效管理评价制度，持\n续夯实碳排放数据质量。坚决践行生态环境治理，加大绿色电力交易，持续提升厂内可再生能源\n装机容量。坚持绿色低碳产品技术引领，积极推进湛江钢铁近零碳示范产线运作，做好产品碳足\n迹认证，持续推进低碳产品技术研发与应用。",
+      "matched_terms": [
+        "湛江钢铁",
+        "近零碳示范产线"
+      ],
+      "source_verified": true
+    },
+    {
+      "evidence_id": "ME-443AEF947D9F1D2EDA98",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "pdf_page": 41,
+      "quote": "\u0007“零碳高等级薄钢板工厂示范项目”入选《绿色低碳先进技术",
+      "matched_terms": [
+        "零碳高等级薄钢板"
+      ],
+      "source_verified": true
+    },
+    {
+      "evidence_id": "ME-C4F90039AEB2A2198691",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "report_type": "AR",
+      "report_period": "2025",
+      "pdf_page": 154,
+      "quote": "炼钢工程",
+      "matched_terms": [
+        "炼钢工程"
+      ],
+      "source_verified": true
+    },
+    {
+      "evidence_id": "ME-35026077F1FAA3370DA8",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "pdf_page": 6,
+      "quote": "国内首条百万吨级近零碳钢铁\n产线在湛江钢铁全线贯通",
+      "matched_terms": [
+        "湛江钢铁"
+      ],
+      "source_verified": true
+    },
+    {
+      "evidence_id": "ME-253D634546AAAAC2BA0B",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "pdf_page": 32,
+      "quote": "湛江钢铁全线贯通。近零碳钢铁产线包括氢基竖炉和电炉，年产连铸坯180 万吨。利用风光电和氢能绿色能源，产线",
+      "matched_terms": [
+        "湛江钢铁"
+      ],
+      "source_verified": true
+    },
+    {
+      "evidence_id": "ME-7E1A63F7EAA6AF406AC7",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "report_type": "ESG",
+      "report_period": "2025",
+      "pdf_page": 74,
+      "quote": "股份湛江钢铁零碳薄钢板项目交付200 MVA 电弧炉",
+      "matched_terms": [
+        "湛江钢铁"
+      ],
+      "source_verified": true
+    },
+    {
+      "evidence_id": "ME-05A39A5E82220073118B",
+      "document_id": "BAOSTEEL_AR_2025",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "report_type": "AR",
+      "report_period": "2025",
+      "pdf_page": 12,
+      "quote": "有序推进绿色低碳发展。国内首条拥有先进氢冶金电熔炼工艺的百万吨级近零碳钢铁产线在湛江\n钢铁全线贯通，在钢铁行业绿色低碳发展领域取得重大突破；富氢碳循环氧气高炉（HyCROF）高",
+      "matched_terms": [
+        "湛江钢铁"
+      ],
+      "source_verified": true
+    }
+  ],
+  "evidence_count": 8,
+  "total_matching_blocks": 10,
+  "coverage": [
+    {
+      "document_id": "BAOSTEEL_AR_2025",
+      "total_pages": 245,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 4719,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": false,
+      "source_verification_ms": 4,
+      "duration_ms": 4173
+    },
+    {
+      "document_id": "BAOSTEEL_ESG_2025",
+      "total_pages": 102,
+      "failed_pages": [],
+      "scanned_pages": [],
+      "indexed_blocks": 5912,
+      "ocr_enabled": false,
+      "method": "matter_blocks_v1",
+      "cache_hit": false,
+      "source_verification_ms": 208,
+      "duration_ms": 6709
+    }
+  ],
+  "reconciliation": {
+    "status": "subtotal_computed",
+    "rule_version": "construction_reconciliation_v1",
+    "source_page": 154,
+    "source_row_label": "宝钢湛江钢铁零碳高\n等级薄钢板工厂项目\n炼钢工程",
+    "source_row_matched": true,
+    "subproject_identity": "yearly_report_explicit_project_and_subproject",
+    "extraction": "pymupdf_verified_table_cells",
+    "unit": "元",
+    "formula": "期初余额 + 本期增加 − 本期转固（其他扣减列按真实表头另行核查）",
+    "values": {
+      "opening": "240078904.49",
+      "increase": "847336295.51",
+      "to_fixed": "1087415200.00",
+      "to_long_term": null,
+      "closing": null
+    },
+    "values_yuan": {
+      "opening": "240078904.49",
+      "increase": "847336295.51",
+      "to_fixed": "1087415200.00",
+      "to_long_term": null,
+      "closing": null
+    },
+    "reported_markers": {
+      "opening": "240,078,904.49",
+      "increase": "847,336,295.51",
+      "to_fixed": "1,087,415,200.00",
+      "to_long_term": "-",
+      "closing": "-"
+    },
+    "known_component_subtotal_yuan": "0.00",
+    "difference_yuan": null,
+    "note": "已复算本行三项明确披露的金额；长期待摊转出或期末余额采用破折号，未查明其计量含义，不标记完整勾稽通过。",
+    "missing": [
+      "to_long_term",
+      "closing"
+    ],
+    "other_decrease_column_present": false,
+    "document_id": "BAOSTEEL_AR_2025",
+    "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8"
+  },
+  "disclosure_timeline": [
+    {
+      "kind": "subproject_annual",
+      "date_label": "2025 报告期间",
+      "label": "炼钢子工程本期增加与转固",
+      "note": "具体发生月份未知，不套用整体投产日期",
+      "document_id": "BAOSTEEL_AR_2025",
+      "pdf_page": 154
+    },
+    {
+      "kind": "project_operation",
+      "date_label": "2025 年 12 月",
+      "label": "整体项目建成投产",
+      "document_id": "BAOSTEEL_AR_2025",
+      "pdf_page": 26,
+      "quote": "东山基地零碳高等级薄钢板工厂项目：新增绿色低碳高等级薄钢板连铸坯产能180万吨/年，2025年12月，项目正式建成投产",
+      "source_sha256": "9d910b7b6a78fe2ccae1345c8651ca2e592d83b04bc2705f51d611ec0e1545a8",
+      "note": "整体/产线披露，不代表炼钢子工程转固或折旧日期"
+    },
+    {
+      "kind": "line_connection",
+      "date_label": "2025 年 12 月 23 日",
+      "label": "近零碳产线贯通",
+      "document_id": "BAOSTEEL_ESG_2025",
+      "pdf_page": 32,
+      "quote": "2025年12月23日，随着中国宝武党委书记、董事长胡望明下达指令，国内首条百万吨级近零碳钢铁产线在宝钢股份湛江钢铁全线贯通",
+      "source_sha256": "e7e41113668d3b05bf15f8e5f44ed1290ff5c3f5a049fcde6e014425357f0944",
+      "note": "整体/产线披露，不代表炼钢子工程转固或折旧日期"
+    }
+  ],
+  "project_mapping": "annual_explicit_subproject",
+  "mapping_note": "2025年报同一表格单行明确将炼钢工程列于宝钢湛江钢铁零碳高等级薄钢板工厂项目下；该原文身份不自动证明与ESG所有披露的统计范围一致。",
+  "investigation_value": "B",
+  "ranking_reasons": [
+    "已定位年报项目披露",
+    "在建工程已按原表数值完成已知金额试算"
+  ],
+  "rule_checks": [
+    {
+      "rule": "R1 转固与确认时点",
+      "status": "needs_evidence",
+      "question": "是否取得验收日期、达到预定可使用状态的依据及折旧起点？"
+    },
+    {
+      "rule": "R2 工程范围差异",
+      "status": "needs_evidence",
+      "question": "零碳项目整体与炼钢工程部分完工是否属于不同工程边界？"
+    },
+    {
+      "rule": "R3 跨口径金额等价",
+      "status": "blocked_without_scope",
+      "question": "不将总体规划投资、子工程预算、年度支出和转固金额直接相加或等同。"
+    }
+  ],
+  "audit_procedures": [
+    {
+      "question": "工程实际完成范围与时间？",
+      "material": "分项工程竣工、验收与交付记录",
+      "purpose": "区分整体项目投产与炼钢子工程部分完工"
+    },
+    {
+      "question": "转固金额、日期和折旧起点是否恰当？",
+      "material": "在建工程转固凭证、固定资产卡片及折旧台账",
+      "purpose": "检查达到预定可使用状态的时间与资产确认"
+    },
+    {
+      "question": "零碳项目与炼钢工程是否同一主体、同一口径？",
+      "material": "项目立项文件、合同、工程编码及分项预算明细",
+      "purpose": "核实名称、范围、金额与子项目映射"
+    },
+    {
+      "question": "承诺实施是否已经形成可量化绩效？",
+      "material": "生产运营、能源消耗、产品碳足迹等项目级记录",
+      "purpose": "区分工程投入与减排绩效兑现"
+    }
+  ],
+  "agents": {
+    "status": "not_run_in_dossier",
+    "notice": "专项确定性核验不自动调用模型；五Agent须另行启动并依据对应真实任务回执展示。"
+  },
+  "source_warnings": [
+    "2024年原件需核对发布日期及SHA256后再加入多年度集合；本专项默认只使用2025年两份已登记报告。",
+    "外部公开报道必须另行验证来源，不能冒充已登记年报或ESG证据。"
+  ],
+  "generated_at": "2026-11-07T03:42:30.504155+00:00"
+}

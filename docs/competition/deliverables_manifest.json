@@ -1,0 +1,15 @@
+{
+  "files_sha256": {
+    "deliverables/ANNOTATION_GUIDE.docx": "a48f0e034de5bf1f881f6e35639a1485d4ad056c94e763381ae55013da68fc35",
+    "deliverables/APPLICATION_CHECKLIST.docx": "da4f3d657d3e7426f9761a68208fdac5790b2093a135e76b1378b91ae9650ac5",
+    "deliverables/IP_DISCLOSURE.docx": "922811db87a2cf76f7378cd14db0acffd94bc3964ed489248dd45d285e45b661",
+    "deliverables/TECHNICAL_REPORT.docx": "46ec0a341d5f90cb13fd0c9bf442101360078c9631516cecfdcf52de445d620b",
+    "deliverables/TEST_REPORT.docx": "ab721a495d623096818a44101883a10ff47ecfbc96f3683365ced0d8744c0788",
+    "deliverables/TRIAL_FORMS.docx": "7d88ff76223452b0c97112477bf428f6059f3e900d47c013ee817467c2fa671e",
+    "deliverables/USER_GUIDE.docx": "57511d7b522ce245fda55c9f5912d4b1a3e4dfc4df63c6a52804069fdb7d590e",
+    "deliverables/baosteel_dossier.docx": "b44bd0baad95b313dfa3b3e481d8cc82a637f1d12105ce4f9bb338233dcd5761",
+    "deliverables/midea_dossier.docx": "1d98fde627397867ce34a6ecb245e8d8089162dff3eb9f60d9c9b415fef0a1b9",
+    "deliverables/wuliangye_dossier.docx": "23443d0aba15b91b752bd1d47619adad0c0ddba0d072bf12e670d86f9cb89a7b"
+  },
+  "professional_evaluation": "not_independently_completed"
+}

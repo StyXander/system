@@ -1,0 +1,121 @@
+{
+  "origin": "actual_render_api_execution",
+  "experiment_id": "d1ba9a80d3f6469ea78e1bc87d0dea65",
+  "created_at": "2026-11-07T04:05:25.493173+00:00",
+  "config": {
+    "report_set_id": "CONNSET-190D43C953A73C496823C576",
+    "matter_id": "MAT-E05705ACB19E2B914D78",
+    "case_id": "MIDEA-DEVELOPMENT-01",
+    "as_of": "2026-11-07",
+    "groups": [
+      "G3"
+    ],
+    "repeat": 1,
+    "budget": {
+      "max_matters": 1,
+      "max_provider_calls": 12,
+      "max_role_rounds": 1,
+      "max_parallel_calls": 2
+    },
+    "evidence_ids": [
+      "ME-0CA7551C9E4969F8A7BE",
+      "ME-20685C77B6B0787E141B",
+      "ME-3509A7741089E0DDA73D",
+      "ME-67F11A4A9E4481F58C4C",
+      "ME-6DC9DA4CBF3A1FF48041",
+      "ME-8C3290A625AD82150F8D",
+      "ME-9102D4F3C3D3430BE7B6",
+      "ME-BB0575F47D7245DE9CF3",
+      "ME-D71B749DC158F6A01CE3",
+      "ME-EE6D77F88B9B12AB08C2",
+      "ME-F3372F1FE9CDDBF8CA2A"
+    ],
+    "base_url": "https://audittrace-demo.onrender.com"
+  },
+  "config_sha256": "2680cbcec4176577e3039bc9b61602f81c0be2225d57fc5aa46d01d5cf7f9324",
+  "runs": [
+    {
+      "group_id": "G3",
+      "repeat": 1,
+      "case_id": "MIDEA-DEVELOPMENT-01",
+      "matter_id": "MAT-E05705ACB19E2B914D78",
+      "mode": "five_agents",
+      "ablation": "none",
+      "experiment_mode": "fixed_evidence",
+      "budget": {
+        "max_matters": 1,
+        "max_provider_calls": 12,
+        "max_role_rounds": 1,
+        "max_parallel_calls": 2
+      },
+      "result_file": "1-G3.json",
+      "status": "recorded",
+      "idempotency_key": "competition-d1ba9a80d3f6469ea78e1bc87d0dea65-1-G3",
+      "task_id": "DEMO-RUN-A50F7A4068D9",
+      "started_at": "2026-11-07T04:05:37.279317+00:00",
+      "requested_matter_id": "MAT-E05705ACB19E2B914D78",
+      "task_status": "degraded",
+      "run_id": "CONN-82D4778E678C4AD0",
+      "model_status": "five_agents_partial",
+      "duration_ms": 265176,
+      "fixed_evidence_sha256": "4e87c27c8ad290c3b6d185d71f530093510c9b3b4f00495943247c99c105837c",
+      "provider_calls": 10,
+      "successful_calls": 9,
+      "attempted_calls": 10,
+      "input_tokens": 92131,
+      "output_tokens": 17658,
+      "unknown_usage_calls": 0,
+      "failure_code": null,
+      "cost": null,
+      "professional_quality": "not_independently_evaluated"
+    }
+  ],
+  "service_observations": [
+    {
+      "service_status": "ready",
+      "product": "connectivity",
+      "access_mode": "single_user",
+      "authentication_required": false,
+      "usage_quotas_enabled": false,
+      "daily_token_limit": null,
+      "daily_run_limit": null,
+      "request_frequency_limit": null,
+      "model_status": "configured",
+      "model_id": "deepseek-flash",
+      "default_mode": "five_agents",
+      "matter_schema_version": "matter_connectivity_v1",
+      "frontend_release": "2026.11.evidence-studio.1",
+      "project_facts": {
+        "task_kind": "connectivity",
+        "formal_scope": "面向可持续信息鉴证项目组，在详细鉴证程序前开展跨报告风险调查，追踪事项、潜在财务影响与跨期证据，生成风险关注点和资料需求清单，支持进一步核查。",
+        "pair_count": 17,
+        "document_count": 34,
+        "company_count": 16,
+        "topic_count": 3,
+        "rule_count": 6,
+        "schema_version": "connectivity_v5",
+        "notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
+        "matter_schema_version": "matter_connectivity_v1",
+        "matter_agent_count": 5,
+        "default_mode": "five_agents",
+        "matter_types": [
+          "climate_risk",
+          "transition_project",
+          "commitment",
+          "resource_efficiency",
+          "other"
+        ],
+        "capability_boundary": "已登记公开报告专项核验；未承诺任意上传、全指标覆盖或审计鉴证意见"
+      },
+      "deployment": {
+        "commit": "95484f9fb05d22a0321e0f269b90d290fcd7047b",
+        "platform": "render",
+        "source_baseline_commit": null,
+        "source_snapshot_sha256": null,
+        "entry": "backend.app.connectivity_app:app",
+        "release": "2026.10.26.matter.1",
+        "identity_source": "runtime_environment"
+      }
+    }
+  ]
+}

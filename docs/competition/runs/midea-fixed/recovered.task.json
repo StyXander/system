@@ -1,0 +1,4257 @@
+{
+  "task_id": "DEMO-RUN-A50F7A4068D9",
+  "task_kind": "connectivity",
+  "case_id": "CONNSET-190D43C953A73C496823C576",
+  "retry_of_task_id": null,
+  "stage_schema_version": "demo_task_v2",
+  "status": "degraded",
+  "steps": {
+    "evidence_load": {
+      "detail": "已索引9419个原文块，扫描页与失败覆盖单列",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:06:17.985611+00:00"
+    },
+    "rule_calculation": {
+      "detail": "建立11项披露候选；身份归并待调查",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:06:23.785452+00:00"
+    },
+    "structured_output": {
+      "detail": "事项结果已保存，真实调用与未调查范围单列",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:10:03.185377+00:00"
+    },
+    "agent_collaboration": {
+      "detail": "five_agents_partial",
+      "status": "degraded",
+      "updated_at": "2026-11-07T04:09:55.590570+00:00"
+    },
+    "evidence_validation": {
+      "detail": "原文身份与语义判断分列，金额可比性不由模型放行",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:09:58.938067+00:00"
+    },
+    "knowledge_retrieval": {
+      "detail": "支持与反证分别查询，检索命中不等于关系证实",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:06:29.287886+00:00"
+    }
+  },
+  "agent_steps": {
+    "A1": {
+      "detail": "来源已核验；项目别名归并证据不足，保留原候选，未认定跨报告同一性",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:07:22.802008+00:00"
+    },
+    "A2": {
+      "detail": "已查明：D31披露为定性结论，未量化受影响资产金额与百分比；情景与参数选取、温室气体目标未经第三方验证等背景已取得；年报仅有一般性折旧、减值与预计负债政策。尚缺：受影响资产金额与百分比、评估情景与重要性阈值、减值测试是否考虑气候因素、相关资产账面价值与减值准备金额。下一步：在可检索条件下补查ESG报告D31前后页与年报资产减值附注。",
+      "status": "partial",
+      "updated_at": "2026-11-07T04:08:06.941942+00:00"
+    },
+    "A3": {
+      "detail": "已查明：D31披露为定性结论（暂无资产受气候转型/物理风险重大影响，亦无涉及气候机遇的资产），未附金额或百分比；同报告第19-20页提及两个气候情景与韧性评估，第79页说明温室气体目标未经第三方验证。尚缺：D31金额/百分比是否另有披露、情景参数与评估方法细节、物理风险资产识别范围；本轮检索受限，未检索到不等于不存在披露。",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:08:17.432292+00:00"
+    },
+    "A4": {
+      "detail": "已查明：D31为定性结论，无金额与百分比，未说明评估方法、情景参数与重要性阈值；情景分析（两情景、选定参数）与温室气体目标未经验证为背景信息；年报会计政策仅为候选传导方向。尚缺：D31量化数据是否另有披露、阈值与资产范围口径、年报相关资产账面价值与减值准备金额、减值测试是否考虑气候因素。下一步需在解冻检索后打开ESG第77-79页与年报资产减值章节核对。",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:09:26.837951+00:00"
+    },
+    "A5": {
+      "detail": "已查明：D31为定性结论，无金额与百分比（ME-9102D4F3C3D3430BE7B6）；情景分析（ME-67F11A4A9E4481F58C4C、ME-20685C77B6B0787E141B）、目标未经验证（ME-F3372F1FE9CDDBF8CA2A）与年报会计政策（ME-EE6D77F88B9B12AB08C2等）仅为背景与候选方向。尚缺：D31量化数据、情景参数与阈值、资产范围、年报相关资产账面价值与减值准备、减值测试是否含气候因素。下一步：按next_actions定向补查ESG第19-21页与第77-79页、年报资产附注及指标目标章节。",
+      "status": "completed",
+      "updated_at": "2026-11-07T04:09:50.108141+00:00"
+    }
+  },
+  "non_interruptible": true,
+  "run_id": "CONN-82D4778E678C4AD0",
+  "failure_code": null,
+  "error": null,
+  "result": {
+    "run_id": "CONN-82D4778E678C4AD0",
+    "task_kind": "connectivity",
+    "schema_version": "connectivity_v5",
+    "company": "美的集团",
+    "period": "2025",
+    "report_period": "",
+    "metric_period": "",
+    "created_at": "2026-11-07T04:05:37.884791+00:00",
+    "discovery_mode": "auto_discovery",
+    "dataset_role": "development",
+    "execution_mode": "five_agents",
+    "model_status": "five_agents_partial",
+    "parent_run_id": null,
+    "result_revision": 1,
+    "documents": [
+      {
+        "document_id": "MIDEA_AR_2025",
+        "case_id": "000333-2025",
+        "company_id": "000333",
+        "company": "美的集团",
+        "report_type": "AR",
+        "period": "2025",
+        "report_period": "2025",
+        "metric_period": "",
+        "version": "以巨潮公告版为主；官网版作为异版单独保存，PDF116提取文字不同",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225065145.PDF",
+        "source_kind": "official",
+        "disclosure_date": "2026-03-31",
+        "retrieved_at": "2026-10-15T12:07:11.343732+08:00",
+        "compilation_basis": "\"企业会计准则\"",
+        "pages": 276,
+        "file_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "available": true,
+        "version_role": "unknown"
+      },
+      {
+        "document_id": "MIDEA_ESG_2025",
+        "case_id": "000333-2025",
+        "company_id": "000333",
+        "company": "美的集团",
+        "report_type": "ESG",
+        "period": "2025",
+        "report_period": "2025",
+        "metric_period": "",
+        "version": "2025_ESG报告_公告简体中文版",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225058130.PDF",
+        "source_kind": "official",
+        "disclosure_date": "2026-03-31",
+        "retrieved_at": "2026-10-15T12:06:26.017428+08:00",
+        "compilation_basis": "{\"遵循\": [\"港交所主板附录C2\", \"深交所第17号指引\"], \"参考\": [\"IFRS S1\", \"IFRS S2\", \"GRI\", \"UNGC\"]}",
+        "pages": 82,
+        "file_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "available": true,
+        "version_role": "unknown"
+      }
+    ],
+    "occurrences": [],
+    "checks": [],
+    "coverage": [],
+    "extraction_exclusions": [],
+    "candidate_rejections": [],
+    "version_records": [],
+    "version_changes": [],
+    "overview": {
+      "proof_graph": {
+        "version": "adaptive_proof_v1",
+        "nodes": [],
+        "edges": [],
+        "paths": [],
+        "truncated_checks": 0,
+        "note": "证据来源可追溯不代表企业披露真实、审计证据充分或已出具审计意见"
+      },
+      "collaboration": {
+        "version": "autonomous_evidence_v1",
+        "events": [],
+        "tool_requests": 0,
+        "tool_rejections": 0,
+        "new_evidence_ids": [],
+        "feedback": [],
+        "limits": {
+          "requests_per_turn": 4,
+          "feedback_rounds": 1,
+          "model_calls": 20
+        },
+        "notice": "工具实际执行与条件改善分别计数；未命中不等于未披露。"
+      },
+      "delivery_contract_version": "2026-10-20.round3.1",
+      "program_levels": {
+        "formal": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "conditional": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "limited": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "insufficient": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "conflict": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "not_applicable": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        }
+      },
+      "summary_bands_note": "由 program_levels 派生的历史五类投影；pending 合并明确冲突与非数值关系，准确分类以六级状态为准",
+      "execution_provenance": {
+        "kind": "provider_recorded",
+        "label": "本运行含实际模型调用记录，成功状态单列",
+        "provider_call_count": 10,
+        "attempt_count": 10,
+        "execution_mode": "five_agents",
+        "model_status": "five_agents_partial",
+        "run_id": "CONN-82D4778E678C4AD0",
+        "result_origin": "original"
+      },
+      "coverage_counts": {
+        "unattributed_occurrences": {
+          "value": 0,
+          "unit": "处",
+          "denominator": 0
+        },
+        "failed_pages": {
+          "value": 0,
+          "unit": "页",
+          "denominator": 0
+        }
+      },
+      "summary_bands": {
+        "confirmable": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "limited_support": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "conditional_trial": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "not_comparable": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        },
+        "pending": {
+          "value": 0,
+          "items": [],
+          "denominator": 0
+        }
+      },
+      "counting_version": "2026-10-18.2",
+      "relation_total": 0,
+      "formal_calculations": {
+        "value": 0,
+        "items": []
+      },
+      "program_calculations": {
+        "value": 0,
+        "items": [],
+        "label": "正式复算（历史字段别名）"
+      },
+      "numerical_records": {
+        "value": 0,
+        "items": []
+      },
+      "arithmetic_references": {
+        "value": 0,
+        "items": [],
+        "label": "受门禁限制的算术参考，不表示假设已支持"
+      },
+      "program_records": {
+        "value": 0,
+        "label": "程序事实记录，包含无差异记录"
+      },
+      "program_hints": {
+        "value": 0,
+        "items": [],
+        "label": "程序差异或限制提示"
+      },
+      "priority_checks": {
+        "value": 0,
+        "items": [],
+        "details": [],
+        "label": "优先核查的关系，含模型排序建议"
+      },
+      "model_opinions": {
+        "value": 0,
+        "items": [],
+        "new": 0,
+        "reused": 0
+      },
+      "ai_analysis": {
+        "value": 0,
+        "denominator": 0,
+        "items": [],
+        "by_verdict": {},
+        "stale": 0
+      },
+      "trial_calculations": {
+        "value": 0,
+        "items": [],
+        "label": "仅条件试算，不计入正式复算"
+      },
+      "scenario_bridges": {
+        "value": 0,
+        "items": []
+      },
+      "confirmable": {
+        "value": 0,
+        "denominator": 0,
+        "label": "条件支持且计算成立的关系",
+        "items": []
+      },
+      "unconfirmable": {
+        "value": 0,
+        "denominator": 0,
+        "conflicting": 0,
+        "label": "缺前提或存在冲突的关系",
+        "items": [],
+        "missing_conditions": [],
+        "missing_breakdown": []
+      },
+      "unexplained": {
+        "value": 0,
+        "denominator": 0,
+        "label": "仍有未解释残差的关系",
+        "items": [],
+        "undecidable": {
+          "value": 0,
+          "denominator": 0,
+          "label": "因前提未支持而无法判断差额的关系",
+          "items": []
+        }
+      },
+      "not_found": {
+        "deprecated_mixed_value": true,
+        "replacement": "coverage_counts",
+        "value": 0,
+        "label": "未计入位置与失败页合计",
+        "unattributed": {
+          "value": 0,
+          "denominator": 0,
+          "label": "已提取但未归属或未达候选门槛的位置",
+          "items": []
+        },
+        "failed_pages": {
+          "value": 0,
+          "denominator": 0,
+          "label": "解析失败的页",
+          "items": []
+        },
+        "searched_pages": 0,
+        "parsed_pages": 0,
+        "total_pages": 0,
+        "denominator_label": "已提取0处 / 已检索0页 / 共0页"
+      },
+      "unresolved_causes": [
+        {
+          "code": "C1",
+          "name": "前提缺原文依据",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C2",
+          "name": "前提存在明确冲突",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C3",
+          "name": "关系依据或成员不足",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C4",
+          "name": "单位、量纲或币种未定",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C5",
+          "name": "期间或范围不可比",
+          "count": 0,
+          "examples": []
+        },
+        {
+          "code": "C6",
+          "name": "差额未解释或不可执行",
+          "count": 0,
+          "examples": []
+        }
+      ],
+      "closure": {
+        "version": "connectivity_closure_v1",
+        "relation_total": 0,
+        "tiers": {
+          "closed": {
+            "count": 0,
+            "check_ids": []
+          },
+          "formal_gap": {
+            "count": 0,
+            "check_ids": []
+          },
+          "substantive_risk": {
+            "count": 0,
+            "check_ids": []
+          },
+          "blocked": {
+            "count": 0,
+            "check_ids": []
+          },
+          "not_applicable": {
+            "count": 0,
+            "check_ids": []
+          }
+        },
+        "ceiling_status": {},
+        "open_demand_by_condition": {},
+        "structural_gap_total": 0,
+        "substantive_risk_count": 0,
+        "substantive_risk_scope": {
+          "cross_document": 0,
+          "same_document": 0
+        },
+        "formal_gap_count": 0,
+        "blocked_count": 0,
+        "statement": "0 条关系中，0 条已闭合；0 条即使补齐全部纸面前提仍存在未解释差额；0 条只缺形式证据；0 条算式不可执行",
+        "note": "分档来自确定性反事实推演，不读取模型意见；上限预测不是结论"
+      },
+      "next_questions": [],
+      "note": "同一关系可能同时计入多个状态；四问不合成综合分数，也不做排行。",
+      "matter_summary": {
+        "notice": "关联状态描述公开材料对具体主张的支持程度，不构成会计确认或鉴证结论",
+        "pending": 10,
+        "completed": 0,
+        "unresolved": 7,
+        "investigated": 1,
+        "matter_total": 11,
+        "indexed_blocks": 9419,
+        "supported_paths": 0,
+        "assessment_count": 1
+      }
+    },
+    "ai_opinions": [],
+    "findings": [],
+    "professional_notes": [],
+    "source_lineage": [
+      {
+        "document_id": "MIDEA_AR_2025",
+        "producer": "美的集团",
+        "category": "official",
+        "upstream": "unknown",
+        "independence": "同企业披露，不作为独立证实"
+      },
+      {
+        "document_id": "MIDEA_ESG_2025",
+        "producer": "美的集团",
+        "category": "official",
+        "upstream": "unknown",
+        "independence": "同企业披露，不作为独立证实"
+      }
+    ],
+    "reviews": [],
+    "agent_steps": [],
+    "provider_calls": [
+      {
+        "cost": null,
+        "role": "A1",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-d00a085445194262",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "事项识别与建档",
+        "started_at": 1794024408.8995543,
+        "duration_ms": 11048,
+        "parse_stage": "role_arguments",
+        "input_sha256": "443652920714ef9d4b9852123a49899664e3f1792783201670cfc51ec9234a7f",
+        "input_tokens": 5944,
+        "finalize_only": false,
+        "output_tokens": 1246,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "06954bf13f099a9c86e0a34e0d7ff26313825ba825cc9d08f6a47daa0b94a965",
+        "input_characters": 9784,
+        "provider_call_id": "MCALL-a170b182d647437882d818605a8fd694",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 1,
+          "remaining_tool_rounds": 1
+        },
+        "cache_hit_input_tokens": 384,
+        "cache_miss_input_tokens": 5560,
+        "input_token_upper_bound": 21579,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A1",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-d00a085445194262",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "事项识别与建档",
+        "started_at": 1794024430.616645,
+        "duration_ms": 6891,
+        "parse_stage": "role_arguments",
+        "input_sha256": "91c6c3531d6bd58cf356a8fff616487c3b852ae53bf77fc0132f7dd880b585b3",
+        "input_tokens": 7927,
+        "finalize_only": true,
+        "output_tokens": 1037,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "bd3b7f1ec525abadc7009f17e2080206c443ea8da717f429dfcd58f1fa60f38c",
+        "input_characters": 13985,
+        "provider_call_id": "MCALL-4df63cf94eaf46b8a599673e02dea8ad",
+        "request_attempted": true,
+        "finalization_reason": "source_exhausted",
+        "investigation_round": {
+          "current": 2,
+          "maximum": 2,
+          "remaining_tool_rounds": 0
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 7415,
+        "input_token_upper_bound": 28834,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A2",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-738734521dd44814",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "财务影响调查",
+        "started_at": 1794024449.2512865,
+        "duration_ms": 13932,
+        "parse_stage": "role_arguments",
+        "input_sha256": "ff173b3d4b06bbffe14b80f8d96476eff09c3f86186dfe5fe12be83dcf2a20cb",
+        "input_tokens": 7078,
+        "finalize_only": false,
+        "output_tokens": 2022,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "12616517edcca2fb981e396a8de574a3d4d1db22d122b87304f1882250b57370",
+        "input_characters": 10642,
+        "provider_call_id": "MCALL-d7415d77eb9c45ed89ff22b00f3b27da",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 1,
+          "remaining_tool_rounds": 1
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 6566,
+        "input_token_upper_bound": 25654,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A3",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-096f24547cda45f3",
+        "queue_ms": 7180,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "跨期承诺与后果追踪",
+        "started_at": 1794024460.9876635,
+        "duration_ms": 6679,
+        "parse_stage": "role_arguments",
+        "input_sha256": "ffc39fdc839d13b2fbfd8bfcd6aa72053db4ef765a91c5796764e8977aa1f927",
+        "input_tokens": 7403,
+        "finalize_only": false,
+        "output_tokens": 945,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "f8e6886e0f611e89f5da2599ced3ecb0404671900f0cf7227b943fb3b57e5c60",
+        "input_characters": 10642,
+        "provider_call_id": "MCALL-5c5248bb0dc749c6b3b00d9d552c8ed3",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 1,
+          "remaining_tool_rounds": 1
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 6891,
+        "input_token_upper_bound": 26884,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A2",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-738734521dd44814",
+        "queue_ms": 47,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "财务影响调查",
+        "started_at": 1794024474.0611787,
+        "duration_ms": 10559,
+        "parse_stage": "role_arguments",
+        "input_sha256": "9f954834e9b0f5d44fdce2c8a0f3fa97f45dacc9fb6fcbcae15df5dcf9e179e1",
+        "input_tokens": 9800,
+        "finalize_only": true,
+        "output_tokens": 1837,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "8d87eb788f9fe2ad11040701ea1b5d0c919000b5988a7a667f7e475121e21b82",
+        "input_characters": 16996,
+        "provider_call_id": "MCALL-9b48ab0a47cd48fbae758069dafeebb9",
+        "request_attempted": true,
+        "finalization_reason": "tool_round_limit",
+        "investigation_round": {
+          "current": 2,
+          "maximum": 2,
+          "remaining_tool_rounds": 0
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 9288,
+        "input_token_upper_bound": 35698,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A3",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-096f24547cda45f3",
+        "queue_ms": 9331,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "跨期承诺与后果追踪",
+        "started_at": 1794024489.0403972,
+        "duration_ms": 5469,
+        "parse_stage": "role_arguments",
+        "input_sha256": "578a7f2fa382f9088c987ffd72a12098a8d312b72b50ca667203d901ed89890f",
+        "input_tokens": 8696,
+        "finalize_only": true,
+        "output_tokens": 817,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "da55f52b7d8a68c80d0b25b99e50418183295948640451599bae9f5d64046ee7",
+        "input_characters": 13520,
+        "provider_call_id": "MCALL-e04922e88b9c42e4934cae3951d868ce",
+        "request_attempted": true,
+        "finalization_reason": "source_exhausted",
+        "investigation_round": {
+          "current": 2,
+          "maximum": 2,
+          "remaining_tool_rounds": 0
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 8184,
+        "input_token_upper_bound": 31670,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A4",
+        "model": "deepseek-flash",
+        "status": "failed",
+        "task_id": "MTASK-222c9a3fd6164d88",
+        "queue_ms": 0,
+        "performed": true,
+        "retryable": false,
+        "role_name": "边界解释与反证调查",
+        "started_at": 1794024502.1435914,
+        "duration_ms": 17527,
+        "parse_stage": "role_arguments",
+        "retry_count": 0,
+        "failure_code": "MODEL_JSON_INVALID",
+        "input_sha256": "eeb2026215b582e0f2ff7c146e4af7b7780e9982509b959f7cd833fd4cf1a1d5",
+        "input_tokens": 9945,
+        "finalize_only": false,
+        "output_tokens": 2911,
+        "error_category": "output_contract",
+        "invalid_fields": [
+          {
+            "type": "json_invalid",
+            "reason": "JSON解析失败，返回有效的工具参数对象",
+            "location": [
+              "tool_arguments"
+            ],
+            "position": 1045
+          }
+        ],
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "b453c36ea9a9a4d8831ed41cfe60df972b0829210537bc0830bd388aaa6e4075",
+        "input_characters": 17974,
+        "provider_call_id": "MCALL-6870caa83b92417195e3fcdab60d4360",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 1,
+          "remaining_tool_rounds": 1
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 9433,
+        "input_token_upper_bound": 36139,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A4",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-222c9a3fd6164d88",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "边界解释与反证调查",
+        "started_at": 1794024524.1870878,
+        "duration_ms": 15100,
+        "parse_stage": "role_arguments",
+        "input_sha256": "fb626c43c9df4334424c93f392f06b56e444a4635e304e82c9350ed805fb80e4",
+        "input_tokens": 10053,
+        "finalize_only": false,
+        "output_tokens": 2273,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "8d53a99295331504d2d545c08f3eb5a5a9b4e454e58d1dce0f836880d2bac0f7",
+        "input_characters": 18271,
+        "provider_call_id": "MCALL-c4abf5bc7b6f443a9d91e6fe57eefc93",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 1,
+          "remaining_tool_rounds": 1
+        },
+        "cache_hit_input_tokens": 9856,
+        "cache_miss_input_tokens": 197,
+        "input_token_upper_bound": 36592,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A4",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-222c9a3fd6164d88",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "边界解释与反证调查",
+        "started_at": 1794024551.2891672,
+        "duration_ms": 12333,
+        "parse_stage": "role_arguments",
+        "input_sha256": "6b7c51003e6f2ce75a892d0b90b335a04c28caa21e78fb5a62bc1c7105abdcf4",
+        "input_tokens": 12831,
+        "finalize_only": true,
+        "output_tokens": 2559,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "8d89e71669b24793937e222ac194f055f8450b2131ee236b174f5d6ec2d52676",
+        "input_characters": 24314,
+        "provider_call_id": "MCALL-325896e9baf24900b3d5c839950dbafa",
+        "request_attempted": true,
+        "finalization_reason": "source_exhausted",
+        "investigation_round": {
+          "current": 2,
+          "maximum": 2,
+          "remaining_tool_rounds": 0
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 12319,
+        "input_token_upper_bound": 46517,
+        "output_token_upper_bound": 8000
+      },
+      {
+        "cost": null,
+        "role": "A5",
+        "model": "deepseek-flash",
+        "status": "completed",
+        "task_id": "MTASK-35282d0312f9467f",
+        "queue_ms": 0,
+        "cost_note": "未配置计价，不估算费用",
+        "performed": true,
+        "role_name": "综合复核与补证决策",
+        "started_at": 1794024573.9196901,
+        "duration_ms": 11796,
+        "parse_stage": "role_arguments",
+        "input_sha256": "24a0871b7c4925142964e59d33106daf53704953618e66b23ce5a5d81b9e2ce2",
+        "input_tokens": 12454,
+        "finalize_only": false,
+        "output_tokens": 2011,
+        "prompt_version": "matter_agents_20261027.tool-feedback.3",
+        "requested_model": "deepseek-flash",
+        "response_sha256": "baeec83bad08d7ea34334cd943d76a0b7dbef4af95b59e2b4ff9816fd4f25170",
+        "input_characters": 23164,
+        "provider_call_id": "MCALL-d36b79c780874bbeb5a8955e3f32cba2",
+        "request_attempted": true,
+        "finalization_reason": null,
+        "investigation_round": {
+          "current": 1,
+          "maximum": 1,
+          "remaining_tool_rounds": 1
+        },
+        "cache_hit_input_tokens": 512,
+        "cache_miss_input_tokens": 11942,
+        "input_token_upper_bound": 44745,
+        "output_token_upper_bound": 8000
+      }
+    ],
+    "duration_ms": 265176,
+    "versions": {
+      "budget": {
+        "limit": 12,
+        "attempts": 10,
+        "remaining": 2,
+        "deep_matter_limit": 1
+      },
+      "pair_id": null,
+      "ablation": "none",
+      "matter_types": [
+        "climate_risk",
+        "transition_project",
+        "commitment",
+        "resource_efficiency",
+        "other"
+      ],
+      "role_budgets": {
+        "used": {
+          "A1": 2,
+          "A2": 2,
+          "A3": 2,
+          "A4": 3,
+          "A5": 1
+        },
+        "limits": {
+          "A1": 2,
+          "A2": 2,
+          "A3": 2,
+          "A4": 3,
+          "A5": 3
+        }
+      },
+      "matter_prompt": "matter_agents_20261027.tool-feedback.3",
+      "report_set_id": "CONNSET-190D43C953A73C496823C576",
+      "result_origin": "original",
+      "seed_coverage": {
+        "note": "首轮上下文有界；未入选块仍可用工具检索，不等于无披露",
+        "seed_blocks": 90,
+        "indexed_blocks": 9419,
+        "seed_truncated": true,
+        "relevant_blocks": 770
+      },
+      "stage_timings": {
+        "evidence_load": {
+          "status": "completed",
+          "updated_at": 1794024377.3950262,
+          "duration_ms": 35477
+        },
+        "rule_calculation": {
+          "status": "completed",
+          "updated_at": 1794024382.8912365,
+          "duration_ms": 3175
+        },
+        "structured_output": {
+          "status": "completed",
+          "updated_at": 1794024602.4175549,
+          "duration_ms": 2736
+        },
+        "agent_collaboration": {
+          "status": "degraded",
+          "updated_at": 1794024594.8205416,
+          "duration_ms": 203536
+        },
+        "evidence_validation": {
+          "status": "completed",
+          "updated_at": 1794024598.536506,
+          "duration_ms": 1381
+        },
+        "knowledge_retrieval": {
+          "status": "completed",
+          "updated_at": 1794024388.088323,
+          "duration_ms": 3166
+        }
+      },
+      "analysis_scope": "matter_connectivity",
+      "comparison_run": true,
+      "experiment_mode": "fixed_evidence",
+      "identity_review": "source_verified_candidate_retained",
+      "catalog_execution": {
+        "status": "seed_unchanged"
+      },
+      "semantic_judgment": "模型意见与程序来源核验分列，不代表专业鉴证",
+      "fixed_evidence_ids": [
+        "ME-D71B749DC158F6A01CE3",
+        "ME-0CA7551C9E4969F8A7BE",
+        "ME-EE6D77F88B9B12AB08C2",
+        "ME-BB0575F47D7245DE9CF3",
+        "ME-67F11A4A9E4481F58C4C",
+        "ME-20685C77B6B0787E141B",
+        "ME-8C3290A625AD82150F8D",
+        "ME-3509A7741089E0DDA73D",
+        "ME-6DC9DA4CBF3A1FF48041",
+        "ME-9102D4F3C3D3430BE7B6",
+        "ME-F3372F1FE9CDDBF8CA2A"
+      ],
+      "investigation_scope": {
+        "selected_matter_ids": [
+          "MAT-E05705ACB19E2B914D78"
+        ],
+        "pending_outside_scope": [
+          "MAT-57563C3803BC98AB413A",
+          "MAT-AB480FA03CA6C33378A7",
+          "MAT-20A26758259A5E9A5251",
+          "MAT-4F681B8175B1F7940CFE",
+          "MAT-B95D74E639DE3723A108",
+          "MAT-F87CD1DAFCAA55F2F952",
+          "MAT-80FAB64213A298C202C5",
+          "MAT-6B3FC16F5CD8DF21C18A",
+          "MAT-3E2AD10E21BA72EF31FA",
+          "MAT-0A474AE9244741DE975C"
+        ]
+      },
+      "fixed_evidence_sha256": "4e87c27c8ad290c3b6d185d71f530093510c9b3b4f00495943247c99c105837c",
+      "matter_rule_fingerprints": {
+        "MAT-EST-01": "0621662177A24BEDDAF2",
+        "MAT-OBL-01": "E324C227DF0415441ED1",
+        "MAT-LIFE-01": "9B49FAB4EF6237EDFE07",
+        "MAT-TIME-01": "19C997A461E4619E0204",
+        "MAT-TARGET-01": "F94A7F25C38D0398A831"
+      },
+      "requested_investigation_budget": {
+        "max_matters": 1,
+        "max_role_rounds": 1,
+        "max_parallel_calls": 2,
+        "max_provider_calls": 12
+      },
+      "fixed_evidence_excluded_seed_ids": [
+        "MAT-8E3D97C24BBB534DF931",
+        "MAT-0F660D1A72120B46ABE0",
+        "MAT-AC4A2B70C0F5F9D16369",
+        "MAT-9C8D6353E327C700CD56",
+        "MAT-C1ACB1CA141BE415677E",
+        "MAT-2E53B4D7911CB53D87A7",
+        "MAT-4AD15EA862841C791639",
+        "MAT-BE0F83418ADF09A78E0B",
+        "MAT-DE3100F3DCF604799540",
+        "MAT-77FD2914452A1CED0647",
+        "MAT-BE9E140C5697B3093C56",
+        "MAT-43998A012D36FF6365A7",
+        "MAT-C2AF0ED1D30CAAE0A475",
+        "MAT-18D4228A37180B158ACD",
+        "MAT-E3428879241F2BCDB966",
+        "MAT-6EBF687AAA5E79DDDEE5",
+        "MAT-CE870181928811609908",
+        "MAT-28DD882AF7B0986CB9A9",
+        "MAT-E083DD3E4CB513AD37B1",
+        "MAT-D7B33ACB829D912C58D6",
+        "MAT-4E4F5D4A1172A564916C",
+        "MAT-44379BA3410F34ACCACD",
+        "MAT-099BE8C4EC3CE4C7E903",
+        "MAT-1FC06F39143F544481F6",
+        "MAT-E19B3BA51FF5C39C6E9B",
+        "MAT-CB34D5720FCB3EDD6519",
+        "MAT-FF29632CC8DEFE2FFBE2",
+        "MAT-C99613E68D1866149C38",
+        "MAT-82630AD7317D185A6886",
+        "MAT-59D0806CE481D7E6BCE9",
+        "MAT-787F2F9F8DAAB666B685",
+        "MAT-8D94950EFDACBA9BE96A",
+        "MAT-F276894B5DAA92021327",
+        "MAT-313E443E267FB4C06921",
+        "MAT-776563A93706E2204A51",
+        "MAT-D105699E3B06A840E0AF",
+        "MAT-48E41BD4249071721786",
+        "MAT-1911D5FFAC601ABB4210",
+        "MAT-CA55661F7DFAF0E34E08",
+        "MAT-BAD9C2226552549CA65C",
+        "MAT-10A9EEC5361EC465CE27",
+        "MAT-1C78B916D1A41AC24BF8",
+        "MAT-90FBF37B4DA78997A355",
+        "MAT-DF1D906D9093A4C13980",
+        "MAT-C1CB36BEDF6DCA5201F9",
+        "MAT-B6D68EBB2DDC767B5933",
+        "MAT-DEC80F609F58B4F67D25",
+        "MAT-460D8A87F412BFCBB87E",
+        "MAT-4055E5E47D033FCC1AD0",
+        "MAT-42D35AC852BF699BD6EF",
+        "MAT-A75094BB90FAA750E359",
+        "MAT-B375C193368E64E18E32",
+        "MAT-99BEA6F08C658F1E2A81",
+        "MAT-D771D66E8132A73EAC36",
+        "MAT-D33CF288706225F0C4A1",
+        "MAT-5A4E3A165D73A686FE72",
+        "MAT-F94BD1FAB17881B525E0",
+        "MAT-B71577F78A046AD6942F",
+        "MAT-34413356E6CABF86FE1D",
+        "MAT-24A4DDBF3FCACADAE9C8",
+        "MAT-7BDA0F7EFE19B267BFA2",
+        "MAT-DEA28811E6F5F9BEA30F",
+        "MAT-D2ABBBEE02E74AFB6CBF",
+        "MAT-548BB0994AA66AC4CC56",
+        "MAT-68238881353CED3F9736",
+        "MAT-6B149B849822FF61BDA4",
+        "MAT-2006B363947CDF2E30A1",
+        "MAT-D8E60EB1FB8A60ADD842",
+        "MAT-EB2229E5B9A695333AA8",
+        "MAT-972FBA87B74680E8D0DD",
+        "MAT-F6C5D2B160FA0FD7E1C9",
+        "MAT-C483D353B7056658C560",
+        "MAT-4E2F3EE0E59714DBCA74",
+        "MAT-345886F84168DDE6DA63",
+        "MAT-B2DD25B081C5F9865DAD",
+        "MAT-D5D2988BF3311A2A51A0",
+        "MAT-2212EA7AD5F7832516AF",
+        "MAT-405BCA40578B9CCAF893",
+        "MAT-383C746488423CBAF00C"
+      ]
+    },
+    "ai_analyses": [],
+    "program_hints": [],
+    "analysis_history": [],
+    "prior_provider_calls": [],
+    "industry_context": {},
+    "intelligence_trace": [],
+    "claim_ledger": [],
+    "rule_basis": [],
+    "next_evidence": [],
+    "financial_claims": [],
+    "financial_nodes": [],
+    "financial_edges": [],
+    "impact_graph": {},
+    "revision_loop": {},
+    "evidence_plan": {},
+    "financial_scenario": {},
+    "investigation": {},
+    "comparison_summary": {},
+    "matter_schema_version": "matter_connectivity_v1",
+    "report_set": {
+      "report_set_id": "CONNSET-190D43C953A73C496823C576",
+      "company_id": "000333",
+      "company": "美的集团",
+      "document_ids": [
+        "MIDEA_AR_2025",
+        "MIDEA_ESG_2025"
+      ],
+      "document_fingerprints": {
+        "MIDEA_AR_2025": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "MIDEA_ESG_2025": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194"
+      },
+      "periods": [
+        "2025"
+      ],
+      "as_of_date": "2026-11-07",
+      "coverage_gaps": [],
+      "schema_version": "matter_connectivity_v1"
+    },
+    "matter_evidence": [
+      {
+        "evidence_id": "ME-D71B749DC158F6A01CE3",
+        "document_id": "MIDEA_AR_2025",
+        "source_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "company_id": "000333",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 159,
+        "printed_page": "",
+        "quote": "本集团采用成本模式对所有投资性房地产进行后续计量，按其预计使用寿命\n及净残值率对建筑物和土地使用权计提折旧或摊销。投资性房地产的预计使\n用寿命、净残值率及年折旧(摊销)率列示如下：",
+        "context": "本集团采用成本模式对所有投资性房地产进行后续计量，按其预计使用寿命\n及净残值率对建筑物和土地使用权计提折旧或摊销。投资性房地产的预计使\n用寿命、净残值率及年折旧(摊销)率列示如下：",
+        "adjacent_evidence_ids": [],
+        "section": "二 主要会计政策和会计估计(续)",
+        "bbox": [
+          86.42400360107422,
+          174.7519989013672,
+          522.8480224609375,
+          233.4199676513672
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-0CA7551C9E4969F8A7BE",
+        "document_id": "MIDEA_AR_2025",
+        "source_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "company_id": "000333",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 160,
+        "printed_page": "",
+        "quote": "固定资产折旧采用年限平均法并按其入账价值减去预计净残值后在预计使用\n寿命内计提。对计提了减值准备的固定资产，则在未来期间按扣除减值准备\n后的账面价值及依据尚可使用年限确定折旧额。 \n \n本集团各项固定资产的预计使用寿命、残值率及年折旧率列示如下：",
+        "context": "固定资产折旧采用年限平均法并按其入账价值减去预计净残值后在预计使用\n寿命内计提。对计提了减值准备的固定资产，则在未来期间按扣除减值准备\n后的账面价值及依据尚可使用年限确定折旧额。 \n \n本集团各项固定资产的预计使用寿命、残值率及年折旧率列示如下：",
+        "adjacent_evidence_ids": [],
+        "section": "二 主要会计政策和会计估计(续)",
+        "bbox": [
+          86.42400360107422,
+          204.15196228027344,
+          522.8480224609375,
+          292.2499694824219
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-EE6D77F88B9B12AB08C2",
+        "document_id": "MIDEA_AR_2025",
+        "source_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "company_id": "000333",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 163,
+        "printed_page": "",
+        "quote": "固定资产、在建工程、使用权资产、使用寿命有限的无形资产、以成本模式\n计量的投资性房地产及对子公司、合营企业、联营企业的长期股权投资等，\n于资产负债表日存在减值迹象的，进行减值测试；尚未达到可使用状态的无\n形资产、拥有无限可使用年限的无形资产以及境外土地，无论是否存在减值\n迹象，至少每年进行减值测试。减值测试结果表明资产的可收回金额低于其\n账面价值的，按其差额计提减值准备并计入减值损失。可收回金额为资产的\n公允价值减去处置费用后的净额与资产预计未来现金流量的现值两者之间的\n较高者。资产减值准备按单项资产为基础计算并确认，如果难以对单项资产\n的可收回金额进行估计的，以该资产所属的资产组确定资产组的可收回金\n额。资产组是能够独立产生现金流入的最小资产组合。",
+        "context": "固定资产、在建工程、使用权资产、使用寿命有限的无形资产、以成本模式\n计量的投资性房地产及对子公司、合营企业、联营企业的长期股权投资等，\n于资产负债表日存在减值迹象的，进行减值测试；尚未达到可使用状态的无\n形资产、拥有无限可使用年限的无形资产以及境外土地，无论是否存在减值\n迹象，至少每年进行减值测试。减值测试结果表明资产的可收回金额低于其\n账面价值的，按其差额计提减值准备并计入减值损失。可收回金额为资产的\n公允价值减去处置费用后的净额与资产预计未来现金流量的现值两者之间的\n较高者。资产减值准备按单项资产为基础计算并确认，如果难以对单项资产\n的可收回金额进行估计的，以该资产所属的资产组确定资产组的可收回金\n额。资产组是能够独立产生现金流入的最小资产组合。",
+        "adjacent_evidence_ids": [],
+        "section": "固定资产、在建工程、使用权资产、使用寿命有限的无形资产、以成本模式",
+        "bbox": [
+          86.42400360107422,
+          368.34197998046875,
+          523.2139892578125,
+          535.989990234375
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-BB0575F47D7245DE9CF3",
+        "document_id": "MIDEA_AR_2025",
+        "source_sha256": "16f95f70527db59dcf2736f276a9479cf7ee917e5f71e4f6cbbe83acbad9f4b6",
+        "company_id": "000333",
+        "report_type": "AR",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 166,
+        "printed_page": "",
+        "quote": "预计负债按照履行相关现时义务所需支出的最佳估计数进行初始计量，并综\n合考虑与或有事项有关的风险、不确定性和货币时间价值等因素。货币时间\n价值影响重大的，通过对相关未来现金流出进行折现后确定最佳估计数；因\n随着时间推移所进行的折现还原而导致的预计负债账面价值的增加金额，确\n认为利息费用。 \n \n于资产负债表日，对预计负债的账面价值进行复核并作适当调整，以反映当\n前的最佳估计数。",
+        "context": "预计负债按照履行相关现时义务所需支出的最佳估计数进行初始计量，并综\n合考虑与或有事项有关的风险、不确定性和货币时间价值等因素。货币时间\n价值影响重大的，通过对相关未来现金流出进行折现后确定最佳估计数；因\n随着时间推移所进行的折现还原而导致的预计负债账面价值的增加金额，确\n认为利息费用。 \n \n于资产负债表日，对预计负债的账面价值进行复核并作适当调整，以反映当\n前的最佳估计数。",
+        "adjacent_evidence_ids": [],
+        "section": "二 主要会计政策和会计估计(续)",
+        "bbox": [
+          86.42400360107422,
+          278.4619445800781,
+          522.8480224609375,
+          413.2099609375
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-67F11A4A9E4481F58C4C",
+        "document_id": "MIDEA_ESG_2025",
+        "source_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "company_id": "000333",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 19,
+        "printed_page": "",
+        "quote": "本年度，我们继续考虑两个气候情景，深入分析已识别的气候物理风险、转型风险和气候机遇，以了解美的集",
+        "context": "本年度，我们继续考虑两个气候情景，深入分析已识别的气候物理风险、转型风险和气候机遇，以了解美的集",
+        "adjacent_evidence_ids": [],
+        "section": "本年度，我们继续考虑两个气候情景，深入分析已识别的气候物理风险、转型风险和气候机遇，以了解美的集",
+        "bbox": [
+          57.722801208496094,
+          169.12908935546875,
+          538.1942138671875,
+          181.39981079101562
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-20685C77B6B0787E141B",
+        "document_id": "MIDEA_ESG_2025",
+        "source_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "company_id": "000333",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 20,
+        "printed_page": "",
+        "quote": "基于上述气候情景与关键假设，我们选取合适的参数，进一步识别气候风险和机遇对美的集团战略与业务模式的影响，评估美的集团的气候韧性。以下是我们选用的参数及其被认为重要的理由，以及更新的评估结果：",
+        "context": "基于上述气候情景与关键假设，我们选取合适的参数，进一步识别气候风险和机遇对美的集团战略与业务模式的影响，评估美的集团的气候韧性。以下是我们选用的参数及其被认为重要的理由，以及更新的评估结果：",
+        "adjacent_evidence_ids": [],
+        "section": "政府间气候变化专门委员会（IPCC）SSP5-8.5",
+        "bbox": [
+          57.71783447265625,
+          124.7310791015625,
+          1007.1561279296875,
+          137.00180053710938
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-8C3290A625AD82150F8D",
+        "document_id": "MIDEA_ESG_2025",
+        "source_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "company_id": "000333",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 22,
+        "printed_page": "",
+        "quote": "学碳目标倡议组织（SBTi）提交验证。未来，美的集团将依托楼宇科技符合科学标准的减排目标设定及减排",
+        "context": "学碳目标倡议组织（SBTi）提交验证。未来，美的集团将依托楼宇科技符合科学标准的减排目标设定及减排",
+        "adjacent_evidence_ids": [],
+        "section": "为持续提升气候韧性，美的集团制定和实施多管齐下的低碳转型规划。我们以“摸清家底、制定标准、复盘落",
+        "bbox": [
+          58.376953125,
+          271.11956787109375,
+          538.829345703125,
+          283.3902893066406
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-3509A7741089E0DDA73D",
+        "document_id": "MIDEA_ESG_2025",
+        "source_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "company_id": "000333",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 23,
+        "printed_page": "",
+        "quote": "美的集团践行绿色低碳使命，优化完善环境管理体系，推动节能降耗及资源高效利用。我们将绿色环保理念纳",
+        "context": "美的集团践行绿色低碳使命，优化完善环境管理体系，推动节能降耗及资源高效利用。我们将绿色环保理念纳",
+        "adjacent_evidence_ids": [],
+        "section": "为持续提升气候韧性，美的集团制定和实施多管齐下的低碳转型规划。我们以“摸清家底、制定标准、复盘落",
+        "bbox": [
+          57.722801208496094,
+          186.18914794921875,
+          539.5180053710938,
+          198.45986938476562
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-6DC9DA4CBF3A1FF48041",
+        "document_id": "MIDEA_ESG_2025",
+        "source_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "company_id": "000333",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 24,
+        "printed_page": "",
+        "quote": "节电14万千瓦时。三项改造合计年节电达84万千瓦时，年度碳减排量约500吨。",
+        "context": "节电14万千瓦时。三项改造合计年节电达84万千瓦时，年度碳减排量约500吨。",
+        "adjacent_evidence_ids": [],
+        "section": "为持续提升气候韧性，美的集团制定和实施多管齐下的低碳转型规划。我们以“摸清家底、制定标准、复盘落",
+        "bbox": [
+          741.98193359375,
+          502.47705078125,
+          1093.3319091796875,
+          514.7477416992188
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-9102D4F3C3D3430BE7B6",
+        "document_id": "MIDEA_ESG_2025",
+        "source_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "company_id": "000333",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 78,
+        "printed_page": "",
+        "quote": "经评估，本集团暂未有资产\n会受到气候相关转型风险与\n物理风险的重大影响，也暂\n未有涉及气候相关机遇的\n资产。\nD31\n发行人须披露容易受气候相关物理风险影响的资产或业务活动的金额及百\n分比。",
+        "context": "经评估，本集团暂未有资产\n会受到气候相关转型风险与\n物理风险的重大影响，也暂\n未有涉及气候相关机遇的\n资产。\nD31\n发行人须披露容易受气候相关物理风险影响的资产或业务活动的金额及百\n分比。",
+        "adjacent_evidence_ids": [],
+        "section": "应对气候挑战-气候风险管理",
+        "bbox": [
+          657.675537109375,
+          477.9546813964844,
+          1128.141357421875,
+          532.7826538085938
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      },
+      {
+        "evidence_id": "ME-F3372F1FE9CDDBF8CA2A",
+        "document_id": "MIDEA_ESG_2025",
+        "source_sha256": "79fa54a5dd41e1ebac959cdc8a8bf83f4f55d8b030005d044e61c1020e77b194",
+        "company_id": "000333",
+        "report_type": "ESG",
+        "report_period": "2025",
+        "disclosure_date": "2026-03-31",
+        "pdf_page": 79,
+        "printed_page": "",
+        "quote": "本集团温室气体排放目标详\n见“应对气候挑战-指标和目\n标”，用以审核和监察达标进\n度的程序详见“应对气候挑战\n-气候治理”。\n该目标由美的集团研究设定，\n尚未经过第三方验证，也未\n采用行业脱碳方法。由于该\n目标并非净额目标，不涉及\n碳信用的使用。",
+        "context": "本集团温室气体排放目标详\n见“应对气候挑战-指标和目\n标”，用以审核和监察达标进\n度的程序详见“应对气候挑战\n-气候治理”。\n该目标由美的集团研究设定，\n尚未经过第三方验证，也未\n采用行业脱碳方法。由于该\n目标并非净额目标，不涉及\n碳信用的使用。",
+        "adjacent_evidence_ids": [],
+        "section": "《ESG报告守则》D部分：气候相关披露索引表",
+        "bbox": [
+          420.443603515625,
+          148.03045654296875,
+          541.9063720703125,
+          256.31689453125
+        ],
+        "extraction_method": "text",
+        "source_verified": true,
+        "invalid_reason": ""
+      }
+    ],
+    "matters": [
+      {
+        "matter_id": "MAT-57563C3803BC98AB413A",
+        "company_id": "000333",
+        "name": "财务估计与附注线索 · 2025 · PDF 160",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-0CA7551C9E4969F8A7BE"
+        ],
+        "event_ids": [
+          "EV-9AD389645A9E63E17257"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [
+          "存在财务估计或确认线索"
+        ],
+        "attention_evidence_ids": [
+          "ME-0CA7551C9E4969F8A7BE"
+        ]
+      },
+      {
+        "matter_id": "MAT-AB480FA03CA6C33378A7",
+        "company_id": "000333",
+        "name": "气候风险披露 · 2025 · PDF 79",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-F3372F1FE9CDDBF8CA2A"
+        ],
+        "event_ids": [
+          "EV-E302FD06DF7E5C807EAB"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-20A26758259A5E9A5251",
+        "company_id": "000333",
+        "name": "财务估计与附注线索 · 2025 · PDF 159",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-D71B749DC158F6A01CE3"
+        ],
+        "event_ids": [
+          "EV-108843B9AA312FD2B85D"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [
+          "存在财务估计或确认线索"
+        ],
+        "attention_evidence_ids": [
+          "ME-D71B749DC158F6A01CE3"
+        ]
+      },
+      {
+        "matter_id": "MAT-4F681B8175B1F7940CFE",
+        "company_id": "000333",
+        "name": "气候风险披露 · 2025 · PDF 19",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-67F11A4A9E4481F58C4C"
+        ],
+        "event_ids": [
+          "EV-7584108C84DB1453AC32"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-B95D74E639DE3723A108",
+        "company_id": "000333",
+        "name": "财务估计与附注线索 · 2025 · PDF 163",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-EE6D77F88B9B12AB08C2"
+        ],
+        "event_ids": [
+          "EV-EED41E3CA365F3B0A842"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [
+          "存在财务估计或确认线索"
+        ],
+        "attention_evidence_ids": [
+          "ME-EE6D77F88B9B12AB08C2"
+        ]
+      },
+      {
+        "matter_id": "MAT-F87CD1DAFCAA55F2F952",
+        "company_id": "000333",
+        "name": "气候风险披露 · 2025 · PDF 20",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-20685C77B6B0787E141B"
+        ],
+        "event_ids": [
+          "EV-53EE4C2B697D8DCB65E0"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-80FAB64213A298C202C5",
+        "company_id": "000333",
+        "name": "财务估计与附注线索 · 2025 · PDF 166",
+        "matter_type": "other",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-BB0575F47D7245DE9CF3"
+        ],
+        "event_ids": [
+          "EV-C11877175FA1D52583FE"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [
+          "存在财务估计或确认线索"
+        ],
+        "attention_evidence_ids": [
+          "ME-BB0575F47D7245DE9CF3"
+        ]
+      },
+      {
+        "matter_id": "MAT-6B3FC16F5CD8DF21C18A",
+        "company_id": "000333",
+        "name": "目标与承诺披露 · 2025 · PDF 22",
+        "matter_type": "commitment",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-8C3290A625AD82150F8D"
+        ],
+        "event_ids": [
+          "EV-831E557C1A7A8F46B940"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-3E2AD10E21BA72EF31FA",
+        "company_id": "000333",
+        "name": "绿色改造披露 · 2025 · PDF 23",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-3509A7741089E0DDA73D"
+        ],
+        "event_ids": [
+          "EV-0850D02B5973131722FA"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-0A474AE9244741DE975C",
+        "company_id": "000333",
+        "name": "绿色改造披露 · 2025 · PDF 24",
+        "matter_type": "transition_project",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-6DC9DA4CBF3A1FF48041"
+        ],
+        "event_ids": [
+          "EV-2DC2FB514271B8B5229E"
+        ],
+        "investigation_status": "pending",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      },
+      {
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "company_id": "000333",
+        "name": "气候风险披露 · 2025 · PDF 78",
+        "matter_type": "climate_risk",
+        "subject": "",
+        "location": "",
+        "aliases": [],
+        "identity_status": "candidate",
+        "identity_basis": "按单处披露建候选，尚未确认跨报告身份",
+        "evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "event_ids": [
+          "EV-EAE3D87B57D874522220"
+        ],
+        "investigation_status": "partial",
+        "lineage": [],
+        "attention_signals": [],
+        "attention_evidence_ids": []
+      }
+    ],
+    "matter_events": [
+      {
+        "event_id": "EV-9AD389645A9E63E17257",
+        "matter_id": "MAT-57563C3803BC98AB413A",
+        "kind": "financial",
+        "label": "固定资产折旧采用年限平均法并按其入账价值减去预计净残值后在预计使用\n寿命内计提。对计提了减值准备的固定资产，则在未来期间按扣除减值准备\n后的账面价值及依据尚可使用年限确定折旧额。 \n \n本集团各项固定资产的预计使用寿命、残值率及年折旧率列示如下：",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-0CA7551C9E4969F8A7BE"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-E302FD06DF7E5C807EAB",
+        "matter_id": "MAT-AB480FA03CA6C33378A7",
+        "kind": "promise",
+        "label": "本集团温室气体排放目标详\n见“应对气候挑战-指标和目\n标”，用以审核和监察达标进\n度的程序详见“应对气候挑战\n-气候治理”。\n该目标由美的集团研究设定，\n尚未经过第三方验证，也未\n采用行业脱碳方法。由于该\n目标并非净额目标，不涉及\n碳信用的使用。",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-F3372F1FE9CDDBF8CA2A"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-108843B9AA312FD2B85D",
+        "matter_id": "MAT-20A26758259A5E9A5251",
+        "kind": "financial",
+        "label": "本集团采用成本模式对所有投资性房地产进行后续计量，按其预计使用寿命\n及净残值率对建筑物和土地使用权计提折旧或摊销。投资性房地产的预计使\n用寿命、净残值率及年折旧(摊销)率列示如下：",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-D71B749DC158F6A01CE3"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-7584108C84DB1453AC32",
+        "matter_id": "MAT-4F681B8175B1F7940CFE",
+        "kind": "risk",
+        "label": "本年度，我们继续考虑两个气候情景，深入分析已识别的气候物理风险、转型风险和气候机遇，以了解美的集",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-67F11A4A9E4481F58C4C"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-EED41E3CA365F3B0A842",
+        "matter_id": "MAT-B95D74E639DE3723A108",
+        "kind": "financial",
+        "label": "固定资产、在建工程、使用权资产、使用寿命有限的无形资产、以成本模式\n计量的投资性房地产及对子公司、合营企业、联营企业的长期股权投资等，\n于资产负债表日存在减值迹象的，进行减值测试；尚未达到可使用状态的无\n形资产、拥有无限可使用年限的无形资产以及境外土地，无论是否存在减值\n迹象，至少每年进行减值测试。减值测试结果表明资产的可收回金额低于其\n账面价值的，按其差额",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-EE6D77F88B9B12AB08C2"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-53EE4C2B697D8DCB65E0",
+        "matter_id": "MAT-F87CD1DAFCAA55F2F952",
+        "kind": "risk",
+        "label": "基于上述气候情景与关键假设，我们选取合适的参数，进一步识别气候风险和机遇对美的集团战略与业务模式的影响，评估美的集团的气候韧性。以下是我们选用的参数及其被认为重要的理由，以及更新的评估结果：",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-20685C77B6B0787E141B"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-C11877175FA1D52583FE",
+        "matter_id": "MAT-80FAB64213A298C202C5",
+        "kind": "financial",
+        "label": "预计负债按照履行相关现时义务所需支出的最佳估计数进行初始计量，并综\n合考虑与或有事项有关的风险、不确定性和货币时间价值等因素。货币时间\n价值影响重大的，通过对相关未来现金流出进行折现后确定最佳估计数；因\n随着时间推移所进行的折现还原而导致的预计负债账面价值的增加金额，确\n认为利息费用。 \n \n于资产负债表日，对预计负债的账面价值进行复核并作适当调整，以反映当",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-BB0575F47D7245DE9CF3"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-831E557C1A7A8F46B940",
+        "matter_id": "MAT-6B3FC16F5CD8DF21C18A",
+        "kind": "promise",
+        "label": "学碳目标倡议组织（SBTi）提交验证。未来，美的集团将依托楼宇科技符合科学标准的减排目标设定及减排",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-8C3290A625AD82150F8D"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-0850D02B5973131722FA",
+        "matter_id": "MAT-3E2AD10E21BA72EF31FA",
+        "kind": "action",
+        "label": "美的集团践行绿色低碳使命，优化完善环境管理体系，推动节能降耗及资源高效利用。我们将绿色环保理念纳",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-3509A7741089E0DDA73D"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-2DC2FB514271B8B5229E",
+        "matter_id": "MAT-0A474AE9244741DE975C",
+        "kind": "action",
+        "label": "节电14万千瓦时。三项改造合计年节电达84万千瓦时，年度碳减排量约500吨。",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-6DC9DA4CBF3A1FF48041"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-EAE3D87B57D874522220",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "kind": "risk",
+        "label": "经评估，本集团暂未有资产\n会受到气候相关转型风险与\n物理风险的重大影响，也暂\n未有涉及气候相关机遇的\n资产。\nD31\n发行人须披露容易受气候相关物理风险影响的资产或业务活动的金额及百\n分比。",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "origin": "program_candidate",
+        "evidence_status": "pending"
+      },
+      {
+        "event_id": "EV-EAC2B003B5BD80222218",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "kind": "risk",
+        "label": "披露称经评估暂无资产受气候转型/物理风险重大影响，亦无涉及气候机遇的资产",
+        "report_period": "2025",
+        "occurred_period": "",
+        "disclosure_date": "2026-03-31",
+        "evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "origin": "model_interpretation",
+        "evidence_status": "limited"
+      }
+    ],
+    "matter_commitments": [
+      {
+        "commitment_id": "COM-F87DA83C2D79C682E992",
+        "matter_id": "MAT-AB480FA03CA6C33378A7",
+        "label": "本集团温室气体排放目标详\n见“应对气候挑战-指标和目\n标”，用以审核和监察达标进\n度的程序详见“应对气候挑战\n-气候治理”。\n该目标由美的集团研究设定，\n尚未经过第三方验证，也未\n采用行业脱碳方法。由于该\n目标并非净额目标，不涉及\n碳信用的使用。",
+        "evidence_ids": [
+          "ME-F3372F1FE9CDDBF8CA2A"
+        ],
+        "proposed_period": "2025",
+        "baseline_year": "",
+        "target_year": "",
+        "metric_definition": "",
+        "scope": "",
+        "supersedes": "",
+        "evidence_status": "pending",
+        "status": "needs_review"
+      },
+      {
+        "commitment_id": "COM-82FAAAD09969CFA66728",
+        "matter_id": "MAT-6B3FC16F5CD8DF21C18A",
+        "label": "学碳目标倡议组织（SBTi）提交验证。未来，美的集团将依托楼宇科技符合科学标准的减排目标设定及减排",
+        "evidence_ids": [
+          "ME-8C3290A625AD82150F8D"
+        ],
+        "proposed_period": "2025",
+        "baseline_year": "",
+        "target_year": "",
+        "metric_definition": "",
+        "scope": "",
+        "supersedes": "",
+        "evidence_status": "pending",
+        "status": "needs_review"
+      }
+    ],
+    "matter_paths": [
+      {
+        "path_id": "PATH-A4EB3CB04165ACF3400E",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "financial_item": "固定资产/投资性房地产账面价值及减值准备（候选方向）",
+        "steps": [
+          {
+            "label": "企业披露经评估暂未有资产受气候转型与物理风险重大影响",
+            "explanation": "定性结论，未给出受影响资产金额及百分比。",
+            "evidence_ids": [
+              "ME-9102D4F3C3D3430BE7B6"
+            ],
+            "support": "limited",
+            "origin": "report_statement"
+          },
+          {
+            "label": "企业采用两个气候情景与选定参数评估气候韧性",
+            "explanation": "仅说明情景与参数选取，未披露阈值及对具体资产的影响测算。",
+            "evidence_ids": [
+              "ME-67F11A4A9E4481F58C4C",
+              "ME-20685C77B6B0787E141B"
+            ],
+            "support": "limited",
+            "origin": "report_statement"
+          },
+          {
+            "label": "若物理或转型风险影响资产可收回金额，可能触发减值测试并影响减值损失",
+            "explanation": "会计政策仅规定减值测试触发条件，不证明气候因素已实际影响计量。",
+            "evidence_ids": [
+              "ME-EE6D77F88B9B12AB08C2"
+            ],
+            "support": "pending",
+            "origin": "model_hypothesis"
+          },
+          {
+            "label": "固定资产与投资性房地产按成本模式折旧摊销，使用寿命与残值估计可能受气候因素影响",
+            "explanation": "尚无证据表明使用寿命或残值估计已因气候风险调整。",
+            "evidence_ids": [
+              "ME-D71B749DC158F6A01CE3",
+              "ME-0CA7551C9E4969F8A7BE"
+            ],
+            "support": "pending",
+            "origin": "model_hypothesis"
+          }
+        ],
+        "counter_evidence_ids": [],
+        "rule_ids": [
+          "MAT-EST-01"
+        ],
+        "support": "limited",
+        "unresolved": [
+          "受影响资产金额及百分比未披露",
+          "评估情景、参数与重要性阈值未量化",
+          "年报中相关资产账面价值与减值准备金额未取得",
+          "减值测试是否考虑气候因素未披露"
+        ]
+      },
+      {
+        "path_id": "PATH-C3C8862E6732754BCD28",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "financial_item": "预计负债（候选方向）",
+        "steps": [
+          {
+            "label": "企业披露暂未有资产受气候风险重大影响",
+            "explanation": "该披露针对资产，未涉及负债或或有义务。",
+            "evidence_ids": [
+              "ME-9102D4F3C3D3430BE7B6"
+            ],
+            "support": "limited",
+            "origin": "report_statement"
+          },
+          {
+            "label": "预计负债按最佳估计数计量并在资产负债表日复核",
+            "explanation": "仅为一般会计政策，不证明存在气候相关现时义务。",
+            "evidence_ids": [
+              "ME-BB0575F47D7245DE9CF3"
+            ],
+            "support": "limited",
+            "origin": "report_statement"
+          },
+          {
+            "label": "若气候政策或诉讼形成现时义务，可能增加预计负债",
+            "explanation": "无证据支持该机制在本期发生。",
+            "evidence_ids": [],
+            "support": "pending",
+            "origin": "model_hypothesis"
+          }
+        ],
+        "counter_evidence_ids": [],
+        "rule_ids": [],
+        "support": "limited",
+        "unresolved": [
+          "是否存在气候相关现时义务及预计负债金额未披露"
+        ]
+      }
+    ],
+    "matter_relations": [
+      {
+        "edge_id": "R-CLIM-01",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAE3D87B57D874522220",
+        "target_id": "ME-67F11A4A9E4481F58C4C",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "limited",
+        "evidence_ids": [
+          "ME-67F11A4A9E4481F58C4C",
+          "ME-20685C77B6B0787E141B"
+        ],
+        "explanation": "情景分析是评估结论的方法背景，不证明资产未受影响。"
+      },
+      {
+        "edge_id": "R-CLIM-02",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAE3D87B57D874522220",
+        "target_id": "ME-F3372F1FE9CDDBF8CA2A",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "limited",
+        "evidence_ids": [
+          "ME-F3372F1FE9CDDBF8CA2A"
+        ],
+        "explanation": "温室气体目标未经第三方验证，属评估假设背景。"
+      },
+      {
+        "edge_id": "R-CLIM-03",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAE3D87B57D874522220",
+        "target_id": "ME-EE6D77F88B9B12AB08C2",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "pending",
+        "evidence_ids": [
+          "ME-EE6D77F88B9B12AB08C2"
+        ],
+        "explanation": "减值政策为候选传导环节，未证明气候因素已纳入可收回金额估计。"
+      },
+      {
+        "edge_id": "REL-TMP-01",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAE3D87B57D874522220",
+        "target_id": "ME-20685C77B6B0787E141B",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "limited",
+        "evidence_ids": [
+          "ME-20685C77B6B0787E141B",
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "explanation": "报告称基于气候情景与关键假设评估气候韧性；该情景评估方法可能与D31物理风险资产识别口径相关，但报告未明示二者对应关系，仅为线索。"
+      },
+      {
+        "edge_id": "R-CLIM-04",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAC2B003B5BD80222218",
+        "target_id": "ME-9102D4F3C3D3430BE7B6",
+        "relation_kind": "same_matter",
+        "assertion_origin": "report_statement",
+        "evidence_status": "limited",
+        "evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "explanation": "A3事件与D31披露为同一原文，事件label为概括表述。"
+      },
+      {
+        "edge_id": "R-CLIM-05",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAC2B003B5BD80222218",
+        "target_id": "ME-6DC9DA4CBF3A1FF48041",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "pending",
+        "evidence_ids": [
+          "ME-6DC9DA4CBF3A1FF48041"
+        ],
+        "explanation": "节能改造项目为潜在反证线索，未证明其构成受气候风险重大影响的资产。"
+      },
+      {
+        "edge_id": "R-CLIM-06",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAC2B003B5BD80222218",
+        "target_id": "ME-D71B749DC158F6A01CE3",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "pending",
+        "evidence_ids": [
+          "ME-D71B749DC158F6A01CE3"
+        ],
+        "explanation": "投资性房地产成本模式计量为候选传导环节，未证明气候因素影响其计量。"
+      },
+      {
+        "edge_id": "R-CLIM-07",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAC2B003B5BD80222218",
+        "target_id": "ME-0CA7551C9E4969F8A7BE",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "pending",
+        "evidence_ids": [
+          "ME-0CA7551C9E4969F8A7BE"
+        ],
+        "explanation": "固定资产折旧年限与残值估计为候选传导环节，未证明因气候因素调整。"
+      },
+      {
+        "edge_id": "R-CLIM-08",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "source_id": "EV-EAC2B003B5BD80222218",
+        "target_id": "ME-BB0575F47D7245DE9CF3",
+        "relation_kind": "potential_mechanism",
+        "assertion_origin": "model_hypothesis",
+        "evidence_status": "pending",
+        "evidence_ids": [
+          "ME-BB0575F47D7245DE9CF3"
+        ],
+        "explanation": "预计负债最佳估计数计量为候选传导环节，D31仅涉及资产，未证明存在气候相关现时义务。"
+      }
+    ],
+    "matter_explanations": [
+      {
+        "hypothesis_id": "HYP-2CE15D8D2E93DCD58361",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "explanation": "汇总口径解释：D31结论可能基于集团合并层面重要性阈值，单项资产或业务活动影响低于阈值故未单列金额与百分比。若成立，应能在情景参数与阈值披露中找到对应口径。",
+        "supporting_evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6",
+          "ME-20685C77B6B0787E141B"
+        ],
+        "counter_evidence_ids": [],
+        "discriminating_evidence": "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+        "status": "hypothesis"
+      },
+      {
+        "hypothesis_id": "HYP-A388B185E5564FE2634F",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "explanation": "方法差异解释：企业已做情景分析（两个情景、选定参数），但D31仅要求披露易受影响资产的金额与百分比，企业以定性结论替代量化，可能因评估未落到资产层面。",
+        "supporting_evidence_ids": [
+          "ME-67F11A4A9E4481F58C4C",
+          "ME-20685C77B6B0787E141B",
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "counter_evidence_ids": [],
+        "discriminating_evidence": "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+        "status": "hypothesis"
+      },
+      {
+        "hypothesis_id": "HYP-7BC6EB1F27EA9CBA5916",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "explanation": "时间边界解释：结论为2025年度评估时点判断，物理风险的长期影响可能尚未在当期资产账面价值或减值测试中体现，故与年报会计政策无冲突。",
+        "supporting_evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6",
+          "ME-EE6D77F88B9B12AB08C2"
+        ],
+        "counter_evidence_ids": [],
+        "discriminating_evidence": "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+        "status": "unresolved"
+      },
+      {
+        "hypothesis_id": "HYP-3D574D62D86BF3FB75AD",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "explanation": "验证强度解释：温室气体目标未经第三方验证、未采用行业脱碳方法，说明气候相关数据的验证程度有限，D31定性结论同样缺少外部验证支撑；但这不构成结论错误的证据。",
+        "supporting_evidence_ids": [
+          "ME-F3372F1FE9CDDBF8CA2A"
+        ],
+        "counter_evidence_ids": [],
+        "discriminating_evidence": "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+        "status": "hypothesis"
+      },
+      {
+        "hypothesis_id": "HYP-C37370BFE82F90803A97",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "explanation": "反证方向：若年报或ESG其他章节披露了受气候影响的资产减值、停产或改造支出，则与“暂未有资产受重大影响”的表述形成张力，需核对是否为同一资产范围与同一计量基础。",
+        "supporting_evidence_ids": [
+          "ME-6DC9DA4CBF3A1FF48041"
+        ],
+        "counter_evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "discriminating_evidence": "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+        "status": "unresolved"
+      },
+      {
+        "hypothesis_id": "HYP-86CE7253E583CDD80CDF",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "explanation": "披露不足解释：D31要求金额与百分比，报告仅给定性结论，可能属披露不完整而非评估结论有误；两者需区分，现有证据无法判断是评估未识别还是披露未量化。",
+        "supporting_evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6"
+        ],
+        "counter_evidence_ids": [],
+        "discriminating_evidence": "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。",
+        "status": "unresolved"
+      }
+    ],
+    "matter_assessments": [
+      {
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "summary": "D31披露为定性结论，无金额与百分比；情景分析、目标验证状态与年报会计政策仅构成方法背景与候选传导方向，均未证明气候因素已影响资产计量或形成现时义务。关系支持有限，金额不可比（无金额），承诺进展无证据，财务阶段停留在政策层面。",
+        "relation_support": "limited",
+        "amount_comparability": "not_comparable",
+        "commitment_progress": "未取得量化气候目标及基准年/目标年证据，无法评价承诺进展；第79页仅说明目标由企业自行设定、未经第三方验证（ME-F3372F1FE9CDDBF8CA2A）",
+        "financial_stage": "仅取得会计政策层面证据（折旧摊销、减值测试、预计负债计量），未取得相关资产账面价值、减值准备或预计负债金额，未进入计量核对阶段",
+        "supporting_evidence_ids": [
+          "ME-9102D4F3C3D3430BE7B6",
+          "ME-67F11A4A9E4481F58C4C",
+          "ME-20685C77B6B0787E141B",
+          "ME-F3372F1FE9CDDBF8CA2A",
+          "ME-EE6D77F88B9B12AB08C2",
+          "ME-D71B749DC158F6A01CE3",
+          "ME-0CA7551C9E4969F8A7BE",
+          "ME-BB0575F47D7245DE9CF3"
+        ],
+        "counter_evidence_ids": [
+          "ME-6DC9DA4CBF3A1FF48041"
+        ],
+        "assumptions": [
+          "D31结论可能基于合并层面重要性阈值，单项资产影响低于阈值故未单列金额与百分比（HYP-2CE15D8D2E93DCD58361，未证实）",
+          "情景分析可能未落到资产层面，故以定性结论替代量化披露（HYP-A388B185E5564FE2634F，未证实）",
+          "物理风险长期影响可能尚未在当期资产账面价值或减值测试中体现（HYP-7BC6EB1F27EA9CBA5916，未决）",
+          "气候相关数据验证程度有限，D31结论缺少外部验证支撑，但不构成结论错误的证据（HYP-3D574D62D86BF3FB75AD）"
+        ],
+        "disagreements": [
+          "A2保留两条候选路径（固定资产/投资性房地产减值与折旧、预计负债），A3仅保留一条风险事件与一条情景方法线索；本轮以A3事件为主，A2路径作为待证方向保留，不视为已成立传导",
+          "A2将情景分析列为路径步骤，A3仅列为线索；两者均未证明情景评估与D31资产识别口径的对应关系"
+        ],
+        "unresolved": [
+          "D31要求的受影响资产金额及百分比未披露，是否另有量化披露未检索到",
+          "评估所用情景参数、关键假设与重要性阈值未量化",
+          "物理风险识别的资产范围与合并/单体口径未说明",
+          "年报中固定资产、投资性房地产账面价值及减值准备金额未取得",
+          "减值测试是否考虑气候因素未披露",
+          "第24页节能改造项目与D31资产范围的关系未明（潜在反证线索）",
+          "ESG报告鉴证范围是否覆盖气候情景分析与D31结论未明"
+        ],
+        "next_actions": [
+          {
+            "question": "ESG报告第19-21页气候情景分析结果是否包含资产层面的影响测算、敏感性数据或重要性阈值？",
+            "requested_material": "MIDEA_ESG_2025 第19-21页及第77-79页D31索引表相邻条目原文",
+            "purpose": "判断D31定性结论是评估未识别还是披露未量化，并核对情景口径与资产范围",
+            "target_role": "A2",
+            "priority": "high"
+          },
+          {
+            "question": "年报中固定资产、投资性房地产的账面价值、减值准备及减值测试关键假设是否提及气候因素？",
+            "requested_material": "MIDEA_AR_2025 固定资产、投资性房地产、资产减值相关附注页（含减值测试假设披露）",
+            "purpose": "为候选传导路径取得计量层面证据，判断气候因素是否已影响可收回金额或使用寿命估计",
+            "target_role": "A2",
+            "priority": "high"
+          },
+          {
+            "question": "ESG报告是否披露量化温室气体减排目标（基准年、目标年、目标值）及进展数据？",
+            "requested_material": "MIDEA_ESG_2025 “应对气候挑战-指标和目标”章节原文",
+            "purpose": "补齐承诺进展评价所需的基准年、目标年与进展证据，避免以报告年份代填",
+            "target_role": "A3",
+            "priority": "medium"
+          },
+          {
+            "question": "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值、停产或重大资本支出，与D31资产范围是否重叠？",
+            "requested_material": "MIDEA_ESG_2025 第23-25页相关段落原文",
+            "purpose": "核实潜在反证线索是否与“暂未有资产受重大影响”表述形成张力",
+            "target_role": "A4",
+            "priority": "medium"
+          },
+          {
+            "question": "打开ESG报告第78页原页，核对D31披露的完整表述及是否附金额或百分比，并查看相邻页是否有物理风险资产量化披露",
+            "requested_material": "待补原文、明细或底稿：打开ESG报告第78页原页，核对D31披露的完整表述及是否附金额或百分比，并查看相邻页是否有物理风险资产量化披露",
+            "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+            "target_role": "A3",
+            "priority": "medium"
+          },
+          {
+            "question": "检索两份报告中关于气候物理风险影响资产金额、百分比及情景评估方法的披露，确认D31是否有量化数据",
+            "requested_material": "待补原文、明细或底稿：气候物理风险 影响资产 金额 百分比 情景 评估",
+            "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+            "target_role": "A3",
+            "priority": "medium"
+          },
+          {
+            "question": "打开ESG报告第78页原页，核对D31前后文是否另有金额、百分比或评估方法说明，并确认相邻页（77、79）索引表口径。",
+            "requested_material": "待补原文、明细或底稿：打开ESG报告第78页原页，核对D31前后文是否另有金额、百分比或评估方法说明，并确认相邻页（77、79）索引表口径。",
+            "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+            "target_role": "A4",
+            "priority": "medium"
+          },
+          {
+            "question": "检索ESG报告中气候情景分析结果与重要性阈值、资产范围相关表述，判断D31定性结论的评估口径。",
+            "requested_material": "待补原文、明细或底稿：气候情景 评估结果 资产 重要性阈值 物理风险 金额 百分比",
+            "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+            "target_role": "A4",
+            "priority": "medium"
+          },
+          {
+            "question": "检索年报中固定资产、投资性房地产账面价值与减值准备金额，以及减值测试是否提及气候因素，用于核对候选传导路径。",
+            "requested_material": "待补原文、明细或底稿：固定资产 投资性房地产 减值准备 减值测试 气候",
+            "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+            "target_role": "A4",
+            "priority": "medium"
+          }
+        ],
+        "review_status": "unreviewed",
+        "result_revision": 1
+      }
+    ],
+    "matter_tasks": [
+      {
+        "role": "A1",
+        "result": {
+          "paths": [],
+          "events": [],
+          "matters": [
+            {
+              "name": "美的集团气候情景分析与气候韧性评估",
+              "aliases": [],
+              "subject": "美的集团（合并口径）",
+              "location": "",
+              "matter_type": "climate_risk",
+              "evidence_ids": [
+                "ME-67F11A4A9E4481F58C4C",
+                "ME-20685C77B6B0787E141B",
+                "ME-9102D4F3C3D3430BE7B6",
+                "ME-F3372F1FE9CDDBF8CA2A",
+                "ME-8C3290A625AD82150F8D"
+              ],
+              "identity_basis": "ESG报告第19页以“美的集团”为主体披露本年度继续考虑两个气候情景并分析已识别的气候物理风险、转型风险与气候机遇；第20页披露基于上述情景与关键假设选取参数、评估美的集团气候韧性并更新评估结果；第78页以“本集团”口径说明经评估暂未有资产受气候相关转型风险与物理风险重大影响。三处主体均为美的集团合并口径，证据中未出现具体工厂或地点名称，故不设地点与别名。"
+            }
+          ],
+          "summary": "本轮为A1建档，仅综合已有证据，工具检索已冻结（前轮4次调用均被拒），tool_requests为空。已取得证据显示：美的集团（000333）2025年ESG报告以“美的集团”为主体披露本年度继续考虑两个气候情景，分析已识别的气候物理风险、转型风险与气候机遇（ME-67F11A4A9E4481F58C4C）；基于情景与关键假设选取参数、识别风险与机遇对战略与业务模式的影响并评估气候韧性、更新评估结果（ME-20685C77B6B0787E141B）；第78页以“本集团”口径称经评估暂未有资产会受到气候相关转型风险与物理风险的重大影响，也暂未有涉及气候相关机遇的资产（ME-9102D4F3C3D3430BE7B6）；温室气体排放目标由美的集团研究设定，尚未经第三方验证、未采用行业脱碳方法、非净额目标不涉及碳信用（ME-F3372F1FE9CDDBF8CA2A）；楼宇科技板块拟向SBTi提交减排目标验证（ME-8C3290A625AD82150F8D）。据此以“美的集团气候情景分析与气候韧性评估”建档，主体为美的集团合并口径，证据未出现具体工厂或地点，故不设地点与别名。节能改造“三项改造合计年节电84万千瓦时、年碳减排约500吨”（ME-6DC9DA4CBF3A1FF48041）片段未显示实施主体、地点与项目名称，暂不单独建档，保留为线索。年报侧仅有投资性房地产成本模式、固定资产折旧、减值测试、预计负债计量等通用会计政策（ME-D71B749DC158F6A01CE3、ME-0CA7551C9E4969F8A7BE、ME-EE6D77F88B9B12AB08C2、ME-BB0575F47D7245DE9CF3），不足以支撑具体事项，且通用政策不证明具体资产受气候影响。尚缺：气候情景参数与关键假设的具体内容、气候韧性评估结果明细、温室气体目标数值及基准年/目标年（证据未出现，故不填）、气候相关资产金额披露的完整表述、节能改造项目的主体与地点。未检索到不等于不存在披露。承诺的baseline_year、target_year与事件occurred_period因所引证据quote未出现，均留空。",
+          "matter_id": "",
+          "relations": [],
+          "assessment": null,
+          "commitments": [],
+          "stop_reason": "已查明：美的集团2025年ESG报告披露两个气候情景下的物理风险、转型风险与机遇识别及气候韧性评估，并称经评估暂未有资产受气候相关风险重大影响；温室气体目标由集团自行设定、未经第三方验证，楼宇科技拟向SBTi提交验证。尚缺：情景参数与关键假设原文、韧性评估结果明细、温室气体目标数值与基准年/目标年、气候相关资产金额披露完整表述、节能改造项目主体与地点；本轮检索受限，未检索到不认定不存在披露。",
+          "explanations": [],
+          "tool_requests": [],
+          "input_revision": 1
+        },
+        "rounds": 2,
+        "run_id": "CONN-82D4778E678C4AD0",
+        "status": "completed",
+        "task_id": "MTASK-d00a085445194262",
+        "matter_id": "",
+        "role_name": "事项识别与建档",
+        "updated_at": 1794024442.4402766,
+        "duration_ms": 48912,
+        "stop_reason": "来源已核验；项目别名归并证据不足，保留原候选，未认定跨报告同一性",
+        "input_revision": 1,
+        "identity_outcome": "candidate_retained_identity_unconfirmed",
+        "pending_questions": [
+          {
+            "tool": "open_source_page",
+            "question": "打开ESG报告第20页，取得气候情景参数、关键假设与气候韧性评估结果的具体表述，用于核实情景名称与评估结论。",
+            "arguments": {
+              "page": 20,
+              "document_id": "MIDEA_ESG_2025"
+            }
+          },
+          {
+            "tool": "open_source_page",
+            "question": "打开ESG报告第21页（第20页相邻页），补查气候风险与机遇识别清单及影响评估内容。",
+            "arguments": {
+              "page": 21,
+              "document_id": "MIDEA_ESG_2025"
+            }
+          },
+          {
+            "tool": "search_matter_reports",
+            "question": "检索ESG报告中温室气体排放目标（范围一/二/三、基准年、目标年、减排比例）的原文，确认目标数值与年份是否披露。",
+            "arguments": {
+              "limit": 10,
+              "query": "温室气体排放目标 基准年 目标年 减排比例 范围一 范围二",
+              "periods": [
+                "2025"
+              ],
+              "report_type": "ESG",
+              "document_ids": [
+                "MIDEA_ESG_2025"
+              ]
+            }
+          },
+          {
+            "tool": "open_source_page",
+            "question": "打开ESG报告第24页，核实“三项改造合计年节电84万千瓦时、年碳减排约500吨”对应的实施主体、地点与项目名称，判断是否可独立建档。",
+            "arguments": {
+              "page": 24,
+              "document_id": "MIDEA_ESG_2025"
+            }
+          }
+        ],
+        "termination_reason": "source_exhausted",
+        "selected_matter_ids": [
+          "MAT-E05705ACB19E2B914D78"
+        ],
+        "validation_retry_count": 0
+      },
+      {
+        "role": "A2",
+        "result": {
+          "paths": [
+            {
+              "steps": [
+                {
+                  "label": "企业披露经评估暂未有资产受气候转型与物理风险重大影响",
+                  "origin": "report_statement",
+                  "support": "limited",
+                  "explanation": "定性结论，未给出受影响资产金额及百分比。",
+                  "evidence_ids": [
+                    "ME-9102D4F3C3D3430BE7B6"
+                  ]
+                },
+                {
+                  "label": "企业采用两个气候情景与选定参数评估气候韧性",
+                  "origin": "report_statement",
+                  "support": "limited",
+                  "explanation": "仅说明情景与参数选取，未披露阈值及对具体资产的影响测算。",
+                  "evidence_ids": [
+                    "ME-67F11A4A9E4481F58C4C",
+                    "ME-20685C77B6B0787E141B"
+                  ]
+                },
+                {
+                  "label": "若物理或转型风险影响资产可收回金额，可能触发减值测试并影响减值损失",
+                  "origin": "model_hypothesis",
+                  "support": "pending",
+                  "explanation": "会计政策仅规定减值测试触发条件，不证明气候因素已实际影响计量。",
+                  "evidence_ids": [
+                    "ME-EE6D77F88B9B12AB08C2"
+                  ]
+                },
+                {
+                  "label": "固定资产与投资性房地产按成本模式折旧摊销，使用寿命与残值估计可能受气候因素影响",
+                  "origin": "model_hypothesis",
+                  "support": "pending",
+                  "explanation": "尚无证据表明使用寿命或残值估计已因气候风险调整。",
+                  "evidence_ids": [
+                    "ME-D71B749DC158F6A01CE3",
+                    "ME-0CA7551C9E4969F8A7BE"
+                  ]
+                }
+              ],
+              "path_id": "PATH-A4EB3CB04165ACF3400E",
+              "support": "limited",
+              "rule_ids": [
+                "MAT-EST-01"
+              ],
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "unresolved": [
+                "受影响资产金额及百分比未披露",
+                "评估情景、参数与重要性阈值未量化",
+                "年报中相关资产账面价值与减值准备金额未取得",
+                "减值测试是否考虑气候因素未披露"
+              ],
+              "financial_item": "固定资产/投资性房地产账面价值及减值准备（候选方向）",
+              "counter_evidence_ids": []
+            },
+            {
+              "steps": [
+                {
+                  "label": "企业披露暂未有资产受气候风险重大影响",
+                  "origin": "report_statement",
+                  "support": "limited",
+                  "explanation": "该披露针对资产，未涉及负债或或有义务。",
+                  "evidence_ids": [
+                    "ME-9102D4F3C3D3430BE7B6"
+                  ]
+                },
+                {
+                  "label": "预计负债按最佳估计数计量并在资产负债表日复核",
+                  "origin": "report_statement",
+                  "support": "limited",
+                  "explanation": "仅为一般会计政策，不证明存在气候相关现时义务。",
+                  "evidence_ids": [
+                    "ME-BB0575F47D7245DE9CF3"
+                  ]
+                },
+                {
+                  "label": "若气候政策或诉讼形成现时义务，可能增加预计负债",
+                  "origin": "model_hypothesis",
+                  "support": "pending",
+                  "explanation": "无证据支持该机制在本期发生。",
+                  "evidence_ids": []
+                }
+              ],
+              "path_id": "PATH-C3C8862E6732754BCD28",
+              "support": "limited",
+              "rule_ids": [],
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "unresolved": [
+                "是否存在气候相关现时义务及预计负债金额未披露"
+              ],
+              "financial_item": "预计负债（候选方向）",
+              "counter_evidence_ids": []
+            }
+          ],
+          "events": [],
+          "matters": [],
+          "summary": "所选事项为ESG报告第78页D31项披露：企业称经评估暂未有资产会受到气候相关转型风险与物理风险重大影响，也暂未有涉及气候相关机遇的资产（ME-9102D4F3C3D3430BE7B6）。该结论为定性判断，未给出受影响资产金额及百分比，也未说明评估方法、情景参数与重要性阈值。ESG报告第19-20页显示企业采用两个气候情景并选取参数评估气候韧性（ME-67F11A4A9E4481F58C4C、ME-20685C77B6B0787E141B），第79页披露温室气体目标由企业自行设定、未经第三方验证（ME-F3372F1FE9CDDBF8CA2A），这些构成评估结论的假设背景，但不证明具体资产未受影响。年报会计政策显示投资性房地产采用成本模式并计提折旧（ME-D71B749DC158F6A01CE3）、固定资产按年限平均法折旧（ME-0CA7551C9E4969F8A7BE）、存在减值迹象时进行减值测试（ME-EE6D77F88B9B12AB08C2）、预计负债按最佳估计数计量（ME-BB0575F47D7245DE9CF3），这些仅为候选传导方向，尚无证据表明气候风险已影响上述项目的计量。本轮外部检索与相邻页打开均被固定证据包模式拒绝，未取得新证据；尚缺：受影响资产金额与百分比的量化披露、评估所用情景与阈值、资产减值测试中是否考虑气候因素、以及年报中相关资产账面价值与减值准备金额。因此路径均标为待证，不输出审计或鉴证意见。",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "relations": [
+            {
+              "edge_id": "R-CLIM-01",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAE3D87B57D874522220",
+              "target_id": "ME-67F11A4A9E4481F58C4C",
+              "explanation": "情景分析是评估结论的方法背景，不证明资产未受影响。",
+              "evidence_ids": [
+                "ME-67F11A4A9E4481F58C4C",
+                "ME-20685C77B6B0787E141B"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "limited",
+              "assertion_origin": "model_hypothesis"
+            },
+            {
+              "edge_id": "R-CLIM-02",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAE3D87B57D874522220",
+              "target_id": "ME-F3372F1FE9CDDBF8CA2A",
+              "explanation": "温室气体目标未经第三方验证，属评估假设背景。",
+              "evidence_ids": [
+                "ME-F3372F1FE9CDDBF8CA2A"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "limited",
+              "assertion_origin": "model_hypothesis"
+            },
+            {
+              "edge_id": "R-CLIM-03",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAE3D87B57D874522220",
+              "target_id": "ME-EE6D77F88B9B12AB08C2",
+              "explanation": "减值政策为候选传导环节，未证明气候因素已纳入可收回金额估计。",
+              "evidence_ids": [
+                "ME-EE6D77F88B9B12AB08C2"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "pending",
+              "assertion_origin": "model_hypothesis"
+            }
+          ],
+          "assessment": null,
+          "commitments": [],
+          "stop_reason": "已查明：D31披露为定性结论，未量化受影响资产金额与百分比；情景与参数选取、温室气体目标未经第三方验证等背景已取得；年报仅有一般性折旧、减值与预计负债政策。尚缺：受影响资产金额与百分比、评估情景与重要性阈值、减值测试是否考虑气候因素、相关资产账面价值与减值准备金额。下一步：在可检索条件下补查ESG报告D31前后页与年报资产减值附注。",
+          "explanations": [],
+          "tool_requests": [],
+          "input_revision": 1
+        },
+        "rounds": 2,
+        "run_id": "CONN-82D4778E678C4AD0",
+        "status": "partial",
+        "task_id": "MTASK-738734521dd44814",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "role_name": "财务影响调查",
+        "updated_at": 1794024486.4576197,
+        "duration_ms": 39572,
+        "stop_reason": "已查明：D31披露为定性结论，未量化受影响资产金额与百分比；情景与参数选取、温室气体目标未经第三方验证等背景已取得；年报仅有一般性折旧、减值与预计负债政策。尚缺：受影响资产金额与百分比、评估情景与重要性阈值、减值测试是否考虑气候因素、相关资产账面价值与减值准备金额。下一步：在可检索条件下补查ESG报告D31前后页与年报资产减值附注。",
+        "input_revision": 1,
+        "termination_reason": "tool_round_limit",
+        "selected_matter_ids": [
+          "MAT-E05705ACB19E2B914D78"
+        ],
+        "validation_retry_count": 0
+      },
+      {
+        "role": "A3",
+        "result": {
+          "paths": [],
+          "events": [
+            {
+              "kind": "risk",
+              "label": "披露称经评估暂无资产受气候转型/物理风险重大影响，亦无涉及气候机遇的资产",
+              "origin": "model_interpretation",
+              "event_id": "EV-EAC2B003B5BD80222218",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "evidence_ids": [
+                "ME-9102D4F3C3D3430BE7B6"
+              ],
+              "report_period": "2025",
+              "disclosure_date": "2026-03-31",
+              "evidence_status": "limited",
+              "occurred_period": ""
+            }
+          ],
+          "matters": [],
+          "summary": "所选事项为美的集团2025年ESG报告第78页气候风险披露（D31：易受气候物理风险影响的资产或业务活动金额及百分比）。现有证据仅显示\"经评估，本集团暂未有资产会受到气候相关转型风险与物理风险的重大影响，也暂未有涉及气候相关机遇的资产\"，为定性结论，未给出金额或百分比，也未说明评估方法与情景参数。同报告第19-20页提及继续采用两个气候情景（含IPCC SSP5-8.5）分析气候物理风险、转型风险与机遇并评估气候韧性，第79页说明温室气体排放目标由集团研究设定、未经第三方验证、未采用行业脱碳方法，均与气候风险识别口径相关但未直接支持D31金额或百分比。本轮仅保留1条风险事件（定性结论，无发生年月，occurred_period留空），不设承诺（无量化目标及基准/目标年份证据）。尚缺：D31金额/百分比是否另有披露、气候情景与评估方法细节、物理风险识别的资产范围。未检索到不等于不存在披露。",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "relations": [
+            {
+              "edge_id": "REL-TMP-01",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAE3D87B57D874522220",
+              "target_id": "ME-20685C77B6B0787E141B",
+              "explanation": "报告称基于气候情景与关键假设评估气候韧性；该情景评估方法可能与D31物理风险资产识别口径相关，但报告未明示二者对应关系，仅为线索。",
+              "evidence_ids": [
+                "ME-20685C77B6B0787E141B",
+                "ME-9102D4F3C3D3430BE7B6"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "limited",
+              "assertion_origin": "model_hypothesis"
+            }
+          ],
+          "assessment": null,
+          "commitments": [],
+          "stop_reason": "已查明：D31披露为定性结论（暂无资产受气候转型/物理风险重大影响，亦无涉及气候机遇的资产），未附金额或百分比；同报告第19-20页提及两个气候情景与韧性评估，第79页说明温室气体目标未经第三方验证。尚缺：D31金额/百分比是否另有披露、情景参数与评估方法细节、物理风险资产识别范围；本轮检索受限，未检索到不等于不存在披露。",
+          "explanations": [],
+          "tool_requests": [],
+          "input_revision": 1
+        },
+        "rounds": 2,
+        "run_id": "CONN-82D4778E678C4AD0",
+        "status": "completed",
+        "task_id": "MTASK-096f24547cda45f3",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "role_name": "跨期承诺与后果追踪",
+        "updated_at": 1794024497.0551488,
+        "duration_ms": 50169,
+        "stop_reason": "已查明：D31披露为定性结论（暂无资产受气候转型/物理风险重大影响，亦无涉及气候机遇的资产），未附金额或百分比；同报告第19-20页提及两个气候情景与韧性评估，第79页说明温室气体目标未经第三方验证。尚缺：D31金额/百分比是否另有披露、情景参数与评估方法细节、物理风险资产识别范围；本轮检索受限，未检索到不等于不存在披露。",
+        "input_revision": 1,
+        "pending_questions": [
+          {
+            "tool": "open_source_page",
+            "question": "打开ESG报告第78页原页，核对D31披露的完整表述及是否附金额或百分比，并查看相邻页是否有物理风险资产量化披露",
+            "arguments": {
+              "page": 78,
+              "document_id": "MIDEA_ESG_2025"
+            }
+          },
+          {
+            "tool": "search_matter_reports",
+            "question": "检索两份报告中关于气候物理风险影响资产金额、百分比及情景评估方法的披露，确认D31是否有量化数据",
+            "arguments": {
+              "limit": 10,
+              "query": "气候物理风险 影响资产 金额 百分比 情景 评估",
+              "document_ids": [
+                "MIDEA_ESG_2025",
+                "MIDEA_AR_2025"
+              ]
+            }
+          }
+        ],
+        "termination_reason": "source_exhausted",
+        "selected_matter_ids": [
+          "MAT-E05705ACB19E2B914D78"
+        ],
+        "validation_retry_count": 0
+      },
+      {
+        "role": "A4",
+        "result": {
+          "paths": [],
+          "events": [],
+          "matters": [],
+          "summary": "所选事项为美的集团2025年ESG报告第78页D31项：企业称经评估暂未有资产会受到气候相关转型风险与物理风险的重大影响，也暂未有涉及气候相关机遇的资产（ME-9102D4F3C3D3430BE7B6）。该结论为定性判断，未给出受影响资产金额及百分比，也未说明评估方法、情景参数与重要性阈值。同报告第19-20页显示企业继续采用两个气候情景（含IPCC SSP5-8.5）并选取参数评估气候韧性（ME-67F11A4A9E4481F58C4C、ME-20685C77B6B0787E141B），第79页披露温室气体目标由企业自行设定、未经第三方验证、未采用行业脱碳方法（ME-F3372F1FE9CDDBF8CA2A），这些是评估结论的假设背景，不证明具体资产未受影响。第24页节能改造项目（年节电84万千瓦时、碳减排约500吨，ME-6DC9DA4CBF3A1FF48041）为潜在反证线索，但未证明其构成受气候风险重大影响的资产。年报会计政策显示投资性房地产采用成本模式计提折旧（ME-D71B749DC158F6A01CE3）、固定资产按年限平均法折旧（ME-0CA7551C9E4969F8A7BE）、存在减值迹象时进行减值测试（ME-EE6D77F88B9B12AB08C2）、预计负债按最佳估计数计量（ME-BB0575F47D7245DE9CF3），仅为候选传导方向，尚无证据表明气候因素已影响上述项目计量。A2与A3在核心事实上一致（同一披露、定性结论、无金额百分比），分歧仅在事件粒度与关系表述：A2保留两条候选路径（资产减值/折旧、预计负债），A3仅保留一条风险事件与一条情景方法线索；本轮以A3事件为主，A2路径保留为待证方向。本轮外部检索与相邻页打开均被固定证据包模式拒绝，未取得新证据。尚缺：D31金额与百分比是否另有披露、情景与阈值细节、物理风险识别的资产范围、年报相关资产账面价值与减值准备金额、减值测试是否考虑气候因素。未检索到不等于不存在披露；不输出审计或鉴证意见。",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "relations": [
+            {
+              "edge_id": "R-CLIM-04",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAC2B003B5BD80222218",
+              "target_id": "ME-9102D4F3C3D3430BE7B6",
+              "explanation": "A3事件与D31披露为同一原文，事件label为概括表述。",
+              "evidence_ids": [
+                "ME-9102D4F3C3D3430BE7B6"
+              ],
+              "relation_kind": "same_matter",
+              "evidence_status": "limited",
+              "assertion_origin": "report_statement"
+            },
+            {
+              "edge_id": "R-CLIM-05",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAC2B003B5BD80222218",
+              "target_id": "ME-6DC9DA4CBF3A1FF48041",
+              "explanation": "节能改造项目为潜在反证线索，未证明其构成受气候风险重大影响的资产。",
+              "evidence_ids": [
+                "ME-6DC9DA4CBF3A1FF48041"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "pending",
+              "assertion_origin": "model_hypothesis"
+            },
+            {
+              "edge_id": "R-CLIM-06",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAC2B003B5BD80222218",
+              "target_id": "ME-D71B749DC158F6A01CE3",
+              "explanation": "投资性房地产成本模式计量为候选传导环节，未证明气候因素影响其计量。",
+              "evidence_ids": [
+                "ME-D71B749DC158F6A01CE3"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "pending",
+              "assertion_origin": "model_hypothesis"
+            },
+            {
+              "edge_id": "R-CLIM-07",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAC2B003B5BD80222218",
+              "target_id": "ME-0CA7551C9E4969F8A7BE",
+              "explanation": "固定资产折旧年限与残值估计为候选传导环节，未证明因气候因素调整。",
+              "evidence_ids": [
+                "ME-0CA7551C9E4969F8A7BE"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "pending",
+              "assertion_origin": "model_hypothesis"
+            },
+            {
+              "edge_id": "R-CLIM-08",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "source_id": "EV-EAC2B003B5BD80222218",
+              "target_id": "ME-BB0575F47D7245DE9CF3",
+              "explanation": "预计负债最佳估计数计量为候选传导环节，D31仅涉及资产，未证明存在气候相关现时义务。",
+              "evidence_ids": [
+                "ME-BB0575F47D7245DE9CF3"
+              ],
+              "relation_kind": "potential_mechanism",
+              "evidence_status": "pending",
+              "assertion_origin": "model_hypothesis"
+            }
+          ],
+          "assessment": null,
+          "commitments": [],
+          "stop_reason": "已查明：D31为定性结论，无金额与百分比，未说明评估方法、情景参数与重要性阈值；情景分析（两情景、选定参数）与温室气体目标未经验证为背景信息；年报会计政策仅为候选传导方向。尚缺：D31量化数据是否另有披露、阈值与资产范围口径、年报相关资产账面价值与减值准备金额、减值测试是否考虑气候因素。下一步需在解冻检索后打开ESG第77-79页与年报资产减值章节核对。",
+          "explanations": [
+            {
+              "status": "hypothesis",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "explanation": "汇总口径解释：D31结论可能基于集团合并层面重要性阈值，单项资产或业务活动影响低于阈值故未单列金额与百分比。若成立，应能在情景参数与阈值披露中找到对应口径。",
+              "hypothesis_id": "HYP-2CE15D8D2E93DCD58361",
+              "counter_evidence_ids": [],
+              "discriminating_evidence": "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+              "supporting_evidence_ids": [
+                "ME-9102D4F3C3D3430BE7B6",
+                "ME-20685C77B6B0787E141B"
+              ]
+            },
+            {
+              "status": "hypothesis",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "explanation": "方法差异解释：企业已做情景分析（两个情景、选定参数），但D31仅要求披露易受影响资产的金额与百分比，企业以定性结论替代量化，可能因评估未落到资产层面。",
+              "hypothesis_id": "HYP-A388B185E5564FE2634F",
+              "counter_evidence_ids": [],
+              "discriminating_evidence": "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+              "supporting_evidence_ids": [
+                "ME-67F11A4A9E4481F58C4C",
+                "ME-20685C77B6B0787E141B",
+                "ME-9102D4F3C3D3430BE7B6"
+              ]
+            },
+            {
+              "status": "unresolved",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "explanation": "时间边界解释：结论为2025年度评估时点判断，物理风险的长期影响可能尚未在当期资产账面价值或减值测试中体现，故与年报会计政策无冲突。",
+              "hypothesis_id": "HYP-7BC6EB1F27EA9CBA5916",
+              "counter_evidence_ids": [],
+              "discriminating_evidence": "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+              "supporting_evidence_ids": [
+                "ME-9102D4F3C3D3430BE7B6",
+                "ME-EE6D77F88B9B12AB08C2"
+              ]
+            },
+            {
+              "status": "hypothesis",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "explanation": "验证强度解释：温室气体目标未经第三方验证、未采用行业脱碳方法，说明气候相关数据的验证程度有限，D31定性结论同样缺少外部验证支撑；但这不构成结论错误的证据。",
+              "hypothesis_id": "HYP-3D574D62D86BF3FB75AD",
+              "counter_evidence_ids": [],
+              "discriminating_evidence": "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+              "supporting_evidence_ids": [
+                "ME-F3372F1FE9CDDBF8CA2A"
+              ]
+            },
+            {
+              "status": "unresolved",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "explanation": "反证方向：若年报或ESG其他章节披露了受气候影响的资产减值、停产或改造支出，则与“暂未有资产受重大影响”的表述形成张力，需核对是否为同一资产范围与同一计量基础。",
+              "hypothesis_id": "HYP-C37370BFE82F90803A97",
+              "counter_evidence_ids": [
+                "ME-9102D4F3C3D3430BE7B6"
+              ],
+              "discriminating_evidence": "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+              "supporting_evidence_ids": [
+                "ME-6DC9DA4CBF3A1FF48041"
+              ]
+            },
+            {
+              "status": "unresolved",
+              "matter_id": "MAT-E05705ACB19E2B914D78",
+              "explanation": "披露不足解释：D31要求金额与百分比，报告仅给定性结论，可能属披露不完整而非评估结论有误；两者需区分，现有证据无法判断是评估未识别还是披露未量化。",
+              "hypothesis_id": "HYP-86CE7253E583CDD80CDF",
+              "counter_evidence_ids": [],
+              "discriminating_evidence": "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。",
+              "supporting_evidence_ids": [
+                "ME-9102D4F3C3D3430BE7B6"
+              ]
+            }
+          ],
+          "tool_requests": [],
+          "input_revision": 1
+        },
+        "rounds": 2,
+        "run_id": "CONN-82D4778E678C4AD0",
+        "status": "completed",
+        "task_id": "MTASK-222c9a3fd6164d88",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "role_name": "边界解释与反证调查",
+        "updated_at": 1794024566.2892559,
+        "duration_ms": 67501,
+        "stop_reason": "已查明：D31为定性结论，无金额与百分比，未说明评估方法、情景参数与重要性阈值；情景分析（两情景、选定参数）与温室气体目标未经验证为背景信息；年报会计政策仅为候选传导方向。尚缺：D31量化数据是否另有披露、阈值与资产范围口径、年报相关资产账面价值与减值准备金额、减值测试是否考虑气候因素。下一步需在解冻检索后打开ESG第77-79页与年报资产减值章节核对。",
+        "input_revision": 1,
+        "pending_questions": [
+          {
+            "tool": "open_source_page",
+            "question": "打开ESG报告第78页原页，核对D31前后文是否另有金额、百分比或评估方法说明，并确认相邻页（77、79）索引表口径。",
+            "arguments": {
+              "page": 78,
+              "document_id": "MIDEA_ESG_2025"
+            }
+          },
+          {
+            "tool": "search_matter_reports",
+            "question": "检索ESG报告中气候情景分析结果与重要性阈值、资产范围相关表述，判断D31定性结论的评估口径。",
+            "arguments": {
+              "limit": 10,
+              "query": "气候情景 评估结果 资产 重要性阈值 物理风险 金额 百分比",
+              "periods": [
+                "2025"
+              ],
+              "report_type": "ESG",
+              "document_ids": [
+                "MIDEA_ESG_2025"
+              ]
+            }
+          },
+          {
+            "tool": "search_matter_reports",
+            "question": "检索年报中固定资产、投资性房地产账面价值与减值准备金额，以及减值测试是否提及气候因素，用于核对候选传导路径。",
+            "arguments": {
+              "limit": 10,
+              "query": "固定资产 投资性房地产 减值准备 减值测试 气候",
+              "periods": [
+                "2025"
+              ],
+              "report_type": "AR",
+              "document_ids": [
+                "MIDEA_AR_2025"
+              ]
+            }
+          }
+        ],
+        "termination_reason": "source_exhausted",
+        "selected_matter_ids": [
+          "MAT-E05705ACB19E2B914D78"
+        ],
+        "validation_retry_count": 0
+      },
+      {
+        "role": "A5",
+        "result": {
+          "paths": [],
+          "events": [],
+          "matters": [],
+          "summary": "所选事项为美的集团2025年ESG报告第78页D31项披露：企业称经评估暂未有资产会受到气候相关转型风险与物理风险的重大影响，也暂未有涉及气候相关机遇的资产（ME-9102D4F3C3D3430BE7B6）。该结论为定性判断，未给出受影响资产金额及百分比，也未说明评估方法、情景参数与重要性阈值。同报告第19-20页显示企业继续采用两个气候情景（含IPCC SSP5-8.5）并选取参数评估气候韧性（ME-67F11A4A9E4481F58C4C、ME-20685C77B6B0787E141B），第79页披露温室气体目标由企业自行设定、未经第三方验证、未采用行业脱碳方法（ME-F3372F1FE9CDDBF8CA2A），这些是评估结论的假设背景，不证明具体资产未受影响。第24页节能改造项目（年节电84万千瓦时、碳减排约500吨，ME-6DC9DA4CBF3A1FF48041）为潜在反证线索，但未证明其构成受气候风险重大影响的资产。年报会计政策显示投资性房地产采用成本模式计提折旧（ME-D71B749DC158F6A01CE3）、固定资产按年限平均法折旧（ME-0CA7551C9E4969F8A7BE）、存在减值迹象时进行减值测试（ME-EE6D77F88B9B12AB08C2）、预计负债按最佳估计数计量（ME-BB0575F47D7245DE9CF3），仅为候选传导方向，尚无证据表明气候因素已影响上述项目计量。A2与A3在核心事实上一致（同一披露、定性结论、无金额百分比），分歧仅在事件粒度与关系表述：A2保留两条候选路径（资产减值/折旧、预计负债），A3仅保留一条风险事件与一条情景方法线索；本轮以A3事件为主，A2路径保留为待证方向。本轮外部检索与相邻页打开均被固定证据包模式拒绝，未取得新证据。尚缺：D31金额与百分比是否另有披露、情景与阈值细节、物理风险识别的资产范围、年报相关资产账面价值与减值准备金额、减值测试是否考虑气候因素。未检索到不等于不存在披露；不输出审计或鉴证意见。",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "relations": [],
+          "assessment": {
+            "summary": "D31披露为定性结论，无金额与百分比；情景分析、目标验证状态与年报会计政策仅构成方法背景与候选传导方向，均未证明气候因素已影响资产计量或形成现时义务。关系支持有限，金额不可比（无金额），承诺进展无证据，财务阶段停留在政策层面。",
+            "matter_id": "MAT-E05705ACB19E2B914D78",
+            "unresolved": [
+              "D31要求的受影响资产金额及百分比未披露，是否另有量化披露未检索到",
+              "评估所用情景参数、关键假设与重要性阈值未量化",
+              "物理风险识别的资产范围与合并/单体口径未说明",
+              "年报中固定资产、投资性房地产账面价值及减值准备金额未取得",
+              "减值测试是否考虑气候因素未披露",
+              "第24页节能改造项目与D31资产范围的关系未明（潜在反证线索）",
+              "ESG报告鉴证范围是否覆盖气候情景分析与D31结论未明"
+            ],
+            "assumptions": [
+              "D31结论可能基于合并层面重要性阈值，单项资产影响低于阈值故未单列金额与百分比（HYP-2CE15D8D2E93DCD58361，未证实）",
+              "情景分析可能未落到资产层面，故以定性结论替代量化披露（HYP-A388B185E5564FE2634F，未证实）",
+              "物理风险长期影响可能尚未在当期资产账面价值或减值测试中体现（HYP-7BC6EB1F27EA9CBA5916，未决）",
+              "气候相关数据验证程度有限，D31结论缺少外部验证支撑，但不构成结论错误的证据（HYP-3D574D62D86BF3FB75AD）"
+            ],
+            "next_actions": [
+              {
+                "purpose": "判断D31定性结论是评估未识别还是披露未量化，并核对情景口径与资产范围",
+                "priority": "high",
+                "question": "ESG报告第19-21页气候情景分析结果是否包含资产层面的影响测算、敏感性数据或重要性阈值？",
+                "target_role": "A2",
+                "requested_material": "MIDEA_ESG_2025 第19-21页及第77-79页D31索引表相邻条目原文"
+              },
+              {
+                "purpose": "为候选传导路径取得计量层面证据，判断气候因素是否已影响可收回金额或使用寿命估计",
+                "priority": "high",
+                "question": "年报中固定资产、投资性房地产的账面价值、减值准备及减值测试关键假设是否提及气候因素？",
+                "target_role": "A2",
+                "requested_material": "MIDEA_AR_2025 固定资产、投资性房地产、资产减值相关附注页（含减值测试假设披露）"
+              },
+              {
+                "purpose": "补齐承诺进展评价所需的基准年、目标年与进展证据，避免以报告年份代填",
+                "priority": "medium",
+                "question": "ESG报告是否披露量化温室气体减排目标（基准年、目标年、目标值）及进展数据？",
+                "target_role": "A3",
+                "requested_material": "MIDEA_ESG_2025 “应对气候挑战-指标和目标”章节原文"
+              },
+              {
+                "purpose": "核实潜在反证线索是否与“暂未有资产受重大影响”表述形成张力",
+                "priority": "medium",
+                "question": "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值、停产或重大资本支出，与D31资产范围是否重叠？",
+                "target_role": "A4",
+                "requested_material": "MIDEA_ESG_2025 第23-25页相关段落原文"
+              },
+              {
+                "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+                "priority": "medium",
+                "question": "打开ESG报告第78页原页，核对D31披露的完整表述及是否附金额或百分比，并查看相邻页是否有物理风险资产量化披露",
+                "target_role": "A3",
+                "requested_material": "待补原文、明细或底稿：打开ESG报告第78页原页，核对D31披露的完整表述及是否附金额或百分比，并查看相邻页是否有物理风险资产量化披露"
+              },
+              {
+                "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+                "priority": "medium",
+                "question": "检索两份报告中关于气候物理风险影响资产金额、百分比及情景评估方法的披露，确认D31是否有量化数据",
+                "target_role": "A3",
+                "requested_material": "待补原文、明细或底稿：气候物理风险 影响资产 金额 百分比 情景 评估"
+              },
+              {
+                "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+                "priority": "medium",
+                "question": "打开ESG报告第78页原页，核对D31前后文是否另有金额、百分比或评估方法说明，并确认相邻页（77、79）索引表口径。",
+                "target_role": "A4",
+                "requested_material": "待补原文、明细或底稿：打开ESG报告第78页原页，核对D31前后文是否另有金额、百分比或评估方法说明，并确认相邻页（77、79）索引表口径。"
+              },
+              {
+                "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+                "priority": "medium",
+                "question": "检索ESG报告中气候情景分析结果与重要性阈值、资产范围相关表述，判断D31定性结论的评估口径。",
+                "target_role": "A4",
+                "requested_material": "待补原文、明细或底稿：气候情景 评估结果 资产 重要性阈值 物理风险 金额 百分比"
+              },
+              {
+                "purpose": "补齐调查工具未取得的证据，核实当前未决条件",
+                "priority": "medium",
+                "question": "检索年报中固定资产、投资性房地产账面价值与减值准备金额，以及减值测试是否提及气候因素，用于核对候选传导路径。",
+                "target_role": "A4",
+                "requested_material": "待补原文、明细或底稿：固定资产 投资性房地产 减值准备 减值测试 气候"
+              }
+            ],
+            "disagreements": [
+              "A2保留两条候选路径（固定资产/投资性房地产减值与折旧、预计负债），A3仅保留一条风险事件与一条情景方法线索；本轮以A3事件为主，A2路径作为待证方向保留，不视为已成立传导",
+              "A2将情景分析列为路径步骤，A3仅列为线索；两者均未证明情景评估与D31资产识别口径的对应关系"
+            ],
+            "review_status": "unreviewed",
+            "financial_stage": "仅取得会计政策层面证据（折旧摊销、减值测试、预计负债计量），未取得相关资产账面价值、减值准备或预计负债金额，未进入计量核对阶段",
+            "result_revision": 1,
+            "relation_support": "limited",
+            "commitment_progress": "未取得量化气候目标及基准年/目标年证据，无法评价承诺进展；第79页仅说明目标由企业自行设定、未经第三方验证（ME-F3372F1FE9CDDBF8CA2A）",
+            "amount_comparability": "not_comparable",
+            "counter_evidence_ids": [
+              "ME-6DC9DA4CBF3A1FF48041"
+            ],
+            "supporting_evidence_ids": [
+              "ME-9102D4F3C3D3430BE7B6",
+              "ME-67F11A4A9E4481F58C4C",
+              "ME-20685C77B6B0787E141B",
+              "ME-F3372F1FE9CDDBF8CA2A",
+              "ME-EE6D77F88B9B12AB08C2",
+              "ME-D71B749DC158F6A01CE3",
+              "ME-0CA7551C9E4969F8A7BE",
+              "ME-BB0575F47D7245DE9CF3"
+            ]
+          },
+          "commitments": [],
+          "stop_reason": "已查明：D31为定性结论，无金额与百分比（ME-9102D4F3C3D3430BE7B6）；情景分析（ME-67F11A4A9E4481F58C4C、ME-20685C77B6B0787E141B）、目标未经验证（ME-F3372F1FE9CDDBF8CA2A）与年报会计政策（ME-EE6D77F88B9B12AB08C2等）仅为背景与候选方向。尚缺：D31量化数据、情景参数与阈值、资产范围、年报相关资产账面价值与减值准备、减值测试是否含气候因素。下一步：按next_actions定向补查ESG第19-21页与第77-79页、年报资产附注及指标目标章节。",
+          "explanations": [],
+          "tool_requests": [],
+          "input_revision": 1
+        },
+        "rounds": 1,
+        "run_id": "CONN-82D4778E678C4AD0",
+        "status": "completed",
+        "task_id": "MTASK-35282d0312f9467f",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "role_name": "综合复核与补证决策",
+        "updated_at": 1794024589.585447,
+        "duration_ms": 21001,
+        "stop_reason": "已查明：D31为定性结论，无金额与百分比（ME-9102D4F3C3D3430BE7B6）；情景分析（ME-67F11A4A9E4481F58C4C、ME-20685C77B6B0787E141B）、目标未经验证（ME-F3372F1FE9CDDBF8CA2A）与年报会计政策（ME-EE6D77F88B9B12AB08C2等）仅为背景与候选方向。尚缺：D31量化数据、情景参数与阈值、资产范围、年报相关资产账面价值与减值准备、减值测试是否含气候因素。下一步：按next_actions定向补查ESG第19-21页与第77-79页、年报资产附注及指标目标章节。",
+        "input_revision": 1,
+        "termination_reason": "model_concluded",
+        "selected_matter_ids": [
+          "MAT-E05705ACB19E2B914D78"
+        ],
+        "validation_retry_count": 0
+      }
+    ],
+    "matter_tool_receipts": [
+      {
+        "role": "A1",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-d00a085445194262",
+        "args_hash": "74f5fbd0f7ee4d9c",
+        "matter_id": "",
+        "tool_name": "open_source_page",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A1",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-d00a085445194262",
+        "args_hash": "bd781500d02a0b0c",
+        "matter_id": "",
+        "tool_name": "open_source_page",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A1",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-d00a085445194262",
+        "args_hash": "a02ece4b5fc02ff6",
+        "matter_id": "",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A1",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-d00a085445194262",
+        "args_hash": "74849736bb708373",
+        "matter_id": "",
+        "tool_name": "open_source_page",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A2",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-738734521dd44814",
+        "args_hash": "29460a1aff3c1082",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A2",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-738734521dd44814",
+        "args_hash": "3816214b44249a44",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A2",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-738734521dd44814",
+        "args_hash": "a5b78e21a36a9880",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "open_source_page",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A2",
+        "round": 1,
+        "reason": "",
+        "result": {
+          "rules": [
+            {
+              "kind": "matter_template",
+              "name": "气候风险与估计假设",
+              "terms": [
+                "气候",
+                "减值",
+                "现金流预测",
+                "资产组"
+              ],
+              "source": {
+                "url": "https://www.ifrs.org/content/dam/ifrs/supporting-implementation/documents/effects-of-climate-related-matters-on-financial-statements.pdf",
+                "title": "Effects of climate-related matters on financial statements",
+                "status": "primary_document_checked",
+                "locator": "PDF第2—3页的估计不确定性与资产减值示例",
+                "version": "Republished July 2023",
+                "framework": "IFRS教育材料；只作比较与调查方向，不自动适用中国会计准则",
+                "publisher": "IFRS Foundation",
+                "verified_at": "2026-10-26"
+              },
+              "rule_id": "MAT-EST-01",
+              "boundary": "候选调查模板，不证明企业事实，也不放行正式计算",
+              "candidate_path": [
+                "经营风险",
+                "现金流假设",
+                "可收回金额"
+              ],
+              "exclusion_rules": [
+                "一般减值政策不证明气候已纳入估值",
+                "无单列金额不等于无财务影响"
+              ],
+              "prerequisite_conditions": [
+                "同一资产或资产组",
+                "具体预测和敏感性披露"
+              ],
+              "financial_statement_candidates": [
+                "固定资产减值",
+                "商誉减值"
+              ]
+            }
+          ],
+          "keyword": "气候风险 资产减值 会计估计"
+        },
+        "status": "hit",
+        "task_id": "MTASK-738734521dd44814",
+        "args_hash": "081166af5be1caf9",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "lookup_ontology_rule",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": "9c3d5d160920bf66"
+      },
+      {
+        "role": "A3",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-096f24547cda45f3",
+        "args_hash": "636d85888ba26d65",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "open_source_page",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A3",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-096f24547cda45f3",
+        "args_hash": "b2cf66d82fc2f84c",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A4",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-222c9a3fd6164d88",
+        "args_hash": "c54ea9ba714b008f",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      },
+      {
+        "role": "A4",
+        "round": 1,
+        "reason": "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验",
+        "result": null,
+        "status": "rejected",
+        "task_id": "MTASK-222c9a3fd6164d88",
+        "args_hash": "82b50aed153f8a72",
+        "matter_id": "MAT-E05705ACB19E2B914D78",
+        "tool_name": "search_matter_reports",
+        "elapsed_ms": 0,
+        "source_hash": "",
+        "output_digest": ""
+      }
+    ],
+    "matter_coverage": [
+      {
+        "method": "matter_blocks_v1",
+        "cache_hit": false,
+        "document_id": "MIDEA_AR_2025",
+        "duration_ms": 12372,
+        "ocr_enabled": false,
+        "total_pages": 276,
+        "failed_pages": [],
+        "scanned_pages": [],
+        "indexed_blocks": 5719,
+        "source_verification_ms": 77
+      },
+      {
+        "method": "matter_blocks_v1",
+        "cache_hit": false,
+        "document_id": "MIDEA_ESG_2025",
+        "duration_ms": 17111,
+        "ocr_enabled": false,
+        "total_pages": 82,
+        "failed_pages": [
+          {
+            "page": 1,
+            "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+          },
+          {
+            "page": 82,
+            "reason": "文字层不足，OCR未启用或已达到本次页数边界"
+          }
+        ],
+        "scanned_pages": [
+          1,
+          82
+        ],
+        "indexed_blocks": 3700,
+        "source_verification_ms": 202
+      }
+    ],
+    "matter_rejections": [
+      {
+        "name": "美的集团气候情景分析与气候韧性评估",
+        "role": "A1",
+        "reason": "归并缺少可定位的项目名或别名锚点"
+      },
+      {
+        "code": "IDENTITY_MERGE_UNPROVEN",
+        "role": "A1",
+        "reason": "提议的归并缺少文本锚点，未合并候选；仅完成来源与身份候选复核",
+        "matter_id": "MAT-E05705ACB19E2B914D78"
+      }
+    ],
+    "matter_revisions": [],
+    "matter_graph": {
+      "edges": [
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-57563C3803BC98AB413A",
+          "status": "limited",
+          "target": "ME-0CA7551C9E4969F8A7BE",
+          "matter_id": "MAT-57563C3803BC98AB413A"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-AB480FA03CA6C33378A7",
+          "status": "limited",
+          "target": "ME-F3372F1FE9CDDBF8CA2A",
+          "matter_id": "MAT-AB480FA03CA6C33378A7"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-20A26758259A5E9A5251",
+          "status": "limited",
+          "target": "ME-D71B749DC158F6A01CE3",
+          "matter_id": "MAT-20A26758259A5E9A5251"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-4F681B8175B1F7940CFE",
+          "status": "limited",
+          "target": "ME-67F11A4A9E4481F58C4C",
+          "matter_id": "MAT-4F681B8175B1F7940CFE"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-B95D74E639DE3723A108",
+          "status": "limited",
+          "target": "ME-EE6D77F88B9B12AB08C2",
+          "matter_id": "MAT-B95D74E639DE3723A108"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-F87CD1DAFCAA55F2F952",
+          "status": "limited",
+          "target": "ME-20685C77B6B0787E141B",
+          "matter_id": "MAT-F87CD1DAFCAA55F2F952"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-80FAB64213A298C202C5",
+          "status": "limited",
+          "target": "ME-BB0575F47D7245DE9CF3",
+          "matter_id": "MAT-80FAB64213A298C202C5"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-6B3FC16F5CD8DF21C18A",
+          "status": "limited",
+          "target": "ME-8C3290A625AD82150F8D",
+          "matter_id": "MAT-6B3FC16F5CD8DF21C18A"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-3E2AD10E21BA72EF31FA",
+          "status": "limited",
+          "target": "ME-3509A7741089E0DDA73D",
+          "matter_id": "MAT-3E2AD10E21BA72EF31FA"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-0A474AE9244741DE975C",
+          "status": "limited",
+          "target": "ME-6DC9DA4CBF3A1FF48041",
+          "matter_id": "MAT-0A474AE9244741DE975C"
+        },
+        {
+          "kind": "disclosed_in",
+          "source": "MAT-E05705ACB19E2B914D78",
+          "status": "limited",
+          "target": "ME-9102D4F3C3D3430BE7B6",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "report_statement",
+          "source": "MAT-E05705ACB19E2B914D78",
+          "status": "limited",
+          "target": "PATH-A4EB3CB04165ACF3400E-S0",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "report_statement",
+          "source": "PATH-A4EB3CB04165ACF3400E-S0",
+          "status": "limited",
+          "target": "PATH-A4EB3CB04165ACF3400E-S1",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "model_hypothesis",
+          "source": "PATH-A4EB3CB04165ACF3400E-S1",
+          "status": "pending",
+          "target": "PATH-A4EB3CB04165ACF3400E-S2",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "model_hypothesis",
+          "source": "PATH-A4EB3CB04165ACF3400E-S2",
+          "status": "pending",
+          "target": "PATH-A4EB3CB04165ACF3400E-S3",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "financial_path",
+          "source": "PATH-A4EB3CB04165ACF3400E-S3",
+          "status": "limited",
+          "target": "PATH-A4EB3CB04165ACF3400E",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "report_statement",
+          "source": "MAT-E05705ACB19E2B914D78",
+          "status": "limited",
+          "target": "PATH-C3C8862E6732754BCD28-S0",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "report_statement",
+          "source": "PATH-C3C8862E6732754BCD28-S0",
+          "status": "limited",
+          "target": "PATH-C3C8862E6732754BCD28-S1",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "model_hypothesis",
+          "source": "PATH-C3C8862E6732754BCD28-S1",
+          "status": "pending",
+          "target": "PATH-C3C8862E6732754BCD28-S2",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "kind": "financial_path",
+          "source": "PATH-C3C8862E6732754BCD28-S2",
+          "status": "limited",
+          "target": "PATH-C3C8862E6732754BCD28",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "id": "R-CLIM-01",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAE3D87B57D874522220",
+          "status": "limited",
+          "target": "ME-67F11A4A9E4481F58C4C",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-67F11A4A9E4481F58C4C",
+            "ME-20685C77B6B0787E141B"
+          ]
+        },
+        {
+          "id": "R-CLIM-02",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAE3D87B57D874522220",
+          "status": "limited",
+          "target": "ME-F3372F1FE9CDDBF8CA2A",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-F3372F1FE9CDDBF8CA2A"
+          ]
+        },
+        {
+          "id": "R-CLIM-03",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAE3D87B57D874522220",
+          "status": "pending",
+          "target": "ME-EE6D77F88B9B12AB08C2",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-EE6D77F88B9B12AB08C2"
+          ]
+        },
+        {
+          "id": "REL-TMP-01",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAE3D87B57D874522220",
+          "status": "limited",
+          "target": "ME-20685C77B6B0787E141B",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-20685C77B6B0787E141B",
+            "ME-9102D4F3C3D3430BE7B6"
+          ]
+        },
+        {
+          "id": "R-CLIM-04",
+          "kind": "same_matter",
+          "origin": "report_statement",
+          "source": "EV-EAC2B003B5BD80222218",
+          "status": "limited",
+          "target": "ME-9102D4F3C3D3430BE7B6",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-9102D4F3C3D3430BE7B6"
+          ]
+        },
+        {
+          "id": "R-CLIM-05",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAC2B003B5BD80222218",
+          "status": "pending",
+          "target": "ME-6DC9DA4CBF3A1FF48041",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-6DC9DA4CBF3A1FF48041"
+          ]
+        },
+        {
+          "id": "R-CLIM-06",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAC2B003B5BD80222218",
+          "status": "pending",
+          "target": "ME-D71B749DC158F6A01CE3",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-D71B749DC158F6A01CE3"
+          ]
+        },
+        {
+          "id": "R-CLIM-07",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAC2B003B5BD80222218",
+          "status": "pending",
+          "target": "ME-0CA7551C9E4969F8A7BE",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-0CA7551C9E4969F8A7BE"
+          ]
+        },
+        {
+          "id": "R-CLIM-08",
+          "kind": "potential_mechanism",
+          "origin": "model_hypothesis",
+          "source": "EV-EAC2B003B5BD80222218",
+          "status": "pending",
+          "target": "ME-BB0575F47D7245DE9CF3",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-BB0575F47D7245DE9CF3"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "MAT-57563C3803BC98AB413A",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 160",
+          "matter_id": "MAT-57563C3803BC98AB413A"
+        },
+        {
+          "id": "MAT-AB480FA03CA6C33378A7",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 79",
+          "matter_id": "MAT-AB480FA03CA6C33378A7"
+        },
+        {
+          "id": "MAT-20A26758259A5E9A5251",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 159",
+          "matter_id": "MAT-20A26758259A5E9A5251"
+        },
+        {
+          "id": "MAT-4F681B8175B1F7940CFE",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 19",
+          "matter_id": "MAT-4F681B8175B1F7940CFE"
+        },
+        {
+          "id": "MAT-B95D74E639DE3723A108",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 163",
+          "matter_id": "MAT-B95D74E639DE3723A108"
+        },
+        {
+          "id": "MAT-F87CD1DAFCAA55F2F952",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 20",
+          "matter_id": "MAT-F87CD1DAFCAA55F2F952"
+        },
+        {
+          "id": "MAT-80FAB64213A298C202C5",
+          "kind": "matter",
+          "label": "财务估计与附注线索 · 2025 · PDF 166",
+          "matter_id": "MAT-80FAB64213A298C202C5"
+        },
+        {
+          "id": "MAT-6B3FC16F5CD8DF21C18A",
+          "kind": "matter",
+          "label": "目标与承诺披露 · 2025 · PDF 22",
+          "matter_id": "MAT-6B3FC16F5CD8DF21C18A"
+        },
+        {
+          "id": "MAT-3E2AD10E21BA72EF31FA",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 23",
+          "matter_id": "MAT-3E2AD10E21BA72EF31FA"
+        },
+        {
+          "id": "MAT-0A474AE9244741DE975C",
+          "kind": "matter",
+          "label": "绿色改造披露 · 2025 · PDF 24",
+          "matter_id": "MAT-0A474AE9244741DE975C"
+        },
+        {
+          "id": "MAT-E05705ACB19E2B914D78",
+          "kind": "matter",
+          "label": "气候风险披露 · 2025 · PDF 78",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "id": "ME-D71B749DC158F6A01CE3",
+          "kind": "evidence",
+          "label": "2025 AR PDF 159",
+          "pdf_page": 159,
+          "verified": true,
+          "document_id": "MIDEA_AR_2025",
+          "evidence_id": "ME-D71B749DC158F6A01CE3",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-0CA7551C9E4969F8A7BE",
+          "kind": "evidence",
+          "label": "2025 AR PDF 160",
+          "pdf_page": 160,
+          "verified": true,
+          "document_id": "MIDEA_AR_2025",
+          "evidence_id": "ME-0CA7551C9E4969F8A7BE",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-EE6D77F88B9B12AB08C2",
+          "kind": "evidence",
+          "label": "2025 AR PDF 163",
+          "pdf_page": 163,
+          "verified": true,
+          "document_id": "MIDEA_AR_2025",
+          "evidence_id": "ME-EE6D77F88B9B12AB08C2",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-BB0575F47D7245DE9CF3",
+          "kind": "evidence",
+          "label": "2025 AR PDF 166",
+          "pdf_page": 166,
+          "verified": true,
+          "document_id": "MIDEA_AR_2025",
+          "evidence_id": "ME-BB0575F47D7245DE9CF3",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-67F11A4A9E4481F58C4C",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 19",
+          "pdf_page": 19,
+          "verified": true,
+          "document_id": "MIDEA_ESG_2025",
+          "evidence_id": "ME-67F11A4A9E4481F58C4C",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-20685C77B6B0787E141B",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 20",
+          "pdf_page": 20,
+          "verified": true,
+          "document_id": "MIDEA_ESG_2025",
+          "evidence_id": "ME-20685C77B6B0787E141B",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-8C3290A625AD82150F8D",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 22",
+          "pdf_page": 22,
+          "verified": true,
+          "document_id": "MIDEA_ESG_2025",
+          "evidence_id": "ME-8C3290A625AD82150F8D",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-3509A7741089E0DDA73D",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 23",
+          "pdf_page": 23,
+          "verified": true,
+          "document_id": "MIDEA_ESG_2025",
+          "evidence_id": "ME-3509A7741089E0DDA73D",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-6DC9DA4CBF3A1FF48041",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 24",
+          "pdf_page": 24,
+          "verified": true,
+          "document_id": "MIDEA_ESG_2025",
+          "evidence_id": "ME-6DC9DA4CBF3A1FF48041",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-9102D4F3C3D3430BE7B6",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 78",
+          "pdf_page": 78,
+          "verified": true,
+          "document_id": "MIDEA_ESG_2025",
+          "evidence_id": "ME-9102D4F3C3D3430BE7B6",
+          "invalid_reason": ""
+        },
+        {
+          "id": "ME-F3372F1FE9CDDBF8CA2A",
+          "kind": "evidence",
+          "label": "2025 ESG PDF 79",
+          "pdf_page": 79,
+          "verified": true,
+          "document_id": "MIDEA_ESG_2025",
+          "evidence_id": "ME-F3372F1FE9CDDBF8CA2A",
+          "invalid_reason": ""
+        },
+        {
+          "id": "PATH-A4EB3CB04165ACF3400E-S0",
+          "kind": "mechanism",
+          "label": "企业披露经评估暂未有资产受气候转型与物理风险重大影响",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-9102D4F3C3D3430BE7B6"
+          ]
+        },
+        {
+          "id": "PATH-A4EB3CB04165ACF3400E-S1",
+          "kind": "mechanism",
+          "label": "企业采用两个气候情景与选定参数评估气候韧性",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-67F11A4A9E4481F58C4C",
+            "ME-20685C77B6B0787E141B"
+          ]
+        },
+        {
+          "id": "PATH-A4EB3CB04165ACF3400E-S2",
+          "kind": "mechanism",
+          "label": "若物理或转型风险影响资产可收回金额，可能触发减值测试并影响减值损失",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-EE6D77F88B9B12AB08C2"
+          ]
+        },
+        {
+          "id": "PATH-A4EB3CB04165ACF3400E-S3",
+          "kind": "mechanism",
+          "label": "固定资产与投资性房地产按成本模式折旧摊销，使用寿命与残值估计可能受气候因素影响",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-D71B749DC158F6A01CE3",
+            "ME-0CA7551C9E4969F8A7BE"
+          ]
+        },
+        {
+          "id": "PATH-A4EB3CB04165ACF3400E",
+          "kind": "financial",
+          "label": "固定资产/投资性房地产账面价值及减值准备（候选方向）",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "id": "PATH-C3C8862E6732754BCD28-S0",
+          "kind": "mechanism",
+          "label": "企业披露暂未有资产受气候风险重大影响",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-9102D4F3C3D3430BE7B6"
+          ]
+        },
+        {
+          "id": "PATH-C3C8862E6732754BCD28-S1",
+          "kind": "mechanism",
+          "label": "预计负债按最佳估计数计量并在资产负债表日复核",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-BB0575F47D7245DE9CF3"
+          ]
+        },
+        {
+          "id": "PATH-C3C8862E6732754BCD28-S2",
+          "kind": "mechanism",
+          "label": "若气候政策或诉讼形成现时义务，可能增加预计负债",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": []
+        },
+        {
+          "id": "PATH-C3C8862E6732754BCD28",
+          "kind": "financial",
+          "label": "预计负债（候选方向）",
+          "matter_id": "MAT-E05705ACB19E2B914D78"
+        },
+        {
+          "id": "EV-9AD389645A9E63E17257",
+          "kind": "event",
+          "label": "固定资产折旧采用年限平均法并按其入账价值减去预计净残值后在预计使用\n寿命内计提。对计提了减值准备的固定资产，则在未来期间按扣除减值准备\n后的账面价值及依据尚可使用年限确定折旧额。 \n \n本集团各项固定资产的预计使用寿命、残值率及年折旧率列示如下：",
+          "status": "pending",
+          "matter_id": "MAT-57563C3803BC98AB413A",
+          "evidence_ids": [
+            "ME-0CA7551C9E4969F8A7BE"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-E302FD06DF7E5C807EAB",
+          "kind": "event",
+          "label": "本集团温室气体排放目标详\n见“应对气候挑战-指标和目\n标”，用以审核和监察达标进\n度的程序详见“应对气候挑战\n-气候治理”。\n该目标由美的集团研究设定，\n尚未经过第三方验证，也未\n采用行业脱碳方法。由于该\n目标并非净额目标，不涉及\n碳信用的使用。",
+          "status": "pending",
+          "matter_id": "MAT-AB480FA03CA6C33378A7",
+          "evidence_ids": [
+            "ME-F3372F1FE9CDDBF8CA2A"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-108843B9AA312FD2B85D",
+          "kind": "event",
+          "label": "本集团采用成本模式对所有投资性房地产进行后续计量，按其预计使用寿命\n及净残值率对建筑物和土地使用权计提折旧或摊销。投资性房地产的预计使\n用寿命、净残值率及年折旧(摊销)率列示如下：",
+          "status": "pending",
+          "matter_id": "MAT-20A26758259A5E9A5251",
+          "evidence_ids": [
+            "ME-D71B749DC158F6A01CE3"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-7584108C84DB1453AC32",
+          "kind": "event",
+          "label": "本年度，我们继续考虑两个气候情景，深入分析已识别的气候物理风险、转型风险和气候机遇，以了解美的集",
+          "status": "pending",
+          "matter_id": "MAT-4F681B8175B1F7940CFE",
+          "evidence_ids": [
+            "ME-67F11A4A9E4481F58C4C"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-EED41E3CA365F3B0A842",
+          "kind": "event",
+          "label": "固定资产、在建工程、使用权资产、使用寿命有限的无形资产、以成本模式\n计量的投资性房地产及对子公司、合营企业、联营企业的长期股权投资等，\n于资产负债表日存在减值迹象的，进行减值测试；尚未达到可使用状态的无\n形资产、拥有无限可使用年限的无形资产以及境外土地，无论是否存在减值\n迹象，至少每年进行减值测试。减值测试结果表明资产的可收回金额低于其\n账面价值的，按其差额",
+          "status": "pending",
+          "matter_id": "MAT-B95D74E639DE3723A108",
+          "evidence_ids": [
+            "ME-EE6D77F88B9B12AB08C2"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-53EE4C2B697D8DCB65E0",
+          "kind": "event",
+          "label": "基于上述气候情景与关键假设，我们选取合适的参数，进一步识别气候风险和机遇对美的集团战略与业务模式的影响，评估美的集团的气候韧性。以下是我们选用的参数及其被认为重要的理由，以及更新的评估结果：",
+          "status": "pending",
+          "matter_id": "MAT-F87CD1DAFCAA55F2F952",
+          "evidence_ids": [
+            "ME-20685C77B6B0787E141B"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-C11877175FA1D52583FE",
+          "kind": "event",
+          "label": "预计负债按照履行相关现时义务所需支出的最佳估计数进行初始计量，并综\n合考虑与或有事项有关的风险、不确定性和货币时间价值等因素。货币时间\n价值影响重大的，通过对相关未来现金流出进行折现后确定最佳估计数；因\n随着时间推移所进行的折现还原而导致的预计负债账面价值的增加金额，确\n认为利息费用。 \n \n于资产负债表日，对预计负债的账面价值进行复核并作适当调整，以反映当",
+          "status": "pending",
+          "matter_id": "MAT-80FAB64213A298C202C5",
+          "evidence_ids": [
+            "ME-BB0575F47D7245DE9CF3"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-831E557C1A7A8F46B940",
+          "kind": "event",
+          "label": "学碳目标倡议组织（SBTi）提交验证。未来，美的集团将依托楼宇科技符合科学标准的减排目标设定及减排",
+          "status": "pending",
+          "matter_id": "MAT-6B3FC16F5CD8DF21C18A",
+          "evidence_ids": [
+            "ME-8C3290A625AD82150F8D"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-0850D02B5973131722FA",
+          "kind": "event",
+          "label": "美的集团践行绿色低碳使命，优化完善环境管理体系，推动节能降耗及资源高效利用。我们将绿色环保理念纳",
+          "status": "pending",
+          "matter_id": "MAT-3E2AD10E21BA72EF31FA",
+          "evidence_ids": [
+            "ME-3509A7741089E0DDA73D"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-2DC2FB514271B8B5229E",
+          "kind": "event",
+          "label": "节电14万千瓦时。三项改造合计年节电达84万千瓦时，年度碳减排量约500吨。",
+          "status": "pending",
+          "matter_id": "MAT-0A474AE9244741DE975C",
+          "evidence_ids": [
+            "ME-6DC9DA4CBF3A1FF48041"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-EAE3D87B57D874522220",
+          "kind": "event",
+          "label": "经评估，本集团暂未有资产\n会受到气候相关转型风险与\n物理风险的重大影响，也暂\n未有涉及气候相关机遇的\n资产。\nD31\n发行人须披露容易受气候相关物理风险影响的资产或业务活动的金额及百\n分比。",
+          "status": "pending",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-9102D4F3C3D3430BE7B6"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "EV-EAC2B003B5BD80222218",
+          "kind": "event",
+          "label": "披露称经评估暂无资产受气候转型/物理风险重大影响，亦无涉及气候机遇的资产",
+          "status": "limited",
+          "matter_id": "MAT-E05705ACB19E2B914D78",
+          "evidence_ids": [
+            "ME-9102D4F3C3D3430BE7B6"
+          ],
+          "report_period": "2025",
+          "occurred_period": ""
+        },
+        {
+          "id": "COM-F87DA83C2D79C682E992",
+          "kind": "commitment",
+          "label": "本集团温室气体排放目标详\n见“应对气候挑战-指标和目\n标”，用以审核和监察达标进\n度的程序详见“应对气候挑战\n-气候治理”。\n该目标由美的集团研究设定，\n尚未经过第三方验证，也未\n采用行业脱碳方法。由于该\n目标并非净额目标，不涉及\n碳信用的使用。",
+          "status": "needs_review",
+          "matter_id": "MAT-AB480FA03CA6C33378A7",
+          "evidence_ids": [
+            "ME-F3372F1FE9CDDBF8CA2A"
+          ],
+          "evidence_status": "pending"
+        },
+        {
+          "id": "COM-82FAAAD09969CFA66728",
+          "kind": "commitment",
+          "label": "学碳目标倡议组织（SBTi）提交验证。未来，美的集团将依托楼宇科技符合科学标准的减排目标设定及减排",
+          "status": "needs_review",
+          "matter_id": "MAT-6B3FC16F5CD8DF21C18A",
+          "evidence_ids": [
+            "ME-8C3290A625AD82150F8D"
+          ],
+          "evidence_status": "pending"
+        }
+      ],
+      "version": "matter_graph_v1"
+    },
+    "matter_overview": {
+      "notice": "关联状态描述公开材料对具体主张的支持程度，不构成会计确认或鉴证结论",
+      "pending": 10,
+      "completed": 0,
+      "unresolved": 7,
+      "investigated": 1,
+      "matter_total": 11,
+      "indexed_blocks": 9419,
+      "supported_paths": 0,
+      "assessment_count": 1
+    },
+    "assurance_planning": {
+      "schema_version": "assurance_planning_v1",
+      "result_revision": 1,
+      "risk_findings": [
+        {
+          "entry_id": "FINDING-A1D51BB20A61BB959054",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matter": "气候风险披露 · 2025 · PDF 78",
+          "reason": "D31要求的受影响资产金额及百分比未披露，是否另有量化披露未检索到；评估所用情景参数、关键假设与重要性阈值未量化；物理风险识别的资产范围与合并/单体口径未说明；年报中固定资产、投资性房地产账面价值及减值准备金额未取得；减值测试是否考虑气候因素未披露；第24页节能改造项目与D31资产范围的关系未明（潜在反证线索）；ESG报告鉴证范围是否覆盖气候情景分析与D31结论未明；固定资产/投资性房地产账面价值及减值准备（候选方向）：财务传导仍有待证环节；预计负债（候选方向）：财务传导仍有待证环节；时间边界解释：结论为2025年度评估时点判断，物理风险的长期影响可能尚未在当期资产账面价值或减值测试中体现，故与年报会计政策无冲突。；反证方向：若年报或ESG其他章节披露了受气候影响的资产减值、停产或改造支出，则与“暂未有资产受重大影响”的表述形成张力，需核对是否为同一资产范围与同一计量基础。；披露不足解释：D31要求金额与百分比，报告仅给定性结论，可能属披露不完整而非评估结论有误；两者需区分，现有证据无法判断是评估未识别还是披露未量化。；A2保留两条候选路径（固定资产/投资性房地产减值与折旧、预计负债），A3仅保留一条风险事件与一条情景方法线索；本轮以A3事件为主，A2路径作为待证方向保留，不视为已成立传导；A2将情景分析列为路径步骤，A3仅列为线索；两者均未证明情景评估与D31资产识别口径的对应关系",
+          "current_assessment": "D31披露为定性结论，无金额与百分比；情景分析、目标验证状态与年报会计政策仅构成方法背景与候选传导方向，均未证明气候因素已影响资产计量或形成现时义务。关系支持有限，金额不可比（无金额），承诺进展无证据，财务阶段停留在政策层面。",
+          "evidence": [
+            {
+              "evidence_id": "ME-0CA7551C9E4969F8A7BE",
+              "document_id": "MIDEA_AR_2025",
+              "pdf_page": 160,
+              "quote": "固定资产折旧采用年限平均法并按其入账价值减去预计净残值后在预计使用\n寿命内计提。对计提了减值准备的固定资产，则在未来期间按扣除减值准备\n后的账面价值及依据尚可使用年限确定折旧额。 \n \n本集团各项固定资产的预计使用寿命、残值率及年折旧率列示如下：",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-20685C77B6B0787E141B",
+              "document_id": "MIDEA_ESG_2025",
+              "pdf_page": 20,
+              "quote": "基于上述气候情景与关键假设，我们选取合适的参数，进一步识别气候风险和机遇对美的集团战略与业务模式的影响，评估美的集团的气候韧性。以下是我们选用的参数及其被认为重要的理由，以及更新的评估结果：",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-67F11A4A9E4481F58C4C",
+              "document_id": "MIDEA_ESG_2025",
+              "pdf_page": 19,
+              "quote": "本年度，我们继续考虑两个气候情景，深入分析已识别的气候物理风险、转型风险和气候机遇，以了解美的集",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-9102D4F3C3D3430BE7B6",
+              "document_id": "MIDEA_ESG_2025",
+              "pdf_page": 78,
+              "quote": "经评估，本集团暂未有资产\n会受到气候相关转型风险与\n物理风险的重大影响，也暂\n未有涉及气候相关机遇的\n资产。\nD31\n发行人须披露容易受气候相关物理风险影响的资产或业务活动的金额及百\n分比。",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-BB0575F47D7245DE9CF3",
+              "document_id": "MIDEA_AR_2025",
+              "pdf_page": 166,
+              "quote": "预计负债按照履行相关现时义务所需支出的最佳估计数进行初始计量，并综\n合考虑与或有事项有关的风险、不确定性和货币时间价值等因素。货币时间\n价值影响重大的，通过对相关未来现金流出进行折现后确定最佳估计数；因\n随着时间推移所进行的折现还原而导致的预计负债账面价值的增加金额，确\n认为利息费用。 \n \n于资产负债表日，对预计负债的账面价值进行复核并作适当调整，以反映当\n前的最佳估计数。",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-D71B749DC158F6A01CE3",
+              "document_id": "MIDEA_AR_2025",
+              "pdf_page": 159,
+              "quote": "本集团采用成本模式对所有投资性房地产进行后续计量，按其预计使用寿命\n及净残值率对建筑物和土地使用权计提折旧或摊销。投资性房地产的预计使\n用寿命、净残值率及年折旧(摊销)率列示如下：",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-EE6D77F88B9B12AB08C2",
+              "document_id": "MIDEA_AR_2025",
+              "pdf_page": 163,
+              "quote": "固定资产、在建工程、使用权资产、使用寿命有限的无形资产、以成本模式\n计量的投资性房地产及对子公司、合营企业、联营企业的长期股权投资等，\n于资产负债表日存在减值迹象的，进行减值测试；尚未达到可使用状态的无\n形资产、拥有无限可使用年限的无形资产以及境外土地，无论是否存在减值\n迹象，至少每年进行减值测试。减值测试结果表明资产的可收回金额低于其\n账面价值的，按其差额计提减值准备并计入减值损失。可收回金额为资产的\n公允价值减去处置费用后的净额与资产预计未来现金流量的现值两者之间的\n较高者。资产减值准备按单项资产为基础计算并确认，如果难以对单项资产\n的可收回金额进行估计的，以该资产所属的资产组确定资产组的可收回金\n额。资产组是能够独立产生现金流入的最小资产组合。",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-F3372F1FE9CDDBF8CA2A",
+              "document_id": "MIDEA_ESG_2025",
+              "pdf_page": 79,
+              "quote": "本集团温室气体排放目标详\n见“应对气候挑战-指标和目\n标”，用以审核和监察达标进\n度的程序详见“应对气候挑战\n-气候治理”。\n该目标由美的集团研究设定，\n尚未经过第三方验证，也未\n采用行业脱碳方法。由于该\n目标并非净额目标，不涉及\n碳信用的使用。",
+              "source_verified": true,
+              "invalid_reason": ""
+            }
+          ],
+          "counter_evidence": [
+            {
+              "evidence_id": "ME-6DC9DA4CBF3A1FF48041",
+              "document_id": "MIDEA_ESG_2025",
+              "pdf_page": 24,
+              "quote": "节电14万千瓦时。三项改造合计年节电达84万千瓦时，年度碳减排量约500吨。",
+              "source_verified": true,
+              "invalid_reason": ""
+            },
+            {
+              "evidence_id": "ME-9102D4F3C3D3430BE7B6",
+              "document_id": "MIDEA_ESG_2025",
+              "pdf_page": 78,
+              "quote": "经评估，本集团暂未有资产\n会受到气候相关转型风险与\n物理风险的重大影响，也暂\n未有涉及气候相关机遇的\n资产。\nD31\n发行人须披露容易受气候相关物理风险影响的资产或业务活动的金额及百\n分比。",
+              "source_verified": true,
+              "invalid_reason": ""
+            }
+          ],
+          "alternative_explanations": [
+            "汇总口径解释：D31结论可能基于集团合并层面重要性阈值，单项资产或业务活动影响低于阈值故未单列金额与百分比。若成立，应能在情景参数与阈值披露中找到对应口径。",
+            "方法差异解释：企业已做情景分析（两个情景、选定参数），但D31仅要求披露易受影响资产的金额与百分比，企业以定性结论替代量化，可能因评估未落到资产层面。",
+            "时间边界解释：结论为2025年度评估时点判断，物理风险的长期影响可能尚未在当期资产账面价值或减值测试中体现，故与年报会计政策无冲突。",
+            "验证强度解释：温室气体目标未经第三方验证、未采用行业脱碳方法，说明气候相关数据的验证程度有限，D31定性结论同样缺少外部验证支撑；但这不构成结论错误的证据。",
+            "反证方向：若年报或ESG其他章节披露了受气候影响的资产减值、停产或改造支出，则与“暂未有资产受重大影响”的表述形成张力，需核对是否为同一资产范围与同一计量基础。",
+            "披露不足解释：D31要求金额与百分比，报告仅给定性结论，可能属披露不完整而非评估结论有误；两者需区分，现有证据无法判断是评估未识别还是披露未量化。"
+          ],
+          "unresolved": [
+            "D31要求的受影响资产金额及百分比未披露，是否另有量化披露未检索到",
+            "评估所用情景参数、关键假设与重要性阈值未量化",
+            "物理风险识别的资产范围与合并/单体口径未说明",
+            "年报中固定资产、投资性房地产账面价值及减值准备金额未取得",
+            "减值测试是否考虑气候因素未披露",
+            "第24页节能改造项目与D31资产范围的关系未明（潜在反证线索）",
+            "ESG报告鉴证范围是否覆盖气候情景分析与D31结论未明",
+            "固定资产/投资性房地产账面价值及减值准备（候选方向）：财务传导仍有待证环节",
+            "预计负债（候选方向）：财务传导仍有待证环节",
+            "时间边界解释：结论为2025年度评估时点判断，物理风险的长期影响可能尚未在当期资产账面价值或减值测试中体现，故与年报会计政策无冲突。",
+            "反证方向：若年报或ESG其他章节披露了受气候影响的资产减值、停产或改造支出，则与“暂未有资产受重大影响”的表述形成张力，需核对是否为同一资产范围与同一计量基础。",
+            "披露不足解释：D31要求金额与百分比，报告仅给定性结论，可能属披露不完整而非评估结论有误；两者需区分，现有证据无法判断是评估未识别还是披露未量化。",
+            "A2保留两条候选路径（固定资产/投资性房地产减值与折旧、预计负债），A3仅保留一条风险事件与一条情景方法线索；本轮以A3事件为主，A2路径作为待证方向保留，不视为已成立传导",
+            "A2将情景分析列为路径步骤，A3仅列为线索；两者均未证明情景评估与D31资产识别口径的对应关系"
+          ],
+          "priority": "medium",
+          "investigation_status": "partial",
+          "review_status": "unreviewed",
+          "assessment_review_status": "unreviewed"
+        },
+        {
+          "entry_id": "COVERAGE-D58D3128E0135DA01625",
+          "matter_ids": [],
+          "matter": "本次资料覆盖",
+          "reason": "10项初筛候选尚未深查，保留在事项档案；未逐项列为风险发现，也不代表没有风险。",
+          "current_assessment": "未取得的资料不等于企业未披露",
+          "evidence": [],
+          "counter_evidence": [],
+          "alternative_explanations": [],
+          "unresolved": [
+            "10项初筛候选尚未深查，保留在事项档案；未逐项列为风险发现，也不代表没有风险。"
+          ],
+          "priority": "medium",
+          "investigation_status": "partial",
+          "review_status": "unreviewed"
+        }
+      ],
+      "evidence_requests": [
+        {
+          "entry_id": "REQUEST-D3258893C2C0666C7085",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "MIDEA_ESG_2025 第19-21页及第77-79页D31索引表相邻条目原文",
+          "questions": [
+            "ESG报告第19-21页气候情景分析结果是否包含资产层面的影响测算、敏感性数据或重要性阈值？"
+          ],
+          "purposes": [
+            "判断D31定性结论是评估未识别还是披露未量化，并核对情景口径与资产范围"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "high",
+          "internal_target_roles": [
+            "A2"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-13273EFC185E926763AA",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "MIDEA_AR_2025 固定资产、投资性房地产、资产减值相关附注页（含减值测试假设披露）",
+          "questions": [
+            "年报中固定资产、投资性房地产的账面价值、减值准备及减值测试关键假设是否提及气候因素？"
+          ],
+          "purposes": [
+            "为候选传导路径取得计量层面证据，判断气候因素是否已影响可收回金额或使用寿命估计"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "high",
+          "internal_target_roles": [
+            "A2"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-6B21FC64B475B07FD9A9",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "MIDEA_ESG_2025 “应对气候挑战-指标和目标”章节原文",
+          "questions": [
+            "ESG报告是否披露量化温室气体减排目标（基准年、目标年、目标值）及进展数据？"
+          ],
+          "purposes": [
+            "补齐承诺进展评价所需的基准年、目标年与进展证据，避免以报告年份代填"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A3"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-DC2AE47D8A9646027FAE",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "MIDEA_ESG_2025 第23-25页相关段落原文",
+          "questions": [
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值、停产或重大资本支出，与D31资产范围是否重叠？"
+          ],
+          "purposes": [
+            "核实潜在反证线索是否与“暂未有资产受重大影响”表述形成张力"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A4"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-37D2B3210FAA22F56A29",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "待补原文、明细或底稿：打开ESG报告第78页原页，核对D31披露的完整表述及是否附金额或百分比，并查看相邻页是否有物理风险资产量化披露",
+          "questions": [
+            "打开ESG报告第78页原页，核对D31披露的完整表述及是否附金额或百分比，并查看相邻页是否有物理风险资产量化披露"
+          ],
+          "purposes": [
+            "补齐调查工具未取得的证据，核实当前未决条件"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A3"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-045845C5BA9505F82967",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "待补原文、明细或底稿：气候物理风险 影响资产 金额 百分比 情景 评估",
+          "questions": [
+            "检索两份报告中关于气候物理风险影响资产金额、百分比及情景评估方法的披露，确认D31是否有量化数据"
+          ],
+          "purposes": [
+            "补齐调查工具未取得的证据，核实当前未决条件"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A3"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-22245CF21A3F282C1A11",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "待补原文、明细或底稿：打开ESG报告第78页原页，核对D31前后文是否另有金额、百分比或评估方法说明，并确认相邻页（77、79）索引表口径。",
+          "questions": [
+            "打开ESG报告第78页原页，核对D31前后文是否另有金额、百分比或评估方法说明，并确认相邻页（77、79）索引表口径。"
+          ],
+          "purposes": [
+            "补齐调查工具未取得的证据，核实当前未决条件"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A4"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-87421A7EB54DEA60E0AB",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "待补原文、明细或底稿：气候情景 评估结果 资产 重要性阈值 物理风险 金额 百分比",
+          "questions": [
+            "检索ESG报告中气候情景分析结果与重要性阈值、资产范围相关表述，判断D31定性结论的评估口径。"
+          ],
+          "purposes": [
+            "补齐调查工具未取得的证据，核实当前未决条件"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A4"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        },
+        {
+          "entry_id": "REQUEST-B848196440049E594A28",
+          "matter_ids": [
+            "MAT-E05705ACB19E2B914D78"
+          ],
+          "matters": [
+            "气候风险披露 · 2025 · PDF 78"
+          ],
+          "requested_material": "待补原文、明细或底稿：固定资产 投资性房地产 减值准备 减值测试 气候",
+          "questions": [
+            "检索年报中固定资产、投资性房地产账面价值与减值准备金额，以及减值测试是否提及气候因素，用于核对候选传导路径。"
+          ],
+          "purposes": [
+            "补齐调查工具未取得的证据，核实当前未决条件"
+          ],
+          "distinguishing_explanations": [
+            "情景参数、重要性阈值及资产范围的口径披露；若报告明确以合并层面阈值判断，则支持该解释。",
+            "第19-21页情景分析结果是否包含资产层面的影响测算或敏感性数据。",
+            "年报减值测试或资产使用寿命估计中是否提及气候因素；若完全未提及，则该解释无法被证实也无法被否定。",
+            "ESG报告鉴证报告范围是否覆盖气候情景分析与D31结论。",
+            "第24页节能改造项目（年节电84万千瓦时、碳减排约500吨）是否涉及资产减值或重大资本支出，以及其与D31资产范围的关系。",
+            "D31索引表相邻条目（第78-79页）是否说明未披露金额的原因（如不适用、无重大影响），以及是否有其他章节给出量化数据。"
+          ],
+          "priority": "medium",
+          "internal_target_roles": [
+            "A4"
+          ],
+          "responsible_person": "项目组待处理",
+          "acquisition_status": "待取得",
+          "review_status": "unreviewed"
+        }
+      ],
+      "notice": "供可持续信息鉴证项目组前期准备与风险识别。优先级只表示调查顺序，不表示风险发生概率、重要性或鉴证结论。未取得资料不等于企业未披露。"
+    },
+    "assurance_planning_reviews": {},
+    "ai_generated_content_notice": "AI生成内容，用于年度报告与可持续发展报告关联核对和后续调查参考，不构成审计结论、鉴证结论或鉴证意见。",
+    "personal_observation_count": 0
+  },
+  "result_expires_at": "2026-12-07T04:10:07.896873+00:00",
+  "heartbeat_at": "2026-11-07T04:09:39.446802+00:00",
+  "created_at": "2026-11-07T04:05:36.608813+00:00",
+  "updated_at": "2026-11-07T04:10:08+00:00",
+  "parent_task_id": null,
+  "can_modify": true
+}
