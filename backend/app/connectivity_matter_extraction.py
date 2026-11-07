@@ -22,7 +22,7 @@ import time
 
 from .connectivity_matter_schemas import MatterEvidence
 
-INDEX_VERSION = "matter_blocks_v1"
+INDEX_VERSION = "matter_blocks_v2"
 MATTER_TERMS = {
     "climate_risk": ("气候", "极端天气", "洪水", "干旱", "转型风险", "碳价", "碳成本"),
     "transition_project": ("绿色", "节能", "技改", "环保", "改造", "脱硫", "新能源"),
@@ -65,7 +65,7 @@ def read_corpus(root, documents, *, cancelled=lambda: False):
         document_started=time.perf_counter()
         path = ensure_source(root, doc)
         source_ms=round((time.perf_counter()-document_started)*1000)
-        target = cache / f"{doc.file_sha256}-{INDEX_VERSION}-ocr{int(ocr)}-limit{ocr_limit}.json"
+        target = cache / f"{doc.file_sha256}-{INDEX_VERSION}-pymupdf{pymupdf.VersionBind}-ocr{int(ocr)}-limit{ocr_limit}.json"
         cache_hit=False
         record=None
         if target.exists():
@@ -117,6 +117,7 @@ def read_corpus(root, documents, *, cancelled=lambda: False):
             temporary.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
             temporary.replace(target)
         cov = dict(record["coverage"], document_id=doc.document_id, cache_hit=cache_hit,
+                   parser_version=pymupdf.VersionBind,index_version=INDEX_VERSION,
                    source_verification_ms=source_ms, duration_ms=round((time.perf_counter()-document_started)*1000))
         coverage.append(cov)
         begin=len(corpus)

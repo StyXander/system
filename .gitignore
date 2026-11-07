@@ -140,6 +140,7 @@ artifacts/
 !/scripts/competition_receipts.py
 !/scripts/prepare_validation_cases.py
 !/scripts/analyze_human_validation.py
+!/scripts/bind_validation_runtime.py
 !/scripts/compute_iaa_metrics.py
 # README 与评委包都指向这份测试清单，原先被整目录 /docs/ 忽略而永远进不了版本库。
 !/docs/

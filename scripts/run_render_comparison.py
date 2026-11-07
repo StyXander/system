@@ -175,6 +175,10 @@ def main():
                             (args.output / f"{repeat}-{gid}.{fmt}").write_bytes(r.content)
                 save(journal_path, journal)
                 print(f"{gid}: {row['model_status']} calls={row['provider_calls']} successful={row['successful_calls']}", flush=True)
+                if task['status']=='failed' and not row['attempted_calls']:
+                    journal['batch_stop_reason']='input_or_engineering_failure_before_model; inspect and bind sources before further groups'
+                    save(journal_path,journal)
+                    return 1
                 if any(c.get("failure_code") in {"MODEL_HTTP_500", "MODEL_HTTP_502", "MODEL_HTTP_503", "MODEL_HTTP_504", "MODEL_HTTP_401", "MODEL_HTTP_403", "MODEL_HTTP_429"} for c in result.get("provider_calls", [])) and not row["execution_eligible"]:
                     journal["batch_stop_reason"] = "provider_unavailable; inspect receipts before starting more paid tasks"
                     save(journal_path, journal)

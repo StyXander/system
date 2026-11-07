@@ -90,12 +90,12 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         requested=set(request.fixed_evidence_ids)
         available={e.evidence_id for e in corpus}
         if requested - available:
-            raise ValueError("FIXED_EVIDENCE_UNKNOWN: 证据包包含未登记片段")
+            raise MatterValidationError("FIXED_EVIDENCE_UNKNOWN","fixed_evidence_ids","FIXED_EVIDENCE_UNKNOWN: 证据包包含当前解析版本无法对应的片段；请先绑定服务器证据包")
         if requested:
             frozen_evidence=[deepcopy(e) for e in corpus if e.evidence_id in requested]
         selected_refs={eid for m in run.matters if m.matter_id in request.selected_matter_ids for eid in m.evidence_ids}
         if not selected_refs <= {e.evidence_id for e in frozen_evidence}:
-            raise ValueError("FIXED_EVIDENCE_SELECTION_MISSING: 证据包缺少事项身份来源")
+            raise MatterValidationError("FIXED_EVIDENCE_SELECTION_MISSING","fixed_evidence_ids","FIXED_EVIDENCE_SELECTION_MISSING: 证据包缺少事项身份来源")
         run.matter_evidence=deepcopy(frozen_evidence)
         # A restricted pack cannot retain seed objects whose identity evidence
         # was removed. A1 rebuilds events after merging; dangling seeds otherwise
