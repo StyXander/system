@@ -1,13 +1,23 @@
 # 审迹智链 (AuditTrace)
 
-> **面向多期跨报告的证据链调查与智能鉴证系统**  
-> *Cross-Report Evidence Tracing & Intelligent Assurance System for Multi-Year Disclosures*
+> **面向年报与可持续发展报告的事项证据关联与复核辅助系统**
+> *Cross-Report Evidence Tracing and Review Support*
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square&logo=python)](https://www.python.org/)
 [![Multi-Agent](https://img.shields.io/badge/Architecture-5--Agent%20Collaborative-orange.svg?style=flat-square)](#-系统架构五agent闭环协同)
 [![Docker](https://img.shields.io/badge/Deployment-Docker%20%7C%20Compose-2496ED.svg?style=flat-square&logo=docker)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-Academic%20%26%20Competition-lightgrey.svg?style=flat-square)](PROJECT_LICENSE.md)
+
+## 竞赛准备状态
+
+正式评分依据为学校附件：科技发明类科学性30%、先进性30%、现实意义40%。专利软著属于成果证明项。当前缺口是独立业务答案、完整真实任务、人工对比和实际试用。
+
+- [本轮缺陷修复与验收](docs/competition/BUGFIX_ACCEPTANCE.md)
+- [不按日期分配的完整改造方案](docs/competition/VALIDATION_REWORK_PLAN.md)
+- [真实模型原始记录与边界](docs/competition/TEST_REPORT.md)
+
+当前金额程序只提供有条件复算；生产assessment没有完整数值一致性确证字段。不能用关系支持代替金额一致，也不能将技术失败计作正确的“证据不足”。
 
 ---
 
@@ -47,7 +57,7 @@
 │                              │ 流，禁止盲目相加，设严格门禁 │
 ├──────────────────────────────┼──────────────────────────────┤
 │ ✔ 引入反向质询角色 (A4)      │ 专门寻找反证、边界与竞争解释 │
-│                              │ 抑制确认偏差，杜绝 AI 盲目迎合│
+│                              │ 抑制确认偏差，检查证据缺口与确认偏差，效果仍需独立验证│
 └──────────────────────────────┴──────────────────────────────┘
 ```
 
@@ -60,17 +70,17 @@
 ```mermaid
 flowchart TD
     RawDocs["📚 原始报告集合<br/>(多年财报 / ESG报告 / 问询函)"] --> Ingest["🔍 结构化解析与证据切片<br/>(PyMuPDF / 词法+语义多路检索 / OCR)"]
-    
+
     subgraph MultiAgentPipeline ["🤖 5-Agent 协同调查管线"]
         A1["【A1 事项识别与身份锚定】<br/>抽取关键事项、识别核心身份锚点"]
-        
+
         A2["【A2 财务映射与定量核对】<br/>穿透资本开支、在建工程与现金流"]
         A3["【A3 跨期承诺演进追踪】<br/>按年份时间线对照承诺与兑现情况"]
-        
+
         A4["【A4 反向质询与反证排查】<br/>寻找竞争解释、口径差异与否定性反例"]
-        
+
         A5["【A5 综合裁决与闭环构建】<br/>综合正反证据，输出定级判定与补查要点"]
-        
+
         A1 --> A2
         A1 --> A3
         A2 --> A4
@@ -84,10 +94,10 @@ flowchart TD
 
 ### 智能体角色分工
 1. **A1 - 事项识别智能体 (Matter Identifier)**：解析企业多年多份披露，提取具有财务或合规重要性的核心事项（如绿色工厂改造、重大减排工程），建立唯一身份锚点。
-2. **A2 - 财务影响智能体 (Financial Bridge)**：将事项与财报附注深度关联，核验披露金额是否在固定资产、在建工程、研发费用或现金流量表中真实入账。
-3. **A3 - 跨期追踪智能体 (Timeline Tracker)**：跨越 2~5 年时间跨度，纵向追踪历史承诺、当年进展与未来目标的演化与延期情况。
+2. **A2 - 财务影响智能体 (Financial Bridge)**：将事项与财报附注深度关联，调查公开附注对固定资产、在建工程、研发费用或现金流关联的支持程度；不能据此证明内部真实入账。
+3. **A3 - 跨期追踪智能体 (Timeline Tracker)**：在已登记且实际可用的多期资料范围内，追踪历史承诺、当年进展与未来目标的演化与延期情况。
 4. **A4 - 反向审计智能体 (Adversarial Auditor)**：**系统的核心防幻觉与防偏设计**。专门寻找反面证据、行业对标矛盾、母子公司披露边界差异与备择解释，推翻缺乏实据的乐观论断。
-5. **A5 - 综合决策智能体 (Evidence Synthesizer)**：汇总 A1~A4 报告与证据链，进行加权裁决，生成结构化结论与后续调查指引。
+5. **A5 - 综合决策智能体 (Evidence Synthesizer)**：汇总 A1~A4 报告与证据链，进行结构化综合复核，生成结构化结论与后续调查指引。
 
 ---
 
@@ -95,8 +105,8 @@ flowchart TD
 
 - **🔍 原文级精准可追溯（Evidence Provenance）**：所有提取的数值和事实均绑定 `document_id`、`pdf_page`、`quote` 文本切片及 SHA-256 哈希值，支持在前端一键定位高亮原文。
 - **🛡️ 严格会计约束与条件试算**：坚守会计专业底线。在建工程期末余额、本期资本开支与购建现金流严禁机械相加；一切测算均附带证据前提与不可比声明。
-- **🌐 全面兼容主流 LLM / 本地模型**：基于标准 OpenAI 兼容协议开发，支持 **DeepSeek**（官方接口）、**OpenAI**（GPT-4o/mini）、**通义千问 (Qwen)**、**智谱 GLM** 以及本地私有化部署的大模型（如 **vLLM / Ollama**）。
-- **📊 交付物多格式同源导出**：一键生成符合专业审计底稿标准的 Word (.docx) 文档，同时支持导出 JSON 与 CSV 结构化数据，确保数据一致性。
+- **模型接口**：支持配置 DeepSeek、OpenAI 或 LLM 前缀的密钥、地址与模型，密钥与同一前缀配置配套使用。结构化工具调用、网络目的地限制和模型输出合同须逐供应商验证；不宣称全部本地或兼容模型均可运行。
+- **📊 交付物多格式同源导出**：生成供专业人员复核的 Word (.docx) 事项档案，同时支持导出 JSON 与 CSV 结构化数据，确保数据一致性。
 - **🚀 零门槛快速演示体验**：提供 `AUDITTRACE_SINGLE_USER=true` 演示模式，支持评委与访客开箱即用，免去登录配置和配额限制。
 
 ---
@@ -123,7 +133,7 @@ docker compose up -d
 ### 方式二：本地脚本一键启动
 
 #### Windows 用户：
-双击运行仓库根目录下的 `start.bat`，脚本将自动检查依赖并启动服务。
+双击运行仓库根目录下的 `start.bat`，先按下方方式安装依赖，再使用脚本启动服务。
 
 #### Linux / macOS 用户：
 ```bash
@@ -173,9 +183,9 @@ AUDITTRACE_DEMO_TASK_PERSISTENCE=local
 
 ---
 
-## 🎯 跨赛道与场景扩展迁移 (Domain Adaptation)
+## 🎯 候选扩展方向（尚未验证）
 
-审迹智链的底层能力是**“非结构化文档交叉证据挖掘 + 跨期承诺跟踪 + 反向审计质询”**，不仅适用于数智会计，还可灵活迁移至以下高价值场景与赛事：
+审迹智链的底层能力是**“非结构化文档交叉证据挖掘 + 跨期承诺跟踪 + 反向审计质询”**，当前以登记年报和可持续发展报告为验证范围。以下扩展需要新增数据、规则与独立测试，不计作当前已实现能力：
 
 | 迁移赛道 / 场景 | 核心应用逻辑 | 迁移改动要点 |
 | :--- | :--- | :--- |
@@ -188,14 +198,14 @@ AUDITTRACE_DEMO_TASK_PERSISTENCE=local
 
 ## 🔬 实验与基准评测 (Benchmarking)
 
-系统内置了标准化的消融实验与对照评估脚本，可一键验证多 Agent 架构相对于单模型的效能提升：
+系统内置了标准化的消融实验与对照评估脚本，用于检验多 Agent 与单模型的效果差异。已有真实运行包含部分失败，尚无独立人工金标，不能宣称效能提升。真实企业、人工对比与试用的完整任务见 [改造与验证方案](docs/competition/VALIDATION_REWORK_PLAN.md)：
 
 ```bash
 # 离线规则基准评估
 python scripts/run_final_comparison.py --report-set <REPORT_SET_ID> --as-of 2026-10-26
 
-# 包含全角色对照与消融实验（单模型 vs 3-Agent vs 5-Agent vs 去反证角色消融）
-python scripts/run_final_comparison.py --report-set <REPORT_SET_ID> --as-of 2026-10-26 --allow-models --ablations
+# 同一清单问题的四组因子比较；编号、报告集合、事项、截止日期必须与清单一致
+python scripts/run_final_comparison.py --report-set <REPORT_SET_ID> --as-of <AS_OF_DATE> --matter-id <MATTER_ID> --case-id <CASE_ID> --case-manifest <CASE_MANIFEST_JSON> --allow-models --factor-design
 ```
 
 ---
@@ -204,7 +214,7 @@ python scripts/run_final_comparison.py --report-set <REPORT_SET_ID> --as-of 2026
 
 ```
 system/
-├── assets/                  # 前端静态资源与现代化双塔工作台交互逻辑
+├── assets/                  # 前端静态资源与顶部导航工作台交互逻辑
 │   └── official-v4/         # 生产级工作台 UI 与视图控制器
 ├── backend/                 # 系统后端核心代码
 │   ├── app/                 # 核心模块（FastAPI 路由、5-Agent 管线、证据门禁）

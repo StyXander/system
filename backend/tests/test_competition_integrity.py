@@ -36,7 +36,7 @@ def test_actual_schema_explanation_requires_supporting_evidence():
 
 
 def test_summary_resolves_only_its_own_case_and_full_result(tmp_path):
-    (tmp_path/'run.json').write_text(json.dumps({'run_id':'R','matter_assessments':[{'matter_id':'M','relation_support':'supported','amount_comparability':'not_comparable'}]}))
+    (tmp_path/'run.json').write_text(json.dumps({'run_id':'R','model_status':'five_agents_completed','matter_assessments':[{'matter_id':'M','relation_support':'supported','amount_comparability':'not_comparable'}]}))
     p=tmp_path/'comparison.json'
     p.write_text(json.dumps({'runs':[{'group_id':'G3','case_id':'C','matter_id':'M','run_id':'R','result_file':'run.json','repeat':1,'status':'recorded'}]}))
     gold={'C':{'gold_verdict':'NOT_COMPARABLE'},'UNRELATED':{'gold_verdict':'CONFIRMED_CONSISTENT'}}

@@ -11,7 +11,7 @@ import logging
 import time
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +23,7 @@ from .connectivity_facts import project_facts
 from .connectivity_catalog_api import build_catalog_router
 from .connectivity_matter_schemas import matter_enabled
 from .connectivity_access import access_policy
+from .connectivity_matter_agents import matter_model_settings
 
 ROOT = Path(__file__).resolve().parents[2]
 @asynccontextmanager
@@ -59,13 +60,20 @@ def home():
     return FileResponse(ROOT/'index.html')
 
 
+@app.get('/forensic-editorial', include_in_schema=False)
+@app.get('/forensic-editorial/', include_in_schema=False)
+def retired_workspace():
+    return RedirectResponse('/', status_code=308)
+
+
 @app.get('/api/health')
 def health():
     """配置存在只报告 configured，不等同真实模型验收。"""
+    key, _, model = matter_model_settings()
     return {'service_status': 'ready', 'product': 'connectivity',
         **access_policy(),
-        'model_status': 'configured' if os.getenv('DEEPSEEK_API_KEY', '').strip() else 'config_missing',
-        'model_id': os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'),
+        'model_status': 'configured' if key else 'config_missing',
+        'model_id': model,
         'default_mode': 'five_agents' if matter_enabled() else 'three_agents', 'matter_schema_version': 'matter_connectivity_v1', 'frontend_release': '2026.11.evidence-studio.1', 'project_facts': project_facts(ROOT),
         'deployment': {'commit': os.getenv('RENDER_GIT_COMMIT') or os.getenv('GIT_COMMIT') or None,
             'platform': os.getenv('AUDITTRACE_DEPLOYMENT_PLATFORM') or ('render' if os.getenv('RENDER_GIT_COMMIT') else 'local'),

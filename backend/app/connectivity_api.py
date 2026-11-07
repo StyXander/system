@@ -48,6 +48,20 @@ COOKIE = "audittrace_connectivity_session"
 CONNECTIVITY_RETENTION_SECONDS = 30 * 86400
 
 
+def validate_retry_scope(original_body: dict, body: RunRequest) -> None:
+    """A retry may not import prior results into a different experimental question."""
+    current = body.model_dump(mode="json")
+    for name in ("analysis_scope", "as_of_date", "mode", "experiment_mode", "comparison_run",
+                 "selected_matter_ids", "fixed_evidence_ids", "research_question", "question_id",
+                 "benchmark_case_id", "research_task_type"):
+        old = original_body.get(name, RunRequest.model_fields[name].get_default(call_default_factory=True))
+        new = current[name]
+        if isinstance(old, list) and isinstance(new, list):
+            old, new = sorted(old), sorted(new)
+        if old != new:
+            raise HTTPException(422, "增量重试不能改变运行条件或待答问题：" + name)
+
+
 def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
     """延迟绑定现有应用配额，避免循环导入和第二套模型预算。"""
     router = APIRouter(prefix="/api/connectivity", tags=["connectivity"])
@@ -392,6 +406,7 @@ def build_router(root: Path, reserve_model, quota_ledger) -> APIRouter:
         if body.retry_of_task_id:
             original = task(body.retry_of_task_id)
             authorize(request, original)
+            validate_retry_scope(original.get("run_body", {}), body)
             snapshot = store(body.retry_of_task_id).snapshot(body.retry_of_task_id, item=original) or {}
             if original.get("case_id") != case_identity:
                 raise HTTPException(422, "重试报告对必须与原任务一致")

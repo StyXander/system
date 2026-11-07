@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import sys
 
 from docx import Document
 from docx.shared import Cm,Pt,RGBColor
@@ -12,6 +13,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from scripts.competition_receipts import usage_receipt
 BASE=ROOT/'docs/competition'
 FONT='Noto Sans CJK SC'
 
@@ -107,7 +110,7 @@ def execution_report():
             if not row.get('run_id'):continue
             result=json.loads((p.parent/row['result_file']).read_text())
             roles=[t for t in result.get('matter_tasks',[]) if t.get('status') not in ['pending']]
-            rows.append({**row,'batch':p.parent.name,'roles':roles,
+            rows.append({**row,**usage_receipt(result.get('provider_calls',[])),'batch':p.parent.name,'roles':roles,
                          'assessments':result.get('matter_assessments',[]),'rejections':result.get('matter_rejections',[])})
     lines=['# 真实模型运行与可靠性测试报告','','## 测试范围','',
         '通过Render公开工作台接口执行，密钥保留在服务器。输入为真实登记报告，开发案例用于调试，不属于独立盲测。配置、任务ID及完整结果见runs。',
@@ -115,8 +118,10 @@ def execution_report():
         '| 批次 | 组别 | 任务 | 模型状态 | 请求/成功 | 已知输入/输出Token | 耗时秒 |',
         '|---|---|---|---|---|---|---|']
     for r in rows:
-        lines.append(f"| {r['batch']} | {r['group_id']} | {r['task_id']} | {r.get('model_status')} | {r.get('provider_calls')}/{r.get('successful_calls')} | {r.get('input_tokens')}/{r.get('output_tokens')} | {round((r.get('duration_ms') or 0)/1000,1)} |")
-    lines+=['','## 可复查条件','','各组检查fixed_evidence_sha256是否一致，确认模型返回标识、预算及代码版本。不同代码批次只用于开发修复验证，不合并作方法优劣统计。未知Token和费用保持未知。',
+        input_usage=r.get('input_tokens') if r.get('input_tokens') is not None else 'N/A'
+        output_usage=r.get('output_tokens') if r.get('output_tokens') is not None else 'N/A'
+        lines.append(f"| {r['batch']} | {r['group_id']} | {r['task_id']} | {r.get('model_status')} | {r.get('provider_calls')}/{r.get('successful_calls')} | {input_usage}/{output_usage} | {round((r.get('duration_ms') or 0)/1000,1)} |")
+    lines+=['','## 可复查条件','','旧批次只有fixed_evidence_sha256，不含全部额外输入与问题身份，只作为开发调试记录。新批次须比较fixed_input_sha256，确认问题、额外表格、模型返回标识、预算及代码版本。不同代码批次不合并作方法优劣统计。未知Token为N/A，另保留已知部分的小计，费用保持未知。',
         '','## 失败与修复','','第一轮单模型出现RELATION_ENDPOINT_UNREGISTERED。程序拒绝了未登记关系端点，不能把请求成功计为完整业务完成。修复合并建议的前向引用映射，并让各架构都获得一次预算内的校验反馈修正。',
         '五智能体无门禁组即使全部角色完成，旧代码仍因ablation非none标为partial。修复仅对门禁消融按实际角色完成状态判定，移除角色的实验仍保留跳过回执。',
         '','## 专业效果边界','','未取得两名人员独立标注和仲裁，当前不报告准确率、FCR下降或工时节省。五类金额结论与关系任务语义尚须按ANNOTATION_GUIDE.md分别标注。',

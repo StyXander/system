@@ -35,6 +35,10 @@
     "deployment_commit": "bd47abfd4ab61aa30645e4033fe5b0700906cf53",
     "export_docx_status": 200,
     "export_csv_status": 200,
+    "cache_hit_input_tokens": 9088,
+    "cache_miss_input_tokens": 29922,
+    "known_input_tokens": 39010,
+    "known_output_tokens": 10670,
     "batch": "baosteel-fixed"
   },
   {
@@ -73,6 +77,10 @@
     "deployment_commit": "bd47abfd4ab61aa30645e4033fe5b0700906cf53",
     "export_docx_status": 200,
     "export_csv_status": 200,
+    "cache_hit_input_tokens": 20224,
+    "cache_miss_input_tokens": 73477,
+    "known_input_tokens": 93701,
+    "known_output_tokens": 19704,
     "batch": "baosteel-fixed"
   },
   {
@@ -111,6 +119,10 @@
     "deployment_commit": "bd47abfd4ab61aa30645e4033fe5b0700906cf53",
     "export_docx_status": 200,
     "export_csv_status": 200,
+    "cache_hit_input_tokens": 59776,
+    "cache_miss_input_tokens": 52793,
+    "known_input_tokens": 112569,
+    "known_output_tokens": 23040,
     "batch": "baosteel-fixed"
   },
   {
@@ -149,6 +161,10 @@
     "deployment_commit": "bd47abfd4ab61aa30645e4033fe5b0700906cf53",
     "export_docx_status": 200,
     "export_csv_status": 200,
+    "cache_hit_input_tokens": 24320,
+    "cache_miss_input_tokens": 15170,
+    "known_input_tokens": 39490,
+    "known_output_tokens": 11302,
     "batch": "baosteel-fixed"
   },
   {
@@ -185,6 +201,10 @@
     "failure_code": null,
     "cost": null,
     "professional_quality": "not_independently_evaluated",
+    "cache_hit_input_tokens": 32512,
+    "cache_miss_input_tokens": 3209,
+    "known_input_tokens": 35721,
+    "known_output_tokens": 11483,
     "batch": "baosteel-fixed-v2"
   },
   {
@@ -215,8 +235,8 @@
     "provider_calls": 5,
     "successful_calls": 0,
     "attempted_calls": 5,
-    "input_tokens": 0,
-    "output_tokens": 0,
+    "input_tokens": null,
+    "output_tokens": null,
     "unknown_usage_calls": 5,
     "failure_code": null,
     "cost": null,
@@ -224,6 +244,10 @@
     "deployment_commit": "95484f9fb05d22a0321e0f269b90d290fcd7047b",
     "export_docx_status": 200,
     "export_csv_status": 200,
+    "cache_hit_input_tokens": null,
+    "cache_miss_input_tokens": null,
+    "known_input_tokens": 0,
+    "known_output_tokens": 0,
     "batch": "baosteel-fixed-v2"
   },
   {
@@ -260,6 +284,10 @@
     "failure_code": null,
     "cost": null,
     "professional_quality": "not_independently_evaluated",
+    "cache_hit_input_tokens": 14336,
+    "cache_miss_input_tokens": 77795,
+    "known_input_tokens": 92131,
+    "known_output_tokens": 17658,
     "batch": "midea-fixed"
   }
 ]

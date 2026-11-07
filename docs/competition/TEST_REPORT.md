@@ -12,12 +12,12 @@
 | baosteel-fixed | G3 | DEMO-RUN-6BDE5BC8B244 | five_agents_partial | 12/10 | 112569/23040 | 252.6 |
 | baosteel-fixed | G1 | DEMO-RUN-F6B2CBB39D41 | matter_single_partial | 4/4 | 39490/11302 | 126.5 |
 | baosteel-fixed-v2 | G7 | DEMO-RUN-D5A63672F83F | matter_single_partial | 4/2 | 35721/11483 | 191.3 |
-| baosteel-fixed-v2 | G6 | DEMO-RUN-7A83B19E9AE2 | five_agents_partial | 5/0 | 0/0 | 153.3 |
+| baosteel-fixed-v2 | G6 | DEMO-RUN-7A83B19E9AE2 | five_agents_partial | 5/0 | N/A/N/A | 153.3 |
 | midea-fixed | G3 | DEMO-RUN-A50F7A4068D9 | five_agents_partial | 10/9 | 92131/17658 | 265.2 |
 
 ## 可复查条件
 
-各组检查fixed_evidence_sha256是否一致，确认模型返回标识、预算及代码版本。不同代码批次只用于开发修复验证，不合并作方法优劣统计。未知Token和费用保持未知。
+旧批次只有fixed_evidence_sha256，不含全部额外输入与问题身份，只作为开发调试记录。新批次须比较fixed_input_sha256，确认问题、额外表格、模型返回标识、预算及代码版本。不同代码批次不合并作方法优劣统计。未知Token为N/A，另保留已知部分的小计，费用保持未知。
 
 ## 失败与修复
 

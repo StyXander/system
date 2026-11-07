@@ -1,4 +1,4 @@
-"""独立 Forensic Editorial 页面保留兼容入口，根页由正式 V4 工作台提供。"""
+"""历史书签进入正式工作台，不再依赖未入库的旧页面资源。"""
 
 from fastapi.testclient import TestClient
 import pytest
@@ -11,22 +11,19 @@ pytestmark = pytest.mark.repository_only
 client = TestClient(app)
 
 
-def test_forensic_editorial_page_is_served() -> None:
-    response = client.get("/forensic-editorial/")
-    assert response.status_code == 200
-    assert "审迹智链 · Forensic Editorial Workspace" in response.text
-    assert 'data-view-panel="analysis"' in response.text
+def test_forensic_editorial_bookmark_redirects_to_current_workspace() -> None:
+    for path in ("/forensic-editorial", "/forensic-editorial/"):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 308
+        assert response.headers["location"] == "/"
+        assert client.get(path).content == (WORKSPACE_ROOT / "index.html").read_bytes()
 
 
-def test_forensic_editorial_assets_are_served() -> None:
+def test_retired_assets_are_not_silently_served_from_local_untracked_files() -> None:
     css = client.get("/forensic-editorial/styles.css")
     script = client.get("/forensic-editorial/app.js")
     icons = client.get("/forensic-editorial/assets/icons.svg")
-    assert css.status_code == 200
-    assert "--bg-primary: #090b0f" in css.text
-    assert "--accent-primary: #7c9fd2" in css.text
-    assert script.status_code == 200 and 'const API_BASE' in script.text
-    assert icons.status_code == 200 and 'id="search"' in icons.text
+    assert css.status_code == script.status_code == icons.status_code == 404
 
 
 def test_root_page_still_returns_the_original_file() -> None:

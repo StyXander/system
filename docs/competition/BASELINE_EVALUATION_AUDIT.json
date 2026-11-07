@@ -1,0 +1,85 @@
+{
+  "purpose": "Review of historical development records, not new model execution",
+  "reports": {
+    "baosteel-fixed": {
+      "evaluation_status": "not_evaluated",
+      "numeric_confirmation_supported_by_current_schema": false,
+      "capability_limit": "当前生产assessment没有numeric_consistency，尚不能据此验证确认一致的召回能力。全拒答的FCR为未定义，不能宣称零错误。",
+      "independent_cases": 0,
+      "unlabelled_gold_cases": 6,
+      "excluded": [
+        {
+          "case_id": "BAOSTEEL-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        },
+        {
+          "case_id": "BAOSTEEL-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        },
+        {
+          "case_id": "BAOSTEEL-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        },
+        {
+          "case_id": "BAOSTEEL-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        }
+      ],
+      "evaluations": [],
+      "interpretation": "关系支持不等于数值一致；确认一致须有明确数值核验状态。各轮按同一测试集配对比较，失败率单列。"
+    },
+    "baosteel-fixed-v2": {
+      "evaluation_status": "not_evaluated",
+      "numeric_confirmation_supported_by_current_schema": false,
+      "capability_limit": "当前生产assessment没有numeric_consistency，尚不能据此验证确认一致的召回能力。全拒答的FCR为未定义，不能宣称零错误。",
+      "independent_cases": 0,
+      "unlabelled_gold_cases": 6,
+      "excluded": [
+        {
+          "case_id": "BAOSTEEL-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        },
+        {
+          "case_id": "BAOSTEEL-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        },
+        {
+          "case_id": "BAOSTEEL-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        }
+      ],
+      "evaluations": [],
+      "interpretation": "关系支持不等于数值一致；确认一致须有明确数值核验状态。各轮按同一测试集配对比较，失败率单列。"
+    },
+    "midea-fixed": {
+      "evaluation_status": "not_evaluated",
+      "numeric_confirmation_supported_by_current_schema": false,
+      "capability_limit": "当前生产assessment没有numeric_consistency，尚不能据此验证确认一致的召回能力。全拒答的FCR为未定义，不能宣称零错误。",
+      "independent_cases": 0,
+      "unlabelled_gold_cases": 6,
+      "excluded": [
+        {
+          "case_id": "MIDEA-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        }
+      ],
+      "evaluations": [],
+      "interpretation": "关系支持不等于数值一致；确认一致须有明确数值核验状态。各轮按同一测试集配对比较，失败率单列。"
+    },
+    "wuliangye-fixed": {
+      "evaluation_status": "not_evaluated",
+      "numeric_confirmation_supported_by_current_schema": false,
+      "capability_limit": "当前生产assessment没有numeric_consistency，尚不能据此验证确认一致的召回能力。全拒答的FCR为未定义，不能宣称零错误。",
+      "independent_cases": 0,
+      "unlabelled_gold_cases": 6,
+      "excluded": [
+        {
+          "case_id": "WULIANGYE-DEVELOPMENT-01",
+          "reason": "no_independent_gold"
+        }
+      ],
+      "evaluations": [],
+      "interpretation": "关系支持不等于数值一致；确认一致须有明确数值核验状态。各轮按同一测试集配对比较，失败率单列。"
+    }
+  }
+}

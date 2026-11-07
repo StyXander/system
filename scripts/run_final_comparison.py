@@ -27,6 +27,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from scripts.competition_receipts import execution_eligibility, usage_receipt, resolve_case
 
 EXPERIMENT_GROUPS = {
     "G0": {
@@ -162,6 +163,7 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "outputs/matter-comparison-20261026")
     parser.add_argument("--matter-id", help="预筛档案中选中的单一事项ID")
     parser.add_argument("--case-id", help="人工标注表中的案例ID，默认使用事项ID")
+    parser.add_argument("--case-manifest", type=Path, default=ROOT / "docs/competition/development_cases.json")
     parser.add_argument("--max-provider-calls", type=int, choices=range(1, 41), default=20)
     parser.add_argument("--max-role-rounds", type=int, choices=range(1, 7), default=2)
     parser.add_argument("--evidence-ids", type=Path, help="固定证据ID列表JSON，未指定时冻结共享预处理候选")
@@ -178,15 +180,22 @@ def main():
     requires_models = any(EXPERIMENT_GROUPS[gid]["mode"] != "calculation_only" for gid in selected_group_ids)
 
     if requires_models and not args.allow_models:
-        print(f"[提示] 所选组别 {selected_group_ids} 包含真实模型组，但未指定 --allow-models，自动收敛为 G0 离线计算。")
-        selected_group_ids = ["G0"]
-        requires_models = False
+        parser.error("所选条件需要真实模型，必须显式指定 --allow-models；未替换为离线实验")
 
     if requires_models and not args.matter_id:
         parser.error("真实对照必须指定 --matter-id，先用程序预筛建立候选档案")
 
-    if requires_models and not os.getenv("DEEPSEEK_API_KEY", "").strip():
-        parser.error("缺少真实供应商配置 (DEEPSEEK_API_KEY)，未执行真实对照")
+    if requires_models and not any(os.getenv(k, "").strip() for k in ("DEEPSEEK_API_KEY", "OPENAI_API_KEY", "LLM_API_KEY")):
+        parser.error("缺少真实供应商配置，未执行真实对照")
+    question = {}
+    if requires_models:
+        if not args.case_id:
+            parser.error("真实对照必须指定 --case-id 和可核对的问题清单")
+        try:
+            question = resolve_case(args.case_manifest, args.case_id, report_set_id=args.report_set,
+                                    matter_id=args.matter_id, as_of=args.as_of)
+        except ValueError as error:
+            parser.error(str(error))
 
     from backend.app.connectivity_pipeline import run_pipeline
     from backend.app.connectivity_schemas import RunRequest
@@ -237,6 +246,7 @@ def main():
                     )
 
             body = RunRequest(
+                **question,
                 pair_id=args.pair,
                 report_set_id=args.report_set,
                 as_of_date=args.as_of,
@@ -296,16 +306,14 @@ def main():
                     fixed_evidence_sha256=run.versions.get("fixed_evidence_sha256"),
                     provider_calls=len(run.provider_calls),
                     successful_calls=sum(c.get("status") == "completed" for c in run.provider_calls),
-                    input_tokens=sum(c.get("input_tokens") or 0 for c in run.provider_calls),
-                    output_tokens=sum(c.get("output_tokens") or 0 for c in run.provider_calls),
-                    unknown_usage_calls=sum(
-                        c.get("request_attempted") and (c.get("input_tokens") is None or c.get("output_tokens") is None)
-                        for c in run.provider_calls
-                    ),
+                    **usage_receipt(run.provider_calls),
                     duration_ms=run.duration_ms,
                     cost=None,
                     cost_note="无已验证计价，不估算费用",
                 )
+                eligible, reason = execution_eligibility(run.model_dump(mode="json"))
+                row.update(execution_eligible=eligible, execution_reason=reason,
+                           fixed_input_sha256=run.versions.get("fixed_input_sha256"))
                 canonical=run.versions.get('investigation_scope', {}).get('selected_matter_ids', [])
                 if len(canonical)==1:
                     row['requested_matter_id']=args.matter_id
@@ -354,7 +362,7 @@ def main():
         print(f"{r['group_id']:<6} | {r['mode']:<14} | {r['ablation']:<18} | {r['status']:<10} | {r.get('provider_calls', 0):<8} | {r.get('duration_ms', 0):<8}")
     print("=" * 45)
 
-    return 1 if any(r["status"] == "failed" for r in summary) else 0
+    return 1 if any(not r.get("execution_eligible") for r in summary) else 0
 
 
 if __name__ == "__main__":

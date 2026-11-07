@@ -1,0 +1,31 @@
+{
+  "python_junit_suite": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "33",
+    "tests": "1491",
+    "time": "47.264",
+    "timestamp": "2026-11-07T17:27:54.264057+08:00",
+    "hostname": "891f2b2347e3"
+  },
+  "passed": 1458,
+  "skip_reasons": {
+    "宝钢2025报告对未登记或原件未缓存": 2,
+    "宝钢2025原件未缓存": 2,
+    "未找到封存运行 RUN-V7-45BFA3297C39.json（runtime 目录不随仓库分发）": 2,
+    "未找到封存运行 RUN-V7-D8933A6BBDDB.json（runtime 目录不随仓库分发）": 1,
+    "未找到封存运行 RUN-V7-BF8D84368D35.json（runtime 目录不随仓库分发）": 2,
+    "本验收环境未携带登记PDF原件，不能声称实际原文复验": 4,
+    "缺少标准股份年报全文（评委包按边界不分发全文）；运行 python scripts/prepare_full_corpus.py 下载并校验 SHA-256 后复算": 18,
+    "历史杰克案例包含三份PDF全文，不随源码分发；提供已授权的原案例包后自动恢复此项复验": 1,
+    "内部签字原件不随交付包分发，仅在源码仓库可追溯": 1
+  },
+  "frontend": {
+    "tests": 29,
+    "passed": 29,
+    "failed": 0
+  },
+  "professional_accuracy": "not_evaluated",
+  "origin": "actual_local_regression"
+}

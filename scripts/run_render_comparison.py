@@ -19,6 +19,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.run_final_comparison import EXPERIMENT_GROUPS, FACTORIAL_2X2_GROUPS
+from scripts.competition_receipts import execution_eligibility, usage_receipt, resolve_case
 
 TERMINAL = {"completed", "degraded", "failed", "cancelled", "interrupted", "expired"}
 
@@ -42,12 +43,12 @@ def receipt(row, task):
                fixed_evidence_sha256=result.get("versions", {}).get("fixed_evidence_sha256"),
                provider_calls=len(calls), successful_calls=sum(c.get("status") == "completed" for c in calls),
                attempted_calls=sum(bool(c.get("request_attempted")) for c in calls),
-               input_tokens=sum(c.get("input_tokens") or 0 for c in calls),
-               output_tokens=sum(c.get("output_tokens") or 0 for c in calls),
-               unknown_usage_calls=sum(bool(c.get("request_attempted")) and
-                                       (c.get("input_tokens") is None or c.get("output_tokens") is None) for c in calls),
+               **usage_receipt(calls),
                failure_code=task.get("failure_code"), cost=None,
                professional_quality="not_independently_evaluated")
+    eligible, reason = execution_eligibility(result, task["status"])
+    row.update(execution_eligible=eligible, execution_reason=reason,
+               fixed_input_sha256=result.get("versions", {}).get("fixed_input_sha256"))
     return result
 
 
@@ -57,6 +58,7 @@ def main():
     p.add_argument("--report-set", required=True)
     p.add_argument("--matter-id", required=True)
     p.add_argument("--case-id", required=True)
+    p.add_argument("--case-manifest", type=Path, default=ROOT / "docs/competition/development_cases.json")
     p.add_argument("--as-of", required=True)
     p.add_argument("--evidence-ids", type=Path, required=True)
     p.add_argument("--groups", default=",".join(FACTORIAL_2X2_GROUPS))
@@ -75,13 +77,18 @@ def main():
     ids = json.loads(args.evidence_ids.read_text(encoding="utf-8"))
     if not isinstance(ids, list) or not ids or len(ids) != len(set(ids)):
         p.error("Evidence IDs must be a nonempty unique list")
+    try:
+        question = resolve_case(args.case_manifest, args.case_id, report_set_id=args.report_set,
+                                matter_id=args.matter_id, as_of=args.as_of)
+    except ValueError as error:
+        p.error(str(error))
     args.output.mkdir(parents=True, exist_ok=True)
     journal_path = args.output / "comparison.json"
     config = {"report_set_id": args.report_set, "matter_id": args.matter_id, "case_id": args.case_id,
               "as_of": args.as_of, "groups": groups, "repeat": args.repeat,
               "budget": {"max_matters": 1, "max_provider_calls": args.max_provider_calls,
                          "max_role_rounds": args.max_role_rounds, "max_parallel_calls": 2},
-              "evidence_ids": sorted(ids), "base_url": args.base_url.rstrip("/")}
+              "evidence_ids": sorted(ids), "base_url": args.base_url.rstrip("/"), **question}
     fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
     journal = json.loads(journal_path.read_text()) if journal_path.exists() else {
         "origin": "actual_render_api_execution", "experiment_id": uuid.uuid4().hex,
@@ -121,7 +128,8 @@ def main():
                             "analysis_scope": "matter_connectivity", "mode": row["mode"],
                             "ablation": row["ablation"], "selected_matter_ids": [args.matter_id],
                             "experiment_mode": "fixed_evidence", "fixed_evidence_ids": ids,
-                            "comparison_run": True, "budget": config["budget"]}
+                            "comparison_run": True, "budget": config["budget"], **question}
+                    row["deployment_before"] = request("GET", "/api/health").get("deployment", {})
                     task = request("POST", "/api/connectivity/runs", json=body,
                                    headers={"Idempotency-Key": row["idempotency_key"]})
                     row.update(task_id=task["task_id"], started_at=datetime.now(timezone.utc).isoformat())
@@ -142,7 +150,12 @@ def main():
                     time.sleep(8)
                 task = request("GET", f"/api/connectivity/runs/{row['task_id']}")
                 result = receipt(row, task)
-                row["deployment_commit"] = health.get("deployment", {}).get("commit")
+                row["deployment_after"] = request("GET", "/api/health").get("deployment", {})
+                before_commit = row.get("deployment_before", {}).get("commit")
+                after_commit = row["deployment_after"].get("commit")
+                row["deployment_commit"] = before_commit if before_commit and before_commit == after_commit else None
+                if not row["deployment_commit"]:
+                    row.update(execution_eligible=False, execution_reason="deployment_identity_changed_or_unknown")
                 save(args.output / f"{repeat}-{gid}.task.json", task)
                 save(args.output / row["result_file"], result)
                 save(journal_path, journal)
@@ -154,11 +167,16 @@ def main():
                             (args.output / f"{repeat}-{gid}.{fmt}").write_bytes(r.content)
                 save(journal_path, journal)
                 print(f"{gid}: {row['model_status']} calls={row['provider_calls']} successful={row['successful_calls']}", flush=True)
-    hashes = {x.get("fixed_evidence_sha256") for x in journal["runs"] if x.get("status") == "recorded"}
+                if any(c.get("failure_code") in {"MODEL_HTTP_500", "MODEL_HTTP_502", "MODEL_HTTP_503", "MODEL_HTTP_504", "MODEL_HTTP_401", "MODEL_HTTP_403", "MODEL_HTTP_429"} for c in result.get("provider_calls", [])) and not row["execution_eligible"]:
+                    journal["batch_stop_reason"] = "provider_unavailable; inspect receipts before starting more paid tasks"
+                    save(journal_path, journal)
+                    return 1
+    hashes = {x.get("fixed_input_sha256") for x in journal["runs"] if x.get("status") == "recorded"}
     journal["fixed_evidence_check"] = "matched" if len(hashes) == 1 and None not in hashes else "failed_or_incomplete"
     journal["accuracy_status"] = "requires_independent_annotations"
     save(journal_path, journal)
-    return int(any(r.get("status") != "recorded" for r in journal["runs"]) or journal["fixed_evidence_check"] != "matched")
+    return int(len(journal["runs"]) != len(groups) * args.repeat or
+               any(not r.get("execution_eligible") for r in journal["runs"]) or journal["fixed_evidence_check"] != "matched")
 
 
 if __name__ == "__main__":

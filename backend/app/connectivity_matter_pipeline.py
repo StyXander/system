@@ -56,6 +56,8 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     from .connectivity_financial_ontology import matter_rules
     run.versions["matter_rule_fingerprints"]={r["rule_id"]:digest(json.dumps(r,sort_keys=True,ensure_ascii=False)) for r in matter_rules()}
     run.source_lineage=[SourceLineage(document_id=d.document_id,producer=d.company,category=d.source_kind) for d in documents]
+    run.versions["research_question"]={"text":request.research_question,"question_id":request.question_id,
+        "case_id":request.benchmark_case_id,"task_type":request.research_task_type}
     if resume:
         if resume.report_set!=report_set or resume.execution_mode!=request.mode:
             raise ValueError("续分析的资料集合或模式已变化")
@@ -222,6 +224,14 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
             except (OSError,ValueError,RuntimeError,ImportError) as exc:
                 run.versions['verified_project_table_error']=type(exc).__name__
                 save()
+    if request.experiment_mode == "fixed_evidence":
+        # Include the extra verified table and the exact question, not just text fragments.
+        common_input={"evidence":[e.model_dump(mode="json") for e in frozen_evidence],
+            "verified_project_table":verified_project_table,
+            "question":run.versions["research_question"],
+            "documents":[d.model_dump(mode="json") for d in documents]}
+        run.versions["fixed_input_sha256"]=hashlib.sha256(json.dumps(common_input,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+        save()
     def payload_for(role,matter=None,extension=""):
         # 每波读同一快照；worker只提交建议，不直接覆盖另一角色的结果。
         with lock:
@@ -258,6 +268,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                     raise ValueError('MATTER_SELECTION_REQUIRED: 未选择事项，拒绝扩大为全报告调查')
             return {"matter_id":matter.matter_id if matter else "","input_revision":run.result_revision,
                 "experiment_mode":request.experiment_mode,
+                "research_question":deepcopy(run.versions["research_question"]),
                 "as_of_date":str(report_set.as_of_date),
                 "citation_instruction":"跨页内容按独立证据ID引用；原文块带adjacent_evidence_ids，可打开相邻原页补查。paths.rule_ids仅选工具返回的登记模板编号。","documents":[{key:getattr(d,key) for key in ("document_id","company_id","company","report_type","report_period","disclosure_date","file_sha256","pages")} for d in documents],
                 "matter":matter.model_dump() if matter else None,
@@ -458,7 +469,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     elif not seeds:
         progress("agent_collaboration","skipped","未形成可调查事项；请检查资料与解析覆盖")
         run.model_status="five_agents_partial"
-    elif caller is None and (not os.getenv("DEEPSEEK_API_KEY") or os.getenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL","true").lower() not in {"true","1","yes","on"}):
+    elif caller is None and (not any(os.getenv(k, "").strip() for k in ("DEEPSEEK_API_KEY","OPENAI_API_KEY","LLM_API_KEY")) or os.getenv("AUDITTRACE_DEMO_USE_EXTERNAL_MODEL","true").lower() not in {"true","1","yes","on"}):
         progress("agent_collaboration","skipped","真实模型未配置或被关闭，保留程序事项候选")
         run.model_status="five_agents_partial"
         for role in ROLE_NAMES:

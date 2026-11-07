@@ -543,6 +543,10 @@ class RunRequest(Contract):
     experiment_mode: Literal["end_to_end", "fixed_evidence"] = "end_to_end"
     fixed_evidence_ids: list[str] = Field(default_factory=list, max_length=2000)
     comparison_run: bool = False
+    research_question: str | None = Field(default=None, min_length=1, max_length=2000)
+    question_id: str | None = Field(default=None, min_length=1, max_length=100)
+    benchmark_case_id: str | None = Field(default=None, min_length=1, max_length=100)
+    research_task_type: Literal["relation_tracing", "amount_reconciliation"] = "relation_tracing"
     budget: InvestigationBudget = Field(default_factory=InvestigationBudget)
     retry_of_task_id: str | None = None
     parent_task_id: str | None = Field(default=None, min_length=8, max_length=100)

@@ -19,6 +19,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from scripts.competition_receipts import execution_eligibility
 
 # 统一五级核验结论定义
 VERDICT_CLASSES = [
@@ -118,7 +119,7 @@ def extract_run_verdict(run_data: dict, matter_id: str | None = None) -> tuple[s
     assessments = run_data.get("matter_assessments", [])
     explanations = run_data.get("matter_explanations", [])
     if not assessments:
-        return "INSUFFICIENT_EVIDENCE", []
+        raise ValueError("ASSESSMENT_MISSING: 技术失败不能转换为业务上的证据不足")
 
     target_assessment = None
     if matter_id:
@@ -283,6 +284,8 @@ def load_gold_cases(gold_path: Path) -> dict[str, dict]:
             "gold_verdict": normalize_verdict(final_verdict) if final_verdict else None,
             "gold_evidence_ids": set(item.get("gold_evidence_ids") or []),
             "annotation_status": item.get("annotation_status", "pending"),
+            "question": item.get("question"),
+            "question_id": item.get("question_id"),
         }
     return gold_map
 
@@ -316,7 +319,22 @@ def evaluate_comparison(comparison_path: Path, gold_map: dict) -> dict:
             matter_id = row.get("matter_id") or gold.get("matter_id")
             if not matter_id:
                 raise ValueError(f"事项映射缺失: {case_id}")
-            item["prediction"], item["evidence_ids"] = extract_run_verdict(run, matter_id)
+            eligible, reason = execution_eligibility(run, row.get("task_status"))
+            if row.get("execution_eligible") is False:
+                eligible, reason = False, row.get("execution_reason", "recorded_execution_ineligible")
+            if gold.get("question"):
+                identity = run.get("versions", {}).get("research_question", {})
+                if (identity.get("text") != gold["question"] or identity.get("question_id") != gold.get("question_id")
+                        or identity.get("case_id") != case_id):
+                    eligible, reason = False, "question_identity_unverified"
+            item["execution_eligible"] = eligible
+            if eligible:
+                try:
+                    item["prediction"], item["evidence_ids"] = extract_run_verdict(run, matter_id)
+                except ValueError as error:
+                    reason = str(error)
+            if item["prediction"] is None:
+                item["failure"] = reason
         grouped[key].append(item)
     evaluations = []
     for (group, mode, repeat), items in sorted(grouped.items()):
@@ -330,7 +348,9 @@ def evaluate_comparison(comparison_path: Path, gold_map: dict) -> dict:
             "classification": compute_multiclass_metrics(truth, predictions) if valid else None,
             "confirmation": compute_binary_metrics(truth, predictions, {"CONFIRMED_CONSISTENT"}) if valid else None,
             "cases": items})
-    return {"evaluation_status": "evaluated" if evaluations else "not_evaluated",
+    return {"evaluation_status": "evaluated" if any(e["evaluated"] for e in evaluations) else "not_evaluated",
+            "numeric_confirmation_supported_by_current_schema": False,
+            "capability_limit": "当前生产assessment没有numeric_consistency，尚不能据此验证确认一致的召回能力。全拒答的FCR为未定义，不能宣称零错误。",
             "independent_cases": len({i["case_id"] for rows in grouped.values() for i in rows}),
             "unlabelled_gold_cases": sum(not g.get("gold_verdict") for g in gold_map.values()),
             "excluded": excluded, "evaluations": evaluations,

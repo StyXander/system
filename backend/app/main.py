@@ -584,14 +584,11 @@ assets_dir = WORKSPACE_ROOT / "assets"
 if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
-# 保留旧 V3 页面作为只读对照路径；根入口始终由正式 index.html 提供。
-forensic_editorial_dir = WORKSPACE_ROOT / "08_官网V3_ForensicEditorial"
-if forensic_editorial_dir.exists():
-    app.mount(
-        "/forensic-editorial",
-        StaticFiles(directory=forensic_editorial_dir, html=True),
-        name="forensic_editorial",
-    )
+# 旧页面未随公开仓库分发，历史书签统一进入当前工作台。
+@app.get("/forensic-editorial", include_in_schema=False)
+@app.get("/forensic-editorial/", include_in_schema=False)
+def retired_forensic_workspace():
+    return RedirectResponse("/", status_code=308)
 
 
 def _model_settings() -> tuple[str | None, str, str]:
