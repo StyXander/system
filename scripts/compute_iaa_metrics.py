@@ -35,14 +35,14 @@ VERDICT_ZH = {
 }
 
 
-def normalize_verdict(val: str | None) -> str:
+def normalize_verdict(val: str | None) -> str | None:
     if not val:
-        return "INSUFFICIENT_EVIDENCE"
+        return None
     cleaned = str(val).strip().upper()
     for c in VERDICT_CLASSES:
         if c == cleaned or VERDICT_ZH[c] in str(val):
             return c
-    return "INSUFFICIENT_EVIDENCE"
+    return None
 
 
 def compute_cohens_kappa(rater_a: list[str], rater_b: list[str], categories: list[str]) -> dict:
@@ -70,13 +70,13 @@ def compute_cohens_kappa(rater_a: list[str], rater_b: list[str], categories: lis
     p_e = sum((row_sums[i] * col_sums[i]) for i in range(k)) / (n * n)
 
     # Cohen's Kappa
-    kappa = (p_o - p_e) / (1.0 - p_e) if (1.0 - p_e) != 0 else 0.0
+    kappa = (p_o - p_e) / (1.0 - p_e) if (1.0 - p_e) != 0 else None
 
     # These are nominal categories; list order does not define a meaningful distance.
     weighted_kappa = None
 
     # Kappa 解释区间 (Landis & Koch, 1977)
-    interpretation = "Almost Perfect" if kappa > 0.8 else \
+    interpretation = "Undefined (single-category marginals)" if kappa is None else "Almost Perfect" if kappa > 0.8 else \
                      "Substantial" if kappa > 0.6 else \
                      "Moderate" if kappa > 0.4 else \
                      "Fair" if kappa > 0.2 else "Slight / Poor"
@@ -86,7 +86,7 @@ def compute_cohens_kappa(rater_a: list[str], rater_b: list[str], categories: lis
         "n_agreed": agree_count,
         "percent_agreement": round(p_o, 4),
         "expected_agreement": round(p_e, 4),
-        "cohens_kappa": round(kappa, 4),
+        "cohens_kappa": round(kappa, 4) if kappa is not None else None,
         "weighted_kappa": weighted_kappa,
         "interpretation": interpretation,
         "matrix": matrix,
@@ -120,6 +120,8 @@ def main():
         if len(annos) >= 2:
             v_a = normalize_verdict(annos[0].get("verdict"))
             v_b = normalize_verdict(annos[1].get("verdict"))
+            if not v_a or not v_b or not annos[0].get('annotator_id') or not annos[1].get('annotator_id') or annos[0]['annotator_id']==annos[1]['annotator_id']:
+                continue
             pairs.append({
                 "case_id": cid,
                 "category": item.get("category", ""),
@@ -148,7 +150,7 @@ def main():
 
     print(f"=== 独立人工标注信度 (IAA) 统计 ===")
     print(f"案例总数: {len(scenarios)}")
-    print(f"完成双人独立独立标注案例数: {len(pairs)}")
+    print(f"完成双人独立标注案例数: {len(pairs)}")
 
     if not pairs:
         print("[提示] 当前案例库中的 annotations 尚未填入独立标注数据。")
@@ -158,12 +160,13 @@ def main():
     rater_a_list = [p["rater_a"] for p in pairs]
     rater_b_list = [p["rater_b"] for p in pairs]
     stats = compute_cohens_kappa(rater_a_list, rater_b_list, VERDICT_CLASSES)
+    kappa_text=f"{stats['cohens_kappa']:.4f}" if stats['cohens_kappa'] is not None else 'N/A'
 
     print("\n--- 核心一致性指标 ---")
     print(f"有效标注对数量: {stats['n_samples']}")
     print(f"完全一致案例数: {stats['n_agreed']} ({stats['percent_agreement']*100:.1f}%)")
     print(f"期望一致率 (P_e): {stats['expected_agreement']*100:.1f}%")
-    print(f"Cohen's Kappa (κ): {stats['cohens_kappa']:.4f} ({stats['interpretation']})")
+    print(f"Cohen's Kappa (κ): {kappa_text} ({stats['interpretation']})")
     print("五类为无序类别，不计算线性加权Kappa")
 
     if disagreements:
@@ -195,7 +198,7 @@ def main():
                 "| :--- | :---: | :--- |",
                 f"| **观察一致率 (Observed Agreement, $P_o$)** | **{stats['percent_agreement']*100:.1f}%** | 两位标注员直接达成完全共识的比例 |",
                 f"| **期望一致率 (Expected Agreement, $P_e$)** | {stats['expected_agreement']*100:.1f}% | 仅凭偶然机遇达成一致的理论概率 |",
-                f"| **Cohen's Kappa 统计量 ($\\kappa$)** | **`{stats['cohens_kappa']:.4f}`** | **{stats['interpretation']}** (剔除随机一致后的纯净共识度) |",
+                f"| **Cohen's Kappa 统计量 ($\\kappa$)** | **`{kappa_text}`** | **{stats['interpretation']}** |",
                 "",
             ]
             if disagreements:

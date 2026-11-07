@@ -51,6 +51,9 @@
 #connectivity-root .at-stages button span { color:#9a573f; background:transparent; border:0; border-radius:0; }
 #connectivity-root .at-stages strong { font-size:14px; }
 #connectivity-root .at-stages small { color:#727b7e; font-size:11px; }
+#connectivity-root .at-stages button[aria-current=step] span,
+#connectivity-root .at-stages button[aria-current=step] small { color:#8b482f; }
+#connectivity-root .at-stages button:disabled { opacity:1; color:#727b7e; }
 #connectivity-root .aw-hero {
   display:grid; grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr); gap:60px;
   height:auto; min-height:280px; padding:10px 0 40px; margin:0 0 28px;
@@ -85,6 +88,10 @@
 #connectivity-root .ba-brief { border-radius:3px; box-shadow:none; }
 #connectivity-root .ba-panel { border-radius:3px; box-shadow:none; }
 #connectivity-root .ba-top h1 { font-family:var(--serif); font-weight:500; }
+#connectivity-root #ba-demo,#connectivity-root #cn-workspace,
+#connectivity-root #ba-source-detail,#connectivity-root #ba-process-detail { scroll-margin-top:96px; }
+#connectivity-root #ba-demo h1 { font-family:var(--serif); color:#222b30; font-weight:500; }
+#connectivity-root #ba-demo h1 span { color:#274e5b; background:#e7eff1; border-radius:2px; }
 #connectivity-root .ba-primary { background:#274e5b; border-color:#274e5b; }
 #connectivity-root .at-search input { background:#fff; border:1px solid #c7cecd; border-radius:3px; }
 #connectivity-root :focus-visible { outline:3px solid #b85f3f; outline-offset:3px; }

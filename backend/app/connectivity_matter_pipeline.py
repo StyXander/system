@@ -24,7 +24,7 @@ from .connectivity_matter_schemas import MATTER_VERSION, AgentMatterResult, ROLE
 from .connectivity_matter_budget import allocate_role_budget
 from .connectivity_matter_completion import effective_role_status
 from .connectivity_matter_errors import MatterValidationError
-from .connectivity_matters import seed_matters, attach_events, apply_identification, integrate_result, finish_projection, missing_assessment
+from .connectivity_matters import seed_matters, attach_events, apply_identification, integrate_result, integrate_combined_result, finish_projection, missing_assessment
 from .connectivity_report_sets import resolve_documents
 from .connectivity_schemas import ConnectivityRun, SourceLineage, DisclosureOccurrence
 
@@ -91,6 +91,16 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
         if not selected_refs <= {e.evidence_id for e in frozen_evidence}:
             raise ValueError("FIXED_EVIDENCE_SELECTION_MISSING: 证据包缺少事项身份来源")
         run.matter_evidence=deepcopy(frozen_evidence)
+        # A restricted pack cannot retain seed objects whose identity evidence
+        # was removed. A1 rebuilds events after merging; dangling seeds otherwise
+        # raise KeyError and also leak facts outside the declared input pack.
+        available_ids={e.evidence_id for e in frozen_evidence}
+        excluded=[m.matter_id for m in run.matters if not set(m.evidence_ids)<=available_ids]
+        run.matters=[m for m in run.matters if set(m.evidence_ids)<=available_ids]
+        included_matters={m.matter_id for m in run.matters}
+        run.matter_events=[e for e in run.matter_events if e.matter_id in included_matters and set(e.evidence_ids)<=available_ids]
+        run.matter_commitments=[c for c in run.matter_commitments if c.matter_id in included_matters and set(c.evidence_ids)<=available_ids]
+        run.versions['fixed_evidence_excluded_seed_ids']=excluded
         run.versions["fixed_evidence_ids"]=[e.evidence_id for e in frozen_evidence]
         run.versions["fixed_evidence_sha256"]=hashlib.sha256(json.dumps([e.model_dump() for e in frozen_evidence],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
     run.versions["comparison_run"]=request.comparison_run
@@ -384,9 +394,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                                                     requested_material=('待补原文、明细或底稿：'+str(missing.get('arguments',{}).get('query') or missing['question']))[:500],
                                                     purpose='补齐调查工具未取得的证据，核实当前未决条件',target_role=upstream.get('role','A2')))
                                 if request.mode=="three_agents" and role=="A2":
-                                    for component in ("A2","A3","A4"):result=integrate_result(run,matter,component,result,payload["input_revision"])
+                                    result=integrate_combined_result(run,matter,result,payload["input_revision"],("A2","A3","A4"))
                                 elif request.mode=="single_model":
-                                    for component in ("A2","A3","A4","A5"):result=integrate_result(run,matter,component,result,payload["input_revision"])
+                                    result=integrate_combined_result(run,matter,result,payload["input_revision"],("A2","A3","A4","A5"))
                                 else:result=integrate_result(run,matter,role,result,payload["input_revision"])
                             task["result"]=result.model_dump(mode="json")
                         break
@@ -395,7 +405,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                             'code':'EVIDENCE_VALIDATION_FAILED','role':role,'field_path':'result','reason':str(error)[:200],'retry_count':validation_attempt}
                         with lock:
                             run.matter_rejections.append({**detail,'matter_id':getattr(matter,'matter_id','')})
-                        if validation_attempt or request.mode!='five_agents' or cancelled():raise
+                        if validation_attempt or cancelled():raise
                         with lock:
                             run.matter_rejections.append({'role':role,'matter_id':getattr(matter,'matter_id',''),
                                 'reason':str(error)[:200],'recovery':'one_corrective_generation'})
@@ -412,6 +422,11 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                                 '只保留1至3条证据明确的事件。其他已证实事实和金额不要丢失。')
                         payload['evidence_validation_feedback']={**detail,
                             'instruction':feedback_instruction}
+                        if detail.get('code')=='RELATION_ENDPOINT_UNREGISTERED':
+                            payload['evidence_validation_feedback']['instruction']+=(
+                                '关系端点仅可引用已提供的事项、证据、数值、路径、事件或承诺ID。'
+                                '同次建议中可用自己提交的path_id、event_id或commitment_id；'
+                                '不得把财务科目名称或自造财务节点当成ID。无法确定端点时删除该关系，保留路径说明和未决问题。')
                         result=bounded_call(role,payload,task_id)
                         task.update(status='partial' if result.tool_requests or task.get('termination_reason')=='tool_round_limit' else 'completed',
                             stop_reason='最终修正仍申请工具，缺口保留' if result.tool_requests else result.stop_reason or '已按证据校验反馈重新生成')
@@ -518,7 +533,9 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                         tasks.append(role_task("A5",matter,"按补查与反证更新结论；无新证据保留原缺口。"))
                     else:
                         tasks[-1]["stop_reason"]+="；未取得新增证据，保留原判断和缺口，停止重复复核"
-            matter.investigation_status="completed" if all(t["status"]=="completed" for t in tasks) and assessment and request.ablation=="none" else "partial"
+            # A gate ablation still executes every role. Omitted roles retain the
+            # product's partial-workflow status and their explicit skipped receipt.
+            matter.investigation_status="completed" if all(t["status"]=="completed" for t in tasks) and assessment and request.ablation in {"none","no_ontology_gate"} else "partial"
             if not any(a.matter_id==matter.matter_id for a in run.matter_assessments):
                 run.matter_assessments.append(missing_assessment(matter,"综合复核未完成，见角色失败及预算记录"))
             save()

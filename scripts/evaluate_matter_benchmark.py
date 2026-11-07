@@ -265,8 +265,10 @@ def load_gold_cases(gold_path: Path) -> dict[str, dict]:
         # 优先从仲裁结果获取金标；若为空，检查 annotations 是否有一致共识
         final_verdict = adjudication.get("final_verdict") if isinstance(adjudication, dict) else adjudication
         if not final_verdict and item.get("annotations"):
-            annos = [a.get("verdict") for a in item["annotations"] if a.get("verdict")]
-            if annos and len(set(annos)) == 1:
+            independent = {a['annotator_id']:a.get('verdict') for a in item['annotations']
+                           if a.get('annotator_id') and a.get('verdict')}
+            annos = list(independent.values())
+            if len(annos)>=2 and len(set(annos)) == 1:
                 final_verdict = annos[0]
         if final_verdict and str(final_verdict).strip() not in VERDICT_CLASSES + list(VERDICT_ZH.values()):
             raise ValueError(f"未知人工结论: {case_id}: {final_verdict}")

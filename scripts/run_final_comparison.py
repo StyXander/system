@@ -306,6 +306,10 @@ def main():
                     cost=None,
                     cost_note="无已验证计价，不估算费用",
                 )
+                canonical=run.versions.get('investigation_scope', {}).get('selected_matter_ids', [])
+                if len(canonical)==1:
+                    row['requested_matter_id']=args.matter_id
+                    row['matter_id']=canonical[0]
             except Exception as error:
                 row["failure"] = type(error).__name__ + ": " + str(error)[:300]
                 print(f"  [失败] {row['failure']}")

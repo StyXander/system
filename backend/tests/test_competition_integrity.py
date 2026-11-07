@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from scripts.evaluate_matter_benchmark import load_gold_cases, extract_run_verdict, evaluate_comparison, compute_binary_metrics, extract_verdict_from_assessment
 from scripts.compute_iaa_metrics import compute_cohens_kappa, VERDICT_CLASSES
+from backend.tests.test_matter_connectivity import reports
 
 
 def test_engineering_expectations_cannot_become_gold(tmp_path):
@@ -54,3 +55,60 @@ def test_failures_are_counted_not_converted_to_abstentions(tmp_path):
 def test_nominal_labels_have_no_weighted_kappa():
     result=compute_cohens_kappa(VERDICT_CLASSES,VERDICT_CLASSES,VERDICT_CLASSES)
     assert result['cohens_kappa']==1 and result['weighted_kappa'] is None
+
+
+def test_single_rater_is_not_independent_gold(tmp_path):
+    p=tmp_path/'gold.json'
+    p.write_text(json.dumps({'scenarios':[{'case_id':'C','annotations':[{'annotator_id':'one','verdict':'NOT_COMPARABLE'}]}]}))
+    assert load_gold_cases(p)['C']['gold_verdict'] is None
+    p.write_text(json.dumps({'scenarios':[{'case_id':'C','annotations':[{'annotator_id':'one','verdict':'NOT_COMPARABLE'}]*2}]}))
+    assert load_gold_cases(p)['C']['gold_verdict'] is None
+
+
+def test_kappa_is_undefined_when_both_raters_only_use_one_category():
+    result=compute_cohens_kappa(['NOT_COMPARABLE']*2,['NOT_COMPARABLE']*2,VERDICT_CLASSES)
+    assert result['percent_agreement']==1 and result['cohens_kappa'] is None
+
+
+def test_restricted_pack_does_not_leave_dangling_seed_evidence(reports):
+    from backend.tests.test_matter_connectivity import request,fake_provider
+    from backend.app.connectivity_matter_pipeline import run_matter_pipeline
+    from backend.app.connectivity_schemas import RunRequest
+    root,rs=reports
+    screened=run_matter_pipeline(root,RunRequest(report_set_id=rs.report_set_id,mode='calculation_only'))
+    req=request(rs,root=root,experiment_mode='fixed_evidence',comparison_run=True)
+    target=next(m for m in screened.matters if m.matter_id==req.selected_matter_ids[0])
+    ids=target.evidence_ids+[next(e.evidence_id for e in screened.matter_evidence if e.report_type=='AR')]
+    req.fixed_evidence_ids=ids
+    run=run_matter_pipeline(root,req,caller=fake_provider)
+    assert next(t for t in run.matter_tasks if t['role']=='A1')['status']=='completed'
+    assert run.versions['fixed_evidence_excluded_seed_ids']
+    assert all(set(m.evidence_ids)<=set(ids) for m in run.matters)
+
+
+def test_combined_baseline_resolves_forward_event_and_path_ids_atomically(reports):
+    from backend.app.connectivity_matter_pipeline import run_matter_pipeline
+    from backend.app.connectivity_schemas import RunRequest
+    from backend.app.connectivity_matter_schemas import AgentMatterResult
+    from backend.app.connectivity_matters import integrate_combined_result
+    root, rs=reports
+    run=run_matter_pipeline(root,RunRequest(report_set_id=rs.report_set_id,mode='calculation_only'))
+    matter=run.matters[0];eid=matter.evidence_ids[0]
+    evidence=next(e for e in run.matter_evidence if e.evidence_id==eid)
+    result=AgentMatterResult.model_validate({'matter_id':matter.matter_id,'input_revision':run.result_revision,
+        'paths':[{'path_id':'temporary-path','matter_id':matter.matter_id,'financial_item':'固定资产',
+                  'steps':[{'label':'待核实关联','evidence_ids':[eid]}]}],
+        'events':[{'event_id':'temporary-event','matter_id':matter.matter_id,'kind':'action','label':'披露项目',
+                   'report_period':evidence.report_period,'evidence_ids':[eid]}],
+        'relations':[{'edge_id':'temporary-edge','matter_id':matter.matter_id,'source_id':'temporary-path',
+                      'target_id':'temporary-event','relation_kind':'potential_mechanism',
+                      'explanation':'待核实的关系','evidence_ids':[eid]}]})
+    integrate_combined_result(run,matter,result,run.result_revision,('A2','A3','A4','A5'))
+    edge=run.matter_relations[-1]
+    assert edge.source_id==run.matter_paths[-1].path_id
+    assert edge.target_id==run.matter_events[-1].event_id
+    before=run.model_dump()
+    result.relations[0].target_id='invented-node'
+    with pytest.raises(ValueError,match='关系端点未登记'):
+        integrate_combined_result(run,matter,result,run.result_revision,('A2','A3','A4','A5'))
+    assert run.model_dump()==before

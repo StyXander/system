@@ -161,7 +161,27 @@ def integrate_result(run, matter, role, result:AgentMatterResult, expected_revis
     return normalized
 
 
-def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revision):
+def integrate_combined_result(run, matter, result, expected_revision, components):
+    """Commit a baseline's complete proposal atomically, resolving forward references.
+
+    Paths and events may refer to each other using the model's temporary IDs.
+    Register every object first, then validate edges against a shared alias map.
+    The same reference checks used by individual roles remain mandatory.
+    """
+    working=run.model_copy(deep=True)
+    target=next(m for m in working.matters if m.matter_id==matter.matter_id)
+    normalized=result.model_copy(deep=True)
+    aliases={}
+    for component in components:
+        _integrate_result(working,target,component,normalized,expected_revision,
+                          endpoint_aliases=aliases,defer_relations=True)
+    _integrate_result(working,target,"relations",normalized,expected_revision,endpoint_aliases=aliases)
+    for field in ("matter_paths","matter_events","matter_commitments","matter_explanations","matter_relations","matter_assessments"):
+        setattr(run,field,getattr(working,field))
+    return normalized
+
+
+def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revision, *, endpoint_aliases=None, defer_relations=False):
     from .connectivity_matter_errors import MatterValidationError
     if result.input_revision!=expected_revision or result.matter_id not in {"",matter.matter_id}:
         raise ValueError("角色结果对应的事项或输入版本已变化")
@@ -173,7 +193,7 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
         raise ValueError("角色引用跨企业证据")
     registered_ids={*(m.matter_id for m in run.matters),*refs.keys(),*(o.occurrence_id for o in run.occurrences),
         *(e.event_id for e in run.matter_events),*(p.path_id for p in run.matter_paths),*(c.commitment_id for c in run.matter_commitments)}
-    endpoint_aliases={}
+    if endpoint_aliases is None:endpoint_aliases={}
     def alias(original,canonical):
         if original:endpoint_aliases.setdefault(original,set()).add(canonical)
     def endpoint(value):
@@ -236,7 +256,7 @@ def _integrate_result(run, matter, role, result:AgentMatterResult, expected_revi
             if not hypothesis.supporting_evidence_ids:hypothesis.status="hypothesis"
             hypothesis.hypothesis_id="HYP-"+digest(matter.matter_id+hypothesis.explanation)
             run.matter_explanations=[h for h in run.matter_explanations if h.hypothesis_id!=hypothesis.hypothesis_id]+[hypothesis]
-    if role in {"A2","A3","A4"}:
+    if role in {"A2","A3","A4","relations"} and not defer_relations:
         for edge_index, edge in enumerate(result.relations):
             if edge.matter_id!=matter.matter_id:raise ValueError("关系边事项不一致")
             edge.source_id=endpoint(edge.source_id);edge.target_id=endpoint(edge.target_id)

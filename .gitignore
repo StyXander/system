@@ -209,3 +209,6 @@ outputs/
 !/docs/competition/**
 !/backend/tests/test_competition_integrity.py
 !/scripts/build_competition_manifest.py
+!/scripts/run_render_comparison.py
+
+!/scripts/build_competition_materials.py
