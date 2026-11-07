@@ -86,7 +86,8 @@ def extract_verdict_from_assessment(assessment: dict, explanations: list[dict] |
     has_counter = bool(assessment.get("counter_evidence_ids"))
     explanations = explanations or []
     has_accepted_explanation = any(
-        e.get("acceptance_status") == "accepted" or "已解释" in str(e.get("summary") or "")
+        (e.get("status") == "supported_as_reported" or e.get("acceptance_status") == "accepted")
+        and bool(e.get("supporting_evidence_ids"))
         for e in explanations
     )
 
@@ -101,7 +102,9 @@ def extract_verdict_from_assessment(assessment: dict, explanations: list[dict] |
             return "EXPLAINED_DIFFERENCE"
         if comparability == "needs_evidence" or not has_evidence:
             return "INSUFFICIENT_EVIDENCE"
-        return "CONFIRMED_CONSISTENT"
+        if comparability == "comparable" and assessment.get("numeric_consistency") == "consistent":
+            return "CONFIRMED_CONSISTENT"
+        return "INSUFFICIENT_EVIDENCE"
     if support in {"limited", "pending"} or comparability == "needs_evidence":
         if has_accepted_explanation:
             return "EXPLAINED_DIFFERENCE"
@@ -120,7 +123,11 @@ def extract_run_verdict(run_data: dict, matter_id: str | None = None) -> tuple[s
     target_assessment = None
     if matter_id:
         target_assessment = next((a for a in assessments if a.get("matter_id") == matter_id), None)
-    if not target_assessment:
+    if matter_id and target_assessment is None:
+        raise ValueError(f"MATTER_MAPPING_MISSING: {matter_id}")
+    if target_assessment is None:
+        if len(assessments) != 1:
+            raise ValueError("MATTER_MAPPING_REQUIRED: 必须明确选择事项")
         target_assessment = assessments[0]
 
     matter_exps = [e for e in explanations if e.get("matter_id") == target_assessment.get("matter_id")]
@@ -131,18 +138,20 @@ def extract_run_verdict(run_data: dict, matter_id: str | None = None) -> tuple[s
 
 def compute_binary_metrics(y_true: list[str], y_pred: list[str], positive_classes: set[str]) -> dict:
     """计算二分类指标（如确证类指标 FCR, Precision, Recall, Coverage）。"""
+    if len(y_true) != len(y_pred):
+        raise ValueError("标签和预测数量不一致")
     n_total = len(y_true)
     if n_total == 0:
-        return {"total": 0, "n_confirm": 0, "fcr": 0.0, "precision": 0.0, "recall": 0.0, "coverage": 0.0}
+        return {"total": 0, "n_confirm": 0, "fcr": None, "precision": None, "recall": None, "coverage": 0.0}
 
     n_confirm = sum(p in positive_classes for p in y_pred)
     n_gold_confirm = sum(t in positive_classes for t in y_true)
     n_true_confirm = sum(p in positive_classes and t in positive_classes for t, p in zip(y_true, y_pred))
     n_false_confirm = sum(p in positive_classes and t not in positive_classes for t, p in zip(y_true, y_pred))
 
-    fcr = (n_false_confirm / n_confirm) if n_confirm > 0 else 0.0
-    precision = 1.0 - fcr if n_confirm > 0 else 0.0
-    recall = (n_true_confirm / n_gold_confirm) if n_gold_confirm > 0 else 0.0
+    fcr = (n_false_confirm / n_confirm) if n_confirm > 0 else None
+    precision = 1.0 - fcr if n_confirm > 0 else None
+    recall = (n_true_confirm / n_gold_confirm) if n_gold_confirm > 0 else None
     coverage = n_confirm / n_total
 
     return {
@@ -151,9 +160,9 @@ def compute_binary_metrics(y_true: list[str], y_pred: list[str], positive_classe
         "n_gold_confirm": n_gold_confirm,
         "n_true_confirm": n_true_confirm,
         "n_false_confirm": n_false_confirm,
-        "fcr": round(fcr, 4),
-        "precision": round(precision, 4),
-        "recall": round(recall, 4),
+        "fcr": round(fcr, 4) if fcr is not None else None,
+        "precision": round(precision, 4) if precision is not None else None,
+        "recall": round(recall, 4) if recall is not None else None,
         "coverage": round(coverage, 4),
     }
 
@@ -259,20 +268,14 @@ def load_gold_cases(gold_path: Path) -> dict[str, dict]:
             annos = [a.get("verdict") for a in item["annotations"] if a.get("verdict")]
             if annos and len(set(annos)) == 1:
                 final_verdict = annos[0]
-        # 兜底支持从分类或预期行为映射测试金标
-        expected_behavior = item.get("expected_engineering_behavior", "")
-        if not final_verdict:
-            if "不可直接比" in expected_behavior or "不属同一合并范围" in expected_behavior:
-                final_verdict = "NOT_COMPARABLE"
-            elif "不认定已投入" in expected_behavior or "待证" in expected_behavior:
-                final_verdict = "INSUFFICIENT_EVIDENCE"
-            elif "分别解释各条边" in expected_behavior:
-                final_verdict = "EXPLAINED_DIFFERENCE"
-            else:
-                final_verdict = item.get("default_gold_verdict")
+        if final_verdict and str(final_verdict).strip() not in VERDICT_CLASSES + list(VERDICT_ZH.values()):
+            raise ValueError(f"未知人工结论: {case_id}: {final_verdict}")
 
+        if case_id in gold_map:
+            raise ValueError(f"重复人工案例ID: {case_id}")
         gold_map[case_id] = {
             "case_id": case_id,
+            "matter_id": item.get("matter_id"),
             "category": item.get("category", ""),
             "trigger": item.get("trigger", ""),
             "gold_verdict": normalize_verdict(final_verdict) if final_verdict else None,
@@ -282,181 +285,82 @@ def load_gold_cases(gold_path: Path) -> dict[str, dict]:
     return gold_map
 
 
+def evaluate_comparison(comparison_path: Path, gold_map: dict) -> dict:
+    """Resolve each summary row to its full result and its own independently labelled case."""
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    grouped = defaultdict(list)
+    excluded = []
+    seen = set()
+    for row in comparison.get("runs", []):
+        case_id = row.get("case_id")
+        gold = gold_map.get(case_id)
+        if not gold or not gold.get("gold_verdict"):
+            excluded.append({"case_id": case_id, "reason": "no_independent_gold"})
+            continue
+        key = (row.get("group_id"), row.get("experiment_mode", "end_to_end"), row.get("repeat", 1))
+        identity = (*key, case_id)
+        if identity in seen:
+            raise ValueError(f"重复案例记录: {identity}")
+        seen.add(identity)
+        result_path = comparison_path.parent / str(row.get("result_file") or "")
+        item = {"case_id": case_id, "gold": gold["gold_verdict"], "prediction": None,
+                "status": row.get("status"), "failure": row.get("failure")}
+        if row.get("status") == "recorded":
+            if not row.get("result_file") or not result_path.is_file():
+                raise ValueError(f"完整运行文件缺失: {case_id}")
+            run = json.loads(result_path.read_text(encoding="utf-8"))
+            if run.get("run_id") != row.get("run_id"):
+                raise ValueError(f"运行身份不匹配: {case_id}")
+            matter_id = row.get("matter_id") or gold.get("matter_id")
+            if not matter_id:
+                raise ValueError(f"事项映射缺失: {case_id}")
+            item["prediction"], item["evidence_ids"] = extract_run_verdict(run, matter_id)
+        grouped[key].append(item)
+    evaluations = []
+    for (group, mode, repeat), items in sorted(grouped.items()):
+        valid = [item for item in items if item["prediction"] is not None]
+        truth = [item["gold"] for item in valid]
+        predictions = [item["prediction"] for item in valid]
+        evaluations.append({"group_id": group, "experiment_mode": mode, "repeat": repeat,
+            "attempted": len(items), "evaluated": len(valid), "failed": len(items)-len(valid),
+            "completion_rate": len(valid)/len(items),
+            "conditional_on_completion": True,
+            "classification": compute_multiclass_metrics(truth, predictions) if valid else None,
+            "confirmation": compute_binary_metrics(truth, predictions, {"CONFIRMED_CONSISTENT"}) if valid else None,
+            "cases": items})
+    return {"evaluation_status": "evaluated" if evaluations else "not_evaluated",
+            "independent_cases": len({i["case_id"] for rows in grouped.values() for i in rows}),
+            "unlabelled_gold_cases": sum(not g.get("gold_verdict") for g in gold_map.values()),
+            "excluded": excluded, "evaluations": evaluations,
+            "interpretation": "关系支持不等于数值一致；确认一致须有明确数值核验状态。各轮按同一测试集配对比较，失败率单列。"}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--comparison-json", type=Path, help="对比实验输出的 comparison.json 文件路径")
-    parser.add_argument("--runs-dir", type=Path, help="包含单次运行 JSON 文件的目录")
-    parser.add_argument("--gold-cases", type=Path, default=ROOT / "backend/evaluation/connectivity/matter_cases.json",
-                        help="黄金评测集路径 (默认 backend/evaluation/connectivity/matter_cases.json)")
-    parser.add_argument("--output-report", type=Path, help="保存评测结果 Markdown / JSON 的路径")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--comparison-json", type=Path)
+    source.add_argument("--runs-dir", type=Path, help="包含comparison.json及完整运行文件的目录")
+    parser.add_argument("--gold-cases", type=Path, default=ROOT / "backend/evaluation/connectivity/matter_cases.json")
+    parser.add_argument("--output-report", type=Path)
     args = parser.parse_args()
-
-    gold_map = {}
-    if args.gold_cases.exists():
-        gold_map = load_gold_cases(args.gold_cases)
-        print(f"[数据] 已加载黄金案例库: {len(gold_map)} 项 (已仲裁/有金标案例: {sum(bool(v['gold_verdict']) for v in gold_map.values())} 项)")
-    else:
-        print(f"[警告] 黄金评测集未找到: {args.gold_cases}")
-
-    # 读取预测结果
-    runs_to_eval = []
-    if args.comparison_json and args.comparison_json.exists():
-        comp_data = json.loads(args.comparison_json.read_text(encoding="utf-8"))
-        runs_to_eval = comp_data.get("runs", [])
-    elif args.runs_dir and args.runs_dir.exists():
-        for json_file in sorted(args.runs_dir.glob("*.json")):
-            if json_file.name.endswith(".checkpoint.json") or json_file.name == "comparison.json":
-                continue
-            try:
-                data = json.loads(json_file.read_text(encoding="utf-8"))
-                if "run_id" in data:
-                    runs_to_eval.append(data)
-            except Exception:
-                pass
-
-    if not runs_to_eval:
-        print("[提示] 未指定或未找到有效对比运行结果。")
-        print("请通过 --comparison-json 或 --runs-dir 指定实验输出。")
-        return 0
-
-    print(f"[评测] 待评测运行记录: {len(runs_to_eval)} 条")
-
-    # 按 (group_id, mode, ablation) 分组汇总各次重复运行指标
-    grouped_runs = defaultdict(list)
-    for r in runs_to_eval:
-        gid = r.get("group_id") or r.get("mode", "unknown")
-        grouped_runs[gid].append(r)
-
-    group_summaries = {}
-    for gid, runs in grouped_runs.items():
-        first = runs[0]
-        group_meta = {
-            "group_id": gid,
-            "group_name": first.get("group_name", gid),
-            "mode": first.get("mode"),
-            "ablation": first.get("ablation"),
-            "factor_agent": first.get("factor_agent"),
-            "factor_gate": first.get("factor_gate"),
-            "repeats": len(runs),
-        }
-
-        # 统计各指标在 repeats 间的均值和标准差
-        fcr_list = []
-        prec_list = []
-        rec_list = []
-        cov_list = []
-        macro_f1_list = []
-        tokens_list = []
-        duration_list = []
-
-        for r in runs:
-            tokens_list.append((r.get("input_tokens") or 0) + (r.get("output_tokens") or 0))
-            duration_list.append(r.get("duration_ms") or 0)
-
-            # 如果存在金标，计算精度评测
-            y_true = []
-            y_pred = []
-            if gold_map:
-                for cid, ginfo in gold_map.items():
-                    if not ginfo["gold_verdict"]:
-                        continue
-                    # 匹配对应 case 结果
-                    pred_verdict, _ = extract_run_verdict(r, matter_id=cid)
-                    y_true.append(ginfo["gold_verdict"])
-                    y_pred.append(pred_verdict)
-
-            if y_true and y_pred:
-                b_metrics = compute_binary_metrics(y_true, y_pred, {"CONFIRMED_CONSISTENT"})
-                m_metrics = compute_multiclass_metrics(y_true, y_pred)
-                fcr_list.append(b_metrics["fcr"])
-                prec_list.append(b_metrics["precision"])
-                rec_list.append(b_metrics["recall"])
-                cov_list.append(b_metrics["coverage"])
-                macro_f1_list.append(m_metrics["macro_f1"])
-
-        fcr_m, fcr_sd = mean_and_sd(fcr_list) if fcr_list else (0.0, 0.0)
-        prec_m, prec_sd = mean_and_sd(prec_list) if prec_list else (0.0, 0.0)
-        rec_m, rec_sd = mean_and_sd(rec_list) if rec_list else (0.0, 0.0)
-        cov_m, cov_sd = mean_and_sd(cov_list) if cov_list else (0.0, 0.0)
-        mf1_m, mf1_sd = mean_and_sd(macro_f1_list) if macro_f1_list else (0.0, 0.0)
-        dur_m, dur_sd = mean_and_sd(duration_list) if duration_list else (0.0, 0.0)
-        tok_m, tok_sd = mean_and_sd(tokens_list) if tokens_list else (0.0, 0.0)
-
-        group_summaries[gid] = {
-            "meta": group_meta,
-            "metrics": {
-                "fcr": {"mean": fcr_m, "sd": fcr_sd, "display": format_mean_sd(fcr_m, fcr_sd)},
-                "precision": {"mean": prec_m, "sd": prec_sd, "display": format_mean_sd(prec_m, prec_sd)},
-                "recall": {"mean": rec_m, "sd": rec_sd, "display": format_mean_sd(rec_m, rec_sd)},
-                "coverage": {"mean": cov_m, "sd": cov_sd, "display": format_mean_sd(cov_m, cov_sd)},
-                "macro_f1": {"mean": mf1_m, "sd": mf1_sd, "display": format_mean_sd(mf1_m, mf1_sd, percent=False)},
-                "duration_ms": {"mean": dur_m, "sd": dur_sd, "display": f"{dur_m:.0f} ± {dur_sd:.0f} ms"},
-                "tokens": {"mean": tok_m, "sd": tok_sd, "display": f"{tok_m:.0f} ± {tok_sd:.0f}"},
-            },
-        }
-
-    # 打印控制台表格
-    print("\n" + "=" * 90)
-    print("=== 审迹智链 (AuditTrace) 评测基准汇总报告 (Mean ± SD) ===")
-    header = f"{'组别':<6} | {'实验名称':<28} | {'错误确证率(FCR)':<15} | {'确证精确率':<12} | {'覆盖率':<10} | {'Macro-F1':<12} | {'耗时':<12}"
-    print(header)
-    print("-" * 90)
-    for gid, res in group_summaries.items():
-        m = res["metrics"]
-        print(f"{gid:<6} | {res['meta']['group_name']:<28} | {m['fcr']['display']:<15} | {m['precision']['display']:<12} | {m['coverage']['display']:<10} | {m['macro_f1']['display']:<12} | {m['duration_ms']['display']:<12}")
-    print("=" * 90)
-
-    # 如果有 2x2 因子设计实验结果，打印 2x2 方差与交互效应分析
-    f2x2_keys = ["G1", "G7", "G6", "G3"]
-    if all(k in group_summaries for k in f2x2_keys):
-        print("\n=== 2×2 因子设计交互效应分析 (Factorial Matrix) ===")
-        print("| 架构 \\ 门禁 | 无会计门禁 (Without Gate) | 有会计门禁 (With Gate) | 门禁增益 (ΔGate) |")
-        print("| :--- | :--- | :--- | :--- |")
-        g1_fcr = group_summaries["G1"]["metrics"]["fcr"]["mean"]
-        g7_fcr = group_summaries["G7"]["metrics"]["fcr"]["mean"]
-        g6_fcr = group_summaries["G6"]["metrics"]["fcr"]["mean"]
-        g3_fcr = group_summaries["G3"]["metrics"]["fcr"]["mean"]
-        print(f"| **单模型 (Single Model)** | G1 (FCR: {g1_fcr*100:.1f}%) | G7 (FCR: {g7_fcr*100:.1f}%) | {(g1_fcr - g7_fcr)*100:+.1f}% |")
-        print(f"| **五 Agent (Five Agents)** | G6 (FCR: {g6_fcr*100:.1f}%) | G3 (FCR: {g3_fcr*100:.1f}%) | {(g6_fcr - g3_fcr)*100:+.1f}% |")
-        print(f"| **多 Agent 增益 (ΔAgent)** | {(g1_fcr - g6_fcr)*100:+.1f}% | {(g7_fcr - g3_fcr)*100:+.1f}% | 交互效应已解耦 |")
-        print("=" * 60)
-
+    path = args.comparison_json or args.runs_dir / "comparison.json"
+    report = evaluate_comparison(path, load_gold_cases(args.gold_cases))
+    output = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output_report:
         args.output_report.parent.mkdir(parents=True, exist_ok=True)
         if args.output_report.suffix == ".json":
-            args.output_report.write_text(json.dumps(group_summaries, ensure_ascii=False, indent=2), encoding="utf-8")
+            args.output_report.write_text(output, encoding="utf-8")
         else:
-            # 导出 Markdown 报告
-            md_lines = [
-                "# 审迹智链 (AuditTrace) 严谨科学对照实验评测报告",
-                "",
-                f"> 生成时间: 2026-11-06 | 评测案例库: `{args.gold_cases.name}`",
-                "",
-                "## 1. 核心实验指标对照表 (Mean ± SD)",
-                "",
-                "| 组别代码 | 实验方法 / 组别名称 | 错误确证率 (FCR) ↓ | 确证精确率 ↑ | 确证覆盖率 ↑ | 结论 Macro-F1 ↑ | 平均耗时 (ms) |",
-                "| :--- | :--- | :---: | :---: | :---: | :---: | :---: |",
-            ]
-            for gid, res in group_summaries.items():
-                m = res["metrics"]
-                md_lines.append(f"| `{gid}` | **{res['meta']['group_name']}** | {m['fcr']['display']} | {m['precision']['display']} | {m['coverage']['display']} | {m['macro_f1']['display']} | {m['duration_ms']['display']} |")
-
-            if all(k in group_summaries for k in f2x2_keys):
-                md_lines.extend([
-                    "",
-                    "## 2. 2×2 因子设计与门禁贡献独立检验 (Factorial Analysis)",
-                    "",
-                    "| 架构因素 \\ 门禁因素 | 无会计门禁 (Without Gate) | 有会计门禁 (With Gate) | 门禁增益 (ΔGate) |",
-                    "| :--- | :---: | :---: | :---: |",
-                    f"| **单模型 (Single Model)** | G1 (FCR: {g1_fcr*100:.1f}%) | G7 (FCR: {g7_fcr*100:.1f}%) | `{(g1_fcr - g7_fcr)*100:+.1f}%` |",
-                    f"| **五 Agent (Five Agents)** | G6 (FCR: {g6_fcr*100:.1f}%) | G3 (FCR: {g3_fcr*100:.1f}%) | `{(g6_fcr - g3_fcr)*100:+.1f}%` |",
-                    f"| **多 Agent 增益 (ΔAgent)** | `{(g1_fcr - g6_fcr)*100:+.1f}%` | `{(g7_fcr - g3_fcr)*100:+.1f}%` | **协同增益解耦完成** |",
-                ])
-
-            args.output_report.write_text("\n".join(md_lines), encoding="utf-8")
-            print(f"[完成] 评测报告已成功导出至: {args.output_report}")
-
-    return 0
+            lines = ["# 技术效果评测", "", "状态 " + report["evaluation_status"], "",
+                     "| 组别 | 模式 | 重复 | 尝试 | 失败 | Macro-F1 | FCR |", "|---|---|---|---|---|---|---|"]
+            for e in report["evaluations"]:
+                mf = e["classification"]["macro_f1"] if e["classification"] else "N/A"
+                fcr = e["confirmation"]["fcr"] if e["confirmation"] else None
+                lines.append(f"| {e['group_id']} | {e['experiment_mode']} | {e['repeat']} | {e['attempted']} | {e['failed']} | {mf} | {fcr if fcr is not None else 'N/A'} |")
+            lines.extend(["", report["interpretation"], "", "```json", output, "```"])
+            args.output_report.write_text("\n".join(lines), encoding="utf-8")
+    print(output)
+    return 0 if report["evaluation_status"] == "evaluated" else 2
 
 
 if __name__ == "__main__":

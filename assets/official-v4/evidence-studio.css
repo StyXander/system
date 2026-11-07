@@ -1,0 +1,114 @@
+/* Evidence Studio. Top navigation, paper work surface and ink annotation palette. */
+#connectivity-root {
+  --aw-bg:#f5f3ee; --aw-card:#fff; --aw-panel:#eeece6;
+  --aw-ink:#222b30; --aw-ink-2:#465158; --aw-muted:#636d71;
+  --aw-line:#d6d5cf; --aw-line-2:#c1c7c7;
+  --aw-green:#286272; --aw-green-2:#1f414c; --aw-green-3:#347387;
+  --aw-chip:#e7eff1; --ink:#222b30; --muted:#636d71;
+  --line:#d6d5cf; --blue:#286272; --paper:#f5f3ee; --wash:#e7eff1;
+  --aw-fs:1.12; --sans:"Inter","PingFang SC","Microsoft YaHei",sans-serif;
+  --serif:"Noto Serif SC","Songti SC",Georgia,serif;
+  background:var(--aw-bg); color:var(--aw-ink);
+}
+#connectivity-root::before { display:none; }
+#connectivity-root .cn-app-layout { display:block; min-height:100vh; }
+#connectivity-root .at-topbar {
+  position:sticky; top:0; z-index:80; display:flex; align-items:center;
+  gap:32px; min-height:76px; padding:12px 4%; background:#222b30;
+  color:#f7f5ee; border-bottom:1px solid #3e494e;
+}
+#connectivity-root .aw-brand {
+  display:flex; align-items:baseline; gap:14px; padding:0;
+  border:0; color:#fff!important; flex-shrink:0;
+}
+#connectivity-root .aw-brand-cn { color:#fff; font-size:23px; letter-spacing:2px; }
+#connectivity-root .aw-brand-en { color:#bec9cc; font:11px var(--mono); letter-spacing:2px; }
+#connectivity-root .aw-nav { display:flex; flex-wrap:wrap; align-items:center; gap:4px; flex:1; }
+#connectivity-root .aw-nav button {
+  width:auto; min-height:42px; height:auto; border-radius:0; padding:9px 15px;
+  color:#cbd2d3; font-size:14px; border:0; border-bottom:2px solid transparent;
+}
+#connectivity-root .aw-nav button:hover { color:#fff; background:#303d43; }
+#connectivity-root .aw-nav button[aria-current=page] {
+  background:transparent; color:#fff; border-bottom-color:#e6aa79; box-shadow:none;
+}
+#connectivity-root .aw-nav button[aria-current=page]::before { display:none; }
+#connectivity-root .aw-nav button span { display:none; }
+#connectivity-root .at-home-link { color:#cbd2d3; font-size:13px; white-space:nowrap; }
+#connectivity-root #cn-workspace { max-width:1640px; padding:0 4% 64px; }
+#connectivity-root .at-workspace-top { padding:30px 0 24px; border-bottom:0; }
+#connectivity-root .at-workspace-top h1 { font-size:21px; letter-spacing:.02em; }
+#connectivity-root .at-eyebrow { color:#667579; letter-spacing:.14em; font-size:10px; }
+#connectivity-root .at-stages {
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0;
+  padding:0; margin:0 0 36px; background:transparent; border:0;
+}
+#connectivity-root .at-stages button {
+  border:0; border-top:2px solid #c8ccc9; border-radius:0; background:transparent;
+  box-shadow:none; padding:15px 12px 12px 0; text-align:left;
+}
+#connectivity-root .at-stages button[aria-current=step] { border-color:#b85f3f; background:transparent; color:#222b30; }
+#connectivity-root .at-stages button span { color:#9a573f; background:transparent; border:0; border-radius:0; }
+#connectivity-root .at-stages strong { font-size:14px; }
+#connectivity-root .at-stages small { color:#727b7e; font-size:11px; }
+#connectivity-root .aw-hero {
+  display:grid; grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr); gap:60px;
+  height:auto; min-height:280px; padding:10px 0 40px; margin:0 0 28px;
+  background:transparent; border:0; border-bottom:1px solid #c8ccc9;
+  border-radius:0; box-shadow:none; overflow:visible;
+}
+#connectivity-root .aw-hero::before,#connectivity-root .aw-hero::after { display:none; }
+#connectivity-root .aw-hero-copy { width:auto; max-width:none; padding:0; }
+#connectivity-root .aw-hero .cn-intro { margin:0; padding:0; background:transparent; border:0; }
+#connectivity-root .aw-hero h2 {
+  max-width:none; margin:10px 0 20px; font:500 clamp(34px,3.8vw,58px)/1.22 var(--serif);
+  letter-spacing:-.045em; color:#222b30;
+}
+#connectivity-root .aw-hero p { max-width:550px; font-size:15px; line-height:1.9; color:#596468; }
+#connectivity-root .at-evidence-standard { align-self:end; padding-left:28px; border-left:1px solid #c6cbc8; }
+#connectivity-root .at-evidence-standard h3 { margin:0 0 15px; font-size:14px; font-weight:600; }
+#connectivity-root .at-evidence-standard dl { margin:0; }
+#connectivity-root .at-evidence-standard dl div { padding:12px 0; border-top:1px solid #dedfd9; }
+#connectivity-root .at-evidence-standard dt { color:#9a573f; font-size:12px; margin-bottom:4px; }
+#connectivity-root .at-evidence-standard dd { margin:0; font-size:14px; color:#596468; }
+#connectivity-root .cn-start { background:#fff; border-radius:3px; box-shadow:none; border:1px solid #d6d5cf; }
+#connectivity-root input,#connectivity-root select,#connectivity-root textarea { border-radius:3px; color:#222b30; }
+#connectivity-root button { border-radius:3px; }
+#connectivity-root .cn-primary,#connectivity-root #cn-run { background:#274e5b; border-color:#274e5b; color:#fff; box-shadow:none; }
+#connectivity-root .cn-primary:disabled,#connectivity-root #cn-run:disabled { background:#e0e5e4; color:#687477; border-color:#d1d8d7; }
+#connectivity-root .cn-company-cards { gap:0; border-top:1px solid #d6d5cf; }
+#connectivity-root .cn-company-cards>button { border-radius:0; box-shadow:none; }
+#connectivity-root .cn-message { border-radius:0; background:#eeece6; border:0; border-left:3px solid #a66b4f; }
+#connectivity-root .cn-result-header { border-bottom:1px solid #b9c4c5; background:transparent; }
+#connectivity-root .cn-detail,#connectivity-root .cn-list-panel { border-radius:2px; box-shadow:none; }
+#connectivity-root .ba-demo { --ba-ink:#222b30; --ba-muted:#636d71; --ba-line:#d6d5cf; }
+#connectivity-root .ba-brief { border-radius:3px; box-shadow:none; }
+#connectivity-root .ba-panel { border-radius:3px; box-shadow:none; }
+#connectivity-root .ba-top h1 { font-family:var(--serif); font-weight:500; }
+#connectivity-root .ba-primary { background:#274e5b; border-color:#274e5b; }
+#connectivity-root .at-search input { background:#fff; border:1px solid #c7cecd; border-radius:3px; }
+#connectivity-root :focus-visible { outline:3px solid #b85f3f; outline-offset:3px; }
+@media(max-width:1000px) {
+  #connectivity-root .at-topbar { gap:15px; flex-wrap:wrap; }
+  #connectivity-root .aw-brand-en { display:none; }
+  #connectivity-root .aw-nav button { padding:8px 10px; }
+  #connectivity-root .aw-hero { gap:25px; grid-template-columns:1fr 1fr; }
+}
+@media(max-width:640px) {
+  #connectivity-root .at-topbar { position:relative; padding:14px 5%; }
+  #connectivity-root .aw-brand { flex:1; }
+  #connectivity-root .aw-nav { order:3; width:100%; flex-basis:100%; gap:0; }
+  #connectivity-root .aw-nav button { font-size:12px; min-height:40px; }
+  #connectivity-root #cn-workspace { padding:0 5% 40px; }
+  #connectivity-root .at-workspace-top { flex-wrap:wrap; gap:16px; }
+  #connectivity-root .at-stages { grid-template-columns:repeat(2,minmax(0,1fr)); margin-bottom:25px; }
+  #connectivity-root .aw-hero { grid-template-columns:1fr; padding-bottom:25px; }
+  #connectivity-root .at-evidence-standard { padding:18px 0 0; border-left:0; border-top:1px solid #c6cbc8; }
+  #connectivity-root .at-evidence-standard dl { display:grid; grid-template-columns:1fr; }
+}
+@media print {
+  #connectivity-root .at-topbar,#connectivity-root .at-stages { display:none; }
+  #connectivity-root #cn-workspace { padding:0; max-width:none; }
+}
+#connectivity-root .aw-hero .cn-intro h2 { font:500 clamp(36px,3.8vw,58px)/1.22 var(--serif); letter-spacing:-.045em; color:#222b30; }
+#connectivity-root .aw-hero .cn-intro p { font-size:15px; color:#596468; }

@@ -160,6 +160,11 @@ def main():
     parser.add_argument("--repeat", type=int, choices=range(1, 6), default=1, help="独立重复运行次数 (1-5，默认1)")
     parser.add_argument("--max-matters", type=int, choices=range(1, 11), default=3, help="深查事项数量上限")
     parser.add_argument("--output", type=Path, default=ROOT / "outputs/matter-comparison-20261026")
+    parser.add_argument("--matter-id", help="预筛档案中选中的单一事项ID")
+    parser.add_argument("--case-id", help="人工标注表中的案例ID，默认使用事项ID")
+    parser.add_argument("--max-provider-calls", type=int, choices=range(1, 41), default=20)
+    parser.add_argument("--max-role-rounds", type=int, choices=range(1, 7), default=2)
+    parser.add_argument("--evidence-ids", type=Path, help="固定证据ID列表JSON，未指定时冻结共享预处理候选")
     args = parser.parse_args()
 
     from dotenv import load_dotenv
@@ -176,6 +181,9 @@ def main():
         print(f"[提示] 所选组别 {selected_group_ids} 包含真实模型组，但未指定 --allow-models，自动收敛为 G0 离线计算。")
         selected_group_ids = ["G0"]
         requires_models = False
+
+    if requires_models and not args.matter_id:
+        parser.error("真实对照必须指定 --matter-id，先用程序预筛建立候选档案")
 
     if requires_models and not os.getenv("DEEPSEEK_API_KEY", "").strip():
         parser.error("缺少真实供应商配置 (DEEPSEEK_API_KEY)，未执行真实对照")
@@ -236,11 +244,18 @@ def main():
                 mode=mode,
                 ablation=ablation,
                 experiment_mode=args.experiment_mode,
-                budget=InvestigationBudget(max_matters=args.max_matters),
+                selected_matter_ids=[args.matter_id] if args.matter_id else [],
+                comparison_run=True,
+                fixed_evidence_ids=json.loads(args.evidence_ids.read_text()) if args.evidence_ids else [],
+                budget=InvestigationBudget(max_matters=1, max_provider_calls=args.max_provider_calls, max_role_rounds=args.max_role_rounds),
             )
 
             row = {
                 "repeat": repeat + 1,
+                "case_id": args.case_id or args.matter_id,
+                "matter_id": args.matter_id,
+                "result_file": f"{repeat+1}-{tag}.json",
+                "budget": body.budget.model_dump(),
                 "group_id": gid,
                 "group_name": group_info["name"],
                 "mode": mode,
@@ -278,6 +293,7 @@ def main():
                     model_status=run.model_status,
                     report_set=run.report_set.model_dump(mode="json") if run.report_set else None,
                     matter_overview=run.matter_overview,
+                    fixed_evidence_sha256=run.versions.get("fixed_evidence_sha256"),
                     provider_calls=len(run.provider_calls),
                     successful_calls=sum(c.get("status") == "completed" for c in run.provider_calls),
                     input_tokens=sum(c.get("input_tokens") or 0 for c in run.provider_calls),

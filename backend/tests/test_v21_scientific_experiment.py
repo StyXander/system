@@ -108,7 +108,7 @@ class TestVerdictAndEvaluationMetrics:
         # 2. Conflicting with explanation -> EXPLAINED_DIFFERENCE
         v2 = extract_verdict_from_assessment(
             {"relation_support": "conflicting"},
-            explanations=[{"acceptance_status": "accepted", "summary": "附注已说明子公司范围差异"}],
+            explanations=[{"status": "supported_as_reported", "supporting_evidence_ids": ["E2"], "summary": "附注已说明子公司范围差异"}],
         )
         assert v2 == "EXPLAINED_DIFFERENCE"
 
@@ -121,7 +121,7 @@ class TestVerdictAndEvaluationMetrics:
 
         # 4. Supported & comparable -> CONFIRMED_CONSISTENT
         v4 = extract_verdict_from_assessment(
-            {"relation_support": "supported", "amount_comparability": "comparable", "supporting_evidence_ids": ["E1"]},
+            {"relation_support": "supported", "amount_comparability": "comparable", "numeric_consistency": "consistent", "supporting_evidence_ids": ["E1"]},
         )
         assert v4 == "CONFIRMED_CONSISTENT"
 
@@ -155,7 +155,7 @@ class TestCohenKappaIAA:
         res = compute_cohens_kappa(rater_a, rater_b, VERDICT_CLASSES)
         assert res["percent_agreement"] == 1.0
         assert res["cohens_kappa"] == 1.0
-        assert res["weighted_kappa"] == 1.0
+        assert res["weighted_kappa"] is None
         assert res["interpretation"] == "Almost Perfect"
 
     def test_partial_agreement(self):

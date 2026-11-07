@@ -500,3 +500,22 @@ def test_matter_rollback_switch_refuses_new_work_without_relabeling(reports,monk
         assert boot['default_mode']=='three_agents' and boot['matter_enabled'] is False
         response=client.post('/api/connectivity/runs',json={'report_set_id':rs.report_set_id,'mode':'five_agents'})
         assert response.status_code==503
+
+
+def test_fixed_evidence_snapshot_is_identical_across_all_roles(reports):
+    root, rs = reports
+    seen = []
+    def caller(role, payload):
+        seen.append((role, tuple(e['evidence_id'] for e in payload['evidence'])))
+        return fake_provider(role, payload)
+    run = run_matter_pipeline(root, request(rs, root=root, experiment_mode='fixed_evidence', comparison_run=True), caller=caller)
+    assert {role for role, _ in seen} == {'A1','A2','A3','A4','A5'}
+    assert len({ids for _, ids in seen}) == 1
+    assert len(run.versions['fixed_evidence_sha256']) == 64
+    assert all(receipt['status']=='rejected' for receipt in run.matter_tool_receipts if receipt['tool_name'] in {'search_matter_reports','open_source_page','locate_matter_numbers'})
+
+
+def test_fixed_evidence_unknown_ids_fail_before_model_call(reports):
+    root, rs = reports
+    with pytest.raises(ValueError, match='FIXED_EVIDENCE_UNKNOWN'):
+        run_matter_pipeline(root, request(rs, root=root, experiment_mode='fixed_evidence', fixed_evidence_ids=['unknown']), caller=fake_provider)

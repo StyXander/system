@@ -541,6 +541,8 @@ class RunRequest(Contract):
     selected_matter_ids: list[str] = Field(default_factory=list, max_length=30)
     ablation: Literal["none", "no_temporal", "no_counterevidence", "no_ontology_gate"] = "none"
     experiment_mode: Literal["end_to_end", "fixed_evidence"] = "end_to_end"
+    fixed_evidence_ids: list[str] = Field(default_factory=list, max_length=2000)
+    comparison_run: bool = False
     budget: InvestigationBudget = Field(default_factory=InvestigationBudget)
     retry_of_task_id: str | None = None
     parent_task_id: str | None = Field(default=None, min_length=8, max_length=100)

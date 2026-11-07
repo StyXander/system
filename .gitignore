@@ -203,3 +203,9 @@ outputs/
 !/docs/copyright/
 !/docs/copyright/*
 !/scripts/build_copyright_doc.py
+
+# Competition source documents and regression tests are reviewable deliverables.
+!/docs/competition/
+!/docs/competition/**
+!/backend/tests/test_competition_integrity.py
+!/scripts/build_competition_manifest.py

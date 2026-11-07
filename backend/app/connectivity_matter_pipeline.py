@@ -12,6 +12,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
+import hashlib
 import os
 import threading
 import time
@@ -78,6 +79,21 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     if not resume:
         run.matter_evidence=seeds;run.matters=seed_matters(seeds,request.matter_types)
         for matter in run.matters:attach_events(run,matter)
+    frozen_evidence=deepcopy(seeds)
+    if request.experiment_mode == "fixed_evidence":
+        requested=set(request.fixed_evidence_ids)
+        available={e.evidence_id for e in corpus}
+        if requested - available:
+            raise ValueError("FIXED_EVIDENCE_UNKNOWN: 证据包包含未登记片段")
+        if requested:
+            frozen_evidence=[deepcopy(e) for e in corpus if e.evidence_id in requested]
+        selected_refs={eid for m in run.matters if m.matter_id in request.selected_matter_ids for eid in m.evidence_ids}
+        if not selected_refs <= {e.evidence_id for e in frozen_evidence}:
+            raise ValueError("FIXED_EVIDENCE_SELECTION_MISSING: 证据包缺少事项身份来源")
+        run.matter_evidence=deepcopy(frozen_evidence)
+        run.versions["fixed_evidence_ids"]=[e.evidence_id for e in frozen_evidence]
+        run.versions["fixed_evidence_sha256"]=hashlib.sha256(json.dumps([e.model_dump() for e in frozen_evidence],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+    run.versions["comparison_run"]=request.comparison_run
     run.versions["seed_coverage"]=seed_coverage
     progress("rule_calculation","completed",f"建立{len(run.matters)}项披露候选；身份归并待调查")
     progress("knowledge_retrieval","running","准备事项检索、专业规则与补证工具")
@@ -174,7 +190,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     # Independently verify the *same* source row already used by the Baosteel case.
     # Model receives structured data plus source hashes, never a prewritten conclusion.
     verified_project_table=None
-    if (request.selected_matter_ids and request.mode=='five_agents'
+    if (request.selected_matter_ids
             and report_set.company_id=='600019'
             and {d.document_id for d in documents}>={'BAOSTEEL_AR_2025','BAOSTEEL_ESG_2025'}):
         chosen=[m for m in run.matters if m.matter_id in request.selected_matter_ids]
@@ -199,19 +215,10 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
     def payload_for(role,matter=None,extension=""):
         # 每波读同一快照；worker只提交建议，不直接覆盖另一角色的结果。
         with lock:
-            if matter:
-                if getattr(request, 'experiment_mode', 'end_to_end') == 'fixed_evidence':
-                    from .connectivity_matters import _all_refs
-                    referenced=set(matter.evidence_ids)
-                    for field in ('matter_paths','matter_events','matter_commitments','matter_explanations','matter_assessments'):
-                        for value in getattr(run,field):
-                            if value.matter_id==matter.matter_id:referenced.update(_all_refs(value.model_dump()))
-                    for task in run.matter_tasks:
-                        if task.get('matter_id')==matter.matter_id and task.get('result'):referenced.update(_all_refs(task['result']))
-                    focused={b.evidence_id:b for b in run.matter_evidence if b.evidence_id in referenced}
-                    context_evidence=list(focused.values())
-                else:
-                    query=matter.name+" "+" ".join(matter.aliases)
+            if request.experiment_mode == "fixed_evidence":
+                context_evidence=deepcopy(frozen_evidence)
+            elif matter:
+                query=matter.name+" "+" ".join(matter.aliases)
                 if verified_project_table:
                     query+=" "+str(verified_project_table.get("source_row_label") or "")
                 discovered=search_corpus(corpus,query,limit=18)["evidence"]
@@ -495,7 +502,7 @@ def run_matter_pipeline(root, request, *, progress=lambda *a:None, agent_progres
                 tasks=[role_task("A5",matter,"单模型对照具有同样工具，请一次综合完成财务路径、时序、反证及assessment。")]
             assessment=next((a for a in run.matter_assessments if a.matter_id==matter.matter_id),None)
             # 一次有具体目标的反馈调查，预算仍归同一计数器。
-            if assessment and assessment.next_actions and attempts<budget.max_provider_calls and request.mode=="five_agents" and request.ablation=="none":
+            if assessment and assessment.next_actions and attempts<budget.max_provider_calls and request.mode=="five_agents" and request.ablation=="none" and not request.comparison_run and request.experiment_mode != "fixed_evidence":
                 action=next((a for a in assessment.next_actions if a.target_role in {"A2","A3"}),None)
                 # 需要内部底稿的动作只进入资料清单；公开原件没有新线索时不重复付费补查。
                 available=search_corpus(corpus,action.question+" "+action.requested_material,limit=6)["evidence"] if action else []

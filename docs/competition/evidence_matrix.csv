@@ -1,0 +1,4 @@
+﻿评分项,权重,主张,实现文件,验证记录,状态
+科学性,30%,固定证据与事项映射,backend/app/connectivity_matter_pipeline.py,待补测试记录,已实现待验证
+先进性,30%,会计口径与反证贡献,docs/competition/EXPERIMENT_PROTOCOL.md,,待独立实验
+现实意义,40%,专业任务试用,docs/competition/TRIAL_FORMS.md,,模板就绪待实际试用

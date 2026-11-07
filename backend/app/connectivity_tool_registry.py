@@ -85,7 +85,7 @@ def execute_tool(root, run, request: ToolRequest, *, corpus=None) -> dict:
     if request.tool_name not in TOOL_NAMES:
         receipt["reason"] = f"工具不在白名单：{request.tool_name}"
         return receipt
-    if getattr(run, "versions", {}).get("experiment_mode") == "fixed_evidence" and request.tool_name in {"search_registered_reports", "search_matter_reports", "open_source_page"}:
+    if getattr(run, "versions", {}).get("experiment_mode") == "fixed_evidence" and request.tool_name in {"search_registered_reports", "search_matter_reports", "open_source_page", "locate_matter_numbers"}:
         receipt["reason"] = "固定证据包对照模式（Exp-B）：外部/全量检索已冻结，仅允许基于已有候选证据进行推断与核验"
         return _finish(receipt, started)
     args = request.arguments
